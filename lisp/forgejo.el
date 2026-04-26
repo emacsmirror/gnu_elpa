@@ -6,7 +6,7 @@
 ;; Keywords: extensions
 ;; URL: https://codeberg.org/thanosapollo/emacs-forgejo
 ;; Version: 0.0.1
-;; Package-Requires: ((emacs "29.1") (markdown-mode "2.6"))
+;; Package-Requires: ((emacs "29.1") (markdown-mode "2.6") (keymap-popup "0.1.0"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by

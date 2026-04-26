@@ -34,6 +34,7 @@
 
 (require 'cl-lib)
 (require 'url-parse)
+(require 'keymap-popup)
 (require 'forgejo)
 (require 'forgejo-api)
 (require 'forgejo-tl)
@@ -170,21 +171,18 @@ and runs `forgejo-watch-hooks' when new ones arrive."
 (defvar-local forgejo-watch--filters nil
   "Current filter plist for the notification list.")
 
-(declare-function forgejo-watch-actions "forgejo-transient.el" ())
-
-(defvar forgejo-watch-list-mode-map
-  (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "RET") #'forgejo-watch-view-at-point)
-    (define-key map (kbd "r") #'forgejo-watch-mark-read-at-point)
-    (define-key map (kbd "A") #'forgejo-watch-mark-all-read)
-    (define-key map (kbd "b") #'forgejo-watch-browse-at-point)
-    (define-key map (kbd "l") #'forgejo-watch-filter)
-    (define-key map (kbd "C") #'forgejo-watch-clear-filters)
-    (define-key map (kbd "g") #'forgejo-watch-list-refresh)
-    (define-key map (kbd "h") #'forgejo-watch-actions)
-    (define-key map (kbd "q") #'quit-window)
-    map)
-  "Keymap for `forgejo-watch-list-mode'.")
+(keymap-popup-define forgejo-watch-list-mode-map
+  "Forgejo watch list."
+  :parent tabulated-list-mode-map
+  :group "Actions"
+  "RET" ("View" forgejo-watch-view-at-point)
+  "r" ("Mark read" forgejo-watch-mark-read-at-point)
+  "R" ("Mark all read" forgejo-watch-mark-all-read)
+  "b" ("Open in browser" forgejo-watch-browse-at-point)
+  :group "Navigate"
+  "l" ("Filter" forgejo-watch-filter)
+  "C" ("Clear filters" forgejo-watch-clear-filters)
+  "g" ("Refresh" forgejo-watch-list-refresh))
 
 (define-derived-mode forgejo-watch-list-mode tabulated-list-mode
   "Forgejo Watch"

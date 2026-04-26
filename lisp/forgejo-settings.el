@@ -20,13 +20,13 @@
 
 ;;; Commentary:
 
-;; View and edit repository settings via transient menus.
+;; View and edit repository settings via popup menus.
 ;; Data flows through closures, no global state.
 ;; Fetches fresh from API each time settings are opened.
 
 ;;; Code:
 
-(require 'transient)
+(require 'keymap-popup)
 (require 'forgejo)
 (require 'forgejo-api)
 (require 'forgejo-utils)
@@ -63,14 +63,25 @@ Calls CALLBACK with updated data on success."
   "Extract repo name from repo DATA."
   (alist-get 'name data))
 
-;;; Transient
+;;; Settings popup
+
+(defvar forgejo-settings--map (make-sparse-keymap)
+  "Keymap for settings popup, rebuilt each time settings are opened.")
+
+(defvar forgejo-settings--labels-map (make-sparse-keymap)
+  "Keymap for label management popup.")
 
 (declare-function forgejo-vc--repo-from-remote "forgejo-vc.el" ())
+
+(defun forgejo-settings--format-value (value)
+  "Format VALUE with a distinct face for display."
+  (propertize (format "%s" (or value ""))
+              'face 'forgejo-comment-author-face))
 
 ;;;###autoload
 (defun forgejo-settings ()
   "Open repository settings for the current repo context.
-Fetches fresh settings from the API, then opens the transient."
+Fetches fresh settings from the API, then opens the popup."
   (interactive)
   (let* ((host-url (or (bound-and-true-p forgejo-repo--host)
                        (forgejo--resolve-host)))
@@ -85,100 +96,125 @@ Fetches fresh settings from the API, then opens the transient."
      (lambda (data)
        (forgejo-settings--show host-url data)))))
 
-(defun forgejo-settings--format-value (value)
-  "Format VALUE with a distinct face for transient display."
-  (propertize (format "%s" (or value ""))
-              'face 'forgejo-comment-author-face))
-
 (defun forgejo-settings--show (host-url data)
-  "Display settings transient for repo DATA on HOST-URL."
-  (let ((owner (forgejo-settings--owner data))
-        (repo (forgejo-settings--repo data))
-        (desc (or (alist-get 'description data) ""))
-        (website (or (alist-get 'website data) ""))
-        (host (url-host (url-generic-parse-url host-url))))
-    (transient-define-prefix forgejo-settings--current ()
-      "Repository settings."
-      [:description
-       (lambda () (format "Settings: %s/%s" owner repo))
-       ("d" (lambda () (format "Description  %s"
-                               (forgejo-settings--format-value
-                                (truncate-string-to-width desc 40 nil nil "..."))))
-        (lambda ()
-          (interactive)
-          (let ((new (read-string "Description: " desc)))
-            (unless (string= new desc)
-              (forgejo-settings--save
-               host-url owner repo 'description new
-               (lambda (_updated)
-                 (setq desc new)
-                 (transient-setup 'forgejo-settings--current)))))))
-       ("w" (lambda () (format "Website  %s"
-                               (forgejo-settings--format-value website)))
-        (lambda ()
-          (interactive)
-          (let ((new (read-string "Website: " website)))
-            (unless (string= new website)
-              (forgejo-settings--save
-               host-url owner repo 'website new
-               (lambda (_updated)
-                 (setq website new)
-                 (transient-setup 'forgejo-settings--current)))))))
-       ("l" "Labels" forgejo-settings--labels)]
-      [:hide always])
-    (transient-define-prefix forgejo-settings--labels ()
-      "Label management."
-      [:description
-       (lambda () (format "Labels: %s/%s" owner repo))
-       ("a" "Create label"
-        (lambda ()
-          (interactive)
-          (forgejo-utils-create-label host-url owner repo host nil)))
-       ("c" "Change color"
-        (lambda ()
-          (interactive)
-          (let* ((cached (forgejo-db-get-labels host owner repo))
-                 (names (mapcar (lambda (row) (nth 4 row)) cached))
-                 (name (completing-read "Label: " names nil t))
-                 (id (forgejo-db-get-label-id host owner repo name))
-                 (color (read-color "New color: ")))
-            (when id
-              (unless (string-match-p "\\`#?[0-9a-fA-F]+\\'" color)
-                (let ((rgb (color-values color)))
-                  (unless rgb (user-error "Unknown color: %s" color))
-                  (setq color (format "%02x%02x%02x"
-                                      (/ (nth 0 rgb) 256)
-                                      (/ (nth 1 rgb) 256)
-                                      (/ (nth 2 rgb) 256)))))
-              (when (string-prefix-p "#" color)
-                (setq color (substring color 1)))
-              (forgejo-api-patch
-               host-url
-               (format "repos/%s/%s/labels/%d" owner repo id)
-               `((color . ,color))
-               (lambda (data _headers)
-                 (forgejo-db-save-labels host owner repo (list data))
-                 (message "Updated color of %s to #%s" name color)))))))
-       ("d" "Delete label"
-        (lambda ()
-          (interactive)
-          (let* ((cached (forgejo-db-get-labels host owner repo))
-                 (names (mapcar (lambda (row) (nth 4 row)) cached))
-                 (name (completing-read "Delete label: " names nil t))
-                 (id (forgejo-db-get-label-id host owner repo name)))
-            (when (and id (y-or-n-p (format "Delete label %s? " name)))
-              (forgejo-api-delete
-               host-url
-               (format "repos/%s/%s/labels/%d" owner repo id)
-               nil
-               (lambda (_data _headers)
-                 (forgejo-db--execute
-                  "DELETE FROM labels WHERE host = ? AND owner = ? AND repo = ? AND id = ?"
-                  (list host owner repo id))
-                 (forgejo-settings--remove-label-from-issues
-                  host owner repo name)
-                 (message "Deleted label %s from %s/%s" name owner repo)))))))])
-    (forgejo-settings--current)))
+  "Display settings popup for repo DATA on HOST-URL."
+  (let* ((owner (forgejo-settings--owner data))
+         (repo (forgejo-settings--repo data))
+         (desc (or (alist-get 'description data) ""))
+         (website (or (alist-get 'website data) ""))
+         (host (url-host (url-generic-parse-url host-url))))
+    ;; Build labels sub-map (must exist before settings map references it)
+    (forgejo-settings--build-labels-map host-url owner repo host)
+    ;; Build settings map
+    (setq forgejo-settings--map (make-sparse-keymap))
+    (keymap-set forgejo-settings--map "d"
+                (lambda () (interactive)
+                  (let ((new (read-string "Description: " desc)))
+                    (unless (string= new desc)
+                      (setq desc new)
+                      (forgejo-settings--save
+                       host-url owner repo 'description new nil)))))
+    (keymap-set forgejo-settings--map "w"
+                (lambda () (interactive)
+                  (let ((new (read-string "Website: " website)))
+                    (unless (string= new website)
+                      (setq website new)
+                      (forgejo-settings--save
+                       host-url owner repo 'website new nil)))))
+    (keymap-set forgejo-settings--map "l"
+                (lambda () (interactive)
+                  (keymap-popup 'forgejo-settings--labels-map)))
+    (put 'forgejo-settings--map 'keymap-popup--descriptions
+         (list
+          (list
+           (list :name (format "Settings: %s/%s" owner repo)
+                 :entries
+                 (list
+                  (list :key "d"
+                        :description
+                        (lambda ()
+                          (format "Description  %s"
+                                  (forgejo-settings--format-value
+                                   (truncate-string-to-width
+                                    desc 40 nil nil "..."))))
+                        :type 'suffix
+                        :stay-open t)
+                  (list :key "w"
+                        :description
+                        (lambda ()
+                          (format "Website  %s"
+                                  (forgejo-settings--format-value website)))
+                        :type 'suffix
+                        :stay-open t)
+                  (list :key "l"
+                        :description "Labels"
+                        :type 'keymap
+                        :target 'forgejo-settings--labels-map))))))
+    (keymap-popup 'forgejo-settings--map)))
+
+;;; Labels popup
+
+(defun forgejo-settings--build-labels-map (host-url owner repo host)
+  "Build the labels sub-map for OWNER/REPO on HOST-URL.
+HOST is the hostname for DB lookups."
+  (setq forgejo-settings--labels-map (make-sparse-keymap))
+  (keymap-set forgejo-settings--labels-map "a"
+              (lambda () (interactive)
+                (forgejo-utils-create-label host-url owner repo host nil)))
+  (keymap-set forgejo-settings--labels-map "c"
+              (lambda () (interactive)
+                (let* ((cached (forgejo-db-get-labels host owner repo))
+                       (names (mapcar (lambda (row) (nth 4 row)) cached))
+                       (name (completing-read "Label: " names nil t))
+                       (id (forgejo-db-get-label-id host owner repo name))
+                       (color (read-color "New color: ")))
+                  (when id
+                    (unless (string-match-p "\\`#?[0-9a-fA-F]+\\'" color)
+                      (let ((rgb (color-values color)))
+                        (unless rgb (user-error "Unknown color: %s" color))
+                        (setq color (format "%02x%02x%02x"
+                                            (/ (nth 0 rgb) 256)
+                                            (/ (nth 1 rgb) 256)
+                                            (/ (nth 2 rgb) 256)))))
+                    (when (string-prefix-p "#" color)
+                      (setq color (substring color 1)))
+                    (forgejo-api-patch
+                     host-url
+                     (format "repos/%s/%s/labels/%d" owner repo id)
+                     `((color . ,color))
+                     (lambda (data _headers)
+                       (forgejo-db-save-labels host owner repo (list data))
+                       (message "Updated color of %s to #%s" name color)))))))
+  (keymap-set forgejo-settings--labels-map "d"
+              (lambda () (interactive)
+                (let* ((cached (forgejo-db-get-labels host owner repo))
+                       (names (mapcar (lambda (row) (nth 4 row)) cached))
+                       (name (completing-read "Delete label: " names nil t))
+                       (id (forgejo-db-get-label-id host owner repo name)))
+                  (when (and id (y-or-n-p (format "Delete label %s? " name)))
+                    (forgejo-api-delete
+                     host-url
+                     (format "repos/%s/%s/labels/%d" owner repo id)
+                     nil
+                     (lambda (_data _headers)
+                       (forgejo-db--execute
+                        "DELETE FROM labels WHERE host = ? AND owner = ? AND repo = ? AND id = ?"
+                        (list host owner repo id))
+                       (forgejo-settings--remove-label-from-issues
+                        host owner repo name)
+                       (message "Deleted label %s from %s/%s"
+                                name owner repo)))))))
+  (put 'forgejo-settings--labels-map 'keymap-popup--descriptions
+       (list
+        (list
+         (list :name (format "Labels: %s/%s" owner repo)
+               :entries
+               (list
+                (list :key "a" :description "Create label" :type 'suffix)
+                (list :key "c" :description "Change color" :type 'suffix)
+                (list :key "d" :description "Delete label" :type 'suffix)))))))
+
+;;; Helpers
 
 (defun forgejo-settings--remove-label-from-issues (host owner repo label-name)
   "Remove LABEL-NAME from all cached issues in HOST/OWNER/REPO."
@@ -196,7 +232,8 @@ Fetches fresh settings from the API, then opens the transient."
         (unless (= (length labels) (length filtered))
           (forgejo-db--execute
            "UPDATE issues SET labels = ? WHERE host = ? AND owner = ? AND repo = ? AND number = ?"
-           (list (forgejo-db--encode-json filtered) host owner repo number)))))))
+           (list (forgejo-db--encode-json filtered)
+                 host owner repo number)))))))
 
 (provide 'forgejo-settings)
 ;;; forgejo-settings.el ends here

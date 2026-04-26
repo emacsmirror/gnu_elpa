@@ -1,4 +1,4 @@
-;;; forgejo-transient.el --- Transient menus for Forgejo  -*- lexical-binding: t; -*-
+;;; forgejo-transient.el --- Popup menus for Forgejo  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2026  Thanos Apollo
 
@@ -20,12 +20,12 @@
 
 ;;; Commentary:
 
-;; Transient menus for Forgejo.  Provides the top-level `forgejo'
+;; Popup menus for Forgejo.  Provides the top-level `forgejo'
 ;; entry point and the action-at-point dispatch for repo search results.
 
 ;;; Code:
 
-(require 'transient)
+(require 'keymap-popup)
 (require 'forgejo)
 (require 'forgejo-utils)
 
@@ -36,31 +36,28 @@
                   (&optional owner repo))
 (declare-function forgejo-repo-search--owner-repo-at-point "forgejo-repo.el" ())
 (declare-function forgejo-repo-create "forgejo-repo.el" (name))
-
 (declare-function forgejo-watch-list "forgejo-watch.el" ())
-(declare-function forgejo-watch-view-at-point "forgejo-watch.el" ())
-(declare-function forgejo-watch-mark-read-at-point "forgejo-watch.el" ())
-(declare-function forgejo-watch-mark-all-read "forgejo-watch.el" ())
-(declare-function forgejo-watch-browse-at-point "forgejo-watch.el" ())
-(declare-function forgejo-watch-list-refresh "forgejo-watch.el" ())
-(declare-function forgejo-watch-filter "forgejo-watch.el" ())
 
 (defvar forgejo-repo--host)
 
 ;;; Top-level menu
 
-;;;###autoload (autoload 'forgejo "forgejo-transient" nil t)
-(transient-define-prefix forgejo ()
+(keymap-popup-define forgejo-map
   "Forgejo."
-  [["Navigate"
-    ("s" "Search repos" forgejo-repo-search)
-    ("i" "Issues" forgejo-issue-list)
-    ("p" "Pull requests" forgejo-pull-list)
-    ("n" "Watch" forgejo-watch-list)]
-   ["Actions"
-    ("c" "Create repo" forgejo-repo-create)
-    ("b" "Browse repo" forgejo-browse-repo)
-    ("q" "Quit" transient-quit-one)]])
+  :group "Navigate"
+  "s" ("Search repos" forgejo-repo-search)
+  "i" ("Issues" forgejo-issue-list)
+  "p" ("Pull requests" forgejo-pull-list)
+  "n" ("Watch" forgejo-watch-list)
+  :group "Actions"
+  "c" ("Create repo" forgejo-repo-create)
+  "b" ("Browse repo" forgejo-browse-repo))
+
+;;;###autoload
+(defun forgejo ()
+  "Forgejo."
+  (interactive)
+  (keymap-popup 'forgejo-map))
 
 ;;; Browse
 
@@ -77,13 +74,18 @@
 
 ;;; Repo search action-at-point
 
-;;;###autoload (autoload 'forgejo-repo-action-at-point "forgejo-transient" nil t)
-(transient-define-prefix forgejo-repo-action-at-point ()
+(keymap-popup-define forgejo-repo-action-map
   "Actions for repository at point."
-  [["Open"
-    ("i" "Issues" forgejo-repo-action--issues)
-    ("p" "Pull requests" forgejo-repo-action--pulls)
-    ("b" "Browse" forgejo-repo-action--browse)]])
+  :group "Open"
+  "i" ("Issues" forgejo-repo-action--issues)
+  "p" ("Pull requests" forgejo-repo-action--pulls)
+  "b" ("Browse" forgejo-repo-action--browse))
+
+;;;###autoload
+(defun forgejo-repo-action-at-point ()
+  "Actions for repository at point."
+  (interactive)
+  (keymap-popup 'forgejo-repo-action-map))
 
 (defun forgejo-repo-action--issues ()
   "List issues for the repo at point."
@@ -102,113 +104,6 @@
   (interactive)
   (when-let* ((pair (forgejo-repo-search--owner-repo-at-point)))
     (forgejo-utils-browse-repo forgejo-repo--host (car pair) (cdr pair))))
-
-;;; Shared detail view actions
-
-(declare-function forgejo-view-browse "forgejo-view.el" ())
-(declare-function forgejo-view-refresh "forgejo-view.el" ())
-(declare-function forgejo-view-comment "forgejo-view.el" ())
-(declare-function forgejo-view-edit "forgejo-view.el" ())
-(declare-function forgejo-view-toggle-state "forgejo-view.el" ())
-(declare-function forgejo-view-add-label "forgejo-view.el" ())
-(declare-function forgejo-view-remove-label "forgejo-view.el" ())
-(declare-function forgejo-view-add-assignee "forgejo-view.el" ())
-(declare-function forgejo-view-remove-assignee "forgejo-view.el" ())
-(declare-function forgejo-view-set-milestone "forgejo-view.el" ())
-(declare-function forgejo-view-delete-at-point "forgejo-view.el" ())
-
-;;; Issue detail actions
-
-(declare-function forgejo-issue-reply "forgejo-issue.el" ())
-
-;;;###autoload (autoload 'forgejo-issue-add-metadata "forgejo-transient" nil t)
-(transient-define-prefix forgejo-issue-add-metadata ()
-  "Add metadata to the current issue."
-  [["Add"
-    ("l" "Label" forgejo-view-add-label)
-    ("a" "Assignee" forgejo-view-add-assignee)
-    ("m" "Milestone" forgejo-view-set-milestone)]])
-
-;;;###autoload (autoload 'forgejo-issue-remove-metadata "forgejo-transient" nil t)
-(transient-define-prefix forgejo-issue-remove-metadata ()
-  "Remove metadata from the current issue."
-  [["Remove"
-    ("l" "Label" forgejo-view-remove-label)
-    ("a" "Assignee" forgejo-view-remove-assignee)]])
-
-;;;###autoload (autoload 'forgejo-issue-actions "forgejo-transient" nil t)
-(transient-define-prefix forgejo-issue-actions ()
-  "Actions for the current issue."
-  [["Actions"
-    ("c" "Comment" forgejo-view-comment)
-    ("r" "Reply at point" forgejo-issue-reply)
-    ("e" "Edit at point" forgejo-view-edit)
-    ("x" "Toggle open/close" forgejo-view-toggle-state)
-    ("D" "Delete at point" forgejo-view-delete-at-point)]
-   ["Metadata"
-    ("a" "Add metadata" forgejo-issue-add-metadata)
-    ("d" "Remove metadata" forgejo-issue-remove-metadata)]
-   ["Navigate"
-    ("g" "Refresh" forgejo-view-refresh)
-    ("b" "Open in browser" forgejo-view-browse)
-    ("q" "Quit" quit-window)]])
-
-;;; PR detail actions
-
-(declare-function forgejo-pull-reply "forgejo-pull.el" ())
-(declare-function forgejo-review-submit "forgejo-review.el" ())
-(declare-function forgejo-pull-view-diff "forgejo-pull.el" ())
-
-;;;###autoload (autoload 'forgejo-pull-add-metadata "forgejo-transient" nil t)
-(transient-define-prefix forgejo-pull-add-metadata ()
-  "Add metadata to the current pull request."
-  [["Add"
-    ("l" "Label" forgejo-view-add-label)
-    ("a" "Assignee" forgejo-view-add-assignee)
-    ("m" "Milestone" forgejo-view-set-milestone)]])
-
-;;;###autoload (autoload 'forgejo-pull-remove-metadata "forgejo-transient" nil t)
-(transient-define-prefix forgejo-pull-remove-metadata ()
-  "Remove metadata from the current pull request."
-  [["Remove"
-    ("l" "Label" forgejo-view-remove-label)
-    ("a" "Assignee" forgejo-view-remove-assignee)]])
-
-;;;###autoload (autoload 'forgejo-pull-actions "forgejo-transient" nil t)
-(transient-define-prefix forgejo-pull-actions ()
-  "Actions for the current pull request."
-  [["Actions"
-    ("c" "Comment" forgejo-view-comment)
-    ("r" "Reply at point" forgejo-pull-reply)
-    ("e" "Edit at point" forgejo-view-edit)
-    ("R" "Submit review" forgejo-review-submit)
-    ("x" "Toggle open/close" forgejo-view-toggle-state)
-    ("D" "Delete at point" forgejo-view-delete-at-point)]
-   ["Metadata"
-    ("a" "Add metadata" forgejo-pull-add-metadata)
-    ("d" "Remove metadata" forgejo-pull-remove-metadata)]
-   ["Navigate"
-    ("=" "PR diff" forgejo-pull-view-diff)
-    ("f" "Fetch branch" forgejo-pull-view-fetch)
-    ("l" "Commit log" forgejo-pull-view-log)
-    ("g" "Refresh" forgejo-view-refresh)
-    ("b" "Open in browser" forgejo-view-browse)
-    ("q" "Quit" quit-window)]])
-
-;;; Watch actions
-
-;;;###autoload (autoload 'forgejo-watch-actions "forgejo-transient" nil t)
-(transient-define-prefix forgejo-watch-actions ()
-  "Actions for the watch list."
-  [["Actions"
-    ("RET" "View" forgejo-watch-view-at-point)
-    ("r" "Mark read" forgejo-watch-mark-read-at-point)
-    ("R" "Mark all read" forgejo-watch-mark-all-read)
-    ("b" "Open in browser" forgejo-watch-browse-at-point)]
-   ["Navigate"
-    ("l" "Filter" forgejo-watch-filter)
-    ("g" "Refresh" forgejo-watch-list-refresh)
-    ("q" "Quit" quit-window)]])
 
 (provide 'forgejo-transient)
 ;;; forgejo-transient.el ends here

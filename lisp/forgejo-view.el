@@ -30,6 +30,7 @@
 (require 'cl-lib)
 (require 'ewoc)
 (require 'url-parse)
+(require 'keymap-popup)
 (require 'forgejo)
 (require 'forgejo-tl)
 (require 'forgejo-buffer)
@@ -57,6 +58,27 @@ Called with (HOST OWNER REPO NUMBER BUF-NAME &optional RESTORE-LINE).")
 (defvar-local forgejo-view--browse-fn nil
   "Function to open the current item in the browser.
 Called with (HOST-URL OWNER REPO NUMBER).")
+
+;;; Shared view keymap
+
+(keymap-popup-define forgejo-view-mode-map
+  "Forgejo detail view."
+  :parent special-mode-map
+  :group "Actions"
+  "c" ("Comment" forgejo-view-comment)
+  "e" ("Edit at point" forgejo-view-edit)
+  "x" ("Toggle open/close" forgejo-view-toggle-state)
+  "D" ("Delete at point" forgejo-view-delete-at-point)
+  :group "Metadata"
+  "L" ("Add label" forgejo-view-add-label)
+  "A" ("Add assignee" forgejo-view-add-assignee)
+  "M" ("Set milestone" forgejo-view-set-milestone)
+  :group "Navigate"
+  "RET" ("Follow link" forgejo-buffer-follow-link)
+  "g" ("Refresh" forgejo-view-refresh)
+  "b" ("Open in browser" forgejo-view-browse)
+  "n" ("Next" ewoc-goto-next)
+  "p" ("Previous" ewoc-goto-prev))
 
 ;;; Node access
 

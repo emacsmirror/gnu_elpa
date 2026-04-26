@@ -27,6 +27,7 @@
 
 (require 'cl-lib)
 (require 'url-parse)
+(require 'keymap-popup)
 (require 'forgejo)
 (require 'forgejo-tl)
 (require 'forgejo-view)
@@ -54,19 +55,19 @@ Keys: :state :labels :milestone :author :query :page")
 (defvar-local forgejo-issue--total-count nil
   "Total number of issues matching current filters (from API header).")
 
-(defvar forgejo-issue-list-mode-map
-  (let ((map (make-sparse-keymap)))
-    (set-keymap-parent map tabulated-list-mode-map)
-    (define-key map (kbd "RET") #'forgejo-issue-view-at-point)
-    (define-key map (kbd "S") #'forgejo-tl-sort)
-    (define-key map (kbd "c") #'forgejo-issue-create)
-    (define-key map (kbd "g") #'forgejo-issue-refresh)
-    (define-key map (kbd "l") #'forgejo-issue-filter)
-    (define-key map (kbd "C") #'forgejo-issue-clear-filters)
-    (define-key map (kbd "x") #'forgejo-view-toggle-state)
-    (define-key map (kbd "b") #'forgejo-issue-browse-at-point)
-    map)
-  "Keymap for `forgejo-issue-list-mode'.")
+(keymap-popup-define forgejo-issue-list-mode-map
+  "Forgejo issue list."
+  :parent tabulated-list-mode-map
+  :group "Actions"
+  "RET" ("View issue" forgejo-issue-view-at-point)
+  "c" ("Create issue" forgejo-issue-create)
+  "x" ("Toggle open/close" forgejo-view-toggle-state)
+  "b" ("Browse" forgejo-issue-browse-at-point)
+  :group "Navigate"
+  "S" ("Sort" forgejo-tl-sort)
+  "g" ("Refresh" forgejo-issue-refresh)
+  "l" ("Filter" forgejo-issue-filter)
+  "C" ("Clear filters" forgejo-issue-clear-filters))
 
 (define-derived-mode forgejo-issue-list-mode tabulated-list-mode
   "Forgejo Issues"
@@ -293,27 +294,11 @@ Empty input clears all filters."
 
 ;;; Issue detail view (EWOC)
 
-(declare-function forgejo-issue-actions "forgejo-transient.el" ())
-
-(defvar forgejo-issue-view-mode-map
-  (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "q") #'quit-window)
-    (define-key map (kbd "RET") #'forgejo-buffer-follow-link)
-    (define-key map (kbd "g") #'forgejo-view-refresh)
-    (define-key map (kbd "b") #'forgejo-view-browse)
-    (define-key map (kbd "c") #'forgejo-view-comment)
-    (define-key map (kbd "r") #'forgejo-issue-reply)
-    (define-key map (kbd "e") #'forgejo-view-edit)
-    (define-key map (kbd "x") #'forgejo-view-toggle-state)
-    (define-key map (kbd "L") #'forgejo-view-add-label)
-    (define-key map (kbd "A") #'forgejo-view-add-assignee)
-    (define-key map (kbd "M") #'forgejo-view-set-milestone)
-    (define-key map (kbd "D") #'forgejo-view-delete-at-point)
-    (define-key map (kbd "h") #'forgejo-issue-actions)
-    (define-key map (kbd "n") #'ewoc-goto-next)
-    (define-key map (kbd "p") #'ewoc-goto-prev)
-    map)
-  "Keymap for `forgejo-issue-view-mode'.")
+(keymap-popup-define forgejo-issue-view-mode-map
+  "Issue detail actions."
+  :parent forgejo-view-mode-map
+  :group "Actions"
+  "r" ("Reply at point" forgejo-issue-reply))
 
 (define-derived-mode forgejo-issue-view-mode special-mode
   "Forgejo Issue"

@@ -27,6 +27,7 @@
 
 (require 'cl-lib)
 (require 'url-parse)
+(require 'keymap-popup)
 (require 'forgejo)
 (require 'forgejo-tl)
 (require 'forgejo-view)
@@ -55,18 +56,18 @@ Keys: :state :milestone :labels :author :page")
 (defvar-local forgejo-pull--total-count nil
   "Total number of PRs matching current filters.")
 
-(defvar forgejo-pull-list-mode-map
-  (let ((map (make-sparse-keymap)))
-    (set-keymap-parent map tabulated-list-mode-map)
-    (define-key map (kbd "RET") #'forgejo-pull-view-at-point)
-    (define-key map (kbd "S") #'forgejo-tl-sort)
-    (define-key map (kbd "g") #'forgejo-pull-refresh)
-    (define-key map (kbd "l") #'forgejo-pull-filter)
-    (define-key map (kbd "C") #'forgejo-pull-clear-filters)
-    (define-key map (kbd "x") #'forgejo-view-toggle-state)
-    (define-key map (kbd "b") #'forgejo-pull-browse-at-point)
-    map)
-  "Keymap for `forgejo-pull-list-mode'.")
+(keymap-popup-define forgejo-pull-list-mode-map
+  "Forgejo pull request list."
+  :parent tabulated-list-mode-map
+  :group "Actions"
+  "RET" ("View PR" forgejo-pull-view-at-point)
+  "x" ("Toggle open/close" forgejo-view-toggle-state)
+  "b" ("Browse" forgejo-pull-browse-at-point)
+  :group "Navigate"
+  "S" ("Sort" forgejo-tl-sort)
+  "g" ("Refresh" forgejo-pull-refresh)
+  "l" ("Filter" forgejo-pull-filter)
+  "C" ("Clear filters" forgejo-pull-clear-filters))
 
 (define-derived-mode forgejo-pull-list-mode tabulated-list-mode
   "Forgejo PRs"
@@ -256,31 +257,16 @@ Shows cached data immediately, then syncs from the API in the background."
 
 ;;; PR detail view
 
-(declare-function forgejo-pull-actions "forgejo-transient.el" ())
-
-(defvar forgejo-pull-view-mode-map
-  (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "q") #'quit-window)
-    (define-key map (kbd "RET") #'forgejo-buffer-follow-link)
-    (define-key map (kbd "g") #'forgejo-view-refresh)
-    (define-key map (kbd "b") #'forgejo-view-browse)
-    (define-key map (kbd "c") #'forgejo-view-comment)
-    (define-key map (kbd "r") #'forgejo-pull-reply)
-    (define-key map (kbd "R") #'forgejo-review-submit)
-    (define-key map (kbd "l") #'forgejo-pull-view-log)
-    (define-key map (kbd "=") #'forgejo-pull-view-diff)
-    (define-key map (kbd "f") #'forgejo-pull-view-fetch)
-    (define-key map (kbd "e") #'forgejo-view-edit)
-    (define-key map (kbd "x") #'forgejo-view-toggle-state)
-    (define-key map (kbd "L") #'forgejo-view-add-label)
-    (define-key map (kbd "A") #'forgejo-view-add-assignee)
-    (define-key map (kbd "M") #'forgejo-view-set-milestone)
-    (define-key map (kbd "D") #'forgejo-view-delete-at-point)
-    (define-key map (kbd "h") #'forgejo-pull-actions)
-    (define-key map (kbd "n") #'ewoc-goto-next)
-    (define-key map (kbd "p") #'ewoc-goto-prev)
-    map)
-  "Keymap for `forgejo-pull-view-mode'.")
+(keymap-popup-define forgejo-pull-view-mode-map
+  "Pull request detail actions."
+  :parent forgejo-view-mode-map
+  :group "Actions"
+  "r" ("Reply at point" forgejo-pull-reply)
+  "R" ("Submit review" forgejo-review-submit)
+  :group "Navigate"
+  "=" ("PR diff" forgejo-pull-view-diff)
+  "f" ("Fetch branch" forgejo-pull-view-fetch)
+  "l" ("Commit log" forgejo-pull-view-log))
 
 (define-derived-mode forgejo-pull-view-mode special-mode
   "Forgejo PR"

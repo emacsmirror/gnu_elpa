@@ -13,12 +13,24 @@ Emacs front-end for [[https://forgejo.org][Forgejo]] instances (Codeberg, self-h
 + Repository settings editor
 
 #+BEGIN_QUOTE
-Requires Emacs 29.1+ (native JSON, native SQLite) and =markdown-mode=.
+Requires Emacs 29.1+ (native JSON, native SQLite), =markdown-mode=, and
+[[https://codeberg.org/thanosapollo/emacs-keymap-popup][keymap-popup]].
 #+END_QUOTE
 
 * Installation
 
 ** use-package (Emacs 30+, recommended)
+
+Install =keymap-popup= first:
+
+#+begin_src emacs-lisp
+  (use-package keymap-popup
+    :vc (:url "https://codeberg.org/thanosapollo/emacs-keymap-popup"
+            :branch "master"
+            :rev :newest))
+#+end_src
+
+Then install =forgejo=:
 
 #+begin_src emacs-lisp
   (use-package forgejo-vc
@@ -45,7 +57,10 @@ Or provide tokens inline:
 
 ** Manual
 
+Clone [[https://codeberg.org/thanosapollo/emacs-keymap-popup][keymap-popup]] and add both to your load path:
+
 #+begin_src emacs-lisp
+  (add-to-list 'load-path "/path/to/emacs-keymap-popup")
   (add-to-list 'load-path "/path/to/emacs-forgejo/lisp")
   (require 'forgejo-vc)
 #+end_src
@@ -59,8 +74,8 @@ Or provide tokens inline:
 * Usage
 
 From any git repository with a Forgejo remote, =C-x v f=
-(=forgejo-vc=) opens the Forgejo transient menu.  All available
-commands are listed there.
+(=forgejo-vc=) opens the Forgejo popup menu.  All available
+commands are listed there.  Press =h= in any view to see keybindings.
 
 =M-x forgejo= opens the top-level menu for repo search, issue/PR
 browsing, and watch list.

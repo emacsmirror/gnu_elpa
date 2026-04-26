@@ -28,6 +28,7 @@
 
 (require 'cl-lib)
 (require 'url-parse)
+(require 'keymap-popup)
 (require 'forgejo)
 (require 'forgejo-utils)
 (require 'forgejo-api)
@@ -132,17 +133,18 @@ When no buffer-local host is set, aggregates across all hosts."
 
 (declare-function forgejo-repo-action-at-point "forgejo-transient.el" ())
 
-(defvar forgejo-repo-search-mode-map
-  (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "RET") #'forgejo-repo-action-at-point)
-    (define-key map (kbd "i") #'forgejo-repo-search-issues-at-point)
-    (define-key map (kbd "P") #'forgejo-repo-search-pulls-at-point)
-    (define-key map (kbd "g") #'forgejo-repo-search-refresh)
-    (define-key map (kbd "b") #'forgejo-repo-search-browse-at-point)
-    (define-key map (kbd "n") #'forgejo-repo-search-next-page)
-    (define-key map (kbd "p") #'forgejo-repo-search-prev-page)
-    map)
-  "Keymap for `forgejo-repo-search-mode'.")
+(keymap-popup-define forgejo-repo-search-mode-map
+  "Forgejo repository search."
+  :parent tabulated-list-mode-map
+  :group "Actions"
+  "RET" ("Actions" forgejo-repo-action-at-point)
+  "i" ("Issues" forgejo-repo-search-issues-at-point)
+  "P" ("Pull requests" forgejo-repo-search-pulls-at-point)
+  "b" ("Browse" forgejo-repo-search-browse-at-point)
+  :group "Navigate"
+  "g" ("Refresh" forgejo-repo-search-refresh)
+  "n" ("Next page" forgejo-repo-search-next-page)
+  "p" ("Previous page" forgejo-repo-search-prev-page))
 
 (define-derived-mode forgejo-repo-search-mode tabulated-list-mode
   "Forgejo Repos"

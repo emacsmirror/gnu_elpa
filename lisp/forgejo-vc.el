@@ -27,7 +27,7 @@
 ;;; Code:
 
 (require 'cl-lib)
-(require 'transient)
+(require 'keymap-popup)
 (require 'forgejo-utils)
 (require 'forgejo)
 
@@ -35,6 +35,8 @@
                   (&optional owner repo))
 (declare-function forgejo-pull-list "forgejo-pull.el"
                   (&optional owner repo))
+(declare-function forgejo-api-post "forgejo-api.el"
+                  (host endpoint &optional params json-body callback))
 
 ;;; Git detection (pure: git command -> data)
 
@@ -359,6 +361,70 @@ Warns if manual merge is disabled for the repo."
           (message "Updated %s to latest PR head." branch))
       (user-error "Not on a pr-N branch: %s" branch))))
 
+;;; Push + manual merge
+
+(defun forgejo-vc--head-sha ()
+  "Return the full SHA of HEAD."
+  (string-trim
+   (with-output-to-string
+     (with-current-buffer standard-output
+       (process-file "git" nil '(t nil) nil "rev-parse" "HEAD")))))
+
+(defun forgejo-vc--mark-merged (host owner repo n sha)
+  "Mark PR N in OWNER/REPO on HOST as manually merged at SHA."
+  (forgejo-api-post
+   host
+   (format "repos/%s/%s/pulls/%d/merge" owner repo n)
+   nil
+   `((Do . "manually-merged")
+     (merge_commit_id . ,sha))
+   (lambda (_data _headers)
+     (message "PR #%d marked as manually merged." n))))
+
+;;;###autoload
+(defun forgejo-vc-push (remote branch &optional mark-merged-p)
+  "Push BRANCH to REMOTE.
+With prefix argument MARK-MERGED-P, also prompt for a PR number
+and mark it as manually merged after a successful push."
+  (interactive
+   (let* ((current-branch (car (vc-git-branches)))
+          (all-remote-branches (forgejo-vc--remote-branches))
+          (default-target (forgejo-vc--upstream-branch current-branch))
+          (choice (completing-read
+                   (if default-target
+                       (format "Push to (default: %s): " default-target)
+                     "Push to (remote/branch): ")
+                   all-remote-branches nil nil nil nil default-target))
+          (remote (if (string-match "\\`\\([^/]+\\)/\\(.+\\)\\'" choice)
+                      (match-string 1 choice)
+                    (forgejo-vc--remote current-branch)))
+          (branch (if (string-match "\\`\\([^/]+\\)/\\(.+\\)\\'" choice)
+                      (match-string 2 choice)
+                    choice)))
+     (list remote branch current-prefix-arg)))
+  (let* ((context (forgejo-vc--repo-from-remote))
+         (pr-number (when mark-merged-p
+                      (read-number "PR number to mark as merged: ")))
+         (dir default-directory))
+    (make-process
+     :name "forgejo-push"
+     :command (list "git" "push" remote
+                    (format "HEAD:%s" branch))
+     :sentinel
+     (lambda (_proc event)
+       (cond
+        ((string-match-p "finished" event)
+         (message "Pushed to %s/%s." remote branch)
+         (when pr-number
+           (let* ((default-directory dir)
+                  (host (nth 0 context))
+                  (owner (nth 1 context))
+                  (repo (nth 2 context))
+                  (sha (forgejo-vc--head-sha)))
+             (forgejo-vc--mark-merged host owner repo pr-number sha))))
+        ((string-match-p "\\(?:exited\\|signal\\)" event)
+         (message "Push failed: %s" (string-trim event))))))))
+
 ;;; Repo-aware wrappers (use detected repo, no prompt)
 
 (defun forgejo-vc--require-repo ()
@@ -385,22 +451,27 @@ Warns if manual merge is disabled for the repo."
   (cl-destructuring-bind (host owner repo) (forgejo-vc--require-repo)
     (forgejo-utils-browse-repo host owner repo)))
 
-;;; Transient + keymap
+;;; Popup keymap
 
-;;;###autoload (autoload 'forgejo-vc "forgejo-vc" nil t)
-(transient-define-prefix forgejo-vc ()
+(keymap-popup-define forgejo-vc-map
   "Forgejo operations for the current repository."
-  [["View"
-    ("i" "Issues" forgejo-vc-issues)
-    ("p" "Pull requests" forgejo-vc-pulls)]
-   ["PR"
-    ("s" forgejo-vc-submit
-     :description (lambda () (concat "Submit PR " (propertize "(C-u: force push)" 'face 'shadow))))
-    ("f" "Fetch PR" forgejo-vc-fetch)
-    ("u" "Update PR branch" forgejo-vc-update)]
-   ["Actions"
-    ("S" "Settings" forgejo-settings)
-    ("b" "Browse repo" forgejo-vc-browse)]])
+  :group "View"
+  "i" ("Issues" forgejo-vc-issues)
+  "p" ("Pull requests" forgejo-vc-pulls)
+  :group "PR"
+  "s" ("Submit PR" forgejo-vc-submit :c-u "force push")
+  "f" ("Fetch PR" forgejo-vc-fetch)
+  "u" ("Update PR branch" forgejo-vc-update)
+  "P" ("Push" forgejo-vc-push :c-u "mark PR merged")
+  :group "Actions"
+  "S" ("Settings" forgejo-settings)
+  "b" ("Browse repo" forgejo-vc-browse))
+
+;;;###autoload
+(defun forgejo-vc ()
+  "Forgejo operations for the current repository."
+  (interactive)
+  (keymap-popup 'forgejo-vc-map))
 
 ;;;###autoload
 (with-eval-after-load 'vc

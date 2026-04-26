@@ -23,11 +23,25 @@
 
 ;;; Commentary:
 
-;; Emacs front-end for Forgejo instances.
+;; Emacs front-end for Forgejo instances (Codeberg, self-hosted).
 ;;
-;; Browse, filter, and view issues and pull requests.  Submit PRs via
-;; AGit-Flow push options.  Caches API responses in a local SQLite
-;; database for fast re-display.
+;; Browse, filter, and manage issues and pull requests from Emacs.
+;; Submit PRs via AGit-Flow git push options.  All API responses are
+;; cached in a local SQLite database so views render instantly after
+;; the first sync.
+;;
+;; Setup:
+;;
+;;   Configure your Forgejo instance(s):
+;;
+;;        (setq forgejo-hosts '(("https://codeberg.org" "token")))
+;;
+;;   Or store your token in ~/.authinfo.gpg:
+;;        machine codeberg.org login YOUR_USERNAME password YOUR_TOKEN
+;;
+;; Usage:
+;;      M-x forgejo       top-level menu
+;;      C-x v f           forgejo-vc menu (inside a forgejo project)
 
 ;;; Code:
 

@@ -131,7 +131,7 @@ When no buffer-local host is set, aggregates across all hosts."
 (defvar-local forgejo-repo-search--page nil
   "Current page number.")
 
-(declare-function forgejo-repo-action-at-point "forgejo-transient.el" ())
+(declare-function forgejo-repo-action-at-point "forgejo.el" ())
 
 (keymap-popup-define forgejo-repo-search-mode-map
   "Forgejo repository search."

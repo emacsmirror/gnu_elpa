@@ -34,9 +34,10 @@
 ;;
 ;;   Configure your Forgejo instance(s):
 ;;
-;;        (setq forgejo-hosts '(("https://codeberg.org" "token")))
+;;       (setq forgejo-hosts '(("https://codeberg.org" "token")))
 ;;
 ;;   Or store your token in ~/.authinfo.gpg:
+;;
 ;;        machine codeberg.org login YOUR_USERNAME password YOUR_TOKEN
 ;;
 ;; Usage:
@@ -48,6 +49,7 @@
 (require 'cl-lib)
 (require 'auth-source)
 (require 'url-parse)
+(require 'keymap-popup)
 
 (defgroup forgejo nil
   "Emacs front-end for Forgejo instances."
@@ -285,6 +287,82 @@ Resolution order: inline token from `forgejo-hosts', auth-source,
       forgejo-token
       (user-error "No token for host %s; add to `forgejo-hosts' or auth-source"
                   (url-host (url-generic-parse-url host-url)))))
+
+;;; Top-level menu
+
+(declare-function forgejo-repo-search "forgejo-repo.el" (query))
+(declare-function forgejo-issue-list "forgejo-issue.el"
+                  (&optional owner repo))
+(declare-function forgejo-pull-list "forgejo-pull.el"
+                  (&optional owner repo))
+(declare-function forgejo-repo-create "forgejo-repo.el" (name))
+(declare-function forgejo-watch-list "forgejo-watch.el" ())
+(declare-function forgejo-utils-browse-repo "forgejo-utils.el"
+                  (host-url owner repo))
+
+(defvar forgejo-repo--host)
+
+(keymap-popup-define forgejo-map
+  "Forgejo."
+  :group "Navigate"
+  "s" ("Search repos" forgejo-repo-search)
+  "i" ("Issues" forgejo-issue-list)
+  "p" ("Pull requests" forgejo-pull-list)
+  "n" ("Watch" forgejo-watch-list)
+  :group "Actions"
+  "c" ("Create repo" forgejo-repo-create)
+  "b" ("Browse repo" forgejo-browse-repo))
+
+;;;###autoload
+(defun forgejo ()
+  "Forgejo."
+  (interactive)
+  (keymap-popup 'forgejo-map))
+
+(defun forgejo-browse-repo ()
+  "Open a repository in the browser."
+  (interactive)
+  (let ((input (read-string "Repository (owner/repo): ")))
+    (if (string-match "\\`\\([^/]+\\)/\\([^/]+\\)\\'" input)
+        (let ((host-url (or forgejo-repo--host (forgejo--resolve-host))))
+          (forgejo-utils-browse-repo host-url
+                                     (match-string 1 input)
+                                     (match-string 2 input)))
+      (user-error "Invalid format; expected owner/repo"))))
+
+;;; Repo search action-at-point
+
+(declare-function forgejo-repo-search--owner-repo-at-point "forgejo-repo.el" ())
+
+(keymap-popup-define forgejo-repo-action-map
+  "Actions for repository at point."
+  :group "Open"
+  "i" ("Issues" forgejo-repo-action--issues)
+  "p" ("Pull requests" forgejo-repo-action--pulls)
+  "b" ("Browse" forgejo-repo-action--browse))
+
+(defun forgejo-repo-action-at-point ()
+  "Actions for repository at point."
+  (interactive)
+  (keymap-popup 'forgejo-repo-action-map))
+
+(defun forgejo-repo-action--issues ()
+  "List issues for the repo at point."
+  (interactive)
+  (when-let* ((pair (forgejo-repo-search--owner-repo-at-point)))
+    (forgejo-issue-list (car pair) (cdr pair))))
+
+(defun forgejo-repo-action--pulls ()
+  "List pull requests for the repo at point."
+  (interactive)
+  (when-let* ((pair (forgejo-repo-search--owner-repo-at-point)))
+    (forgejo-pull-list (car pair) (cdr pair))))
+
+(defun forgejo-repo-action--browse ()
+  "Open the repo at point in the browser."
+  (interactive)
+  (when-let* ((pair (forgejo-repo-search--owner-repo-at-point)))
+    (forgejo-utils-browse-repo forgejo-repo--host (car pair) (cdr pair))))
 
 (provide 'forgejo)
 ;;; forgejo.el ends here

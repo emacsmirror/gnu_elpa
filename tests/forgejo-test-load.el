@@ -64,7 +64,7 @@ Tests that loading a single module pulls in all its dependencies."
   (let ((modules '("forgejo" "forgejo-api" "forgejo-db" "forgejo-utils"
                     "forgejo-buffer" "forgejo-view" "forgejo-tl"
                     "forgejo-repo" "forgejo-issue" "forgejo-pull"
-                    "forgejo-vc" "forgejo-watch" "forgejo-transient")))
+                    "forgejo-vc" "forgejo-watch")))
     (dolist (mod modules)
       (let ((load-path (cons forgejo-test-load--dir load-path)))
         ;; Unload all forgejo features to test in isolation

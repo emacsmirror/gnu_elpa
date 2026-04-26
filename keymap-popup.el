@@ -21,7 +21,7 @@
 
 ;;; Commentary:
 
-;; A single macro `define-described-keymap' that produces both a real
+;; A single macro `keymap-popup-define' that produces both a real
 ;; `defvar-keymap' (for direct key dispatch) and stored descriptions
 ;; (for a popup help window).  One definition, two uses.
 
@@ -252,32 +252,37 @@ Uses list calls so lambdas get compiled."
 
 (defun keymap-popup--extract-macro-opts (body)
   "Extract macro options from BODY.
-Returns (DOCSTRING POPUP-KEY PARENT BINDINGS).  A string followed
-by a list is a key binding, not a docstring."
+Returns (DOCSTRING POPUP-KEY EXIT-KEY PARENT BINDINGS).
+A string followed by a list is a key binding, not a docstring."
   (let* ((docstring (when (and (stringp (car body))
-                               (not (listp (cadr body))))
+                               (or (null (cadr body))
+                                   (not (listp (cadr body)))))
                       (car body)))
          (rest (if docstring (cdr body) body))
          (popup-pair (keymap-popup--consume-keyword rest :popup-key))
          (popup-key (if popup-pair (car popup-pair) "h"))
          (rest (if popup-pair (cdr popup-pair) rest))
+         (exit-pair (keymap-popup--consume-keyword rest :exit-key))
+         (exit-key (if exit-pair (car exit-pair) ?q))
+         (rest (if exit-pair (cdr exit-pair) rest))
          (parent-pair (keymap-popup--consume-keyword rest :parent))
          (parent (when parent-pair (car parent-pair)))
          (bindings (if parent-pair (cdr parent-pair) rest)))
-    (list docstring popup-key parent bindings)))
+    (list docstring popup-key exit-key parent bindings)))
 
 ;;;###autoload
-(defmacro define-described-keymap (name &rest body)
+(defmacro keymap-popup-define (name &rest body)
   "Define NAME as a keymap with embedded descriptions.
 BODY is an optional docstring, optional :popup-key KEY (default
-\"h\"), optional :parent KEYMAP, followed by :group keywords and
-KEY (DESC ...) pairs."
+\"h\"), optional :exit-key CHAR (default ?q), optional :parent
+KEYMAP, followed by :group keywords and KEY (DESC ...) pairs."
   (declare (indent 1))
   (let* ((opts (keymap-popup--extract-macro-opts body))
          (docstring (nth 0 opts))
          (popup-key (nth 1 opts))
-         (parent (nth 2 opts))
-         (bindings (nth 3 opts))
+         (exit-key (nth 2 opts))
+         (parent (nth 3 opts))
+         (bindings (nth 4 opts))
          (rows (keymap-popup--parse-bindings bindings))
          (all-entries (cl-loop for row in rows
                                append (cl-loop for group in row
@@ -297,6 +302,7 @@ KEY (DESC ...) pairs."
          ,popup-key (lambda () (interactive) (keymap-popup ',name)))
        (put ',name 'keymap-popup--descriptions
             ,(keymap-popup--build-descriptions-form rows))
+       (put ',name 'keymap-popup--exit-key ,exit-key)
        ,@(when parent
            `((put ',name 'keymap-popup--parent ',parent))))))
 
@@ -574,10 +580,11 @@ Includes descriptions inherited from parent keymaps."
      (documentation-property map-symbol 'variable-documentation))
     buf))
 
-(defun keymap-popup--read-loop (buf win keymap descriptions docstring)
+(defun keymap-popup--read-loop (buf win keymap descriptions docstring exit-key)
   "Read keys in BUF displayed in WIN until a suffix or dismiss.
 KEYMAP is the live keymap for command lookup.  DESCRIPTIONS is the
 stored row metadata.  DOCSTRING is shown at the top of the popup.
+EXIT-KEY is the character that dismisses the popup (default ?q).
 Supports nested :keymap entries via a stack of (DESCS . KEYMAP)
 pairs.  Prefix argument mode is toggled with `universal-argument'.
 Returns (CMD . PREFIX-ARG) or nil on dismiss."
@@ -607,8 +614,8 @@ Returns (CMD . PREFIX-ARG) or nil on dismiss."
                         current-keymap (cdr prev)))
                 (keymap-popup--refresh-buffer buf win current-descs docstring))
                (t (cl-return nil)))
-           ;; q: pop stack or dismiss
-           else when (eq key ?q)
+           ;; Exit key: pop stack or dismiss
+           else when (eq key exit-key)
            do (if stack
                   (let ((prev (pop stack)))
                     (setq current-descs (car prev)
@@ -645,14 +652,15 @@ keys close the popup."
   (let* ((buf (keymap-popup--prepare-buffer map-symbol))
          (keymap (symbol-value map-symbol))
          (descriptions (keymap-popup--collect-descriptions map-symbol))
-         (docstring (documentation-property map-symbol 'variable-documentation)))
+         (docstring (documentation-property map-symbol 'variable-documentation))
+         (exit-key (or (get map-symbol 'keymap-popup--exit-key) ?q)))
     (unwind-protect
         (let* ((win (display-buffer buf
                                     (append keymap-popup-display-action
                                             '((window-height . fit-window-to-buffer)))))
                (_ (when win (fit-window-to-buffer win)))
                (result (keymap-popup--read-loop
-                        buf win keymap descriptions docstring)))
+                        buf win keymap descriptions docstring exit-key)))
           (when (and win (window-live-p win))
             (delete-window win))
           (when result

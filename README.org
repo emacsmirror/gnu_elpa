@@ -7,7 +7,7 @@ Requires Emacs 29.1+.
 ** Usage
 
 #+begin_src emacs-lisp
-  (define-described-keymap my-mode-map
+  (keymap-popup-define my-mode-map
     "My mode commands."
     :group "Actions"
     "c" ("Comment" my-comment)
@@ -27,7 +27,7 @@ Press =h= for the popup.
 ** Infixes
 
 #+begin_src emacs-lisp
-  (define-described-keymap my-list-map
+  (keymap-popup-define my-list-map
     :group "Options"
     "V" ("Verbose" :switch my-verbose-var)
     "n" ("Limit" :option my-limit-var :reader read-number :prompt "Limit: ")
@@ -44,13 +44,13 @@ without closing it.
 ** Sub-menus
 
 #+begin_src emacs-lisp
-  (define-described-keymap my-metadata-map
+  (keymap-popup-define my-metadata-map
     :group "Add"
     "l" ("Label" my-add-label)
     "a" ("Assignee" my-add-assignee)
     "m" ("Milestone" my-set-milestone))
 
-  (define-described-keymap my-view-map
+  (keymap-popup-define my-view-map
     :group "Actions"
     "c" ("Comment" my-comment)
     "a" ("Metadata" :keymap my-metadata-map)
@@ -63,19 +63,19 @@ Press =a= to enter the sub-menu.  =q= or =C-g= goes back.
 ** Inheritance
 
 #+begin_src emacs-lisp
-  (define-described-keymap view-base-map
+  (keymap-popup-define view-base-map
     :group "Common"
     "g" ("Refresh" my-refresh)
     "b" ("Browse" my-browse)
     "q" ("Quit" quit-window))
 
-  (define-described-keymap issue-view-map
+  (keymap-popup-define issue-view-map
     :parent view-base-map
     :group "Issue"
     "c" ("Comment" my-comment)
     "x" ("Close" my-close))
 
-  (define-described-keymap pull-view-map
+  (keymap-popup-define pull-view-map
     :parent view-base-map
     :group "Pull Request"
     "c" ("Comment" my-comment)
@@ -89,7 +89,7 @@ and parent.
 ** Conditional and inapt entries
 
 #+begin_src emacs-lisp
-  (define-described-keymap my-map
+  (keymap-popup-define my-map
     :group "Actions"
     "c" ("Comment" my-comment)
     ;; hidden when verbose is off
@@ -101,7 +101,7 @@ and parent.
 ** Prefix argument
 
 #+begin_src emacs-lisp
-  (define-described-keymap my-map
+  (keymap-popup-define my-map
     :group "Actions"
     "s" ("Submit" my-submit :c-u "force push")
     "g" ("Refresh" my-refresh))

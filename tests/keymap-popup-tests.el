@@ -125,7 +125,7 @@
 
 (ert-deftest keymap-popup-test-macro-creates-keymap ()
   "Macro creates a valid keymap with correct bindings."
-  (eval '(define-described-keymap keymap-popup--test-map-1
+  (eval '(keymap-popup-define keymap-popup--test-map-1
            "Test keymap."
            :group "Actions"
            "c" ("Comment" ignore)
@@ -137,7 +137,7 @@
 
 (ert-deftest keymap-popup-test-macro-stores-descriptions ()
   "Macro stores descriptions as rows of groups."
-  (eval '(define-described-keymap keymap-popup--test-map-2
+  (eval '(keymap-popup-define keymap-popup--test-map-2
            "Test."
            :group "A"
            "c" ("Comment" ignore)
@@ -154,7 +154,7 @@
 
 (ert-deftest keymap-popup-test-macro-switch-infix ()
   "Macro generates toggle command and binds it for switches."
-  (eval '(define-described-keymap keymap-popup--test-map-3
+  (eval '(keymap-popup-define keymap-popup--test-map-3
            "Test."
            "v" ("Verbose" :switch keymap-popup--test-sw))
         t)
@@ -163,7 +163,7 @@
 
 (ert-deftest keymap-popup-test-macro-option-infix ()
   "Macro generates setter command and binds it for options."
-  (eval '(define-described-keymap keymap-popup--test-map-4
+  (eval '(keymap-popup-define keymap-popup--test-map-4
            "Test."
            "n" ("Count" :option keymap-popup--test-opt
                 :reader read-number :prompt "N: "))
@@ -173,7 +173,7 @@
 
 (ert-deftest keymap-popup-test-macro-lambda-command ()
   "Lambda commands bind directly in the keymap."
-  (eval '(define-described-keymap keymap-popup--test-map-5
+  (eval '(keymap-popup-define keymap-popup--test-map-5
            "Test."
            "x" ("Run" (lambda () (interactive) (message "running"))))
         t)
@@ -181,7 +181,7 @@
 
 (ert-deftest keymap-popup-test-macro-no-docstring ()
   "Macro works without a docstring."
-  (eval '(define-described-keymap keymap-popup--test-map-nodoc
+  (eval '(keymap-popup-define keymap-popup--test-map-nodoc
            :group "Actions"
            "c" ("Comment" ignore))
         t)
@@ -195,14 +195,14 @@
 
 (ert-deftest keymap-popup-test-macro-default-popup-key ()
   "Popup is bound to h by default."
-  (eval '(define-described-keymap keymap-popup--test-map-defkey
+  (eval '(keymap-popup-define keymap-popup--test-map-defkey
            "c" ("Comment" ignore))
         t)
   (should (functionp (keymap-lookup keymap-popup--test-map-defkey "h"))))
 
 (ert-deftest keymap-popup-test-macro-custom-popup-key ()
   "Popup key can be customized with :popup-key."
-  (eval '(define-described-keymap keymap-popup--test-map-custkey
+  (eval '(keymap-popup-define keymap-popup--test-map-custkey
            :popup-key "?"
            "c" ("Comment" ignore))
         t)
@@ -275,7 +275,7 @@
 
 (ert-deftest keymap-popup-test-prepare-buffer ()
   "Prepare-buffer creates a buffer with rendered content."
-  (eval '(define-described-keymap keymap-popup--test-popup-map
+  (eval '(keymap-popup-define keymap-popup--test-popup-map
            "Popup test."
            :group "Commands"
            "c" ("Comment" ignore)
@@ -390,8 +390,8 @@
 ;;; Integration tests
 
 (ert-deftest keymap-popup-test-full-definition ()
-  "Full define-described-keymap with all entry types works end-to-end."
-  (eval '(define-described-keymap keymap-popup--test-full
+  "Full keymap-popup-define with all entry types works end-to-end."
+  (eval '(keymap-popup-define keymap-popup--test-full
            "Full test."
            :group "Actions"
            "c" ("Comment" ignore)
@@ -418,7 +418,7 @@
 
 (ert-deftest keymap-popup-test-switch-toggle-roundtrip ()
   "Toggle command flips buffer-local variable."
-  (eval '(define-described-keymap keymap-popup--test-rt
+  (eval '(keymap-popup-define keymap-popup--test-rt
            "Test." "v" ("Verbose" :switch keymap-popup--test-rt-sw))
         t)
   (with-temp-buffer
@@ -430,7 +430,7 @@
 
 (ert-deftest keymap-popup-test-conditional-hidden-in-popup ()
   "Entry with :if nil hidden from rendered popup."
-  (eval '(define-described-keymap keymap-popup--test-cond
+  (eval '(keymap-popup-define keymap-popup--test-cond
            "Test."
            "b" ("Browse" ignore :if (lambda () nil))
            "c" ("Comment" ignore))
@@ -446,7 +446,7 @@
 
 (ert-deftest keymap-popup-test-add-entry ()
   "Add an entry to an existing described keymap."
-  (eval '(define-described-keymap keymap-popup--test-add
+  (eval '(keymap-popup-define keymap-popup--test-add
            :group "Actions"
            "c" ("Comment" ignore))
         t)
@@ -460,7 +460,7 @@
 
 (ert-deftest keymap-popup-test-remove-entry ()
   "Remove an entry from an existing described keymap."
-  (eval '(define-described-keymap keymap-popup--test-rm
+  (eval '(keymap-popup-define keymap-popup--test-rm
            :group "Actions"
            "c" ("Comment" ignore)
            "r" ("Reply" ignore))
@@ -478,7 +478,7 @@
 
 (ert-deftest keymap-popup-test-if-on-switch ()
   "Switch with :if is hidden from popup when predicate returns nil."
-  (eval '(define-described-keymap keymap-popup--test-if-sw
+  (eval '(keymap-popup-define keymap-popup--test-if-sw
            "v" ("Verbose" :switch keymap-popup--test-if-sw-var
                 :if (lambda () nil)))
         t)
@@ -493,7 +493,7 @@
 
 (ert-deftest keymap-popup-test-if-on-option ()
   "Option with :if is hidden from popup when predicate returns nil."
-  (eval '(define-described-keymap keymap-popup--test-if-opt
+  (eval '(keymap-popup-define keymap-popup--test-if-opt
            "n" ("Count" :option keymap-popup--test-if-opt-var
                 :reader read-number :prompt "N: "
                 :if (lambda () nil)))
@@ -507,7 +507,7 @@
 
 (ert-deftest keymap-popup-test-stay-open-in-descriptions ()
   "Suffix with :stay-open stores the flag in descriptions."
-  (eval '(define-described-keymap keymap-popup--test-stay
+  (eval '(keymap-popup-define keymap-popup--test-stay
            "g" ("Refresh" ignore :stay-open t))
         t)
   (let* ((descs (get 'keymap-popup--test-stay 'keymap-popup--descriptions))
@@ -516,7 +516,7 @@
 
 (ert-deftest keymap-popup-test-popup-key-with-docstring ()
   "Docstring and :popup-key work together."
-  (eval '(define-described-keymap keymap-popup--test-pkdoc
+  (eval '(keymap-popup-define keymap-popup--test-pkdoc
            "My commands."
            :popup-key "?"
            :group "Actions"
@@ -530,7 +530,7 @@
 
 (ert-deftest keymap-popup-test-dynamic-group-name ()
   "Group name can be a function called at render time."
-  (eval '(define-described-keymap keymap-popup--test-dyngrp
+  (eval '(keymap-popup-define keymap-popup--test-dyngrp
            :group (lambda () "Dynamic Group")
            "c" ("Comment" ignore))
         t)
@@ -613,12 +613,12 @@
 ;;; Parent inheritance tests
 
 (ert-deftest keymap-popup-test-parent-keymap-bindings ()
-  (eval '(define-described-keymap keymap-popup--test-parent
+  (eval '(keymap-popup-define keymap-popup--test-parent
            :group "Common"
            "g" ("Refresh" ignore)
            "q" ("Quit" quit-window))
         t)
-  (eval '(define-described-keymap keymap-popup--test-child
+  (eval '(keymap-popup-define keymap-popup--test-child
            :parent keymap-popup--test-parent
            :group "Child"
            "c" ("Comment" ignore))
@@ -630,11 +630,11 @@
 
 (ert-deftest keymap-popup-test-parent-descriptions-merged ()
   "Popup shows descriptions from both child and parent."
-  (eval '(define-described-keymap keymap-popup--test-parent2
+  (eval '(keymap-popup-define keymap-popup--test-parent2
            :group "Common"
            "g" ("Refresh" ignore))
         t)
-  (eval '(define-described-keymap keymap-popup--test-child2
+  (eval '(keymap-popup-define keymap-popup--test-child2
            :parent keymap-popup--test-parent2
            :group "Child"
            "c" ("Comment" ignore))
@@ -649,16 +649,16 @@
       (kill-buffer buf))))
 
 (ert-deftest keymap-popup-test-collect-descriptions-chain ()
-  (eval '(define-described-keymap keymap-popup--test-grandparent
+  (eval '(keymap-popup-define keymap-popup--test-grandparent
            :group "GP"
            "g" ("Go" ignore))
         t)
-  (eval '(define-described-keymap keymap-popup--test-mid
+  (eval '(keymap-popup-define keymap-popup--test-mid
            :parent keymap-popup--test-grandparent
            :group "Mid"
            "m" ("Mid cmd" ignore))
         t)
-  (eval '(define-described-keymap keymap-popup--test-leaf
+  (eval '(keymap-popup-define keymap-popup--test-leaf
            :parent keymap-popup--test-mid
            :group "Leaf"
            "l" ("Leaf cmd" ignore))
@@ -699,7 +699,7 @@
 
 (ert-deftest keymap-popup-test-inapt-via-macro ()
   "Inapt entries work through the macro."
-  (eval '(define-described-keymap keymap-popup--test-inapt-map
+  (eval '(keymap-popup-define keymap-popup--test-inapt-map
            "m" ("Merge" ignore :inapt-if (lambda () t))
            "c" ("Comment" ignore))
         t)

@@ -466,7 +466,7 @@ and after types of the file."
   (let ((table (make-hash-table :test #'equal)))
     (mapc (lambda (line)
             (if (string-match (rx "{" (group (1+ anychar)) " => " (group (1+ anychar)) "}"
-                                  (opt "/") (group (1+ anychar)))
+                                  (opt "/" (group (1+ anychar))))
                               line)
                 ;; For renamed files, create separate entries for the
                 ;; before-rename and after-rename files

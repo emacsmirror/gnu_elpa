@@ -108,7 +108,7 @@ Returns a single string with tabulated-list text properties attached."
     (let ((line (concat (apply #'concat (nreverse parts)) "\n")))
       (add-text-properties 0 (length line)
                            `(tabulated-list-id ,id
-                             tabulated-list-entry ,cols)
+					       tabulated-list-entry ,cols)
                            line)
       line)))
 
@@ -252,7 +252,7 @@ same entry ID and column."
     (let ((inhibit-modification-hooks t))
       (erase-buffer)
       (forgejo-tl--render-into-buffer entries tabulated-list-format
-                                     (or tabulated-list-padding 0)))
+                                      (or tabulated-list-padding 0)))
     (set-buffer-modified-p nil)
     (if (and saved-id remember-pos)
         (progn
@@ -280,7 +280,7 @@ restore original order."
         (tabulated-list-init-header)
         (forgejo-tl-print t))
     (let ((name (car (aref tabulated-list-format
-                          (if n n (forgejo-tl--column-at-point))))))
+                           (if n n (forgejo-tl--column-at-point))))))
       (unless (nth 2 (assoc name (append tabulated-list-format nil)))
         (user-error "Cannot sort by %s" name))
       (if (equal name (car tabulated-list-sort-key))
@@ -336,7 +336,7 @@ Assumes `tabulated-list-format' and `tabulated-list-padding' are set."
     (save-excursion
       (goto-char (point-max))
       (forgejo-tl--render-into-buffer entries tabulated-list-format
-                                     (or tabulated-list-padding 0)))))
+                                      (or tabulated-list-padding 0)))))
 
 (provide 'forgejo-tl)
 ;;; forgejo-tl.el ends here

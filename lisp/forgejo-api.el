@@ -92,7 +92,7 @@ Returns the parsed JSON as alists/lists, or nil for empty bodies."
 ;;; Core request
 
 (defun forgejo-api--request (host method endpoint &optional params
-                             json-body callback)
+				  json-body callback)
   "Make an async HTTP request to the Forgejo API.
 
 HOST is the instance base URL (e.g. \"https://codeberg.org\").

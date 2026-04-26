@@ -109,7 +109,7 @@ or nil if no comments."
 ;;; DB queries
 
 (defun forgejo-review--comments-for-id (host owner repo number review-id
-                                       &optional path position original-position)
+					     &optional path position original-position)
   "Return review_comment alists for REVIEW-ID from the DB.
 When PATH is non-nil, filter to that specific thread using
 POSITION and ORIGINAL-POSITION for matching."
@@ -132,7 +132,7 @@ POSITION and ORIGINAL-POSITION for matching."
 ;;; API operations
 
 (defun forgejo-review--fetch-comments (host-url host owner repo number
-                                       review-id &optional callback)
+						review-id &optional callback)
   "Fetch comments for REVIEW-ID from HOST-URL and save to DB.
 HOST is the hostname.  Calls CALLBACK when done."
   (forgejo-api-get
@@ -147,7 +147,7 @@ HOST is the hostname.  Calls CALLBACK when done."
      (when callback (funcall callback)))))
 
 (defun forgejo-review-sync-comments (host-url host owner repo number
-                                     timeline-alists callback)
+					      timeline-alists callback)
   "Fetch review comments for all reviews in TIMELINE-ALISTS.
 HOST-URL is the instance.  HOST is the hostname.
 Calls CALLBACK when all are done."
@@ -186,7 +186,7 @@ CALLBACK is called on success."
        (when callback (funcall callback))))))
 
 (defun forgejo-review--reply (host-url owner repo number review-id
-                             path position original-position callback)
+				       path position original-position callback)
   "Reply to review REVIEW-ID on PR NUMBER in OWNER/REPO on HOST-URL.
 PATH, POSITION, and ORIGINAL-POSITION from the original comment
 for thread grouping.  Prompts for the reply body.

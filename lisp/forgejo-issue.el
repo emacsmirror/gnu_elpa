@@ -97,7 +97,7 @@ HOST-URL is the full instance URL.  HOST is the hostname."
                                 'forgejo-issue-list-mode))
 
 (defun forgejo-issue--sync (host-url host owner repo filters buf-name
-                                 &optional force)
+                                     &optional force)
   "Fetch issues from API and update DB, then re-render BUF-NAME.
 HOST-URL is the instance.  HOST is the hostname.
 When FORCE is nil, use incremental sync via the `since' parameter.
@@ -105,8 +105,8 @@ When FORCE is non-nil, fetch all and mark missing issues as closed."
   (let* ((since (unless force
                   (forgejo-db-get-sync-time host owner repo "issues")))
          (api-filters (if since
-                         (plist-put (copy-sequence filters) :since since)
-                       filters)))
+                          (plist-put (copy-sequence filters) :since since)
+			filters)))
     ;; Sync labels in background
     (forgejo-api-get
      host-url (format "repos/%s/%s/labels" owner repo) nil
@@ -197,10 +197,10 @@ Empty input clears all filters."
          (completions (forgejo-filter-completions
                        host forgejo-repo--owner forgejo-repo--name))
          (current (if forgejo-issue--filters
-                     (forgejo-filter-serialize forgejo-issue--filters)
-                   (forgejo--default-filter-for
-                    forgejo-repo--owner forgejo-repo--name
-                    forgejo-issue-default-filter)))
+                      (forgejo-filter-serialize forgejo-issue--filters)
+                    (forgejo--default-filter-for
+                     forgejo-repo--owner forgejo-repo--name
+                     forgejo-issue-default-filter)))
          (query (forgejo-utils-read-filter current completions))
          (filters (forgejo-filter-parse query)))
     (setq forgejo-issue--filters filters)
@@ -261,7 +261,7 @@ Empty input clears all filters."
 ;;; Detail view rendering
 
 (defun forgejo-issue--render-detail (buf-name host-url owner repo issue-alist
-                                     timeline-alists)
+					      timeline-alists)
   "Render issue detail into BUF-NAME from alist data.
 HOST-URL is the instance URL."
   (forgejo-view--render-detail buf-name host-url owner repo issue-alist

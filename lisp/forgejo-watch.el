@@ -109,12 +109,12 @@ RULE is \"owner/repo\" or (\"owner/repo\" . \"filter-query\")."
          (filters (forgejo-filter-parse query))
          (since (forgejo-db-get-sync-time host owner repo "watch"))
          (api-filters (if since
-                         (plist-put (copy-sequence filters) :since since)
-                       filters))
+                          (plist-put (copy-sequence filters) :since since)
+			filters))
          (endpoint (format "repos/%s/%s/issues" owner repo))
          (params (forgejo-filter-build-params nil api-filters
-                                               forgejo-default-sort
-                                               (forgejo-api-default-limit))))
+                                              forgejo-default-sort
+                                              (forgejo-api-default-limit))))
     (forgejo-api-get-paged
      host-url endpoint params
      (lambda (page-data _headers _page-num)

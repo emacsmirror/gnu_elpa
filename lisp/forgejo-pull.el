@@ -93,7 +93,7 @@ HOST-URL is the full instance URL.  HOST is the hostname."
                                 'forgejo-pull-list-mode))
 
 (defun forgejo-pull--sync (host-url host owner repo filters buf-name
-                                &optional force)
+                                    &optional force)
   "Fetch PRs from API and update DB, then re-render BUF-NAME.
 HOST-URL is the instance.  HOST is the hostname.
 Uses the issues endpoint with type=pulls for incremental sync.
@@ -102,8 +102,8 @@ When FORCE is non-nil, fetch all and mark missing PRs as closed."
   (let* ((since (unless force
                   (forgejo-db-get-sync-time host owner repo "pulls")))
          (api-filters (if since
-                         (plist-put (copy-sequence filters) :since since)
-                       filters))
+                          (plist-put (copy-sequence filters) :since since)
+			filters))
          (endpoint (format "repos/%s/%s/issues" owner repo))
          (params (forgejo-pull--build-params api-filters)))
     ;; Sync labels in background
@@ -186,10 +186,10 @@ Shows cached data immediately, then syncs from the API in the background."
          (completions (forgejo-filter-completions
                        host forgejo-repo--owner forgejo-repo--name))
          (current (if forgejo-pull--filters
-                     (forgejo-filter-serialize forgejo-pull--filters)
-                   (forgejo--default-filter-for
-                    forgejo-repo--owner forgejo-repo--name
-                    forgejo-pull-default-filter)))
+                      (forgejo-filter-serialize forgejo-pull--filters)
+                    (forgejo--default-filter-for
+                     forgejo-repo--owner forgejo-repo--name
+                     forgejo-pull-default-filter)))
          (query (forgejo-utils-read-filter current completions))
          (filters (forgejo-filter-parse query)))
     (setq forgejo-pull--filters filters)
@@ -261,7 +261,7 @@ Shows cached data immediately, then syncs from the API in the background."
   (setq-local browse-url-browser-function #'forgejo-view-browse-url))
 
 (defun forgejo-pull--render-detail (buf-name host-url owner repo pr-alist
-                                    timeline-alists)
+					     timeline-alists)
   "Render PR detail into BUF-NAME from alist data.
 HOST-URL is the instance URL."
   (forgejo-view--render-detail buf-name host-url owner repo pr-alist
@@ -271,7 +271,7 @@ HOST-URL is the instance URL."
                                #'forgejo-utils-browse-pull))
 
 (defun forgejo-pull--sync-detail (host owner repo number buf-name
-                                      &optional restore-line)
+                                       &optional restore-line)
   "Sync PR NUMBER from API in background, re-render BUF-NAME if changed.
 When RESTORE-LINE is non-nil, go to that line after re-rendering."
   (let ((host-url (forgejo--host-url-for-hostname host))

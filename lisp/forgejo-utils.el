@@ -61,7 +61,7 @@
 ;;; State toggle
 
 (defun forgejo-utils-toggle-state (host-url owner repo number current-state
-                                   callback)
+					    callback)
   "Toggle issue/PR NUMBER in OWNER/REPO between open and closed.
 HOST-URL is the instance.  CURRENT-STATE is \"open\" or \"closed\".
 CALLBACK is called on success."
@@ -228,7 +228,7 @@ PROMPT is used in the header line.  Buffer has no read-only regions."
     result))
 
 (defun forgejo-utils-post-comment (host-url endpoint prompt &optional initial
-                                   callback)
+					    callback)
   "Post a comment to ENDPOINT on HOST-URL.
 PROMPT is the composition buffer title.  INITIAL is optional
 pre-filled text (e.g. quoted reply).  CALLBACK receives (DATA HEADERS)
@@ -358,7 +358,7 @@ HOST is the hostname for DB cache update.  CALLBACK is called on success."
 ;;; Edit
 
 (defun forgejo-utils-edit-title (host-url owner repo number current-title
-                                 callback)
+					  callback)
   "Edit the title of issue/PR NUMBER in OWNER/REPO on HOST-URL.
 CURRENT-TITLE is pre-filled.  CALLBACK is called on success."
   (let ((title (read-string "Title: " current-title)))
@@ -377,7 +377,7 @@ CURRENT-TITLE is pre-filled.  CALLBACK is called on success."
          (when callback (funcall callback)))))))
 
 (defun forgejo-utils-edit-body (host-url owner repo number current-body
-                                callback)
+					 callback)
   "Edit the body of issue/PR NUMBER in OWNER/REPO on HOST-URL.
 CURRENT-BODY is pre-filled in the editor.  CALLBACK is called on success."
   (let ((body (forgejo-utils-read-body "Edit body" current-body))
@@ -396,7 +396,7 @@ CURRENT-BODY is pre-filled in the editor.  CALLBACK is called on success."
          (when callback (funcall callback)))))))
 
 (defun forgejo-utils-edit-comment (host-url owner repo comment-id current-body
-                                   callback)
+					    callback)
   "Edit comment COMMENT-ID in OWNER/REPO on HOST-URL.
 CURRENT-BODY is pre-filled in the editor.  CALLBACK is called on success."
   (let ((body (forgejo-utils-read-body "Edit comment" current-body))
@@ -434,7 +434,7 @@ exist, offers to create it first.  CALLBACK is called on success."
              (let ((new-id (forgejo-db-get-label-id host owner repo name)))
                (if new-id
                    (forgejo-utils--apply-label host-url owner repo number
-                                              name new-id callback)
+                                               name new-id callback)
                  (user-error "Failed to resolve label %S after creation"
                              name)))))
         (user-error "Label %S not found" name)))))
@@ -452,7 +452,7 @@ CALLBACK is called on success."
      (when callback (funcall callback)))))
 
 (defun forgejo-utils-remove-label (host-url owner repo number current-labels
-                                   host callback)
+					    host callback)
   "Remove a label from issue/PR NUMBER in OWNER/REPO on HOST-URL.
 CURRENT-LABELS is the list of label alists on the issue.
 HOST is the hostname for DB lookups.  CALLBACK is called on success."
@@ -470,7 +470,7 @@ HOST is the hostname for DB lookups.  CALLBACK is called on success."
        (when callback (funcall callback))))))
 
 (defun forgejo-utils-add-assignee (host-url owner repo number current-assignees
-                                   host callback)
+					    host callback)
   "Add an assignee to issue/PR NUMBER in OWNER/REPO on HOST-URL.
 CURRENT-ASSIGNEES is the list of current assignee alists.
 HOST is the hostname for DB lookups.  CALLBACK is called on success."
@@ -489,7 +489,7 @@ HOST is the hostname for DB lookups.  CALLBACK is called on success."
        (when callback (funcall callback))))))
 
 (defun forgejo-utils-remove-assignee (host-url owner repo number
-                                      current-assignees callback)
+					       current-assignees callback)
   "Remove an assignee from issue/PR NUMBER in OWNER/REPO on HOST-URL.
 CURRENT-ASSIGNEES is the list of assignee alists.  CALLBACK on success."
   (let* ((logins (mapcar (lambda (a) (alist-get 'login a)) current-assignees))

@@ -62,57 +62,57 @@ artifacts."
   (let ((commit "5c4ebb67a263f7dbe91653bdedc4fb1192f4b7a1")
         (revision "0"))
     (package
-      (name "emacs-keymap-popup")
-      (version (git-version "0.1.0" revision commit))
-      (source (origin
-                (method git-fetch)
-                (uri (git-reference
-                      (url "https://codeberg.org/thanosapollo/emacs-keymap-popup")
-                      (commit commit)))
-                (file-name (git-file-name name version))
-                (sha256
-                 (base32
-                  "0wj8j624l88vw3k3jkfg6rrjrg2x5g3c4ahmbxii8kwk2g7yqwbh"))))
-      (build-system emacs-build-system)
-      (home-page "https://codeberg.org/thanosapollo/emacs-keymap-popup")
-      (synopsis "Described keymaps with popup help")
-      (description
-       "Produces a real Emacs keymap with embedded descriptions for a popup
+     (name "emacs-keymap-popup")
+     (version (git-version "0.1.0" revision commit))
+     (source (origin
+              (method git-fetch)
+              (uri (git-reference
+                    (url "https://codeberg.org/thanosapollo/emacs-keymap-popup")
+                    (commit commit)))
+              (file-name (git-file-name name version))
+              (sha256
+               (base32
+                "0wj8j624l88vw3k3jkfg6rrjrg2x5g3c4ahmbxii8kwk2g7yqwbh"))))
+     (build-system emacs-build-system)
+     (home-page "https://codeberg.org/thanosapollo/emacs-keymap-popup")
+     (synopsis "Described keymaps with popup help")
+     (description
+      "Produces a real Emacs keymap with embedded descriptions for a popup
 help window.  One definition, two uses.")
-      (license license:gpl3+))))
+     (license license:gpl3+))))
 
 (define-public emacs-forgejo-git
   (package
-    (name "emacs-forgejo-git")
-    (version %version)
-    (source (local-file %source-dir
-                        "forgejo-checkout"
-                        #:recursive? #t
-                        #:select? forgejo-file?))
-    (build-system emacs-build-system)
-    (arguments
-     (list
-      #:lisp-directory "lisp"
-      #:test-command #~(list "make" "-C" ".." "test")
-      #:emacs emacs-next-pgtk
-      #:phases
-      #~(modify-phases %standard-phases
-          (add-before 'check 'set-home
-            (lambda _
-              (setenv "HOME"
-                      (getenv "TMPDIR"))
-              (mkdir-p (string-append
-                        (getenv "HOME")
-                        "/.emacs.d")))))))
-    (propagated-inputs (list emacs-markdown-mode emacs-keymap-popup))
-    (home-page "https://thanosapollo.org/projects/forgejo/")
-    (synopsis "Emacs front-end for Forgejo instances")
-    (description
-     "An Emacs front-end for Forgejo instances (Codeberg, self-hosted).
+   (name "emacs-forgejo-git")
+   (version %version)
+   (source (local-file %source-dir
+                       "forgejo-checkout"
+                       #:recursive? #t
+                       #:select? forgejo-file?))
+   (build-system emacs-build-system)
+   (arguments
+    (list
+     #:lisp-directory "lisp"
+     #:test-command #~(list "make" "-C" ".." "test")
+     #:emacs emacs-next-pgtk
+     #:phases
+     #~(modify-phases %standard-phases
+		      (add-before 'check 'set-home
+				  (lambda _
+				    (setenv "HOME"
+					    (getenv "TMPDIR"))
+				    (mkdir-p (string-append
+					      (getenv "HOME")
+					      "/.emacs.d")))))))
+   (propagated-inputs (list emacs-markdown-mode emacs-keymap-popup))
+   (home-page "https://thanosapollo.org/projects/forgejo/")
+   (synopsis "Emacs front-end for Forgejo instances")
+   (description
+    "An Emacs front-end for Forgejo instances (Codeberg, self-hosted).
 Browse, filter, and view issues and pull requests.  Caches API
 responses in a local SQLite database for fast offline re-display.
 This package definition builds straight from the current git
 checkout, so the installed version always matches the working tree.")
-    (license license:gpl3+)))
+   (license license:gpl3+)))
 
 emacs-forgejo-git

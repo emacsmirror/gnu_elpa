@@ -77,7 +77,8 @@ Keys: :state :labels :milestone :author :query :page")
         tabulated-list-format (forgejo-view--list-format
                                forgejo-filter-list-columns)
         tabulated-list-sort-key '("#" . t))
-  (tabulated-list-init-header))
+  (tabulated-list-init-header)
+  (run-hooks 'forgejo-mode-hook))
 
 ;;; API interaction
 
@@ -256,7 +257,8 @@ Empty input clears all filters."
   "Forgejo Issue"
   "Major mode for viewing a single Forgejo issue."
   :group 'forgejo
-  (setq-local browse-url-browser-function #'forgejo-view-browse-url))
+  (setq-local browse-url-browser-function #'forgejo-view-browse-url)
+  (run-hooks 'forgejo-mode-hook))
 
 ;;; Detail view rendering
 

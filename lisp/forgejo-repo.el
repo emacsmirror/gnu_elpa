@@ -159,7 +159,8 @@ When no buffer-local host is set, aggregates across all hosts."
                 `("Lang" 10 t)
                 `("Updated" 12 t)
                 `("Description" ,(/ (window-width) 3) nil)))
-  (tabulated-list-init-header))
+  (tabulated-list-init-header)
+  (run-hooks 'forgejo-mode-hook))
 
 (defun forgejo-repo-search--entries (repos)
   "Convert REPOS (list of API alists) to `tabulated-list-entries'."

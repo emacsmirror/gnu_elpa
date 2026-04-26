@@ -216,7 +216,8 @@ and runs `forgejo-watch-hooks' when new ones arrive."
   (setq tabulated-list-padding 1
         tabulated-list-format (forgejo-view--list-format
                                forgejo-filter-notification-columns))
-  (tabulated-list-init-header))
+  (tabulated-list-init-header)
+  (run-hooks 'forgejo-mode-hook))
 
 (defun forgejo-watch--render (host)
   "Render watch items from DB for HOST into the current buffer."

@@ -77,7 +77,8 @@ Keys: :state :milestone :labels :author :page")
         tabulated-list-format (forgejo-view--list-format
                                forgejo-filter-list-columns)
         tabulated-list-sort-key '("#" . t))
-  (tabulated-list-init-header))
+  (tabulated-list-init-header)
+  (run-hooks 'forgejo-mode-hook))
 
 (defun forgejo-pull--build-params (filters)
   "Build API query params from FILTERS plist for PR sync."
@@ -258,7 +259,8 @@ Shows cached data immediately, then syncs from the API in the background."
   "Forgejo PR"
   "Major mode for viewing a single Forgejo pull request."
   :group 'forgejo
-  (setq-local browse-url-browser-function #'forgejo-view-browse-url))
+  (setq-local browse-url-browser-function #'forgejo-view-browse-url)
+  (run-hooks 'forgejo-mode-hook))
 
 (defun forgejo-pull--render-detail (buf-name host-url owner repo pr-alist
 					     timeline-alists)

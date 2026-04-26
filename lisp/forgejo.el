@@ -56,6 +56,11 @@
   :group 'external
   :prefix "forgejo-")
 
+(defcustom forgejo-mode-hook nil
+  "Hook run in all Forgejo buffers."
+  :type 'hook
+  :group 'forgejo)
+
 (defcustom forgejo-compose-hook nil
   "Hook run in composition buffers after setup.
 Use this to enable modes like `markdown-mode' or `flyspell-mode'."

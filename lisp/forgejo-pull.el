@@ -195,28 +195,6 @@ Shows cached data immediately, then syncs from the API in the background."
     (setq forgejo-pull--filters filters)
     (forgejo-pull--refilter)))
 
-(defun forgejo-pull-filter-state ()
-  "Filter PRs by state."
-  (interactive)
-  (let ((state (completing-read "State: " '("open" "closed" "all") nil t)))
-    (setq forgejo-pull--filters
-          (plist-put forgejo-pull--filters :state
-                     (unless (string= state "all") state)))
-    (setq forgejo-pull--filters
-          (plist-put forgejo-pull--filters :page nil))
-    (forgejo-pull--refilter)))
-
-(defun forgejo-pull-filter-author ()
-  "Filter PRs by author."
-  (interactive)
-  (let ((author (read-string "Author: ")))
-    (setq forgejo-pull--filters
-          (plist-put forgejo-pull--filters :author
-                     (unless (string-empty-p author) author)))
-    (setq forgejo-pull--filters
-          (plist-put forgejo-pull--filters :page nil))
-    (forgejo-pull--refilter)))
-
 (defun forgejo-pull-clear-filters ()
   "Reset filters to the default and refresh."
   (interactive)

@@ -206,54 +206,6 @@ Empty input clears all filters."
     (setq forgejo-issue--filters filters)
     (forgejo-issue--refilter)))
 
-(defun forgejo-issue-filter-state ()
-  "Filter issues by state."
-  (interactive)
-  (let ((state (completing-read "State: " '("open" "closed" "all") nil t)))
-    (setq forgejo-issue--filters
-          (plist-put forgejo-issue--filters :state
-                     (unless (string= state "all") state)))
-    (setq forgejo-issue--filters
-          (plist-put forgejo-issue--filters :page nil))
-    (forgejo-issue--refilter)))
-
-(defun forgejo-issue-filter-label ()
-  "Filter issues by label."
-  (interactive)
-  (let* ((host (url-host (url-generic-parse-url forgejo-repo--host)))
-         (cached (forgejo-db-get-labels host forgejo-repo--owner
-                                        forgejo-repo--name))
-         (names (mapcar (lambda (row) (nth 4 row)) cached))
-         (label (completing-read "Label: " names nil nil)))
-    (setq forgejo-issue--filters
-          (plist-put forgejo-issue--filters :labels
-                     (unless (string-empty-p label) label)))
-    (setq forgejo-issue--filters
-          (plist-put forgejo-issue--filters :page nil))
-    (forgejo-issue--refilter)))
-
-(defun forgejo-issue-filter-milestone ()
-  "Filter issues by milestone."
-  (interactive)
-  (let ((milestone (read-string "Milestone: ")))
-    (setq forgejo-issue--filters
-          (plist-put forgejo-issue--filters :milestone
-                     (unless (string-empty-p milestone) milestone)))
-    (setq forgejo-issue--filters
-          (plist-put forgejo-issue--filters :page nil))
-    (forgejo-issue--refilter)))
-
-(defun forgejo-issue-filter-search ()
-  "Search issues by title."
-  (interactive)
-  (let ((query (read-string "Search: ")))
-    (setq forgejo-issue--filters
-          (plist-put forgejo-issue--filters :query
-                     (unless (string-empty-p query) query)))
-    (setq forgejo-issue--filters
-          (plist-put forgejo-issue--filters :page nil))
-    (forgejo-issue--refilter)))
-
 (defun forgejo-issue-clear-filters ()
   "Reset filters to the default and refresh."
   (interactive)
@@ -406,13 +358,6 @@ Shows cached data from DB instantly, syncs in background."
   (interactive)
   (forgejo-utils-create-issue forgejo-repo--host
                               forgejo-repo--owner forgejo-repo--name))
-
-(defun forgejo-issue-create-label ()
-  "Create a new label in the current repository."
-  (interactive)
-  (let ((host (url-host (url-generic-parse-url forgejo-repo--host))))
-    (forgejo-utils-create-label
-     forgejo-repo--host forgejo-repo--owner forgejo-repo--name host nil)))
 
 (provide 'forgejo-issue)
 ;;; forgejo-issue.el ends here

@@ -206,7 +206,6 @@ and runs `forgejo-watch-hooks' when new ones arrive."
   "b" ("Open in browser" forgejo-watch-browse-at-point)
   :group "Navigate"
   "l" ("Filter" forgejo-watch-filter)
-  "C" ("Clear filters" forgejo-watch-clear-filters)
   "g" ("Refresh" forgejo-watch-list-refresh))
 
 (define-derived-mode forgejo-watch-list-mode tabulated-list-mode
@@ -279,11 +278,7 @@ Shows unread items from `forgejo-watch-rules'."
     (setq forgejo-watch--filters filters)
     (forgejo-watch--render forgejo-watch--host)))
 
-(defun forgejo-watch-clear-filters ()
-  "Clear all notification filters."
-  (interactive)
-  (setq forgejo-watch--filters nil)
-  (forgejo-watch--render forgejo-watch--host))
+
 
 ;;; Actions
 

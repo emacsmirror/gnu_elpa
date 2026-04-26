@@ -66,8 +66,7 @@ Keys: :state :milestone :labels :author :page")
   :group "Navigate"
   "S" ("Sort" forgejo-tl-sort)
   "g" ("Refresh" forgejo-pull-refresh)
-  "l" ("Filter" forgejo-pull-filter)
-  "C" ("Clear filters" forgejo-pull-clear-filters))
+  "l" ("Filter" forgejo-pull-filter))
 
 (define-derived-mode forgejo-pull-list-mode tabulated-list-mode
   "Forgejo PRs"
@@ -196,15 +195,7 @@ Shows cached data immediately, then syncs from the API in the background."
     (setq forgejo-pull--filters filters)
     (forgejo-pull--refilter)))
 
-(defun forgejo-pull-clear-filters ()
-  "Reset filters to the default and refresh."
-  (interactive)
-  (setq forgejo-pull--filters
-        (forgejo-filter-parse
-         (forgejo--default-filter-for
-          forgejo-repo--owner forgejo-repo--name
-          forgejo-pull-default-filter)))
-  (forgejo-pull--refilter))
+
 
 ;;; Pagination
 

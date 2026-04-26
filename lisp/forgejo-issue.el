@@ -66,8 +66,7 @@ Keys: :state :labels :milestone :author :query :page")
   :group "Navigate"
   "S" ("Sort" forgejo-tl-sort)
   "g" ("Refresh" forgejo-issue-refresh)
-  "l" ("Filter" forgejo-issue-filter)
-  "C" ("Clear filters" forgejo-issue-clear-filters))
+  "l" ("Filter" forgejo-issue-filter))
 
 (define-derived-mode forgejo-issue-list-mode tabulated-list-mode
   "Forgejo Issues"
@@ -206,16 +205,6 @@ Empty input clears all filters."
          (filters (forgejo-filter-parse query)))
     (setq forgejo-issue--filters filters)
     (forgejo-issue--refilter)))
-
-(defun forgejo-issue-clear-filters ()
-  "Reset filters to the default and refresh."
-  (interactive)
-  (setq forgejo-issue--filters
-        (forgejo-filter-parse
-         (forgejo--default-filter-for
-          forgejo-repo--owner forgejo-repo--name
-          forgejo-issue-default-filter)))
-  (forgejo-issue--refilter))
 
 ;;; Pagination
 

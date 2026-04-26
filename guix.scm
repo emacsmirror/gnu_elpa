@@ -21,7 +21,9 @@
              (gnu packages emacs)
              (gnu packages emacs-xyz)
              (guix build-system emacs)
+             (guix download)
              (guix gexp)
+             (guix git-download)
              ((guix licenses) #:prefix license:)
              (guix packages)
              (guix utils)
@@ -56,6 +58,29 @@ artifacts."
              (string-suffix? ".tar.gz" file)
              (string-suffix? ".db" file)))))
 
+(define-public emacs-keymap-popup
+  (let ((commit "5c4ebb67a263f7dbe91653bdedc4fb1192f4b7a1")
+        (revision "0"))
+    (package
+      (name "emacs-keymap-popup")
+      (version (git-version "0.1.0" revision commit))
+      (source (origin
+                (method git-fetch)
+                (uri (git-reference
+                      (url "https://codeberg.org/thanosapollo/emacs-keymap-popup")
+                      (commit commit)))
+                (file-name (git-file-name name version))
+                (sha256
+                 (base32
+                  "0wj8j624l88vw3k3jkfg6rrjrg2x5g3c4ahmbxii8kwk2g7yqwbh"))))
+      (build-system emacs-build-system)
+      (home-page "https://codeberg.org/thanosapollo/emacs-keymap-popup")
+      (synopsis "Described keymaps with popup help")
+      (description
+       "Produces a real Emacs keymap with embedded descriptions for a popup
+help window.  One definition, two uses.")
+      (license license:gpl3+))))
+
 (define-public emacs-forgejo-git
   (package
     (name "emacs-forgejo-git")
@@ -69,7 +94,7 @@ artifacts."
      (list
       #:lisp-directory "lisp"
       #:test-command #~(list "make" "-C" ".." "test")
-      #:emacs emacs-no-x
+      #:emacs emacs-next-pgtk
       #:phases
       #~(modify-phases %standard-phases
           (add-before 'check 'set-home
@@ -79,7 +104,7 @@ artifacts."
               (mkdir-p (string-append
                         (getenv "HOME")
                         "/.emacs.d")))))))
-    (propagated-inputs (list emacs-markdown-mode emacs-transient))
+    (propagated-inputs (list emacs-markdown-mode emacs-keymap-popup))
     (home-page "https://thanosapollo.org/projects/forgejo/")
     (synopsis "Emacs front-end for Forgejo instances")
     (description

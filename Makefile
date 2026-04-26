@@ -1,7 +1,17 @@
 .POSIX:
 
-EMACS ?= emacs
-EMACS_CMD = $(EMACS) -Q --batch -L lisp
+ifndef EMACS_CMD
+GUIX := $(shell command -v guix 2>/dev/null)
+ifdef GUIX
+GUIX_SHELL := guix shell --pure -D -f guix.scm emacs-next --
+EMACS_CMD := $(GUIX_SHELL) emacs
+else
+GUIX_SHELL :=
+EMACS_CMD := emacs
+endif
+endif
+
+GUIX_WRAP = $(if $(GUIX_SHELL),$(GUIX_SHELL) $(MAKE) --no-print-directory EMACS_CMD=emacs,$(MAKE) --no-print-directory)
 
 SRCS = lisp/forgejo.el lisp/forgejo-api.el lisp/forgejo-db.el \
        lisp/forgejo-filter.el lisp/forgejo-utils.el \
@@ -16,26 +26,37 @@ TESTS = tests/forgejo-test-load.el tests/forgejo-test-api.el \
         tests/forgejo-test-issue.el tests/forgejo-test-pull.el \
         tests/forgejo-test-vc.el
 
-.PHONY: all compile test lint clean dev load
+BATCH = $(EMACS_CMD) -Q --batch -L lisp
+
+.PHONY: all compile do-compile test do-test lint do-lint clean dev load
 
 all: compile
 
 compile:
+	@$(GUIX_WRAP) do-compile
+
+do-compile:
 	@for f in $(SRCS); do \
 	  echo "Compiling $$f..."; \
-	  $(EMACS_CMD) -l $$f -f batch-byte-compile $$f || exit 1; \
+	  $(BATCH) -l $$f -f batch-byte-compile $$f || exit 1; \
 	done
 
 test:
+	@$(GUIX_WRAP) do-test
+
+do-test:
 	@for f in $(TESTS); do \
 	  echo "Testing $$f..."; \
-	  $(EMACS_CMD) -l ert -l $$f -f ert-run-tests-batch-and-exit || exit 1; \
+	  $(BATCH) -l ert -l $$f -f ert-run-tests-batch-and-exit || exit 1; \
 	done
 
 lint:
+	@$(GUIX_WRAP) do-lint
+
+do-lint:
 	@echo "Running checkdoc..."
 	@for f in $(SRCS); do \
-	  $(EMACS_CMD) --eval "(checkdoc-file \"$$f\")" || exit 1; \
+	  $(BATCH) --eval "(checkdoc-file \"$$f\")" || exit 1; \
 	done
 
 dev: compile lint test

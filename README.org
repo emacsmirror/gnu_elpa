@@ -38,8 +38,8 @@ Press =h= for the popup.
 #+end_src
 
 Switches toggle buffer-local booleans.  Options set buffer-local
-values via a reader.  Pressing an infix key re-renders the popup
-without closing it.
+values via a reader.  Pressing a switch or option key re-renders
+the popup without closing it.
 
 ** Sub-menus
 
@@ -113,7 +113,7 @@ prefix argument.  =C-g= cancels prefix mode.
 
 ** Other features
 
-- =:stay-open t= on a suffix keeps the popup open after dispatch
+- =:stay-open t= on a command keeps the popup open after dispatch
 - =:popup-key "?"= changes the popup key (default =h=)
 - Dynamic descriptions: use a function instead of a string
 - Dynamic group names: =:group (lambda () (format "Items (%d)" count))=

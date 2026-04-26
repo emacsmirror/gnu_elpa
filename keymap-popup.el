@@ -56,7 +56,7 @@ Common values:
 
 (defface keymap-popup-value
   '((t :inherit font-lock-string-face :weight bold))
-  "Face for infix values in the popup."
+  "Face for switch/option values in the popup."
   :group 'keymap-popup)
 
 (defface keymap-popup-submenu
@@ -646,9 +646,9 @@ Returns (CMD . PREFIX-ARG) or nil on dismiss."
 ;;;###autoload
 (defun keymap-popup (map-symbol)
   "Show popup help for described keymap MAP-SYMBOL.
-Display in a bottom side window.  Infix keys (switches/options)
-execute and re-render without closing.  Suffix keys and dismiss
-keys close the popup."
+Display in a bottom side window.  Switch and option keys
+execute and re-render without closing.  Command keys and
+dismiss keys close the popup."
   (let* ((buf (keymap-popup--prepare-buffer map-symbol))
          (keymap (symbol-value map-symbol))
          (descriptions (keymap-popup--collect-descriptions map-symbol))

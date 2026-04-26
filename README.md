@@ -785,12 +785,13 @@ request timeout from outputing too many tokens.
 ```lisp
 (minuet-set-optional-options minuet-openai-compatible-options :max_tokens 256)
 (minuet-set-optional-options minuet-openai-compatible-options :top_p 0.9)
+
 ;; Optionally configure the reasoning effort if you are using a thinking model.
 (minuet-set-optional-options
   minuet-openai-compatible-options
   :reasoning
-  ;; '(:max_tokens 0) for Anthropic style
-  '(:effort "minimal")) ; for OpenAI style
+  '(:effort "minimal")) ; or "none", depending on the model.
+
 ;; Alternatively, disable reasoning entirely if the model supports it.
 (minuet-set-optional-options
   minuet-openai-compatible-options

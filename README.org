@@ -1,8 +1,8 @@
 #+title: keymap-popup.el
 
-One macro replaces both your mode keymap and transient menu.
+A macro that defines a keymap with embedded descriptions and a popup to display them.  One definition, two uses: direct key dispatch and interactive menu.
 
-No EIEIO, no transient dependency, single file.  Requires Emacs 29.1+.
+Requires Emacs 29.1+.
 
 ** Usage
 

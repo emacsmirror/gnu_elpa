@@ -248,16 +248,18 @@ if set to t, when you call function `greader-read', that function sets a
   :tag "use register")
 (defvar greader-reading-mode)
 (defvar greader-mode)
+(defvar greader--current-buffer)
 (defun greader-set-reading-keymap ()
   "Set greader's keymap when reading."
   (setq greader-mode nil)
-  (setq greader-reading-mode t))
+  (setq greader-reading-mode t)
+  (setq greader--current-buffer (current-buffer)))
 
 (defun greader-set-greader-keymap ()
   "Set greader's keymap when not reading."
-
   (setq greader-mode t)
-  (setq greader-reading-mode nil))
+  (setq greader-reading-mode nil)
+  (setq greader--current-buffer nil))
 
 (define-obsolete-variable-alias 'greader-map 'greader-mode-map "2022")
 

@@ -39,7 +39,11 @@ Then install =forgejo=:
             :rev :newest
             :lisp-dir "lisp")
     :custom
-    (forgejo-hosts '(("https://codeberg.org"))))
+    (forgejo-hosts '(("https://codeberg.org")))
+    (forgejo-watch-rules '(("thanosapollo/emacs-forgejo")
+                           ("guix/guix" . "state:open label:team-emacs")
+                           ("*" . "author:<your username>")))
+    (forgejo-watch-filter-default "read:no"))
 #+end_src
 
 Store your token in =~/.authinfo.gpg=:
@@ -86,12 +90,23 @@ Poll specific repos for new issues/PRs on a timer:
 
 #+begin_src emacs-lisp
   (setq forgejo-watch-rules
-        '(("guix/guix" . "state:open author:thanosapollo")
-          "thanosapollo/emacs-forgejo"))
+        '("thanosapollo/forgejo.el"
+          ("guix/guix" . "state:open label:team-emacs")
+          ("*" . "author:thanosapollo")))
   (forgejo-watch-mode 1)
 #+end_src
 
-=M-x forgejo-watch-list= to browse watched items.
+A bare string watches everything in that repo.  A cons cell applies a
+filter query.  =*= expands to all repos in your local cache.
+
+=M-x forgejo-watch-list= to browse watched items.  The initial filter
+is controlled by =forgejo-watch-filter-default=:
+
+#+begin_src emacs-lisp
+  (setq forgejo-watch-filter-default "read:no")
+#+end_src
+
+Supported prefixes: =state:=, =read:=, =type:=, =author:=, =label:=, =search:=.
 
 ** Composition
 

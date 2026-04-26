@@ -27,6 +27,7 @@
 ;;; Code:
 
 (require 'cl-lib)
+(require 'vc-git)
 (require 'keymap-popup)
 (require 'forgejo-utils)
 (require 'forgejo)

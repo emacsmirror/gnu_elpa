@@ -425,6 +425,14 @@ FILTERS is a plist with keys:
             ORDER BY name"
            (list host))))
 
+(defun forgejo-db-get-cached-repos (host)
+  "Return all \"owner/repo\" strings that have cached issues for HOST."
+  (mapcar (lambda (row) (format "%s/%s" (nth 0 row) (nth 1 row)))
+          (forgejo-db--select
+           "SELECT DISTINCT owner, repo FROM issues WHERE host = ?
+            ORDER BY owner, repo"
+           (list host))))
+
 ;;; Sync state tracking
 
 (defun forgejo-db-get-sync-time (host owner repo endpoint)

@@ -62,13 +62,15 @@
 
 (defcustom forgejo-watch-rules nil
   "Per-repo watch rules.
-Each element is either a bare string \"owner/repo\" (watch everything)
-or (\"owner/repo\" . \"filter-query\") where the filter query uses
-the same syntax as the interactive filter prompt.
+Each element is a string \"owner/repo\", a cons (\"owner/repo\" . \"filter\"),
+or a single-element list (\"owner/repo\").  The filter query uses the same
+syntax as the interactive filter prompt.  Use \"*\" to match all cached repos.
 Example: ((\"guix/guix\" . \"state:open author:thanosapollo\")
-          (\"guix/guix\" . \"state:open label:team-vcs\")
-          \"thanosapollo/forgejo.el\")"
-  :type '(repeat (choice string (cons string string)))
+          (\"thanosapollo/forgejo.el\")
+          (\"*\" . \"author:thanosapollo\"))"
+  :type '(repeat (choice string
+                         (cons string string)
+                         (list string)))
   :group 'forgejo)
 
 (defcustom forgejo-watch-hooks nil
@@ -77,10 +79,33 @@ Each function receives one argument: the list of new issue/PR alists."
   :type 'hook
   :group 'forgejo)
 
+(defcustom forgejo-watch-filter-default "read:no"
+  "Default filter for `forgejo-watch-list'.
+Uses the same syntax as the interactive filter prompt.
+Supported prefixes: state:, read:, type:, author:, label:, search:."
+  :type 'string
+  :group 'forgejo)
+
 ;;; State
 
 (defvar forgejo-watch--timer nil
   "Timer for periodic watch polling.")
+
+;;; Rule resolution
+
+(defun forgejo-watch-resolve-rules (host)
+  "Expand `forgejo-watch-rules' into concrete rules for HOST.
+A \"*\" repo-key expands into one rule per cached repo in the DB,
+each inheriting the original filter query."
+  (let (result)
+    (dolist (rule forgejo-watch-rules)
+      (let* ((repo-key (if (stringp rule) rule (car rule)))
+             (query (if (stringp rule) nil (cdr rule))))
+        (if (string= repo-key "*")
+            (dolist (repo-path (forgejo-db-get-cached-repos host))
+              (push (if query (cons repo-path query) repo-path) result))
+          (push rule result))))
+    (nreverse result)))
 
 ;;; Polling
 
@@ -95,7 +120,7 @@ Each function receives one argument: the list of new issue/PR alists."
 
 (defun forgejo-watch--poll-rules (host-url host)
   "Poll each watch rule in `forgejo-watch-rules' for HOST-URL/HOST."
-  (dolist (rule forgejo-watch-rules)
+  (dolist (rule (forgejo-watch-resolve-rules host))
     (forgejo-watch--poll-rule host-url host rule)))
 
 (defun forgejo-watch--poll-rule (host-url host rule)
@@ -196,7 +221,7 @@ and runs `forgejo-watch-hooks' when new ones arrive."
 (defun forgejo-watch--render (host)
   "Render watch items from DB for HOST into the current buffer."
   (let* ((items (forgejo-filter-query-watch
-                 host forgejo-watch-rules
+                 host (forgejo-watch-resolve-rules host)
                  forgejo-watch--filters))
          (entries (forgejo-filter-notification-entries items)))
     (setq tabulated-list-format (forgejo-view--list-format
@@ -212,13 +237,16 @@ Shows unread items from `forgejo-watch-rules'."
   (interactive)
   (let* ((host-url (forgejo--resolve-host))
          (host (url-host (url-generic-parse-url host-url)))
-         (buf (get-buffer-create "*forgejo-watch*")))
+         (buf (get-buffer-create "*forgejo-watch*"))
+         (default-filter
+          (forgejo-filter-parse forgejo-watch-filter-default
+                                forgejo-filter--watch-prefix-map)))
     (with-current-buffer buf
       (forgejo-watch-list-mode)
       (setq forgejo-watch--host host
             forgejo-watch--host-url host-url
             forgejo-repo--host host-url
-            forgejo-watch--filters '(:read "no"))
+            forgejo-watch--filters default-filter)
       (forgejo-watch--render host)
       (switch-to-buffer buf))))
 

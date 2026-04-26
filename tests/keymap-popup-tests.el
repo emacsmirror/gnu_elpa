@@ -1,7 +1,8 @@
 ;;; keymap-popup-tests.el --- Tests -*- lexical-binding: t; -*-
 
 (require 'ert)
-(load (expand-file-name "../keymap-popup.el"
+(load (expand-file-name
+       "../keymap-popup.el"
        (file-name-directory (or load-file-name buffer-file-name))))
 
 ;;; Parser tests
@@ -30,7 +31,7 @@
 (ert-deftest keymap-popup-test-parse-option-entry ()
   "An option entry parses with variable, reader, prompt."
   (let ((result (keymap-popup--parse-entry "n" '("Count" :option my-count-var
-                                                  :reader read-number :prompt "Count: "))))
+                                                 :reader read-number :prompt "Count: "))))
     (should (equal (plist-get result :type) 'option))
     (should (equal (plist-get result :variable) 'my-count-var))
     (should (equal (plist-get result :reader) 'read-number))
@@ -46,11 +47,11 @@
   "Parse binding list with :group keywords into rows of groups."
   (let* ((rows (keymap-popup--parse-bindings
                 '(:group "Actions"
-                  "c" ("Comment" forgejo-view-comment)
-                  "r" ("Reply" forgejo-issue-reply)
-                  :group "Navigate"
-                  "g" ("Refresh" forgejo-view-refresh)
-                  "q" ("Quit" quit-window))))
+			 "c" ("Comment" forgejo-view-comment)
+			 "r" ("Reply" forgejo-issue-reply)
+			 :group "Navigate"
+			 "g" ("Refresh" forgejo-view-refresh)
+			 "q" ("Quit" quit-window))))
          (row (car rows)))
     ;; One row with two groups
     (should (= (length rows) 1))
@@ -75,12 +76,12 @@
   "Parse binding list with :row keyword into multiple rows."
   (let ((rows (keymap-popup--parse-bindings
                '(:group "A"
-                 "a" ("Aaa" ignore)
-                 :group "B"
-                 "b" ("Bbb" ignore)
-                 :row
-                 :group "C"
-                 "c" ("Ccc" ignore)))))
+			"a" ("Aaa" ignore)
+			:group "B"
+			"b" ("Bbb" ignore)
+			:row
+			:group "C"
+			"c" ("Ccc" ignore)))))
     (should (= (length rows) 2))
     ;; First row has 2 groups
     (should (= (length (car rows)) 2))
@@ -93,7 +94,7 @@
 (ert-deftest keymap-popup-test-switch-forms ()
   "Generate defvar-local and toggle defun for a switch."
   (let* ((entry '(:key "v" :description "Verbose" :type switch
-                        :variable my-verbose-var))
+                       :variable my-verbose-var))
          (forms (keymap-popup--switch-forms 'test-map entry)))
     (should (= (length forms) 2))
     (should (eq (car (nth 0 forms)) 'defvar-local))
@@ -104,7 +105,7 @@
 (ert-deftest keymap-popup-test-option-forms ()
   "Generate defvar-local and setter defun for an option."
   (let* ((entry '(:key "n" :description "Count" :type option
-                        :variable my-count-var :reader read-number :prompt "Count: "))
+                       :variable my-count-var :reader read-number :prompt "Count: "))
          (forms (keymap-popup--option-forms 'test-map entry)))
     (should (= (length forms) 2))
     (should (eq (car (nth 0 forms)) 'defvar-local))
@@ -330,17 +331,17 @@
                 ;; Row 1: short col 1, long col 2
                 (list (list :name "A"
                             :entries (list (list :key "a" :description "X"
-                                                  :type 'suffix :command 'ignore)))
+                                                 :type 'suffix :command 'ignore)))
                       (list :name "B"
                             :entries (list (list :key "b" :description "Y"
-                                                  :type 'suffix :command 'ignore))))
+                                                 :type 'suffix :command 'ignore))))
                 ;; Row 2: long col 1, short col 2
                 (list (list :name "Longer Name"
                             :entries (list (list :key "c" :description "Something longer"
-                                                  :type 'suffix :command 'ignore)))
+                                                 :type 'suffix :command 'ignore)))
                       (list :name "D"
                             :entries (list (list :key "d" :description "Z"
-                                                  :type 'suffix :command 'ignore))))))
+                                                 :type 'suffix :command 'ignore))))))
          (output (keymap-popup--render nil rows))
          (plain (substring-no-properties output))
          (lines (split-string plain "\n" t)))
@@ -712,6 +713,256 @@
             (should (eq (get-text-property pos 'face content) 'keymap-popup-inapt))
             (should (string-match-p "Comment" content))))
       (kill-buffer buf))))
+
+;;; Read-loop tests
+
+(defvar keymap-popup-test--key-queue nil)
+(defvar keymap-popup-test--exec-log nil)
+
+(defun keymap-popup-test--cmd-a ()
+  (interactive)
+  (push (list 'cmd-a current-prefix-arg) keymap-popup-test--exec-log))
+
+(defun keymap-popup-test--cmd-stay ()
+  (interactive)
+  (push (list 'cmd-stay current-prefix-arg) keymap-popup-test--exec-log))
+
+(defun keymap-popup-test--cmd-sub ()
+  (interactive)
+  (push (list 'cmd-sub current-prefix-arg) keymap-popup-test--exec-log))
+
+(eval '(keymap-popup-define keymap-popup--test-rl-basic
+         "c" ("Comment" keymap-popup-test--cmd-a))
+      t)
+
+(eval '(keymap-popup-define keymap-popup--test-rl-stay
+         "g" ("Refresh" keymap-popup-test--cmd-stay :stay-open t)
+         "c" ("Comment" keymap-popup-test--cmd-a))
+      t)
+
+(eval '(keymap-popup-define keymap-popup--test-rl-inapt
+         "m" ("Merge" keymap-popup-test--cmd-a :inapt-if (lambda () t))
+         "c" ("Comment" keymap-popup-test--cmd-a))
+      t)
+
+(eval '(keymap-popup-define keymap-popup--test-rl-sub
+         "s" ("Sub action" keymap-popup-test--cmd-sub))
+      t)
+
+(eval '(keymap-popup-define keymap-popup--test-rl-nested
+         "a" ("Sub menu" :keymap keymap-popup--test-rl-sub)
+         "c" ("Comment" keymap-popup-test--cmd-a))
+      t)
+
+(eval '(keymap-popup-define keymap-popup--test-rl-sw
+         "v" ("Verbose" :switch keymap-popup--test-rl-sw-var)
+         "c" ("Comment" keymap-popup-test--cmd-a))
+      t)
+
+(eval '(keymap-popup-define keymap-popup--test-rl-exit
+         :exit-key ?x
+         "c" ("Comment" keymap-popup-test--cmd-a))
+      t)
+
+(defun keymap-popup-test--run-read-loop (map-sym)
+  "Run read-loop for MAP-SYM with read-key returning from key-queue."
+  (cl-letf (((symbol-function 'read-key)
+             (lambda (&rest _)
+               (or (pop keymap-popup-test--key-queue)
+                   (error "Key queue exhausted")))))
+    (with-temp-buffer
+      (let* ((buf (current-buffer))
+             (km (symbol-value map-sym))
+             (descs (keymap-popup--collect-descriptions map-sym))
+             (doc (documentation-property map-sym 'variable-documentation))
+             (exit-key (or (get map-sym 'keymap-popup--exit-key) ?q)))
+        (keymap-popup--read-loop buf nil km descs doc exit-key)))))
+
+(ert-deftest keymap-popup-test-rl-suffix-returns-command ()
+  "Suffix key returns (command . nil)."
+  (setq keymap-popup-test--key-queue (list ?c)
+        keymap-popup-test--exec-log nil)
+  (let ((result (keymap-popup-test--run-read-loop 'keymap-popup--test-rl-basic)))
+    (should (eq (car result) #'keymap-popup-test--cmd-a))
+    (should (null (cdr result)))))
+
+(ert-deftest keymap-popup-test-rl-exit-key-dismisses ()
+  "Exit key returns nil."
+  (setq keymap-popup-test--key-queue (list ?q))
+  (should (null (keymap-popup-test--run-read-loop 'keymap-popup--test-rl-basic))))
+
+(ert-deftest keymap-popup-test-rl-c-g-dismisses ()
+  "C-g returns nil when no prefix mode or stack."
+  (setq keymap-popup-test--key-queue (list ?\C-g))
+  (should (null (keymap-popup-test--run-read-loop 'keymap-popup--test-rl-basic))))
+
+(ert-deftest keymap-popup-test-rl-custom-exit-key ()
+  "Custom :exit-key dismisses the popup."
+  (setq keymap-popup-test--key-queue (list ?x))
+  (should (null (keymap-popup-test--run-read-loop 'keymap-popup--test-rl-exit))))
+
+(ert-deftest keymap-popup-test-rl-prefix-on-suffix ()
+  "C-u then suffix returns command with prefix arg (4)."
+  (setq keymap-popup-test--key-queue (list ?\C-u ?c))
+  (let ((result (keymap-popup-test--run-read-loop 'keymap-popup--test-rl-basic)))
+    (should (eq (car result) #'keymap-popup-test--cmd-a))
+    (should (equal (cdr result) '(4)))))
+
+(ert-deftest keymap-popup-test-rl-prefix-double-toggle ()
+  "C-u twice reverts to no prefix."
+  (setq keymap-popup-test--key-queue (list ?\C-u ?\C-u ?c))
+  (let ((result (keymap-popup-test--run-read-loop 'keymap-popup--test-rl-basic)))
+    (should (eq (car result) #'keymap-popup-test--cmd-a))
+    (should (null (cdr result)))))
+
+(ert-deftest keymap-popup-test-rl-prefix-cancelled-by-c-g ()
+  "C-g cancels prefix mode without dismissing."
+  (setq keymap-popup-test--key-queue (list ?\C-u ?\C-g ?c))
+  (let ((result (keymap-popup-test--run-read-loop 'keymap-popup--test-rl-basic)))
+    (should (eq (car result) #'keymap-popup-test--cmd-a))
+    (should (null (cdr result)))))
+
+(ert-deftest keymap-popup-test-rl-unbound-key-ignored ()
+  "Unbound key does nothing, loop continues."
+  (setq keymap-popup-test--key-queue (list ?z ?c))
+  (let ((result (keymap-popup-test--run-read-loop 'keymap-popup--test-rl-basic)))
+    (should (eq (car result) #'keymap-popup-test--cmd-a))
+    (should (null keymap-popup-test--key-queue))))
+
+(ert-deftest keymap-popup-test-rl-stay-open-executes ()
+  "Stay-open entry runs command and continues the loop."
+  (setq keymap-popup-test--key-queue (list ?g ?q)
+        keymap-popup-test--exec-log nil)
+  (let ((result (keymap-popup-test--run-read-loop 'keymap-popup--test-rl-stay)))
+    (should (null result))
+    (should (equal keymap-popup-test--exec-log '((cmd-stay nil))))))
+
+(ert-deftest keymap-popup-test-rl-stay-open-with-prefix ()
+  "C-u + stay-open passes prefix and clears it for next key."
+  (setq keymap-popup-test--key-queue (list ?\C-u ?g ?c)
+        keymap-popup-test--exec-log nil)
+  (let ((result (keymap-popup-test--run-read-loop 'keymap-popup--test-rl-stay)))
+    (should (equal (car keymap-popup-test--exec-log) '(cmd-stay (4))))
+    (should (eq (car result) #'keymap-popup-test--cmd-a))
+    (should (null (cdr result)))))
+
+(ert-deftest keymap-popup-test-rl-multiple-stay-open ()
+  "Multiple stay-open presses all execute."
+  (setq keymap-popup-test--key-queue (list ?g ?g ?q)
+        keymap-popup-test--exec-log nil)
+  (let ((result (keymap-popup-test--run-read-loop 'keymap-popup--test-rl-stay)))
+    (should (null result))
+    (should (= (length keymap-popup-test--exec-log) 2))))
+
+(ert-deftest keymap-popup-test-rl-inapt-blocked ()
+  "Inapt entry is blocked, loop continues."
+  (setq keymap-popup-test--key-queue (list ?m ?c)
+        keymap-popup-test--exec-log nil)
+  (let ((result (keymap-popup-test--run-read-loop 'keymap-popup--test-rl-inapt)))
+    (should (eq (car result) #'keymap-popup-test--cmd-a))
+    (should (null keymap-popup-test--exec-log))))
+
+(ert-deftest keymap-popup-test-rl-keymap-enters-sub ()
+  "Keymap entry enters sub-map where its bindings are active."
+  (setq keymap-popup-test--key-queue (list ?a ?s))
+  (let ((result (keymap-popup-test--run-read-loop 'keymap-popup--test-rl-nested)))
+    (should (eq (car result) #'keymap-popup-test--cmd-sub))
+    (should (null (cdr result)))))
+
+(ert-deftest keymap-popup-test-rl-keymap-c-g-pops ()
+  "C-g in sub-map returns to parent."
+  (setq keymap-popup-test--key-queue (list ?a ?\C-g ?c))
+  (let ((result (keymap-popup-test--run-read-loop 'keymap-popup--test-rl-nested)))
+    (should (eq (car result) #'keymap-popup-test--cmd-a))))
+
+(ert-deftest keymap-popup-test-rl-keymap-exit-pops ()
+  "Exit key in sub-map returns to parent."
+  (setq keymap-popup-test--key-queue (list ?a ?q ?c))
+  (let ((result (keymap-popup-test--run-read-loop 'keymap-popup--test-rl-nested)))
+    (should (eq (car result) #'keymap-popup-test--cmd-a))))
+
+(ert-deftest keymap-popup-test-rl-keymap-resets-prefix ()
+  "Entering sub-map clears prefix mode."
+  (setq keymap-popup-test--key-queue (list ?\C-u ?a ?s))
+  (let ((result (keymap-popup-test--run-read-loop 'keymap-popup--test-rl-nested)))
+    (should (eq (car result) #'keymap-popup-test--cmd-sub))
+    (should (null (cdr result)))))
+
+(ert-deftest keymap-popup-test-rl-switch-stays-open ()
+  "Switch entry stays open after toggling."
+  (setq keymap-popup-test--key-queue (list ?v ?q))
+  (should (null (keymap-popup-test--run-read-loop 'keymap-popup--test-rl-sw))))
+
+;;; Popup dispatch tests
+
+(defun keymap-popup-test--run-popup (map-sym)
+  "Run `keymap-popup' for MAP-SYM with UI operations stubbed."
+  (cl-letf (((symbol-function 'read-key)
+             (lambda (&rest _)
+               (or (pop keymap-popup-test--key-queue)
+                   (error "Key queue exhausted"))))
+            ((symbol-function 'display-buffer)
+             (lambda (&rest _) nil))
+            ((symbol-function 'fit-window-to-buffer)
+             (lambda (&rest _) nil)))
+    (keymap-popup map-sym)))
+
+(ert-deftest keymap-popup-test-popup-dispatches-suffix ()
+  "Full popup dispatches suffix command."
+  (setq keymap-popup-test--key-queue (list ?c)
+        keymap-popup-test--exec-log nil)
+  (keymap-popup-test--run-popup 'keymap-popup--test-rl-basic)
+  (should (equal keymap-popup-test--exec-log '((cmd-a nil)))))
+
+(ert-deftest keymap-popup-test-popup-dispatches-with-prefix ()
+  "Full popup passes C-u prefix to dispatched command."
+  (setq keymap-popup-test--key-queue (list ?\C-u ?c)
+        keymap-popup-test--exec-log nil)
+  (keymap-popup-test--run-popup 'keymap-popup--test-rl-basic)
+  (should (equal keymap-popup-test--exec-log '((cmd-a (4))))))
+
+(ert-deftest keymap-popup-test-popup-dismiss-kills-buffer ()
+  "Popup buffer is killed after dismissal."
+  (setq keymap-popup-test--key-queue (list ?q))
+  (keymap-popup-test--run-popup 'keymap-popup--test-rl-basic)
+  (should-not (get-buffer "*keymap-popup*")))
+
+(ert-deftest keymap-popup-test-popup-suffix-kills-buffer ()
+  "Popup buffer is killed after suffix dispatch."
+  (setq keymap-popup-test--key-queue (list ?c)
+        keymap-popup-test--exec-log nil)
+  (keymap-popup-test--run-popup 'keymap-popup--test-rl-basic)
+  (should-not (get-buffer "*keymap-popup*")))
+
+(ert-deftest keymap-popup-test-popup-cleanup-on-error ()
+  "Popup buffer is killed even when an error occurs."
+  (cl-letf (((symbol-function 'read-key)
+             (lambda (&rest _) (error "Unexpected")))
+            ((symbol-function 'display-buffer)
+             (lambda (&rest _) nil))
+            ((symbol-function 'fit-window-to-buffer)
+             (lambda (&rest _) nil)))
+    (ignore-errors (keymap-popup 'keymap-popup--test-rl-basic))
+    (should-not (get-buffer "*keymap-popup*"))))
+
+(ert-deftest keymap-popup-test-popup-window-deleted ()
+  "Popup window is deleted after close."
+  (setq keymap-popup-test--key-queue (list ?q))
+  (let ((deleted nil))
+    (cl-letf (((symbol-function 'read-key)
+               (lambda (&rest _)
+                 (or (pop keymap-popup-test--key-queue)
+                     (error "Key queue exhausted"))))
+              ((symbol-function 'display-buffer)
+               (lambda (&rest _) 'fake-window))
+              ((symbol-function 'fit-window-to-buffer)
+               (lambda (&rest _) nil))
+              ((symbol-function 'window-live-p)
+               (lambda (w) (eq w 'fake-window)))
+              ((symbol-function 'delete-window)
+               (lambda (w) (when (eq w 'fake-window) (setq deleted t)))))
+      (keymap-popup 'keymap-popup--test-rl-basic)
+      (should deleted))))
 
 (provide 'keymap-popup-tests)
 ;;; keymap-popup-tests.el ends here

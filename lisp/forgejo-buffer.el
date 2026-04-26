@@ -181,6 +181,23 @@ Sets `forgejo-ref-number' for `forgejo-view-follow-link' to use."
                'mouse-face 'highlight
                'help-echo "RET: view this issue/PR"))))))
 
+(defun forgejo-buffer--linkify-commits (start end)
+  "Mark bare commit SHAs between START and END as clickable.
+Matches 7-40 character hex strings at word boundaries."
+  (save-excursion
+    (goto-char start)
+    (while (re-search-forward
+            "\\_<\\([0-9a-f]\\{7,40\\}\\)\\_>" end t)
+      (unless (or (get-text-property (match-beginning 1) 'forgejo-commit-sha)
+                  (get-text-property (match-beginning 1) 'keymap))
+        (add-text-properties
+         (match-beginning 1) (match-end 1)
+         (list 'forgejo-commit-sha (match-string 1)
+               'face 'link
+               'mouse-face 'highlight
+               'help-echo "RET: view commit"
+               'keymap forgejo-buffer--action-map))))))
+
 (defun forgejo-buffer--url-at-point ()
   "Return the URL at point via `markdown-link-url'."
   (markdown-link-url))
@@ -212,7 +229,8 @@ or a plain string."
   (when (and body (stringp body) (not (string-empty-p body)))
     (let ((start (point)))
       (insert body "\n")
-      (forgejo-buffer--linkify-refs start (point)))))
+      (forgejo-buffer--linkify-refs start (point))
+      (forgejo-buffer--linkify-commits start (point)))))
 
 ;;; Separator
 
@@ -418,8 +436,8 @@ NODE-DATA is a plist with :type and type-specific keys."
          (push-data (when (and body-str (stringp body-str))
                       (condition-case nil
                           (json-parse-string body-str
-                                            :object-type 'alist
-                                            :array-type 'list)
+                                             :object-type 'alist
+                                             :array-type 'list)
                         (error nil))))
          (commit-ids (when push-data (alist-get 'commit_ids push-data)))
          (force-p (when push-data (alist-get 'is_force_push push-data))))
@@ -480,7 +498,7 @@ NODE-DATA is a plist with :type and type-specific keys."
           :actor actor
           :created-at (alist-get 'created_at event)
           :deadline (unless (string= type "removed_deadline")
-                     (alist-get 'body event)))))
+                      (alist-get 'body event)))))
 
 (defun forgejo-buffer--node-review (event actor timeline)
   "Build review node(s) from EVENT with ACTOR using TIMELINE for context.

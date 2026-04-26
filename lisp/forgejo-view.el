@@ -113,43 +113,59 @@ Uses the ref-repo text property for cross-repo references."
     map)
   "Keymap for forgejo diff buffers.")
 
+(defun forgejo-view--local-commit-p (sha)
+  "Return non-nil if SHA exists in the local git repository."
+  (zerop (call-process "git" nil nil nil "cat-file" "-t" sha)))
+
+(defun forgejo-view--show-diff-buffer (buf-name text)
+  "Display TEXT in BUF-NAME using `diff-mode'."
+  (with-current-buffer (get-buffer-create buf-name)
+    (let ((inhibit-read-only t))
+      (erase-buffer)
+      (insert text))
+    (diff-mode)
+    (use-local-map forgejo-view-diff-map)
+    (setq buffer-read-only t)
+    (goto-char (point-min))
+    (switch-to-buffer (current-buffer))))
+
 (defun forgejo-view-commit-diff ()
-  "View the diff for the commit at point."
+  "View the diff for the commit at point.
+Tries local git first, falls back to the API."
   (interactive)
   (when-let* ((sha (get-text-property (point) 'forgejo-commit-sha)))
-    (let* ((host-url forgejo-repo--host)
-           (owner forgejo-repo--owner)
-           (repo forgejo-repo--name)
-           (pr-number (when-let* ((data (bound-and-true-p forgejo-view--data)))
-                        (alist-get 'number data)))
-           (url (format "%s/api/v1/repos/%s/%s/git/commits/%s.diff"
-                        host-url owner repo sha))
-           (url-request-method "GET")
-           (url-request-extra-headers
-            `(("Authorization" . ,(encode-coding-string
-                                   (concat "token " (forgejo-token host-url))
-                                   'ascii)))))
-      (url-retrieve
-       url
-       (lambda (_status)
-         (goto-char (point-min))
-         (re-search-forward "\r?\n\r?\n" nil t)
-         (let ((diff-text (buffer-substring-no-properties (point) (point-max)))
-               (buf-name (format "*forgejo-diff: %s*" (substring sha 0 8))))
-           (kill-buffer (current-buffer))
-           (with-current-buffer (get-buffer-create buf-name)
-             (let ((inhibit-read-only t))
-               (erase-buffer)
-               (insert diff-text))
-             (diff-mode)
-             (use-local-map forgejo-view-diff-map)
-             (setq buffer-read-only t
-                   forgejo-diff--owner owner
-                   forgejo-diff--repo repo
-                   forgejo-diff--pr-number pr-number)
-             (goto-char (point-min))
-             (switch-to-buffer (current-buffer)))))
-       nil t))))
+    (let ((buf-name (format "*forgejo-diff: %s*"
+                            (substring sha 0 (min 8 (length sha))))))
+      (if (forgejo-view--local-commit-p sha)
+          (let ((text (with-temp-buffer
+                        (call-process "git" nil t nil "show" sha)
+                        (buffer-string))))
+            (forgejo-view--show-diff-buffer buf-name text))
+        (forgejo-view--commit-diff-api sha buf-name)))))
+
+(defun forgejo-view--commit-diff-api (sha buf-name)
+  "Fetch the diff for SHA via the API and display in BUF-NAME."
+  (let* ((host-url forgejo-repo--host)
+         (owner forgejo-repo--owner)
+         (repo forgejo-repo--name)
+         (url (format "%s/api/v1/repos/%s/%s/git/commits/%s.diff"
+                      host-url owner repo sha))
+         (url-request-method "GET")
+         (url-request-extra-headers
+          `(("Authorization" . ,(encode-coding-string
+                                 (concat "token " (forgejo-token host-url))
+                                 'ascii)))))
+    (url-retrieve
+     url
+     (lambda (_status)
+       (goto-char (point-min))
+       (re-search-forward "\r?\n\r?\n" nil t)
+       (let ((diff-text (buffer-substring-no-properties (point) (point-max))))
+         (kill-buffer (current-buffer))
+         (if (string-empty-p (string-trim diff-text))
+             (user-error "Commit %s not found" sha)
+           (forgejo-view--show-diff-buffer buf-name diff-text))))
+     nil t)))
 
 ;;; URL routing
 
@@ -252,7 +268,7 @@ Float widths are multiplied by `window-width'."
 ;;; List-view rendering
 
 (defun forgejo-view--render-from-db (buf-name host-url host owner repo
-                                     filters query-fn list-mode)
+					      filters query-fn list-mode)
   "Render cached items into BUF-NAME from the DB.
 HOST-URL is the full instance URL.  HOST is the hostname string.
 OWNER, REPO identify the repository.  FILTERS is the filter plist.
@@ -278,8 +294,8 @@ LIST-MODE is the major mode symbol for the list buffer."
 ;;; Detail-view rendering
 
 (defun forgejo-view--render-detail (buf-name host-url owner repo item-alist
-                                    timeline-alists view-mode-fn
-                                    sync-fn browse-fn)
+					     timeline-alists view-mode-fn
+					     sync-fn browse-fn)
   "Render detail view into BUF-NAME from alist data.
 HOST-URL is the full instance URL.  ITEM-ALIST is the issue or PR data.
 TIMELINE-ALISTS is the timeline.  VIEW-MODE-FN activates the major mode.
@@ -309,7 +325,7 @@ SYNC-FN and BROWSE-FN are stored as buffer-locals for action commands."
 ;;; Re-render from DB
 
 (defun forgejo-view--re-render (buf-name host-url host owner repo number
-                                render-fn &optional restore-line)
+					 render-fn &optional restore-line)
   "Re-render detail buffer BUF-NAME from fresh DB data.
 HOST-URL is the instance.  HOST is the hostname.
 RENDER-FN is called with (BUF-NAME HOST-URL OWNER REPO ITEM TIMELINE).

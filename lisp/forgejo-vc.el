@@ -213,7 +213,7 @@ Returns 0 if UPSTREAM is not a valid ref."
       (cons (forgejo-vc--head-subject) (forgejo-vc--head-body)))
      (t
       (let ((subjects (forgejo-vc--commit-subjects upstream)))
-        (cons (car subjects)
+        (cons (forgejo-vc--head-subject)
               (mapconcat #'identity subjects "\n")))))))
 
 ;;; PR template discovery

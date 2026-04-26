@@ -105,13 +105,11 @@ Uses the ref-repo text property for cross-repo references."
 
 (declare-function forgejo-review-diff-comment "forgejo-review.el" ())
 
-(defvar forgejo-view-diff-map
-  (let ((map (make-sparse-keymap)))
-    (set-keymap-parent map diff-mode-map)
-    (define-key map (kbd "q") #'quit-window)
-    (define-key map (kbd "c") #'forgejo-review-diff-comment)
-    map)
-  "Keymap for forgejo diff buffers.")
+(keymap-popup-define forgejo-view-diff-map
+  "Forgejo diff."
+  :parent diff-mode-map
+  "q" ("Quit" quit-window)
+  "c" ("Review comment" forgejo-review-diff-comment))
 
 (defun forgejo-view--local-commit-p (sha)
   "Return non-nil if SHA exists in the local git repository."

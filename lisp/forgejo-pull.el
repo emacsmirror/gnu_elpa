@@ -233,6 +233,14 @@ Shows cached data immediately, then syncs from the API in the background."
     (forgejo-utils-browse-pull forgejo-repo--host
                                forgejo-repo--owner forgejo-repo--name id)))
 
+;;; Commit log
+
+(keymap-popup-define forgejo-pull-log-map
+  "PR commit log."
+  :parent special-mode-map
+  "=" ("View diff" forgejo-view-commit-diff)
+  "RET" ("View diff" forgejo-view-commit-diff))
+
 ;;; PR detail view
 
 (keymap-popup-define forgejo-pull-view-mode-map
@@ -462,11 +470,7 @@ Only works when `default-directory' is inside the same repository."
            (setq-local forgejo-repo--host host-url
                        forgejo-repo--owner owner
                        forgejo-repo--name repo)
-           (use-local-map (let ((map (make-sparse-keymap)))
-                            (set-keymap-parent map special-mode-map)
-                            (define-key map (kbd "=") #'forgejo-view-commit-diff)
-                            (define-key map (kbd "RET") #'forgejo-view-commit-diff)
-                            map))
+           (use-local-map forgejo-pull-log-map)
            (goto-char (point-min))
            (switch-to-buffer (current-buffer))))))))
 

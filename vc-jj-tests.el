@@ -111,10 +111,10 @@ timestamps and random number seed (and thereby change ids) is needed."
 
 ;;;; State-querying tests
 
-(defun vc-jj-test--dir-status-files-update-function (files-and-states _partial-results-p)
+(defun vc-jj-test--dir-status-files-update-function (files-and-states-and-extra _partial-results-p)
   "Simple callback function for `vc-jj-dir-status-files'.
-Returns FILES-AND-STATES."
-  files-and-states)
+Returns FILES-AND-STATES-AND-EXTRA."
+  files-and-states-and-extra)
 
 (ert-deftest vc-jj-test-state-ignored ()
   "Test the \"ignored\" VC state.
@@ -126,7 +126,7 @@ Check the correctness of \"ignored\" file state reported by
     (should (eq (vc-jj-state "file1") 'ignored))
     (should (seq-set-equal-p
              (vc-jj-dir-status-files repo '("file1") #'vc-jj-test--dir-status-files-update-function)
-             '(("file1" ignored))))))
+             '(("file1" ignored nil))))))
 
 (ert-deftest vc-jj-test-state-added ()
   "Test the \"added\" VC state.
@@ -137,7 +137,7 @@ Check the correctness of \"added\" file state reported by
     (should (eq (vc-jj-state "file1") 'added))
     (should (seq-set-equal-p
              (vc-jj-dir-status-files repo '("file1") #'vc-jj-test--dir-status-files-update-function)
-             '(("file1" added))))))
+             '(("file1" added nil))))))
 
 (ert-deftest vc-jj-test-state-edited ()
   "Test the \"edited\" VC state.
@@ -148,7 +148,7 @@ Check the correctness of \"edited\" file state reported by
     (should (eq (vc-jj-state "file1") 'added))
     (should (seq-set-equal-p
              (vc-jj-dir-status-files repo '("file1") #'vc-jj-test--dir-status-files-update-function)
-             '(("file1" added))))))
+             '(("file1" added nil))))))
 
 (ert-deftest vc-jj-test-state-up-to-date ()
   "Test the \"up-to-date\" VC state.
@@ -161,7 +161,7 @@ Check the correctness of \"up-to-date\" file state reported by
     (should (eq (vc-jj-state "file1") 'up-to-date))
     (should (seq-set-equal-p
              (vc-jj-dir-status-files repo '("file1") #'vc-jj-test--dir-status-files-update-function)
-             '(("file1" up-to-date))))))
+             '(("file1" up-to-date nil))))))
 
 (ert-deftest vc-jj-test-state-removed ()
   "Test \"removed\" VC state.
@@ -175,7 +175,7 @@ Check the correctness of \"removed\" file state reported by
     (should (eq (vc-jj-state "file1") 'removed))
     (should (seq-set-equal-p
              (vc-jj-dir-status-files repo '("file1") #'vc-jj-test--dir-status-files-update-function)
-             '(("file1" removed))))))
+             '(("file1" removed nil))))))
 
 (ert-deftest vc-jj-test-state-conflict ()
   "Test \"conflict\" VC state.
@@ -191,7 +191,7 @@ Check the correctness of \"conflict\" file state reported by
     (should (eq (vc-jj-state "file1") 'conflict))
     (should (seq-set-equal-p
              (vc-jj-dir-status-files repo '("file1") #'vc-jj-test--dir-status-files-update-function)
-             '(("file1" conflict))))))
+             '(("file1" conflict nil))))))
 
 (ert-deftest vc-jj-test-state-later-ignored ()
   "Test when a tracked file is later ignored.
@@ -225,9 +225,9 @@ state should be ignored."
                                          "conflicted1.txt"
                                          "subdir/conflicted2.txt")
                                        #'vc-jj-test--dir-status-files-update-function)
-               '(("conflicted1.txt" added)
-                 ("unconflicted.txt" added)
-                 ("subdir/conflicted2.txt" added))))
+               '(("conflicted1.txt" added nil)
+                 ("unconflicted.txt" added nil)
+                 ("subdir/conflicted2.txt" added nil))))
       
       ;; Create second branch
       (shell-command "jj new 'root()'")
@@ -242,9 +242,9 @@ state should be ignored."
                                          "conflicted1.txt"
                                          "subdir/conflicted2.txt")
                                        #'vc-jj-test--dir-status-files-update-function)
-               '(("conflicted1.txt" added)
-                 ("unconflicted.txt" added)
-                 ("subdir/conflicted2.txt" added))))
+               '(("conflicted1.txt" added nil)
+                 ("unconflicted.txt" added nil)
+                 ("subdir/conflicted2.txt" added nil))))
       
       ;; Create a merge commit between branch 1 and 2
       (shell-command (format "jj new %s %s" branch-1 branch-2))
@@ -256,10 +256,10 @@ state should be ignored."
                                          "added.txt"
                                          "unconflicted.txt")
                                        #'vc-jj-test--dir-status-files-update-function)
-               '(("conflicted1.txt" conflict)
-                 ("subdir/conflicted2.txt" conflict)
-                 ("added.txt" added)
-                 ("unconflicted.txt" up-to-date))))
+               '(("conflicted1.txt" conflict nil)
+                 ("subdir/conflicted2.txt" conflict nil)
+                 ("added.txt" added nil)
+                 ("unconflicted.txt" up-to-date nil))))
       
       ;; Create a new commit, delete all files, then ignore a newly
       ;; added file
@@ -275,14 +275,17 @@ state should be ignored."
                                          "unconflicted.txt"
                                          "ignored.txt")
                                        #'vc-jj-test--dir-status-files-update-function)
-               '(("conflicted1.txt" removed)
-                 ("subdir/conflicted2.txt" removed)
-                 ("added.txt" removed)
-                 ("unconflicted.txt" removed)
-                 ("ignored.txt" ignored)))))))
+               '(("conflicted1.txt" removed nil)
+                 ("subdir/conflicted2.txt" removed nil)
+                 ("added.txt" removed nil)
+                 ("unconflicted.txt" removed nil)
+                 ("ignored.txt" ignored nil)))))))
 
 (ert-deftest vc-jj-test-state-renamed ()
   "Test reported state for files and subdirectories before and after a rename.
+Test what `vc-jj-state' and `vc-jj-dir-status-files' report for renamed
+files.
+
 When a file is renamed, its old file path should have a VC state of
 \"removed\".  The new path should have a VC state of \"added\".
 
@@ -290,21 +293,30 @@ When a directory is renamed, the files contained within it are reported
 along the same lines."
   ;; Rename file
   (vc-jj-test--with-repo repo
-    (write-region "" nil "before rename.txt")
+    ;; 2026-04-26: It seems like Jujutsu's rename detection requires
+    ;; file content to identify a single-file rename: without content,
+    ;; jj reports the operation as a separate deletion and addition
+    ;; rather than a rename.
+    (write-region "foo bar" nil "before rename.txt")
     (shell-command "jj new")
-    (rename-file "before rename.txt" "after rename.txt")
-
+    (shell-command "mv 'before rename.txt' 'after rename.txt'")
+    
     (should (eq (vc-jj-state "before rename.txt") 'removed))
     (should (eq (vc-jj-state "after rename.txt") 'added))
     (should (seq-set-equal-p
              (vc-jj-dir-status-files repo nil
                                      #'vc-jj-test--dir-status-files-update-function)
-             '(("before rename.txt" removed)
-               ("after rename.txt" added)))))
+             '(("before rename.txt" removed ( :rename-state removed
+                                              :rename-other-filename "after rename.txt"))
+               ("after rename.txt" added ( :rename-state added
+                                           :rename-other-filename "before rename.txt"))))))
 
   ;; Rename subdirectory
   (vc-jj-test--with-repo repo
     (make-directory "dir before rename/subdir" t)
+    ;; 2026-04-26: It seems that, unlike single-file renames,
+    ;; directory renames are detected even when the files within have
+    ;; no content.
     (write-region "" nil "dir before rename/subdir/file1.txt")
     (write-region "" nil "dir before rename/subdir/file2.txt")
     (shell-command "jj new")
@@ -317,10 +329,18 @@ along the same lines."
     (should (seq-set-equal-p
              (vc-jj-dir-status-files repo nil
                                      #'vc-jj-test--dir-status-files-update-function)
-             '(("dir before rename/subdir/file1.txt" removed)
-               ("dir before rename/subdir/file2.txt" removed)
-               ("dir after rename/subdir/file1.txt" added)
-               ("dir after rename/subdir/file2.txt" added))))))
+             '(("dir before rename/subdir/file1.txt" removed
+                ( :rename-state removed
+                  :rename-other-filename "dir after rename/subdir/file1.txt"))
+               ("dir before rename/subdir/file2.txt" removed
+                ( :rename-state removed
+                  :rename-other-filename "dir after rename/subdir/file2.txt"))
+               ("dir after rename/subdir/file1.txt" added
+                ( :rename-state added
+                  :rename-other-filename "dir before rename/subdir/file1.txt"))
+               ("dir after rename/subdir/file2.txt" added
+                ( :rename-state added
+                  :rename-other-filename "dir before rename/subdir/file2.txt")))))))
 
 (ert-deftest vc-jj-test-state-funky-filename ()
   "Test compatibility with unusual characters in file names.
@@ -340,9 +360,9 @@ https://codeberg.org/emacs-jj-vc/vc-jj.el/issues/38."
                                             "with'apostrophe.txt"
                                             "with\"quotation.txt")
                                      #'vc-jj-test--dir-status-files-update-function)
-             '(("TEST=TEST.txt" added)
-               ("with'apostrophe.txt" added)
-               ("with\"quotation.txt" added))))))
+             '(("TEST=TEST.txt" added nil)
+               ("with'apostrophe.txt" added nil)
+               ("with\"quotation.txt" added nil))))))
 
 (ert-deftest vc-jj-test-state-subdir ()
   "Test `vc-jj-dir-status-files' with a subdirectory.
@@ -359,13 +379,13 @@ passed to `vc-jj-dir-status-files'."
                                      '("root file.txt"
                                        "subdir/subdir file.txt")
                                      #'vc-jj-test--dir-status-files-update-function)
-             '(("root file.txt" up-to-date)
-               ("subdir/subdir file.txt" added))))
+             '(("root file.txt" up-to-date nil)
+               ("subdir/subdir file.txt" added nil))))
     (should (seq-set-equal-p
              (vc-jj-dir-status-files (expand-file-name "subdir" repo)
                                      '("subdir file.txt")
                                      #'vc-jj-test--dir-status-files-update-function)
-             '(("subdir file.txt" added))))))
+             '(("subdir file.txt" added nil))))))
 
 (ert-deftest vc-jj-test-state-unspecified-files ()
   "Test `vc-jj-dir-status-files' without specifying a list of files.
@@ -383,13 +403,13 @@ reported."
     (should (seq-set-equal-p
              (vc-jj-dir-status-files repo nil
                                      #'vc-jj-test--dir-status-files-update-function)
-             '(("subdir/file2.txt" added)
-               (".gitignore" added))))
+             '(("subdir/file2.txt" added nil)
+               (".gitignore" added nil))))
     (should (seq-set-equal-p
              (vc-jj-dir-status-files repo nil
                                      #'vc-jj-test--dir-status-files-update-function)
-             '(("subdir/file2.txt" added)
-               (".gitignore" added))))))
+             '(("subdir/file2.txt" added nil)
+               (".gitignore" added nil))))))
 
 (ert-deftest vc-jj-test-state-.git-deletion ()
   "Test `vc-jj-dir-status-files' after deleting .git in a colocated repository.
@@ -480,9 +500,9 @@ the user.  See bug#52."
                                        "file2.txt"
                                        "file3.txt")
                                      #'vc-jj-test--dir-status-files-update-function)
-             '(("file1.txt" up-to-date)
-               ("file2.txt" edited)
-               ("file3.txt" added))))))
+             '(("file1.txt" up-to-date nil)
+               ("file2.txt" edited nil)
+               ("file3.txt" added nil))))))
 
 (ert-deftest vc-jj-test-checkin-sync-and-async ()
   "Test the synchronous and asynchronous versions of `vc-jj-checkin'.
@@ -533,9 +553,9 @@ a path to a regular file.  See bug#62."
                                             "subdir/file2.txt"
                                             "subdir/deeper_subdir/file3.txt")
                                      #'vc-jj-test--dir-status-files-update-function)
-             '(("subdir/file1.txt" up-to-date)
-               ("subdir/file2.txt" up-to-date)
-               ("subdir/deeper_subdir/file3.txt" up-to-date))))))
+             '(("subdir/file1.txt" up-to-date nil)
+               ("subdir/file2.txt" up-to-date nil)
+               ("subdir/deeper_subdir/file3.txt" up-to-date nil))))))
 
 ;;;; Diff tests
 

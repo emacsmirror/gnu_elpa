@@ -3,7 +3,7 @@
 ;; Copyright (C) 2026  Thanos Apollo
 
 ;; Author: Thanos Apollo <public@thanosapollo.org>
-;; Keywords: extensions
+;; Keywords: tools vc git forgejo
 ;; URL: https://codeberg.org/thanosapollo/emacs-forgejo
 ;; Version: 0.0.1
 ;; Package-Requires: ((emacs "29.1") (markdown-mode "2.6") (keymap-popup "0.1.0"))

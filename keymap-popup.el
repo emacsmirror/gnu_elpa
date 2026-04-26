@@ -302,43 +302,36 @@ KEY (DESC ...) pairs."
 
 ;;; Public API
 
-(defun keymap-popup--group-exists-p (rows group-name)
-  "Return non-nil if GROUP-NAME exists in ROWS."
-  (cl-loop for row in rows
-           thereis (cl-loop for group in row
-                            thereis (equal (plist-get group :name) group-name))))
-
-(defun keymap-popup--append-to-group (rows entry group-name)
-  "Return ROWS with ENTRY appended to groups matching GROUP-NAME."
-  (mapcar (lambda (row)
-            (mapcar (lambda (group)
-                      (if (equal (plist-get group :name) group-name)
-                          (list :name (plist-get group :name)
-                                :entries (append (plist-get group :entries)
-                                                 (list entry)))
-                        group))
-                    row))
-          rows))
+(defun keymap-popup--map-groups (rows fn)
+  "Apply FN to each group in ROWS, returning the transformed rows.
+FN receives a group plist and returns a new group plist."
+  (mapcar (lambda (row) (mapcar fn row)) rows))
 
 (defun keymap-popup--add-entry-to-rows (rows entry group-name)
   "Return ROWS with ENTRY appended to the group named GROUP-NAME.
 Falls back to the first group if GROUP-NAME is not found."
-  (keymap-popup--append-to-group
-   rows entry
-   (if (keymap-popup--group-exists-p rows group-name)
-       group-name
-     (plist-get (caar rows) :name))))
+  (let ((target (or (cl-loop for row in rows
+                             thereis (cl-loop for g in row
+                                              when (equal (plist-get g :name) group-name)
+                                              return group-name))
+                    (plist-get (caar rows) :name))))
+    (keymap-popup--map-groups
+     rows
+     (lambda (group)
+       (if (equal (plist-get group :name) target)
+           (list :name (plist-get group :name)
+                 :entries (append (plist-get group :entries) (list entry)))
+         group)))))
 
 (defun keymap-popup--remove-key-from-rows (rows key)
   "Return ROWS with entries matching KEY filtered out."
-  (mapcar (lambda (row)
-            (mapcar (lambda (group)
-                      (list :name (plist-get group :name)
-                            :entries (cl-remove-if
-                                      (lambda (e) (equal (plist-get e :key) key))
-                                      (plist-get group :entries))))
-                    row))
-          rows))
+  (keymap-popup--map-groups
+   rows
+   (lambda (group)
+     (list :name (plist-get group :name)
+           :entries (cl-remove-if
+                     (lambda (e) (equal (plist-get e :key) key))
+                     (plist-get group :entries))))))
 
 ;;;###autoload
 (defun keymap-popup-add-entry (map-symbol key description command &optional group)

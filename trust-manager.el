@@ -1,6 +1,6 @@
 ;;; trust-manager.el --- Convenient trust management  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2026  Eshel Yaron
+;; Copyright (C) 2026  Free Software Foundation, Inc.
 
 ;; Author: Eshel Yaron <me@eshelyaron.com>
 ;; Maintainer: Eshel Yaron <me@eshelyaron.com>

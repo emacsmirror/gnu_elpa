@@ -112,7 +112,8 @@ Uses local tracking branches first, falls back to `git ls-remote'."
                                        "branch" "-r" "--format"
                                        "%(refname:short)"))))))
         (when (not (string-empty-p output))
-          (split-string output "\n" t)))
+          (cl-remove-if-not (lambda (s) (string-match-p "/" s))
+                            (split-string output "\n" t))))
       (forgejo-vc--ls-remote-branches)))
 
 (defun forgejo-vc--ls-remote-branches ()

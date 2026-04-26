@@ -103,7 +103,7 @@
        endpoint TEXT NOT NULL,
        last_synced TEXT,
        PRIMARY KEY (host, owner, repo, endpoint))"
-)
+    )
   "SQL statements to initialize the database schema.")
 
 ;;; Connection management
@@ -132,7 +132,7 @@ Detects stale schema and rebuilds the database if necessary."
   (condition-case nil
       (let ((cols (mapcar #'cadr
                           (sqlite-select forgejo-db
-                                        "PRAGMA table_info(issues)"))))
+                                         "PRAGMA table_info(issues)"))))
         (and cols (member "body_html" cols)))
     (error nil)))
 
@@ -209,20 +209,20 @@ When IS-PULL is non-nil, mark all entries as pull requests regardless of
 whether a `pull_request' field is present in the data."
   (forgejo-db--with-transaction
     (let ((db (forgejo-db--ensure)))
-    (dolist (issue issues)
-      (let-alist issue
-        (let ((body (forgejo-db--nullable .body))
-              (labels (forgejo-db--nullable .labels))
-              (milestone (forgejo-db--nullable .milestone))
-              (assignees (forgejo-db--nullable .assignees))
-              (closed (forgejo-db--nullable .closed_at))
-              (pr (or is-pull (forgejo-db--nullable .pull_request))))
-          ;; Track edits before overwriting
-          (when body
-            (forgejo-db--track-edit db host owner repo .number body))
-          (sqlite-execute
-           db
-           "INSERT INTO issues
+      (dolist (issue issues)
+	(let-alist issue
+          (let ((body (forgejo-db--nullable .body))
+		(labels (forgejo-db--nullable .labels))
+		(milestone (forgejo-db--nullable .milestone))
+		(assignees (forgejo-db--nullable .assignees))
+		(closed (forgejo-db--nullable .closed_at))
+		(pr (or is-pull (forgejo-db--nullable .pull_request))))
+            ;; Track edits before overwriting
+            (when body
+              (forgejo-db--track-edit db host owner repo .number body))
+            (sqlite-execute
+             db
+             "INSERT INTO issues
               (id, host, owner, repo, number, title, state, body,
                user, labels, milestone, assignees, comments_count,
                created_at, updated_at, closed_at, is_pull, read)
@@ -233,61 +233,82 @@ whether a `pull_request' field is present in the data."
               assignees=excluded.assignees, comments_count=excluded.comments_count,
               updated_at=excluded.updated_at, closed_at=excluded.closed_at,
               is_pull=excluded.is_pull, read=0"
-           (list .id host owner repo .number .title .state body
-                 (alist-get 'login .user)
-                 (forgejo-db--encode-json (when (listp labels) labels))
-                 (when (listp milestone) (alist-get 'title milestone))
-                 (forgejo-db--encode-json
-                  (when (listp assignees)
-                    (mapcar (lambda (a) (alist-get 'login a)) assignees)))
-                 .comments
-                 .created_at .updated_at closed
-                 (if pr 1 0)))))))))
+             (list .id host owner repo .number .title .state body
+                   (alist-get 'login .user)
+                   (forgejo-db--encode-json (when (listp labels) labels))
+                   (when (listp milestone) (alist-get 'title milestone))
+                   (forgejo-db--encode-json
+                    (when (listp assignees)
+                      (mapcar (lambda (a) (alist-get 'login a)) assignees)))
+                   .comments
+                   .created_at .updated_at closed
+                   (if pr 1 0)))))))))
+
+(defun forgejo-db--like (s)
+  "Wrap S in SQL LIKE wildcards."
+  (format "%%%s%%" s))
+
+(defun forgejo-db--read-val (v)
+  "Convert read filter V to integer."
+  (if (equal v "yes") 1 0))
+
+(defun forgejo-db--type-clause (v)
+  "Return bare SQL clause for type filter V."
+  (if (equal v "pr") "is_pull = 1" "is_pull = 0"))
+
+(defconst forgejo-db--filter-specs
+  '((:state     "state = ?"     identity)
+    (:label     "labels LIKE ?" forgejo-db--like)
+    (:labels    "labels LIKE ?" forgejo-db--like)
+    (:milestone "milestone = ?" identity)
+    (:author    "user LIKE ?"   forgejo-db--like)
+    (:query     "title LIKE ?"  forgejo-db--like)
+    (:read      "read = ?"      forgejo-db--read-val)
+    (:type      nil             forgejo-db--type-clause)
+    (:is-pull   "is_pull = 1"   nil)
+    (:no-pulls  "is_pull = 0"   nil))
+  "Filter specs: (KEY SQL-CLAUSE VALUE-TRANSFORM).
+When SQL-CLAUSE is nil, TRANSFORM returns the clause itself (bare SQL).
+When TRANSFORM is nil, the clause is bare SQL with no bound argument.")
+
+(defun forgejo-db--build-filter-clauses (filters)
+  "Build (CLAUSES . ARGS) from FILTERS plist.
+CLAUSES is a list of SQL WHERE fragments, ARGS is a list of
+bound parameter values."
+  (cl-loop for (key clause transform) in forgejo-db--filter-specs
+           for val = (plist-get filters key)
+           when val
+           if (null transform)
+           collect clause into clauses
+           else if (null clause)
+           collect (funcall transform val) into clauses
+           else
+           collect clause into clauses
+           and collect (funcall transform val) into args
+           finally return (cons clauses args)))
 
 (defun forgejo-db-get-issues (host owner repo &optional filters)
   "Query cached issues for HOST/OWNER/REPO with optional FILTERS.
 FILTERS is a plist with keys:
-  :state      - \"open\", \"closed\", or nil for all
-  :label      - label name substring to match
-  :milestone  - milestone title to match
-  :author     - author/poster login to match
-  :query      - search string for title
-  :read       - \"yes\" or \"no\" for read/unread status
-  :is-pull    - when non-nil, filter to pull requests only
-  :no-pulls   - when non-nil, exclude pull requests"
-  (let ((where (list "host = ?" "owner = ?" "repo = ?"))
-        (args (list host owner repo)))
-    (when-let* ((state (plist-get filters :state)))
-      (setq where (append where (list "state = ?"))
-            args (append args (list state))))
-    (when-let* ((label (or (plist-get filters :labels)
-                          (plist-get filters :label))))
-      (setq where (append where (list "labels LIKE ?"))
-            args (append args (list (format "%%%s%%" label)))))
-    (when-let* ((milestone (plist-get filters :milestone)))
-      (setq where (append where (list "milestone = ?"))
-            args (append args (list milestone))))
-    (when-let* ((author (plist-get filters :author)))
-      (setq where (append where (list "user LIKE ?"))
-            args (append args (list (format "%%%s%%" author)))))
-    (when-let* ((query (plist-get filters :query)))
-      (setq where (append where (list "title LIKE ?"))
-            args (append args (list (format "%%%s%%" query)))))
-    (when-let* ((read-val (plist-get filters :read)))
-      (setq where (append where (list "read = ?"))
-            args (append args (list (if (equal read-val "yes") 1 0)))))
-    (when-let* ((type (plist-get filters :type)))
-      (setq where (append where (list (if (equal type "pr")
-                                          "is_pull = 1"
-                                        "is_pull = 0")))))
-    (when (plist-get filters :is-pull)
-      (setq where (append where (list "is_pull = 1"))))
-    (when (plist-get filters :no-pulls)
-      (setq where (append where (list "is_pull = 0"))))
+  :state      \"open\", \"closed\", or nil for all
+  :label      label name substring to match
+  :labels     alias for :label
+  :milestone  milestone title to match
+  :author     author/poster login to match
+  :query      search string for title
+  :read       \"yes\" or \"no\" for read/unread status
+  :type       \"pr\" or \"issue\"
+  :is-pull    when non-nil, filter to pull requests only
+  :no-pulls   when non-nil, exclude pull requests"
+  (let* ((filter-result (forgejo-db--build-filter-clauses filters))
+         (clauses (append (list "host = ?" "owner = ?" "repo = ?")
+                          (car filter-result)))
+         (args (append (list host owner repo)
+                       (cdr filter-result))))
     (forgejo-db--select
      (format "SELECT %s FROM issues WHERE %s ORDER BY updated_at DESC"
              forgejo-db--issue-columns
-             (mapconcat #'identity where " AND "))
+             (mapconcat #'identity clauses " AND "))
      args)))
 
 ;;; Timeline events
@@ -298,10 +319,10 @@ FILTERS is a plist with keys:
     (forgejo-db--with-transaction
       (let ((db (forgejo-db--ensure)))
         (dolist (event events)
-        (let-alist event
-          (sqlite-execute
-           db
-           "INSERT INTO timeline_events
+          (let-alist event
+            (sqlite-execute
+             db
+             "INSERT INTO timeline_events
               (id, host, owner, repo, issue_number, type, body,
                user, created_at, data)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -309,12 +330,12 @@ FILTERS is a plist with keys:
               type=excluded.type, body=excluded.body,
               user=excluded.user, created_at=excluded.created_at,
               data=excluded.data"
-           (list .id host owner repo number
-                 (forgejo-db--nullable .type)
-                 (forgejo-db--nullable .body)
-                 (alist-get 'login (forgejo-db--nullable .user))
-                 (forgejo-db--nullable .created_at)
-                 (forgejo-db--encode-json event)))))))))
+             (list .id host owner repo number
+                   (forgejo-db--nullable .type)
+                   (forgejo-db--nullable .body)
+                   (alist-get 'login (forgejo-db--nullable .user))
+                   (forgejo-db--nullable .created_at)
+                   (forgejo-db--encode-json event)))))))))
 
 (defun forgejo-db-get-timeline (host owner repo number)
   "Get cached timeline events for issue NUMBER in HOST/OWNER/REPO."

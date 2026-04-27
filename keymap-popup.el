@@ -487,12 +487,6 @@ rendered with the inapt face."
   "Return the visible width of STR, ignoring text properties."
   (string-width (substring-no-properties str)))
 
-(defun keymap-popup--pad-line (line width)
-  "Pad LINE with spaces to WIDTH (based on visible characters)."
-  (let ((visible-width (keymap-popup--string-width-visible line)))
-    (if (< visible-width width)
-        (concat line (make-string (- width visible-width) ?\s))
-      line)))
 
 (defun keymap-popup--column-width (col)
   "Return the max visible width of lines in COL."
@@ -507,7 +501,7 @@ Shorter columns are padded with blank lines."
          (padded-cols (cl-mapcar
                        (lambda (col width)
                          (let ((padded (mapcar (lambda (line)
-                                                 (keymap-popup--pad-line line width))
+                                                 (string-pad line width))
                                                col))
                                (blanks (make-list (- max-height (length col))
                                                   (make-string width ?\s))))

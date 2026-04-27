@@ -393,6 +393,8 @@
   :doc "README.org"
   :news "CHANGELOG.org"
   :ignored-files ("COPYING" "doclicense.texi"))
+ (forgejo		:url "https://codeberg.org/thanosapollo/emacs-forgejo"
+  :lisp-dir "lisp")
  (frame-tabs		:url nil)
  (frog-menu		:url "https://github.com/clemera/frog-menu")
  (fsm			:url nil)
@@ -492,8 +494,7 @@
  (json-mode		:url nil)
  (jsonrpc		:core "lisp/jsonrpc.el")
  (jumpc			:url nil)
- (keymap-popup		:url "https://codeberg.org/thanosapollo/emacs-keymap-popup"
-  :ignored-files ("LICENSE"))
+ (keymap-popup		:url "https://codeberg.org/thanosapollo/emacs-keymap-popup")
  (kind-icon		:url "https://github.com/jdtsmith/kind-icon")
  (kiwix			:url "https://repo.or.cz/kiwix.el.git"
   :ignored-files ("*.png" "LICENSE"))

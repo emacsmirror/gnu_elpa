@@ -15,9 +15,9 @@ GUIX_WRAP = $(if $(GUIX_SHELL),$(GUIX_SHELL) $(MAKE) --no-print-directory EMACS_
 
 SRCS = lisp/forgejo.el lisp/forgejo-api.el lisp/forgejo-db.el \
        lisp/forgejo-filter.el lisp/forgejo-utils.el \
-       lisp/forgejo-buffer.el lisp/forgejo-view.el lisp/forgejo-repo.el \
-       lisp/forgejo-issue.el lisp/forgejo-pull.el lisp/forgejo-vc.el \
-       lisp/forgejo-tl.el lisp/forgejo-review.el lisp/forgejo-settings.el \
+       lisp/forgejo-buffer.el lisp/forgejo-tl.el lisp/forgejo-view.el \
+       lisp/forgejo-repo.el lisp/forgejo-issue.el lisp/forgejo-pull.el \
+       lisp/forgejo-vc.el lisp/forgejo-review.el lisp/forgejo-settings.el \
        lisp/forgejo-alert.el lisp/forgejo-watch.el
 
 TESTS = tests/forgejo-test-load.el tests/forgejo-test-api.el \

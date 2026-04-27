@@ -46,6 +46,15 @@
 
 (require 'tabulated-list)
 (require 'cl-lib)
+(require 'keymap-popup)
+
+;;; Shared list keymap
+
+(keymap-popup-define forgejo-tl-list-mode-map
+  "Shared bindings for all Forgejo list views."
+  :parent tabulated-list-mode-map
+  :group "Navigate"
+  "S" ("Sort" forgejo-tl-sort))
 
 (defvar forgejo-tl-ellipsis "..."
   "String appended to truncated column text.")

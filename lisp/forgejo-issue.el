@@ -57,14 +57,13 @@ Keys: :state :labels :milestone :author :query :page")
 
 (keymap-popup-define forgejo-issue-list-mode-map
   "Forgejo issue list."
-  :parent tabulated-list-mode-map
+  :parent forgejo-tl-list-mode-map
   :group "Actions"
   "RET" ("View issue" forgejo-issue-view-at-point)
   "c" ("Create issue" forgejo-issue-create)
   "x" ("Toggle open/close" forgejo-view-toggle-state)
   "b" ("Browse" forgejo-issue-browse-at-point)
   :group "Navigate"
-  "S" ("Sort" forgejo-tl-sort)
   "g" ("Refresh" forgejo-issue-refresh)
   "l" ("Filter" forgejo-issue-filter))
 
@@ -75,7 +74,7 @@ Keys: :state :labels :milestone :author :query :page")
   (setq tabulated-list-padding 1
         tabulated-list-format (forgejo-view--list-format
                                forgejo-filter-list-columns)
-        tabulated-list-sort-key '("#" . t))
+        tabulated-list-sort-key '("Updated" . t))
   (tabulated-list-init-header)
   (run-hook-with-args 'forgejo-buffer-setup-functions (current-buffer)))
 

@@ -198,7 +198,7 @@ and runs `forgejo-watch-hooks' when new ones arrive."
 
 (keymap-popup-define forgejo-watch-list-mode-map
   "Forgejo watch list."
-  :parent tabulated-list-mode-map
+  :parent forgejo-tl-list-mode-map
   :group "Actions"
   "RET" ("View" forgejo-watch-view-at-point)
   "r" ("Mark read" forgejo-watch-mark-read-at-point)
@@ -214,7 +214,8 @@ and runs `forgejo-watch-hooks' when new ones arrive."
   :group 'forgejo
   (setq tabulated-list-padding 1
         tabulated-list-format (forgejo-view--list-format
-                               forgejo-filter-notification-columns))
+                               forgejo-filter-notification-columns)
+        tabulated-list-sort-key '("Updated" . t))
   (tabulated-list-init-header)
   (run-hook-with-args 'forgejo-buffer-setup-functions (current-buffer)))
 

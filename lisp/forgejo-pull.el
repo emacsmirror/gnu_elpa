@@ -58,13 +58,12 @@ Keys: :state :milestone :labels :author :page")
 
 (keymap-popup-define forgejo-pull-list-mode-map
   "Forgejo pull request list."
-  :parent tabulated-list-mode-map
+  :parent forgejo-tl-list-mode-map
   :group "Actions"
   "RET" ("View PR" forgejo-pull-view-at-point)
   "x" ("Toggle open/close" forgejo-view-toggle-state)
   "b" ("Browse" forgejo-pull-browse-at-point)
   :group "Navigate"
-  "S" ("Sort" forgejo-tl-sort)
   "g" ("Refresh" forgejo-pull-refresh)
   "l" ("Filter" forgejo-pull-filter))
 
@@ -75,7 +74,7 @@ Keys: :state :milestone :labels :author :page")
   (setq tabulated-list-padding 1
         tabulated-list-format (forgejo-view--list-format
                                forgejo-filter-list-columns)
-        tabulated-list-sort-key '("#" . t))
+        tabulated-list-sort-key '("Updated" . t))
   (tabulated-list-init-header)
   (run-hook-with-args 'forgejo-buffer-setup-functions (current-buffer)))
 

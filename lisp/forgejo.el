@@ -140,8 +140,10 @@ Same format as `forgejo-issue-default-filter'."
 
 (defun forgejo--sort-by-updated (a b)
   "Compare entries A and B by their updated timestamp."
-  (let ((ta (get-text-property 0 'forgejo-timestamp (aref (cadr a) 5)))
-        (tb (get-text-property 0 'forgejo-timestamp (aref (cadr b) 5))))
+  (let* ((idx (cl-position "Updated" tabulated-list-format
+                           :key #'car :test #'string=))
+         (ta (get-text-property 0 'forgejo-timestamp (aref (cadr a) idx)))
+         (tb (get-text-property 0 'forgejo-timestamp (aref (cadr b) idx))))
     (string< (or ta "") (or tb ""))))
 
 (defun forgejo--default-filter-for (owner repo filters)

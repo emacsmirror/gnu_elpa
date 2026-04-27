@@ -356,11 +356,12 @@ When use chat-based LLMs, there are two ways for constructing the prompt:
 placing the prefix (context before the cursor) before the suffix (context after
 the cursor), or placing the suffix before the prefix.
 
-By default, `minuet` uses the **prefix-first** style for the OpenAI and Gemini
-providers, and the **suffix-first** style for OpenAI-Compatible and Claude
-providers. It is recommended that you experiment with both strategies to
-determine which yields the best results, particularly if you are using an
-OpenAI-compatible provider with various models.
+By default, `minuet` uses the **prefix-first** style for the OpenAI,
+Gemini, and OpenAI-Compatible provider (with `deepseek-v4-flash` as
+the default model), and the **suffix-first** style for Claude
+providers. It is recommended that you experiment with both strategies
+to determine which yields the best results, particularly if you are
+using an OpenAI-compatible provider with various models.
 
 Below is an example code snippet demonstrating how to switch between these two
 prompt construction methods:
@@ -762,15 +763,15 @@ The following config is the default.
 (defvar minuet-openai-compatible-options
     `(:end-point "https://openrouter.ai/api/v1/chat/completions"
       :api-key "OPENROUTER_API_KEY"
-      :model "mistralai/devstral-small"
+      :model "deepseek/deepseek-v4-flash"
       :system
       (:template minuet-default-system-template
-       :prompt minuet-default-prompt
+       :prompt minuet-default-prompt-prefix-first
        :guidelines minuet-default-guidelines
        :n-completions-template minuet-default-n-completion-template)
-      :fewshots minuet-default-fewshots
+      :fewshots minuet-default-fewshots-prefix-first
       :chat-input
-      (:template minuet-default-chat-input-template
+      (:template minuet-default-chat-input-template-prefix-first
        :language-and-tab minuet--default-chat-input-language-and-tab-function
        :context-before-cursor minuet--default-chat-input-before-cursor-function
        :context-after-cursor minuet--default-chat-input-after-cursor-function)

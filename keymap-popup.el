@@ -132,14 +132,23 @@ is accumulated entries (reversed), GROUPS is current row's groups
        (cons (cons (car rest) (cadr rest)) entries)
        groups rows)))))
 
+(defun keymap-popup--parse-group-name (raw)
+  "Parse RAW group name into (NAME . PROPS).
+RAW is a string, a lambda, or a list (NAME :if PRED :inapt-if PRED).
+A list whose car is not `lambda' is treated as a name with properties."
+  (if (and (consp raw) (not (eq (car raw) 'lambda)))
+      (cons (car raw) (keymap-popup--extract-props (cdr raw)))
+    (cons raw nil)))
+
 (defun keymap-popup--parse-chunk (chunk)
   "Parse CHUNK of (NAME . ((KEY . SPEC) ...)) into a group plist."
-  (let* ((name (car chunk))
-         (pairs (cdr chunk))
+  (let* ((name-props (keymap-popup--parse-group-name (car chunk)))
+         (name (car name-props))
+         (group-props (cdr name-props))
          (entries (mapcar (lambda (pair)
                             (keymap-popup--parse-entry (car pair) (cdr pair)))
-                          pairs)))
-    (list :name name :entries entries)))
+                          (cdr chunk))))
+    `(:name ,name :entries ,entries ,@group-props)))
 
 (defun keymap-popup--parse-bindings (bindings)
   "Parse BINDINGS into a list of rows.
@@ -234,9 +243,13 @@ Uses list calls so lambdas get compiled."
             (lambda (row)
               `(list ,@(mapcar
                         (lambda (group)
-                          `(list :name ,(plist-get group :name)
-                                 :entries (list ,@(mapcar #'keymap-popup--build-entry-form
-                                                          (plist-get group :entries)))))
+                          (let ((if-pred (plist-get group :if))
+                                (inapt-if (plist-get group :inapt-if)))
+                            `(list :name ,(plist-get group :name)
+                                   :entries (list ,@(mapcar #'keymap-popup--build-entry-form
+                                                            (plist-get group :entries)))
+                                   ,@(and if-pred (list :if if-pred))
+                                   ,@(and inapt-if (list :inapt-if inapt-if)))))
                         row)))
             rows)))
 
@@ -417,19 +430,31 @@ KEY-WIDTH pads the key column for alignment."
 (defun keymap-popup--render-group-lines (group &optional prefix-mode)
   "Render GROUP into a list of lines (strings).
 When PREFIX-MODE is non-nil, pass it to entry rendering.
-Returns nil if the group has no visible entries."
-  (let* ((entries (plist-get group :entries))
-         (key-width (cl-loop for entry in entries
-                             maximize (length (plist-get entry :key))))
-         (header (and-let* ((raw-name (plist-get group :name))
-                            (name (keymap-popup--resolve-description raw-name)))
-                   (propertize name 'face 'keymap-popup-group-header)))
-         (lines (cl-loop for entry in entries
-                         for line = (keymap-popup--render-entry
-                                     entry prefix-mode key-width)
-                         when line collect line)))
-    (when lines
-      (if header (cons header lines) lines))))
+Returns nil if the group is hidden by :if or has no visible entries.
+When the group has :inapt-if that returns non-nil, all entries are
+rendered with the inapt face."
+  (when (or (null (plist-get group :if))
+            (funcall (plist-get group :if)))
+    (let* ((group-inapt (and-let* ((pred (plist-get group :inapt-if)))
+                          (funcall pred)))
+           (entries (plist-get group :entries))
+           (key-width (cl-loop for entry in entries
+                               maximize (length (plist-get entry :key))))
+           (header (and-let* ((raw-name (plist-get group :name))
+                              (name (keymap-popup--resolve-description raw-name)))
+                     (propertize name 'face (if group-inapt
+                                                'keymap-popup-inapt
+                                              'keymap-popup-group-header))))
+           (lines (cl-loop for entry in entries
+                           for line = (keymap-popup--render-entry
+                                       entry prefix-mode key-width)
+                           when line collect line)))
+      (when lines
+        (let ((result (if header (cons header lines) lines)))
+          (if group-inapt
+              (mapcar (lambda (line) (propertize line 'face 'keymap-popup-inapt))
+                      result)
+            result))))))
 
 (defun keymap-popup--string-width-visible (str)
   "Return the visible width of STR, ignoring text properties."
@@ -538,11 +563,23 @@ Returns the entry plist, or nil."
              (_ (eq (plist-get entry :type) 'keymap)))
     (plist-get entry :target)))
 
+(defun keymap-popup--find-group-for-key (descriptions key-str)
+  "Find the group containing KEY-STR in DESCRIPTIONS."
+  (cl-loop for row in descriptions
+           thereis (cl-loop for group in row
+                            when (cl-loop for entry in (plist-get group :entries)
+                                          thereis (equal (plist-get entry :key) key-str))
+                            return group)))
+
 (defun keymap-popup--inapt-p (descriptions key-str)
-  "Return non-nil if KEY-STR is inapt in DESCRIPTIONS."
-  (and-let* ((entry (keymap-popup--find-entry-by-key descriptions key-str))
-             (pred (plist-get entry :inapt-if)))
-    (funcall pred)))
+  "Return non-nil if KEY-STR is inapt in DESCRIPTIONS.
+Checks both group-level and entry-level :inapt-if predicates."
+  (or (and-let* ((group (keymap-popup--find-group-for-key descriptions key-str))
+                 (pred (plist-get group :inapt-if)))
+        (funcall pred))
+      (and-let* ((entry (keymap-popup--find-entry-by-key descriptions key-str))
+                 (pred (plist-get entry :inapt-if)))
+        (funcall pred))))
 
 (defun keymap-popup--stay-open-p (descriptions key-str)
   "Return non-nil if KEY-STR should keep the popup open in DESCRIPTIONS.

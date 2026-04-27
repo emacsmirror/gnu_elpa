@@ -77,7 +77,7 @@ Keys: :state :labels :milestone :author :query :page")
                                forgejo-filter-list-columns)
         tabulated-list-sort-key '("#" . t))
   (tabulated-list-init-header)
-  (run-hooks 'forgejo-mode-hook))
+  (run-hook-with-args 'forgejo-buffer-setup-functions (current-buffer)))
 
 ;;; API interaction
 
@@ -247,7 +247,7 @@ Empty input clears all filters."
   "Major mode for viewing a single Forgejo issue."
   :group 'forgejo
   (setq-local browse-url-browser-function #'forgejo-view-browse-url)
-  (run-hooks 'forgejo-mode-hook))
+  (run-hook-with-args 'forgejo-buffer-setup-functions (current-buffer)))
 
 ;;; Detail view rendering
 

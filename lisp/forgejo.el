@@ -56,9 +56,10 @@
   :group 'external
   :prefix "forgejo-")
 
-(defcustom forgejo-mode-hook nil
-  "Hook run in all Forgejo buffers."
-  :type 'hook
+(defcustom forgejo-buffer-setup-functions nil
+  "List of functions called in all Forgejo buffers after setup.
+Each function receives the current buffer as its sole argument."
+  :type '(repeat function)
   :group 'forgejo)
 
 (defcustom forgejo-compose-hook nil

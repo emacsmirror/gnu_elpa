@@ -492,6 +492,8 @@
  (json-mode		:url nil)
  (jsonrpc		:core "lisp/jsonrpc.el")
  (jumpc			:url nil)
+ (keymap-popup		:url "https://codeberg.org/thanosapollo/emacs-keymap-popup"
+  :ignored-files ("LICENSE"))
  (kind-icon		:url "https://github.com/jdtsmith/kind-icon")
  (kiwix			:url "https://repo.or.cz/kiwix.el.git"
   :ignored-files ("*.png" "LICENSE"))

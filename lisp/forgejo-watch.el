@@ -1,6 +1,6 @@
 ;;; forgejo-watch.el --- Watch rules and polling for Forgejo  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2026  Thanos Apollo
+;; Copyright (C) 2026  Free Software Foundation, Inc.
 
 ;; Author: Thanos Apollo <public@thanosapollo.org>
 ;; Keywords: extensions
@@ -168,13 +168,12 @@ RULE is \"owner/repo\" or (\"owner/repo\" . \"filter-query\")."
 Polls watch rules periodically for new items
 and runs `forgejo-watch-hooks' when new ones arrive."
   :global t
-  :lighter nil
   :group 'forgejo
   (if forgejo-watch-mode
       (progn
         (setq forgejo-watch--timer
               (run-with-timer 0 forgejo-watch-poll-interval
-                              'forgejo-watch--poll))
+                              #'forgejo-watch--poll))
         (add-hook 'kill-emacs-hook #'forgejo-watch--cleanup))
     (forgejo-watch--cleanup)))
 

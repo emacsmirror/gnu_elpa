@@ -1,6 +1,6 @@
 ;;; forgejo-buffer.el --- Shared display and rendering utilities  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2026  Thanos Apollo
+;; Copyright (C) 2026  Free Software Foundation, Inc.
 
 ;; Author: Thanos Apollo <public@thanosapollo.org>
 ;; Keywords: extensions

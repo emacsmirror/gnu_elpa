@@ -1,6 +1,6 @@
 ;;; forgejo-issue.el --- Issue list and detail views  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2026  Thanos Apollo
+;; Copyright (C) 2026  Free Software Foundation, Inc.
 
 ;; Author: Thanos Apollo <public@thanosapollo.org>
 ;; Keywords: extensions

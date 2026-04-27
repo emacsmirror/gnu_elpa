@@ -1,6 +1,6 @@
 ;;; forgejo-utils.el --- Shared utilities for Forgejo  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2026  Thanos Apollo
+;; Copyright (C) 2026  Free Software Foundation, Inc.
 
 ;; Author: Thanos Apollo <public@thanosapollo.org>
 ;; Keywords: extensions

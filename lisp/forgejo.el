@@ -1,6 +1,6 @@
 ;;; forgejo.el --- Emacs Forgejo Front-end  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2026  Thanos Apollo
+;; Copyright (C) 2026  Free Software Foundation, Inc.
 
 ;; Author: Thanos Apollo <public@thanosapollo.org>
 ;; Keywords: tools vc git forgejo
@@ -59,14 +59,13 @@
 (defcustom forgejo-buffer-setup-functions nil
   "List of functions called in all Forgejo buffers after setup.
 Each function receives the current buffer as its sole argument."
-  :type '(repeat function)
-  :group 'forgejo)
+  :type '(repeat function))
 
 (defcustom forgejo-compose-hook nil
   "Hook run in composition buffers after setup.
-Use this to enable modes like `markdown-mode' or `flyspell-mode'."
-  :type 'hook
-  :group 'forgejo)
+Compose buffers already use `gfm-mode', so this is for extras
+like `flyspell-mode' or `visual-line-mode'."
+  :type 'hook)
 
 
 (defcustom forgejo-hosts '(("https://codeberg.org"))
@@ -83,21 +82,18 @@ Example:
   :type '(repeat
           (choice (list (string :tag "Host URL"))
                   (list (string :tag "Host URL")
-                        (string :tag "API token"))))
-  :group 'forgejo)
+                        (string :tag "API token")))))
 
 (defcustom forgejo-token nil
   "Personal access token.
 Used as fallback when no token is found via `forgejo-hosts' or
 auth-source."
-  :type '(choice string (const nil))
-  :group 'forgejo)
+  :type '(choice string (const nil)))
 
 (defcustom forgejo-token-use-auth-source t
   "When non-nil, look up the token via `auth-source'.
 Falls back to `forgejo-token' if auth-source returns nothing."
-  :type 'boolean
-  :group 'forgejo)
+  :type 'boolean)
 
 (defcustom forgejo-default-sort "recentupdate"
   "Default sort order for issue and PR lists."
@@ -106,33 +102,28 @@ Falls back to `forgejo-token' if auth-source returns nothing."
                  (const "oldest")
                  (const "leastupdate")
                  (const "mostcomment")
-                 (const "leastcomment"))
-  :group 'forgejo)
+                 (const "leastcomment")))
 
 (defcustom forgejo-timeline-page-size 30
   "Number of timeline events to fetch per request."
-  :type 'integer
-  :group 'forgejo)
+  :type 'integer)
 
 (defcustom forgejo-db-dir (locate-user-emacs-file "forgejo")
   "Directory for the local SQLite cache database."
-  :type 'directory
-  :group 'forgejo)
+  :type 'directory)
 
 (defcustom forgejo-issue-default-filter
   '("state:open")
   "Default filter query for issue lists.
 The first string element is the global default.  Cons cells
 of (\"owner/repo\" . \"query\") override for specific repos."
-  :type '(repeat (choice string (cons string string)))
-  :group 'forgejo)
+  :type '(repeat (choice string (cons string string))))
 
 (defcustom forgejo-pull-default-filter
   '("state:open")
   "Default filter query for pull request lists.
 Same format as `forgejo-issue-default-filter'."
-  :type '(repeat (choice string (cons string string)))
-  :group 'forgejo)
+  :type '(repeat (choice string (cons string string))))
 
 (defun forgejo--sort-by-number (a b)
   "Compare entries A and B numerically by their ID."
@@ -167,8 +158,7 @@ FILTERS is a list like `forgejo-issue-default-filter'."
   "Functions run after a successful mutation action.
 Called in the originating buffer's context.  Default refreshes
 the current view (issue detail, PR detail, or list)."
-  :type 'hook
-  :group 'forgejo)
+  :type 'hook)
 
 (declare-function forgejo-view-refresh "forgejo-view.el" ())
 (declare-function forgejo-issue-refresh "forgejo-issue.el" ())

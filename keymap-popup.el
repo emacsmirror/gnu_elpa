@@ -39,35 +39,30 @@
 Common values:
   (display-buffer-in-side-window (side . bottom))  - frame-wide
   (display-buffer-below-selected)                  - current window only"
-  :type 'sexp
+  :type display-buffer--action-custom-type
   :group 'keymap-popup)
 
 ;;; Faces
 
 (defface keymap-popup-key
   '((t :inherit help-key-binding))
-  "Face for key bindings in the popup."
-  :group 'keymap-popup)
+  "Face for key bindings in the popup.")
 
 (defface keymap-popup-group-header
-  '((t :inherit bold))
-  "Face for group headers in the popup."
-  :group 'keymap-popup)
+  '((t :weight bold))
+  "Face for group headers in the popup.")
 
 (defface keymap-popup-value
   '((t :inherit font-lock-string-face :weight bold))
-  "Face for switch/option values in the popup."
-  :group 'keymap-popup)
+  "Face for switch/option values in the popup.")
 
 (defface keymap-popup-submenu
   '((t :inherit font-lock-type-face))
-  "Face for sub-menu entries in the popup."
-  :group 'keymap-popup)
+  "Face for sub-menu entries in the popup.")
 
 (defface keymap-popup-inapt
   '((t :inherit shadow))
-  "Face for inapt (disabled) entries in the popup."
-  :group 'keymap-popup)
+  "Face for inapt (disabled) entries in the popup.")
 
 ;;; Parsers
 
@@ -224,9 +219,9 @@ MAP-NAME is used to derive generated command names."
            :description ,desc-form
            :type ',type
            ,@type-props
-           ,@(when if-pred (list :if if-pred))
-           ,@(when inapt-if (list :inapt-if inapt-if))
-           ,@(when-let* ((c-u (plist-get entry :c-u)))
+           ,@(and if-pred (list :if if-pred))
+           ,@(and inapt-if (list :inapt-if inapt-if))
+           ,@(and-let* ((c-u (plist-get entry :c-u)))
                (list :c-u c-u)))))
 
 (defun keymap-popup--build-descriptions-form (rows)
@@ -247,17 +242,17 @@ Uses list calls so lambdas get compiled."
 
 (defun keymap-popup--consume-keyword (rest keyword)
   "If REST starts with KEYWORD, return (VALUE . REMAINING), else nil."
-  (when (eq (car rest) keyword)
-    (cons (cadr rest) (cddr rest))))
+  (and (eq (car rest) keyword)
+       (cons (cadr rest) (cddr rest))))
 
 (defun keymap-popup--extract-macro-opts (body)
   "Extract macro options from BODY.
-Returns (DOCSTRING POPUP-KEY EXIT-KEY PARENT BINDINGS).
+Returns (DOCSTRING POPUP-KEY EXIT-KEY PARENT DESCRIPTION BINDINGS).
 A string followed by a list is a key binding, not a docstring."
-  (let* ((docstring (when (and (stringp (car body))
-                               (or (null (cadr body))
-                                   (not (listp (cadr body)))))
-                      (car body)))
+  (let* ((docstring (and (stringp (car body))
+                         (or (null (cadr body))
+                             (not (listp (cadr body))))
+                         (car body)))
          (rest (if docstring (cdr body) body))
          (popup-pair (keymap-popup--consume-keyword rest :popup-key))
          (popup-key (if popup-pair (car popup-pair) "h"))
@@ -267,32 +262,32 @@ A string followed by a list is a key binding, not a docstring."
          (rest (if exit-pair (cdr exit-pair) rest))
          (parent-pair (keymap-popup--consume-keyword rest :parent))
          (parent (when parent-pair (car parent-pair)))
-         (bindings (if parent-pair (cdr parent-pair) rest)))
-    (list docstring popup-key exit-key parent bindings)))
+         (rest (if parent-pair (cdr parent-pair) rest))
+         (desc-pair (keymap-popup--consume-keyword rest :description))
+         (description (when desc-pair (car desc-pair)))
+         (bindings (if desc-pair (cdr desc-pair) rest)))
+    (list docstring popup-key exit-key parent description bindings)))
 
 ;;;###autoload
 (defmacro keymap-popup-define (name &rest body)
   "Define NAME as a keymap with embedded descriptions.
 BODY is an optional docstring, optional :popup-key KEY (default
 \"h\"), optional :exit-key CHAR (default ?q), optional :parent
-KEYMAP, followed by :group keywords and KEY (DESC ...) pairs."
+KEYMAP, optional :description STRING-OR-FUNCTION, followed by
+:group keywords and KEY (DESC ...) pairs."
   (declare (indent 1))
-  (let* ((opts (keymap-popup--extract-macro-opts body))
-         (docstring (nth 0 opts))
-         (popup-key (nth 1 opts))
-         (exit-key (nth 2 opts))
-         (parent (nth 3 opts))
-         (bindings (nth 4 opts))
-         (rows (keymap-popup--parse-bindings bindings))
-         (all-entries (cl-loop for row in rows
-                               append (cl-loop for group in row
-                                               append (plist-get group :entries))))
-         (infix-forms (cl-loop for entry in all-entries
-                               append (pcase (plist-get entry :type)
-                                        ('switch (keymap-popup--switch-forms name entry))
-                                        ('option (keymap-popup--option-forms name entry))
-                                        (_ nil))))
-         (keymap-pairs (keymap-popup--build-keymap-pairs name all-entries)))
+  (pcase-let* ((`(,docstring ,popup-key ,exit-key ,parent ,description ,bindings)
+                (keymap-popup--extract-macro-opts body))
+               (rows (keymap-popup--parse-bindings bindings))
+               (all-entries (cl-loop for row in rows
+				     append (cl-loop for group in row
+						     append (plist-get group :entries))))
+               (infix-forms (cl-loop for entry in all-entries
+				     append (pcase (plist-get entry :type)
+                                              ('switch (keymap-popup--switch-forms name entry))
+                                              ('option (keymap-popup--option-forms name entry))
+                                              (_ nil))))
+               (keymap-pairs (keymap-popup--build-keymap-pairs name all-entries)))
     `(progn
        ,@infix-forms
        (defvar-keymap ,name
@@ -304,7 +299,9 @@ KEYMAP, followed by :group keywords and KEY (DESC ...) pairs."
             ,(keymap-popup--build-descriptions-form rows))
        (put ',name 'keymap-popup--exit-key ,exit-key)
        ,@(when parent
-           `((put ',name 'keymap-popup--parent ',parent))))))
+           `((put ',name 'keymap-popup--parent ',parent)))
+       ,@(when description
+           `((put ',name 'keymap-popup--description ,description))))))
 
 ;;; Public API
 
@@ -375,7 +372,7 @@ their :c-u description is shown; other entries are dimmed.
 KEY-WIDTH pads the key column for alignment."
   (when (or (null (plist-get entry :if))
             (funcall (plist-get entry :if)))
-    (let* ((inapt (when-let* ((pred (plist-get entry :inapt-if)))
+    (let* ((inapt (and-let* ((pred (plist-get entry :inapt-if)))
                     (funcall pred)))
            (raw-desc (keymap-popup--resolve-description
                       (plist-get entry :description)))
@@ -401,12 +398,12 @@ KEY-WIDTH pads the key column for alignment."
                                           (symbol-value (plist-get entry :variable)))
                                   'face 'keymap-popup-value))
                         (_ "")))
-           (c-u-str (when c-u-desc
-                      (if prefix-mode
-                          (propertize (format " (%s)" c-u-desc)
-                                      'face 'warning)
-                        (propertize (format " (%s)" c-u-desc)
-                                    'face 'shadow))))
+           (c-u-str (and c-u-desc
+                         (if prefix-mode
+                             (propertize (format " (%s)" c-u-desc)
+                                         'face 'warning)
+                           (propertize (format " (%s)" c-u-desc)
+                                       'face 'shadow))))
            (line (format "  %s  %s%s%s" key-str desc value-str
                          (or c-u-str ""))))
       (cond
@@ -422,8 +419,8 @@ Returns nil if the group has no visible entries."
   (let* ((entries (plist-get group :entries))
          (key-width (cl-loop for entry in entries
                              maximize (length (plist-get entry :key))))
-         (header (when-let* ((raw-name (plist-get group :name))
-                             (name (keymap-popup--resolve-description raw-name)))
+         (header (and-let* ((raw-name (plist-get group :name))
+                            (name (keymap-popup--resolve-description raw-name)))
                    (propertize name 'face 'keymap-popup-group-header)))
          (lines (cl-loop for entry in entries
                          for line = (keymap-popup--render-entry
@@ -474,8 +471,8 @@ When PREFIX-MODE is non-nil, pass it to group rendering.
 Returns a list of ((col-lines ...) ...) per row, filtering empty groups."
   (mapcar (lambda (row)
             (cl-loop for group in row
-                     for lines = (keymap-popup--render-group-lines group prefix-mode)
-                     when lines collect lines))
+                     when (keymap-popup--render-group-lines group prefix-mode)
+                     collect it))
           rows))
 
 (defun keymap-popup--global-col-widths (rendered-rows)
@@ -492,8 +489,10 @@ Returns a list of ((col-lines ...) ...) per row, filtering empty groups."
 ROWS is a list of rows, each row a list of groups.
 When PREFIX-MODE is non-nil, highlight :c-u entries and dim others.
 Column widths are aligned across all rows."
-  (let* ((doc (when docstring
-                (concat (propertize docstring 'face 'font-lock-doc-face)
+  (let* ((resolved (when docstring
+                     (keymap-popup--resolve-description docstring)))
+         (doc (when resolved
+                (concat (propertize resolved 'face 'font-lock-doc-face)
                         "\n")))
          (rendered-rows (keymap-popup--rows-to-columns rows prefix-mode))
          (col-widths (keymap-popup--global-col-widths rendered-rows))
@@ -503,7 +502,7 @@ Column widths are aligned across all rows."
                                                (keymap-popup--join-columns
 						cols "   " col-widths)
                                                "\n"))))
-    (concat doc (mapconcat #'identity sections "\n") "\n")))
+    (concat doc (string-join sections "\n") "\n")))
 
 ;;; Popup display
 
@@ -511,11 +510,10 @@ Column widths are aligned across all rows."
   "Collect descriptions from MAP-SYMBOL and all its parent keymaps.
 Walks the parent chain via the `keymap-popup--parent' property,
 appending each parent's rows after the child's."
-  (cl-loop for sym = map-symbol
-           then (get sym 'keymap-popup--parent)
+  (cl-loop for sym = map-symbol then (get sym 'keymap-popup--parent)
            while sym
-           for rows = (get sym 'keymap-popup--descriptions)
-           when rows append rows))
+           when (get sym 'keymap-popup--descriptions)
+           append it))
 
 (defun keymap-popup--find-entry-by-key (descriptions key-str)
   "Find the entry matching KEY-STR in DESCRIPTIONS.
@@ -529,25 +527,25 @@ Returns the entry plist, or nil."
 
 (defun keymap-popup--infix-p (descriptions key-str)
   "Return non-nil if KEY-STR maps to an infix entry in DESCRIPTIONS."
-  (when-let* ((entry (keymap-popup--find-entry-by-key descriptions key-str)))
+  (and-let* ((entry (keymap-popup--find-entry-by-key descriptions key-str)))
     (memq (plist-get entry :type) '(switch option))))
 
 (defun keymap-popup--keymap-target (descriptions key-str)
   "Return the target map symbol if KEY-STR is a :keymap entry in DESCRIPTIONS."
-  (when-let* ((entry (keymap-popup--find-entry-by-key descriptions key-str)))
-    (when (eq (plist-get entry :type) 'keymap)
-      (plist-get entry :target))))
+  (and-let* ((entry (keymap-popup--find-entry-by-key descriptions key-str))
+             (_ (eq (plist-get entry :type) 'keymap)))
+    (plist-get entry :target)))
 
 (defun keymap-popup--inapt-p (descriptions key-str)
   "Return non-nil if KEY-STR is inapt in DESCRIPTIONS."
-  (when-let* ((entry (keymap-popup--find-entry-by-key descriptions key-str))
-              (pred (plist-get entry :inapt-if)))
+  (and-let* ((entry (keymap-popup--find-entry-by-key descriptions key-str))
+             (pred (plist-get entry :inapt-if)))
     (funcall pred)))
 
 (defun keymap-popup--stay-open-p (descriptions key-str)
   "Return non-nil if KEY-STR should keep the popup open in DESCRIPTIONS.
 True for infixes and suffixes with :stay-open."
-  (when-let* ((entry (keymap-popup--find-entry-by-key descriptions key-str)))
+  (and-let* ((entry (keymap-popup--find-entry-by-key descriptions key-str)))
     (or (memq (plist-get entry :type) '(switch option))
         (plist-get entry :stay-open))))
 
@@ -577,7 +575,7 @@ Includes descriptions inherited from parent keymaps."
     (keymap-popup--refresh-buffer
      buf nil
      (keymap-popup--collect-descriptions map-symbol)
-     (documentation-property map-symbol 'variable-documentation))
+     (get map-symbol 'keymap-popup--description))
     buf))
 
 (defun keymap-popup--read-loop (buf win keymap descriptions docstring exit-key)
@@ -597,7 +595,7 @@ Returns (CMD . PREFIX-ARG) or nil on dismiss."
            for cmd = (keymap-lookup current-keymap key-str)
            for keymap-target = (keymap-popup--keymap-target current-descs key-str)
            ;; C-u: toggle prefix mode
-           when (equal key ?\C-u)
+           when (eq key ?\C-u)
            do (progn
                 (setq prefix-mode (not prefix-mode))
                 (keymap-popup--refresh-buffer
@@ -652,7 +650,7 @@ dismiss keys close the popup."
   (let* ((buf (keymap-popup--prepare-buffer map-symbol))
          (keymap (symbol-value map-symbol))
          (descriptions (keymap-popup--collect-descriptions map-symbol))
-         (docstring (documentation-property map-symbol 'variable-documentation))
+         (docstring (get map-symbol 'keymap-popup--description))
          (exit-key (or (get map-symbol 'keymap-popup--exit-key) ?q)))
     (unwind-protect
         (let* ((win (display-buffer buf

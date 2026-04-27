@@ -117,6 +117,18 @@ completion for issue/PR references and =@= for user mentions.
   (add-hook 'forgejo-compose-hook #'flyspell-mode)
 #+end_src
 
+** Buffer setup
+
+All Forgejo buffers call =forgejo-buffer-setup-functions= after
+setup, passing the buffer as an argument:
+
+#+begin_src emacs-lisp
+  (setq forgejo-buffer-setup-functions
+        (list (lambda (buf)
+                (with-current-buffer buf
+                  (display-line-numbers-mode -1)))))
+#+end_src
+
 * Screenshots
 
 #+caption: issue list

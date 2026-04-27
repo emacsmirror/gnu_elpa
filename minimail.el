@@ -5,7 +5,7 @@
 ;; Author: Augusto Stoffel <arstoffel@gmail.com>
 ;; Keywords: mail
 ;; URL: https://codeberg.org/astoff/minimail
-;; Package-Requires: ((emacs "30.1"))
+;; Package-Requires: ((emacs "30.1") (transient "0.12"))
 ;; Version: 0.4
 
 ;; This program is free software; you can redistribute it and/or modify

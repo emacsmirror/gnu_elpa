@@ -122,7 +122,9 @@ CALLBACK is called with two arguments: (RESPONSE-DATA HEADERS-PLIST).
            (let ((http-status (forgejo-api--response-status (current-buffer))))
              (cond
               ((and http-status (>= http-status 400))
-               (let* ((err-data (forgejo-api--parse-response (current-buffer)))
+               (let* ((err-data (condition-case nil
+                                    (forgejo-api--parse-response (current-buffer))
+                                  (json-parse-error nil)))
                       (err-msg (when (listp err-data)
                                  (alist-get 'message err-data))))
                  (message "Forgejo API HTTP %d: %s %s%s"

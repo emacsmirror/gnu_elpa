@@ -1,5 +1,7 @@
 ;;; keymap-popup.el --- Described keymaps with popup help  -*- lexical-binding: t; -*-
 
+;; Copyright (C) 2026  Free Software Foundation, Inc.
+
 ;; Author: Thanos Apollo
 ;; Version: 0.1.0
 ;; Package-Requires: ((emacs "29.1"))

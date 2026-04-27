@@ -1,0 +1,9 @@
+CONTRIBUTING.org
+LICENSE
+Makefile
+manifest.scm
+guix.scm
+
+tests
+
+decks

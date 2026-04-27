@@ -964,5 +964,85 @@
       (keymap-popup 'keymap-popup--test-rl-basic)
       (should deleted))))
 
+;;; Group-level predicate tests
+
+(ert-deftest keymap-popup-test-group-if-hidden ()
+  "A group with :if returning nil is hidden from the popup."
+  (let* ((rows (list (list (list :name "Visible"
+                                 :entries (list (list :key "a" :description "Alpha"
+                                                      :type 'suffix :command 'ignore)))
+                           (list :name "Hidden" :if (lambda () nil)
+                                 :entries (list (list :key "b" :description "Beta"
+                                                      :type 'suffix :command 'ignore))))))
+         (output (keymap-popup--render nil rows)))
+    (should (string-match-p "Alpha" output))
+    (should-not (string-match-p "Beta" output))
+    (should-not (string-match-p "Hidden" output))))
+
+(ert-deftest keymap-popup-test-group-if-shown ()
+  "A group with :if returning non-nil is shown normally."
+  (let* ((rows (list (list (list :name "Shown" :if (lambda () t)
+                                 :entries (list (list :key "a" :description "Alpha"
+                                                      :type 'suffix :command 'ignore))))))
+         (output (keymap-popup--render nil rows)))
+    (should (string-match-p "Alpha" output))
+    (should (string-match-p "Shown" output))))
+
+(ert-deftest keymap-popup-test-group-inapt-grays-all ()
+  "A group with :inapt-if returning non-nil grays out all entries."
+  (let* ((rows (list (list (list :name "Disabled"
+                                 :inapt-if (lambda () t)
+                                 :entries (list (list :key "a" :description "Alpha"
+                                                      :type 'suffix :command 'ignore)
+                                                (list :key "b" :description "Beta"
+                                                      :type 'suffix :command 'ignore))))))
+         (output (keymap-popup--render nil rows)))
+    (should (string-match-p "Alpha" output))
+    (let ((pos-a (string-match "Alpha" output))
+          (pos-b (string-match "Beta" output)))
+      (should (eq (get-text-property pos-a 'face output) 'keymap-popup-inapt))
+      (should (eq (get-text-property pos-b 'face output) 'keymap-popup-inapt)))))
+
+(ert-deftest keymap-popup-test-group-inapt-blocks-dispatch ()
+  "A group-level :inapt-if blocks dispatch for entries in that group."
+  (let ((descs (list (list (list :name "OK"
+                                 :entries (list (list :key "a" :type 'suffix :command 'ignore)))
+                           (list :name "Nope" :inapt-if (lambda () t)
+                                 :entries (list (list :key "b" :type 'suffix :command 'ignore)))))))
+    (should-not (keymap-popup--inapt-p descs "a"))
+    (should (keymap-popup--inapt-p descs "b"))))
+
+(ert-deftest keymap-popup-test-group-inapt-via-macro ()
+  "Group-level :inapt-if works through the macro."
+  (eval '(keymap-popup-define keymap-popup--test-group-inapt-map
+           :group ("Disabled" :inapt-if (lambda () t))
+           "a" ("Alpha" ignore)
+           "b" ("Beta" ignore))
+        t)
+  (let ((buf (keymap-popup--prepare-buffer 'keymap-popup--test-group-inapt-map)))
+    (unwind-protect
+        (with-current-buffer buf
+          (let* ((content (buffer-string))
+                 (pos (string-match "Alpha" content)))
+            (should pos)
+            (should (eq (get-text-property pos 'face content) 'keymap-popup-inapt))))
+      (kill-buffer buf))))
+
+(ert-deftest keymap-popup-test-group-if-via-macro ()
+  "Group-level :if works through the macro."
+  (eval '(keymap-popup-define keymap-popup--test-group-if-map
+           :group ("Hidden" :if (lambda () nil))
+           "a" ("Alpha" ignore)
+           :group "Shown"
+           "b" ("Beta" ignore))
+        t)
+  (let ((buf (keymap-popup--prepare-buffer 'keymap-popup--test-group-if-map)))
+    (unwind-protect
+        (with-current-buffer buf
+          (let ((content (buffer-string)))
+            (should-not (string-match-p "Alpha" content))
+            (should (string-match-p "Beta" content))))
+      (kill-buffer buf))))
+
 (provide 'keymap-popup-tests)
 ;;; keymap-popup-tests.el ends here

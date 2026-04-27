@@ -1,117 +1,117 @@
 #+title: keymap-popup.el
 
-A macro that defines a keymap with embedded descriptions and a popup to display them.  One definition, two uses: direct key dispatch and interactive menu.
+A macro that defines a keymap with embedded descriptions and a popup
+to display them.
+
+=One definition, two uses: direct key dispatch and interactive menu.=
 
 Requires Emacs 29.1+.
 
 ** Usage
 
 #+begin_src emacs-lisp
-  (keymap-popup-define my-mode-map
-    "My mode commands."
-    :group "Actions"
-    "c" ("Comment" my-comment)
-    "r" ("Reply" my-reply)
-    "x" ("Toggle" my-toggle)
+  (keymap-popup-define demo-text-map
+    "Text editing commands."
     :group "Navigate"
-    "g" ("Refresh" my-refresh)
-    "q" ("Quit" quit-window))
-
-  (define-derived-mode my-mode special-mode "My"
-    (use-local-map my-mode-map))
+    "a" ("Beginning" beginning-of-buffer)
+    "e" ("End" end-of-buffer)
+    "l" ("Goto line" goto-line)
+    :group "Edit"
+    "f" ("Fill paragraph" fill-paragraph)
+    "s" ("Sort lines" sort-lines)
+    ";" ("Comment region" comment-dwim))
 #+end_src
 
-This produces a real =defvar-keymap=.  Keys work directly in the mode.
-Press =h= for the popup.
+Eval this, then call =(keymap-popup 'demo-text-map)= to see the popup.
 
-** Infixes
+This produces a real =defvar-keymap=.  Keys work directly when the map
+is active.  Press =h= for the popup.
+
+*** Infixes
 
 #+begin_src emacs-lisp
-  (keymap-popup-define my-list-map
+  (keymap-popup-define demo-fill-map
     :group "Options"
-    "V" ("Verbose" :switch my-verbose-var)
-    "n" ("Limit" :option my-limit-var :reader read-number :prompt "Limit: ")
+    "j" ("Justify" :switch demo-justify)
+    "w" ("Fill column" :option demo-fill-col :reader read-number :prompt "Column: ")
     :group "Actions"
-    "l" ("List" (lambda () (interactive)
-                  (my-fetch :verbose my-verbose-var
-                            :limit my-limit-var))))
+    "f" ("Fill" (lambda () (interactive)
+                  (let ((fill-column (or demo-fill-col fill-column)))
+                    (fill-paragraph (when demo-justify 'full))))))
 #+end_src
 
 Switches toggle buffer-local booleans.  Options set buffer-local
 values via a reader.  Pressing a switch or option key re-renders
 the popup without closing it.
 
-** Sub-menus
+*** Sub-menus
 
 #+begin_src emacs-lisp
-  (keymap-popup-define my-metadata-map
-    :group "Add"
-    "l" ("Label" my-add-label)
-    "a" ("Assignee" my-add-assignee)
-    "m" ("Milestone" my-set-milestone))
+  (keymap-popup-define demo-edit-map
+    :group "Edit"
+    "f" ("Fill paragraph" fill-paragraph)
+    "s" ("Sort lines" sort-lines)
+    "r" ("Reverse region" reverse-region))
 
-  (keymap-popup-define my-view-map
-    :group "Actions"
-    "c" ("Comment" my-comment)
-    "a" ("Metadata" :keymap my-metadata-map)
+  (keymap-popup-define demo-main-map
     :group "Navigate"
-    "q" ("Quit" quit-window))
+    "a" ("Beginning" beginning-of-buffer)
+    "e" ("End" end-of-buffer)
+    "x" ("Edit" :keymap demo-edit-map))
 #+end_src
 
-Press =a= to enter the sub-menu.  =q= or =C-g= goes back.
+Press =x= to enter the sub-menu.  =q= or =C-g= goes back.
 
-** Inheritance
+*** Inheritance
 
 #+begin_src emacs-lisp
-  (keymap-popup-define view-base-map
+  (keymap-popup-define demo-base-map
     :group "Common"
-    "g" ("Refresh" my-refresh)
-    "b" ("Browse" my-browse)
-    "q" ("Quit" quit-window))
+    "g" ("Goto line" goto-line)
+    "r" ("Revert" revert-buffer))
 
-  (keymap-popup-define issue-view-map
-    :parent view-base-map
-    :group "Issue"
-    "c" ("Comment" my-comment)
-    "x" ("Close" my-close))
+  (keymap-popup-define demo-text-view-map
+    :parent demo-base-map
+    :group "Text"
+    "f" ("Fill paragraph" fill-paragraph)
+    "s" ("Sort lines" sort-lines))
 
-  (keymap-popup-define pull-view-map
-    :parent view-base-map
-    :group "Pull Request"
-    "c" ("Comment" my-comment)
-    "m" ("Merge" my-merge))
+  (keymap-popup-define demo-prog-view-map
+    :parent demo-base-map
+    :group "Code"
+    ";" ("Comment" comment-dwim)
+    "i" ("Indent region" indent-region))
 #+end_src
 
-Both =issue-view-map= and =pull-view-map= inherit Refresh, Browse, and
-Quit from =view-base-map=.  The popup shows entries from both child
-and parent.
+Both maps inherit Goto line and Revert from =demo-base-map=.  The
+popup shows entries from both child and parent.
 
-** Conditional and inapt entries
+*** Conditional and inapt entries
 
 #+begin_src emacs-lisp
-  (keymap-popup-define my-map
+  (keymap-popup-define demo-cond-map
     :group "Actions"
-    "c" ("Comment" my-comment)
-    ;; hidden when verbose is off
-    "d" ("Debug info" my-debug :if (lambda () my-verbose-var))
-    ;; visible but grayed out when merge is not possible
-    "m" ("Merge" my-merge :inapt-if (lambda () (not (my-can-merge-p)))))
+    "f" ("Fill paragraph" fill-paragraph)
+    ;; only shown when region is active
+    "s" ("Sort lines" sort-lines :if (lambda () mark-active))
+    ;; visible but grayed out in read-only buffers
+    "d" ("Delete char" delete-char :inapt-if (lambda () buffer-read-only)))
 #+end_src
 
-** Prefix argument
+*** Prefix argument
 
 #+begin_src emacs-lisp
-  (keymap-popup-define my-map
+  (keymap-popup-define demo-prefix-map
     :group "Actions"
-    "s" ("Submit" my-submit :c-u "force push")
-    "g" ("Refresh" my-refresh))
+    "f" ("Fill paragraph" fill-paragraph :c-u "justify")
+    "s" ("Sort lines" sort-lines :c-u "reverse"))
 #+end_src
 
 In the popup, =C-u= enters prefix mode: entries with =:c-u= are
 highlighted, others are dimmed.  The next key dispatches with the
 prefix argument.  =C-g= cancels prefix mode.
 
-** Other features
+*** Other features
 
 - =:stay-open t= on a command keeps the popup open after dispatch
 - =:popup-key "?"= changes the popup key (default =h=)

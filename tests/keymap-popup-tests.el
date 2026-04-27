@@ -1044,5 +1044,87 @@
             (should (string-match-p "Beta" content))))
       (kill-buffer buf))))
 
+;;; Annotate tests
+
+(defvar keymap-popup--test-annotate-map
+  (let ((map (make-sparse-keymap)))
+    (keymap-set map "a" #'forward-char)
+    (keymap-set map "b" #'backward-char)
+    (keymap-set map "c" #'kill-line)
+    map))
+
+(ert-deftest keymap-popup-test-annotate-parse ()
+  (let ((entry (keymap-popup--parse-entry 'forward-char '("Forward"))))
+    (should (eq (plist-get entry :command) 'forward-char))
+    (should-not (plist-get entry :key))
+    (should (equal (plist-get entry :description) "Forward"))))
+
+(ert-deftest keymap-popup-test-annotate-parse-with-props ()
+  (let ((entry (keymap-popup--parse-entry 'forward-char '("Forward" :stay-open t))))
+    (should (eq (plist-get entry :command) 'forward-char))
+    (should (plist-get entry :stay-open))))
+
+(ert-deftest keymap-popup-test-annotate-parse-bare-string ()
+  (let ((entry (keymap-popup--parse-entry 'forward-char "Forward")))
+    (should (eq (plist-get entry :command) 'forward-char))
+    (should (equal (plist-get entry :description) "Forward"))))
+
+(ert-deftest keymap-popup-test-resolve-key ()
+  (let* ((entry (list :key nil :description "Forward" :type 'suffix
+                      :command 'forward-char))
+         (resolved (keymap-popup--resolve-key entry keymap-popup--test-annotate-map)))
+    (should resolved)
+    (should (equal (plist-get resolved :key) "a"))))
+
+(ert-deftest keymap-popup-test-resolve-key-unbound ()
+  (let ((entry (list :key nil :description "Nope" :type 'suffix
+                     :command 'some-nonexistent-command-xyz)))
+    (should-not (keymap-popup--resolve-key entry keymap-popup--test-annotate-map))))
+
+(ert-deftest keymap-popup-test-resolve-descriptions ()
+  (let* ((rows (list (list (list :name "Test"
+                                 :entries (list (list :key nil :description "Forward"
+                                                      :type 'suffix :command 'forward-char)
+                                                (list :key nil :description "Nope"
+                                                      :type 'suffix :command 'nonexistent-xyz))))))
+         (resolved (keymap-popup--resolve-descriptions rows keymap-popup--test-annotate-map))
+         (entries (plist-get (car (car resolved)) :entries)))
+    (should (= (length entries) 1))
+    (should (equal (plist-get (car entries) :key) "a"))
+    (should (equal (plist-get (car entries) :description) "Forward"))))
+
+(ert-deftest keymap-popup-test-annotate-macro ()
+  (eval '(keymap-popup-annotate keymap-popup--test-annotate-map
+           :group "Move"
+           forward-char "Forward"
+           backward-char "Backward")
+        t)
+  (should (get 'keymap-popup--test-annotate-map 'keymap-popup--annotated))
+  (let* ((descs (get 'keymap-popup--test-annotate-map 'keymap-popup--descriptions))
+         (entries (plist-get (car (car descs)) :entries)))
+    (should (= (length entries) 2))
+    (should (eq (plist-get (car entries) :command) 'forward-char))))
+
+(ert-deftest keymap-popup-test-annotate-prepare-buffer ()
+  (eval '(keymap-popup-annotate keymap-popup--test-annotate-map
+           :group "Move"
+           forward-char "Forward"
+           backward-char "Backward"
+           :group "Edit"
+           kill-line "Kill line")
+        t)
+  (let ((buf (keymap-popup--prepare-buffer 'keymap-popup--test-annotate-map)))
+    (unwind-protect
+        (with-current-buffer buf
+          (let ((content (buffer-string)))
+            (should (string-match-p "Forward" content))
+            (should (string-match-p "Backward" content))
+            (should (string-match-p "Kill line" content))
+            ;; Resolved keys should appear
+            (should (string-match-p "a" content))
+            (should (string-match-p "b" content))
+            (should (string-match-p "c" content))))
+      (kill-buffer buf))))
+
 (provide 'keymap-popup-tests)
 ;;; keymap-popup-tests.el ends here

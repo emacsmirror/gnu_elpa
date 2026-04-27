@@ -77,27 +77,39 @@ Recognized keys: :if, :inapt-if, :reader, :prompt, :stay-open, :c-u."
 
 (defun keymap-popup--parse-entry (key spec)
   "Parse binding SPEC for KEY into a plist.
-SPEC is (DESCRIPTION COMMAND-OR-TYPE &rest PROPS)."
-  (let* ((description (car spec))
-         (second (cadr spec))
-         (rest (cddr spec)))
-    (pcase second
-      (:switch
-       `(:key ,key :description ,description :type switch
-              :variable ,(car rest)
-              ,@(keymap-popup--extract-props (cdr rest))))
-      (:option
-       `(:key ,key :description ,description :type option
-              :variable ,(car rest)
-              ,@(keymap-popup--extract-props (cdr rest))))
-      (:keymap
-       `(:key ,key :description ,description :type keymap
-              :target ,(car rest)
-              ,@(keymap-popup--extract-props (cdr rest))))
-      (_
-       `(:key ,key :description ,description :type suffix
-              :command ,second
-              ,@(keymap-popup--extract-props rest))))))
+KEY is a key string for normal entries, or a command symbol for
+annotated entries.  SPEC is (DESCRIPTION COMMAND-OR-TYPE &rest PROPS)
+for key-based entries, or (DESCRIPTION &rest PROPS) for annotated ones."
+  (if (symbolp key)
+      ;; Annotated entry: key is a command symbol, spec is (DESC . PROPS)
+      ;; or a bare string
+      (let* ((spec (if (stringp spec) (list spec) spec))
+             (description (car spec))
+             (props (cdr spec)))
+        `(:key nil :description ,description :type suffix
+               :command ,key
+               ,@(keymap-popup--extract-props props)))
+    ;; Normal entry: key is a string
+    (let* ((description (car spec))
+           (second (cadr spec))
+           (rest (cddr spec)))
+      (pcase second
+        (:switch
+         `(:key ,key :description ,description :type switch
+                :variable ,(car rest)
+                ,@(keymap-popup--extract-props (cdr rest))))
+        (:option
+         `(:key ,key :description ,description :type option
+                :variable ,(car rest)
+                ,@(keymap-popup--extract-props (cdr rest))))
+        (:keymap
+         `(:key ,key :description ,description :type keymap
+                :target ,(car rest)
+                ,@(keymap-popup--extract-props (cdr rest))))
+        (_
+         `(:key ,key :description ,description :type suffix
+                :command ,second
+                ,@(keymap-popup--extract-props rest)))))))
 
 (defun keymap-popup--split-groups (bindings)
   "Split BINDINGS at :group and :row keywords.
@@ -317,6 +329,21 @@ KEYMAP, optional :description STRING-OR-FUNCTION, followed by
            `((put ',name 'keymap-popup--parent ',parent)))
        ,@(when description
            `((put ',name 'keymap-popup--description ,description))))))
+
+;;;###autoload
+(defmacro keymap-popup-annotate (map-symbol &rest body)
+  "Annotate existing keymap MAP-SYMBOL with popup descriptions.
+BODY is :group keywords and COMMAND-SYMBOL DESCRIPTION pairs.
+COMMAND-SYMBOL is a function symbol already bound in the keymap.
+DESCRIPTION is a string or (STRING &rest PROPS).
+Keys are resolved dynamically via `where-is-internal' at display
+time, so the popup always reflects the user's current bindings."
+  (declare (indent 1))
+  (let ((rows (keymap-popup--parse-bindings body)))
+    `(progn
+       (put ',map-symbol 'keymap-popup--descriptions
+            ,(keymap-popup--build-descriptions-form rows))
+       (put ',map-symbol 'keymap-popup--annotated t))))
 
 ;;; Public API
 
@@ -601,9 +628,29 @@ prefix argument highlighting."
     (when (and win (window-live-p win))
       (fit-window-to-buffer win))))
 
+(defun keymap-popup--resolve-key (entry keymap)
+  "Resolve ENTRY's :command to a key in KEYMAP.
+Returns entry with :key filled in, or nil if unbound."
+  (if (plist-get entry :key) entry
+    (and-let* ((cmd (plist-get entry :command))
+               (keys (where-is-internal cmd keymap t)))
+      (plist-put (copy-sequence entry) :key (key-description keys)))))
+
+(defun keymap-popup--resolve-descriptions (rows keymap)
+  "Resolve command symbols to keys in ROWS using KEYMAP.
+Drops entries whose command has no binding."
+  (keymap-popup--map-groups
+   rows
+   (lambda (group)
+     (plist-put (copy-sequence group) :entries
+                (cl-loop for entry in (plist-get group :entries)
+                         when (keymap-popup--resolve-key entry keymap)
+                         collect it)))))
+
 (defun keymap-popup--prepare-buffer (map-symbol)
   "Create and populate the popup buffer for MAP-SYMBOL.
-Includes descriptions inherited from parent keymaps."
+Includes descriptions inherited from parent keymaps.
+For annotated keymaps, resolves command symbols to key bindings."
   (let ((buf (get-buffer-create "*keymap-popup*")))
     (or (get map-symbol 'keymap-popup--descriptions)
         (user-error "No descriptions for `%s'" map-symbol))
@@ -611,10 +658,14 @@ Includes descriptions inherited from parent keymaps."
       (setq-local buffer-read-only t)
       (setq-local cursor-type nil)
       (setq-local mode-line-format nil))
-    (keymap-popup--refresh-buffer
-     buf nil
-     (keymap-popup--collect-descriptions map-symbol)
-     (get map-symbol 'keymap-popup--description))
+    (let ((descriptions (keymap-popup--collect-descriptions map-symbol)))
+      (keymap-popup--refresh-buffer
+       buf nil
+       (if (get map-symbol 'keymap-popup--annotated)
+           (keymap-popup--resolve-descriptions
+            descriptions (symbol-value map-symbol))
+         descriptions)
+       (get map-symbol 'keymap-popup--description)))
     buf))
 
 (defun keymap-popup--read-loop (buf win keymap descriptions docstring exit-key)
@@ -688,7 +739,10 @@ execute and re-render without closing.  Command keys and
 dismiss keys close the popup."
   (let* ((buf (keymap-popup--prepare-buffer map-symbol))
          (keymap (symbol-value map-symbol))
-         (descriptions (keymap-popup--collect-descriptions map-symbol))
+         (raw-descriptions (keymap-popup--collect-descriptions map-symbol))
+         (descriptions (if (get map-symbol 'keymap-popup--annotated)
+                           (keymap-popup--resolve-descriptions raw-descriptions keymap)
+                         raw-descriptions))
          (docstring (get map-symbol 'keymap-popup--description))
          (exit-key (or (get map-symbol 'keymap-popup--exit-key) ?q)))
     (unwind-protect

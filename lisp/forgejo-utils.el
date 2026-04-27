@@ -313,12 +313,16 @@ Fetches templates if available, lets user pick one, then compose."
 ;;; Repository creation
 
 (defun forgejo-utils-create-repo (host-url name)
-  "Create a new public repository named NAME on HOST-URL."
+  "Create a new public repository named NAME on HOST-URL.
+Copies the SSH clone URL to the kill ring on success."
   (forgejo-api-post
    host-url "user/repos" nil
    `((name . ,name))
-   (lambda (_data _headers)
-     (message "Repository created: %s" name))))
+   (lambda (data _headers)
+     (let ((ssh-url (alist-get 'ssh_url data)))
+       (when ssh-url (kill-new ssh-url))
+       (message "Repository created: %s %s" name
+                (if ssh-url (concat "(copied: " ssh-url ")") ""))))))
 
 ;;; Label creation
 

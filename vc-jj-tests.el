@@ -291,7 +291,7 @@ When a file is renamed, its old file path should have a VC state of
 
 When a directory is renamed, the files contained within it are reported
 along the same lines."
-  ;; Rename file
+  ;; Rename root-level file
   (vc-jj-test--with-repo repo
     ;; 2026-04-26: It seems like Jujutsu's rename detection requires
     ;; file content to identify a single-file rename: without content,
@@ -311,7 +311,26 @@ along the same lines."
                ("after rename.txt" added ( :rename-state added
                                            :rename-other-filename "before rename.txt"))))))
 
-  ;; Rename subdirectory
+  ;; Rename file in subdirectory
+  (vc-jj-test--with-repo repo
+    (make-directory "subdir")
+    (write-region "foo bar" nil "subdir/before rename.txt")
+    (shell-command "jj new")
+    (shell-command "mv 'subdir/before rename.txt' 'subdir/after rename.txt'")
+    
+    (should (eq (vc-jj-state "subdir/before rename.txt") 'removed))
+    (should (eq (vc-jj-state "subdir/after rename.txt") 'added))
+    (should (seq-set-equal-p
+             (vc-jj-dir-status-files repo nil
+                                     #'vc-jj-test--dir-status-files-update-function)
+             '(("subdir/before rename.txt" removed
+                ( :rename-state removed
+                  :rename-other-filename "subdir/after rename.txt"))
+               ("subdir/after rename.txt" added
+                ( :rename-state added
+                  :rename-other-filename "subdir/before rename.txt"))))))
+
+  ;; Rename entire subdirectory
   (vc-jj-test--with-repo repo
     (make-directory "dir before rename/subdir" t)
     ;; 2026-04-26: It seems that, unlike single-file renames,

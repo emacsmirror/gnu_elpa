@@ -465,19 +465,27 @@ path prepended with a two-character type string indicating the before
 and after types of the file."
   (let ((table (make-hash-table :test #'equal)))
     (mapc (lambda (line)
-            (if (string-match (rx "{" (group (1+ anychar)) " => " (group (1+ anychar)) "}"
-                                  (opt "/" (group (1+ anychar))))
+            (if (string-match (rx (group-n 1 (* anychar))
+                                  "{"
+                                  (group-n 2 (1+ (not (any "}"))))
+                                  " => "
+                                  (group-n 3 (1+ (not (any "}"))))
+                                  "}"
+                                  (group-n 4 (* anychar)))
                               line)
                 ;; For renamed files, create separate entries for the
-                ;; before-rename and after-rename files
-                (let ((before (match-string 1 line))
-                      (after (match-string 2 line))
-                      (subdir-file (match-string 3 line)))
-                  (when subdir-file     ; When a directory was renamed
-                    (setq before (file-name-concat before subdir-file)
-                          after (file-name-concat after subdir-file)))
+                ;; before-rename and after-rename files.  The rename
+                ;; block {before => after} may appear mid-path, so we
+                ;; reconstruct full paths using the surrounding
+                ;; context.
+                (let* ((prefix (substring (match-string 1 line) 3))
+                       (before-part (match-string 2 line))
+                       (after-part (match-string 3 line))
+                       (suffix (match-string 4 line))
+                       (before (concat prefix before-part suffix))
+                       (after (concat prefix after-part suffix)))
                   (puthash before "F-" table) ; Removed state
-                  (puthash after "-F" table) ; Added state
+                  (puthash after "-F" table)  ; Added state
                   (when extra-table
                     ;; Populate EXTRA-TABLE with rename information
                     (puthash before (list :rename-state 'removed :rename-other-filename after)

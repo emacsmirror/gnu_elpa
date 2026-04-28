@@ -57,9 +57,8 @@ function emacsrunregion(file, startchar, endchar)
         regionInfo = sprintf('chars %d to %d', startchar, endchar);
     end
 
-    % TODO - enable this display after updating tests to pass on Unix.
-    % fprintf(1, 'emacsrunregion: finished running %s%s %s\n', ...
-    %         shortFileName, extension, regionInfo);
+    fprintf(1, 'emacsrunregion: finished running %s%s %s\n', ...
+            shortFileName, extension, regionInfo);
 end
 
 % LocalWords:  STARTCHAR ENDCHAR startchar endchar LF CRFL

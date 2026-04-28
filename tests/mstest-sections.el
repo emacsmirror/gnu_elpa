@@ -176,7 +176,8 @@ sectionTwoA =
 sectionTwoB =
 
      1
-"))
+
+emacsrunregion: finished running sections.m lines 9 to 13"))
         (when (not (string= got expected))
           (user-error "Unexpected result for %s. Got '%s' expected '%s'" test-point-desc
                       got expected))
@@ -203,7 +204,8 @@ sectionOneA =
 sectionOneB =
 
      1
-"))
+
+emacsrunregion: finished running sections.m lines 1 to 10"))
         (when (not (string= got expected))
           (user-error "Unexpected result for %s. Got '%s' expected '%s'" test-point-desc
                       got expected))

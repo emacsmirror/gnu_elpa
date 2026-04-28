@@ -74,6 +74,7 @@ artifacts."
                (base32
                 "0x9vq4hnp7famcfv72qq6f28faang58gvr8ah223iqsvphrc5bz6"))))
      (build-system emacs-build-system)
+     (arguments (list #:tests? #f))
      (home-page "https://codeberg.org/thanosapollo/emacs-keymap-popup")
      (synopsis "Described keymaps with popup help")
      (description

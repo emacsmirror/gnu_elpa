@@ -686,9 +686,12 @@ Drops entries whose command has no binding."
 
 (defun keymap-popup--make-keep-pred (buf)
   "Return a keep-pred for `set-transient-map'.
-Reads state from BUF.  Returns non-nil to keep the map active."
+Reads state from BUF.  Consumes the reentering flag on read."
   (lambda ()
-    (or (buffer-local-value 'keymap-popup--reentering buf)
+    (or (when (buffer-local-value 'keymap-popup--reentering buf)
+          (with-current-buffer buf
+            (setq-local keymap-popup--reentering nil))
+          t)
         (and-let* ((keys (this-command-keys-vector))
                    (key-str (key-description keys))
                    (descs (buffer-local-value 'keymap-popup--active-descriptions buf)))
@@ -696,23 +699,12 @@ Reads state from BUF.  Returns non-nil to keep the map active."
 
 (defun keymap-popup--make-post-command-fn (buf)
   "Return a post-command-hook function that refreshes BUF.
-Clears the reentering flag and consumes prefix-mode after
-switch commands.  Removes itself when BUF is killed externally."
+Removes itself when BUF is killed externally."
   (let ((fn (make-symbol "keymap-popup--post-command")))
     (fset fn
           (lambda ()
             (if (not (buffer-live-p buf))
                 (remove-hook 'post-command-hook fn)
-              (with-current-buffer buf
-                (when keymap-popup--reentering
-                  (setq-local keymap-popup--reentering nil))
-                (when-let* ((_ keymap-popup--prefix-mode)
-                            (keys (this-command-keys-vector))
-                            (key-str (key-description keys))
-                            (_ (keymap-popup--stay-open-p
-                                keymap-popup--active-descriptions key-str)))
-                  (setq-local keymap-popup--prefix-mode nil)
-                  (setq prefix-arg nil)))
               (keymap-popup--refresh buf))))
     fn))
 
@@ -753,6 +745,14 @@ Includes keys with entry-level :inapt-if and keys in groups with :inapt-if."
                                            when (and (plist-get entry :key)
                                                      (eq (plist-get entry :type) 'suffix)
                                                      (plist-get entry :stay-open))
+                                           collect (plist-get entry :key)))))
+
+(defun keymap-popup--switch-keys (descriptions)
+  "Return list of key-strings for switch entries in DESCRIPTIONS."
+  (cl-loop for row in descriptions
+           append (cl-loop for group in row
+                           append (cl-loop for entry in (plist-get group :entries)
+                                           when (eq (plist-get entry :type) 'switch)
                                            collect (plist-get entry :key)))))
 
 (defun keymap-popup--submenu-keys (descriptions)
@@ -826,6 +826,19 @@ Each command checks the predicate dynamically at invocation time."
                       (keymap-popup--push-submenu buf target)))))
           (keymap-popup--submenu-keys descriptions)))
 
+(defun keymap-popup--switch-overrides (keymap descriptions buf)
+  "Return alist of switch key overrides.
+Wraps the toggle command with prefix-mode consumption."
+  (mapcar (lambda (key-str)
+            (cons key-str
+                  (lambda () (interactive)
+                    (call-interactively (keymap-lookup keymap key-str))
+                    (when (buffer-local-value 'keymap-popup--prefix-mode buf)
+                      (with-current-buffer buf
+                        (setq-local keymap-popup--prefix-mode nil))
+                      (setq prefix-arg nil)))))
+          (keymap-popup--switch-keys descriptions)))
+
 (defun keymap-popup--stay-open-overrides (keymap descriptions)
   "Return alist of stay-open suffix overrides.
 Each command dismisses the popup, executes, and reopens."
@@ -842,6 +855,7 @@ Each command dismisses the popup, executes, and reopens."
     (set-keymap-parent map keymap)
     (pcase-dolist (`(,key . ,cmd)
                    (append (keymap-popup--core-overrides buf exit-key)
+                           (keymap-popup--switch-overrides keymap descriptions buf)
                            (keymap-popup--inapt-overrides keymap descriptions buf)
                            (keymap-popup--submenu-overrides descriptions buf)
                            (keymap-popup--stay-open-overrides keymap descriptions)))

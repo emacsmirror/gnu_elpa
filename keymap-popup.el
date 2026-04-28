@@ -3,7 +3,7 @@
 ;; Copyright (C) 2026  Free Software Foundation, Inc.
 
 ;; Author: Thanos Apollo
-;; Version: 0.1.0
+;; Version: 0.2.0
 ;; Package-Requires: ((emacs "29.1"))
 ;; Keywords: convenience
 ;; URL: https://codeberg.org/thanosapollo/emacs-keymap-popup
@@ -23,9 +23,11 @@
 
 ;;; Commentary:
 
-;; A single macro `keymap-popup-define' that produces both a real
-;; `defvar-keymap' (for direct key dispatch) and stored descriptions
-;; (for a popup help window).  One definition, two uses.
+;; Two macros: `keymap-popup-define' produces a real `defvar-keymap'
+;; with embedded descriptions; `keymap-popup-annotate' adds popup
+;; descriptions to an existing keymap.  `keymap-popup' displays
+;; either as an interactive menu.  One definition, two uses:
+;; direct key dispatch and popup help.
 
 ;;; Code:
 

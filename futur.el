@@ -3,7 +3,7 @@
 ;; Copyright (C) 2026  Free Software Foundation, Inc.
 
 ;; Author: Stefan Monnier <monnier@iro.umontreal.ca>
-;; Version: 1.4
+;; Version: 1.5
 ;; Keywords: concurrency, async, promises, futures
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -165,7 +165,7 @@
 
 ;;; News:
 
-;; Since version 1.4:
+;; Version 1.5:
 
 ;; - New synchronization objects: full/empty cells and semaphores.
 ;; - New type for "mines" used internally for synchronization objects.

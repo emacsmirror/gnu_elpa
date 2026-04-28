@@ -799,23 +799,18 @@ Includes keys with entry-level :inapt-if and keys in groups with :inapt-if."
                   (setq prefix-arg
                         (when keymap-popup--prefix-mode '(4))))))))
 
-(defun keymap-popup--inapt-overrides (keymap descriptions buf)
-  "Return alist of inapt key overrides.
-Each command checks the predicate dynamically at invocation time."
-  (mapcar (lambda (key-str)
-            (cons key-str
-                  (lambda () (interactive)
-                    (let ((descs (buffer-local-value
-                                  'keymap-popup--active-descriptions buf)))
-                      (if (keymap-popup--inapt-p descs key-str)
-                          (progn
-                            (message "Command unavailable")
-                            (when (buffer-local-value
-                                   'keymap-popup--prefix-mode buf)
-                              (setq prefix-arg '(4))))
-                        (call-interactively
-                         (keymap-lookup keymap key-str)))))))
-          (keymap-popup--inapt-keys descriptions)))
+(defun keymap-popup--with-inapt-guard (buf key-str cmd)
+  "Wrap CMD with a dynamic inapt check for KEY-STR.
+When inapt, blocks execution and preserves prefix-arg.
+When not inapt, calls CMD."
+  (lambda () (interactive)
+    (let ((descs (buffer-local-value 'keymap-popup--active-descriptions buf)))
+      (if (keymap-popup--inapt-p descs key-str)
+          (progn
+            (message "Command unavailable")
+            (when (buffer-local-value 'keymap-popup--prefix-mode buf)
+              (setq prefix-arg '(4))))
+        (funcall cmd)))))
 
 (defun keymap-popup--submenu-overrides (descriptions buf)
   "Return alist of submenu key overrides."
@@ -850,16 +845,27 @@ Each command dismisses the popup, executes, and reopens."
           (keymap-popup--stay-open-suffix-keys descriptions)))
 
 (defun keymap-popup--build-wrapper-map (keymap descriptions buf exit-key)
-  "Build wrapper keymap over KEYMAP with all popup overrides."
-  (let ((map (make-sparse-keymap)))
+  "Build wrapper keymap over KEYMAP with all popup overrides.
+Inapt guards are applied as a layer over specialized handlers."
+  (let* ((map (make-sparse-keymap))
+         (inapt (keymap-popup--inapt-keys descriptions))
+         (overrides (append (keymap-popup--core-overrides buf exit-key)
+                            (keymap-popup--switch-overrides keymap descriptions buf)
+                            (keymap-popup--submenu-overrides descriptions buf)
+                            (keymap-popup--stay-open-overrides keymap descriptions))))
     (set-keymap-parent map keymap)
-    (pcase-dolist (`(,key . ,cmd)
-                   (append (keymap-popup--core-overrides buf exit-key)
-                           (keymap-popup--switch-overrides keymap descriptions buf)
-                           (keymap-popup--inapt-overrides keymap descriptions buf)
-                           (keymap-popup--submenu-overrides descriptions buf)
-                           (keymap-popup--stay-open-overrides keymap descriptions)))
-      (keymap-set map key cmd))
+    (pcase-dolist (`(,key . ,cmd) overrides)
+      (keymap-set map key
+                  (if (member key inapt)
+                      (keymap-popup--with-inapt-guard buf key cmd)
+                    cmd)))
+    ;; Inapt keys with no specialized handler get a guard over the base command
+    (dolist (key inapt)
+      (unless (assoc key overrides)
+        (keymap-set map key
+                    (keymap-popup--with-inapt-guard buf key
+						    (lambda () (interactive)
+						      (call-interactively (keymap-lookup keymap key)))))))
     map))
 
 ;;;###autoload

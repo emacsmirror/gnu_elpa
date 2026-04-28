@@ -7,115 +7,135 @@ to display them.
 
 Requires Emacs 29.1+.
 
-** Usage
+** Quick start
 
 #+begin_src emacs-lisp
-  (keymap-popup-define demo-text-map
-    "Text editing commands."
-    :group "Navigate"
-    "a" ("Beginning" beginning-of-buffer)
-    "e" ("End" end-of-buffer)
-    "l" ("Goto line" goto-line)
-    :group "Edit"
-    "f" ("Fill paragraph" fill-paragraph)
-    "s" ("Sort lines" sort-lines)
-    ";" ("Comment region" comment-dwim))
+(keymap-popup-define my-commands-map
+  "My commands."
+  :group "Edit"
+  "c" ("Comment" comment-dwim)
+  "r" ("Rename" rename-file)
+  :group "View"
+  "g" ("Refresh" revert-buffer)
+  "q" ("Quit" quit-window))
+
+;; Use as a normal keymap:
+(keymap-set some-mode-map "C-c m" my-commands-map)
+
+;; Or show the popup directly:
+(keymap-popup my-commands-map)
 #+end_src
 
-Eval this, then call =(keymap-popup 'demo-text-map)= to see the popup.
+Press =h= in the keymap to open the popup. Press =q= to dismiss.
 
-This produces a real =defvar-keymap=.  Keys work directly when the map
-is active.  Press =h= for the popup.
+** Features
 
-*** Infixes
+- =:switch= -- buffer-local toggle with =[on]/[off]= display
+- =:keymap= -- sub-menu with stack navigation (=q= / =C-g= pops back)
+- =:stay-open= -- command executes without dismissing the popup
+- =:inapt-if= -- grays out and blocks entries based on a predicate
+- =:c-u= -- prefix argument mode (=C-u= highlights eligible entries)
+- =:if= -- conditionally hide entries
+- =:group= / =:row= -- column layout
+- Dynamic descriptions via lambdas
+- =keymap-popup-annotate= -- add popup descriptions to existing keymaps
+
+** Full example
+
+Eval this block, then =M-x kp-test=.  It creates a buffer with
+state, a popup with switches, sub-menus, inapt entries, dynamic
+descriptions, and prefix argument support.
 
 #+begin_src emacs-lisp
-  (keymap-popup-define demo-fill-map
-    :group "Options"
-    "j" ("Justify" :switch demo-justify)
-    "w" ("Fill column" :option demo-fill-col :reader read-number :prompt "Column: ")
-    :group "Actions"
-    "f" ("Fill" (lambda () (interactive)
-                  (let ((fill-column (or demo-fill-col fill-column)))
-                    (fill-paragraph (when demo-justify 'full))))))
+(defvar-local kp-test--name nil)
+
+(defun kp-test--render ()
+  "Redraw the *kp-test* buffer from buffer-local state."
+  (let ((inhibit-read-only t))
+    (erase-buffer)
+    (insert (propertize "keymap-popup live test\n" 'face 'bold)
+            (make-string 40 ?-) "\n\n"
+            (format "  Name:     %s\n" (or kp-test--name "(not set)"))
+            "\n"
+            (propertize "Press h for popup, q to quit.\n" 'face 'shadow))))
+
+(defun kp-test--refresh ()
+  (interactive)
+  (kp-test--render)
+  (message "Refreshed"))
+
+(defun kp-test--greet ()
+  "Greet using buffer-local state."
+  (interactive)
+  (let ((name (or kp-test--name "world"))
+        (loud current-prefix-arg))
+    (message (if loud
+                 (format "%s!!!" (upcase name))
+               (format "Hello, %s." name)))
+    (kp-test--render)))
+
+(defun kp-test--sub-action ()
+  (interactive)
+  (message "Sub-menu action! prefix=%s" current-prefix-arg))
+
+(keymap-popup-define kp-test--sub-map
+  :group "Sub-menu"
+  "s" ("Sub action" kp-test--sub-action)
+  "x" ("Greet from sub" kp-test--greet))
+
+(keymap-popup-define kp-test--map
+  "Test popup"
+  :description "keymap-popup live test"
+  :group "Actions"
+  "a" ("Greet" kp-test--greet :c-u "SHOUT")
+  "g" ("Refresh" kp-test--refresh :stay-open t)
+  :group "Infixes"
+  "v" ("Verbose" :switch kp-test--verbose)
+  "n" ((lambda () (concat "Name ="
+                         (if (and kp-test--name (not (string-empty-p kp-test--name)))
+                             (propertize kp-test--name 'face 'success)
+                           (propertize "?" 'face 'warning))))
+       (lambda () (interactive)
+         (setq-local kp-test--name (read-string "Your name: ")))
+       :stay-open t)
+  :group "Navigate"
+  "s" ("Sub-menu" :keymap kp-test--sub-map)
+  "q" ("Quit" quit-window)
+  :row
+  :group "Inapt (entry-level)"
+  "m" ("Merge (always blocked)" kp-test--greet :inapt-if (lambda () t))
+  "d" ("Dynamic inapt" kp-test--greet
+       :inapt-if (lambda () (not kp-test--verbose)))
+  :group ("Group inapt (when verbose off)"
+          :inapt-if (lambda () (not kp-test--verbose)))
+  "x" ("Group-blocked cmd" kp-test--greet)
+  :group ("Toggle (visible when verbose)"
+          :if (lambda () kp-test--verbose))
+  "t" ("Verbose-only action" kp-test--greet))
+
+(defun kp-test ()
+  "Open the *kp-test* buffer and activate the popup."
+  (interactive)
+  (let ((buf (get-buffer-create "*kp-test*")))
+    (with-current-buffer buf
+      (setq-local buffer-read-only t)
+      (kp-test--render)
+      (use-local-map kp-test--map))
+    (pop-to-buffer-same-window buf)
+    (keymap-popup kp-test--map)))
 #+end_src
 
-Switches toggle buffer-local booleans.  Options set buffer-local
-values via a reader.  Pressing a switch or option key re-renders
-the popup without closing it.
-
-*** Sub-menus
+** Annotating existing keymaps
 
 #+begin_src emacs-lisp
-  (keymap-popup-define demo-edit-map
-    :group "Edit"
-    "f" ("Fill paragraph" fill-paragraph)
-    "s" ("Sort lines" sort-lines)
-    "r" ("Reverse region" reverse-region))
-
-  (keymap-popup-define demo-main-map
-    :group "Navigate"
-    "a" ("Beginning" beginning-of-buffer)
-    "e" ("End" end-of-buffer)
-    "x" ("Edit" :keymap demo-edit-map))
+(keymap-popup-annotate dired-mode-map
+  :group "Navigate"
+  dired-next-line "Next"
+  dired-previous-line "Previous"
+  :group "Mark"
+  dired-mark "Mark"
+  dired-unmark "Unmark")
 #+end_src
 
-Press =x= to enter the sub-menu.  =q= or =C-g= goes back.
-
-*** Inheritance
-
-#+begin_src emacs-lisp
-  (keymap-popup-define demo-base-map
-    :group "Common"
-    "g" ("Goto line" goto-line)
-    "r" ("Revert" revert-buffer))
-
-  (keymap-popup-define demo-text-view-map
-    :parent demo-base-map
-    :group "Text"
-    "f" ("Fill paragraph" fill-paragraph)
-    "s" ("Sort lines" sort-lines))
-
-  (keymap-popup-define demo-prog-view-map
-    :parent demo-base-map
-    :group "Code"
-    ";" ("Comment" comment-dwim)
-    "i" ("Indent region" indent-region))
-#+end_src
-
-Both maps inherit Goto line and Revert from =demo-base-map=.  The
-popup shows entries from both child and parent.
-
-*** Conditional and inapt entries
-
-#+begin_src emacs-lisp
-  (keymap-popup-define demo-cond-map
-    :group "Actions"
-    "f" ("Fill paragraph" fill-paragraph)
-    ;; only shown when region is active
-    "s" ("Sort lines" sort-lines :if (lambda () mark-active))
-    ;; visible but grayed out in read-only buffers
-    "d" ("Delete char" delete-char :inapt-if (lambda () buffer-read-only)))
-#+end_src
-
-*** Prefix argument
-
-#+begin_src emacs-lisp
-  (keymap-popup-define demo-prefix-map
-    :group "Actions"
-    "f" ("Fill paragraph" fill-paragraph :c-u "justify")
-    "s" ("Sort lines" sort-lines :c-u "reverse"))
-#+end_src
-
-In the popup, =C-u= enters prefix mode: entries with =:c-u= are
-highlighted, others are dimmed.  The next key dispatches with the
-prefix argument.  =C-g= cancels prefix mode.
-
-*** Other features
-
-- =:stay-open t= on a command keeps the popup open after dispatch
-- =:popup-key "?"= changes the popup key (default =h=)
-- Dynamic descriptions: use a function instead of a string
-- Dynamic group names: =:group (lambda () (format "Items (%d)" count))=
-- =:row= starts a new row of columns in the popup layout
-- =keymap-popup-add-entry= / =keymap-popup-remove-entry= for runtime modification
+Keys are resolved dynamically via =where-is-internal=, so the popup
+always reflects the user's current bindings.

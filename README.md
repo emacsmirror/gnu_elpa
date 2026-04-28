@@ -246,12 +246,12 @@ preferred package managers.
     (setq minuet-auto-suggestion-throttle-delay 1.5) ;; Increase to reduce costs and avoid rate limits
     (setq minuet-auto-suggestion-debounce-delay 0.6) ;; Increase to reduce costs and avoid rate limits
 
-    (plist-put minuet-openai-compatible-options :end-point "https://api.deepseek.com/beta/completions")
-    (plist-put minuet-openai-compatible-options :api-key "DEEPSEEK_API_KEY")
-    (plist-put minuet-openai-compatible-options :model "deepseek-v4-flash")
+    (plist-put minuet-openai-fim-compatible-options :end-point "https://api.deepseek.com/beta/completions")
+    (plist-put minuet-openai-fim-compatible-options :api-key "DEEPSEEK_API_KEY")
+    (plist-put minuet-openai-fim-compatible-options :model "deepseek-v4-flash")
 
-    (minuet-set-optional-options minuet-openai-compatible-options :max_tokens 56)
-    (minuet-set-optional-options minuet-openai-compatible-options :top_p 0.9))
+    (minuet-set-optional-options minuet-openai-fim-compatible-options :max_tokens 56)
+    (minuet-set-optional-options minuet-openai-fim-compatible-options :top_p 0.9))
 ```
 
 </details>

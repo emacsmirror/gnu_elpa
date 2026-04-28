@@ -87,7 +87,7 @@ descriptions, and prefix argument support.
   "Test popup"
   :description "keymap-popup live test"
   :group "Actions"
-  "a" ("Greet" kp-test--greet :c-u "SHOUT")
+  "a" ("Greet" kp-test--greet :c-u "SHOUT (C-u)")
   "g" ("Refresh" kp-test--refresh :stay-open t)
   :group "Infixes"
   "v" ("Verbose" :switch kp-test--verbose)

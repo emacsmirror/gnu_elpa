@@ -3,7 +3,7 @@
 ;; Copyright (C) 2026  Free Software Foundation, Inc.
 
 ;; Author: Stefan Monnier <monnier@iro.umontreal.ca>
-;; Version: 1.5
+;; Version: 1.7
 ;; Keywords: concurrency, async, promises, futures
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -1075,16 +1075,16 @@ VAL can be any value except nil."
   (val 1))
 
 (cl-defmethod futur--mine-fetch ((sem futur-sem) arg)
-  (unless count (setq count 1))
-  (cl-assert (>= count 0))
+  (unless arg (setq arg 1))
+  (cl-assert (>= arg 0))
   (let ((v (futur-sem--val sem)))
     (when (<= arg v)
       (setf (futur-sem--val sem) (- v arg))
       arg)))
 
 (cl-defmethod futur--mine-return ((sem futur-sem) rsc)
-  (unless count (setq count 1))
-  (cl-assert (>= count 0))
+  (unless rsc (setq rsc 1))
+  (cl-assert (>= rsc 0))
   (cl-incf (futur-sem--val sem) rsc))
 
 ;;;; Processes

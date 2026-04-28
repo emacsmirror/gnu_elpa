@@ -309,9 +309,8 @@ Return `point'."
         (save-excursion
           (save-restriction
             (widen)
-            (save-window-excursion
-              (message "Running section: %s" (matlab-sections--get-heading rng))
-              (matlab-shell-run-region (car rng) (cdr rng)))))
+            (message "Running section: %s" (matlab-sections--get-heading rng))
+            (matlab-shell-run-region (car rng) (cdr rng))))
       (message "Not in a \"%%%% code section\""))))
 
 (define-obsolete-function-alias 'matlab-sections-run-till-point
@@ -332,8 +331,7 @@ Does not run the section the point is in."
               (save-excursion
                 (goto-char current-section-start-point)
                 (message "Running sections prior to: %s" (matlab-sections--get-heading)))
-              (save-window-excursion
-                (matlab-shell-run-region (point) current-section-start-point)))
+              (matlab-shell-run-region (point) current-section-start-point))
           (message "No prior \"%%%% code sections\""))))))
 
 (declare-function matlab-mode "matlab.el")

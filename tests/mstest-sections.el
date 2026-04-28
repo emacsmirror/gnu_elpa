@@ -18,10 +18,11 @@
 ;; along with this file.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
-;;    Test matlab-sections.el using ./sections.m
+;;    Test matlab-sections.el using files in ./mstest-sections-files/
 
 ;;; Code:
 
+(require 'matlab-ts-mode)
 (require 'matlab-sections)
 
 (declare-function mstest-get-command-output "mstest.el")
@@ -58,13 +59,33 @@
 
   (message "PASSED: (mstest-single-sections-header)"))
 
+(defun mstest-sections--run-section (test-point-desc expected-matlab-out)
+  "Run `matlab-sections-run-section' for TEST-POINT-DESC on current buffer.
+Validate we get EXPECTED-MATLAB-OUT string in the *MATLAB* buffer.
+Also validate we see both the current buffer and *MATLAB* buffer."
+
+  (let* ((m-file-name (buffer-name))
+         (got-matlab-out (mstest-get-command-output 'matlab-sections-run-section))
+         (got-buffers (mapcar (lambda (w) (buffer-name (window-buffer w))) (window-list)))
+         (expected-buffers `(,m-file-name "*MATLAB*")))
+
+    (when (not (string= got-matlab-out expected-matlab-out))
+      (user-error "Unexpected result for %s. Got '%s' expected '%s'" test-point-desc
+                  got-matlab-out expected-matlab-out))
+
+    (when (not (equal got-buffers expected-buffers))
+      (user-error "Uexpected result for %s. Got buffers '%s' expected '%s'" test-point-desc
+                  got-buffers expected-buffers))
+
+    (message "PASS: %s" test-point-desc)))
+
 (defun mstest-sections ()
   "Test \"%% code section\" support."
 
   (message "TEST: running (mstest-sections)")
 
   (save-excursion
-    (let ((sections-buf (find-file "sections.m")))
+    (let ((sections-buf (find-file "mstest-sections-files/sections.m")))
 
       ;; We run in batch, so need to explicitly enable sections
       (matlab-sections-mode-enable)
@@ -165,9 +186,9 @@ sectionTwoB = 1
             (user-error "Unexpected result for %s" test-point-desc))
           (message "PASS: %s" test-point-desc)))
 
-      (let ((test-point-desc "matlab-sections test case run section two")
-            (got (mstest-get-command-output 'matlab-sections-run-section))
-            (expected "
+      (let* ((test-point-desc "matlab-sections test case run section two"))
+        (mstest-sections--run-section test-point-desc
+                                      "
 sectionTwoA =
 
      1
@@ -178,14 +199,11 @@ sectionTwoB =
      1
 
 emacsrunregion: finished running sections.m lines 9 to 13"))
-        (when (not (string= got expected))
-          (user-error "Unexpected result for %s. Got '%s' expected '%s'" test-point-desc
-                      got expected))
-        (message "PASS: %s" test-point-desc))
+             
 
       (let ((test-point-desc "matlab-sections test case run prior sections, zero and one")
-            (got (mstest-get-command-output 'matlab-sections-run-prior-sections))
-            (expected "
+            (got-matlab-out (mstest-get-command-output 'matlab-sections-run-prior-sections))
+            (expected-matlab-out "
 sectionZeroA =
 
      1
@@ -206,9 +224,10 @@ sectionOneB =
      1
 
 emacsrunregion: finished running sections.m lines 1 to 10"))
-        (when (not (string= got expected))
+        (when (not (string= got-matlab-out expected-matlab-out))
           (user-error "Unexpected result for %s. Got '%s' expected '%s'" test-point-desc
-                      got expected))
+                      got-matlab-out expected-matlab-out))
+
         (message "PASS: %s" test-point-desc))
 
       (kill-buffer sections-buf)))
@@ -217,31 +236,41 @@ emacsrunregion: finished running sections.m lines 1 to 10"))
 
 (defun mstest-sections-single ()
   "Test \"%% code section\" support on a script with one section."
+  (if (and (>= emacs-major-version 30)
+           (fboundp 'treesit-ready-p)
+           (treesit-ready-p 'matlab t))
+      (save-excursion
+        (message "TEST: running (mstest-sections-single)")
+        (let ((sections-single-buf (find-file "mstest-sections-files/sections_single.m"))
+              (mfile-type (matlab-ts-mode--mfile-type)))
 
-  (message "TEST: running (mstest-sections-single)")
+          (when (not (eq mfile-type 'script))
+            (user-error "%s is mfile-type is not 'script" (current-buffer)))
 
-  (save-excursion
-    (let ((sections-single-buf (find-file "sections_single.m")))
-      (matlab-sections-auto-enable-on-mfile-type-fcn (matlab-guess-mfile-type) t)
+          (font-lock-mode 1)
+          (font-lock-ensure (point-min) (point-max))
+          (font-lock-fontify-region (point-min) (point-max))
 
-      (font-lock-mode 1)
-      (font-lock-flush (point-min) (point-max))
-      (font-lock-ensure (point-min) (point-max))
-      (font-lock-fontify-region (point-min) (point-max))
+          ;; When noninteractive or running via M-: (mstest-sections),
+          ;; force `matlab-sections-minor-mode'
+          (matlab-sections-minor-mode 1)
+          (font-lock-flush (point-min) (point-max))
 
-      (goto-char (point-min))
-      (let ((test-point-desc "matlab-sections-single test case heading face")
-            (got (face-at-point))
-            (expected 'matlab-sections-highlight-face))
-        (when (not (eq got expected))
-          (user-error "Unexpected result for %s. Got '%s' expected '%s'"
-                      test-point-desc got expected))
-        (message "PASS: %s" test-point-desc))
+          (goto-char (point-min))
+          (re-search-forward "^%% one section")
+          (beginning-of-line)
+          (let ((test-point-desc "matlab-sections-single test case heading face")
+                (got (face-at-point))
+                (expected 'matlab-sections-highlight-face))
+            (when (not (eq got expected))
+              (user-error "Unexpected result for %s. Got '%s' expected '%s'"
+                          test-point-desc got expected))
+            (message "PASS: %s" test-point-desc))
 
-      (kill-buffer sections-single-buf)))
-
-  (message "PASSED: (mstest-sections-single)"))
-
+          (kill-buffer sections-single-buf))
+        (message "PASSED: (mstest-sections-single)"))
+    (message "mstest-sections.el:1: warning: matlab tree-sitter shared object is not installed, \
+unable to run mstest-sections-single")))
 
 (provide 'mstest-sections)
 ;;; mstest-sections.el ends here

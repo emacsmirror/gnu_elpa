@@ -1,3 +1,5 @@
+% -*- matlab-ts -*-
+
 %% one section
 
 sectionOneA = 1

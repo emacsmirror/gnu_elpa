@@ -6,7 +6,7 @@
 ;; Keywords: tools vc git forgejo
 ;; URL: https://codeberg.org/thanosapollo/emacs-forgejo
 ;; Version: 0.1.1
-;; Package-Requires: ((emacs "29.1") (markdown-mode "2.6") (keymap-popup "0.1.0"))
+;; Package-Requires: ((emacs "29.1") (markdown-mode "2.6") (keymap-popup "0.2.1"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -315,7 +315,7 @@ Resolution order: inline token from `forgejo-hosts', auth-source,
 (defun forgejo ()
   "Forgejo."
   (interactive)
-  (keymap-popup 'forgejo-map))
+  (keymap-popup forgejo-map))
 
 (defun forgejo-browse-repo ()
   "Open a repository in the browser."
@@ -342,7 +342,7 @@ Resolution order: inline token from `forgejo-hosts', auth-source,
 (defun forgejo-repo-action-at-point ()
   "Actions for repository at point."
   (interactive)
-  (keymap-popup 'forgejo-repo-action-map))
+  (keymap-popup forgejo-repo-action-map))
 
 (defun forgejo-repo-action--issues ()
   "List issues for the repo at point."

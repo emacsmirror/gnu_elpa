@@ -123,34 +123,34 @@ Fetches fresh settings from the API, then opens the popup."
                        host-url owner repo 'website new nil)))))
     (keymap-set forgejo-settings--map "l"
                 (lambda () (interactive)
-                  (keymap-popup 'forgejo-settings--labels-map)))
-    (put 'forgejo-settings--map 'keymap-popup--descriptions
-         (list
+                  (keymap-popup forgejo-settings--labels-map)))
+    (setf (keymap-popup--meta forgejo-settings--map 'keymap-popup--descriptions)
           (list
-           (list :name (format "Settings: %s/%s" owner repo)
-                 :entries
-                 (list
-                  (list :key "d"
-                        :description
-                        (lambda ()
-                          (format "Description  %s"
-                                  (forgejo-settings--format-value
-                                   (truncate-string-to-width
-                                    desc 40 nil nil "..."))))
-                        :type 'suffix
-                        :stay-open t)
-                  (list :key "w"
-                        :description
-                        (lambda ()
-                          (format "Website  %s"
-                                  (forgejo-settings--format-value website)))
-                        :type 'suffix
-                        :stay-open t)
-                  (list :key "l"
-                        :description "Labels"
-                        :type 'keymap
-                        :target 'forgejo-settings--labels-map))))))
-    (keymap-popup 'forgejo-settings--map)))
+           (list
+            (list :name (format "Settings: %s/%s" owner repo)
+                  :entries
+                  (list
+                   (list :key "d"
+                         :description
+                         (lambda ()
+                           (format "Description  %s"
+                                   (forgejo-settings--format-value
+                                    (truncate-string-to-width
+                                     desc 40 nil nil "..."))))
+                         :type 'suffix
+                         :stay-open t)
+                   (list :key "w"
+                         :description
+                         (lambda ()
+                           (format "Website  %s"
+                                   (forgejo-settings--format-value website)))
+                         :type 'suffix
+                         :stay-open t)
+                   (list :key "l"
+                         :description "Labels"
+                         :type 'keymap
+                         :target forgejo-settings--labels-map))))))
+    (keymap-popup forgejo-settings--map)))
 
 ;;; Labels popup
 
@@ -204,15 +204,15 @@ HOST is the hostname for DB lookups."
                         host owner repo name)
                        (message "Deleted label %s from %s/%s"
                                 name owner repo)))))))
-  (put 'forgejo-settings--labels-map 'keymap-popup--descriptions
-       (list
+  (setf (keymap-popup--meta forgejo-settings--labels-map 'keymap-popup--descriptions)
         (list
-         (list :name (format "Labels: %s/%s" owner repo)
-               :entries
-               (list
-                (list :key "a" :description "Create label" :type 'suffix)
-                (list :key "c" :description "Change color" :type 'suffix)
-                (list :key "d" :description "Delete label" :type 'suffix)))))))
+         (list
+          (list :name (format "Labels: %s/%s" owner repo)
+                :entries
+                (list
+                 (list :key "a" :description "Create label" :type 'suffix)
+                 (list :key "c" :description "Change color" :type 'suffix)
+                 (list :key "d" :description "Delete label" :type 'suffix)))))))
 
 ;;; Helpers
 

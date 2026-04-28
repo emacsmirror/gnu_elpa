@@ -543,7 +543,7 @@ and mark it as manually merged after a successful push."
   "Forgejo operations for the current repository."
   (interactive)
   (forgejo-vc--fetch-counts)
-  (keymap-popup 'forgejo-vc-map))
+  (keymap-popup forgejo-vc-map))
 
 ;;;###autoload
 (with-eval-after-load 'vc

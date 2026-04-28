@@ -59,11 +59,11 @@ artifacts."
              (string-suffix? ".db" file)))))
 
 (define-public emacs-keymap-popup
-  (let ((commit "5c4ebb67a263f7dbe91653bdedc4fb1192f4b7a1")
+  (let ((commit "fec80af2cdf9e3a25bb5033b32bf873584778f05")
         (revision "0"))
     (package
      (name "emacs-keymap-popup")
-     (version (git-version "0.1.0" revision commit))
+     (version (git-version "0.2.0" revision commit))
      (source (origin
               (method git-fetch)
               (uri (git-reference
@@ -72,7 +72,7 @@ artifacts."
               (file-name (git-file-name name version))
               (sha256
                (base32
-                "0wj8j624l88vw3k3jkfg6rrjrg2x5g3c4ahmbxii8kwk2g7yqwbh"))))
+                "0x9vq4hnp7famcfv72qq6f28faang58gvr8ah223iqsvphrc5bz6"))))
      (build-system emacs-build-system)
      (home-page "https://codeberg.org/thanosapollo/emacs-keymap-popup")
      (synopsis "Described keymaps with popup help")

@@ -104,12 +104,12 @@
 (defcustom ack-command
   ;; Note: on GNU/Linux ack may be renamed to ack-grep
   (concat (file-name-nondirectory (or
+                                   (concat
+                                    (executable-find "rg")
+                                    " -n -H -S --no-heading --hidden --glob=!git --color always -e")
                                    (executable-find "ack-grep")
                                    (executable-find "ack")
                                    (executable-find "ag")
-                                   (concat
-                                    (executable-find "rg")
-                                    " -n -H -S --no-heading --color always -e")
                                    "ack")) " ")
   "The default command for \\[ack].
 
@@ -373,7 +373,8 @@ This function is a suitable addition to
       (delete-minibuffer-contents)
       (skeleton-insert `(nil ,cmd " '" _ "'"))
       (when (and interactive ack--yanked-symbol)
-        (insert ack--yanked-symbol)))))
+        (insert (set-text-properties 0 nil (length ack--yanked-symbol)
+                                     ack--yanked-symbol))))))
 
 (defun ack-yank-symbol-at-point ()
   "Yank the symbol from the window before entering the minibuffer."

@@ -48,9 +48,44 @@ EL_FILES := gnosis-sqlite.el gnosis-tl.el gnosis-utils.el gnosis-org.el \
 
 load:
 	rm -f *.elc
+	@emacsclient -e "(progn \
+	  (dolist (sym '(gnosis-dashboard-common-map \
+	               gnosis-dashboard-themata-mode-map \
+	               gnosis-dashboard-tags-mode-map \
+	               gnosis-dashboard-mode-map \
+	               gnosis-dashboard-nodes-mode-map \
+	               gnosis-dashboard-nodes-sort-map \
+	               gnosis-dashboard-nodes-search-map \
+	               gnosis-dashboard-nodes-filter-map \
+	               gnosis-dashboard-nodes-map \
+	               gnosis-dashboard-themata-map \
+	               gnosis-import-diff-mode-map \
+	               gnosis-review-map)) \
+	    (when (boundp sym) (makunbound sym))) \
+	  (dolist (sym '(gnosis-dashboard-menu \
+	               gnosis-dashboard-themata-mode-menu \
+	               gnosis-dashboard-tags-mode-menu \
+	               gnosis-dashboard-nodes-mode-menu \
+	               gnosis-dashboard-menu-nodes \
+	               gnosis-dashboard-menu-themata \
+	               gnosis-dashboard-nodes-sort-menu \
+	               gnosis-dashboard-nodes-search-menu \
+	               gnosis-dashboard-nodes-filter-menu \
+	               gnosis-import-diff-menu)) \
+	    (when (fboundp sym) (fmakunbound sym))))" > /dev/null
 	@for f in $(EL_FILES); do \
 		emacsclient -e "(load-file \"$(shell pwd)/$$f\")" > /dev/null; \
 	done
+	@emacsclient -e "(dolist (buf (buffer-list)) \
+	  (with-current-buffer buf \
+	    (cond ((derived-mode-p 'gnosis-dashboard-themata-mode) \
+	           (use-local-map gnosis-dashboard-themata-mode-map)) \
+	          ((derived-mode-p 'gnosis-dashboard-tags-mode) \
+	           (use-local-map gnosis-dashboard-tags-mode-map)) \
+	          ((derived-mode-p 'gnosis-dashboard-nodes-mode) \
+	           (use-local-map gnosis-dashboard-nodes-mode-map)) \
+	          ((derived-mode-p 'gnosis-dashboard-mode) \
+	           (use-local-map gnosis-dashboard-mode-map)))))" > /dev/null
 	@echo "Loaded $(words $(EL_FILES)) files."
 
 clean:

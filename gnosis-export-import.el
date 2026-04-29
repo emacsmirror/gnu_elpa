@@ -32,7 +32,7 @@
 
 (require 'gnosis)
 (require 'gnosis-algorithm)
-(require 'transient)
+(require 'keymap-popup)
 (require 'org)
 (require 'org-element)
 
@@ -648,15 +648,12 @@ WHERE thema_id = ?" (list id))) #'string<)))
 	(gnosis-import--render-detail id status data))
       (display-buffer buf))))
 
-(defvar gnosis-import-diff-mode-map
-  (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "RET") #'gnosis-import-view-detail)
-    (define-key map "a" #'gnosis-import-apply)
-    (define-key map "q" #'quit-window)
-    (define-key map "?" #'gnosis-import-diff-menu)
-    (define-key map "h" #'gnosis-import-diff-menu)
-    map)
-  "Keymap for `gnosis-import-diff-mode'.")
+(keymap-popup-define gnosis-import-diff-mode-map
+  "Import Review"
+  :group (lambda () (gnosis-import--menu-description))
+  "RET" ("View detail" gnosis-import-view-detail)
+  "a" ("Apply changes" gnosis-import-apply)
+  "q" ("Quit" quit-window))
 
 (define-derived-mode gnosis-import-diff-mode tabulated-list-mode "Gnosis Import"
   "Major mode for reviewing gnosis import diffs.
@@ -671,7 +668,7 @@ WHERE thema_id = ?" (list id))) #'string<)))
   (tabulated-list-init-header))
 
 (defun gnosis-import--menu-description ()
-  "Return description string for import transient menu."
+  "Return description string for import menu."
   (let ((new-count (length gnosis-import--new-ids))
 	(changed-count (length gnosis-import--changed-ids)))
     (concat "Import: "
@@ -679,12 +676,6 @@ WHERE thema_id = ?" (list id))) #'string<)))
 	    ", "
 	    (propertize (format "%d changed" changed-count) 'face 'gnosis-import-changed-face))))
 
-(transient-define-prefix gnosis-import-diff-menu ()
-  "Transient menu for import diff buffer."
-  [:description gnosis-import--menu-description
-		("RET" "View detail" gnosis-import-view-detail)
-		("a" "Apply changes" gnosis-import-apply)
-		("q" "Quit" quit-window)])
 
 ;;;###autoload
 (defun gnosis-import-db (file)

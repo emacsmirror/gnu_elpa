@@ -22,7 +22,9 @@
              (gnu packages emacs-xyz)
              (gnu packages texinfo)
              (guix build-system emacs)
+             (guix download)
              (guix gexp)
+             (guix git-download)
              ((guix licenses) #:prefix license:)
              (guix packages)
              (guix utils)
@@ -51,6 +53,7 @@ artifacts."
   (let ((name (basename file)))
     (not (or (string-contains file "/.git/")
              (string=? name ".git")
+             (string-prefix? ".#" name)
              (string-suffix? ".elc" file)
              (string-suffix? "~" file)
              (string-suffix? ".tar" file)
@@ -63,43 +66,67 @@ artifacts."
              (string-contains file "/org-roam/")
              (string-contains file "/temp/")))))
 
+(define-public emacs-keymap-popup
+  (let ((commit "fec80af2cdf9e3a25bb5033b32bf873584778f05")
+        (revision "0"))
+    (package
+     (name "emacs-keymap-popup")
+     (version (git-version "0.2.0" revision commit))
+     (source (origin
+              (method git-fetch)
+              (uri (git-reference
+                    (url "https://codeberg.org/thanosapollo/emacs-keymap-popup")
+                    (commit commit)))
+              (file-name (git-file-name name version))
+              (sha256
+               (base32
+                "0x9vq4hnp7famcfv72qq6f28faang58gvr8ah223iqsvphrc5bz6"))))
+     (build-system emacs-build-system)
+     (arguments (list #:tests? #f))
+     (home-page "https://codeberg.org/thanosapollo/emacs-keymap-popup")
+     (synopsis "Described keymaps with popup help")
+     (description
+      "Produces a real Emacs keymap with embedded descriptions for a popup
+help window.  One definition, two uses.")
+     (license license:gpl3+))))
+
 (define-public emacs-gnosis-git
   (package
-    (name "emacs-gnosis-git")
-    (version %version)
-    (source (local-file %source-dir
-                        "gnosis-checkout"
-                        #:recursive? #t
-                        #:select? gnosis-file?))
-    (build-system emacs-build-system)
-    (arguments
-     (list
-      #:test-command
-      #~(list "make" "test" "GUIX_SHELL=")
-      #:emacs emacs-no-x
-      #:phases
-      #~(modify-phases %standard-phases
-          (add-before 'check 'set-home
-            (lambda _
-              (setenv "HOME"
-                      (getenv "TMPDIR"))
-              (mkdir-p (string-append
-                        (getenv "HOME")
-                        "/.emacs.d"))))
-          (add-before 'install 'make-info
-            (lambda _
-              (invoke "make" "doc" "GUIX_SHELL="))))))
-    (native-inputs (list texinfo))
-    (propagated-inputs (list emacs-transient))
-    (home-page "https://thanosapollo.org/projects/gnosis/")
-    (synopsis "Personal knowledge system for GNU Emacs")
-    (description
-     "Gnosis is a personal knowledge system for GNU Emacs that
+   (name "emacs-gnosis-git")
+   (version %version)
+   (source (local-file %source-dir
+                       "gnosis-checkout"
+                       #:recursive? #t
+                       #:select? gnosis-file?))
+   (build-system emacs-build-system)
+   (arguments
+    (list
+     #:test-command
+     #~(list "make" "test" "GUIX_SHELL=")
+     #:emacs emacs-no-x
+     #:phases
+     #~(modify-phases %standard-phases
+		      (add-before 'check 'set-home
+				  (lambda _
+				    (setenv "HOME"
+					    (getenv "TMPDIR"))
+				    (mkdir-p (string-append
+					      (getenv "HOME")
+					      "/.emacs.d"))))
+		      (add-before 'install 'make-info
+				  (lambda _
+				    (invoke "make" "doc" "GUIX_SHELL="))))))
+   (native-inputs (list texinfo))
+   (propagated-inputs (list emacs-keymap-popup))
+   (home-page "https://thanosapollo.org/projects/gnosis/")
+   (synopsis "Personal knowledge system for GNU Emacs")
+   (description
+    "Gnosis is a personal knowledge system for GNU Emacs that
 integrates note-taking with spaced repetition.  It combines
 Zettelkasten-style linked notes with self-testing review,
 all stored in a single SQLite database.  This package definition
 builds straight from the current git checkout, so the installed
 version always matches the working tree.")
-    (license license:gpl3+)))
+   (license license:gpl3+)))
 
 emacs-gnosis-git

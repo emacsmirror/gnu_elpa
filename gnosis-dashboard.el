@@ -30,6 +30,7 @@
 (require 'gnosis)
 (require 'gnosis-tl)
 (require 'gnosis-nodes)
+(require 'keymap-popup)
 
 (defface gnosis-face-dashboard-header
   '((t :inherit (bold font-lock-constant-face)))
@@ -120,6 +121,9 @@ Each entry is a function to restore that view
 
 (defvar gnosis-dashboard-tags-count-ht nil
   "Hash table mapping tag name to thema count, cached for filtering.")
+
+(defvar gnosis-dashboard--link-issues nil
+  "Cached count of link issues, computed on dashboard load.")
 
 (defvar gnosis-dashboard--load-generation 0
   "Generation counter to cancel stale async loads.")
@@ -349,49 +353,31 @@ With prefix arg, prompt for count.  Default 0 (never reviewed)."
    (t
     (gnosis-dashboard))))
 
-(transient-define-prefix gnosis-dashboard-themata-mode-menu ()
-  "Transient menu for themata dashboard mode."
-  [["Navigate"
-    ("q" "Back" gnosis-dashboard-themata-back)
-    ("SPC" "Search" gnosis-dashboard-search-thema)
-    ("l" "Filter current" gnosis-dashboard-filter-themata)
-    ("n" "Filter new/low reviews" gnosis-dashboard-filter-themata-by-reviews)
-    ("g" "Refresh" gnosis-dashboard-return :transient t)
-    ("RET" "Edit at point" gnosis-dashboard-edit-thema)]
-   ["Edit"
-    ("e" "Edit thema" gnosis-dashboard-edit-thema :transient t)
-    ("a" "Add thema" gnosis-add-thema :transient t)
-    ("s" "Suspend" gnosis-dashboard-suspend-thema :transient t)
-    ("d" "Delete" gnosis-dashboard-delete :transient t)
-    ("b" "Bulk link" gnosis-dashboard-bulk-link :transient t)
-    ("t" "Modify tags" gnosis-dashboard-modify-tags :transient t)]
-   ["Mark"
-    ("m" "Toggle mark" gnosis-dashboard-mark-toggle :transient t)
-    ("M" "Mark all" gnosis-dashboard-mark-all :transient t)
-    ("u" "Unmark" gnosis-dashboard-mark-toggle :transient t)
-    ("U" "Unmark all" gnosis-dashboard-unmark-all :transient t)]])
+(keymap-popup-define gnosis-dashboard-common-map
+  :group "Common"
+  "g" ("Refresh" gnosis-dashboard-return :stay-open t)
+  :group "Mark"
+  "m" ("Toggle mark" gnosis-dashboard-mark-toggle :stay-open t)
+  "M" ("Mark all" gnosis-dashboard-mark-all :stay-open t)
+  "u" ("Unmark" gnosis-dashboard-mark-toggle :stay-open t)
+  "U" ("Unmark all" gnosis-dashboard-unmark-all :stay-open t))
 
-(defvar-keymap gnosis-dashboard-themata-mode-map
-  :doc "Keymap for themata dashboard."
-  "?" #'gnosis-dashboard-themata-mode-menu
-  "h" #'gnosis-dashboard-themata-mode-menu
-  "q" #'gnosis-dashboard-themata-back
-  "e" #'gnosis-dashboard-edit-thema
-  "s" #'gnosis-dashboard-suspend-thema
-  "SPC" #'gnosis-dashboard-search-thema
-  "l" #'gnosis-dashboard-filter-themata
-  "n" #'gnosis-dashboard-filter-themata-by-reviews
-  "a" #'gnosis-add-thema
-  "r" #'gnosis-dashboard-return
-  "g" #'gnosis-dashboard-return
-  "d" #'gnosis-dashboard-delete
-  "m" #'gnosis-dashboard-mark-toggle
-  "M" #'gnosis-dashboard-mark-all
-  "b" #'gnosis-dashboard-bulk-link
-  "t" #'gnosis-dashboard-modify-tags
-  "u" #'gnosis-dashboard-mark-toggle
-  "U" #'gnosis-dashboard-unmark-all
-)
+(keymap-popup-define gnosis-dashboard-themata-mode-map
+  "Themata"
+  :parent gnosis-dashboard-common-map
+  :group "Navigate"
+  "q" ("Back" gnosis-dashboard-themata-back)
+  "SPC" ("Search" gnosis-dashboard-search-thema)
+  "l" ("Filter current" gnosis-dashboard-filter-themata)
+  "n" ("Filter new/low reviews" gnosis-dashboard-filter-themata-by-reviews)
+  "RET" ("Edit at point" gnosis-dashboard-edit-thema)
+  :group "Edit"
+  "e" ("Edit thema" gnosis-dashboard-edit-thema :stay-open t)
+  "a" ("Add thema" gnosis-add-thema :stay-open t)
+  "s" ("Suspend" gnosis-dashboard-suspend-thema :stay-open t)
+  "d" ("Delete" gnosis-dashboard-delete :stay-open t)
+  "b" ("Bulk link" gnosis-dashboard-bulk-link :stay-open t)
+  "t" ("Modify tags" gnosis-dashboard-modify-tags :stay-open t))
 
 (define-minor-mode gnosis-dashboard-themata-mode
   "Minor mode for gnosis dashboard themata output."
@@ -877,43 +863,20 @@ to the canonical form via `gnosis--tag-rename-batch'."
     (push #'gnosis-dashboard-output-tags gnosis-dashboard--view-history)
     (gnosis-dashboard-output-themata (gnosis-get-tag-themata tag))))
 
-(transient-define-prefix gnosis-dashboard-tags-mode-menu ()
-  "Transient menu for tags dashboard mode."
-  [["Navigate"
-    ("RET" "View themata" gnosis-dashboard-tag-view-themata)
-    ("q" "Back" gnosis-dashboard-tags-back)
-    ("SPC" "Search" gnosis-dashboard-search-tags)
-    ("l" "Filter current" gnosis-dashboard-filter-tags)
-    ("g" "Refresh" gnosis-dashboard-return :transient t)]
-   ["Mark"
-    ("m" "Toggle mark" gnosis-dashboard-mark-toggle :transient t)
-    ("M" "Mark all" gnosis-dashboard-mark-all :transient t)
-    ("u" "Unmark" gnosis-dashboard-mark-toggle :transient t)
-    ("U" "Unmark all" gnosis-dashboard-unmark-all :transient t)]
-   ["Edit"
-    ("r" "Rename tag" gnosis-dashboard-rename-tag :transient t)
-    ("R" "Bulk regex rename" gnosis-dashboard-bulk-rename-tags :transient t)
-    ("C" "Merge case duplicates" gnosis-dashboard-merge-case-duplicates :transient t)
-    ("s" "Suspend tag" gnosis-dashboard-suspend-tag :transient t)
-    ("d" "Delete tag" gnosis-dashboard-delete-tag :transient t)]])
-
-(defvar-keymap gnosis-dashboard-tags-mode-map
-  "?" #'gnosis-dashboard-tags-mode-menu
-  "h" #'gnosis-dashboard-tags-mode-menu
-  "RET" #'gnosis-dashboard-tag-view-themata
-  "r" #'gnosis-dashboard-rename-tag
-  "q" #'gnosis-dashboard-tags-back
-  "SPC" #'gnosis-dashboard-search-tags
-  "l" #'gnosis-dashboard-filter-tags
-  "s" #'gnosis-dashboard-suspend-tag
-  "R" #'gnosis-dashboard-bulk-rename-tags
-  "C" #'gnosis-dashboard-merge-case-duplicates
-  "d" #'gnosis-dashboard-delete-tag
-  "g" #'gnosis-dashboard-return
-  "m" #'gnosis-dashboard-mark-toggle
-  "M" #'gnosis-dashboard-mark-all
-  "u" #'gnosis-dashboard-mark-toggle
-  "U" #'gnosis-dashboard-unmark-all)
+(keymap-popup-define gnosis-dashboard-tags-mode-map
+  "Tags"
+  :parent gnosis-dashboard-common-map
+  :group "Navigate"
+  "RET" ("View themata" gnosis-dashboard-tag-view-themata)
+  "q" ("Back" gnosis-dashboard-tags-back)
+  "SPC" ("Search" gnosis-dashboard-search-tags)
+  "l" ("Filter current" gnosis-dashboard-filter-tags)
+  :group "Edit"
+  "r" ("Rename tag" gnosis-dashboard-rename-tag :stay-open t)
+  "R" ("Bulk regex rename" gnosis-dashboard-bulk-rename-tags :stay-open t)
+  "C" ("Merge case duplicates" gnosis-dashboard-merge-case-duplicates :stay-open t)
+  "s" ("Suspend tag" gnosis-dashboard-suspend-tag :stay-open t)
+  "d" ("Delete tag" gnosis-dashboard-delete-tag :stay-open t))
 
 (define-minor-mode gnosis-dashboard-tags-mode
   "Mode for dashboard output of tags."
@@ -1044,20 +1007,68 @@ Translates {n}, {n,}, {n,m} to \\{n\\}, \\{n,\\}, \\{n,m\\}."
 	    '(:type history)))
     (pop-to-buffer buffer)))
 
-(defvar-keymap gnosis-dashboard-mode-map
-  :doc "gnosis-dashboard keymap"
-  ;; Main menu
-  "h" #'gnosis-dashboard-menu
-  ;; Navigate
-  "n" #'gnosis-dashboard-menu-nodes
-  "t" #'gnosis-dashboard-menu-themata
-  ;; Sort (override tabulated-list-sort with fast version)
-  "S" #'gnosis-tl-sort
-  ;; Actions
-  "r" #'gnosis-review
-  "a" #'gnosis-add-thema
-  "SPC" #'gnosis-dashboard-search-thema
-  "q" #'quit-window)
+(keymap-popup-define gnosis-dashboard-nodes-map
+  "Nodes"
+  :group "Nodes"
+  "a" ("View all nodes" (lambda () (interactive)
+			  (setq gnosis-dashboard-nodes-history nil)
+			  (gnosis-dashboard-output-nodes)))
+  "t" ("View nodes by tag" gnosis-dashboard-nodes-search-by-tag)
+  "i" ("View isolated nodes" (lambda () (interactive)
+			       (setq gnosis-dashboard-nodes-history nil)
+			       (gnosis-dashboard-output-nodes)
+			       (gnosis-dashboard-nodes-show-isolated))))
+
+(keymap-popup-define gnosis-dashboard-themata-map
+  "Themata"
+  :group "Themata"
+  "a" ("View all themata" (lambda () (interactive)
+			    (setq gnosis-dashboard-themata-history nil
+				  gnosis-dashboard--view-history nil)
+			    (gnosis-dashboard-output-themata (gnosis-collect-thema-ids))))
+  "SPC" ("Search themata" gnosis-dashboard-suffix-query)
+  "t" ("View by tags" gnosis-dashboard-view-by-tags)
+  "T" ("View all tags" gnosis-dashboard-output-tags)
+  "n" ("View new" gnosis-dashboard-themata-show-new)
+  "o" ("Show orphaned" gnosis-dashboard-themata-show-orphaned))
+
+(keymap-popup-define gnosis-dashboard-import-export-map
+  "Import/Export"
+  :group "Import/Export"
+  "e" ("Export themata" gnosis-export-db)
+  "i" ("Import themata" gnosis-import-db)
+  "I" ("Import Anki" gnosis-import-anki))
+
+(keymap-popup-define gnosis-dashboard-maintenance-map
+  "Maintenance"
+  :group "Maintenance"
+  "s" ("Sync nodes" gnosis-nodes-db-sync)
+  "S" ("Rebuild nodes" (lambda () (interactive) (gnosis-nodes-db-sync t)))
+  "l" ((lambda ()
+         (let ((n gnosis-dashboard--link-issues))
+           (if (null n)
+               "Link health"
+             (format "Link health %s"
+                     (propertize (format "[%d %s]" n (if (= n 1) "issue" "issues"))
+                                 'face (if (zerop n) 'success 'warning))))))
+       gnosis-links-check)
+  "L" ("Link sync" gnosis-links-sync)
+  "c" ("Rebuild cache" gnosis-dashboard-rebuild-cache)
+  "m" ("Monkeytype" gnosis-monkeytype-start))
+
+(keymap-popup-define gnosis-dashboard-mode-map
+  "Gnosis Dashboard"
+  :group "Navigate"
+  "n" ("Nodes" :keymap gnosis-dashboard-nodes-map)
+  "t" ("Themata" :keymap gnosis-dashboard-themata-map)
+  "H" ("History" gnosis-dashboard-history)
+  :group "Actions"
+  "r" ("Review" gnosis-review)
+  "a" ("Add thema" gnosis-add-thema)
+  "SPC" ("Search" gnosis-dashboard-search-thema)
+  :group "More"
+  "x" ("Import/Export" :keymap gnosis-dashboard-import-export-map)
+  "!" ("Maintenance" :keymap gnosis-dashboard-maintenance-map))
 
 (define-derived-mode gnosis-dashboard-mode tabulated-list-mode "Gnosis Dashboard"
   "Major mode for displaying Gnosis dashboard."
@@ -1168,23 +1179,10 @@ Uses +tag/-tag syntax: +foo adds tag foo, -bar removes tag bar."
       (gnosis-dashboard-return)
       (message "Modified tags on %d themata" (length ids)))))
 
-(transient-define-suffix gnosis-dashboard-suffix-query (query)
+(defun gnosis-dashboard-suffix-query (query)
   "Search for thema content for QUERY."
   (interactive "sSearch for thema content: ")
   (gnosis-dashboard-output-themata (gnosis-collect-thema-ids :query query)))
-
-(transient-define-prefix gnosis-dashboard-menu-nodes ()
-  "Transient menu for node operations."
-  [["Nodes"
-    ("a" "View all nodes" (lambda () (interactive)
-                           (setq gnosis-dashboard-nodes-history nil)
-                           (gnosis-dashboard-output-nodes)))
-    ("t" "View nodes by tag" gnosis-dashboard-nodes-search-by-tag)
-    ("i" "View isolated nodes" (lambda () (interactive)
-                                (setq gnosis-dashboard-nodes-history nil)
-                                (gnosis-dashboard-output-nodes)
-                                (gnosis-dashboard-nodes-show-isolated)))
-    ("q" "Back" transient-quit-one)]])
 
 (defun gnosis-dashboard-themata-show-orphaned ()
   "Show themata with orphaned links (referencing deleted nodes)."
@@ -1208,41 +1206,15 @@ Uses +tag/-tag syntax: +foo adds tag foo, -bar removes tag bar."
       (push #'gnosis-dashboard-output-tags gnosis-dashboard--view-history)
       (gnosis-dashboard-output-themata ids))))
 
-(transient-define-prefix gnosis-dashboard-menu-themata ()
-  "Transient menu for themata operations."
-  [["Themata"
-    ("a" "View all themata" (lambda () (interactive)
-                             (setq gnosis-dashboard-themata-history nil
-                                   gnosis-dashboard--view-history nil)
-                             (gnosis-dashboard-output-themata (gnosis-collect-thema-ids))))
-    ("SPC" "Search themata" gnosis-dashboard-suffix-query)
-    ("t" "View by tags" gnosis-dashboard-view-by-tags)
-    ("T" "View all tags" gnosis-dashboard-output-tags)
-    ("n" "View new" gnosis-dashboard-themata-show-new)
-    ("o" "Show orphaned" gnosis-dashboard-themata-show-orphaned)
-    ("q" "Back" transient-quit-one)]])
 
-(transient-define-prefix gnosis-dashboard-menu ()
-  "Transient buffer for gnosis dashboard interactions."
-  [["Navigate"
-    ("n" "Nodes" gnosis-dashboard-menu-nodes)
-    ("t" "Themata" gnosis-dashboard-menu-themata)
-    ("q" "Quit" quit-window)]
-   ["Actions"
-    ("r" "Review" gnosis-review)
-    ("a" "Add thema" gnosis-add-thema)
-    ("m" "Monkeytype" gnosis-monkeytype-start)
-    ("h" "History" gnosis-dashboard-history)]
-   ["Import/Export"
-    ("e" "Export themata" gnosis-export-db)
-    ("i" "Import themata" gnosis-import-db)
-    ("I" "Import Anki" gnosis-import-anki)]
-   ["Maintenance"
-    ("s" "Sync nodes" gnosis-nodes-db-sync)
-    ("S" "Rebuild nodes" (lambda () (interactive) (gnosis-nodes-db-sync t)))
-    ("l" "Link health" gnosis-links-check)
-    ("L" "Link sync" gnosis-links-sync)
-    ("c" "Rebuild cache" gnosis-dashboard-rebuild-cache)]])
+(defun gnosis-dashboard--compute-link-issues ()
+  "Compute and cache the total number of link issues."
+  (setq gnosis-dashboard--link-issues
+        (+ (length (gnosis--orphaned-link-dests))
+           (length (gnosis--stale-links))
+           (length (gnosis--missing-links))
+           (length (gnosis--node-links-missing-dest))
+           (length (gnosis--node-links-missing-source)))))
 
 (defun gnosis-dashboard--load-stats (buffer marker generation)
   "Load dashboard statistics into BUFFER at MARKER position.
@@ -1258,7 +1230,8 @@ GENERATION prevents stale updates when the user navigates away."
           (dolist (module (cdr modules))
             (gnosis-insert-separator)
             (funcall (symbol-value module))))
-        (goto-char (point-min))))))
+        (goto-char (point-min))))
+    (gnosis-dashboard--compute-link-issues)))
 
 ;;;###autoload
 (defun gnosis-dashboard ()
@@ -1286,7 +1259,7 @@ GENERATION prevents stale updates when the user navigates away."
         ;; Start background cache warming after stats have a head start
         (run-with-timer (* 2 gnosis-dashboard-timer-delay) nil
                         #'gnosis-dashboard-warm-cache))
-      (gnosis-dashboard-menu))))
+      (keymap-popup gnosis-dashboard-mode-map))))
 
 (defun gnosis-dashboard-sort-count (entry1 entry2)
   "Sort function for numeric count columns.
@@ -1597,30 +1570,27 @@ Moves cursor to the beginning of the buffer after sorting."
   (tabulated-list-print t)
   (goto-char (point-min)))
 
-(transient-define-prefix gnosis-dashboard-nodes-sort-menu ()
-  "Sort menu for nodes dashboard."
-  [["Sort By"
-    ("C-t" "Title" (lambda () (interactive) (gnosis-dashboard-nodes--sort-by "Title" t)))
-    ("l" "Links" (lambda () (interactive) (gnosis-dashboard-nodes--sort-by "Links")))
-    ("b" "Backlinks" (lambda () (interactive) (gnosis-dashboard-nodes--sort-by "Backlinks")))
-    ("t" "Themata" (lambda () (interactive) (gnosis-dashboard-nodes--sort-by "Themata")))
-    ("q" "Cancel" transient-quit-one)]])
+(keymap-popup-define gnosis-dashboard-nodes-sort-map
+  "Sort Nodes"
+  :group "Sort By"
+  "C-t" ("Title" (lambda () (interactive) (gnosis-dashboard-nodes--sort-by "Title" t)))
+  "l" ("Links" (lambda () (interactive) (gnosis-dashboard-nodes--sort-by "Links")))
+  "b" ("Backlinks" (lambda () (interactive) (gnosis-dashboard-nodes--sort-by "Backlinks")))
+  "t" ("Themata" (lambda () (interactive) (gnosis-dashboard-nodes--sort-by "Themata"))))
 
-(transient-define-prefix gnosis-dashboard-nodes-search-menu ()
-  "Search menu for searching ALL nodes."
-  [["Search All Nodes"
-    ("C-t" "By title" gnosis-dashboard-nodes-search-by-title)
-    ("c" "By content" gnosis-dashboard-nodes-search-by-content)
-    ("t" "By tag" gnosis-dashboard-nodes-search-by-tag)
-    ("q" "Cancel" transient-quit-one)]])
+(keymap-popup-define gnosis-dashboard-nodes-search-map
+  "Search Nodes"
+  :group "Search All Nodes"
+  "C-t" ("By title" gnosis-dashboard-nodes-search-by-title)
+  "c" ("By content" gnosis-dashboard-nodes-search-by-content)
+  "t" ("By tag" gnosis-dashboard-nodes-search-by-tag))
 
-(transient-define-prefix gnosis-dashboard-nodes-filter-menu ()
-  "Filter menu for filtering CURRENT nodes."
-  [["Filter Current Nodes"
-    ("C-t" "By title" gnosis-dashboard-nodes-filter-by-title)
-    ("c" "By content" gnosis-dashboard-nodes-filter-by-content)
-    ("t" "By tag" gnosis-dashboard-nodes-filter-by-tag)
-    ("q" "Cancel" transient-quit-one)]])
+(keymap-popup-define gnosis-dashboard-nodes-filter-map
+  "Filter Nodes"
+  :group "Filter Current Nodes"
+  "C-t" ("By title" gnosis-dashboard-nodes-filter-by-title)
+  "c" ("By content" gnosis-dashboard-nodes-filter-by-content)
+  "t" ("By tag" gnosis-dashboard-nodes-filter-by-tag))
 
 (defun gnosis-dashboard-nodes-review ()
   "Review themata for node at point."
@@ -1634,43 +1604,25 @@ Moves cursor to the beginning of the buffer after sorting."
 		       (read-number "Forward link depth: " 1)
 		       (read-number "Backlink depth: " 0)))
 
-(transient-define-prefix gnosis-dashboard-nodes-mode-menu ()
-  "Transient menu for nodes dashboard mode."
-  [["Navigate"
-    ("RET" "Visit node" gnosis-dashboard-nodes-visit)
-    ("q" "Back" gnosis-dashboard-nodes-back)
-    ("g" "Refresh" gnosis-dashboard-nodes-refresh :transient t)]
-   ["Search/Filter/Sort"
-    ("SPC" "Search all..." gnosis-dashboard-nodes-search-menu)
-    ("l" "Filter current..." gnosis-dashboard-nodes-filter-menu)
-    ("s" "Sort..." gnosis-dashboard-nodes-sort-menu)]
-   ["View"
-    ("f" "Show links" gnosis-dashboard-nodes-show-links)
-    ("b" "Show backlinks" gnosis-dashboard-nodes-show-backlinks)
-    ("t" "Show themata links" gnosis-dashboard-nodes-show-themata-links)
-    ("i" "Show isolated" gnosis-dashboard-nodes-show-isolated)
-    ("d" "Show due" gnosis-dashboard-nodes-show-due)]
-   ["Review"
-    ("r" "Review topic" gnosis-dashboard-nodes-review)
-    ("R" "Review with depth" gnosis-dashboard-nodes-review-with-depth)]])
-
-(defvar-keymap gnosis-dashboard-nodes-mode-map
-  :doc "Keymap for nodes dashboard."
-  "?" #'gnosis-dashboard-nodes-mode-menu
-  "h" #'gnosis-dashboard-nodes-mode-menu
-  "q" #'gnosis-dashboard-nodes-back
-  "f" #'gnosis-dashboard-nodes-show-links
-  "b" #'gnosis-dashboard-nodes-show-backlinks
-  "t" #'gnosis-dashboard-nodes-show-themata-links
-  "i" #'gnosis-dashboard-nodes-show-isolated
-  "d" #'gnosis-dashboard-nodes-show-due
-  "r" #'gnosis-dashboard-nodes-review
-  "R" #'gnosis-dashboard-nodes-review-with-depth
-  "s" #'gnosis-dashboard-nodes-sort-menu
-  "SPC" #'gnosis-dashboard-nodes-search-menu
-  "l" #'gnosis-dashboard-nodes-filter-menu
-  "g" #'gnosis-dashboard-nodes-refresh
-  "RET" #'gnosis-dashboard-nodes-visit)
+(keymap-popup-define gnosis-dashboard-nodes-mode-map
+  "Nodes"
+  :group "Navigate"
+  "RET" ("Visit node" gnosis-dashboard-nodes-visit)
+  "q" ("Back" gnosis-dashboard-nodes-back)
+  "g" ("Refresh" gnosis-dashboard-nodes-refresh :stay-open t)
+  :group "Search/Filter/Sort"
+  "SPC" ("Search all..." :keymap gnosis-dashboard-nodes-search-map)
+  "l" ("Filter current..." :keymap gnosis-dashboard-nodes-filter-map)
+  "s" ("Sort..." :keymap gnosis-dashboard-nodes-sort-map)
+  :group "View"
+  "f" ("Show links" gnosis-dashboard-nodes-show-links)
+  "b" ("Show backlinks" gnosis-dashboard-nodes-show-backlinks)
+  "t" ("Show themata links" gnosis-dashboard-nodes-show-themata-links)
+  "i" ("Show isolated" gnosis-dashboard-nodes-show-isolated)
+  "d" ("Show due" gnosis-dashboard-nodes-show-due)
+  :group "Review"
+  "r" ("Review topic" gnosis-dashboard-nodes-review)
+  "R" ("Review with depth" gnosis-dashboard-nodes-review-with-depth))
 
 (define-minor-mode gnosis-dashboard-nodes-mode
   "Minor mode for gnosis dashboard nodes output."

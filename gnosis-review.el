@@ -41,7 +41,7 @@
 (require 'gnosis-monkeytype)
 (require 'gnosis-utils)
 (require 'gnosis-nodes)
-(require 'transient)
+(require 'keymap-popup)
 
 ;;; Review vars
 
@@ -770,30 +770,35 @@ This is used to type the keimenon of thema, with the answers highlighted."
 
 ;;; Entry points
 
-(transient-define-prefix gnosis-review ()
-  "Start gnosis review session."
-  [["Review"
-    ("d" "Due themata" (lambda () (interactive)
-			 (gnosis-review-loop
-			  (lambda () (gnosis-collect-thema-ids :due t)))))
-    ("t" "Due themata of tag(s)" (lambda () (interactive)
-				   (let* ((due-tags (gnosis-get-tags-for-ids
-						     (gnosis-review-get-due-themata)))
-					  (tags (gnosis-tags-filter-prompt due-tags)))
-				     (gnosis-review-loop
-				      (lambda () (gnosis-collect-thema-ids :due t :tags tags))))))
-    ("o" "Overdue themata" (lambda () (interactive)
-			     (gnosis-review-loop (gnosis-review-get-overdue-themata))))
-    ("w" "Due without overdue" (lambda () (interactive)
-				 (gnosis-review-loop
-				  (cl-set-difference
-				   (mapcar #'car (gnosis-review-get--due-themata))
-				   (gnosis-review-get-overdue-themata)))))
-    ("T" "All themata of tag(s)" (lambda () (interactive)
+(keymap-popup-define gnosis-review-map
+  "Review"
+  :group "Review"
+  "d" ("Due themata" (lambda () (interactive)
+		       (gnosis-review-loop
+			(lambda () (gnosis-collect-thema-ids :due t)))))
+  "t" ("Due themata of tag(s)" (lambda () (interactive)
+				 (let* ((due-tags (gnosis-get-tags-for-ids
+						   (gnosis-review-get-due-themata)))
+					(tags (gnosis-tags-filter-prompt due-tags)))
 				   (gnosis-review-loop
-				    (gnosis-collect-thema-ids :tags (gnosis-tags-filter-prompt)))))
-    ("n" "Review node" gnosis-review-topic)
-    ("q" "Quit" transient-quit-one)]])
+				    (lambda () (gnosis-collect-thema-ids :due t :tags tags))))))
+  "o" ("Overdue themata" (lambda () (interactive)
+			   (gnosis-review-loop (gnosis-review-get-overdue-themata))))
+  "w" ("Due without overdue" (lambda () (interactive)
+			       (gnosis-review-loop
+				(cl-set-difference
+				 (mapcar #'car (gnosis-review-get--due-themata))
+				 (gnosis-review-get-overdue-themata)))))
+  "T" ("All themata of tag(s)" (lambda () (interactive)
+				 (gnosis-review-loop
+				  (gnosis-collect-thema-ids :tags (gnosis-tags-filter-prompt)))))
+  "n" ("Review node" gnosis-review-topic))
+
+;;;###autoload
+(defun gnosis-review ()
+  "Start gnosis review session."
+  (interactive)
+  (keymap-popup gnosis-review-map))
 
 (defun gnosis-review--select-topic ()
   "Prompt for topic and return its id."

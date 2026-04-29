@@ -324,7 +324,7 @@
  (elisa                 :url "https://github.com/s-kostyaev/elisa")
  (elisp-benchmarks	:url nil)
  (ellama		:url "https://github.com/s-kostyaev/ellama"
-  :doc "ellama.info")
+  :doc "README.org")
  (emacs-gc-stats	:url "https://git.sr.ht/~yantar92/emacs-gc-stats"
   :ignored-files ("COPYING"))
  (emacs-lisp-intro-es	:url "https://git.savannah.nongnu.org:/git/elisp-es.git"
@@ -718,6 +718,9 @@
  (pyim			:url "https://github.com/tumashu/pyim.git")
  (pyim-basedict		:url "https://github.com/tumashu/pyim-basedict.git")
  (python		:core "lisp/progmodes/python.el")
+ ;;(qrencode		:url "https://github.com/ruediger/qrencode-el"
+ ;; ;; Waiting for confirmation from maintainer.
+ ;; :ignored-files ("LICENSE.md"))
  (quarter-plane		:url nil)
  (queue			:url nil) ;"http://www.dr-qubit.org/git/predictive.git"
  ;; (rails-routes	:url "https://github.com/otavioschwanck/emacs-rails-routes")

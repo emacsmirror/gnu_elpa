@@ -961,6 +961,9 @@
   :doc ("wisi.texi" "wisitoken-user_guide.texinfo")
   :release-branch t)
  (wisitoken-grammar-mode :url nil)
+ (with-command-redo	:url "https://codeberg.org/ideasman42/emacs-with-command-redo"
+  :ignored-files ("LICENSE")
+  :readme "readme.rst")
  (wpuzzle		:url nil)
  (wrap-search		:url "https://dataswamp.org/~incal/wrap-search.git")
  (xclip			:url nil)

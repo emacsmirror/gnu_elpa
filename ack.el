@@ -106,7 +106,7 @@
   (concat (file-name-nondirectory (or
                                    (concat
                                     (executable-find "rg")
-                                    " -n -H -S --no-heading --hidden --glob=!git --color always -e")
+                                    " -M 1500 -n -H -S --no-heading --hidden --glob=!git --color always -e")
                                    (executable-find "ack-grep")
                                    (executable-find "ack")
                                    (executable-find "ag")

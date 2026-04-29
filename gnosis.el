@@ -4,7 +4,7 @@
 
 ;; Author: Thanos Apollo <public@thanosapollo.org>
 ;; Keywords: extensions
-;; URL: https://thanosapollo.org/projects/gnosis
+;; URL: https://codeberg.org/thanosapollo/emacs-gnosis
 
 ;; Version: 0.10.4
 

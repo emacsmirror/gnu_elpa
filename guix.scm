@@ -101,7 +101,6 @@ help window.  One definition, two uses.")
    (build-system emacs-build-system)
    (arguments
     (list
-     #:source-directory "lisp"
      #:test-command
      #~(list "make" "test" "GUIX_SHELL=")
      #:emacs emacs-no-x
@@ -116,7 +115,10 @@ help window.  One definition, two uses.")
 					      "/.emacs.d"))))
 		      (add-before 'install 'make-info
 				  (lambda _
-				    (invoke "make" "doc" "GUIX_SHELL="))))))
+				    (invoke "make" "doc" "GUIX_SHELL=")))
+		      (add-before 'install 'enter-lisp-dir
+				  (lambda _
+				    (chdir "lisp"))))))
    (native-inputs (list texinfo))
    (propagated-inputs (list emacs-keymap-popup))
    (home-page "https://thanosapollo.org/projects/gnosis/")

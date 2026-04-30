@@ -76,7 +76,7 @@
           (goto-char pos)
           (format "%s:%s:%s"
                   (file-name-nondirectory byte-compile-current-file)
-                  (1+ (count-lines (point-min) (pos-bol)))
+                  (line-number-at-pos)
                   (1+ (current-column)))))
      ,(macroexp-progn body)))
 
@@ -158,7 +158,7 @@ Return an athunk which resolves to the value of the last form in BODY."
 
 (defun athunk-run (athunk)
   "Execute ATHUNK for side-effects.
-Any uncatched errors are signaled, but notice this will happen at a
+Any uncaught errors are signaled, but notice this will happen at a
 later point in time."
   (prog1 nil
     (funcall athunk (lambda (err val) (when err (signal err val))))))
@@ -641,8 +641,6 @@ mailbox, or nil when the connection is in unselected state.")
 (defvar -message-rendering-function #'-gnus-render-message
   "Function used to render a message buffer for display.")
 
-(define-error '-imap-error "error in IMAP response")
-
 (defun -get-data (string)
   "Get data stored as a string property in STRING."
   (cl-assert (stringp string))
@@ -830,179 +828,14 @@ If BELOW is non-nil, only search starting from the current position."
               (run-hooks '-vtable-before-sort-by-current-column-hook))
             '((name . -vtable-before-sort-by-current-column-hook)))
 
-;;; Low-level IMAP communication
+;;; IMAP
 
 ;; References:
 ;; - IMAP4rev1: https://datatracker.ietf.org/doc/html/rfc3501
 ;; - IMAP4rev2: https://datatracker.ietf.org/doc/html/rfc9051
 ;; - IMAP URL syntax: https://datatracker.ietf.org/doc/html/rfc5092
 
-(defvar-local -imap-callbacks nil)
-(defvar-local -imap-command-queue nil)
-(defvar-local -imap-idle-timer nil)
-(defvar-local -imap-last-tag nil)
-
-(defun -imap-connect (account)
-  "Return a network stream connected to ACCOUNT."
-  (let* ((props (or (alist-get account minimail-accounts)
-                    (error "Invalid account: %s" account)))
-         (url (url-generic-parse-url (plist-get props :incoming-url)))
-         (stream-type (pcase (url-type url)
-                        ("imaps" 'tls)
-                        ("imap" 'starttls)
-                        (other (user-error "\
-In `minimail-accounts', incoming-url must have imaps or imap scheme, got %s" other))))
-         (user (or (when (url-user url)
-                      (url-unhex-string (url-user url)))
-                   (-settings-scalar-get :mail-address account)
-                   (user-error "No username found for account %s" account)))
-         (pass (or (url-password url)
-                   (let ((enable-recursive-minibuffers t))
-                     (auth-source-pick-first-password
-                      :user user
-                      :host (url-host url)
-                      :port (url-portspec url)
-                      ;; TODO: Offer to save, if authentication successful.
-                      :create t))
-                   (error "No password found for account %s" account)))
-         (buffer (generate-new-buffer (format " *minimail-%s*" account)))
-         (proc (open-network-stream
-                (format "minimail-%s" account)
-                buffer
-                (url-host url)
-                (or (url-portspec url)
-                    (pcase stream-type
-                      ('tls 993)
-                      ('starttls 143)))
-                :type stream-type
-                :coding 'binary
-                :nowait t)))
-    (set-process-filter proc #'-imap-process-filter)
-    (set-process-sentinel proc #'-imap-process-sentinel)
-    (set-process-query-on-exit-flag proc nil)
-    (with-current-buffer buffer
-      (set-buffer-multibyte nil)
-      (setq -imap-last-tag 0)
-      (setq -imap-idle-timer (run-with-timer
-                              minimail-connection-idle-timeout nil
-                              #'delete-process proc)))
-    (-imap-enqueue
-     proc nil
-     (cond
-      ;; TODO: use ;AUTH=... notation as in RFC 5092?
-      ((string-empty-p user) "AUTHENTICATE ANONYMOUS\r\n")
-      (t (format "AUTHENTICATE PLAIN %s"
-                 (base64-encode-string (format "\0%s\0%s"
-                                               user pass)))))
-     (lambda (status message)
-       (unless (eq status 'ok)
-         (lwarn 'minimail :error "IMAP authentication error (%s):\n%s"
-                account message))))
-    proc))
-
-(defun -imap-process-sentinel (proc message)
-  (-log-message "sentinel: %s %s" proc (process-status proc))
-  (pcase (process-status proc)
-    ('open
-     (with-current-buffer (process-buffer proc)
-       (when-let* ((queued (pop -imap-command-queue)))
-         (apply #'-imap-send proc queued))))
-    ((or 'closed 'failed)
-     (with-current-buffer (process-buffer proc)
-       (pcase-dolist (`(_ _ . ,cb) -imap-callbacks)
-         (funcall cb 'error message)))
-     (kill-buffer (process-buffer proc)))))
-
-(defun -imap-process-filter (proc string)
-  (with-current-buffer (process-buffer proc)
-    (timer-set-time -imap-idle-timer
-                    (time-add nil minimail-connection-idle-timeout))
-    (save-excursion
-      (goto-char (point-max))
-      (insert string))
-    (cond
-     ;; Case 1: we are in the process of receiving an IMAP literal
-     ;; string.  Keep point at the beginning of the literal string to
-     ;; check again next time if it's complete.  If this test fails,
-     ;; then as a side effect we skip over any complete literal
-     ;; strings that may be present in the buffer.
-     ((catch 'done
-        (while (re-search-forward "{\\([0-9]+\\)}\r\n" nil t)
-          (let ((end (+ (point) (string-to-number (match-string 1)))))
-            (if (<= end (point-max))
-                (goto-char end)
-              (goto-char (match-beginning 0))
-              (throw 'done t))))))
-     ;; Case 2: we find a tagged response.  Call the respective
-     ;; callback and send the next command, if there is one in the
-     ;; queue.
-     ((re-search-forward (rx bol
-                             ?T (group (+ digit))
-                             ?\s (group (+ alpha))
-                             ?\s (group (* (not control)))
-                             (? ?\r) ?\n)
-                         nil t)
-      (pcase-let* ((cont (copy-marker (match-end 0)))
-                   (tag (string-to-number (match-string 1)))
-                   (status (intern (downcase (match-string 2))))
-                   (message (match-string 3))
-                   (`(,mailbox . ,callback) (alist-get tag -imap-callbacks)))
-        (setf (alist-get tag -imap-callbacks nil t) nil)
-        (-log-message "response: %s %s\n%s"
-                      proc
-                      (or -current-mailbox "(unselected)")
-                      (buffer-string))
-        (unwind-protect
-            (progn
-              (cl-assert (equal mailbox (and mailbox -current-mailbox)) t)
-              (with-restriction (point-min) cont
-                (goto-char (point-min))
-                (funcall callback status message)))
-          (delete-region (point-min) cont)
-          (when-let* ((queued (pop -imap-command-queue)))
-            (apply #'-imap-send proc queued)))))
-     ;; Case 3: no tagged response yet.  Look for one again when more
-     ;; data arrives.
-     (t (goto-char (point-max))
-        (goto-char (pos-bol))))))
-
-(defun -imap-send (proc tag mailbox command)
-  "Execute an IMAP COMMAND (provided as a string) in network stream PROC.
-TAG is an IMAP tag for the command.
-Ensure the given MAILBOX is selected before issuing the command, unless
-it is nil."
-  (if (or (not mailbox)
-          (equal mailbox -current-mailbox))
-      (process-send-string proc (format "T%s %s\r\n" tag command))
-    ;; Need to select a different mailbox
-    (let ((newtag (cl-incf -imap-last-tag))
-          (cont (lambda (status message)
-                  (if (eq 'ok status)
-                      (progn
-                        (setq -current-mailbox mailbox)
-                        ;; Trick: this will cause the process filter
-                        ;; to call `-imap-send' with the original
-                        ;; command next.
-                        (push (list tag mailbox command) -imap-command-queue))
-                    (let ((callback (alist-get tag -imap-callbacks)))
-                      (setf (alist-get tag -imap-callbacks nil t) nil)
-                      (funcall callback status message))))))
-      (push `(,newtag nil . ,cont) -imap-callbacks)
-      (process-send-string proc (format "T%s SELECT %s\r\n"
-                                        newtag (-imap-quote mailbox))))))
-
-(defun -imap-enqueue (proc mailbox command callback)
-  (with-current-buffer (process-buffer proc)
-    (let ((tag (cl-incf -imap-last-tag)))
-      (if (or -imap-callbacks
-              ;; Sending to process in `connect' state blocks Emacs,
-              ;; so delay it
-              (not (eq 'open (process-status proc))))
-          (cl-callf nconc -imap-command-queue `((,tag ,mailbox ,command)))
-        (-imap-send proc tag mailbox command))
-      (push `(,tag ,mailbox . ,callback) -imap-callbacks))))
-
-;;; IMAP parsing
+;;;; IMAP parsing
 
 ;; References:
 ;; - Formal syntax: https://datatracker.ietf.org/doc/html/rfc3501#section-9
@@ -1045,10 +878,10 @@ contain quoted strings with non-ASCII characters."
 
 (define-peg-ruleset -imap-peg-rules
   (sp        () (char ?\s))
-  (dquote   ()  (char ?\"))
+  (dquote    ()  (char ?\"))
   (crlf      () "\r\n")
   (anil      () "NIL" `(-- nil))
-  (tagged    () (bol) (char ?T) (+ [0-9]) sp) ;we always format our tags as T<number>
+  (tagged    () (bol) (+ [0-9]) sp) ;we always format our tags as a number
   (untagged  () (bol) "* ")
   (number    () (substring (+ [0-9])) `(s -- (string-to-number s)))
   (achar     () (and (not [cntrl "(){] %*\"\\"]) (any))) ;characters allowed in an atom
@@ -1248,38 +1081,224 @@ contain quoted strings with non-ASCII characters."
     (car-safe
      (peg-run (peg untagged (or esearch search) crlf)))))
 
-;;; Async IMAP requests
+;;;; IMAP network process
+
+(define-error '-imap-error "IMAP error")
+(define-error '-imap-response-no "IMAP NO response" '-imap-error)
+(define-error '-imap-response-bad "IMAP BAD response" '-imap-error)
+
+(defvar-local -imap-callbacks nil)
+(defvar-local -imap-idle-timer nil)
+(defvar-local -imap-last-tag nil)
+
+(defun -imap-connect (name host port type callback)
+  "Return a network stream connected to an IMAP server.
+NAME, HOST, PORT and TYPE are as in `open-network-stream'.
+
+CALLBACK is called with two arguments, nil and the network process, when
+the connection is finally open.  Note that sending data to the process
+before that, while possible, blocks Emacs."
+  (let* ((buffer (generate-new-buffer (format " *%s*" name)))
+         (proc (open-network-stream
+                name buffer host port
+                :type type
+                :coding 'binary
+                :nowait t)))
+    (set-process-filter proc #'-imap-process-filter)
+    (set-process-sentinel proc #'-imap-process-sentinel)
+    (set-process-query-on-exit-flag proc nil)
+    (with-current-buffer buffer
+      (set-buffer-multibyte nil)
+      (setq -imap-last-tag 0)
+      (setq -imap-callbacks `((0 . ,callback)))
+      (setq -imap-idle-timer (run-with-timer
+                              minimail-connection-idle-timeout nil
+                              #'delete-process proc)))
+    proc))
+
+(defun -imap-process-sentinel (proc message)
+  "Sentinel for IMAP processes."
+  (-log-message "sentinel: %s %s" proc (process-status proc))
+  (pcase (process-status proc)
+    ('open
+     (with-current-buffer (process-buffer proc)
+       (let ((callback (alist-get 0 -imap-callbacks)))
+         (setf (alist-get 0 -imap-callbacks nil t) nil)
+         (funcall callback nil proc))))
+    ((or 'closed 'failed)
+     (with-current-buffer (process-buffer proc)
+       (pcase-dolist (`(_ . ,callback) -imap-callbacks)
+         (funcall callback 'error message)))
+     (kill-buffer (process-buffer proc)))))
+
+(defun -imap-process-filter (proc string)
+  "Filter function for IMAP processes."
+  (with-current-buffer (process-buffer proc)
+    (timer-set-time -imap-idle-timer
+                    (time-add nil minimail-connection-idle-timeout))
+    (save-excursion
+      (goto-char (point-max))
+      (insert string))
+    (cond
+     ;; Case 1: we are in the process of receiving an IMAP literal
+     ;; string.  Keep point at the beginning of the literal string to
+     ;; check again next time if it's complete.  If this test fails,
+     ;; then as a side effect we skip over any complete literal
+     ;; strings that may be present in the buffer.
+     ((catch 'done
+        (while (re-search-forward (rx "{" (group (+ digit)) "}\r\n") nil t)
+          (let ((end (+ (point) (string-to-number (match-string 1)))))
+            (if (<= end (point-max))
+                (goto-char end)
+              (goto-char (match-beginning 0))
+              (throw 'done t))))))
+     ;; Case 2: we find a tagged response so we call the respective
+     ;; callback.
+     ((re-search-forward (rx bol (group (+ digit))
+                             ?\s (group (+ alpha))
+                             ?\s (group (* (not control)))
+                             (? ?\r) ?\n)
+                         nil t)
+      (let* ((tag (string-to-number (match-string 1)))
+             (error (pcase (upcase (match-string 2))
+                      ("NO" '-imap-response-no)
+                      ("BAD" '-imap-response-bad)))
+             (message (match-string 3))
+             (callback (alist-get tag -imap-callbacks)))
+        (-log-message "response: %s %s\n%s"
+                      proc
+                      (or -current-mailbox "(unselected)")
+                      (buffer-string))
+        (setf (alist-get tag -imap-callbacks nil t) nil)
+        (with-restriction (point-min) (point)
+          (unwind-protect
+              (funcall callback error message)
+            (delete-region (point-min) (point-max))))))
+     ;; Case 3: no tagged response yet.  Look for one again when more
+     ;; data arrives.
+     (t (goto-char (point-max))
+        (goto-char (pos-bol))))))
+
+(defun -imap-send-command (proc command callback)
+  "Send COMMAND to IMAP process PROC.
+When a response arrives, CALLBACK is called, on a buffer containing the
+server response, with two arguments: an error symbol and a message."
+  (with-current-buffer (process-buffer proc)
+    (let ((tag (cl-incf -imap-last-tag)))
+      (-log-message "request: %s %s\n%s"
+                    proc
+                    (or -current-mailbox "(unselected)")
+                    command)
+      (process-send-string proc (format "%s %s\r\n" tag command))
+      (push (cons tag callback) -imap-callbacks))))
+
+;;;; Async IMAP requests
+
+(defun -asend-command (proc command)
+  "Athunk to send COMMAND to IMAP process PROC.
+For an OK response, this yields a temporary a buffer containing the
+server response.  The buffer is automatically cleaned up after use.
+For a NO or BAD response or a network error, signals an error."
+  (lambda (cont)
+    (-imap-send-command
+     proc command
+     (lambda (error message)
+       (if error
+           (funcall cont error message)
+         (let ((buffer (current-buffer))
+               (tmpbuf (generate-new-buffer " *minimail-temp*")))
+           (with-current-buffer tmpbuf
+             (set-buffer-multibyte nil)
+             (insert-buffer-substring buffer)
+             (goto-char (point-min)))
+           (run-with-timer 0 nil (lambda ()
+                                   (unwind-protect
+                                       (funcall cont nil tmpbuf)
+                                     (kill-buffer tmpbuf))))))))))
+
+(defun -amake-process (account)
+  "Athunk yielding a new, authenticated IMAP process for ACCOUNT."
+  (athunk-let*
+      ((props (or (alist-get account minimail-accounts)
+                  (error "Invalid account: %s" account)))
+       (url (url-generic-parse-url (plist-get props :incoming-url)))
+       (user (or (when (url-user url)
+                   (url-unhex-string (url-user url)))
+                 (-settings-scalar-get :mail-address account)
+                 (user-error "No username found for account %s" account)))
+       (pass (or (url-password url)
+                 (let ((enable-recursive-minibuffers t))
+                   (auth-source-pick-first-password
+                    :user user
+                    :host (url-host url)
+                    :port (url-portspec url)
+                    ;; TODO: Offer to save, if authentication successful.
+                    :create t))
+                 (error "No password found for account %s" account)))
+       (type (pcase (url-type url)
+               ("imaps" 'tls)
+               ("imap" 'starttls)
+               (other (user-error "\
+In `minimail-accounts', incoming-url must have imaps or imap scheme, \
+got %s" other))))
+       (proc <- (lambda (cont)
+                  (-imap-connect (format "minimail-%s" account)
+                                 (url-host url)
+                                 (or (url-portspec url)
+                                     (pcase type
+                                       ('tls 993)
+                                       ('starttls 143)))
+                                 type
+                                 cont)))
+       (auth (cond       ;TODO: use ;AUTH=... notation as in RFC 5092?
+              ;; Anonymous login as per RFC 2245.  The \r\n here is
+              ;; important, as it consumes the + server response.
+              ((string-empty-p user) "AUTHENTICATE ANONYMOUS\r\n")
+              (t (format "AUTHENTICATE PLAIN %s"
+                         (base64-encode-string
+                          (format "\0%s\0%s" user pass))))))
+       (_ <- (athunk-condition-case err
+                 (-asend-command proc auth)
+               (-imap-error
+                (lwarn 'minimail :error "IMAP authentication error (%s):\n%S"
+                       account (caddr err))
+                (signal (car err) (cdr err))))))
+    proc))
+
+(defvar -amake-request nil
+  "Synchronization data for the function of same name.")
 
 (defun -amake-request (account-or-mailbox command)
-  "Issue COMMAND to the IMAP server, ensuring the right mailbox is selected.
+  "Issue COMMAND to the IMAP server.
 ACCOUNT-OR-MAILBOX can be a cons cell (ACCOUNT . MAILBOX-NAME) or just
 an account name as a symbol.
 
-Returns an athunk which resolves to a temporary buffer containing the
-server response.  The temporary buffer is cleaned up automatically after
-being used."
-  (lambda (cont)
-    (let* ((account (or (car-safe account-or-mailbox) account-or-mailbox))
-           (proc (alist-get 'process (alist-get account -account-state))))
-      (unless (process-live-p proc)
-        (setq proc (-imap-connect account))
-        (setf (alist-get 'process (alist-get account -account-state)) proc))
-      (-imap-enqueue
-       proc (cdr-safe account-or-mailbox) command
-       (lambda (status message)
-         (if (not (eq 'ok status))
-             (funcall cont '-imap-error (list status message))
-           (let* ((buffer (current-buffer))
-                  (tmpbuf (generate-new-buffer " *minimail-temp*"))
-                  (continue (lambda ()
-                              (unwind-protect
-                                  (funcall cont nil tmpbuf)
-                                (kill-buffer tmpbuf)))))
-             (with-current-buffer tmpbuf
-               (set-buffer-multibyte nil)
-               (insert-buffer-substring buffer)
-               (goto-char (point-min)))
-             (run-with-timer 0 nil continue))))))))
+This yields the same result as `minimail--asend-command', but takes care
+of picking an existing connection process or starting a new one, and
+ensures that MAILBOX-NAME, if given, is selected."
+  (let ((account (or (car-safe account-or-mailbox) account-or-mailbox))
+        (mailbox (cdr-safe account-or-mailbox)))
+    (athunk-with-semaphore (alist-get account -amake-request)
+      (athunk-let*
+          ((oldproc (alist-get 'process (alist-get account -account-state)))
+           (proc <- (if (process-live-p oldproc)
+                        (athunk-wrap oldproc)
+                      (-amake-process account)))
+           (_ (setf (alist-get 'process (alist-get account -account-state))
+                    proc))
+           (select <- (if (or (not mailbox)
+                              (equal mailbox (buffer-local-value
+                                              '-current-mailbox
+                                              (process-buffer proc))))
+                          (athunk-wrap nil)
+                        (-asend-command proc (format "SELECT %s"
+                                                     (-imap-quote mailbox)))))
+           (_ (when select
+                (setf (buffer-local-value '-current-mailbox
+                                          (process-buffer proc))
+                      mailbox)))
+           (buffer <- (-asend-command proc command)))
+        buffer))))
 
 (defun -aget-capability (account)
   (athunk-let*

@@ -106,6 +106,11 @@ help window.  One definition, two uses.")
      #:emacs emacs-no-x
      #:phases
      #~(modify-phases %standard-phases
+		      (add-after 'expand-load-path 'add-lisp-to-load-path
+				 (lambda _
+				   (setenv "EMACSLOADPATH"
+					   (string-append (getcwd) "/lisp:"
+							  (getenv "EMACSLOADPATH")))))
 		      (add-before 'check 'set-home
 				  (lambda _
 				    (setenv "HOME"

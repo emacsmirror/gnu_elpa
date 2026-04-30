@@ -371,8 +371,8 @@ This is used in `minimail-mailbox-mode' buffers."
   '((yhetil :incoming-url "imaps://:@yhetil.org/yhetil.emacs"
             :thread-style hierarchical))
   "Account configuration for the Minimail client.
-This is an alist where keys are names used to refer to each account and
-values are a plist with the following information:
+This is an alist where each keys is name used to refer to an account
+and each value is a plist with the following information:
 
 :incoming-url
   Information about the IMAP server as a URL. Normally, it suffices to
@@ -381,18 +381,22 @@ values are a plist with the following information:
 
     imaps://<username>:<password>@<server-address>:<port>
 
-  If username is omitted, use the :mail-address property instead.
+  If the username contains special characters, they must be percent
+  encoded; in particular \"@\" must be entered as \"%40\".  If omitted,
+  the username is taken from the :mail-address property below.
 
-  If password is omitted (which is highly recommended), use the
-  auth-source mechanism. See Info node `(auth) Top' for details.
+  If the password is omitted (which is highly recommended), use the
+  auth-source mechanism.  See Info node `(auth) Help for users' for
+  details.
+
+  If your server requires STARTTLS connection instead of the default
+  TLS, use \"imap\" as URL scheme.
 
 :mail-address
-  The email address of this account.  Overrides the global value of
-  `user-mail-address'.
-
-:full-name
-  Name used in the To field of messages you compose.  Overrides the
-  global value of `user-full-name'.
+  The address used to compose messages.  Can be either a plain email
+  address or in the form \"Fulano de Tal <user@example.net>\".
+  Overrides the global values of `user-mail-address' and, optionally,
+  `user-full-name'.
 
 :signature
   Message signature, as value accepted by `message-signature' or,
@@ -428,9 +432,6 @@ possible, see `minimail--key-match-p'."
      :options
      ((:incoming-url string)
       (:mail-address    ,(-custom-type-query-alist
-                          :allow-single t :value ""
-                          :key-type 'mailbox :value-type 'string))
-      (:full-name       ,(-custom-type-query-alist
                           :allow-single t :value ""
                           :key-type 'mailbox :value-type 'string))
       (:signature       ,(-custom-type-query-alist
@@ -752,7 +753,6 @@ cell (ACCOUNT . MAILBOX-NAME).  We then proceed as follows:
       (symbol-value
        (alist-get keyword
                   '((:fetch-limit . minimail-fetch-limit)
-                    (:full-name . user-full-name)
                     ;; Unlike other keywords, we care to distinguish
                     ;; when this one is explicitly set
                     ;; (:mail-address . user-mail-address)
@@ -799,6 +799,14 @@ MAILBOX-NAME in it."
            `(":" (:propertize "Error"
                               help-echo ,(format "%s: %s" error data)
                               face minimail-mode-line-error))))))
+
+(defun -split-mail-address (address)
+  (if (string-match "\\(.*\\)<\\(.*\\)>" address)
+      (let ((addr (match-string 2 address))
+            (name (string-trim (match-string 1 address))))
+        (cons addr (unless (string-empty-p name) name)))
+    (list address)))
+
 ;;;; vtable tricks
 
 (defun -vtable-ensure-table ()
@@ -1224,7 +1232,8 @@ For a NO or BAD response or a network error, signals an error."
        (url (url-generic-parse-url (plist-get props :incoming-url)))
        (user (or (when (url-user url)
                    (url-unhex-string (url-user url)))
-                 (-settings-scalar-get :mail-address account)
+                 (when-let* ((addr (-settings-scalar-get :mail-address account)))
+                   (car (-split-mail-address addr)))
                  (user-error "No username found for account %s" account)))
        (pass (or (url-password url)
                  (let ((enable-recursive-minibuffers t))
@@ -2958,10 +2967,12 @@ Unless REFRESH is non-nil, use cached mailbox information."
                               (mapcar #'cdr addr))))
                         minimail-accounts))))
          (hook (lambda ()
-                 (setq-local
-                  -current-mailbox mailbox
-                  user-mail-address address
-                  user-full-name (-settings-scalar-get :full-name mailbox))
+                 (setq -current-mailbox mailbox)
+                 (pcase-let
+                     ((`(,addr . ,name) (-split-mail-address address)))
+                   (setq-local user-mail-address addr)
+                   (when name
+                     (setq-local user-full-name name)))
                  (pcase (-settings-scalar-get :signature mailbox)
                    (`(file ,fname . nil)
                     (setq-local message-signature t

@@ -6,6 +6,7 @@ GUIX_SHELL ?= guix shell -m manifest.scm --
 ORG := docs/gnosis.org
 TEXI := docs/gnosis.texi
 INFO := docs/gnosis.info
+LISP_DIR := lisp
 TEST_FILES := tests/gnosis-test-sqlite.el \
 	tests/gnosis-test-algorithm.el \
 	tests/gnosis-test-export-import.el \
@@ -32,12 +33,12 @@ doc:	$(ORG)
 
 
 test:
-	rm -f *.elc
+	rm -f $(LISP_DIR)/*.elc
 	@for f in $(TEST_FILES); do \
 		echo "Running $$f..."; \
 		$(GUIX_SHELL) $(EMACS) --batch \
 		-q \
-		--eval "(add-to-list 'load-path \"$(shell pwd)\")" \
+		--eval "(add-to-list 'load-path \"$(shell pwd)/$(LISP_DIR)\")" \
 		--load $$f; \
 	done
 
@@ -49,7 +50,7 @@ EL_FILES := gnosis-sqlite.el gnosis-tl.el gnosis-utils.el gnosis-org.el \
 	gnosis-anki.el gnosis-monkeytype.el
 
 load:
-	rm -f *.elc
+	rm -f $(LISP_DIR)/*.elc
 	@emacsclient -e "(progn \
 	  (dolist (sym '(gnosis-dashboard-common-map \
 	               gnosis-dashboard-themata-mode-map \
@@ -76,7 +77,7 @@ load:
 	               gnosis-import-diff-menu)) \
 	    (when (fboundp sym) (fmakunbound sym))))" > /dev/null
 	@for f in $(EL_FILES); do \
-		emacsclient -e "(load-file \"$(shell pwd)/$$f\")" > /dev/null; \
+		emacsclient -e "(load-file \"$(shell pwd)/$(LISP_DIR)/$$f\")" > /dev/null; \
 	done
 	@emacsclient -e "(dolist (buf (buffer-list)) \
 	  (with-current-buffer buf \
@@ -91,4 +92,4 @@ load:
 	@echo "Loaded $(words $(EL_FILES)) files."
 
 clean:
-	rm -f $(TEXI) $(INFO) *.elc *-pkg.el*
+	rm -f $(TEXI) $(INFO) $(LISP_DIR)/*.elc *-pkg.el*

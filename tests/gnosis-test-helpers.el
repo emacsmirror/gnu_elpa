@@ -14,10 +14,9 @@
 
 (require 'gnosis)
 
-(let ((parent-dir (file-name-directory
-                   (directory-file-name
-                    (file-name-directory (or load-file-name default-directory))))))
-  (add-to-list 'load-path parent-dir))
+(let ((lisp-dir (expand-file-name "../lisp"
+                  (file-name-directory (or load-file-name default-directory)))))
+  (add-to-list 'load-path lisp-dir))
 
 (defvar gnosis-test--db-file nil
   "Path to temporary test database file.")

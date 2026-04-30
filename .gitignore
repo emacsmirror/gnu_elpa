@@ -3,6 +3,8 @@ research
 
 /gnosis-autoloads.el
 /gnosis-pkg.el
+/lisp/gnosis-autoloads.el
+/lisp/gnosis-pkg.el
 .*
 !.gitignore
 !.elpaignore

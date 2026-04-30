@@ -14,9 +14,9 @@
 (require 'ert)
 (require 'org)
 
-(load (expand-file-name "../gnosis-org.el"
+(load (expand-file-name "../lisp/gnosis-org.el"
        (file-name-directory (or load-file-name buffer-file-name))))
-(load (expand-file-name "../gnosis-nodes.el"
+(load (expand-file-name "../lisp/gnosis-nodes.el"
        (file-name-directory (or load-file-name buffer-file-name))))
 
 ;;; ---- Group 1: gnosis-org-expand-headings ----

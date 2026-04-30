@@ -13,17 +13,16 @@
 ;;; Code:
 (require 'ert)
 
-(let ((parent-dir (file-name-directory
-                   (directory-file-name
-                    (file-name-directory (or load-file-name default-directory))))))
-  (add-to-list 'load-path parent-dir))
+(let ((lisp-dir (expand-file-name "../lisp"
+                  (file-name-directory (or load-file-name default-directory)))))
+  (add-to-list 'load-path lisp-dir))
 
 (require 'gnosis-sqlite)
 (require 'gnosis-algorithm)
 
 ;; Load gnosis-db--schemata for schema tests
 (defvar gnosis-db--schemata)
-(let ((gnosis-db-el (expand-file-name "../gnosis-db.el"
+(let ((gnosis-db-el (expand-file-name "../lisp/gnosis-db.el"
                       (file-name-directory (or load-file-name default-directory)))))
   (with-temp-buffer
     (insert-file-contents gnosis-db-el)

@@ -101,6 +101,7 @@ help window.  One definition, two uses.")
    (build-system emacs-build-system)
    (arguments
     (list
+     #:source-directory "lisp"
      #:test-command
      #~(list "make" "test" "GUIX_SHELL=")
      #:emacs emacs-no-x

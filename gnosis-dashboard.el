@@ -28,6 +28,9 @@
 ;;; Code:
 
 (require 'gnosis)
+(require 'gnosis-db)
+(require 'gnosis-tags)
+(require 'gnosis-links)
 (require 'gnosis-tl)
 (require 'gnosis-nodes)
 (require 'keymap-popup)

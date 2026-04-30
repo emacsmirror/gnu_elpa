@@ -42,7 +42,9 @@ test:
 	done
 
 EL_FILES := gnosis-sqlite.el gnosis-tl.el gnosis-utils.el gnosis-org.el \
-	gnosis-algorithm.el gnosis.el gnosis-nodes.el gnosis-journal.el \
+	gnosis-algorithm.el gnosis-cloze.el gnosis-db.el gnosis-vc.el \
+	gnosis-tags.el gnosis-custom-values.el gnosis-links.el \
+	gnosis.el gnosis-nodes.el gnosis-journal.el \
 	gnosis-review.el gnosis-dashboard.el gnosis-export-import.el \
 	gnosis-anki.el gnosis-monkeytype.el
 

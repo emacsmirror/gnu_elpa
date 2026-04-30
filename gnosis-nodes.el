@@ -17,16 +17,8 @@
 (require 'org)
 (require 'org-element)
 (require 'gnosis-org)
-
-;; Forward declarations for gnosis.el functions
-(declare-function gnosis-select "gnosis")
-(declare-function gnosis--insert-into "gnosis")
-(declare-function gnosis--delete "gnosis")
-(declare-function gnosis--ensure-db "gnosis")
-(declare-function gnosis-update "gnosis")
-(declare-function gnosis-sqlite-execute "gnosis-sqlite")
-(declare-function gnosis-sqlite-select "gnosis-sqlite")
-(declare-function gnosis-sqlite-with-transaction "gnosis-sqlite")
+(require 'gnosis-db)
+(require 'gnosis-sqlite)
 (declare-function gnosis-journal--dir "gnosis-journal")
 
 (defvar gnosis-journal-dir)

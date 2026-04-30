@@ -16,11 +16,8 @@
 (require 'org)
 (require 'org-element)
 (require 'gnosis-org)
-
-;; Forward declarations
-(declare-function gnosis-select "gnosis")
-(declare-function gnosis--ensure-db "gnosis")
-(declare-function gnosis-sqlite-with-transaction "gnosis-sqlite")
+(require 'gnosis-db)
+(require 'gnosis-sqlite)
 (declare-function gnosis-nodes-select "gnosis-nodes")
 (declare-function gnosis-nodes--find "gnosis-nodes")
 (declare-function gnosis-nodes--create-file "gnosis-nodes")

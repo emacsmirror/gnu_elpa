@@ -37,6 +37,10 @@
 ;;; Code:
 
 (require 'gnosis)
+(require 'gnosis-db)
+(require 'gnosis-cloze)
+(require 'gnosis-vc)
+(require 'gnosis-custom-values)
 (require 'gnosis-algorithm)
 (require 'gnosis-monkeytype)
 (require 'gnosis-utils)

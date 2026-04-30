@@ -23,10 +23,10 @@
 
 ;; Load gnosis-db--schemata for schema tests
 (defvar gnosis-db--schemata)
-(let ((gnosis-el (expand-file-name "../gnosis.el"
-                   (file-name-directory (or load-file-name default-directory)))))
+(let ((gnosis-db-el (expand-file-name "../gnosis-db.el"
+                      (file-name-directory (or load-file-name default-directory)))))
   (with-temp-buffer
-    (insert-file-contents gnosis-el)
+    (insert-file-contents gnosis-db-el)
     (goto-char (point-min))
     (when (re-search-forward "(defconst gnosis-db--schemata" nil t)
       (goto-char (match-beginning 0))

@@ -31,6 +31,9 @@
 ;;; Code:
 
 (require 'gnosis)
+(require 'gnosis-db)
+(require 'gnosis-cloze)
+(require 'gnosis-vc)
 (require 'gnosis-algorithm)
 (require 'seq)
 

@@ -67,28 +67,26 @@ artifacts."
              (string-contains file "/temp/")))))
 
 (define-public emacs-keymap-popup
-  (let ((commit "fec80af2cdf9e3a25bb5033b32bf873584778f05")
-        (revision "0"))
-    (package
-     (name "emacs-keymap-popup")
-     (version (git-version "0.2.0" revision commit))
-     (source (origin
-              (method git-fetch)
-              (uri (git-reference
-                    (url "https://codeberg.org/thanosapollo/emacs-keymap-popup")
-                    (commit commit)))
-              (file-name (git-file-name name version))
-              (sha256
-               (base32
-                "0x9vq4hnp7famcfv72qq6f28faang58gvr8ah223iqsvphrc5bz6"))))
-     (build-system emacs-build-system)
-     (arguments (list #:tests? #f))
-     (home-page "https://codeberg.org/thanosapollo/emacs-keymap-popup")
-     (synopsis "Described keymaps with popup help")
-     (description
-      "Produces a real Emacs keymap with embedded descriptions for a popup
+  (package
+   (name "emacs-keymap-popup")
+   (version "0.2.2")
+   (source (origin
+            (method git-fetch)
+            (uri (git-reference
+                  (url "https://codeberg.org/thanosapollo/emacs-keymap-popup")
+                  (commit version)))
+            (file-name (git-file-name name version))
+            (sha256
+             (base32
+              "16f5lba7m1k7s2y80fkyf9lf4c79lhs4g0xz7y4bxz6r9x70m9zf"))))
+   (build-system emacs-build-system)
+   (arguments (list #:tests? #f))
+   (home-page "https://codeberg.org/thanosapollo/emacs-keymap-popup")
+   (synopsis "Described keymaps with popup help")
+   (description
+    "Produces a real Emacs keymap with embedded descriptions for a popup
 help window.  One definition, two uses.")
-     (license license:gpl3+))))
+   (license license:gpl3+)))
 
 (define-public emacs-gnosis-git
   (package

@@ -1,10 +1,13 @@
-;;; ffs.el --- Form Feed Slides mode       -*- lexical-binding: t; -*-
+;;; ffs.el --- Form Feed Slides       -*- lexical-binding: t; -*-
 
-;; Copyright (c) 2022-2023 Amin Bandali <bandali@gnu.org>
+;; Copyright (c) 2022-2026 Amin Bandali <bandali@gnu.org>
 
 ;; Author: Amin Bandali <bandali@gnu.org>
+;; Maintainer: Amin Bandali <bandali@gnu.org>
+;; URL: https://git.kelar.org/~bandali/ffs
 ;; Version: 0.1.0
-;; Keywords: outlines, tools
+;; Package-Requires: ((emacs "27.1"))
+;; Keywords: convenience, focus, narrowing, outlines, presentation, text
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -22,41 +25,40 @@
 ;;; Commentary:
 
 ;; A simple mode for doing simple plain text presentations where the
-;; slides are separated using the form feed character ().
+;; slides are separated using the `page-delimiter', by default the
+;; form feed character (^L).
 
 ;; Configuration: TODO
 
 ;; Usage:
 
-;; Put this file, ffs.el, in a directory in your `load-path', then add
-;; something like the following to your init file:
+;; After installing `ffs', open a text file/buffer containing your
+;; slides do `M-x ffs RET'.  Optionally, you can add a key binding for
+;; `ffs' to your init file:
 ;;
-;; (require 'ffs)
 ;; (global-set-key (kbd "C-c f s") #'ffs)
 
-;; Then, open a text file/buffer that you would like you to use as the
-;; source of your presentation and type `M-x ffs RET' or a keyboard
-;; shortcut you defined (like the above example) to start ffs, at
-;; which point you should be able to see "ffs" appear as one of the
-;; currently enabled minor modes in your mode-line.  Once ffs is
-;; enabled, you can invoke its various commands.  To see a list of
-;; available commands, you can either type `M-x ffs- TAB' (to get a
-;; completion of commands starting with the "ffs-" prefix), or see the
-;; definition of `ffs-minor-mode-map' near the end of this file.
+;; You should then see "ffs" appear as one of the currently enabled
+;; minor modes in your mode-line.  Once ffs is enabled, you can invoke
+;; its various commands.  To see a list of available commands, you can
+;; either type `M-x ffs- TAB' (to get a completion of commands
+;; starting with the "ffs-" prefix), or see the definition of
+;; `ffs-minor-mode-map' near the end of this file.
 
 ;;; Code:
 
+;; TODO:
+;; add user option for echoing slide count
+
 (defgroup ffs nil
   "Minor mode for form feed-separated plain text presentations."
-  :version "29.1"
-  :prefix "ffs-")
+  :group 'editing)
 
 (defcustom ffs-default-face-height 370
-  "The value of the `height' property for the `default' face to use
-during the ffs presentation."
+  "Value `height' property of `default' face to use during presentations."
   :group 'ffs
   :type '(choice (const nil)
-                 (integer :value 300)))
+                 (natnum :value 300)))
 
 (defcustom ffs-start-hook nil
   "Hooks to perform when starting presenting."
@@ -68,12 +70,24 @@ during the ffs presentation."
   :group 'ffs
   :type 'hook)
 
-(defcustom ffs-edit-buffer-name "*ffs-edit*"
-  "The name of the ffs-edit buffer used when editing a slide."
+(defcustom ffs-page-delimiter ""
+  "The default page delimiter for ffs, the form feed character.
+If you use a custom `page-delimiter' regexp, be sure to customize this
+as well."
   :group 'ffs
   :type 'string)
 
-(defvar ffs--slides-buffer nil
+(defvar ffs-edit-buffer-name "*ffs-edit*"
+  "The name of the ffs-edit buffer used when editing a slide.")
+
+(defvar-local ffs--edit-source-buffer nil
+  "The ffs presentation buffer of the slide being edited.")
+
+(defvar-local ffs--new-location nil
+  "The location where the new slide should be inserted.
+See the docstring for `ffs-edit' for more details.")
+
+(defvar-local ffs--slides-buffer nil
   "The main ffs presentation slides buffer.
 When the user enables ffs in a buffer using `\\[ffs]', we store a
 reference to that buffer in this variable.
@@ -83,29 +97,26 @@ using `\\[ffs-find-speaker-notes-file]' from the main ffs slides
 buffer, this variable will point to the main ffs slides buffer
 rather than the speaker notes buffer.")
 
-(defvar ffs--notes-buffer nil
+(defvar-local ffs--notes-buffer nil
   "The ffs speaker notes buffer (only if selected).
 When the user chooses (and opens) a speaker notes file using
 `\\[ffs-find-speaker-notes-file]', a reference to the file's
 corresponding buffer is stored in this variable, local to the
 main ffs presentation slides buffer (`ffs--slides-buffer').")
 
-(defvar ffs--old-mode-line-format nil
-  "The old value of `mode-line-format' before enabling
-`ffs--no-mode-line-minor-mode'.")
+(defvar-local ffs--old-mode-line-format nil
+  "Old value of `mode-line-format'.")
 
-(defvar ffs--old-cursor-type nil
-  "The old value of `cursor-type' before enabling
-`ffs--no-cursor-minor-mode'.")
+(defvar-local ffs--old-cursor-type nil
+  "Old value of `cursor-type'.")
 
-(defvar ffs--old-default-face-height nil
-  "The old value of the `default' face's `height' property before
-starting the ffs presentation.")
+(defvar-local ffs--old-default-face-height nil
+  "Old value of `default' face's `height' property.")
 
-(define-minor-mode ffs--no-mode-line-minor-mode
+(define-minor-mode ffs-no-mode-line-minor-mode
   "Minor mode for hiding the mode-line."
   :lighter nil
-  (if ffs--no-mode-line-minor-mode
+  (if ffs-no-mode-line-minor-mode
       (progn
         (unless ffs--old-mode-line-format
           (setq-local ffs--old-mode-line-format mode-line-format))
@@ -115,10 +126,10 @@ starting the ffs presentation.")
       ffs--old-mode-line-format nil))
   (redraw-display))
 
-(define-minor-mode ffs--no-cursor-minor-mode
+(define-minor-mode ffs-no-cursor-minor-mode
   "Minor mode for hiding the cursor."
   :lighter nil
-  (if ffs--no-cursor-minor-mode
+  (if ffs-no-cursor-minor-mode
       (progn
         (unless ffs--old-cursor-type
           (setq-local ffs--old-cursor-type cursor-type))
@@ -127,7 +138,7 @@ starting the ffs presentation.")
     (when ffs--old-cursor-type
       ffs--old-cursor-type nil)))
 
-(defun ffs--toggle-dark-mode ()
+(defun ffs-toggle-dark-mode ()
   "Swap the frame background and foreground colours."
   (interactive)
   (let ((bg (frame-parameter nil 'background-color))
@@ -135,6 +146,7 @@ starting the ffs presentation.")
     (set-background-color fg)
     (set-foreground-color bg)))
 
+;; save-restriction
 (defun ffs--goto-previous (buffer)
   "Go to the previous slide in the given BUFFER."
   (interactive)
@@ -148,8 +160,7 @@ starting the ffs presentation.")
       (when n (narrow-to-page)))))
 
 (defun ffs-goto-previous ()
-  "Go to the previous slide in the main ffs presentation and the
-speaker notes buffer (if any)."
+  "Go to previous slide in ffs presentation and speaker notes buffer."
   (interactive)
   (ffs--goto-previous ffs--slides-buffer)
   (when ffs--notes-buffer
@@ -169,8 +180,7 @@ speaker notes buffer (if any)."
       (when n (narrow-to-page)))))
 
 (defun ffs-goto-next ()
-  "Go to the next slide in the main ffs presentation and the
-speaker notes buffer (if any)."
+  "Go to next slide in ffs presentation and speaker notes buffer."
   (interactive)
   (ffs--goto-next ffs--slides-buffer)
   (when ffs--notes-buffer
@@ -187,8 +197,7 @@ speaker notes buffer (if any)."
       (when n (narrow-to-page)))))
 
 (defun ffs-goto-first ()
-  "Go to the first slide in the main ffs presentation and the
-speaker notes buffer (if any)."
+  "Go to first slide in ffs presentation and speaker notes buffer."
   (interactive)
   (ffs--goto-first ffs--slides-buffer)
   (when ffs--notes-buffer
@@ -198,14 +207,14 @@ speaker notes buffer (if any)."
 (defun ffs--goto-last (buffer)
   "Go to the last slide in the given BUFFER."
   (interactive)
-  (let ((n (buffer-narrowed-p)))
-    (when n (widen))
-    (goto-char (point-max))
-    (when n (narrow-to-page))))
+  (with-current-buffer buffer
+    (let ((n (buffer-narrowed-p)))
+      (when n (widen))
+      (goto-char (point-max))
+      (when n (narrow-to-page)))))
 
 (defun ffs-goto-last ()
-  "Go to the last slide in the main ffs presentation and the
-speaker notes buffer (if any)."
+  "Go to last slide in ffs presentation and speaker notes buffer."
   (interactive)
   (ffs--goto-last ffs--slides-buffer)
   (when ffs--notes-buffer
@@ -220,7 +229,7 @@ speaker notes buffer (if any)."
     (setq-local
      ffs--old-default-face-height
      (face-attribute 'default :height))
-    (face-remap-add-relative
+    (face-remap-add-relative         ; TODO: store and use for removal
      'default :height ffs-default-face-height))
   (run-hooks 'ffs-start-hook)
   (narrow-to-page))
@@ -258,8 +267,12 @@ current slide.  The logic is implemented in `ffs-edit-done'."
               (unless n (narrow-to-page))
               (prog1 (buffer-string)
                 (unless n (widen))))))
+    ;; (with-current-buffer buffer
+    ;;   ...)
+    ;; (display-buffer buffer)
     (pop-to-buffer-same-window
      (get-buffer-create ffs-edit-buffer-name))
+    (erase-buffer)
     (funcall m)
     (ffs-edit-minor-mode 1)
     (insert s)
@@ -268,8 +281,8 @@ current slide.  The logic is implemented in `ffs-edit-done'."
     (setq-local
      ffs--edit-source-buffer b
      ffs--new-location add-above-or-below
-     fill-column fc)
-    (message
+     fill-column fc
+     header-line-format
      (substitute-command-keys "Edit, then use `\\[ffs-edit-done]' \
 to apply your changes or `\\[ffs-edit-discard]' to discard them."))))
 
@@ -293,23 +306,26 @@ to apply your changes or `\\[ffs-edit-discard]' to discard them."))))
 (defun ffs-edit-done ()
   "Apply the ffs-edit changes and return to the presentation."
   (interactive)
-  (let* (f
+  (let* ((f nil)
          (str (buffer-string))
-         (s (if (string-suffix-p "\n" str)
-                str
-              (concat str "\n")))
+         (sn (if (string-suffix-p "\n" str)
+                 str
+               (concat str "\n")))
+         (s (format "\n%s%s" sn ffs-page-delimiter))
          (l ffs--new-location))
+    ;; maybe break out into helper, would be helpful when testing
     (with-current-buffer ffs--edit-source-buffer
       (let ((inhibit-read-only t))
         (save-excursion
+          ;; pcase?
           (cond
            ((eq l 'add-above)
             (backward-page)
-            (insert (format "\n%s" s))
+            (insert s)
             (setq f #'ffs-goto-previous))
            ((eq l 'add-below)
             (forward-page)
-            (insert (format "\n%s" s))
+            (insert s)
             (setq f #'ffs-goto-next))
            ((null l)
             (narrow-to-page)
@@ -320,17 +336,20 @@ to apply your changes or `\\[ffs-edit-discard]' to discard them."))))
     (when (functionp f)
       (funcall f))))
 
-(defun ffs--undo (&optional arg)
-  "Like `undo', but it works even when the buffer is read-only."
+(defun ffs-undo (&optional arg)
+  "Like `undo', but it works even when the buffer is read-only.
+Repeat this command to undo more changes.
+A numeric ARG serves as a repeat count."
   (interactive "P")
   (let ((inhibit-read-only t))
     (undo arg)))
 
 (defun ffs-find-speaker-notes-file (file)
-  "Prompt user for a speaker notes file, open it in a new frame."
+  "Prompt user for a speaker notes FILE, open it in a new frame."
   (interactive "Fspeakers notes buffer: ")
   (let ((b (current-buffer)))
     (save-excursion
+      ;; defvar ffs-find-notes-function
       (find-file-other-frame file)
       (ffs-minor-mode 1)
       (setq-local
@@ -339,6 +358,7 @@ to apply your changes or `\\[ffs-edit-discard]' to discard them."))))
     (setq-local ffs--notes-buffer (get-file-buffer file))))
 
 (defun ffs-export-slides-to-pdf ()
+  "Export slides to PDF (needs Emacs built with Cairo)."
   (interactive)
   (with-current-buffer ffs--slides-buffer
     (ffs-goto-first)
@@ -369,12 +389,7 @@ When done editing the slide, run \\[ffs-edit-done] to apply your
 changes, or \\[ffs-edit-discard] to discard them."
   :group 'ffs
   :lighter " ffs-edit"
-  :keymap ffs-edit-minor-mode-map
-  (defvar-local ffs--edit-source-buffer nil
-    "The ffs presentation buffer of the slide being edited.")
-  (defvar-local ffs--new-location nil
-    "The location where the new slide should be inserted.
-See the docstring for `ffs-edit' for more details."))
+  :keymap ffs-edit-minor-mode-map)
 
 (defvar ffs-minor-mode-map
   (let ((map (make-sparse-keymap)))
@@ -391,13 +406,13 @@ See the docstring for `ffs-edit' for more details."))
     (define-key map (kbd "e") #'ffs-edit)
     (define-key map (kbd "O") #'ffs-new-above)
     (define-key map (kbd "o") #'ffs-new-below)
-    (define-key map (kbd "m") #'ffs--no-mode-line-minor-mode)
-    (define-key map (kbd "c") #'ffs--no-cursor-minor-mode)
-    (define-key map (kbd "d") #'ffs--toggle-dark-mode)
+    (define-key map (kbd "m") #'ffs-no-mode-line-minor-mode)
+    (define-key map (kbd "c") #'ffs-no-cursor-minor-mode)
+    (define-key map (kbd "d") #'ffs-toggle-dark-mode)
+    (define-key map (kbd "S") #'ffs-find-speaker-notes-file)
     (define-key map (kbd "N") #'narrow-to-page)
     (define-key map (kbd "W") #'widen)
-    (define-key map [remap undo] #'ffs--undo)
-    (define-key map (kbd "C-c n") #'ffs-find-speaker-notes-file)
+    (define-key map [remap undo] #'ffs-undo)
     map)
   "Keymap for `ffs-minor-mode'.")
 

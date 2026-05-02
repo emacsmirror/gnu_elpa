@@ -1235,21 +1235,22 @@ For a NO or BAD response or a network error, signals an error."
                  (when-let* ((addr (-settings-scalar-get :mail-address account)))
                    (car (-split-mail-address addr)))
                  (user-error "No username found for account %s" account)))
-       (pass (or (url-password url)
-                 (let ((enable-recursive-minibuffers t))
-                   (auth-source-pick-first-password
-                    :user user
-                    :host (url-host url)
-                    :port (url-portspec url)
-                    ;; TODO: Offer to save, if authentication successful.
-                    :create t))
-                 (error "No password found for account %s" account)))
        (type (pcase (url-type url)
                ("imaps" 'tls)
                ("imap" 'starttls)
                (other (user-error "\
 In `minimail-accounts', incoming-url must have imaps or imap scheme, \
 got %s" other))))
+       (auth (or (when (url-password url)
+                   `(:secret ,(url-password url)))
+                 (let ((enable-recursive-minibuffers t))
+                   (car (auth-source-search
+                         :user user
+                         :host (url-host url)
+                         :port (url-portspec url)
+                         :max 1 :create t)))
+                 (error "No password found for account %s" account)))
+       (secret (auth-info-password auth))
        (proc <- (lambda (cont)
                   (-imap-connect (format "minimail-%s" account)
                                  (url-host url)
@@ -1259,19 +1260,22 @@ got %s" other))))
                                        ('starttls 143)))
                                  type
                                  cont)))
-       (auth (cond       ;TODO: use ;AUTH=... notation as in RFC 5092?
-              ;; Anonymous login as per RFC 2245.  The \r\n here is
-              ;; important, as it consumes the + server response.
-              ((string-empty-p user) "AUTHENTICATE ANONYMOUS\r\n")
-              (t (format "AUTHENTICATE PLAIN %s"
-                         (base64-encode-string
-                          (format "\0%s\0%s" user pass))))))
+       (cmd (cond        ;TODO: use ;AUTH=... notation as in RFC 5092?
+             ;; Anonymous login as per RFC 2245.  The \r\n here is
+             ;; important, as it consumes the + server response.
+             ((string-empty-p user) "AUTHENTICATE ANONYMOUS\r\n")
+             (t (format "AUTHENTICATE PLAIN %s"
+                        (base64-encode-string
+                         (format "\0%s\0%s" user secret))))))
        (_ <- (athunk-condition-case err
-                 (-asend-command proc auth)
+                 (-asend-command proc cmd)
                (-imap-error
                 (lwarn 'minimail :error "IMAP authentication error (%s):\n%S"
                        account (caddr err))
                 (signal (car err) (cdr err))))))
+    (when (plist-get auth :save-function)
+      (let ((enable-recursive-minibuffers t))
+        (funcall (plist-get auth :save-function))))
     proc))
 
 (defvar -amake-request nil

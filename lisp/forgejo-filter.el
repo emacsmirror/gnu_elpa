@@ -152,7 +152,10 @@ enriched with `watch-owner' and `watch-repo' keys."
                           (watch-repo . ,repo))
                         alist)
                 result))))
-    (nreverse result)))
+    (cl-remove-duplicates
+     (nreverse result)
+     :key (lambda (a) (let-alist a (list .watch-owner .watch-repo .number)))
+     :test #'equal)))
 
 (defun forgejo-filter-query-issues (host owner repo filters)
   "Return issue alists for HOST/OWNER/REPO matching FILTERS.

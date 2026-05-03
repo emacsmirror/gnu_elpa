@@ -233,6 +233,18 @@ Handles #N issue/PR refs and markdown URLs."
   (interactive)
   (forgejo-review-open-thread))
 
+;;; EWOC navigation
+
+(defun forgejo-view-next ()
+  "Move to the next EWOC node."
+  (interactive)
+  (ewoc-goto-next forgejo-view--ewoc 1))
+
+(defun forgejo-view-previous ()
+  "Move to the previous EWOC node."
+  (interactive)
+  (ewoc-goto-prev forgejo-view--ewoc 1))
+
 ;;; Shared view keymap
 
 (keymap-popup-define forgejo-view-mode-map
@@ -252,8 +264,8 @@ Handles #N issue/PR refs and markdown URLs."
   "RET" ("Follow link" forgejo-view-follow-link)
   "g" ("Refresh" forgejo-view-refresh)
   "b" ("Open in browser" forgejo-view-browse)
-  "n" ("Next" ewoc-goto-next)
-  "p" ("Previous" ewoc-goto-prev))
+  "n" ("Next" forgejo-view-next)
+  "p" ("Previous" forgejo-view-previous))
 
 ;;; Node access
 

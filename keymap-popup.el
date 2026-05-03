@@ -843,12 +843,10 @@ Frame parameters are taken from `keymap-popup-child-frame-parameters'."
 Reads state from BUF.  Consumes the reentering flag on read."
   (lambda ()
     (and (buffer-live-p buf)
-         ;; `when', not `and': setq-local returns nil, which
-         ;; would short-circuit `and' before reaching t.
-         (or (when (buffer-local-value 'keymap-popup--reentering buf)
-	       (with-current-buffer buf
-		 (setq-local keymap-popup--reentering nil))
-	       t)
+         (or (and (buffer-local-value 'keymap-popup--reentering buf)
+                  (with-current-buffer buf
+                    (setq-local keymap-popup--reentering nil)
+                    t))
              (or (memq this-command
                        '(universal-argument universal-argument-more
 					    digit-argument negative-argument

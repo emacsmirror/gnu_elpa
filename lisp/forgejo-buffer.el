@@ -205,9 +205,10 @@ Tries `markdown-link-url' if available, otherwise `thing-at-point'."
 
 ;;; Body rendering
 
-(defconst forgejo-buffer--body-separator "\n\0\n"
+(defconst forgejo-buffer--body-separator "\n\n\x0c\n\n"
   "Separator used to join bodies for batch fontification.
-Uses a null byte that won't appear in markdown text.")
+Uses a form feed flanked by blank lines.  Tree-sitter treats this as a
+paragraph break, unlike a null byte which causes parse errors.")
 
 (defun forgejo-buffer--fontify-bodies (bodies)
   "Fontify all BODIES in a single temp buffer using `forgejo-markdown-mode'.

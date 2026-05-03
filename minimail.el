@@ -377,7 +377,7 @@ This is used in `minimail-mailbox-mode' buffers."
   :type (-custom-type-query-alist :key-type 'flag :value-type 'face))
 
 (defcustom minimail-accounts
-  '((yhetil :incoming-url "imaps://:@yhetil.org/yhetil.emacs"
+  '((yhetil :incoming-url "imaps://;AUTH=ANONYMOUS@yhetil.org/yhetil.emacs"
             :thread-style hierarchical))
   "Account configuration for the Minimail client.
 This is an alist where each keys is name used to refer to an account
@@ -1239,27 +1239,39 @@ For a NO or BAD response or a network error, signals an error."
       ((props (or (alist-get account minimail-accounts)
                   (error "Invalid account: %s" account)))
        (url (url-generic-parse-url (plist-get props :incoming-url)))
+       (type (pcase-exhaustive (url-type url)
+               ("imaps" 'tls)
+               ("imap" 'starttls)))
+       ;; If URL has no username, guess it from the :mail-address
+       ;; account property.
        (user (or (when (url-user url)
                    (url-unhex-string (url-user url)))
                  (when-let* ((addr (-settings-scalar-get :mail-address account)))
                    (car (-split-mail-address addr)))
                  (user-error "No username found for account %s" account)))
-       (type (pcase (url-type url)
-               ("imaps" 'tls)
-               ("imap" 'starttls)
-               (other (user-error "\
-In `minimail-accounts', incoming-url must have imaps or imap scheme, \
-got %s" other))))
-       (auth (or (when (url-password url)
-                   `(:secret ,(url-password url)))
-                 (let ((enable-recursive-minibuffers t))
-                   (car (auth-source-search
-                         :user user
-                         :host (url-host url)
-                         :port (url-portspec url)
-                         :max 1 :create t)))
-                 (error "No password found for account %s" account)))
-       (secret (auth-info-password auth))
+       ;; AUTH=<mechanism> notation as in RFC 5092.  If found, strip
+       ;; it out of the username.  If nothing found here, we also look
+       ;; at the :smtp-auth property of the auth-info entry (which
+       ;; they should have called :sasl-mechanism, as it applies to
+       ;; other protocols).
+       (mech (and (url-user url)
+                  (string-match (rx ";AUTH=" (group (+ alnum)) eos) user)
+                  (prog1 (intern (downcase (match-string 1 user)))
+                    (setq user (substring user 0 (match-beginning 0))))))
+       (auth (cond
+              ((eq mech 'anonymous) nil)
+              ((url-password url)
+               `(:secret ,(url-password url)))
+              ((let ((enable-recursive-minibuffers t))
+                 (car (auth-source-search
+                       :user user
+                       :host (url-host url)
+                       :port (url-portspec url)
+                       :max 1 :create t))))
+              ((error "No password found for account %s" account))))
+       (secret <- (if (plist-get auth :async)
+                      (lambda (cont) (funcall (plist-get auth :secret) cont))
+                    (athunk-wrap (auth-info-password auth))))
        (proc <- (lambda (cont)
                   (-imap-connect (format "minimail-%s" account)
                                  (url-host url)
@@ -1269,13 +1281,25 @@ got %s" other))))
                                        ('starttls 143)))
                                  type
                                  cont)))
-       (cmd (cond        ;TODO: use ;AUTH=... notation as in RFC 5092?
-             ;; Anonymous login as per RFC 2245.  The \r\n here is
-             ;; important, as it consumes the + server response.
-             ((string-empty-p user) "AUTHENTICATE ANONYMOUS\r\n")
-             (t (format "AUTHENTICATE PLAIN %s"
-                        (base64-encode-string
-                         (format "\0%s\0%s" user secret))))))
+       (cmd (seq-some
+             (lambda (mech)
+               (pcase mech
+                 ('anonymous            ;RFC 2245
+                  (format "AUTHENTICATE ANONYMOUS\r\n%s"
+                          (base64-encode-string user t)))
+                 ('oauthbearer          ;RFC 7628
+                  (format "AUTHENTICATE OAUTHBEARER %s"
+                          (base64-encode-string
+                           (format "n,a=%s,\1auth= Bearer %s\1\1" user secret) t)))
+                 ('xoauth2              ;de facto standard
+                  (format "AUTHENTICATE XOAUTH2 %s"
+                          (base64-encode-string
+                           (format "user=%s\1auth= Bearer %s\1\1" user secret) t)))
+                 ('plain
+                  (format "AUTHENTICATE PLAIN %s"
+                          (base64-encode-string
+                           (format "\0%s\0%s" user secret) t)))))
+             (ensure-list (or mech (plist-get auth :smtp-auth) 'plain))))
        (_ <- (athunk-condition-case err
                  (-asend-command proc cmd)
                (-imap-error

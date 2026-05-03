@@ -127,10 +127,11 @@ fallback when :exit-key is omitted."
 
 (defun keymap-popup--meta (keymap prop)
   "Get popup metadata PROP from KEYMAP via pseudo-key lookup."
-  (lookup-key keymap (vector prop)))
+  (let ((val (lookup-key keymap (vector 'keymap-popup prop))))
+    (and (not (numberp val)) val)))
 
 (gv-define-setter keymap-popup--meta (val keymap prop)
-  `(define-key ,keymap (vector ,prop) ,val))
+  `(define-key ,keymap (vector 'keymap-popup ,prop) ,val))
 
 ;;; Parsers
 
@@ -370,11 +371,11 @@ KEYMAP, optional :description STRING-OR-FUNCTION, followed by
          ,@(when parent (list :parent parent))
          ,@keymap-pairs
          ,popup-key (lambda () (interactive) (keymap-popup ,name)))
-       (setf (keymap-popup--meta ,name 'keymap-popup--descriptions)
+       (setf (keymap-popup--meta ,name 'descriptions)
              ,(keymap-popup--build-descriptions-form rows))
-       (setf (keymap-popup--meta ,name 'keymap-popup--exit-key) ,exit-key)
+       (setf (keymap-popup--meta ,name 'exit-key) ,exit-key)
        ,@(when description
-           `((setf (keymap-popup--meta ,name 'keymap-popup--description) ,description))))))
+           `((setf (keymap-popup--meta ,name 'description) ,description))))))
 
 ;;;###autoload
 (defmacro keymap-popup-annotate (keymap &rest body)
@@ -397,16 +398,16 @@ time, so the popup always reflects the user's current bindings."
                 (keymap-popup--extract-macro-opts body))
                (rows (keymap-popup--parse-bindings bindings)))
     `(progn
-       (setf (keymap-popup--meta ,keymap 'keymap-popup--descriptions)
+       (setf (keymap-popup--meta ,keymap 'descriptions)
              ,(keymap-popup--build-descriptions-form rows))
-       (setf (keymap-popup--meta ,keymap 'keymap-popup--annotated) 'yes)
+       (setf (keymap-popup--meta ,keymap 'annotated) 'yes)
        ,@(when popup-key
            `((keymap-set ,keymap ,popup-key
                          (lambda () (interactive) (keymap-popup ,keymap)))))
        ,@(when exit-key
-           `((setf (keymap-popup--meta ,keymap 'keymap-popup--exit-key) ,exit-key)))
+           `((setf (keymap-popup--meta ,keymap 'exit-key) ,exit-key)))
        ,@(when description
-           `((setf (keymap-popup--meta ,keymap 'keymap-popup--description) ,description))))))
+           `((setf (keymap-popup--meta ,keymap 'description) ,description))))))
 
 ;;; Public API
 
@@ -446,12 +447,12 @@ Falls back to the first group if GROUP-NAME is not found."
   "Add KEY binding with DESCRIPTION and COMMAND to KEYMAP.
 GROUP is the group name to add to (nil for the first group).
 Updates both the keymap and the popup descriptions."
-  (let ((descs (keymap-popup--meta keymap 'keymap-popup--descriptions)))
+  (let ((descs (keymap-popup--meta keymap 'descriptions)))
     (or descs (user-error "No descriptions in keymap"))
     (keymap-set keymap key command)
     (let ((entry (list :key key :description description
                        :type 'suffix :command command)))
-      (setf (keymap-popup--meta keymap 'keymap-popup--descriptions)
+      (setf (keymap-popup--meta keymap 'descriptions)
             (keymap-popup--add-entry-to-rows descs entry group)))))
 
 ;;;###autoload
@@ -459,9 +460,9 @@ Updates both the keymap and the popup descriptions."
   "Remove KEY binding from KEYMAP.
 Updates both the keymap and the popup descriptions."
   (keymap-set keymap key nil)
-  (setf (keymap-popup--meta keymap 'keymap-popup--descriptions)
+  (setf (keymap-popup--meta keymap 'descriptions)
         (keymap-popup--remove-key-from-rows
-         (keymap-popup--meta keymap 'keymap-popup--descriptions) key)))
+         (keymap-popup--meta keymap 'descriptions) key)))
 
 ;;; Renderer
 
@@ -639,7 +640,7 @@ Switch variables are buffer-local there, so rendering must read
 Walks the native parent chain via `keymap-parent'."
   (cl-loop for map = keymap then (keymap-parent map)
            while map
-           when (keymap-popup--meta map 'keymap-popup--descriptions)
+           when (keymap-popup--meta map 'descriptions)
            append it))
 
 (defun keymap-popup--find-entry-by-key (descriptions key-str)
@@ -753,9 +754,9 @@ Drops entries whose command has no binding."
 
 (defun keymap-popup--fit-side-window (buf)
   "Refit the side window displaying BUF."
-  (when-let* ((win (get-buffer-window buf)))
-    (when (window-live-p win)
-      (fit-window-to-buffer win))))
+  (when-let* ((win (get-buffer-window buf))
+              (_ (window-live-p win)))
+    (fit-window-to-buffer win)))
 
 (defun keymap-popup--hide-side-window (buf)
   "Delete the side window displaying BUF."
@@ -785,16 +786,16 @@ Frame parameters are taken from `keymap-popup-child-frame-parameters'."
 (defun keymap-popup--fit-child-frame (buf)
   "Refit the child frame displaying BUF."
   (when-let* ((win (get-buffer-window buf t))
-              (frame (window-frame win)))
-    (when (frame-parent frame)
-      (fit-frame-to-buffer frame))))
+              (frame (window-frame win))
+              (_ (frame-parent frame)))
+    (fit-frame-to-buffer frame)))
 
 (defun keymap-popup--hide-child-frame (buf)
   "Delete the child frame displaying BUF."
   (when-let* ((win (get-buffer-window buf t))
-              (frame (window-frame win)))
-    (when (frame-parent frame)
-      (delete-frame frame))))
+              (frame (window-frame win))
+              (_ (frame-parent frame)))
+    (delete-frame frame)))
 
 (defun keymap-popup-backend-side-window ()
   "Return a side-window display backend."
@@ -920,11 +921,11 @@ Includes keys with entry-level or group-level :inapt-if."
                 :docstring keymap-popup--active-docstring)
           keymap-popup--stack)
     (let* ((raw (keymap-popup--collect-descriptions child-keymap))
-           (descs (if (keymap-popup--meta child-keymap 'keymap-popup--annotated)
+           (descs (if (keymap-popup--meta child-keymap 'annotated)
                       (keymap-popup--resolve-descriptions raw child-keymap)
                     raw))
-           (doc (keymap-popup--meta child-keymap 'keymap-popup--description))
-           (exit-key (or (keymap-popup--meta child-keymap 'keymap-popup--exit-key)
+           (doc (keymap-popup--meta child-keymap 'description))
+           (exit-key (or (keymap-popup--meta child-keymap 'exit-key)
                          keymap-popup-default-exit-key)))
       (setq-local keymap-popup--active-keymap child-keymap
                   keymap-popup--active-descriptions descs
@@ -1025,17 +1026,17 @@ Inapt guards are applied as a layer over specialized handlers."
 Activates KEYMAP as a transient map.  Switch keys execute and
 re-render without closing.  Inapt keys are blocked.
 Sub-menu keys push a navigation stack.  C-u toggles prefix mode."
-  (or (keymap-popup--meta keymap 'keymap-popup--descriptions)
+  (or (keymap-popup--meta keymap 'descriptions)
       (user-error "No descriptions in keymap"))
   (let* ((source (current-buffer))
          (buf (keymap-popup--prepare-buffer))
          (backend (funcall keymap-popup-backend))
          (raw (keymap-popup--collect-descriptions keymap))
-         (descriptions (if (keymap-popup--meta keymap 'keymap-popup--annotated)
+         (descriptions (if (keymap-popup--meta keymap 'annotated)
                            (keymap-popup--resolve-descriptions raw keymap)
                          raw))
-         (docstring (keymap-popup--meta keymap 'keymap-popup--description))
-         (exit-key (or (keymap-popup--meta keymap 'keymap-popup--exit-key)
+         (docstring (keymap-popup--meta keymap 'description))
+         (exit-key (or (keymap-popup--meta keymap 'exit-key)
                        keymap-popup-default-exit-key)))
     (with-current-buffer buf
       (setq-local keymap-popup--source-buffer source

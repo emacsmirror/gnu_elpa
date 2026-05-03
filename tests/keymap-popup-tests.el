@@ -115,7 +115,7 @@
            "g" ("Go" ignore))
         t)
   (let* ((descs (keymap-popup--meta keymap-popup--test-map-2
-                                    'keymap-popup--descriptions))
+                                    'descriptions))
          (row (car descs)))
     (should (= (length descs) 1))
     (should (= (length row) 2))
@@ -145,7 +145,7 @@
   (should (keymapp keymap-popup--test-map-nodoc))
   (should (eq (keymap-lookup keymap-popup--test-map-nodoc "c") #'ignore))
   (let* ((descs (keymap-popup--meta keymap-popup--test-map-nodoc
-                                    'keymap-popup--descriptions))
+                                    'descriptions))
          (row (car descs)))
     (should (= (length descs) 1))
     (should (= (length row) 1))
@@ -171,7 +171,7 @@
            "c" ("Comment" ignore))
         t)
   (should (equal (keymap-popup--meta keymap-popup--test-exit-key
-                                     'keymap-popup--exit-key)
+                                     'exit-key)
                  "x")))
 
 (ert-deftest keymap-popup-test-popup-key-with-docstring ()
@@ -474,7 +474,7 @@
   (should (keymapp keymap-popup--test-full))
   (should (eq (keymap-lookup keymap-popup--test-full "c") #'ignore))
   (let ((descs (keymap-popup--meta keymap-popup--test-full
-                                   'keymap-popup--descriptions)))
+                                   'descriptions)))
     (should (= (length descs) 2))))
 
 (ert-deftest keymap-popup-test-switch-toggle-roundtrip ()
@@ -493,7 +493,7 @@
            "g" ("Refresh" ignore :stay-open t))
         t)
   (let* ((descs (keymap-popup--meta keymap-popup--test-stay
-                                    'keymap-popup--descriptions))
+                                    'descriptions))
          (entry (keymap-popup--find-entry-by-key descs "g")))
     (should (plist-get entry :stay-open))))
 
@@ -503,7 +503,7 @@
            "c" ("Comment" ignore))
         t)
   (let* ((descs (keymap-popup--meta keymap-popup--test-dyngrp
-                                    'keymap-popup--descriptions))
+                                    'descriptions))
          (output (keymap-popup--render nil descs)))
     (should (string-match-p "Dynamic Group" output))))
 
@@ -562,7 +562,7 @@
            "c" ("Comment" ignore))
         t)
   (let* ((descs (keymap-popup--meta keymap-popup--test-inapt-map
-                                    'keymap-popup--descriptions))
+                                    'descriptions))
          (output (keymap-popup--render nil descs)))
     (let ((pos (string-match "Merge" output)))
       (should pos)
@@ -576,7 +576,7 @@
            "b" ("Beta" ignore))
         t)
   (let* ((descs (keymap-popup--meta keymap-popup--test-group-inapt-map
-                                    'keymap-popup--descriptions))
+                                    'descriptions))
          (output (keymap-popup--render nil descs))
          (pos (string-match "Alpha" output)))
     (should pos)
@@ -590,7 +590,7 @@
            "b" ("Beta" ignore))
         t)
   (let* ((descs (keymap-popup--meta keymap-popup--test-group-if-map
-                                    'keymap-popup--descriptions))
+                                    'descriptions))
          (output (keymap-popup--render nil descs)))
     (should-not (string-match-p "Alpha" output))
     (should (string-match-p "Beta" output))))
@@ -602,7 +602,7 @@
         t)
   (should (keymap-lookup keymap-popup--test-if-sw "v"))
   (let* ((descs (keymap-popup--meta keymap-popup--test-if-sw
-                                    'keymap-popup--descriptions))
+                                    'descriptions))
          (output (keymap-popup--render nil descs)))
     (should-not (string-match-p "Verbose" output))))
 
@@ -613,7 +613,7 @@
            "c" ("Comment" ignore))
         t)
   (let* ((descs (keymap-popup--meta keymap-popup--test-wrap
-                                    'keymap-popup--descriptions))
+                                    'descriptions))
          (buf (get-buffer-create "*keymap-popup-test*"))
          (map (keymap-popup--build-wrapper-map
                keymap-popup--test-wrap descs buf "q")))
@@ -628,7 +628,7 @@
            "c" ("Comment" ignore))
         t)
   (let* ((descs (keymap-popup--meta keymap-popup--test-wrap-cu
-                                    'keymap-popup--descriptions))
+                                    'descriptions))
          (buf (get-buffer-create "*keymap-popup-test*"))
          (map (keymap-popup--build-wrapper-map
                keymap-popup--test-wrap-cu descs buf "q")))
@@ -672,7 +672,7 @@
   (keymap-popup-add-entry keymap-popup--test-add "z" "New" #'forward-char "Actions")
   (should (eq (keymap-lookup keymap-popup--test-add "z") #'forward-char))
   (let* ((descs (keymap-popup--meta keymap-popup--test-add
-                                    'keymap-popup--descriptions))
+                                    'descriptions))
          (output (keymap-popup--render nil descs)))
     (should (string-match-p "New" output))))
 
@@ -685,7 +685,7 @@
   (keymap-popup-remove-entry keymap-popup--test-rm "r")
   (should (null (keymap-lookup keymap-popup--test-rm "r")))
   (let* ((descs (keymap-popup--meta keymap-popup--test-rm
-                                    'keymap-popup--descriptions))
+                                    'descriptions))
          (output (keymap-popup--render nil descs)))
     (should (string-match-p "Comment" output))
     (should-not (string-match-p "Reply" output))))
@@ -745,10 +745,10 @@
            backward-char "Backward")
         t)
   (should (eq (keymap-popup--meta keymap-popup--test-annotate-map
-                                  'keymap-popup--annotated)
+                                  'annotated)
               'yes))
   (let* ((descs (keymap-popup--meta keymap-popup--test-annotate-map
-                                    'keymap-popup--descriptions))
+                                    'descriptions))
          (entries (plist-get (car (car descs)) :entries)))
     (should (= (length entries) 2))
     (should (eq (plist-get (car entries) :command) 'forward-char))))
@@ -763,7 +763,7 @@
            forward-char "Forward")
         t)
   (should (equal (keymap-popup--meta keymap-popup--test-annotate-map
-                                     'keymap-popup--exit-key)
+                                     'exit-key)
                  "x")))
 
 (ert-deftest keymap-popup-test-annotate-popup-key ()
@@ -787,7 +787,7 @@
            forward-char "Forward")
         t)
   (should (equal (keymap-popup--meta keymap-popup--test-annotate-map
-                                     'keymap-popup--description)
+                                     'description)
                  "My commands")))
 
 (ert-deftest keymap-popup-test-annotate-no-defaults-baked ()
@@ -799,20 +799,20 @@
            forward-char "Forward")
         t)
   (should-not (keymap-popup--meta keymap-popup--test-annotate-map
-                                  'keymap-popup--exit-key))
+                                  'exit-key))
   (should-not (keymap-popup--meta keymap-popup--test-annotate-map
-                                  'keymap-popup--description)))
+                                  'description)))
 
 ;;; Metadata tests
 
 (ert-deftest keymap-popup-test-meta-read-write ()
   (let ((map (make-sparse-keymap)))
-    (setf (keymap-popup--meta map 'keymap-popup--descriptions) '(test-data))
-    (should (equal (keymap-popup--meta map 'keymap-popup--descriptions) '(test-data)))))
+    (setf (keymap-popup--meta map 'descriptions) '(test-data))
+    (should (equal (keymap-popup--meta map 'descriptions) '(test-data)))))
 
 (ert-deftest keymap-popup-test-meta-nil-for-missing ()
   (let ((map (make-sparse-keymap)))
-    (should (null (keymap-popup--meta map 'keymap-popup--descriptions)))))
+    (should (null (keymap-popup--meta map 'descriptions)))))
 
 (ert-deftest keymap-popup-test-no-descriptions-error ()
   (let ((map (make-sparse-keymap)))

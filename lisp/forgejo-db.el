@@ -256,7 +256,8 @@ whether a `pull_request' field is present in the data."
               user=excluded.user, labels=excluded.labels, milestone=excluded.milestone,
               assignees=excluded.assignees, comments_count=excluded.comments_count,
               updated_at=excluded.updated_at, closed_at=excluded.closed_at,
-              is_pull=excluded.is_pull, read=0,
+              is_pull=excluded.is_pull,
+              read = CASE WHEN excluded.updated_at != issues.updated_at THEN 0 ELSE issues.read END,
               pin_order=excluded.pin_order, due_date=excluded.due_date,
               is_locked=excluded.is_locked"
              (list .id host owner repo .number .title .state body

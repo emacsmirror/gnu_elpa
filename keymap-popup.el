@@ -670,6 +670,8 @@ Switch variables are buffer-local there, so rendering must read
   "Resolved docstring string for mode-line display.")
 (defvar-local keymap-popup--persistent nil
   "Non-nil when this popup instance is in persistent mode.")
+(defvar-local keymap-popup--wrapper-map nil
+  "The active wrapper keymap on `overriding-terminal-local-map'.")
 (defvar-local keymap-popup--display-backend nil
   "The active display backend plist (:show :fit :hide).")
 
@@ -859,9 +861,23 @@ Frame parameters are taken from `keymap-popup-child-frame-parameters'."
         (set (make-local-variable var) val)))
     buf))
 
+(defun keymap-popup--suspend ()
+  "Suspend the popup's transient map for minibuffer input."
+  (when-let* ((buf (get-buffer "*keymap-popup*"))
+              (map (buffer-local-value 'keymap-popup--wrapper-map buf)))
+    (internal-pop-keymap map 'overriding-terminal-local-map)))
+
+(defun keymap-popup--resume ()
+  "Resume the popup's transient map after minibuffer input."
+  (when-let* ((buf (get-buffer "*keymap-popup*"))
+              (map (buffer-local-value 'keymap-popup--wrapper-map buf)))
+    (internal-push-keymap map 'overriding-terminal-local-map)))
+
 (defun keymap-popup--teardown (buf)
   "Remove the popup display for BUF and kill it."
   (when (buffer-live-p buf)
+    (remove-hook 'minibuffer-setup-hook #'keymap-popup--suspend)
+    (remove-hook 'minibuffer-exit-hook #'keymap-popup--resume)
     (when-let* ((hide (plist-get (buffer-local-value 'keymap-popup--display-backend buf)
                                  :hide)))
       (funcall hide buf))
@@ -875,6 +891,7 @@ Reads state from BUF.  Consumes the reentering flag on read."
          (let ((key-str (key-description (this-command-keys-vector)))
                (exit-key (buffer-local-value 'keymap-popup--active-exit-key buf)))
            (cond
+            ((active-minibuffer-window) t)
             ((buffer-local-value 'keymap-popup--reentering buf)
              (with-current-buffer buf
                (setq-local keymap-popup--reentering nil))
@@ -982,10 +999,11 @@ Includes keys with entry-level or group-level :inapt-if."
                   keymap-popup--active-exit-key exit-key
                   keymap-popup--prefix-mode nil)
       (keymap-popup--refresh buf)
-      (set-transient-map
-       (keymap-popup--build-wrapper-map child-keymap descs buf exit-key)
-       (keymap-popup--make-keep-pred buf)
-       (keymap-popup--make-on-exit buf)))))
+      (let ((wrapper (keymap-popup--build-wrapper-map child-keymap descs buf exit-key)))
+        (setq-local keymap-popup--wrapper-map wrapper)
+        (set-transient-map wrapper
+                           (keymap-popup--make-keep-pred buf)
+                           (keymap-popup--make-on-exit buf))))))
 
 (defun keymap-popup--prefix-argument ()
   "Toggle prefix argument mode in the active popup.
@@ -1111,10 +1129,14 @@ navigation stack.  \\[universal-argument] toggles prefix mode."
                   keymap-popup--reentering nil))
     (keymap-popup--refresh buf)
     (funcall (plist-get backend :show) buf)
-    (set-transient-map
-     (keymap-popup--build-wrapper-map keymap descriptions buf exit-key)
-     (keymap-popup--make-keep-pred buf)
-     (keymap-popup--make-on-exit buf))
+    (let ((wrapper (keymap-popup--build-wrapper-map keymap descriptions buf exit-key)))
+      (with-current-buffer buf
+        (setq-local keymap-popup--wrapper-map wrapper))
+      (set-transient-map wrapper
+                         (keymap-popup--make-keep-pred buf)
+                         (keymap-popup--make-on-exit buf)))
+    (add-hook 'minibuffer-setup-hook #'keymap-popup--suspend)
+    (add-hook 'minibuffer-exit-hook #'keymap-popup--resume)
     (when persistent
       (let ((hook-fn (make-symbol "keymap-popup--persistent-refresh")))
         (fset hook-fn

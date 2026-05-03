@@ -90,9 +90,9 @@ visibility) when creating the child frame."
     (cursor-type . nil)
     (mode-line-format
      . (" "
-        (:eval (when keymap-popup--active-exit-key
-                 (propertize (format " %s " keymap-popup--active-exit-key)
-                             'face 'keymap-popup-key)))
+        (:eval (and keymap-popup--active-exit-key
+                    (propertize (format " %s " keymap-popup--active-exit-key)
+                                'face 'keymap-popup-key)))
         " "
         (:eval (or keymap-popup--resolved-docstring ""))))
     (header-line-format . nil)
@@ -640,11 +640,11 @@ Column widths are aligned across all rows."
          (col-widths (keymap-popup--global-col-widths rendered-rows))
          (sections (cl-loop for cols in rendered-rows
                             when cols
-                            collect (mapconcat #'identity
-                                               (keymap-popup--join-columns
-						cols "   " col-widths)
-                                               "\n"))))
-    (concat (mapconcat #'identity sections "\n") "\n")))
+                            collect (string-join
+                                     (keymap-popup--join-columns
+                                      cols "   " col-widths)
+                                     "\n"))))
+    (concat (string-join sections "\n") "\n")))
 
 ;;; Popup state
 
@@ -765,7 +765,7 @@ Resolves the docstring for mode-line display."
       (with-current-buffer (if (buffer-live-p source) source buf)
         (with-current-buffer buf
           (setq-local keymap-popup--resolved-docstring
-                      (when doc (keymap-popup--resolve-description doc))))
+                      (and doc (keymap-popup--resolve-description doc))))
         (keymap-popup--refresh-buffer buf descs prefix)))))
 
 (defun keymap-popup--resolve-key (entry keymap)

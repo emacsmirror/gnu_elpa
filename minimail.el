@@ -355,11 +355,20 @@ sorting by thread."
   "Maximum number of messages to fetch at a time when displaying a mailbox."
   :type 'natnum)
 
-(defcustom minimail-thread-style 'shallow
-  "How to display message threads."
+(defcustom minimail-thread-style nil
+  "How to display message threads.
+
+`hierarchical' shows a traditional thread tree.
+
+`shallow' organizes threads in flat listings ordered by date.  It uses
+server-side thread information when available, which may be more
+accurate.
+
+The value nil means to use `shallow' if server-side thread information
+is available, `hierarchical' otherwise."
   :type '(choice (const :tag "Shallow" shallow)
                  (const :tag "Hierarchical" hierarchical)
-                 (const :tag "Don't compute threads" nil)))
+                 (const :tag "Shallow if server-side threading available" nil)))
 
 (defcustom minimail-subject-faces '(((not \\Seen) . minimail-unseen)
                                     (t . vtable))
@@ -2482,12 +2491,17 @@ envelope and doesn't use server-side threading information."
 
 (defun -thread-data ()
   (with-memoization -thread-data
-    (funcall (pcase-exhaustive
-                 (-settings-scalar-get :thread-style -current-mailbox)
-               ('shallow #'-thread-data-shallow)
-               ('hierarchical #'-thread-data-hierarchical)
-               ('nil (lambda (_) (make-hash-table))))
-             -message-list)))
+    (funcall
+     (pcase-exhaustive
+         (or (-settings-scalar-get :thread-style -current-mailbox)
+             (let ((caps (athunk-run-polling
+                          (-aget-capability (car -current-mailbox))
+                          :interval 0.1 :max-tries 100)))
+               (if (or (memq 'objectid caps) (memq 'x-gm-ext-1 caps))
+                   'shallow 'hierarchical)))
+       ('shallow #'-thread-data-shallow)
+       ('hierarchical #'-thread-data-hierarchical))
+     -message-list)))
 
 (defun -thread-parent (message)
   "The parent of MESSAGE in the thread tree."

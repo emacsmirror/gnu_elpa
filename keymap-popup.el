@@ -105,6 +105,15 @@ keep defaults or change values to customize the popup appearance."
   :type '(alist :key-type symbol :value-type sexp)
   :group 'keymap-popup)
 
+(defcustom keymap-popup-persistent nil
+  "When non-nil, the popup stays open after every key press.
+All suffix commands execute and refresh the popup in place.
+Only the exit key and \\`C-g' dismiss it.
+Can also be set per-keymap via the `:persistent' keyword in
+`keymap-popup-define' or `keymap-popup-annotate'."
+  :type 'boolean
+  :group 'keymap-popup)
+
 (defcustom keymap-popup-default-popup-key "h"
   "Default key to open the popup in keymaps defined with `keymap-popup-define'.
 Applied automatically by `keymap-popup-define' when :popup-key is
@@ -150,6 +159,8 @@ fallback when :exit-key is omitted."
   (let ((val (lookup-key keymap (vector 'keymap-popup prop))))
     (and (not (numberp val)) val)))
 
+;; Values are stored via define-key, so t cannot be used as a value
+;; (it means "default binding").  Use symbols like 'yes instead.
 (gv-define-setter keymap-popup--meta (val keymap prop)
   `(define-key ,keymap (vector 'keymap-popup ,prop) ,val))
 
@@ -341,7 +352,7 @@ Uses list calls so lambdas get compiled."
 
 (defun keymap-popup--extract-macro-opts (body)
   "Extract macro options from BODY.
-Returns (DOCSTRING POPUP-KEY EXIT-KEY PARENT DESCRIPTION BINDINGS).
+Returns (DOCSTRING POPUP-KEY EXIT-KEY PARENT DESCRIPTION PERSISTENT BINDINGS).
 Unspecified keywords yield nil."
   (let* ((docstring (and (stringp (car body))
                          (or (null (cadr body))
@@ -359,8 +370,11 @@ Unspecified keywords yield nil."
          (rest (if parent-pair (cdr parent-pair) rest))
          (desc-pair (keymap-popup--consume-keyword rest :description))
          (description (and desc-pair (car desc-pair)))
-         (bindings (if desc-pair (cdr desc-pair) rest)))
-    (list docstring popup-key exit-key parent description bindings)))
+         (rest (if desc-pair (cdr desc-pair) rest))
+         (persist-pair (keymap-popup--consume-keyword rest :persistent))
+         (persistent (and persist-pair (car persist-pair)))
+         (bindings (if persist-pair (cdr persist-pair) rest)))
+    (list docstring popup-key exit-key parent description persistent bindings)))
 
 ;;;###autoload
 (defmacro keymap-popup-define (name &rest body)
@@ -368,10 +382,12 @@ Unspecified keywords yield nil."
 BODY is an optional docstring, optional :popup-key KEY (default
 per `keymap-popup-default-popup-key'), optional :exit-key KEY
 \(default per `keymap-popup-default-exit-key'), optional :parent
-KEYMAP, optional :description STRING-OR-FUNCTION, followed by
-:group keywords and KEY (DESC ...) pairs."
+KEYMAP, optional :description STRING-OR-FUNCTION, optional
+:persistent BOOL, followed by :group keywords and KEY (DESC ...)
+pairs."
   (declare (indent 1))
-  (pcase-let* ((`(,docstring ,popup-key ,exit-key ,parent ,description ,bindings)
+  (pcase-let* ((`(,docstring ,popup-key ,exit-key ,parent ,description
+                             ,persistent ,bindings)
                 (keymap-popup--extract-macro-opts body))
                (popup-key (or popup-key keymap-popup-default-popup-key))
                (exit-key (or exit-key keymap-popup-default-exit-key))
@@ -395,14 +411,16 @@ KEYMAP, optional :description STRING-OR-FUNCTION, followed by
              ,(keymap-popup--build-descriptions-form rows))
        (setf (keymap-popup--meta ,name 'exit-key) ,exit-key)
        ,@(when description
-           `((setf (keymap-popup--meta ,name 'description) ,description))))))
+           `((setf (keymap-popup--meta ,name 'description) ,description)))
+       ,@(when persistent
+           `((setf (keymap-popup--meta ,name 'persistent) 'yes))))))
 
 ;;;###autoload
 (defmacro keymap-popup-annotate (keymap &rest body)
   "Annotate existing KEYMAP with popup descriptions.
 BODY is optional :popup-key KEY, optional :exit-key KEY, optional
-:description STRING-OR-FUNCTION, followed by :group keywords and
-COMMAND-SYMBOL DESCRIPTION pairs.
+:description STRING-OR-FUNCTION, optional :persistent BOOL,
+followed by :group keywords and COMMAND-SYMBOL DESCRIPTION pairs.
 COMMAND-SYMBOL is a function symbol already bound in the keymap.
 DESCRIPTION is a string or (STRING &rest PROPS).
 
@@ -414,7 +432,8 @@ effect.  When :exit-key is omitted, the popup falls back to
 Keys are resolved dynamically via `where-is-internal' at display
 time, so the popup always reflects the user's current bindings."
   (declare (indent 1))
-  (pcase-let* ((`(,_docstring ,popup-key ,exit-key ,_parent ,description ,bindings)
+  (pcase-let* ((`(,_docstring ,popup-key ,exit-key ,_parent ,description
+                              ,persistent ,bindings)
                 (keymap-popup--extract-macro-opts body))
                (rows (keymap-popup--parse-bindings bindings)))
     `(progn
@@ -427,7 +446,9 @@ time, so the popup always reflects the user's current bindings."
        ,@(when exit-key
            `((setf (keymap-popup--meta ,keymap 'exit-key) ,exit-key)))
        ,@(when description
-           `((setf (keymap-popup--meta ,keymap 'description) ,description))))))
+           `((setf (keymap-popup--meta ,keymap 'description) ,description)))
+       ,@(when persistent
+           `((setf (keymap-popup--meta ,keymap 'persistent) 'yes))))))
 
 ;;; Public API
 
@@ -647,6 +668,8 @@ Switch variables are buffer-local there, so rendering must read
   "The exit key for the currently active popup.")
 (defvar-local keymap-popup--resolved-docstring nil
   "Resolved docstring string for mode-line display.")
+(defvar-local keymap-popup--persistent nil
+  "Non-nil when this popup instance is in persistent mode.")
 (defvar-local keymap-popup--display-backend nil
   "The active display backend plist (:show :fit :hide).")
 
@@ -849,19 +872,23 @@ Frame parameters are taken from `keymap-popup-child-frame-parameters'."
 Reads state from BUF.  Consumes the reentering flag on read."
   (lambda ()
     (and (buffer-live-p buf)
-         (or (and (buffer-local-value 'keymap-popup--reentering buf)
-                  (with-current-buffer buf
-                    (setq-local keymap-popup--reentering nil)
-                    t))
-             (or (memq this-command
-                       '(universal-argument universal-argument-more
-					    digit-argument negative-argument
-					    keymap-popup--prefix-argument))
-                 (and-let* ((keys (this-command-keys-vector))
-                            (key-str (key-description keys))
-                            (descs (buffer-local-value
-                                    'keymap-popup--active-descriptions buf)))
-                   (keymap-popup--keep-popup-p descs key-str)))))))
+         (let ((key-str (key-description (this-command-keys-vector)))
+               (exit-key (buffer-local-value 'keymap-popup--active-exit-key buf)))
+           (cond
+            ((buffer-local-value 'keymap-popup--reentering buf)
+             (with-current-buffer buf
+               (setq-local keymap-popup--reentering nil))
+             t)
+            ((memq this-command
+                   '(universal-argument universal-argument-more
+					digit-argument negative-argument
+					keymap-popup--prefix-argument)))
+            ((equal key-str exit-key) nil)
+            ((eq this-command 'keyboard-quit) nil)
+            ((buffer-local-value 'keymap-popup--persistent buf))
+            (t (and-let* ((descs (buffer-local-value
+                                  'keymap-popup--active-descriptions buf)))
+                 (keymap-popup--keep-popup-p descs key-str))))))))
 
 
 (defun keymap-popup--make-on-exit (buf)
@@ -1068,13 +1095,16 @@ navigation stack.  \\[universal-argument] toggles prefix mode."
                          raw))
          (docstring (keymap-popup--meta keymap 'description))
          (exit-key (or (keymap-popup--meta keymap 'exit-key)
-                       keymap-popup-default-exit-key)))
+                       keymap-popup-default-exit-key))
+         (persistent (or (keymap-popup--meta keymap 'persistent)
+                         keymap-popup-persistent)))
     (with-current-buffer buf
       (setq-local keymap-popup--source-buffer source
                   keymap-popup--active-keymap keymap
                   keymap-popup--active-descriptions descriptions
                   keymap-popup--active-docstring docstring
                   keymap-popup--active-exit-key exit-key
+                  keymap-popup--persistent persistent
                   keymap-popup--display-backend backend
                   keymap-popup--stack nil
                   keymap-popup--prefix-mode nil
@@ -1084,7 +1114,15 @@ navigation stack.  \\[universal-argument] toggles prefix mode."
     (set-transient-map
      (keymap-popup--build-wrapper-map keymap descriptions buf exit-key)
      (keymap-popup--make-keep-pred buf)
-     (keymap-popup--make-on-exit buf))))
+     (keymap-popup--make-on-exit buf))
+    (when persistent
+      (let ((hook-fn (make-symbol "keymap-popup--persistent-refresh")))
+        (fset hook-fn
+              (lambda ()
+                (if (buffer-live-p buf)
+                    (keymap-popup--refresh buf)
+                  (remove-hook 'post-command-hook hook-fn))))
+        (add-hook 'post-command-hook hook-fn)))))
 
 (provide 'keymap-popup)
 ;;; keymap-popup.el ends here

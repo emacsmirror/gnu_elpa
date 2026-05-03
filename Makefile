@@ -67,7 +67,7 @@ load: clean
 	  (dolist (sym '(forgejo-issue-list-mode-map forgejo-pull-list-mode-map \
 	               forgejo-pull-view-mode-map forgejo-issue-view-mode-map \
 	               forgejo-repo-search-mode-map forgejo-watch-list-mode-map \
-	               forgejo-buffer-diff-map \
+	               forgejo-view-mode-map forgejo-buffer-diff-map \
 	               forgejo-buffer-ref-map forgejo-buffer-commit-map)) \
 	    (when (boundp sym) (makunbound sym))))" > /dev/null
 	@for f in $(SRCS); do \

@@ -252,7 +252,7 @@ Each row is a list of group plists with :name and :entries."
     ('suffix (plist-get entry :command))
     ('switch (intern (format "%s--toggle-%s" map-name (plist-get entry :variable))))
     ('keymap (let ((target (plist-get entry :target)))
-               `(lambda () (interactive) (keymap-popup ,target))))))
+               (lambda () (interactive) (keymap-popup target))))))
 
 ;;; Macro helpers
 

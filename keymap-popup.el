@@ -661,7 +661,7 @@ Switch variables are buffer-local there, so rendering must read
 (defvar-local keymap-popup--stack nil
   "Stack of parent state plists for sub-menu navigation.")
 (defvar-local keymap-popup--prefix-mode nil
-  "Non-nil when C-u prefix mode is active.")
+  "Non-nil when \\`C-u' prefix mode is active.")
 (defvar-local keymap-popup--reentering nil
   "Non-nil when a sub-menu just popped, preventing cascading exit.")
 (defvar-local keymap-popup--active-exit-key nil
@@ -732,7 +732,7 @@ True for switches and suffixes with :stay-open."
         (plist-get entry :stay-open))))
 
 (defun keymap-popup--keep-popup-p (descriptions key-str)
-  "Return non-nil if KEY-STR should keep the popup open.
+  "Return non-nil if KEY-STR should keep the popup open in DESCRIPTIONS.
 True for switches, stay-open suffixes, inapt keys, and :keymap entries."
   (or (keymap-popup--infix-p descriptions key-str)
       (keymap-popup--stay-open-p descriptions key-str)
@@ -909,7 +909,7 @@ Reads state from BUF.  Consumes the reentering flag on read."
 
 
 (defun keymap-popup--make-on-exit (buf)
-  "Return an on-exit callback for `set-transient-map'.
+  "Return an on-exit callback for `set-transient-map' closing BUF.
 Pops the sub-menu stack if non-empty, otherwise tears down."
   (lambda ()
     (when (buffer-live-p buf)
@@ -970,7 +970,7 @@ Includes keys with entry-level or group-level :inapt-if."
        (plist-get entry :key)))))
 
 (defun keymap-popup--submenu-keys (descriptions)
-  "Return alist of (KEY-STRING . TARGET-KEYMAP) for :keymap entries."
+  "Return alist of (KEY-STRING . TARGET-KEYMAP) from DESCRIPTIONS."
   (keymap-popup--collect-entries
    descriptions
    (lambda (entry _group)
@@ -979,7 +979,7 @@ Includes keys with entry-level or group-level :inapt-if."
              (plist-get entry :target))))))
 
 (defun keymap-popup--push-submenu (buf child-keymap)
-  "Push current popup state and activate CHILD-KEYMAP's transient map."
+  "Push current popup state in BUF and activate CHILD-KEYMAP's transient map."
   (with-current-buffer buf
     (push (list :keymap keymap-popup--active-keymap
                 :descriptions keymap-popup--active-descriptions
@@ -1008,7 +1008,7 @@ Includes keys with entry-level or group-level :inapt-if."
 (defun keymap-popup--prefix-argument ()
   "Toggle prefix argument mode in the active popup.
 When toggling on, activates `universal-argument-map' so that
-subsequent digit and negative-argument keys refine the prefix."
+subsequent digit and `negative-argument' keys refine the prefix."
   (interactive)
   (when-let* ((buf (get-buffer "*keymap-popup*")))
     (with-current-buffer buf
@@ -1021,14 +1021,14 @@ subsequent digit and negative-argument keys refine the prefix."
       (universal-argument--mode))))
 
 (defun keymap-popup--core-overrides (exit-key)
-  "Return alist of core overrides: exit key and prefix toggle."
+  "Return alist of core overrides for EXIT-KEY and prefix toggle."
   (list (cons exit-key
               (lambda () (interactive)))
         (cons "C-u" #'keymap-popup--prefix-argument)))
 
 (defun keymap-popup--with-inapt-guard (buf key-str cmd)
-  "Wrap CMD with a dynamic inapt check for KEY-STR.
-When inapt, blocks execution and preserves prefix-arg.
+  "Wrap CMD with a dynamic inapt check for KEY-STR in BUF.
+When inapt, blocks execution and preserves `prefix-arg'.
 When not inapt, calls CMD."
   (lambda () (interactive)
     (let ((descs (buffer-local-value 'keymap-popup--active-descriptions buf)))
@@ -1040,7 +1040,7 @@ When not inapt, calls CMD."
         (funcall cmd)))))
 
 (defun keymap-popup--submenu-overrides (descriptions buf)
-  "Return alist of submenu key overrides."
+  "Return alist of submenu key overrides from DESCRIPTIONS for BUF."
   (mapcar (lambda (pair)
             (cons (car pair)
                   (let ((target (cdr pair)))
@@ -1049,7 +1049,7 @@ When not inapt, calls CMD."
           (keymap-popup--submenu-keys descriptions)))
 
 (defun keymap-popup--switch-overrides (keymap descriptions buf)
-  "Return alist of switch key overrides.
+  "Return alist of switch key overrides for KEYMAP DESCRIPTIONS in BUF.
 Wraps the toggle command with prefix-mode consumption."
   (mapcar (lambda (key-str)
             (cons key-str
@@ -1063,7 +1063,7 @@ Wraps the toggle command with prefix-mode consumption."
           (keymap-popup--switch-keys descriptions)))
 
 (defun keymap-popup--stay-open-overrides (keymap descriptions buf)
-  "Return alist of stay-open suffix overrides.
+  "Return alist of stay-open suffix overrides for KEYMAP DESCRIPTIONS in BUF.
 Each command executes and refreshes the popup in place."
   (mapcar (lambda (key-str)
             (cons key-str
@@ -1073,8 +1073,8 @@ Each command executes and refreshes the popup in place."
           (keymap-popup--stay-open-suffix-keys descriptions)))
 
 (defun keymap-popup--build-wrapper-map (keymap descriptions buf exit-key)
-  "Build wrapper keymap over KEYMAP with all popup overrides.
-Inapt guards are applied as a layer over specialized handlers."
+  "Build wrapper keymap over KEYMAP with DESCRIPTIONS for BUF.
+EXIT-KEY and inapt guards are applied as a layer over specialized handlers."
   (let* ((map (make-sparse-keymap))
          (inapt (keymap-popup--inapt-keys descriptions))
          (overrides (append (keymap-popup--core-overrides exit-key)

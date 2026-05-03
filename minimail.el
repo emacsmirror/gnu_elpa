@@ -1667,7 +1667,7 @@ Return a cons cell consisting of the account symbol and mailbox name."
 Can be called in a mailbox or in a message buffer."
   (cond
    ((derived-mode-p 'minimail-message-mode)
-    (list (alist-get 'uid -local-state)))
+    (list (alist-get 'uid (car -message-list))))
    ((derived-mode-p 'minimail-mailbox-mode)
     (if (use-region-p)
         ;; TODO: Ideally we would use a dired-style marking
@@ -2615,6 +2615,26 @@ window shorter than 6 lines."
     (direction . below)
     (window-height . -message-window-adjust-height)))
 
+(defun -all-headers ()
+  (let (headers)
+    (save-restriction
+      (message-narrow-to-head)
+      (while (re-search-forward "^\\([^ \t:]+\\):" nil t)
+        (let ((key (downcase (match-string 1)))
+              (value (string-trim
+                      (replace-regexp-in-string
+                       "\n[\t ]+" " "
+                       (buffer-substring-no-properties
+                        (point)
+                        (re-search-forward "^\\<\\|\\'"))))))
+          (push value (alist-get key headers nil nil #'equal)))))
+    (dolist (it headers)
+      (cl-callf nreverse (cdr it)))
+    (nreverse headers)))
+
+(defvar-local -adisplay-message nil
+  "Synchronization data for the function of same name.")
+
 (defun -adisplay-message (mailbox uid)
   "Display the message identified by MAILBOX and UID.
 Return an athunk which yields the buffer displaying the message.
@@ -2628,8 +2648,7 @@ the user selected another message in the meanwhile, yield nil."
       (unless (derived-mode-p #'minimail-message-mode)
         (minimail-message-mode))
       (-set-mode-line-suffix 'loading)
-      (setf (alist-get 'next-message -local-state)
-            (list mailbox uid)))
+      (setq -adisplay-message (cons uid mailbox)))
     (display-buffer buffer -display-message-base-action)
     (athunk-let*
         ((text <- (athunk-condition-case err
@@ -2639,27 +2658,14 @@ the user selected another message in the meanwhile, yield nil."
                        (signal (car err) (cdr err))))))
       (when (buffer-live-p buffer)
         (with-current-buffer buffer
-          (when (equal (alist-get 'next-message -local-state)
-                       (list mailbox uid))
+          (when (equal -adisplay-message (cons uid mailbox))
             (let ((inhibit-read-only t))
               (-set-mode-line-suffix nil)
               (funcall -message-erase-function)
-              (setq -current-mailbox mailbox)
-              (setf (alist-get 'uid -local-state) uid)
               (rename-buffer (-message-buffer-name mailbox uid) t)
               (decode-coding-string text 'raw-text-dos nil buffer)
-              (setf (alist-get 'headers -local-state)
-                    (save-restriction
-                      (message-narrow-to-headers-or-head)
-                      (mapcan
-                       (lambda (k)
-                         (when-let* ((v (message-fetch-field (symbol-name k))))
-                           `((,k . ,(mail-decode-encoded-word-string v)))))
-                       '( from to cc subject date message-id references
-                          ;; Funny stuff used to compute the
-                          ;; recipients of a reply:
-                          mail-copies-to mail-followup-to mail-reply-to
-                          original-to reply-to))))
+              (setq -current-mailbox mailbox)
+              (setq -message-list `(((uid . ,uid) (headers . ,(-all-headers)))))
               (funcall render)
               (set-buffer-modified-p nil)
               (when-let* ((window (get-buffer-window (current-buffer))))
@@ -2689,19 +2695,21 @@ the user selected another message in the meanwhile, yield nil."
   ;; We really want to reuse the rather complex logic of
   ;; `message-get-reply-headers' which, sadly, reads headers from the
   ;; current buffer.  At the same time, we want to honor buffer-local
-  ;; values of variables such as `user-mail-address'.  So use the
+  ;; values of variables such as `user-mail-address'.  So we use the
   ;; current buffer (a message buffer) as scratch area.
   (save-restriction
     (widen)
     (goto-char (point-min))
-    (pcase-dolist (`(,key . ,value) headers)
-      (when value
-        (insert (symbol-name key) ": " value ?\n)))
+    (pcase-dolist (`(,key . ,values) headers)
+      (when (assoc-string key '( from to cc reply-to subject
+                                 mail-copies-to mail-followup-to
+                                 mail-reply-to original-to))
+        (dolist (value values)
+          (insert key ": " (mail-decode-encoded-word-string value) ?\n))))
     (insert ?\n)
     (let ((end (point-marker)))
       (prog1
-          (or (funcall (if wide
-                           message-wide-reply-to-function
+          (or (funcall (if wide message-wide-reply-to-function
                          message-reply-to-function))
               (message-get-reply-headers wide))
         (delete-region (point-min) end)))))
@@ -2718,8 +2726,8 @@ the user selected another message in the meanwhile, yield nil."
                                         (-message-uid (-current-message))))))
      (set-buffer (or buffer (user-error "No message buffer")))
      (let ((mailbox -current-mailbox)
-           (uid (alist-get 'uid -local-state))
-           (headers (alist-get 'headers -local-state)))
+           (uid (alist-get 'uid (car -message-list)))
+           (headers (alist-get 'headers (car -message-list))))
        (-compose-mail                   ;this changes current buffer
         nil nil nil nil nil buffer
         `((funcall ,(lambda ()
@@ -2727,13 +2735,18 @@ the user selected another message in the meanwhile, yield nil."
                          (-astore-message-flags mailbox uid '\\Answered))))))
        (pcase-dolist (`(,key . ,value) (-reply-recipients headers wide))
          (message-replace-header (symbol-name key) value))
-       (let-alist headers
-         (message-replace-header
-          "Subject" (concat "Re: " (message-simplify-subject .subject)))
-         (message-replace-header
-          "In-Reply-To" .message-id)
-         (message-replace-header
-          "References" (concat .references (when .references " ") .message-id)))
+       (message-replace-header
+        "Subject" (concat "Re: "
+                          (message-simplify-subject
+                           (mail-decode-encoded-word-string
+                            (cadr (assoc-string 'subject headers))))))
+       (message-replace-header
+        "In-Reply-To" (cadr (assoc-string 'message-id headers)))
+       (message-replace-header
+        "References" (concat
+                      (cadr (assoc-string 'references headers))
+                      (when (assoc-string 'references headers) " ")
+                      (cadr (assoc-string 'message-id headers))))
        (message-sort-headers)
        (message-hide-headers)
        (setq buffer-undo-list nil)
@@ -2758,7 +2771,7 @@ the user selected another message in the meanwhile, yield nil."
                                         (-message-uid (-current-message))))))
      (set-buffer (or buffer (user-error "No message buffer")))
      (let* ((mailbox -current-mailbox)
-            (uid (alist-get 'uid -local-state))
+            (uid (alist-get 'uid (car -message-list)))
             (message-forward-decoded-p t)
             (subject (message-make-forward-subject)))
        (-compose-mail                   ;this changes current buffer

@@ -358,7 +358,9 @@
     (should (keymap-popup--keep-popup-p descs "a"))
     ;; stay-open suffixes refresh in place, kept open
     (should (keymap-popup--keep-popup-p descs "g"))
-    (should (keymap-popup--keep-popup-p descs "C-u"))))
+    ;; C-u is no longer checked here; prefix argument detection
+    ;; uses this-command in the keep-pred instead
+    (should-not (keymap-popup--keep-popup-p descs "C-u"))))
 
 ;;; C-u rendering tests
 

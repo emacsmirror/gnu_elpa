@@ -691,12 +691,11 @@ True for switches and suffixes with :stay-open."
 
 (defun keymap-popup--keep-popup-p (descriptions key-str)
   "Return non-nil if KEY-STR should keep the popup open.
-True for switches, stay-open suffixes, inapt keys, :keymap entries, and C-u."
+True for switches, stay-open suffixes, inapt keys, and :keymap entries."
   (or (keymap-popup--infix-p descriptions key-str)
       (keymap-popup--stay-open-p descriptions key-str)
       (keymap-popup--inapt-p descriptions key-str)
-      (keymap-popup--keymap-target descriptions key-str)
-      (equal key-str "C-u")))
+      (keymap-popup--keymap-target descriptions key-str)))
 
 (defun keymap-popup--refresh-buffer (buf descriptions &optional docstring prefix-mode)
   "Re-render popup BUF with DESCRIPTIONS, refit via backend.
@@ -835,14 +834,21 @@ Frame parameters are taken from `keymap-popup-child-frame-parameters'."
 Reads state from BUF.  Consumes the reentering flag on read."
   (lambda ()
     (and (buffer-live-p buf)
+         ;; `when', not `and': setq-local returns nil, which
+         ;; would short-circuit `and' before reaching t.
          (or (when (buffer-local-value 'keymap-popup--reentering buf)
-               (with-current-buffer buf
+	       (with-current-buffer buf
 		 (setq-local keymap-popup--reentering nil))
-               t)
-             (and-let* ((keys (this-command-keys-vector))
-			(key-str (key-description keys))
-			(descs (buffer-local-value 'keymap-popup--active-descriptions buf)))
-               (keymap-popup--keep-popup-p descs key-str))))))
+	       t)
+             (or (memq this-command
+                       '(universal-argument universal-argument-more
+					    digit-argument negative-argument
+					    keymap-popup--prefix-argument))
+                 (and-let* ((keys (this-command-keys-vector))
+                            (key-str (key-description keys))
+                            (descs (buffer-local-value
+                                    'keymap-popup--active-descriptions buf)))
+                   (keymap-popup--keep-popup-p descs key-str)))))))
 
 
 (defun keymap-popup--make-on-exit (buf)
@@ -937,18 +943,26 @@ Includes keys with entry-level or group-level :inapt-if."
        (keymap-popup--make-keep-pred buf)
        (keymap-popup--make-on-exit buf)))))
 
-(defun keymap-popup--core-overrides (buf exit-key)
-  "Return alist of core overrides: exit key and C-u prefix toggle."
+(defun keymap-popup--prefix-argument ()
+  "Toggle prefix argument mode in the active popup.
+When toggling on, activates `universal-argument-map' so that
+subsequent digit and negative-argument keys refine the prefix."
+  (interactive)
+  (when-let* ((buf (get-buffer "*keymap-popup*")))
+    (with-current-buffer buf
+      (setq-local keymap-popup--prefix-mode
+                  (not keymap-popup--prefix-mode))
+      (setq prefix-arg
+            (when keymap-popup--prefix-mode '(4))))
+    (keymap-popup--refresh buf)
+    (when (buffer-local-value 'keymap-popup--prefix-mode buf)
+      (universal-argument--mode))))
+
+(defun keymap-popup--core-overrides (exit-key)
+  "Return alist of core overrides: exit key and prefix toggle."
   (list (cons exit-key
               (lambda () (interactive)))
-        (cons "C-u"
-              (lambda () (interactive)
-                (with-current-buffer buf
-                  (setq-local keymap-popup--prefix-mode
-                              (not keymap-popup--prefix-mode))
-                  (setq prefix-arg
-                        (when keymap-popup--prefix-mode '(4))))
-                (keymap-popup--refresh buf)))))
+        (cons "C-u" #'keymap-popup--prefix-argument)))
 
 (defun keymap-popup--with-inapt-guard (buf key-str cmd)
   "Wrap CMD with a dynamic inapt check for KEY-STR.
@@ -1001,7 +1015,7 @@ Each command executes and refreshes the popup in place."
 Inapt guards are applied as a layer over specialized handlers."
   (let* ((map (make-sparse-keymap))
          (inapt (keymap-popup--inapt-keys descriptions))
-         (overrides (append (keymap-popup--core-overrides buf exit-key)
+         (overrides (append (keymap-popup--core-overrides exit-key)
                             (keymap-popup--switch-overrides keymap descriptions buf)
                             (keymap-popup--submenu-overrides descriptions buf)
                             (keymap-popup--stay-open-overrides keymap descriptions buf))))
@@ -1023,9 +1037,9 @@ Inapt guards are applied as a layer over specialized handlers."
 ;;;###autoload
 (defun keymap-popup (keymap)
   "Show popup help for described KEYMAP.
-Activates KEYMAP as a transient map.  Switch keys execute and
-re-render without closing.  Inapt keys are blocked.
-Sub-menu keys push a navigation stack.  C-u toggles prefix mode."
+Activates KEYMAP as a transient map.  Switch keys execute and re-render
+without closing.  Inapt keys are blocked.  Sub-menu keys push a
+navigation stack.  \\[universal-argument] toggles prefix mode."
   (or (keymap-popup--meta keymap 'descriptions)
       (user-error "No descriptions in keymap"))
   (let* ((source (current-buffer))

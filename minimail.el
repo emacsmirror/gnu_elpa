@@ -570,7 +570,7 @@ possible, see `minimail--key-match-p'."
 (define-icon minimail-message-important nil
   '((emoji "🔸") (symbol "⬥") (text "i"))
   "Icon for important messages."
-  :help-echo "Important"
+  :help-echo "Automatically flagged as important"
   :version "0.3")
 
 (define-icon minimail-message-answered nil

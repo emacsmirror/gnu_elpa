@@ -88,7 +88,13 @@ visibility) when creating the child frame."
 (defcustom keymap-popup-buffer-parameters
   '((buffer-read-only . t)
     (cursor-type . nil)
-    (mode-line-format . nil)
+    (mode-line-format
+     . (" "
+        (:eval (when keymap-popup--active-exit-key
+                 (propertize (format " %s " keymap-popup--active-exit-key)
+                             'face 'keymap-popup-key)))
+        " "
+        (:eval (or keymap-popup--resolved-docstring ""))))
     (header-line-format . nil)
     (tab-line-format . nil)
     (left-margin-width . 1)
@@ -604,19 +610,12 @@ Returns a list of ((col-lines ...) ...) per row, filtering empty groups."
                               when (nth i cols)
                               maximize (keymap-popup--column-width (nth i cols))))))
 
-(defun keymap-popup--render (docstring rows &optional prefix-mode)
-  "Render DOCSTRING and ROWS into a complete popup string.
+(defun keymap-popup--render (rows &optional prefix-mode)
+  "Render ROWS into a complete popup string.
 ROWS is a list of rows, each row a list of groups.
 When PREFIX-MODE is non-nil, highlight :c-u entries and dim others.
 Column widths are aligned across all rows."
-  (let* ((resolved (when docstring
-                     (keymap-popup--resolve-description docstring)))
-         (doc (when resolved
-                (concat (if (text-properties-at 0 resolved)
-                            resolved
-                          (propertize resolved 'face 'font-lock-doc-face))
-                        "\n")))
-         (rendered-rows (keymap-popup--rows-to-columns rows prefix-mode))
+  (let* ((rendered-rows (keymap-popup--rows-to-columns rows prefix-mode))
          (col-widths (keymap-popup--global-col-widths rendered-rows))
          (sections (cl-loop for cols in rendered-rows
                             when cols
@@ -624,7 +623,7 @@ Column widths are aligned across all rows."
                                                (keymap-popup--join-columns
 						cols "   " col-widths)
                                                "\n"))))
-    (concat doc (mapconcat #'identity sections "\n") "\n")))
+    (concat (mapconcat #'identity sections "\n") "\n")))
 
 ;;; Popup state
 
@@ -644,6 +643,10 @@ Switch variables are buffer-local there, so rendering must read
   "Non-nil when C-u prefix mode is active.")
 (defvar-local keymap-popup--reentering nil
   "Non-nil when a sub-menu just popped, preventing cascading exit.")
+(defvar-local keymap-popup--active-exit-key nil
+  "The exit key for the currently active popup.")
+(defvar-local keymap-popup--resolved-docstring nil
+  "Resolved docstring string for mode-line display.")
 (defvar-local keymap-popup--display-backend nil
   "The active display backend plist (:show :fit :hide).")
 
@@ -711,11 +714,10 @@ True for switches, stay-open suffixes, inapt keys, and :keymap entries."
       (keymap-popup--inapt-p descriptions key-str)
       (keymap-popup--keymap-target descriptions key-str)))
 
-(defun keymap-popup--refresh-buffer (buf descriptions &optional docstring prefix-mode)
+(defun keymap-popup--refresh-buffer (buf descriptions &optional prefix-mode)
   "Re-render popup BUF with DESCRIPTIONS, refit via backend.
-DOCSTRING is shown at the top if non-nil.  PREFIX-MODE toggles
-prefix argument highlighting."
-  (let ((content (keymap-popup--render docstring descriptions prefix-mode)))
+PREFIX-MODE toggles prefix argument highlighting."
+  (let ((content (keymap-popup--render descriptions prefix-mode)))
     (with-current-buffer buf
       (let ((inhibit-read-only t))
         (erase-buffer)
@@ -728,14 +730,18 @@ prefix argument highlighting."
 (defun keymap-popup--refresh (buf)
   "Re-render popup BUF from its buffer-local state.
 Renders in the source buffer's context so `symbol-value' for
-switch variables sees the user's buffer-local values."
+switch variables sees the user's buffer-local values.
+Resolves the docstring for mode-line display."
   (when (buffer-live-p buf)
     (let ((source (buffer-local-value 'keymap-popup--source-buffer buf))
           (descs (buffer-local-value 'keymap-popup--active-descriptions buf))
           (doc (buffer-local-value 'keymap-popup--active-docstring buf))
           (prefix (buffer-local-value 'keymap-popup--prefix-mode buf)))
       (with-current-buffer (if (buffer-live-p source) source buf)
-        (keymap-popup--refresh-buffer buf descs doc prefix)))))
+        (with-current-buffer buf
+          (setq-local keymap-popup--resolved-docstring
+                      (when doc (keymap-popup--resolve-description doc))))
+        (keymap-popup--refresh-buffer buf descs prefix)))))
 
 (defun keymap-popup--resolve-key (entry keymap)
   "Resolve ENTRY's :command to a key in KEYMAP.
@@ -865,11 +871,13 @@ Pops the sub-menu stack if non-empty, otherwise tears down."
     (when (buffer-live-p buf)
       (with-current-buffer buf
         (if keymap-popup--stack
-            (pcase-let ((`(:keymap ,km :descriptions ,descs :docstring ,doc)
+            (pcase-let ((`(:keymap ,km :descriptions ,descs :docstring ,doc
+                                   :exit-key ,ek)
                          (pop keymap-popup--stack)))
               (setq-local keymap-popup--active-keymap km
                           keymap-popup--active-descriptions descs
                           keymap-popup--active-docstring doc
+                          keymap-popup--active-exit-key ek
                           keymap-popup--reentering t
                           keymap-popup--prefix-mode nil)
               (keymap-popup--refresh buf))
@@ -931,7 +939,8 @@ Includes keys with entry-level or group-level :inapt-if."
   (with-current-buffer buf
     (push (list :keymap keymap-popup--active-keymap
                 :descriptions keymap-popup--active-descriptions
-                :docstring keymap-popup--active-docstring)
+                :docstring keymap-popup--active-docstring
+                :exit-key keymap-popup--active-exit-key)
           keymap-popup--stack)
     (let* ((raw (keymap-popup--collect-descriptions child-keymap))
            (descs (if (keymap-popup--meta child-keymap 'annotated)
@@ -943,6 +952,7 @@ Includes keys with entry-level or group-level :inapt-if."
       (setq-local keymap-popup--active-keymap child-keymap
                   keymap-popup--active-descriptions descs
                   keymap-popup--active-docstring doc
+                  keymap-popup--active-exit-key exit-key
                   keymap-popup--prefix-mode nil)
       (keymap-popup--refresh buf)
       (set-transient-map
@@ -1064,6 +1074,7 @@ navigation stack.  \\[universal-argument] toggles prefix mode."
                   keymap-popup--active-keymap keymap
                   keymap-popup--active-descriptions descriptions
                   keymap-popup--active-docstring docstring
+                  keymap-popup--active-exit-key exit-key
                   keymap-popup--display-backend backend
                   keymap-popup--stack nil
                   keymap-popup--prefix-mode nil

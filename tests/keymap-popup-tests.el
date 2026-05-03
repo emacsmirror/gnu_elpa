@@ -193,8 +193,7 @@
   (let* ((rows (list (list (list :name "Actions"
                                  :entries (list (list :key "c" :description "Comment"
                                                       :type 'suffix :command 'ignore))))))
-         (output (keymap-popup--render "Test." rows)))
-    (should (string-match-p "Test\\." output))
+         (output (keymap-popup--render rows)))
     (should (string-match-p "Actions" output))
     (should (string-match-p "Comment" output))))
 
@@ -204,10 +203,10 @@
                                  :entries (list (list :key "v" :description "Verbose"
                                                       :type 'switch
                                                       :variable 'keymap-popup--test-render-sw))))))
-         (output-off (keymap-popup--render nil rows)))
+         (output-off (keymap-popup--render rows)))
     (should (string-match-p "\\[off\\]" output-off))
     (setq keymap-popup--test-render-sw t)
-    (let ((output-on (keymap-popup--render nil rows)))
+    (let ((output-on (keymap-popup--render rows)))
       (should (string-match-p "\\[on\\]" output-on)))))
 
 (ert-deftest keymap-popup-test-render-if-hidden ()
@@ -215,7 +214,7 @@
                                  :entries (list (list :key "b" :description "Browse"
                                                       :type 'suffix :command 'ignore
                                                       :if (lambda () nil)))))))
-         (output (keymap-popup--render nil rows)))
+         (output (keymap-popup--render rows)))
     (should-not (string-match-p "Browse" output))))
 
 (ert-deftest keymap-popup-test-render-if-shown ()
@@ -223,7 +222,7 @@
                                  :entries (list (list :key "b" :description "Browse"
                                                       :type 'suffix :command 'ignore
                                                       :if (lambda () t)))))))
-         (output (keymap-popup--render nil rows)))
+         (output (keymap-popup--render rows)))
     (should (string-match-p "Browse" output))))
 
 (ert-deftest keymap-popup-test-render-dynamic-description ()
@@ -231,7 +230,7 @@
                                  :entries (list (list :key "d"
                                                       :description (lambda () "Dynamic!")
                                                       :type 'suffix :command 'ignore))))))
-         (output (keymap-popup--render nil rows)))
+         (output (keymap-popup--render rows)))
     (should (string-match-p "Dynamic!" output))))
 
 ;;; Column layout tests
@@ -243,7 +242,7 @@
                            (list :name "Beta"
                                  :entries (list (list :key "b" :description "Bbb"
                                                       :type 'suffix :command 'ignore))))))
-         (output (keymap-popup--render nil rows))
+         (output (keymap-popup--render rows))
          (lines (split-string output "\n" t)))
     (should (string-match-p "Alpha" (car lines)))
     (should (string-match-p "Beta" (car lines)))))
@@ -255,7 +254,7 @@
                      (list (list :name "Row2"
                                  :entries (list (list :key "b" :description "Bbb"
                                                       :type 'suffix :command 'ignore))))))
-         (output (keymap-popup--render nil rows)))
+         (output (keymap-popup--render rows)))
     (should (string-match-p "Row1" output))
     (should (string-match-p "Row2" output))
     (let ((lines (split-string output "\n" t)))
@@ -276,7 +275,7 @@
                       (list :name "D"
                             :entries (list (list :key "d" :description "Z"
                                                  :type 'suffix :command 'ignore))))))
-         (output (keymap-popup--render nil rows))
+         (output (keymap-popup--render rows))
          (plain (substring-no-properties output))
          (lines (split-string plain "\n" t)))
     (let ((b-pos (string-match "B" (cl-find-if (lambda (l) (string-match-p "\\bB\\b" l)) lines)))
@@ -369,7 +368,7 @@
                                  :entries (list (list :key "s" :description "Submit"
                                                       :type 'suffix :command 'ignore
                                                       :c-u "force push"))))))
-         (output (keymap-popup--render nil rows)))
+         (output (keymap-popup--render rows)))
     (should (string-match-p "(force push)" output))
     (let ((pos (string-match "(force push)" output)))
       (should (eq (get-text-property pos 'face output) 'shadow)))))
@@ -381,7 +380,7 @@
                                                       :c-u "force")
                                                 (list :key "g" :description "Refresh"
                                                       :type 'suffix :command 'ignore))))))
-         (output (keymap-popup--render nil rows t)))
+         (output (keymap-popup--render rows t)))
     (let ((pos (string-match "(force)" output)))
       (should pos)
       (should-not (eq (get-text-property pos 'face output) 'shadow)))
@@ -395,7 +394,7 @@
                                  :entries (list (list :key "m" :description "Merge"
                                                       :type 'suffix :command 'ignore
                                                       :inapt-if (lambda () t)))))))
-         (output (keymap-popup--render nil rows)))
+         (output (keymap-popup--render rows)))
     (should (string-match-p "Merge" output))
     (let ((pos (string-match "Merge" output)))
       (should (eq (get-text-property pos 'face output) 'keymap-popup-inapt)))))
@@ -405,7 +404,7 @@
                                  :entries (list (list :key "m" :description "Merge"
                                                       :type 'suffix :command 'ignore
                                                       :inapt-if (lambda () nil)))))))
-         (output (keymap-popup--render nil rows)))
+         (output (keymap-popup--render rows)))
     (let ((pos (string-match "Merge" output)))
       (should-not (eq (get-text-property pos 'face output) 'keymap-popup-inapt)))))
 
@@ -413,7 +412,7 @@
   (let* ((rows (list (list (list :name nil
                                  :entries (list (list :key "a" :description "Sub"
                                                       :type 'keymap :target 'x))))))
-         (output (keymap-popup--render nil rows)))
+         (output (keymap-popup--render rows)))
     (let ((pos (string-match "Sub" output)))
       (should (eq (get-text-property pos 'face output) 'keymap-popup-submenu)))))
 
@@ -426,7 +425,7 @@
                            (list :name "Hidden" :if (lambda () nil)
                                  :entries (list (list :key "b" :description "Beta"
                                                       :type 'suffix :command 'ignore))))))
-         (output (keymap-popup--render nil rows)))
+         (output (keymap-popup--render rows)))
     (should (string-match-p "Alpha" output))
     (should-not (string-match-p "Beta" output))))
 
@@ -434,7 +433,7 @@
   (let* ((rows (list (list (list :name "Shown" :if (lambda () t)
                                  :entries (list (list :key "a" :description "Alpha"
                                                       :type 'suffix :command 'ignore))))))
-         (output (keymap-popup--render nil rows)))
+         (output (keymap-popup--render rows)))
     (should (string-match-p "Alpha" output))
     (should (string-match-p "Shown" output))))
 
@@ -445,7 +444,7 @@
                                                       :type 'suffix :command 'ignore)
                                                 (list :key "b" :description "Beta"
                                                       :type 'suffix :command 'ignore))))))
-         (output (keymap-popup--render nil rows)))
+         (output (keymap-popup--render rows)))
     (let ((pos-a (string-match "Alpha" output))
           (pos-b (string-match "Beta" output)))
       (should (eq (get-text-property pos-a 'face output) 'keymap-popup-inapt))
@@ -506,7 +505,7 @@
         t)
   (let* ((descs (keymap-popup--meta keymap-popup--test-dyngrp
                                     'descriptions))
-         (output (keymap-popup--render nil descs)))
+         (output (keymap-popup--render descs)))
     (should (string-match-p "Dynamic Group" output))))
 
 ;;; Parent inheritance tests
@@ -565,7 +564,7 @@
         t)
   (let* ((descs (keymap-popup--meta keymap-popup--test-inapt-map
                                     'descriptions))
-         (output (keymap-popup--render nil descs)))
+         (output (keymap-popup--render descs)))
     (let ((pos (string-match "Merge" output)))
       (should pos)
       (should (eq (get-text-property pos 'face output) 'keymap-popup-inapt)))
@@ -579,7 +578,7 @@
         t)
   (let* ((descs (keymap-popup--meta keymap-popup--test-group-inapt-map
                                     'descriptions))
-         (output (keymap-popup--render nil descs))
+         (output (keymap-popup--render descs))
          (pos (string-match "Alpha" output)))
     (should pos)
     (should (eq (get-text-property pos 'face output) 'keymap-popup-inapt))))
@@ -593,7 +592,7 @@
         t)
   (let* ((descs (keymap-popup--meta keymap-popup--test-group-if-map
                                     'descriptions))
-         (output (keymap-popup--render nil descs)))
+         (output (keymap-popup--render descs)))
     (should-not (string-match-p "Alpha" output))
     (should (string-match-p "Beta" output))))
 
@@ -605,7 +604,7 @@
   (should (keymap-lookup keymap-popup--test-if-sw "v"))
   (let* ((descs (keymap-popup--meta keymap-popup--test-if-sw
                                     'descriptions))
-         (output (keymap-popup--render nil descs)))
+         (output (keymap-popup--render descs)))
     (should-not (string-match-p "Verbose" output))))
 
 ;;; Wrapper map tests
@@ -675,7 +674,7 @@
   (should (eq (keymap-lookup keymap-popup--test-add "z") #'forward-char))
   (let* ((descs (keymap-popup--meta keymap-popup--test-add
                                     'descriptions))
-         (output (keymap-popup--render nil descs)))
+         (output (keymap-popup--render descs)))
     (should (string-match-p "New" output))))
 
 (ert-deftest keymap-popup-test-remove-entry ()
@@ -688,7 +687,7 @@
   (should (null (keymap-lookup keymap-popup--test-rm "r")))
   (let* ((descs (keymap-popup--meta keymap-popup--test-rm
                                     'descriptions))
-         (output (keymap-popup--render nil descs)))
+         (output (keymap-popup--render descs)))
     (should (string-match-p "Comment" output))
     (should-not (string-match-p "Reply" output))))
 

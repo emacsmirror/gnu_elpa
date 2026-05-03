@@ -85,6 +85,20 @@ visibility) when creating the child frame."
   :type '(alist :key-type symbol :value-type sexp)
   :group 'keymap-popup)
 
+(defcustom keymap-popup-buffer-parameters
+  '((buffer-read-only . t)
+    (cursor-type . nil)
+    (mode-line-format . nil)
+    (header-line-format . nil)
+    (tab-line-format . nil)
+    (left-margin-width . 1)
+    (right-margin-width . 1))
+  "Buffer-local parameters applied to the popup buffer.
+Each entry is (VARIABLE . VALUE).  Users can remove entries to
+keep defaults or change values to customize the popup appearance."
+  :type '(alist :key-type symbol :value-type sexp)
+  :group 'keymap-popup)
+
 (defcustom keymap-popup-default-popup-key "h"
   "Default key to open the popup in keymaps defined with `keymap-popup-define'.
 Applied automatically by `keymap-popup-define' when :popup-key is
@@ -812,13 +826,8 @@ Frame parameters are taken from `keymap-popup-child-frame-parameters'."
   "Create and configure the popup buffer."
   (let ((buf (get-buffer-create "*keymap-popup*")))
     (with-current-buffer buf
-      (setq-local buffer-read-only t
-                  cursor-type nil
-                  mode-line-format nil
-                  header-line-format nil
-                  tab-line-format nil
-                  left-margin-width 1
-                  right-margin-width 1))
+      (pcase-dolist (`(,var . ,val) keymap-popup-buffer-parameters)
+        (set (make-local-variable var) val)))
     buf))
 
 (defun keymap-popup--teardown (buf)

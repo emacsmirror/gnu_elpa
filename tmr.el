@@ -811,12 +811,13 @@ This function is used if a timer is not acknowledged."
 (defun tmr-print-message-for-repeating-timer (timer)
   "Print message for how many times TIMER repeats."
   (when-let* ((count (tmr--timer-repeat-count timer)))
-    (cond ((eq count 1)
-	   (message "TMR repeats another time"))
-	  ((eq count 0)
-	   (message "TMR will not repeat again"))
-	  (t
-	   (message "TMR repeats another %d times" count)))))
+    (cond
+     ((= count 1)
+	  (message "TMR repeats another time"))
+	 ((= count 0)
+	  (message "TMR will not repeat again"))
+	 (t
+	  (message "TMR repeats another %d times" count)))))
 
 (defun tmr--complete (timer)
   "Mark TIMER as finished or repeat it and execute hooks."

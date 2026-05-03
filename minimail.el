@@ -2581,6 +2581,13 @@ or t to toggle between those options."
     ["Reply" minimail-reply]
     ["Reply All" minimail-reply-all]
     ["Forward" minimail-forward]
+    ("Mailing List"
+     ["Copy Permalink" minimail-message-archived-at
+      :active (minimail-message-archived-at)]
+     ["Browse List Archives" minimail-message-list-archive
+      :active (minimail-message-list-archive)]
+     ["Unsubscribe" minimail-message-list-unsubscribe
+      :active (minimail-message-list-unsubscribe)])
     ["Search Messages" minimail-search
      :help "Search for messages in this mailbox"]
     ["Compose New Message" compose-mail
@@ -2690,6 +2697,8 @@ the user selected another message in the meanwhile, yield nil."
   (interactive "^P" minimail-message-mode minimail-mailbox-mode)
   (minimail-message-scroll-up arg t))
 
+;;;; Reply and forward
+
 (defun -reply-recipients (headers wide)
   "Compute recipients of a reply from the original message HEADERS."
   ;; We really want to reuse the rather complex logic of
@@ -2780,6 +2789,48 @@ the user selected another message in the meanwhile, yield nil."
                         (athunk-run
                          (-astore-message-flags mailbox uid '$Forwarded))))))
        (message-forward-make-body buffer)))))
+
+;;;; Mailing list commands
+
+(defun -act-on-header-url (action key)
+  (let* ((headers (alist-get 'headers (car -message-list)))
+         (url (cadr (assoc-string key headers))))
+    (when url (setq url (string-trim url "<" ">.*")))
+    (when (and action (not url))
+      (user-error "Message has no %s header" (capitalize (symbol-name key))))
+    (pcase action
+      ('copy
+       (message "Copied `%s'" url)
+       (kill-new url))
+      ('browse
+       (when (or (string-prefix-p "mailto:" url)
+                 (y-or-n-p (format "%s\nBrowse this URL?" url)))
+         (browse-url url))))
+    url))
+
+(defun minimail-message-archived-at (&optional action)
+  "Get an archival URL for this message.
+Interactively, copy the URL to kill ring or, with a prefix argument,
+browse it."
+  (interactive (list (if current-prefix-arg 'browse 'copy))
+               minimail-message-mode)
+  (-act-on-header-url action 'archived-at))
+
+(defun minimail-message-list-unsubscribe (&optional action)
+  "Get the mailing list unsubscription URL.
+Interactively, browse the URL or, with a prefix argument, copy it to the
+kill ring."
+  (interactive (list (if current-prefix-arg 'copy 'browse))
+               minimail-message-mode)
+  (-act-on-header-url action 'list-unsubscribe))
+
+(defun minimail-message-list-archive (&optional action)
+  "Get the mailing list archive URL.
+Interactively, browse the URL or, with a prefix argument, copy it to the
+kill ring."
+  (interactive (list (if current-prefix-arg 'copy 'browse))
+               minimail-message-mode)
+  (-act-on-header-url action 'list-archive))
 
 ;;;; Gnus graft
 ;; Cf. `mu4e--view-render-buffer' from mu4e-view.el

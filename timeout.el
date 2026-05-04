@@ -112,9 +112,13 @@ This is intended for use as function advice."
       "Debounce calls to this function."
       (prog1 default
         (if (timerp debounce-timer)
-            (timer-set-idle-time debounce-timer (timeout--eval-value delay-value))
+            (progn
+              (cancel-timer debounce-timer)
+              (timer-set-time
+               debounce-timer (time-add nil (timeout--eval-value delay-value)))
+              (timer-activate debounce-timer))
           (setq debounce-timer
-                (run-with-idle-timer
+                (run-with-timer
                  (timeout--eval-value delay-value) nil
                  (lambda (buf)
                    (cancel-timer debounce-timer)
@@ -239,9 +243,13 @@ returned."
                         (cadr (interactive-form func))))
           (prog1 default
             (if (timerp debounce-timer)
-                (timer-set-idle-time debounce-timer (timeout--eval-value delay-value))
+                (progn
+                  (cancel-timer debounce-timer)
+                  (timer-set-time
+                   debounce-timer (time-add nil (timeout--eval-value delay-value)))
+                  (timer-activate debounce-timer))
               (setq debounce-timer
-                    (run-with-idle-timer
+                    (run-with-timer
                      (timeout--eval-value delay-value) nil
                      (lambda (buf)
                        (cancel-timer debounce-timer)
@@ -260,9 +268,13 @@ returned."
           "\n\nDebounce calls to this function"))
         (prog1 default
           (if (timerp debounce-timer)
-              (timer-set-idle-time debounce-timer (timeout--eval-value delay-value))
+              (progn
+                (cancel-timer debounce-timer)
+                (timer-set-time
+                 debounce-timer (time-add nil (timeout--eval-value delay-value)))
+                (timer-activate debounce-timer))
             (setq debounce-timer
-                  (run-with-idle-timer
+                  (run-with-timer
                    (timeout--eval-value delay-value) nil
                    (lambda (buf)
                      (cancel-timer debounce-timer)

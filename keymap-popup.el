@@ -899,7 +899,8 @@ Reads state from BUF.  Consumes the reentering flag on read."
             ((memq this-command
                    '(universal-argument universal-argument-more
 					digit-argument negative-argument
-					keymap-popup--prefix-argument)))
+					keymap-popup--prefix-argument
+					describe-key describe-key-briefly)))
             ((equal key-str exit-key) nil)
             ((eq this-command 'keyboard-quit) nil)
             ((buffer-local-value 'keymap-popup--persistent buf))

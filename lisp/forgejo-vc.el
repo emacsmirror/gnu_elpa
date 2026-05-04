@@ -403,7 +403,7 @@ With prefix arg FORCE-PUSH-P, force-push to update an existing PR."
              (title (read-string "PR Title: " default-title))
              (_ (when (string-empty-p title)
                   (user-error "PR title cannot be empty")))
-             (desc (forgejo-utils-read-body "PR Description" initial-body)))
+             (desc (forgejo-utils-read-body initial-body)))
         (unless desc
           (user-error "PR submission cancelled"))
         (forgejo-vc--git-push

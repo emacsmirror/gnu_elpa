@@ -443,7 +443,6 @@ Updates the API, then updates pin_order in the DB."
      forgejo-repo--host
      (format "repos/%s/%s/issues/%d/comments"
              forgejo-repo--owner forgejo-repo--name number)
-     "Comment"
      nil
      (lambda (_data _headers)
        (message "Comment posted on %s/%s#%d"

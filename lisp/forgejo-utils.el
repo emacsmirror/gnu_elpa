@@ -202,61 +202,74 @@ free-text prefixes.  Returns the query string."
 
 ;;; Comment
 
-(defvar forgejo-compose-mode-map
-  (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "C-c C-c") nil)
-    map)
-  "Keymap for `forgejo-compose-mode'.
-Unbinds C-c C-c so `string-edit-minor-mode' handles it.")
+(defvar-keymap forgejo-compose-mode-map
+  "C-c C-c" #'forgejo-compose-done
+  "C-c C-k" #'forgejo-compose-abort)
 
 (define-minor-mode forgejo-compose-mode
   "Minor mode for composing Forgejo comments.
-Layers Forgejo-specific keybindings over the active markdown mode."
+Layers keybindings and completion over the active markdown mode."
   :keymap forgejo-compose-mode-map)
 
-(defun forgejo-utils-read-body (prompt &optional initial)
+(defvar-local forgejo-compose--result 'pending
+  "Result of the current compose session.")
+
+(defun forgejo-compose-done ()
+  "Finish composing and return buffer text."
+  (interactive)
+  (setq forgejo-compose--result (buffer-string))
+  (exit-recursive-edit))
+
+(defun forgejo-compose-abort ()
+  "Abort composing."
+  (interactive)
+  (setq forgejo-compose--result nil)
+  (exit-recursive-edit))
+
+(defun forgejo-utils-read-body (&optional initial)
   "Read multi-line text with markdown highlighting and # completion.
-PROMPT is used in the header line.  Buffer has no read-only regions."
+INITIAL is optional pre-filled text.  Buffer has no read-only regions."
   (let* ((host (and (boundp 'forgejo-repo--host) forgejo-repo--host))
          (owner (and (boundp 'forgejo-repo--owner) forgejo-repo--owner))
          (repo (and (boundp 'forgejo-repo--name) forgejo-repo--name))
-         (result (or initial ""))
-         (hook-fn (lambda ()
-                    (setq-local forgejo-repo--host host
-                                forgejo-repo--owner owner
-                                forgejo-repo--name repo)
-                    (setq-local completion-at-point-functions
-                                (list #'forgejo-utils-issue-capf
-                                      #'forgejo-utils-mention-capf))
-                    (setq-local header-line-format
-                                (substitute-command-keys
-                                 (format "%s  \\<string-edit-minor-mode-map>\\[string-edit-done] to submit, \\[string-edit-abort] to cancel"
-                                         prompt)))
-                    (run-hooks 'forgejo-compose-hook))))
-    (add-hook 'forgejo-compose-mode-hook hook-fn)
+         (buf (generate-new-buffer "*forgejo-compose*")))
     (unwind-protect
         (progn
-          (string-edit nil (or initial "")
-                       (lambda (edited)
-                         (setq result edited)
-                         (exit-recursive-edit))
-                       :abort-callback (lambda ()
-                                         (setq result nil)
-                                         (exit-recursive-edit))
-                       :major-mode-sym (lambda ()
-                                         (funcall forgejo-markdown-mode)
-                                         (forgejo-compose-mode 1)))
-          (recursive-edit))
-      (remove-hook 'forgejo-compose-mode-hook hook-fn))
-    result))
+          (with-current-buffer buf
+            (funcall forgejo-markdown-mode)
+            (forgejo-compose-mode 1)
+            (setq-local forgejo-repo--host host
+                        forgejo-repo--owner owner
+                        forgejo-repo--name repo)
+            (setq-local completion-at-point-functions
+                        (list #'forgejo-utils-issue-capf
+                              #'forgejo-utils-mention-capf))
+            (setq-local header-line-format
+                        (substitute-command-keys
+                         " \\<forgejo-compose-mode-map>\\[forgejo-compose-done] to submit, \\[forgejo-compose-abort] to cancel"))
+            (when initial (insert initial))
+            (set-buffer-modified-p nil)
+            (run-hooks 'forgejo-compose-hook))
+          (pop-to-buffer buf
+                         '(display-buffer-below-selected
+                           (window-height . (lambda (window)
+                                              (fit-window-to-buffer window nil 10)))))
+          (recursive-edit)
+          (buffer-local-value 'forgejo-compose--result buf))
+      (when (buffer-live-p buf)
+        (let ((win (get-buffer-window buf)))
+          (when (window-live-p win)
+            (quit-restore-window win 'kill)))
+        (when (buffer-live-p buf)
+          (kill-buffer buf))))))
 
-(defun forgejo-utils-post-comment (host-url endpoint prompt &optional initial
+(defun forgejo-utils-post-comment (host-url endpoint &optional initial
 					    callback)
   "Post a comment to ENDPOINT on HOST-URL.
-PROMPT is the composition buffer title.  INITIAL is optional
-pre-filled text (e.g. quoted reply).  CALLBACK receives (DATA HEADERS)
-on success.  Returns nil if the user aborts."
-  (let ((body (forgejo-utils-read-body prompt initial)))
+INITIAL is optional pre-filled text (e.g. quoted reply).
+CALLBACK receives (DATA HEADERS) on success.
+Returns nil if the user aborts."
+  (let ((body (forgejo-utils-read-body initial)))
     (cond
      ((null body) (message "Aborted"))
      ((string-empty-p (string-trim body))
@@ -313,8 +326,7 @@ Fetches templates if available, lets user pick one, then compose."
                                     :test #'string=))))))
          (title (read-string "Issue title: "))
          (body (when (not (string-empty-p (string-trim title)))
-                 (forgejo-utils-read-body "Issue body"
-                                          (or template-content "")))))
+                 (forgejo-utils-read-body (or template-content "")))))
     (cond
      ((string-empty-p (string-trim title))
       (user-error "Title cannot be empty"))
@@ -407,7 +419,7 @@ CURRENT-TITLE is pre-filled.  CALLBACK is called on success."
 					 callback)
   "Edit the body of issue/PR NUMBER in OWNER/REPO on HOST-URL.
 CURRENT-BODY is pre-filled in the editor.  CALLBACK is called on success."
-  (let ((body (forgejo-utils-read-body "Edit body" current-body))
+  (let ((body (forgejo-utils-read-body current-body))
         (host (url-host (url-generic-parse-url host-url))))
     (when (and body (not (string= body (or current-body ""))))
       (forgejo-api-patch
@@ -426,7 +438,7 @@ CURRENT-BODY is pre-filled in the editor.  CALLBACK is called on success."
 					    callback)
   "Edit comment COMMENT-ID in OWNER/REPO on HOST-URL.
 CURRENT-BODY is pre-filled in the editor.  CALLBACK is called on success."
-  (let ((body (forgejo-utils-read-body "Edit comment" current-body))
+  (let ((body (forgejo-utils-read-body current-body))
         (host (url-host (url-generic-parse-url host-url))))
     (when (and body (not (string= body (or current-body ""))))
       (forgejo-api-patch

@@ -327,8 +327,7 @@ Shows cached data from DB instantly, syncs in background."
               (data forgejo-view--data)
               (number (alist-get 'number data))
               (refresh (forgejo--post-action-callback)))
-    (let* ((author (plist-get node :author))
-           (body (plist-get node :body))
+    (let* ((body (plist-get node :body))
            (quoted (when body
                      (concat "> " (replace-regexp-in-string
                                    "\n" "\n> " (string-trim body))
@@ -337,7 +336,6 @@ Shows cached data from DB instantly, syncs in background."
        forgejo-repo--host
        (format "repos/%s/%s/issues/%d/comments"
                forgejo-repo--owner forgejo-repo--name number)
-       (format "Reply to %s" (or author ""))
        quoted
        (lambda (_data _headers)
          (message "Reply posted on %s/%s#%d"

@@ -173,7 +173,7 @@ CALLBACK is called on success."
          (event (pcase type
                   ("approve" "APPROVED")
                   ("comment" "COMMENT")))
-         (body (forgejo-utils-read-body "Review body")))
+         (body (forgejo-utils-read-body)))
     (forgejo-api-post
      host-url
      (format "repos/%s/%s/pulls/%d/reviews" owner repo number)
@@ -191,7 +191,7 @@ CALLBACK is called on success."
 PATH, POSITION, and ORIGINAL-POSITION from the original comment
 for thread grouping.  Prompts for the reply body.
 CALLBACK is called on success."
-  (let ((body (forgejo-utils-read-body "Reply"))
+  (let ((body (forgejo-utils-read-body))
         (host (url-host (url-generic-parse-url host-url))))
     (when (and body (not (string-empty-p (string-trim body))))
       (forgejo-api-post
@@ -249,7 +249,7 @@ Prompts for review type: comment or request_changes."
            (event (pcase type
                     ("comment" "COMMENT")
                     ("request_changes" "REQUEST_CHANGES")))
-           (body (forgejo-utils-read-body "Review comment")))
+           (body (forgejo-utils-read-body)))
       (when (and body (not (string-empty-p (string-trim body))))
         (forgejo-api-post
          forgejo-repo--host

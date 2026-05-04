@@ -295,7 +295,9 @@ MAP-NAME is used to derive generated command names."
                         (if (symbolp cmd) `#',cmd cmd))))
 
 (defun keymap-popup--quote-if-needed (form)
-  "Quote FORM unless it is a lambda, in which case return as-is."
+  "Quote FORM unless it is a lambda, in which case return as-is.
+Unlike `macroexp-quote', leaves lambda forms unquoted so the
+byte compiler sees them as code rather than data."
   (if (and (consp form) (eq (car form) 'lambda))
       form
     `',form))

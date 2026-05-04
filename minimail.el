@@ -1764,8 +1764,7 @@ as a string."
           (format "%s %S" tag value))
          ((or 'before 'on 'since 'sentbefore 'senton 'sentsince) ;date argument
           (pcase-let ((`(,day ,month ,year) (drop 3 (parse-time-string value))))
-            (format "%s %s-%s-%s" tag day (aref -imap-months (1- month)) year)))
-         ('raw (-get-data value)))))
+            (format "%s %s-%s-%s" tag day (aref -imap-months (1- month)) year))))))
    items " "))
 
 (transient-define-prefix -search-transient ()
@@ -1793,13 +1792,13 @@ as a string."
     ("c" "CC"  :cons 'cc :class -transient-search-option
      :prompt "Messages with copy to: ")]
    ["When"
-    ("d" "Date" :cons 'date :class -transient-search-option
+    ("d" "Date" :cons 'senton :class -transient-search-option
      :prompt "Messages dated exactly: "
      :reader transient-read-date)
-    ("<" "Before" :cons 'before :class -transient-search-option
+    ("<" "Before" :cons 'sentbefore :class -transient-search-option
      :prompt "Messages dated before: "
      :reader transient-read-date)
-    (">" "Since" :cons 'since :class -transient-search-option
+    (">" "Since" :cons 'sentsince :class -transient-search-option
      :prompt "Messages dated after: "
      :reader transient-read-date)]
    ["What"
@@ -1807,7 +1806,7 @@ as a string."
      :prompt "Messages with subject containing: ")
     ("b" "Body" :cons 'body :class -transient-search-option
      :prompt "Messages with body containing: ")
-    ("z" "Size" :cons 'raw :class -transient-search-option
+    ("z" "Size" :cons nil :class -transient-search-option
      :prompt "\
 Enter a number, optionally preceded by < or > and suffixed with a multiplier.
 Messages with size (bytes): "
@@ -1819,13 +1818,13 @@ Messages with size (bytes): "
                                  (* space) (group (? (any "kKmM"))))
                              input)
            (let ((comp (pcase (match-string 1 input)
-                         ("<" '("≤ " . "SMALLER %s"))
-                         ((or ">" "") '("≥ " . "LARGER %s"))))
+                         ("<" '("≤ " . smaller))
+                         ((or ">" "") '("≥ " . larger))))
                  (n (* (string-to-number (match-string 2 input))
                        (pcase (downcase (match-string 3 input))
                          ("k" 1024) ("m" 1048576) (_ 1)))))
              (propertize (concat (car comp) (file-size-human-readable n))
-                         'minimail (format (cdr comp) n)))))))]
+                         'minimail (cons (cdr comp) n)))))))]
    ["Flags"
     ("." "Seen" :cons 'seen :class -transient-search-switch)
     ("!" "Flagged" :cons 'flagged :class -transient-search-switch)
@@ -1833,10 +1832,19 @@ Messages with size (bytes): "
   [[("RET" "Search"
      (lambda (arg)
        (interactive "P")
-       (pcase-let* ((`((mailbox . ,mb) . ,items)
-                     (transient-args transient-current-command))
-                    (mailbox (or (-get-data mb) (error "No mailbox")))
-                    (query (-format-search items)))
+       (let* ((items (transient-args transient-current-command))
+              (mailbox (or (-get-data (alist-get 'mailbox items))
+                           (error "No mailbox")))
+              (query (-format-search
+                      ;; Drop mailbox entry, replace (nil . STRING)
+                      ;; entries by the (CLAUSE . ARGUMENT) sneaked
+                      ;; into the string.
+                      (mapcan (lambda (it)
+                                (pcase (car it)
+                                  ('mailbox nil)
+                                  ('nil (list (-get-data (cdr it))))
+                                  (_ (list it))))
+                              items))))
          (when arg
            (setq query (read-from-minibuffer "IMAP search: " query)))
          (minimail-search mailbox query))))]])

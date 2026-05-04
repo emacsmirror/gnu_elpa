@@ -1,0 +1,53 @@
+################################################################
+# latex-table-wizard benchmark
+# Emacs: GNU Emacs 30.2
+# Date : Thu Apr 23 11:21:15 EDT 2026
+################################################################
+
+
+=== latex-table-wizard 1.5.5 | table: 5x5 ===
+  parse (cold)    20 reps  0.158766 s total  0.007938 s/rep
+  navigate        200 reps  0.114665 s total  0.000573 s/rep
+  shift           200 reps  0.001277 s total  0.000006 s/rep
+  row-coords      500 reps  0.022296 s total  0.000045 s/rep
+  swap            50 reps  0.824680 s total  0.016494 s/rep
+
+
+=== latex-table-wizard 1.6.0 | table: 5x5 ===
+  parse (cold)    20 reps  0.155382 s total  0.007769 s/rep
+  navigate        200 reps  0.025396 s total  0.000127 s/rep
+  shift           200 reps  0.000125 s total  0.000001 s/rep
+  row-coords      500 reps  0.005795 s total  0.000012 s/rep
+  swap            50 reps  0.814833 s total  0.016297 s/rep
+
+
+=== latex-table-wizard 1.5.5 | table: 15x15 ===
+  parse (cold)    20 reps  3.205456 s total  0.160273 s/rep
+  navigate        200 reps  0.236497 s total  0.001182 s/rep
+  shift           200 reps  0.008952 s total  0.000045 s/rep
+  row-coords      500 reps  0.080187 s total  0.000160 s/rep
+  swap            50 reps  16.490230 s total  0.329805 s/rep
+
+
+=== latex-table-wizard 1.6.0 | table: 15x15 ===
+  parse (cold)    20 reps  1.775554 s total  0.088778 s/rep
+  navigate        200 reps  0.033836 s total  0.000169 s/rep
+  shift           200 reps  0.000119 s total  0.000001 s/rep
+  row-coords      500 reps  0.023832 s total  0.000048 s/rep
+  swap            50 reps  8.921579 s total  0.178432 s/rep
+
+
+=== latex-table-wizard 1.5.5 | table: 30x30 ===
+  parse (cold)    20 reps  36.954411 s total  1.847721 s/rep
+  navigate        200 reps  0.615697 s total  0.003078 s/rep
+  shift           200 reps  0.035824 s total  0.000179 s/rep
+  row-coords      500 reps  0.299668 s total  0.000599 s/rep
+  swap            50 reps  188.330124 s total  3.766602 s/rep
+
+
+=== latex-table-wizard 1.6.0 | table: 30x30 ===
+  parse (cold)    20 reps  11.635728 s total  0.581786 s/rep
+  navigate        200 reps  0.046216 s total  0.000231 s/rep
+  shift           200 reps  0.000126 s total  0.000001 s/rep
+  row-coords      500 reps  0.065403 s total  0.000131 s/rep
+  swap            50 reps  58.715763 s total  1.174315 s/rep

@@ -1,12 +1,72 @@
 -*- mode: org -*-
 
+* 1.6.0 <2026-05-03 Sun>
+
+** Complete overhaul of the interals
+Every user visible command, keybinding, customization variable, hook,
+and face is preserved without change, with backward compatibility.
+The rewrite replaces the internal data structures and algorithms with
+ones that scale better with table size, resulting in measurable
+performance improvements on medium and large tables.  For reference,
+we list the functions and variables removed and their replacement
+(again, all of them never being part of the public API).
+
+*** Removed internal functions and variables
+
+The following symbols existed in 1.5.5 and are absent in 1.6.0.  They
+were never part of the public API.
+
+**** Functions removed:
++  ~latex-table-wizard--parse-table~       (replaced by --parse)
++  ~latex-table-wizard--get-env-ends~      (replaced by struct slots)
++  ~latex-table-wizard--get-cell-pos~      (replaced by gethash)
++  ~latex-table-wizard--locate-point~      (replaced by get-text-property)
++  ~latex-table-wizard--get-thing~         (replaced by coord accessors)
++  ~latex-table-wizard--sort~              (replaced by --row-coords / --col-coords)
++  ~latex-table-wizard--get-other-cell~    (replaced by --jump internals)
++  ~latex-table-wizard--get-landing-index~ (no longer needed)
++  ~latex-table-wizard--shift~             (replaced by --shift-coord)
++  ~latex-table-wizard--hl-cells~          (replaced by --hl-coords)
++  ~latex-table-wizard--swap-line~         (replaced by --swap-lines)
+
+**** Variables removed:
++ ~latex-table-wizard--parse~             (replaced by --current-table)
++ ~latex-table-wizard--table-begin~       (replaced by struct :inner-beg)
++ ~latex-table-wizard--table-end~         (replaced by struct :inner-end)
+
+*** New internal functions
+
+  ~+ latex-table-wizard--parse~
+  ~+ latex-table-wizard--do-parse~
+  ~+ latex-table-wizard--invalidate~
+  ~+ latex-table-wizard--table-valid-p~
+  ~+ latex-table-wizard--coord-at-point~
+  ~+ latex-table-wizard--snap-to-cell~
+  ~+ latex-table-wizard--current-coord~
+  ~+ latex-table-wizard--all-coords~
+  ~+ latex-table-wizard--row-coords ROW &optional REVERSE~
+  ~+ latex-table-wizard--col-coords COL &optional REVERSE~
+  ~+ latex-table-wizard--current-row-coords &optional REVERSE~
+  ~+ latex-table-wizard--current-col-coords &optional REVERSE~
+  ~+ latex-table-wizard--shift-coord COORD DIR~
+  ~+ latex-table-wizard--cell-bounds COORD~
+  ~+ latex-table-wizard--cell-beg COORD~
+  ~+ latex-table-wizard--cell-end COORD~
+  ~+ latex-table-wizard--hl-coords COORDS~
+  ~+ latex-table-wizard--swap-lines TYPE LINE1 LINE2~
+  ~+ latex-table-wizard--selection-in-current-table-p~
+
+
+
+** Added new hook: latex-table-wizard-after-movement-hook
+Hook run after execution of a latex-table-wizard movement command.
 * 1.5.3 <2023-08-21 Mon>
 ** Commands changed:
 *** latex-table-wizard-align
 Makes it so calling latex-table-wizard-align always start the cycle
 with left alignment.  This behavior was suggested by fountainer
 * 1.5.2 <2023-05-16 Tue>
-** User option changed: latex-table-wizard-row-delimiters 
+** User option changed: latex-table-wizard-row-delimiters
 Default value changed from "\\\\\\\\" to "\\\\".
 * 1.4.0 <2023-05-02 Tue>
 ** New commands:
@@ -57,4 +117,3 @@ new ones are not exposed through the transient interface.
 *** latex-table-wizard-align-right
 *** latex-table-wizard-center
 *** latex-table-wizard-compress
-

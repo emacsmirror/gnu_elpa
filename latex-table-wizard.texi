@@ -1,15 +1,20 @@
 \input texinfo    @c -*- texinfo -*-
 @c %**start of header
-@setfilename latex-table-wizard.info
+@setfilename readme.info
 @settitle @LaTeX{} table wizard - Magic editing of @LaTeX{} tables
 @documentencoding UTF-8
 @documentlanguage en
 @c %**end of header
 
+@dircategory Misc
+@direntry
+* (readme).             @LaTeX{} table wizard - Magic editing of @LaTeX{} tables.
+@end direntry
+
 @finalout
 @titlepage
 @title @LaTeX{} table wizard - Magic editing of @LaTeX{} tables
-@subtitle for version 1.5.5
+@subtitle for version 1.6.0
 @author Enrico Flor (@email{enrico@@eflor.net})
 @end titlepage
 
@@ -19,15 +24,16 @@
 @node Top
 @top @LaTeX{} table wizard - Magic editing of @LaTeX{} tables
 
+@uref{https://elpa.gnu.org/packages/latex-table-wizard.html, https://elpa.gnu.org/packages/latex-table-wizard.svg}
 @uref{https://melpa.org/#/latex-table-wizard, file:https://melpa.org/packages/latex-table-wizard-badge.svg}
 
 Copyright (C) 2022-2026 Enrico Flor.
 
-Permission is granted to copy, distribute and/or modify this
-document under the terms of the GNU Free Documentation License,
+Permission is granted to copy@comma{} distribute and/or modify this
+document under the terms of the GNU Free Documentation License@comma{}
 Version 1.3 or any later version published by the Free Software
-Foundation; with no Invariant Sections, with the Front-Cover Texts
-being “A GNU Manual,” and with the Back-Cover Texts as in (a)
+Foundation; with no Invariant Sections@comma{} with the Front-Cover Texts
+being “A GNU Manual@comma{}” and with the Back-Cover Texts as in (a)
 below.  A copy of the license is included in the section entitled
 “GNU Free Documentation License.”
 
@@ -41,6 +47,35 @@ modify this GNU manual.”
 * Known issues::
 * Customization::
 * Example setup without Transient interface (Emacs 28 and later)::
+
+@detailmenu
+--- The Detailed Node Listing ---
+
+Available commands
+
+* Start editing::
+* Relative motion commands::
+* Absolute motion commands::
+* Mark@comma{} kill and insert commands: Mark kill and insert commands. 
+* Swap adjacent fields::
+* Swap arbitrary fields::
+* Comment out cells::
+* Format the table::
+* Extra commands in the transient prefix::
+
+Known issues
+
+* Empty cells in single-column tables::
+
+Customization
+
+* Hooks::
+* Customize transient prefix::
+* Define rules for new environments::
+* Customizing faces::
+* Detached arguments::
+
+@end detailmenu
 @end menu
 
 @node Introduction
@@ -54,23 +89,23 @@ The way this is done is through a series of interactive commands that
 are exposed as @strong{transient suffixes} through the transient interface
 invoked by the command @code{latex-table-wizard}.  What this means is that
 by calling @code{latex-table-wizard} when point is in a table-like
-environment, you will be presented with a choice of keys that are
+environment@comma{} you will be presented with a choice of keys that are
 bound to all the commands provided by this package.
 
 All these commands can of course be called through
-@code{execute-extended-command}, and you can bind any key you want to them.
+@code{execute-extended-command}@comma{} and you can bind any key you want to them.
 See @ref{Customize transient prefix} for how to change the default bindings
 offered by the transient prefix.
 
 An important feature of @LaTeX{}-table-wizard is that it @strong{tries to be
-smart}: for instance, it should not be fooled if the current
-table-like environments contains @strong{embedded tables} (that is, other
+smart}: for instance@comma{} it should not be fooled if the current
+table-like environments contains @strong{embedded tables} (that is@comma{} other
 tabular environments inside of its cells).  The table is parsed so
 that these big cells are treated like any other cell.
 
-For example, if you call @code{latex-table-wizard} when point is outside of
-the embedded @code{tabular} environment, @LaTeX{}-table-wizard will behave as if
-it was in any other 3x3 table, and the embedded table will be treated
+For example@comma{} if you call @code{latex-table-wizard} when point is outside of
+the embedded @code{tabular} environment@comma{} @LaTeX{}-table-wizard will behave as if
+it was in any other 3x3 table@comma{} and the embedded table will be treated
 just as any other cell content.
 
 @example
@@ -86,18 +121,18 @@ just as any other cell content.
 @end example
 
 Of course you can call @code{latex-table-wizard} with point inside of the
-embedded table, in which case, any command you use will operate only on
+embedded table@comma{} in which case@comma{} any command you use will operate only on
 the embedded table.
 
-For most of this document, we will assume the table-like environment
-has the standard @LaTeX{}2e syntax, but you can define your own types of
+For most of this document@comma{} we will assume the table-like environment
+has the standard @LaTeX{}2e syntax@comma{} but you can define your own types of
 table-like environments (more on this @ref{Define rules for new environments, , below}).
 
 @node Available commands
 @chapter Available commands
 
-For now, we will assume a standard @LaTeX{} syntax for tabular
-environments, where @code{&} delimits columns and @code{\\} rows (see @ref{Define rules for new environments, , below} for
+For now@comma{} we will assume a standard @LaTeX{} syntax for tabular
+environments@comma{} where @code{&} delimits columns and @code{\\} rows (see @ref{Define rules for new environments, , below} for
 info as to how to specify additional environments).
 
 Whenever we say ``current'' we mean ``at point''.
@@ -106,7 +141,7 @@ Whenever we say ``current'' we mean ``at point''.
 * Start editing::
 * Relative motion commands::
 * Absolute motion commands::
-* Mark, kill and insert commands: Mark kill and insert commands.
+* Mark@comma{} kill and insert commands: Mark kill and insert commands. 
 * Swap adjacent fields::
 * Swap arbitrary fields::
 * Comment out cells::
@@ -122,14 +157,14 @@ environment.
 
 This commands actually activates the non-global minor mode
 @code{latex-table-wizard-mode}.  If you intend to use this package's commands
-without the transient interface brought up by @code{latex-table-wizard},
+without the transient interface brought up by @code{latex-table-wizard}@comma{}
 activate this minor mode to have the interactive functions loaded.
 
 @node Relative motion commands
 @section Relative motion commands
 
-These commands move point N cells to the right, left, down, and up.  N
-is passed as a prefix argument, and if it's not passed, it defaults
+These commands move point N cells to the right@comma{} left@comma{} down@comma{} and up.  N
+is passed as a prefix argument@comma{} and if it's not passed@comma{} it defaults
 to 1.
 
 @multitable {aaaaaaaaaaaaaaaaaaaaaaaaaa} {aaaaaaaaaaa}
@@ -143,9 +178,11 @@ to 1.
 @tab @code{n}
 @item @code{latex-table-wizard-up}
 @tab @code{p}
+@item 
+@tab 
 @end multitable
 
-With just one of these, you can get anywhere you want in a table.
+With just one of these@comma{} you can get anywhere you want in a table.
 
 @example
 \begin@{tabular@}@{lll@}
@@ -160,27 +197,27 @@ suitable cell to move to:
 
 @itemize
 @item
-Point on @code{C0}, @code{latex-table-wizard-right} ⇒ point on @code{A1}
+Point on @code{C0}@comma{} @code{latex-table-wizard-right} ⇒ point on @code{A1}
 @item
-Point on @code{A0}, @code{latex-table-wizard-left} ⇒ point on @code{C2}
+Point on @code{A0}@comma{} @code{latex-table-wizard-left} ⇒ point on @code{C2}
 @item
-Point on @code{C2}, @code{latex-table-wizard-down} ⇒ point on @code{A0}
+Point on @code{C2}@comma{} @code{latex-table-wizard-down} ⇒ point on @code{A0}
 @item
-Point on @code{B0}, @code{latex-table-wizard-up} ⇒ point on @code{A2}
+Point on @code{B0}@comma{} @code{latex-table-wizard-up} ⇒ point on @code{A2}
 @end itemize
 
 and so on.
 
 These four commands accept a positive integer passed as a prefix
 argument that determines how many steps (i.e. how many cells) the
-movement will consist of.  By default, you can pass this argument
+movement will consist of.  By default@comma{} you can pass this argument
 from the transient interface of @code{latex-table-wizard} with the key @code{u}
 (bound to @code{universal-argument}).
 
-These four commands also accept a second optional argument which, if
-non-nil, prevents the Do What You Mean behavior.  This is useful if
+These four commands also accept a second optional argument which@comma{} if
+non-nil@comma{} prevents the Do What You Mean behavior.  This is useful if
 you want to use these functions to write your own functions to edit
-tables.  Given the table above, if point is on @code{A2}, both of the
+tables.  Given the table above@comma{} if point is on @code{A2}@comma{} both of the
 following expressions will return nil and won't move point:
 
 @lisp
@@ -216,9 +253,9 @@ following expressions will return nil and won't move point:
 @end multitable
 
 @node Mark kill and insert commands
-@section Mark, kill and insert commands
+@section Mark@comma{} kill and insert commands
 
-@multitable {aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa} {aaaaaaaaaaa} {aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa}
+@multitable {aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa} {aaaaaaaaaaa} {aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa}
 @headitem Command
 @tab Default key
 @tab Do@dots{}
@@ -269,7 +306,7 @@ is.
 
 @code{latex-table-wizard-delete-column} and @code{latex-table-wizard-delete-row}
 modify the structure of the table (they actually remove the
-column/table, not just the content of the cells in them).
+column/table@comma{} not just the content of the cells in them).
 
 @node Swap adjacent fields
 @section Swap adjacent fields
@@ -304,14 +341,14 @@ column/table, not just the content of the cells in them).
 @tab row with the one above
 @end multitable
 
-For these commands, think of the cells and columns as circular: if
-there is no item in the direction given, the target is the one on the
+For these commands@comma{} think of the cells and columns as circular: if
+there is no item in the direction given@comma{} the target is the one on the
 opposite end of the current cell.
 
 This is because these commands try to Do What You Mean if there is no
 suitable cell to move to.
 
-So, for example:
+So@comma{} for example:
 
 @example
 \begin@{tabular@}@{lll@}
@@ -321,7 +358,7 @@ So, for example:
 \end@{tabular@}
 @end example
 
-Point on @code{C0}, @code{latex-table-wizard-swap-cell-right}
+Point on @code{C0}@comma{} @code{latex-table-wizard-swap-cell-right}
   ⇒
 @example
 \begin@{tabular@}@{lll@}
@@ -331,7 +368,7 @@ Point on @code{C0}, @code{latex-table-wizard-swap-cell-right}
 \end@{tabular@}
 @end example
 
-Point on @code{B0}, @code{latex-table-wizard-swap-row-up}
+Point on @code{B0}@comma{} @code{latex-table-wizard-swap-row-up}
   ⇒
 @example
 \begin@{tabular@}@{lll@}
@@ -341,7 +378,7 @@ Point on @code{B0}, @code{latex-table-wizard-swap-row-up}
 \end@{tabular@}
 @end example
 
-Point on @code{A1}, @code{latex-table-wizard-swap-column-right}
+Point on @code{A1}@comma{} @code{latex-table-wizard-swap-column-right}
   ⇒
 @example
 \begin@{tabular@}@{lll@}
@@ -354,16 +391,16 @@ Point on @code{A1}, @code{latex-table-wizard-swap-column-right}
 @node Swap arbitrary fields
 @section Swap arbitrary fields
 
-To swap arbitrary fields, one must first @strong{select} something and then move
-point somewhere else and perform the swap.  Importantly, @strong{selecting
+To swap arbitrary fields@comma{} one must first @strong{select} something and then move
+point somewhere else and perform the swap.  Importantly@comma{} @strong{selecting
 does not mean marking}: the mark is not even moved when selecting
-(however, by default, the selected cell will receive the same kind of
-highlighting the loaded theme defines for the active region, but this
-is a purely graphical equivalence).  ``Selecting'', for the purposes of
-@LaTeX{}-table-wizard only means storing a cell, a line or a row to be
+(however@comma{} by default@comma{} the selected cell will receive the same kind of
+highlighting the loaded theme defines for the active region@comma{} but this
+is a purely graphical equivalence).  ``Selecting''@comma{} for the purposes of
+@LaTeX{}-table-wizard only means storing a cell@comma{} a line or a row to be
 swapped with another.
 
-The simplest case is one in which the current cell, column or row are
+The simplest case is one in which the current cell@comma{} column or row are
 selected:
 
 @multitable {aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa} {aaaaaaaaaaa} {aaaaaaaaaaaaaaaaaaaa}
@@ -384,11 +421,11 @@ selected:
 @tab deselect all
 @end multitable
 
-The first command, @code{latex-table-wizard-select-deselect-cell}, toggles the
+The first command@comma{} @code{latex-table-wizard-select-deselect-cell}@comma{} toggles the
 status of the current cell as being selected or not.
 
-Once things are selected, you move point somewhere else in the table
-(with the above mentioned motion commands), and then:
+Once things are selected@comma{} you move point somewhere else in the table
+(with the above mentioned motion commands)@comma{} and then:
 
 @multitable {aaaaaaaaaaaaaaaaaaaaaaaaa} {aaa} {aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa}
 @item @code{latex-table-wizard-swap}
@@ -397,44 +434,44 @@ Once things are selected, you move point somewhere else in the table
 @end multitable
 
 What is swapped depends on what is selected: if the selection was only
-a cell, then that cell and the current one are swapped.  If it was (a
-potentially discontinuous segment of) a column or a row, then that
+a cell@comma{} then that cell and the current one are swapped.  If it was (a
+potentially discontinuous segment of) a column or a row@comma{} then that
 selection is swapped with the current column or row or the
 corresponding portion thereof.  If you selected multiple cell that are
-not part of the same column or row, the swap won't happen
+not part of the same column or row@comma{} the swap won't happen
 (@LaTeX{}-table-wizard doesn't know what you want it to do in that case).
 
 @node Comment out cells
 @section Comment out cells
 
-These two commands act on all the selected cells, if any is;
-otherwise, on the current cell point is on.
+These two commands act on all the selected cells@comma{} if any is;
+otherwise@comma{} on the current cell point is on.
 
-@multitable {aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa} {aaaaaaaaaaa} {aaaaaaaaaaaaaaaaaaa}
+@multitable {aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa} {aaaaaaaaaaa} {aaaaaaaaaaaaaaaaaaaaaa}
 @headitem Command
 @tab Default key
 @tab Comment out current@dots{}
 @item @code{latex-table-wizard-comment-out-content}
 @tab @code{; c}
-@tab cell content
+@tab cell's content
 @item @code{latex-table-wizard-comment-out}
 @tab @code{; ;}
 @tab cell
 @end multitable
 
 The difference between the two is that one only comments out the
-content, preserving both delimiters around the cell; the other one
-actually modifies the structure of the table because, for any cell that
-is commented out, one delimiter around it is commented out too.
+content@comma{} preserving both delimiters around the cell; the other one
+actually modifies the structure of the table because@comma{} for any cell that
+is commented out@comma{} one delimiter around it is commented out too.
 
 @node Format the table
 @section Format the table
 
 The only command to format the table is @code{latex-table-wizard-align}.  The
-behavior of this command is cyclic, in the sense that calling it
+behavior of this command is cyclic@comma{} in the sense that calling it
 repeatedly causes the table to cycle through four types of formatting:
-left aligned, centered, right aligned and compressed.  The latter
-state is actually not one of alignment (that is, the column separators
+left aligned@comma{} centered@comma{} right aligned and compressed.  The latter
+state is actually not one of alignment (that is@comma{} the column separators
 are not vertically aligned): it just means that all the extra space at
 the beginning and end of each cell gets collapsed into one.
 
@@ -497,14 +534,14 @@ compressed:
 \end@{tabular@}
 @end example
 
-As you can see, @code{latex-table-wizard-align} also forces every row of the
+As you can see@comma{} @code{latex-table-wizard-align} also forces every row of the
 table to start on its own line.
 
-As always, this alignment command tries to be smart and not be fooled
+As always@comma{} this alignment command tries to be smart and not be fooled
 by column or row delimiters embedded in a cell.
 
-Beside @code{latex-table-wizard-align} with its cycling behavior, four
-commands are defined (but not exposed by the transient interface),
+Beside @code{latex-table-wizard-align} with its cycling behavior@comma{} four
+commands are defined (but not exposed by the transient interface)@comma{}
 each of which just performs one of these transformations.  These are:
 
 @itemize
@@ -550,15 +587,15 @@ useful for its usage.  These are:
 @node Empty cells in single-column tables
 @section Empty cells in single-column tables
 
-This package handles empty cells (that is, cells without any text in
+This package handles empty cells (that is@comma{} cells without any text in
 them except perhaps comments) well.  The only exception is in tables
 with a single column.  The problem is that a buffer substring like
-@code{\\ \\} is not parsed as a cell. This is normally not a problem, but if
+@code{\\ \\} is not parsed as a cell. This is normally not a problem@comma{} but if
 the table has only one column then that substring could be meant to be
 an empty or blank cell.
 
 A way to avoid this problem may be defining a @LaTeX{} macro that does
-nothing, and use it in the cell you intend to be empty so that the
+nothing@comma{} and use it in the cell you intend to be empty so that the
 parser sees some text.
 
 So instead of @code{\\ \\} we will have @code{\\ \blk@{@} \\}.
@@ -567,26 +604,45 @@ So instead of @code{\\ \\} we will have @code{\\ \blk@{@} \\}.
 @chapter Customization
 
 To quickly access all customizations pertinent to @LaTeX{}-table-wizard
-through the Customize interface, call @code{latex-table-wizard-customize}.
+through the Customize interface@comma{} call @code{latex-table-wizard-customize}.
 
 @menu
+* Hooks::
 * Customize transient prefix::
 * Define rules for new environments::
 * Customizing faces::
 * Detached arguments::
 @end menu
 
+@node Hooks
+@section Hooks
+
+The package defines two hooks for the user to add functions to.
+
+@itemize
+@item
+@code{latex-table-wizard-after-table-modified-hook}: run after each table
+changing operation done by a @code{latex-table-wizard} function
+@item
+@code{latex-table-wizard-after-movement-hook}: run after each
+@code{latex-table-wizard} movement command (that is@comma{} a command whose
+purpose it to move point inside the table)
+@end itemize
+
+A function that is a natural fit for these hooks@comma{} could be@comma{} for
+example@comma{} one of the @code{latex-table-wizard-align} commands.
+
 @node Customize transient prefix
 @section Customize transient prefix
 
-To change the default key bindings, you need to change the
+To change the default key bindings@comma{} you need to change the
 value of the alist @code{latex-table-wizard-transient-keys}.  The easiest and
 most convenient way to do it is through @code{latex-table-wizard-customize}.
 
 Each cons cell in this alist maps a command to a key description
 string (the kind of strings that the macro @code{kbd} takes as arguments).
 
-For example, these three cons cells are members of the default value of
+For example@comma{} these three cons cells are members of the default value of
 @code{latex-table-wizard-transient-keys}:
 
 @lisp
@@ -628,22 +684,22 @@ Each member of this list is a string that would be between the
 @LaTeX{}-table-wizard will always presume the table you want to operate on
 has a syntax specified like this.  But suppose you use different
 environments with non-standard syntax: suppose you define a
-table-like environment of your choice, let's call it @code{mytable}, that
-uses @code{!ROW} and @code{!COL} instead of @code{&} and @code{\\} as delimiters, and a macro
+table-like environment of your choice@comma{} let's call it @code{mytable}@comma{} that
+uses @code{!ROW} and @code{!COL} instead of @code{&} and @code{\\} as delimiters@comma{} and a macro
 @code{\horizontal} for horizontal lines.  When you are in a @code{mytable}
-environments, you want @LaTeX{}-table-wizard to adapt to this new
+environments@comma{} you want @LaTeX{}-table-wizard to adapt to this new
 syntax.
 
 All you need to do is add an appropriate cons cell to the
-@code{latex-table-wizard-new-environments-alist} association list, mapping
-the name of the environment, as a string, to a property list
+@code{latex-table-wizard-new-environments-alist} association list@comma{} mapping
+the name of the environment@comma{} as a string@comma{} to a property list
 specifying the values.  Here is this variable's @code{defcustom} expression:
 
 @lisp
 (defcustom latex-table-wizard-new-environments-alist nil
   "Alist mapping environment names to property lists.
 
-The environment name is a string, for example \"foo\" for an
+The environment name is a string@comma{} for example \"foo\" for an
 environment like
 
   \\begin@{foo@}
@@ -659,9 +715,9 @@ The cdr of each mapping is a property list with three keys:
 The values for :col and :row are two lists of strings.
 
 The value for :lines is a list of strings just like is the case
-for `latex-table-wizard-hline-macros', each of which is the name
+for `latex-table-wizard-hline-macros'@comma{} each of which is the name
 of a macro that inserts some horizontal line.  For a macro
-\"\\foo@{@}\", use string \"foo\"."
+\"\\foo@{@}\"@comma{} use string \"foo\"."
   :type '(alist :key-type (string :tag "Name of the environment:")
                 :value-type (plist :key-type symbol
                                    :options (:col :row :lines)
@@ -671,8 +727,8 @@ of a macro that inserts some horizontal line.  For a macro
 @end lisp
 
 You can add the new syntax for the @code{mytable} environment through the
-Customize interface, which will present you with the correct values to
-set, or you can just add a cons cell of your writing to the alist:
+Customize interface@comma{} which will present you with the correct values to
+set@comma{} or you can just add a cons cell of your writing to the alist:
 
 @lisp
 (add-to-list 'latex-table-wizard-new-environments-alist
@@ -681,8 +737,8 @@ set, or you can just add a cons cell of your writing to the alist:
 
 Each of the values in the plist is a list of strings; this way you can
 define environments that can use more than one type of column
-separator.  Importantly, the strings in the @code{:lines} list are @strong{names of
-@LaTeX{}} macros, which means that they should not start with a
+separator.  Importantly@comma{} the strings in the @code{:lines} list are @strong{names of
+@LaTeX{}} macros@comma{} which means that they should not start with a
 backslash and you should not add any argument to them.  In the example
 above a buffer substring like @samp{\horizontal@{1@}} will be interpreted as a
 hline macro if in a @code{mytable} environment.
@@ -691,27 +747,27 @@ hline macro if in a @code{mytable} environment.
 @section Customizing faces
 
 Calling @code{latex-table-wizard} by default causes the portions of the
-buffer before and after the table at point to be ``grayed out'', so
+buffer before and after the table at point to be ``grayed out''@comma{} so
 that you can clearly focus on the table.  If you don't want this to
-happen, set the value of the variable @code{latex-table-wizard-no-focus} to
+happen@comma{} set the value of the variable @code{latex-table-wizard-no-focus} to
 @code{t}.
 
 If instead you want the effect to be different than the default (which is
-applying a foreground of color @code{gray40}), change the value of the face
+applying a foreground of color @code{gray40})@comma{} change the value of the face
 @code{latex-table-wizard-background}.
 
-By default, when you move around the table and select objects from it,
+By default@comma{} when you move around the table and select objects from it@comma{}
 the relevant portions of the table are highlighted.  If you don't
-want this to happen, set the value of the variable
+want this to happen@comma{} set the value of the variable
 @code{latex-table-wizard-no-highlight} to @code{t}.
 
 If instead you want the highlighting to be done differently than the
 default (which is applying a background of the same color as the
-loaded theme defines for the active region), change the value of the
+loaded theme defines for the active region)@comma{} change the value of the
 face @code{latex-table-wizard-highlight}.
 
-The easiest and most convenient way to set these variables,
-especially the two faces, is through the Customize interface, which
+The easiest and most convenient way to set these variables@comma{}
+especially the two faces@comma{} is through the Customize interface@comma{} which
 you can access quickly by calling @code{latex-table-wizard-customize}.
 
 @node Detached arguments
@@ -719,48 +775,48 @@ you can access quickly by calling @code{latex-table-wizard-customize}.
 
 Optional or obligatory arguments can be separated from the macro or
 from each other in @LaTeX{}.  Suppose there is a macro @code{\macro} that takes
-one optional and one obligatory argument.  Now, @LaTeX{} can deal with
+one optional and one obligatory argument.  Now@comma{} @LaTeX{} can deal with
 all of the following forms:
 
 This fact matters for this package for several reasons but the most
-important is that, in parsing the table, we need to know where the
+important is that@comma{} in parsing the table@comma{} we need to know where the
 table content starts.  Suppose you defined a tabular like environment
 @code{myenv} whose @code{\begin} macro accepts an optional argument.  Is @samp{[abc]} below
 the optional argument of the environment or content of the first cell?
 
-By default, @code{latex-table-wizard} will consider @samp{[abc]} part of the first
-cell in the example above, because it does not recognize the
+By default@comma{} @code{latex-table-wizard} will consider @samp{[abc]} part of the first
+cell in the example above@comma{} because it does not recognize the
 possibility for the arguments of @LaTeX{} macros to be detached.  If you
-want to change this default, set the value of
+want to change this default@comma{} set the value of
 @code{latex-table-wizard-allow-detached-args} to t.
 
-If @code{latex-table-wizard-allow-detached-args} is set to t (that is, if
-detached arguments are allowed), you should not have in your table
+If @code{latex-table-wizard-allow-detached-args} is set to t (that is@comma{} if
+detached arguments are allowed)@comma{} you should not have in your table
 strings between braces or brackets after a macro without them being
-separated by a blank line, unless these strings between braces or
-brackets are, in fact, the arguments of the macro.  This is not a
-problem for @LaTeX{}, because it knows what is a valid macro and what
-isn't, and how many arguments a macro accepts: @code{latex-table-wizard}
-however, does not know it and it could get confused while parsing, and
+separated by a blank line@comma{} unless these strings between braces or
+brackets are@comma{} in fact@comma{} the arguments of the macro.  This is not a
+problem for @LaTeX{}@comma{} because it knows what is a valid macro and what
+isn't@comma{} and how many arguments a macro accepts; @code{latex-table-wizard}
+however@comma{} does not know it and it could get confused while parsing@comma{} and
 thus get the start of the first cell wrong.
 
 Good practice is to never separate arguments from each other or from
-the @LaTeX{} macro: if you respect this good practice, you will never
+the @LaTeX{} macro: if you respect this good practice@comma{} you will never
 need to be concerned with this customization.
 
-If detached arguments are ``disallowed'' (that is,
-@code{latex-table-wizard-allow-detached-args} is nil as per default), you
+If detached arguments are ``disallowed'' (that is@comma{}
+@code{latex-table-wizard-allow-detached-args} is nil as per default)@comma{} you
 have the option to be warned when @code{latex-table-wizard} finds cases of
 suspect detached arguments.  The warning is just a message in the echo
-area right after the table is parsed.  If you want this, set the value
+area right after the table is parsed.  If you want this@comma{} set the value
 of @code{latex-table-wizard-warn-about-detached-args} to t.
 
 @node Example setup without Transient interface (Emacs 28 and later)
 @chapter Example setup without Transient interface (Emacs 28 and later)
 
 Since the interactive commands work independently from the
-functionalities provided by transient.el, you can build your own
-alternative interfaces easily if you prefer so.  For example, the code
+functionalities provided by transient.el@comma{} you can build your own
+alternative interfaces easily if you prefer so.  For example@comma{} the code
 below uses @code{repeat-mode} (built-in with Emacs 28 and later):
 
 @lisp

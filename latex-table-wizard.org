@@ -4,8 +4,8 @@
 #+EMAIL: enrico@eflor.net
 
 #+OPTIONS: ':t toc:t author:t email:t
-#+MACRO: version 1.5.5
-#+MACRO: updated last updated 24 Jan 2026
+#+MACRO: version 1.6.0
+#+MACRO: updated last updated 3 May 2026
 
     [[https://elpa.gnu.org/packages/latex-table-wizard.html][https://elpa.gnu.org/packages/latex-table-wizard.svg]]
     [[https://melpa.org/#/latex-table-wizard][file:https://melpa.org/packages/latex-table-wizard-badge.svg]]
@@ -400,7 +400,17 @@ So instead of ~\\ \\~ we will have ~\\ \blk{} \\~.
 
 To quickly access all customizations pertinent to LaTeX-table-wizard
 through the Customize interface, call ~latex-table-wizard-customize~.
+** Hooks
+The package defines two hooks for the user to add functions to.
 
++ ~latex-table-wizard-after-table-modified-hook~: run after each table
+  changing operation done by a ~latex-table-wizard~ function
++ ~latex-table-wizard-after-movement-hook~: run after each
+  ~latex-table-wizard~ movement command (that is, a command whose
+  purpose it to move point inside the table)
+
+A function that is a natural fit for these hooks, could be, for
+example, one of the ~latex-table-wizard-align~ commands.
 ** Customize transient prefix
 :PROPERTIES:
 :CUSTOM_ID: custom-transient-prefix

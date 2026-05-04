@@ -264,18 +264,17 @@ Each row is a list of group plists with :name and :entries."
 
 ;;; Infix generators
 
-(defun keymap-popup--switch-forms (map-name entry)
-  "Return (defvar-local defun) forms for switch ENTRY in MAP-NAME."
-  (let* ((variable (plist-get entry :variable))
-         (description (plist-get entry :description))
-         (fn-name (intern (format "%s--toggle-%s" map-name variable))))
-    (list
-     `(defvar-local ,variable nil)
-     `(defun ,fn-name ()
-        ,(format "Toggle %s." description)
-        (interactive)
-        (setq-local ,variable (not ,variable))
-        (message "%s: %s" ,description (if ,variable "on" "off"))))))
+(defun keymap-popup--create-switch (map-name variable description)
+  "Create buffer-local VARIABLE with toggle command for MAP-NAME.
+DESCRIPTION is used in the toggle message."
+  (defvar-1 variable nil)
+  (make-variable-buffer-local variable)
+  (defalias (intern (format "%s--toggle-%s" map-name variable))
+    (lambda ()
+      (:documentation (format "Toggle %s." description))
+      (interactive)
+      (set variable (not (symbol-value variable)))
+      (message "%s: %s" description (if (symbol-value variable) "on" "off")))))
 
 (defun keymap-popup--entry-command (map-name entry)
   "Return the command to bind in MAP-NAME's keymap for ENTRY."
@@ -394,13 +393,16 @@ pairs."
                (all-entries (cl-loop for row in rows
 				     append (cl-loop for group in row
 						     append (plist-get group :entries))))
-               (infix-forms (cl-loop for entry in all-entries
-				     append (pcase (plist-get entry :type)
-                                              ('switch (keymap-popup--switch-forms name entry))
-                                              (_ nil))))
+               (switch-entries (cl-loop for entry in all-entries
+					when (eq (plist-get entry :type) 'switch)
+					collect entry))
                (keymap-pairs (keymap-popup--build-keymap-pairs name all-entries)))
     `(progn
-       ,@infix-forms
+       ,@(mapcar (lambda (e)
+                   `(keymap-popup--create-switch
+                     ',name ',(plist-get e :variable)
+                     ,(plist-get e :description)))
+                 switch-entries)
        (defvar-keymap ,name
          ,@(and docstring (list :doc docstring))
          ,@(and parent (list :parent parent))

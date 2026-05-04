@@ -77,15 +77,14 @@
 
 ;;; Infix generator tests
 
-(ert-deftest keymap-popup-test-switch-forms ()
-  (let* ((entry '(:key "v" :description "Verbose" :type switch
-                       :variable my-verbose-var))
-         (forms (keymap-popup--switch-forms 'test-map entry)))
-    (should (= (length forms) 2))
-    (should (eq (car (nth 0 forms)) 'defvar-local))
-    (should (eq (cadr (nth 0 forms)) 'my-verbose-var))
-    (should (eq (car (nth 1 forms)) 'defun))
-    (should (eq (cadr (nth 1 forms)) 'test-map--toggle-my-verbose-var))))
+(ert-deftest keymap-popup-test-create-switch ()
+  "Runtime switch creation produces variable and toggle command."
+  (keymap-popup--create-switch 'keymap-popup--test-cs
+                               'keymap-popup--test-cs-var
+                               "Test switch")
+  (should (boundp 'keymap-popup--test-cs-var))
+  (should (local-variable-if-set-p 'keymap-popup--test-cs-var))
+  (should (fboundp 'keymap-popup--test-cs--toggle-keymap-popup--test-cs-var)))
 
 (ert-deftest keymap-popup-test-entry-command ()
   (should (eq (keymap-popup--entry-command 'map '(:type suffix :command my-cmd))

@@ -44,7 +44,7 @@ Only used by `keymap-popup-backend-side-window'.
 Common values:
   (display-buffer-in-side-window (side . bottom))  - frame-wide
   (display-buffer-below-selected)                  - current window only"
-  :type 'sexp
+  :type display-buffer--action-custom-type
   :group 'keymap-popup)
 
 (defcustom keymap-popup-backend #'keymap-popup-backend-side-window

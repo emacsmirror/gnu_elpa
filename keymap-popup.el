@@ -310,8 +310,8 @@ MAP-NAME is used to derive generated command names."
          (type-props (pcase type
                        ('suffix `(:command ,(keymap-popup--quote-if-needed
                                              (plist-get entry :command))
-					   ,@(when (plist-get entry :stay-open)
-					       '(:stay-open t))))
+					   ,@(and (plist-get entry :stay-open)
+						  '(:stay-open t))))
                        ('keymap `(:target ,(plist-get entry :target)))
                        ('switch `(:variable ',(plist-get entry :variable)))))
          (if-pred (plist-get entry :if))
@@ -350,6 +350,18 @@ Uses list calls so lambdas get compiled."
   (and (eq (car rest) keyword)
        (cons (cadr rest) (cddr rest))))
 
+(defun keymap-popup--consume-keywords (rest keywords)
+  "Consume KEYWORDS from REST in order.
+Returns (VALUES . REMAINING) where VALUES is a list of extracted
+values (nil for absent keywords)."
+  (if (null keywords)
+      (cons nil rest)
+    (let* ((pair (keymap-popup--consume-keyword rest (car keywords)))
+           (value (and pair (car pair)))
+           (remaining (if pair (cdr pair) rest))
+           (sub (keymap-popup--consume-keywords remaining (cdr keywords))))
+      (cons (cons value (car sub)) (cdr sub)))))
+
 (defun keymap-popup--extract-macro-opts (body)
   "Extract macro options from BODY.
 Returns (DOCSTRING POPUP-KEY EXIT-KEY PARENT DESCRIPTION PERSISTENT BINDINGS).
@@ -359,22 +371,9 @@ Unspecified keywords yield nil."
                              (not (listp (cadr body))))
                          (car body)))
          (rest (if docstring (cdr body) body))
-         (popup-pair (keymap-popup--consume-keyword rest :popup-key))
-         (popup-key (and popup-pair (car popup-pair)))
-         (rest (if popup-pair (cdr popup-pair) rest))
-         (exit-pair (keymap-popup--consume-keyword rest :exit-key))
-         (exit-key (and exit-pair (car exit-pair)))
-         (rest (if exit-pair (cdr exit-pair) rest))
-         (parent-pair (keymap-popup--consume-keyword rest :parent))
-         (parent (and parent-pair (car parent-pair)))
-         (rest (if parent-pair (cdr parent-pair) rest))
-         (desc-pair (keymap-popup--consume-keyword rest :description))
-         (description (and desc-pair (car desc-pair)))
-         (rest (if desc-pair (cdr desc-pair) rest))
-         (persist-pair (keymap-popup--consume-keyword rest :persistent))
-         (persistent (and persist-pair (car persist-pair)))
-         (bindings (if persist-pair (cdr persist-pair) rest)))
-    (list docstring popup-key exit-key parent description persistent bindings)))
+         (result (keymap-popup--consume-keywords
+                  rest '(:popup-key :exit-key :parent :description :persistent))))
+    (append (list docstring) (car result) (list (cdr result)))))
 
 ;;;###autoload
 (defmacro keymap-popup-define (name &rest body)
@@ -403,17 +402,17 @@ pairs."
     `(progn
        ,@infix-forms
        (defvar-keymap ,name
-         ,@(when docstring (list :doc docstring))
-         ,@(when parent (list :parent parent))
+         ,@(and docstring (list :doc docstring))
+         ,@(and parent (list :parent parent))
          ,@keymap-pairs
          ,popup-key (lambda () (interactive) (keymap-popup ,name)))
        (setf (keymap-popup--meta ,name 'descriptions)
              ,(keymap-popup--build-descriptions-form rows))
        (setf (keymap-popup--meta ,name 'exit-key) ,exit-key)
-       ,@(when description
-           `((setf (keymap-popup--meta ,name 'description) ,description)))
-       ,@(when persistent
-           `((setf (keymap-popup--meta ,name 'persistent) 'yes))))))
+       ,@(and description
+              `((setf (keymap-popup--meta ,name 'description) ,description)))
+       ,@(and persistent
+              `((setf (keymap-popup--meta ,name 'persistent) 'yes))))))
 
 ;;;###autoload
 (defmacro keymap-popup-annotate (keymap &rest body)
@@ -440,15 +439,15 @@ time, so the popup always reflects the user's current bindings."
        (setf (keymap-popup--meta ,keymap 'descriptions)
              ,(keymap-popup--build-descriptions-form rows))
        (setf (keymap-popup--meta ,keymap 'annotated) 'yes)
-       ,@(when popup-key
-           `((keymap-set ,keymap ,popup-key
-                         (lambda () (interactive) (keymap-popup ,keymap)))))
-       ,@(when exit-key
-           `((setf (keymap-popup--meta ,keymap 'exit-key) ,exit-key)))
-       ,@(when description
-           `((setf (keymap-popup--meta ,keymap 'description) ,description)))
-       ,@(when persistent
-           `((setf (keymap-popup--meta ,keymap 'persistent) 'yes))))))
+       ,@(and popup-key
+              `((keymap-set ,keymap ,popup-key
+                            (lambda () (interactive) (keymap-popup ,keymap)))))
+       ,@(and exit-key
+              `((setf (keymap-popup--meta ,keymap 'exit-key) ,exit-key)))
+       ,@(and description
+              `((setf (keymap-popup--meta ,keymap 'description) ,description)))
+       ,@(and persistent
+              `((setf (keymap-popup--meta ,keymap 'persistent) 'yes))))))
 
 ;;; Public API
 

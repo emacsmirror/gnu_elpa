@@ -22,24 +22,25 @@
 ;; ---------------------------------------------------------------------------
 ;; Internal Variables
 
-(defvar with-command-redo--alist nil
-  "Internal state for the active command-redo chain.
-The global value must remain nil, use as a buffer-local variable only.
 
-Keys are:
-- `buffer-undo-list': The `buffer-undo-list' before execution.
-- `buffer-undo-list-post': The `buffer-undo-list' after execution.
-- `pending-undo-list': The `pending-undo-list' before execution.
-- `point': The point before execution.
-- `chain-id': Symbol identifying the chain.
-- `exec-count': Number of times the callback has been called (0-indexed).
-- `fn-cache': Optional cache for the callback to use.
-- `is-first-post-command': Flag to allow the chain's own command.
-- `on-other-command': Handler for non-modifying external commands.")
+;; The global value must remain nil, use as a buffer-local variable only.
+;;
+;; Keys are:
+;; - `buffer-undo-list': The `buffer-undo-list' before execution.
+;; - `buffer-undo-list-post': The `buffer-undo-list' after execution.
+;; - `pending-undo-list': The `pending-undo-list' before execution.
+;; - `point': The point before execution.
+;; - `chain-id': Symbol identifying the chain.
+;; - `exec-count': Number of times the callback has been called (0-indexed).
+;; - `fn-cache': Optional cache for the callback to use.
+;; - `is-first-post-command': Flag to allow the chain's own command.
+;; - `on-other-command': Handler for non-modifying external commands.
+(defvar with-command-redo--alist nil
+  "Internal state for the active command-redo chain.")
 
 
 ;; ---------------------------------------------------------------------------
-;; Param Parsing
+;; Parameter Parsing
 
 (defun with-command-redo--parse-params (params)
   "Parse keyword PARAMS, return an alist of parsed values."

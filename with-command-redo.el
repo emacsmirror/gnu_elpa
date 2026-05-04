@@ -1,7 +1,7 @@
 ;;; with-command-redo.el --- Repeat commands with automatic undo -*- lexical-binding: t -*-
 
 ;; SPDX-License-Identifier: GPL-2.0-or-later
-;; Copyright (C) 2026  Campbell Barton
+;; Copyright (C) 2020-2026 Free Software Foundation, Inc.
 
 ;; Author: Campbell Barton <ideasman42@gmail.com>
 

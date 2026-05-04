@@ -220,9 +220,11 @@
     (should (null (process-get proc 'futur--destination)))))
 
 (defun futur--tests-elisp-funcall (elisp-funcall)
+  ;; Test the very simplest use case.
   (let ((fut (funcall elisp-funcall #'+ 5 7)))
     (should (equal 12 (futur-blocking-wait-to-get-result fut))))
 
+  ;; Test error propagation.
   (let ((fut (funcall elisp-funcall #'car 7))
         (normal-error (condition-case err2 (car 7) (error err2))))
     ;; Allow extra debug info tacked to the end of the error descriptor.
@@ -232,10 +234,13 @@
                            (error err1)))
                    normal-error)))
 
+  ;; A slightly more realistic test.
   (let ((fut (funcall elisp-funcall #'documentation 'car)))
     (should (equal (futur-blocking-wait-to-get-result fut)
                    (documentation 'car))))
 
+  ;; Check that all characters can be sent&received without
+  ;; interfering with the internal escaping mechanism.
   (let* ((str (let ((chars ()))
                 (dotimes (i 1024)
                   (push i chars))
@@ -244,6 +249,7 @@
     (should (equal (futur-blocking-wait-to-get-result fut)
                    str)))
 
+  ;; Test `futur-reset-context'.
   (let* ((f (lambda (context)
               (futur-reset-context
                'futur-test-mini context)
@@ -260,7 +266,30 @@
     (should (autoloadp (nth 0 vals)))
     (should (or (functionp (nth 1 vals)) (eq 'subr (nth 1 vals))))
     (should-not (equal (nth 0 vals) (nth 1 vals)))
-    (should (equal (nth 0 vals) (nth 2 vals)))))
+    (should (equal (nth 0 vals) (nth 2 vals))))
+
+  ;; Test interruption of long running code.
+  (let ((inhibit-interaction nil)
+        (start (float-time))
+        (fut1 (funcall elisp-funcall
+                       (lambda ()
+                         (message "Finishing FUT1 in %S with: %S"
+                                  (emacs-pid)
+                         (setq futur--last-result
+                               (condition-case err (sleep-for 1)
+                                 (t err))))))))
+    (sit-for 0.1)
+    (futur-abort fut1 "testing")
+    (message "Aborted after %.2f" (- (float-time) start))
+    (sit-for 0.5)
+    (message "Starting second step after %.2f" (- (float-time) start))
+    (let ((fut2 (funcall elisp-funcall
+                         (lambda ()
+                           (message "Running FUT2 in %S" (emacs-pid))
+                           (bound-and-true-p futur--last-result)))))
+      (should (equal (futur-blocking-wait-to-get-result fut2)
+                     '(quit)))))
+  )
 
 (ert-deftest futur-elisp-funcall ()
   (futur--tests-elisp-funcall #'futur-elisp--funcall))

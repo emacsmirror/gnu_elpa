@@ -110,26 +110,27 @@
   ;; Try and make sure the client code gets an error if it tries to use stdin.
   (let ((errorfun (lambda (&rest _) (signal 'futur-inhibited-interaction nil))))
     (dolist (fun '( read-from-minibuffer yes-or-no-p read-string
-                    ;; FIXME: Maybe some of these could still be acceptable,
-                    ;; e.g. when called with a timeout?
-                    read-key-sequence read-char read-event read-char-exclusive
+                    ;; Apparently `read-(key-sequence,char(-exclusive),event)`
+                    ;; are OK, they can't read from stdin.
                     ;; FIXME: There are still ways to try and read from stdin,
                     ;; e.g. via `interactive' specs.
                     ))
       (fset fun errorfun)))
-  ;; FIXME: Prevent client code from using stdout?
+  ;; FIXME: Prevent client code from using stdout (including
+  ;; via `read-event/char/key' prompts).
 
   ;; We want the `futur-elisp' client to be able to interrupt long-running
-  ;; requests, and so far the only way we found is to abuse the SIGUSR1
-  ;; escape hatch that was designed for debugging.
-  ;; FIXME: This is hackish and doesn't work under w32 and Android.
-  ;; https://lists.gnu.org/archive/html/emacs-devel/2026-03/msg00100.html
-  (setq debug-on-event 'sigusr1)
-  (add-function :around debugger
-                (lambda (orig-fun reason object)
-                  (if (and (eq 'error reason) (equal '(quit) object))
-                      (signal object nil) ;FIXME: Use `error-resignal'.
-                    (funcall orig-fun reason object))))
+  ;; requests.
+  (if (boundp 'kill-emacs-on-sigint)    ;Emacs-31
+      (setq kill-emacs-on-sigint nil)
+    ;; In older Emacsen, abuse the SIGUSR1 escape hatch that was designed for
+    ;; debugging.  This is hackish and doesn't work under w32 and Android.
+    (setq debug-on-event 'sigusr1)
+    (add-function :around debugger
+                  (lambda (orig-fun &rest args)
+                    (if (equal args '(error (quit)))
+                        (signal 'quit nil)
+                      (apply orig-fun args)))))
   ;; Initialize the cache of obarray snapshots.
   ;; Do it before we bind `inhibit-quit' to t, otherwise requests that use
   ;; `futur-reset-context' might inadvertently set it back to t.

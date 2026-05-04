@@ -19,7 +19,33 @@
 
 ;;; Code:
 
-;; (require 'trace)
+;; We use the following process properties:
+;;
+;; - `futur--kind': The "kind" of server.  Can be the symbols `futur-server'
+;;   or `futur-sandbox'.
+;; - `futur--parse-pending': The process's output that we have not yet parsed.
+;;   Can be a string or nil.
+;; - `futur--parse-state': The state of the parser of the process's output.
+;;   A symbol among:
+;;   - `:booting': we just started the process; waiting for first prompt.
+;;   - `:sexp': in the middle of receiving an sexp.
+;;   - `:next': waiting to read the prompt that precedes the next sexp.
+;; - `futur--parse-sexp-chunks': The chunks we have already received,
+;;   when reading a sexp.
+;; - `futur--sid': The SID of this process (a string " fes:HEX ").
+;; - `futur--sid-sym': The SID of this process (a symbol `fes:HEX').
+;; - `futur--parent': The parent process, used only for the auxiliary stderr
+;;   pipe processes.
+;; - `futur--destination': the future to which to send the next result.
+;; - `futur--last-time': The (float) time of the last interaction.
+;; - `futur--last-sexp': The car of the last received sexp.
+;; - `futur--answers': List of answers we have already received
+;;   but whose destination futures have not yet arrived.
+;; - `futur--ready': Boolean indicating if a process is ready to receive
+;;   some new homework.
+;; - `futur--rid': The current request ID, a natural number.
+
+(require 'trace)
 ;; (trace-function 'futur-elisp--process-filter)
 ;; (trace-function 'futur-elisp--process-answer)
 ;; (trace-function 'process-send-region)
@@ -47,23 +73,23 @@ A server kind is a symbol.")
   (cl-assert (process-get proc 'futur--kind))
   (cl-assert (memq proc (assq (process-get proc 'futur--kind)
                               futur-elisp--servers)))
-  (let ((pending (process-get proc 'futur--pending))
+  (let ((pending (process-get proc 'futur--parse-pending))
         (case-fold-search nil))
-    (process-put proc 'futur--pending nil)
+    (process-put proc 'futur--parse-pending nil)
     (named-let loop ((string (if pending (concat pending string) string)))
-      ;; (trace-values :looping (process-get proc 'futur--state) string)
-      (pcase-exhaustive (process-get proc 'futur--state)
+      ;; (trace-values :looping (process-get proc 'futur--parse-state) string)
+      (pcase-exhaustive (process-get proc 'futur--parse-state)
         (:booting
          (if (not (string-match " \\(fes:[0-9a-f]+\\) " string))
-             (process-put proc 'futur--pending string)
+             (process-put proc 'futur--parse-pending string)
            (let ((before (string-trim
                           (substring string 0 (match-beginning 0)))))
              (unless (equal "" before)
                (message "Skipping output from futur-server: %S" before)))
            (process-put proc 'futur--sid (match-string 0 string))
            (process-put proc 'futur--sid-sym (intern (match-string 1 string)))
-           (process-put proc 'futur--state :sexp)
-           (process-put proc 'futur--pendings nil)
+           (process-put proc 'futur--parse-state :sexp)
+           (process-put proc 'futur--parse-sexp-chunks nil)
            (when (< (match-end 0) (length string))
              (loop (substring string (match-end 0))))))
         (:sexp
@@ -71,31 +97,31 @@ A server kind is a symbol.")
            (cl-assert (< (length pending)
                          (length futur-elisp--impossible-string))))
          (if (not (string-match "\n" string))
-             (push string (process-get proc 'futur--pendings))
+             (push string (process-get proc 'futur--parse-sexp-chunks))
            (unless (eq 0 (match-beginning 0))
              (push (substring string 0 (match-beginning 0))
-                   (process-get proc 'futur--pendings))
+                   (process-get proc 'futur--parse-sexp-chunks))
              (setq string (substring string (match-beginning 0))))
            ;; (trace-values :sexp string)
            (cond
             ((string-prefix-p futur-elisp--impossible-string string)
-             (let* ((pendings (process-get proc 'futur--pendings))
+             (let* ((pendings (process-get proc 'futur--parse-sexp-chunks))
                     (sexp-string (mapconcat #'identity (nreverse pendings) "")))
-               (process-put proc 'futur--pendings nil)
-               (process-put proc 'futur--state :next)
+               (process-put proc 'futur--parse-sexp-chunks nil)
+               (process-put proc 'futur--parse-state :next)
                (futur--funcall #'futur-elisp--process-answer proc sexp-string)
                (when (< (length futur-elisp--impossible-string) (length string))
                  ;; (trace-values :loop1)
                  (loop (substring string
                                   (length futur-elisp--impossible-string))))))
             ((< (length string) (length futur-elisp--impossible-string))
-             (process-put proc 'futur--pending string))
+             (process-put proc 'futur--parse-pending string))
             ((string-match "\n" string 1)
              (push (substring string 0 (match-beginning 0))
-                   (process-get proc 'futur--pendings))
+                   (process-get proc 'futur--parse-sexp-chunks))
              ;; (trace-values :loop2)
              (loop (substring string (match-beginning 0))))
-            (t (push string (process-get proc 'futur--pendings))))))
+            (t (push string (process-get proc 'futur--parse-sexp-chunks))))))
         (:next
          (let ((sid (process-get proc 'futur--sid)))
            (when pending
@@ -107,22 +133,22 @@ A server kind is a symbol.")
                             (substring string 0 (match-beginning 0)))))
                (unless (equal "" before)
                  (message "Skipping output from futur-server: %S" before))
-               (process-put proc 'futur--state :sexp)
+               (process-put proc 'futur--parse-state :sexp)
                ;; (trace-values :loop3 before sid after)
                (loop after)))
             (t
-             (string-match "[:0-9a-fs]*\\'" string ;; This regexp Can't fail.
+             (string-match "[ :0-9a-fs]*\\'" string ;; This regexp Can't fail.
                            (max 0 (- (length string) (length sid))))
              (let ((after (substring string (match-beginning 0)))
                    (before (string-trim
                             (substring string 0 (match-beginning 0)))))
                (unless (equal "" before)
                  (message "Skipping output from futur-server: %S" before))
-               (process-put proc 'futur--pending after)))))))))
+               (process-put proc 'futur--parse-pending after)))))))))
   nil)
 
 (defun futur-elisp--process-filter-stderr (proc string)
-  (let ((pending (process-get proc 'futur--pending)))
+  (let ((pending (process-get proc 'futur--parse-pending)))
     (while (string-match "\n" string)
       (let* ((head (substring string 0 (match-beginning 0)))
              (tail (substring string (match-end 0)))
@@ -133,7 +159,7 @@ A server kind is a symbol.")
           (message "%s: %S" (or kind 'futur-unknown-kind) line))
         (setq pending nil)
         (setq string tail)))
-    (process-put proc 'futur--pending
+    (process-put proc 'futur--parse-pending
                  (if pending (concat pending string) string))))
 
 (defun futur-elisp--process-sentinel (proc status)
@@ -182,7 +208,7 @@ A server kind is a symbol.")
                   "-f" "futur-server"))))
     (process-put stderr 'futur--parent proc)
     (process-put proc 'futur--kind kind)
-    (process-put proc 'futur--state :booting)
+    (process-put proc 'futur--parse-state :booting)
     (process-put proc 'futur--rid 0)
     (process-put proc 'futur--last-time (float-time))
     (push proc (alist-get kind futur-elisp--servers))
@@ -211,6 +237,7 @@ A server kind is a symbol.")
       (setq futur-elisp--servers-timer nil))))
 
 (defun futur-elisp--process-answer (proc sexp-string)
+  (process-put proc 'futur--last-time (float-time))
   (pcase-let* ((`(,sexp . ,end)
                 (condition-case err
                          (read-from-string sexp-string)
@@ -222,6 +249,7 @@ A server kind is a symbol.")
                          `(:trailing-garbage ,sexp ,(substring sexp-string end))
                        sexp))
                (futur (process-get proc 'futur--destination)))
+    (process-put proc 'futur--last-sexp (or (car-safe sexp) sexp))
     (if (null futur)
         ;; Hopefully, some destination will show up later to consume it.
         (process-put proc 'futur--answers
@@ -264,8 +292,10 @@ A server kind is a symbol.")
   ;; Don't kill the server, since we may want to reuse it for other
   ;; requests.
   (let ((proc (cdr blocker)))
-    ;; FIXME: This USR1 hack doesn't work in Windows and Android.
-    (signal-process proc 'USR1)))
+    (if (boundp 'kill-emacs-on-sigint)  ;Emacs-31
+        (interrupt-process proc)
+      ;; This USR1 hack doesn't work in Windows and Android.  🙁
+      (signal-process proc 'USR1))))
 
 (cl-defmethod futur-blocker-wait ((_blocker (head futur-server)))
   ;; FIXME: (while ?? (accept-process-output proc ...))!
@@ -329,11 +359,9 @@ A server kind is a symbol.")
          (pcase-exhaustive call-answer
            (`(:funcall-success ,(pred (equal rid)) . ,val)
             (process-put proc 'futur--ready t)
-            (process-put proc 'futur--last-time (float-time))
             val)
            (`(:funcall-error ,(pred (equal rid)) . ,err)
             (process-put proc 'futur--ready t)
-            (process-put proc 'futur--last-time (float-time))
             (when (stringp (car err)) ;The error is preceded by a backtrace.
               ;; (message "[Futur] Received error with backtrace: %S\n%s"
               ;;          (cdr err) (car err))
@@ -341,7 +369,6 @@ A server kind is a symbol.")
             (futur--resignal err))
            (`(:unreadable-answer . ,err-data)
             (process-put proc 'futur--ready t)
-            (process-put proc 'futur--last-time (float-time))
             ;; FIXME: Maybe we should report the whole unreadable string?
             ;; FIXME: A "common" case is when an error includes un`read'able
             ;; data, like a buffer, in which case we could convert

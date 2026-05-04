@@ -278,7 +278,7 @@ DESCRIPTION is used in the toggle message."
 
 (defun keymap-popup--entry-command (map-name entry)
   "Return the command to bind in MAP-NAME's keymap for ENTRY."
-  (pcase (plist-get entry :type)
+  (pcase-exhaustive (plist-get entry :type)
     ('suffix (plist-get entry :command))
     ('switch (intern (format "%s--toggle-%s" map-name (plist-get entry :variable))))
     ('keymap (let ((target (plist-get entry :target)))
@@ -306,7 +306,7 @@ MAP-NAME is used to derive generated command names."
          (key (plist-get entry :key))
          (desc-form (keymap-popup--quote-if-needed
                      (plist-get entry :description)))
-         (type-props (pcase type
+         (type-props (pcase-exhaustive type
                        ('suffix `(:command ,(keymap-popup--quote-if-needed
                                              (plist-get entry :command))
 					   ,@(and (plist-get entry :stay-open)
@@ -530,9 +530,7 @@ KEY-WIDTH pads the key column for alignment."
            (c-u-desc (plist-get entry :c-u))
            (raw-key (plist-get entry :key))
            (padded-key (if key-width
-                           (concat raw-key
-                                   (make-string (max 0 (- key-width (length raw-key)))
-                                                ?\s))
+                           (string-pad raw-key key-width)
                          raw-key))
            (key-str (propertize padded-key 'face 'keymap-popup-key))
            (value-str (if (eq type 'switch)
@@ -948,28 +946,28 @@ Includes keys with entry-level or group-level :inapt-if."
   (keymap-popup--collect-entries
    descriptions
    (lambda (entry group)
-     (when (and (plist-get entry :key)
-                (or (plist-get entry :inapt-if)
-                    (plist-get group :inapt-if)))
-       (plist-get entry :key)))))
+     (and-let* ((key (plist-get entry :key))
+                (_ (or (plist-get entry :inapt-if)
+                       (plist-get group :inapt-if))))
+       key))))
 
 (defun keymap-popup--stay-open-suffix-keys (descriptions)
   "Return key-strings for :stay-open suffix entries in DESCRIPTIONS."
   (keymap-popup--collect-entries
    descriptions
    (lambda (entry _group)
-     (when (and (plist-get entry :key)
-                (eq (plist-get entry :type) 'suffix)
-                (plist-get entry :stay-open))
-       (plist-get entry :key)))))
+     (and-let* ((key (plist-get entry :key))
+                (_ (eq (plist-get entry :type) 'suffix))
+                (_ (plist-get entry :stay-open)))
+       key))))
 
 (defun keymap-popup--switch-keys (descriptions)
   "Return key-strings for switch entries in DESCRIPTIONS."
   (keymap-popup--collect-entries
    descriptions
    (lambda (entry _group)
-     (when (eq (plist-get entry :type) 'switch)
-       (plist-get entry :key)))))
+     (and (eq (plist-get entry :type) 'switch)
+          (plist-get entry :key)))))
 
 (defun keymap-popup--submenu-keys (descriptions)
   "Return alist of (KEY-STRING . TARGET-KEYMAP) from DESCRIPTIONS."

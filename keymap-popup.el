@@ -294,31 +294,20 @@ MAP-NAME is used to derive generated command names."
            append (list (plist-get entry :key)
                         (if (symbolp cmd) `#',cmd cmd))))
 
-(defun keymap-popup--quote-if-needed (form)
-  "Quote FORM unless it is a lambda, in which case return as-is.
-Unlike `macroexp-quote', leaves lambda forms unquoted so the
-byte compiler sees them as code rather than data."
-  (if (and (consp form) (eq (car form) 'lambda))
-      form
-    `',form))
-
 (defun keymap-popup--build-entry-form (entry)
-  "Build a `list' form for a single ENTRY that evaluates lambdas properly."
+  "Build a `list' form for a single ENTRY."
   (let* ((type (plist-get entry :type))
-         (key (plist-get entry :key))
-         (desc-form (keymap-popup--quote-if-needed
-                     (plist-get entry :description)))
          (type-props (pcase-exhaustive type
-                       ('suffix `(:command ,(keymap-popup--quote-if-needed
-                                             (plist-get entry :command))
-					   ,@(and (plist-get entry :stay-open)
-						  '(:stay-open t))))
+                       ('suffix (let ((cmd (plist-get entry :command)))
+                                  `(:command ,(if (symbolp cmd) `#',cmd cmd)
+                                             ,@(and (plist-get entry :stay-open)
+                                                    '(:stay-open t)))))
                        ('keymap `(:target ,(plist-get entry :target)))
                        ('switch `(:variable ',(plist-get entry :variable)))))
          (if-pred (plist-get entry :if))
          (inapt-if (plist-get entry :inapt-if)))
-    `(list :key ,key
-           :description ,desc-form
+    `(list :key ,(plist-get entry :key)
+           :description ,(plist-get entry :description)
            :type ',type
            ,@type-props
            ,@(and if-pred (list :if if-pred))

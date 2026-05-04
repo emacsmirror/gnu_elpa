@@ -197,5 +197,91 @@
   (let ((forgejo--api-default-limit nil))
     (should (= (forgejo-api-default-limit) 50))))
 
+;;; Group 10: Response classification
+
+(ert-deftest forgejo-test-api-classify-success ()
+  "Classify a 200 response as success with parsed data and headers."
+  (with-temp-buffer
+    (insert "HTTP/1.1 200 OK\r\n"
+            "X-Total-Count: 5\r\n"
+            "\r\n"
+            "{\"id\": 1}")
+    (let ((result (forgejo-api--classify-response nil (current-buffer))))
+      (should (eq (plist-get result :kind) 'success))
+      (should (= (alist-get 'id (plist-get result :data)) 1))
+      (should (= (plist-get (plist-get result :headers) :total-count) 5)))))
+
+(ert-deftest forgejo-test-api-classify-http-error ()
+  "Classify a 404 response as http-error with message from JSON body."
+  (with-temp-buffer
+    (insert "HTTP/1.1 404 Not Found\r\n"
+            "\r\n"
+            "{\"message\": \"repo not found\"}")
+    (let ((result (forgejo-api--classify-response nil (current-buffer))))
+      (should (eq (plist-get result :kind) 'http-error))
+      (should (= (plist-get result :status) 404))
+      (should (string= (plist-get result :message) "repo not found")))))
+
+(ert-deftest forgejo-test-api-classify-http-error-bad-json ()
+  "Classify a 500 with malformed body as http-error with nil message."
+  (with-temp-buffer
+    (insert "HTTP/1.1 500 Internal Server Error\r\n"
+            "\r\n"
+            "not json")
+    (let ((result (forgejo-api--classify-response nil (current-buffer))))
+      (should (eq (plist-get result :kind) 'http-error))
+      (should (= (plist-get result :status) 500))
+      (should (null (plist-get result :message))))))
+
+(ert-deftest forgejo-test-api-classify-net-error ()
+  "Classify a network error from url-retrieve status."
+  (with-temp-buffer
+    (insert "")
+    (let ((result (forgejo-api--classify-response
+                   '(:error (error connection-failed)) (current-buffer))))
+      (should (eq (plist-get result :kind) 'net-error))
+      (should (stringp (plist-get result :message))))))
+
+(ert-deftest forgejo-test-api-classify-not-modified ()
+  "Classify a 304 response as not-modified with headers."
+  (with-temp-buffer
+    (insert "HTTP/1.1 304 Not Modified\r\n"
+            "ETag: \"abc\"\r\n"
+            "\r\n")
+    (let ((result (forgejo-api--classify-response nil (current-buffer))))
+      (should (eq (plist-get result :kind) 'not-modified))
+      (should (string= (plist-get (plist-get result :headers) :etag) "\"abc\"")))))
+
+;;; Group 11: Error reporting
+
+(ert-deftest forgejo-test-api-report-error-calls-callback ()
+  "Error callback receives a structured error plist."
+  (let (received)
+    (forgejo-api--report-error
+     "GET" "repos/x/y"
+     '(:kind http-error :status 404 :message "not found" :data nil)
+     (lambda (info) (setq received info)))
+    (should (= (plist-get received :status) 404))
+    (should (string= (plist-get received :message) "not found"))))
+
+(ert-deftest forgejo-test-api-report-error-messages ()
+  "Without callback, report-error logs to *Messages*."
+  (let ((messages nil))
+    (cl-letf (((symbol-function 'message)
+               (lambda (fmt &rest args) (push (apply #'format fmt args) messages))))
+      (forgejo-api--report-error
+       "GET" "repos/x/y"
+       '(:kind http-error :status 404 :message "not found") nil)
+      (forgejo-api--report-error
+       "POST" "repos/x/y"
+       '(:kind net-error :message "connection refused") nil)
+      (forgejo-api--report-error
+       "GET" "repos/x/y"
+       '(:kind timeout) nil))
+    (should (= (length messages) 3))
+    (should (string-match-p "404" (nth 2 messages)))
+    (should (string-match-p "connection refused" (nth 1 messages)))
+    (should (string-match-p "timeout" (nth 0 messages)))))
+
 (provide 'forgejo-test-api)
 ;;; forgejo-test-api.el ends here

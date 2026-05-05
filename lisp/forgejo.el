@@ -325,6 +325,7 @@ create one via `forgejo-create-token'."
 
 (keymap-popup-define forgejo-map
   "Forgejo."
+  :description "Forgejo Menu"
   :group "Navigate"
   "s" ("Search repos" forgejo-repo-search)
   "i" ("Issues" forgejo-issue-list)

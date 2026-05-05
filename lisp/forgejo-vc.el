@@ -559,7 +559,7 @@ and mark it as manually merged after a successful push."
   (not (forgejo-vc--repo-from-remote)))
 
 (keymap-popup-define forgejo-vc-map
-  "Forgejo operations for the current repository."
+  :description "Forgejo operations for the current repository."
   :group "View"
   "i" ((lambda ()
          (cond

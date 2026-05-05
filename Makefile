@@ -2,7 +2,7 @@
 .PHONY: all doc test load clean
 
 EMACS = emacs
-GUIX_SHELL ?= guix shell -m manifest.scm --
+GUIX_SHELL ?= guix shell -D -f guix.scm --pure --
 ORG := docs/gnosis.org
 TEXI := docs/gnosis.texi
 INFO := docs/gnosis.info

@@ -37,6 +37,19 @@
   :type 'directory
   :group 'gnosis)
 
+(defmacro gnosis-db--migrate-step (description &rest body)
+  "Run BODY; on error, log a debug warning with DESCRIPTION.
+Used in idempotent migration steps where errors indicate
+the operation was already applied."
+  (declare (indent 1) (debug t))
+  `(condition-case err
+       (progn ,@body)
+     (error
+      (display-warning 'gnosis
+		       (format "Migration: %s: %s"
+			       ,description (error-message-string err))
+		       :debug))))
+
 ;; Directory creation deferred to gnosis--ensure-db
 
 (defvar gnosis-db nil
@@ -332,9 +345,9 @@ Used for fresh databases only."
     (gnosis-sqlite-execute db stmt))
   ;; source_guid index: created by v8 migration for existing DBs,
   ;; or here for fresh DBs where the column already exists
-  (ignore-errors
-    (gnosis-sqlite-execute db
-			   "CREATE INDEX IF NOT EXISTS idx_themata_source_guid ON themata(source_guid)")))
+  (gnosis-db--migrate-step "create source_guid index"
+			   (gnosis-sqlite-execute db
+						  "CREATE INDEX IF NOT EXISTS idx_themata_source_guid ON themata(source_guid)")))
 
 (defun gnosis--db-has-tables-p ()
   "Return non-nil if the database has user tables."
@@ -403,8 +416,8 @@ Used by migrations that run before the thema-tag junction table exists."
   "Migration v4: column renames, tags/links tables, data conversions."
   (let ((db (gnosis--ensure-db)))
     ;; 1. Rename notes -> themata (no-op if v1 already did it)
-    (ignore-errors
-      (gnosis-sqlite-execute db "ALTER TABLE notes RENAME TO themata"))
+    (gnosis-db--migrate-step "v4: rename notes to themata"
+			     (gnosis-sqlite-execute db "ALTER TABLE notes RENAME TO themata"))
     ;; 2. Create tags and links tables (v5 will rename them)
     (gnosis-sqlite-execute db
 			   "CREATE TABLE IF NOT EXISTS tags (tag text PRIMARY KEY, UNIQUE (tag))")
@@ -488,37 +501,41 @@ Used by migrations that run before the thema-tag junction table exists."
 
 (defun gnosis-db--migrate-v5 ()
   "Migration v5: rename notes table to themata."
-  (ignore-errors
-    (gnosis-sqlite-execute (gnosis--ensure-db) "ALTER TABLE notes RENAME TO themata"))
+  (gnosis-db--migrate-step "v5: rename notes to themata"
+			   (gnosis-sqlite-execute (gnosis--ensure-db) "ALTER TABLE notes RENAME TO themata"))
   (gnosis--db-set-version 5))
 
 (defun gnosis-db--migrate-v6 ()
   "Migration v6: merge org-gnosis tables, rename links/tags."
   (let ((db (gnosis--ensure-db)))
     ;; 0. Move deck names into thema tags, then drop decks
-    (ignore-errors
-      (let ((rows (gnosis-sqlite-select db
-					"SELECT t.id, t.tags, d.name
+    (condition-case err
+	(let ((rows (gnosis-sqlite-select db
+					  "SELECT t.id, t.tags, d.name
                      FROM themata t JOIN decks d ON t.deck_id = d.id")))
-        (dolist (row rows)
-          (let* ((thema-id (nth 0 row))
-                 (tags (nth 1 row))
-                 (deck-name (nth 2 row))
-                 (new-tags (if (listp tags)
-                               (append tags (list deck-name))
-                             (list tags deck-name))))
-            (gnosis-sqlite-execute db
-				   "UPDATE themata SET tags = ? WHERE id = ?"
-				   (list new-tags thema-id))))))
-    (ignore-errors
-      (gnosis-sqlite-execute db "ALTER TABLE themata DROP COLUMN deck_id"))
-    (ignore-errors
-      (gnosis-sqlite-execute db "DROP TABLE IF EXISTS decks"))
+	  (dolist (row rows)
+	    (let* ((thema-id (nth 0 row))
+		   (tags (nth 1 row))
+		   (deck-name (nth 2 row))
+		   (new-tags (if (listp tags)
+				 (append tags (list deck-name))
+			       (list tags deck-name))))
+	      (gnosis-sqlite-execute db
+				     "UPDATE themata SET tags = ? WHERE id = ?"
+				     (list new-tags thema-id)))))
+      (error
+       (display-warning 'gnosis
+			(format "Migration: v6 deck-to-tag: %s"
+				(error-message-string err))
+			:warning)))
+    (gnosis-db--migrate-step "v6: drop deck_id column"
+			     (gnosis-sqlite-execute db "ALTER TABLE themata DROP COLUMN deck_id"))
+    (gnosis-sqlite-execute db "DROP TABLE IF EXISTS decks")
     ;; 1. Rename existing tables (idempotent for PRAGMA 5 users)
-    (ignore-errors
-      (gnosis-sqlite-execute db "ALTER TABLE links RENAME TO thema_links"))
-    (ignore-errors
-      (gnosis-sqlite-execute db "ALTER TABLE tags RENAME TO thema_tags"))
+    (gnosis-db--migrate-step "v6: rename links to thema_links"
+			     (gnosis-sqlite-execute db "ALTER TABLE links RENAME TO thema_links"))
+    (gnosis-db--migrate-step "v6: rename tags to thema_tags"
+			     (gnosis-sqlite-execute db "ALTER TABLE tags RENAME TO thema_tags"))
     ;; 2. Create thema-tag junction table & populate from themata.tags
     (let ((schema (cadr (assq 'thema-tag gnosis-db--schemata))))
       (gnosis-sqlite-execute db
@@ -531,22 +548,26 @@ Used by migrations that run before the thema-tag junction table exists."
 	      (tags (cadr row)))
 	  (when (listp tags)
 	    (dolist (tag tags)
-	      (ignore-errors
-		(gnosis-sqlite-execute db
-				       "INSERT OR IGNORE INTO thema_tag (thema_id, tag) VALUES (?, ?)"
-				       (list thema-id tag))))))))
+	      (condition-case err
+		  (gnosis-sqlite-execute db
+					 "INSERT OR IGNORE INTO thema_tag (thema_id, tag) VALUES (?, ?)"
+					 (list thema-id tag))
+		(error
+		 (display-warning 'gnosis
+				  (format "Migration: v6 tag insert (%s/%s): %s"
+					  thema-id tag
+					  (error-message-string err))
+				  :warning))))))))
     ;; Drop serialized tags column (now replaced by thema-tag junction table)
-    (ignore-errors
-      (gnosis-sqlite-execute db "ALTER TABLE themata DROP COLUMN tags"))
+    (gnosis-db--migrate-step "v6: drop themata.tags column"
+			     (gnosis-sqlite-execute db "ALTER TABLE themata DROP COLUMN tags"))
     ;; Drop thema-tags and node-tags lookup tables
-    (ignore-errors
-      (gnosis-sqlite-execute db "DROP TABLE IF EXISTS thema_tags"))
-    (ignore-errors
-      (gnosis-sqlite-execute db "DROP TABLE IF EXISTS node_tags"))
+    (gnosis-sqlite-execute db "DROP TABLE IF EXISTS thema_tags")
+    (gnosis-sqlite-execute db "DROP TABLE IF EXISTS node_tags")
     ;; 3. Create node tables
     (dolist (table '(nodes journal node-tag node-links))
       (let ((schema (cadr (assq table gnosis-db--schemata))))
-        (gnosis-sqlite-execute db
+	(gnosis-sqlite-execute db
 			       (format "CREATE TABLE IF NOT EXISTS %s (%s)"
 				       (gnosis-sqlite--ident table)
 				       (gnosis-sqlite--compile-schema schema)))))
@@ -558,20 +579,27 @@ Used by migrations that run before the thema-tag junction table exists."
     ;; 4. Import from org-gnosis.db if it exists
     (let ((org-db-file (locate-user-emacs-file "org-gnosis.db")))
       (when (file-exists-p org-db-file)
-        (gnosis-sqlite-execute db
+	(gnosis-sqlite-execute db
 			       (format "ATTACH DATABASE '%s' AS org_gnosis"
 				       (expand-file-name org-db-file)))
-        (ignore-errors
-          (gnosis-sqlite-execute db
-				 "INSERT OR IGNORE INTO nodes SELECT * FROM org_gnosis.nodes")
-          (gnosis-sqlite-execute db
-				 "INSERT OR IGNORE INTO journal SELECT * FROM org_gnosis.journal")
-          (gnosis-sqlite-execute db
-				 "INSERT OR IGNORE INTO node_tag SELECT * FROM org_gnosis.node_tag")
-          (gnosis-sqlite-execute db
-				 "INSERT OR IGNORE INTO node_links SELECT * FROM org_gnosis.links"))
-        (gnosis-sqlite-execute db "DETACH DATABASE org_gnosis")
-        (message "Imported org-gnosis data into unified database"))))
+	(dolist (stmt '(("nodes"
+			 "INSERT OR IGNORE INTO nodes SELECT * FROM org_gnosis.nodes")
+			("journal"
+			 "INSERT OR IGNORE INTO journal SELECT * FROM org_gnosis.journal")
+			("node_tag"
+			 "INSERT OR IGNORE INTO node_tag SELECT * FROM org_gnosis.node_tag")
+			("node_links"
+			 "INSERT OR IGNORE INTO node_links SELECT * FROM org_gnosis.links")))
+	  (condition-case err
+	      (gnosis-sqlite-execute db (cadr stmt))
+	    (error
+	     (display-warning 'gnosis
+			      (format "Migration: v6 org-gnosis import %s: %s"
+				      (car stmt)
+				      (error-message-string err))
+			      :warning))))
+	(gnosis-sqlite-execute db "DETACH DATABASE org_gnosis")
+	(message "Imported org-gnosis data into unified database"))))
   (gnosis--db-set-version 6))
 
 (defun gnosis--migrate-date-to-int (value)

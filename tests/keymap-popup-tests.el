@@ -186,6 +186,19 @@
                           (documentation-property 'keymap-popup--test-pkdoc
                                                   'variable-documentation))))
 
+(ert-deftest keymap-popup-test-macro-keyword-order-independent ()
+  "Keywords can appear in any order."
+  (eval '(keymap-popup-define keymap-popup--test-kworder
+           :description "Dynamic"
+           :parent special-mode-map
+           :popup-key "?"
+           :exit-key "x"
+           "c" ("Comment" ignore))
+        t)
+  (should (functionp (keymap-lookup keymap-popup--test-kworder "?")))
+  (should (equal (keymap-popup--meta keymap-popup--test-kworder 'exit-key) "x"))
+  (should (eq (keymap-parent keymap-popup--test-kworder) special-mode-map)))
+
 ;;; Renderer tests
 
 (ert-deftest keymap-popup-test-render-suffix ()

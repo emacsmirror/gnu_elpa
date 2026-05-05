@@ -335,22 +335,16 @@ Uses list calls so lambdas get compiled."
 
 ;;; Macro
 
-(defun keymap-popup--consume-keyword (rest keyword)
-  "If REST starts with KEYWORD, return (VALUE . REMAINING), else nil."
-  (and (eq (car rest) keyword)
-       (cons (cadr rest) (cddr rest))))
-
 (defun keymap-popup--consume-keywords (rest keywords)
-  "Consume KEYWORDS from REST in order.
+  "Consume KEYWORDS from REST in any order.
 Returns (VALUES . REMAINING) where VALUES is a list of extracted
-values (nil for absent keywords)."
-  (if (null keywords)
-      (cons nil rest)
-    (let* ((pair (keymap-popup--consume-keyword rest (car keywords)))
-           (value (and pair (car pair)))
-           (remaining (if pair (cdr pair) rest))
-           (sub (keymap-popup--consume-keywords remaining (cdr keywords))))
-      (cons (cons value (car sub)) (cdr sub)))))
+values (nil for absent keywords), ordered as KEYWORDS."
+  (named-let collect ((rest rest) (alist nil))
+    (if (and rest (memq (car rest) keywords))
+        (collect (cddr rest)
+                 (cons (cons (car rest) (cadr rest)) alist))
+      (cons (mapcar (lambda (kw) (alist-get kw alist)) keywords)
+            rest))))
 
 (defun keymap-popup--extract-macro-opts (body)
   "Extract macro options from BODY.

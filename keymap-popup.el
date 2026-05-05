@@ -28,6 +28,10 @@
 ;; descriptions to an existing keymap.  `keymap-popup' displays
 ;; either as an interactive menu.  One definition, two uses:
 ;; direct key dispatch and popup help.
+;;
+;; The popup is a pure renderer: it reads state (buffer-locals, dynamic
+;; descriptions) but owns none.  Commands mutate state in the user's
+;; buffer; the popup just re-reads it on the next refresh.
 
 ;;; Code:
 

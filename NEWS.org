@@ -3,6 +3,17 @@
 + [[https://git.thanosapollo.org/gnosis/][Upstream]]
 + [[https://thanosapollo.org/log/gnosis/][Changelog]]
 
+* 0.10.5
+#+date: 2026/05/05
+
+** Performance
++ Defer link-issues computation to idle timer for faster dashboard load.
++ Eliminate redundant database query per thema during review sessions.
+
+** Other
++ Dashboard popup menus show item counts in the modeline.
++ Improved error reporting in database migrations.
+
 * 0.10.3
 #+date: 2026/04/04
 

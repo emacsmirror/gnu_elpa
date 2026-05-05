@@ -6,7 +6,7 @@
 ;; Keywords: extensions
 ;; URL: https://codeberg.org/thanosapollo/emacs-gnosis
 
-;; Version: 0.10.4
+;; Version: 0.10.5
 
 ;; Package-Requires: ((emacs "29.1") (compat "29.1.4.2")
 ;;                     (keymap-popup "0.2.0"))

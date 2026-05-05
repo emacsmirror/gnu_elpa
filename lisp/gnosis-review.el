@@ -601,14 +601,16 @@ If NEW? is non-nil, increment new themata log by 1."
 (defun gnosis-review--display-thema (id)
   "Display thema with ID and call the appropriate review func.
 Fetches tags once and passes them to the type-specific function.
-Returns (SUCCESS . ALGORITHM-RESULT)."
+Returns (TYPE (SUCCESS . ALGORITHM-RESULT))."
   (let* ((type (gnosis-get 'type 'themata `(= id ,id)))
-         (tags (gnosis-select 'tag 'thema-tag `(= thema-id ,id) t))
-         (func-name (intern (format "gnosis-review-%s" (downcase type)))))
+         (tags (gnosis-select 'tag 'thema-tag
+			      `(= thema-id ,id) t))
+         (func-name (intern (format "gnosis-review-%s"
+				    (downcase type)))))
     (if (fboundp func-name)
         (progn
 	  (window-configuration-to-register :gnosis-pre-image)
-          (funcall func-name id tags))
+          (list type (funcall func-name id tags)))
       (error "Malformed thema type: '%s'" type))))
 
 (defun gnosis-review-process-thema (thema state)
@@ -619,15 +621,15 @@ reviewed count, and pops from remaining.  Forces header redisplay.
 Returns STATE.
 
 This is a helper function for `gnosis-review-session'."
-  (let* ((gnosis-review--monkeytype-text nil)
-	 (review-cons (gnosis-review--display-thema thema))
-	 (success (car review-cons))
-	 (result (cdr review-cons)))
+  (pcase-let* ((gnosis-review--monkeytype-text nil)
+	       (`(,thema-type ,review-cons)
+		(gnosis-review--display-thema thema))
+	       (success (car review-cons))
+	       (result (cdr review-cons)))
     (when (and (not success)
 	       gnosis-review--monkeytype-text
 	       gnosis-monkeytype-enable
-	       (member (gnosis-get 'type 'themata `(= id ,thema))
-		       gnosis-monkeytype-themata))
+	       (member thema-type gnosis-monkeytype-themata))
       (gnosis-monkeytype gnosis-review--monkeytype-text))
     (gnosis-review-actions success thema result)
     ;; Use jump-to-register after first review.

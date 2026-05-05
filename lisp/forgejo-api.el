@@ -384,6 +384,8 @@ ARGS is a plist of keyword options:
                  completed timer-cell)
            t)))
     (when url-buf
+      (when-let* ((proc (get-buffer-process url-buf)))
+        (set-process-query-on-exit-flag proc nil))
       (forgejo-api--register-request completed timer-cell url-buf)
       (when forgejo-api-timeout
         (setcar timer-cell

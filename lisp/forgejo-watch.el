@@ -358,7 +358,9 @@ Reads the full ref from the `forgejo-full-ref' text property."
               (parsed (forgejo-watch--parse-ref ref)))
     (forgejo-db-mark-read forgejo-watch--host
                           (nth 0 parsed) (nth 1 parsed) (nth 2 parsed))
-    (forgejo-watch--render forgejo-watch--host)))
+    (let ((pos (point)))
+      (forgejo-watch--render forgejo-watch--host)
+      (goto-char (min pos (point-max))))))
 
 (defun forgejo-watch-mark-all-read ()
   "Mark all visible watch items as read."
@@ -370,7 +372,9 @@ Reads the full ref from the `forgejo-full-ref' text property."
       (when parsed
         (forgejo-db-mark-read forgejo-watch--host
                               (nth 0 parsed) (nth 1 parsed) (nth 2 parsed)))))
-  (forgejo-watch--render forgejo-watch--host))
+  (let ((pos (point)))
+    (forgejo-watch--render forgejo-watch--host)
+    (goto-char (min pos (point-max)))))
 
 (defun forgejo-watch-browse-at-point ()
   "Open the issue or PR at point in the browser."

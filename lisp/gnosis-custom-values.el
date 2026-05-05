@@ -53,13 +53,13 @@ Each entry is a list of (:tag NAME PARAMETERS) where:
 (defun gnosis-validate-custom-values (new-value)
   "Validate the structure and values of NEW-VALUE for gnosis-custom-values."
   (unless (listp new-value)
-    (error "GNOSIS-CUSTOM-VALUES should be a list of entries"))
+    (user-error "GNOSIS-CUSTOM-VALUES should be a list of entries"))
   (dolist (entry new-value)
     (unless (and (listp entry) (= (length entry) 3)
                  (eq (nth 0 entry) :tag)
                  (stringp (nth 1 entry))
                  (listp (nth 2 entry))) ; Ensure the third element is a plist
-      (error
+      (user-error
        (concat "Each entry should have a :tag keyword,"
                " a string, and a plist of custom values")))
     (let ((proto (plist-get (nth 2 entry) :proto))
@@ -69,19 +69,19 @@ Each entry is a list of (:tag NAME PARAMETERS) where:
           (amnesia (plist-get (nth 2 entry) :amnesia))
           (lethe (plist-get (nth 2 entry) :lethe)))
       (unless (and (listp proto) (cl-every #'integerp proto))
-        (error "Proto must be a list of integer values"))
+        (user-error "Proto must be a list of integer values"))
       (unless (or (null anagnosis) (integerp anagnosis))
-        (error "Anagnosis should be an integer"))
+        (user-error "Anagnosis should be an integer"))
       (unless (or (null epignosis) (numberp epignosis))
-        (error "Epignosis should be a number"))
+        (user-error "Epignosis should be a number"))
       (unless (or (null agnoia) (numberp agnoia))
-        (error "Agnoia should be a number"))
+        (user-error "Agnoia should be a number"))
       (unless (or (null amnesia)
                   (and (numberp amnesia)
                        (<= amnesia 1) (>= amnesia 0)))
-        (error "Amnesia should be a number between 0 and 1"))
+        (user-error "Amnesia should be a number between 0 and 1"))
       (unless (or (null lethe) (and (integerp lethe) (> lethe 0)))
-        (error "Lethe should be an integer greater than 0")))))
+        (user-error "Lethe should be an integer greater than 0")))))
 
 (defvar gnosis--custom-values-ht nil
   "Hash table cache mapping tag strings to their custom value plists.
@@ -141,7 +141,7 @@ WHERE is the buffer or object where the change happens."
                           (not (member key valid-keywords)))
                         keys)))
       (if invalid-key
-          (error "Invalid custom keyword found in: %s" invalid-key)
+          (user-error "Invalid custom keyword found in: %s" invalid-key)
         t))))
 
 (defun gnosis-get-custom-values (key search-value &optional values)
@@ -200,7 +200,7 @@ When VALIDATE-P is non-nil, signals error if value >= 1."
                    custom-tags custom-values))
          (val (or tag-val default-var)))
     (when (and validate-p (>= val 1))
-      (error "%s value must be lower than 1" keyword))
+      (user-error "%s value must be lower than 1" keyword))
     val))
 
 ;; Named wrappers -- tag variants (used in tests)

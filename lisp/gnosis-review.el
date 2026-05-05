@@ -468,6 +468,29 @@ Returns a cons; ='(position . user-input) if correct,
 				:test #'gnosis-compare-strings)))
     (cons position user-input)))
 
+(defun gnosis-review-cloze--update-state
+    (position unrevealed-clozes unrevealed-hints
+	      all-clozes revealed-clozes)
+  "Return updated cloze state after correct match at POSITION.
+UNREVEALED-CLOZES, UNREVEALED-HINTS: remaining items.
+ALL-CLOZES: original list for sort ordering.
+REVEALED-CLOZES: previously matched items.
+Returns (NEW-UNREVEALED NEW-HINTS NEW-REVEALED)."
+  (let* ((matched (nth position unrevealed-clozes))
+	 (new-revealed
+	  (cl-sort (cons matched revealed-clozes)
+		   #'< :key (lambda (c)
+			      (cl-position c all-clozes))))
+	 (new-unrevealed
+	  (append (cl-subseq unrevealed-clozes 0 position)
+		  (cl-subseq unrevealed-clozes (1+ position))))
+	 (new-hints
+	  (if (< position (length unrevealed-hints))
+	      (append (cl-subseq unrevealed-hints 0 position)
+		      (cl-subseq unrevealed-hints (1+ position)))
+	    unrevealed-hints)))
+    (list new-unrevealed new-hints new-revealed)))
+
 (defun gnosis-review-cloze (id tags)
   "Review cloze type thema for ID.
 TAGS are pre-fetched for custom value lookup."
@@ -475,64 +498,41 @@ TAGS are pre-fetched for custom value lookup."
 		     '[keimenon answer hypothesis]
 		     'themata `(= id ,id))))
 	 (keimenon (nth 0 data))
-         (all-clozes (nth 1 data))
-         (all-hints (nth 2 data))
-         (revealed-clozes '())
-         (unrevealed-clozes all-clozes)
-         (unrevealed-hints all-hints)
-         (parathema (gnosis-get 'parathema 'extras
+	 (all-clozes (nth 1 data))
+	 (all-hints (nth 2 data))
+	 (revealed-clozes '())
+	 (unrevealed-clozes all-clozes)
+	 (unrevealed-hints all-hints)
+	 (parathema (gnosis-get 'parathema 'extras
 				`(= id ,id)))
-         (success t))
+	 (success t))
     (gnosis-display-cloze-string
-     keimenon unrevealed-clozes
-     unrevealed-hints nil nil)
+     keimenon unrevealed-clozes unrevealed-hints nil nil)
     (catch 'done
       (while unrevealed-clozes
-        (let* ((input (gnosis-review-cloze--input
+	(let* ((input (gnosis-review-cloze--input
 		       unrevealed-clozes))
-               (position (car input))
-               (matched-cloze
-		(when position
-		  (nth position unrevealed-clozes)))
-               (matched-hint
-		(when (and position
-			   (< position
-			      (length unrevealed-hints)))
-		  (nth position unrevealed-hints))))
-          (if matched-cloze
-              (progn
-                (setq revealed-clozes
-                      (cl-sort
-		       (cons matched-cloze revealed-clozes)
-		       #'< :key
-		       (lambda (cloze)
-			 (cl-position cloze all-clozes))))
-                (setq unrevealed-clozes
-		      (append
-		       (cl-subseq unrevealed-clozes
-				  0 position)
-		       (cl-subseq unrevealed-clozes
-				  (1+ position))))
-                (when (and matched-hint
-			   (< position
-			      (length unrevealed-hints)))
-		  (setq unrevealed-hints
-			(append
-			 (cl-subseq unrevealed-hints
-				    0 position)
-			 (cl-subseq unrevealed-hints
-				    (1+ position)))))
-                (gnosis-display-cloze-string
+	       (position (car input)))
+	  (if position
+	      (pcase-let ((`(,new-unrev ,new-hints ,new-rev)
+			   (gnosis-review-cloze--update-state
+			    position unrevealed-clozes
+			    unrevealed-hints all-clozes
+			    revealed-clozes)))
+		(setq unrevealed-clozes new-unrev
+		      unrevealed-hints new-hints
+		      revealed-clozes new-rev)
+		(gnosis-display-cloze-string
 		 keimenon unrevealed-clozes
 		 unrevealed-hints revealed-clozes nil))
-            (gnosis-display-cloze-string
+	    (gnosis-display-cloze-string
 	     keimenon nil nil
 	     revealed-clozes unrevealed-clozes)
-            (gnosis-display-cloze-user-answer (cdr input))
-            (setq success nil)
-            (setq gnosis-review--monkeytype-text
+	    (gnosis-display-cloze-user-answer (cdr input))
+	    (setq success nil
+		  gnosis-review--monkeytype-text
 		  (car unrevealed-clozes))
-            (throw 'done nil)))))
+	    (throw 'done nil)))))
     (let ((result (gnosis-review-algorithm id success tags)))
       (gnosis-display-parathema parathema)
       (gnosis-display-next-review (nth 0 result) success)

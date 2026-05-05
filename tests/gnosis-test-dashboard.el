@@ -378,33 +378,6 @@ Binds `gnosis-nodes-dir' to the temp directory."
       (should (null result)))))
 
 ;; ──────────────────────────────────────────────────────────
-;; Header-line tests
-;; ──────────────────────────────────────────────────────────
-
-(ert-deftest gnosis-test-dashboard-header-line-themata ()
-  "Output-themata prepends count badge to header-line."
-  (gnosis-test-with-db
-    (let* ((id1 (gnosis-test--add-basic-thema "Q1" "A1"))
-           (id2 (gnosis-test--add-basic-thema "Q2" "A2")))
-      (gnosis-test-with-dashboard-buffer
-        (gnosis-dashboard-output-themata (list id1 id2))
-        (with-current-buffer gnosis-dashboard-buffer-name
-          (should (listp header-line-format))
-          (should (string-search "2" (car header-line-format))))))))
-
-(ert-deftest gnosis-test-dashboard-header-line-tags ()
-  "Output-tags prepends count badge to header-line."
-  (gnosis-test-with-db
-    (gnosis-test--add-basic-thema "Q1" "A1" '("math"))
-    (gnosis-test--add-basic-thema "Q2" "A2" '("geo"))
-
-    (gnosis-test-with-dashboard-buffer
-      (gnosis-dashboard-output-tags)
-      (with-current-buffer gnosis-dashboard-buffer-name
-        (should (listp header-line-format))
-        (should (string-search "2" (car header-line-format)))))))
-
-;; ──────────────────────────────────────────────────────────
 ;; Review count filter tests
 ;; ──────────────────────────────────────────────────────────
 

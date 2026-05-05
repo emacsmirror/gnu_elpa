@@ -49,7 +49,8 @@
                (replacement (concat
                              (and (string-match "^\\s-+" cloze-text)
 				  (match-string 0 cloze-text))
-                             (propertize cloze-string 'face 'gnosis-face-cloze)
+                             (propertize cloze-string
+                                         'face 'gnosis-face-cloze)
                              (and (string-match "\\s-+$" cloze-text)
 				  (match-string 0 cloze-text)))))
           (goto-char (point-min))
@@ -109,7 +110,8 @@ First item of answers will be marked as false, while the rest unanswered."
 Works with both single (:), double colons (::), single braces ({}) and
 double braces ({{}}).
 
-Also removes content after a double semicolon (::), which indicate a hint."
+Also removes content after a double semicolon (::),
+which indicates a hint."
   (let* ((regex "{\\{1,2\\}c[0-9]+:\\{1,2\\}\\(.*?\\)\\(::[^{}]*\\)?}\\{1,2\\}")
          (result (replace-regexp-in-string regex "\\1" string)))
     result))

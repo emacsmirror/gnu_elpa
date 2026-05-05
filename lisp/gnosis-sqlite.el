@@ -161,7 +161,9 @@ Rolls back on error via `unwind-protect'."
       (setq gnosis-sqlite--max-vars
             (let ((opts (sqlite-select db "PRAGMA compile_options")))
               (cl-loop for (opt) in opts
-                       when (string-match "MAX_VARIABLE_NUMBER=\\([0-9]+\\)" opt)
+                       when (string-match
+                             "MAX_VARIABLE_NUMBER=\\([0-9]+\\)"
+                             opt)
                        return (string-to-number (match-string 1 opt))
                        finally return 999)))))
 
@@ -243,7 +245,9 @@ Supported patterns:
          (cons (format "%s = ?" (gnosis-sqlite--ident col))
                (list (gnosis-sqlite--encode-param (cadr val))))
        (if (symbolp val)
-           (cons (format "%s = %s" (gnosis-sqlite--ident col) (gnosis-sqlite--ident val))
+           (cons (format "%s = %s"
+                         (gnosis-sqlite--ident col)
+                         (gnosis-sqlite--ident val))
                  nil)
          (cons (format "%s = ?" (gnosis-sqlite--ident col))
                (list (gnosis-sqlite--encode-param val))))))
@@ -330,19 +334,27 @@ COL-SPEC is like (name type :constraint1 :constraint2 ...)."
   (pcase constraint
     (`(:unique ,cols)
      (format "UNIQUE (%s)"
-             (mapconcat #'gnosis-sqlite--ident (append cols nil) ", ")))
+             (mapconcat #'gnosis-sqlite--ident
+                        (append cols nil) ", ")))
     (`(:foreign-key ,cols :references ,ref-table ,ref-cols . ,rest)
      (let ((sql (format "FOREIGN KEY (%s) REFERENCES %s (%s)"
-                        (mapconcat #'gnosis-sqlite--ident (append cols nil) ", ")
+                        (mapconcat #'gnosis-sqlite--ident
+                                   (append cols nil) ", ")
                         (gnosis-sqlite--ident ref-table)
-                        (mapconcat #'gnosis-sqlite--ident (append ref-cols nil) ", "))))
+                        (mapconcat #'gnosis-sqlite--ident
+                                   (append ref-cols nil)
+                                   ", "))))
        (while rest
          (let ((kw (pop rest)))
            (pcase kw
              (:on-delete
               (let ((action (pop rest)))
-                (setq sql (concat sql " ON DELETE "
-                                  (upcase (substring (symbol-name action) 1)))))))))
+                (setq sql
+                      (concat sql " ON DELETE "
+                              (upcase
+                               (substring
+                                (symbol-name action)
+                                1)))))))))
        sql))
     (_ (error "gnosis-sqlite: unsupported constraint: %S" constraint))))
 
@@ -354,7 +366,9 @@ Returns the string inside CREATE TABLE ... (HERE)."
          (col-defs (append col-vec nil))
          (constraints (cdr schema))
          (col-strings (mapcar #'gnosis-sqlite--compile-col-def col-defs))
-         (constraint-strings (mapcar #'gnosis-sqlite--compile-constraint constraints)))
+         (constraint-strings
+          (mapcar #'gnosis-sqlite--compile-constraint
+                  constraints)))
     (mapconcat #'identity (append col-strings constraint-strings) ", ")))
 
 ;;; High-level helpers for gnosis core
@@ -376,8 +390,10 @@ Params are pre-encoded for use with `gnosis-sqlite--execute-compiled'."
            (lambda (row)
              (let* ((elts (append row nil))
                     (placeholders (mapconcat (lambda (_) "?") elts ", ")))
-               (setq param-list (append param-list
-                                        (mapcar #'gnosis-sqlite--encode-param elts)))
+               (setq param-list
+                     (append param-list
+                             (mapcar #'gnosis-sqlite--encode-param
+                                     elts)))
                (format "(%s)" placeholders)))
            rows)))
     (cons (mapconcat #'identity row-strings ", ")

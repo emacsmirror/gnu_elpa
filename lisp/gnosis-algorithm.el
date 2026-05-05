@@ -1,4 +1,4 @@
-;;; gnosis-algorithm.el --- Spaced Repetition Algorithm for Gnosis  -*- lexical-binding: t; -*-
+;;; gnosis-algorithm.el --- Spaced repetition  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2023-2026  Free Software Foundation, Inc.
 
@@ -128,7 +128,8 @@ Returns INTERVAL with +/- fuzz variation.  Returns unmodified for
 intervals less than 2."
   (if (or (<= interval 2) (zerop gnosis-algorithm-interval-fuzz))
       interval
-    (let ((fuzz (- (* 2 gnosis-algorithm-interval-fuzz (/ (random 1001) 1000.0))
+    (let ((fuzz (- (* 2 gnosis-algorithm-interval-fuzz
+		      (/ (random 1001) 1000.0))
 		   gnosis-algorithm-interval-fuzz)))
       (* interval (1+ fuzz)))))
 
@@ -138,15 +139,19 @@ Optional integer OFFSET is a number of days from the current date.
 
 Respects `gnosis-algorithm-day-start-hour': when set to e.g. 6,
 times before 06:00 count as the previous calendar day."
-  (cl-assert (or (integerp offset) (null offset)) nil "Date offset must be an integer or nil")
+  (cl-assert (or (integerp offset) (null offset)) nil
+             "Date offset must be an integer or nil")
   (cl-assert (<= 0 gnosis-algorithm-day-start-hour 23) nil
-             "gnosis-algorithm-day-start-hour must be 0-23, got %d" gnosis-algorithm-day-start-hour)
+             "day-start-hour must be 0-23, got %d"
+             gnosis-algorithm-day-start-hour)
   (let* ((shifted (time-subtract (current-time)
                                  (seconds-to-time
                                   (* gnosis-algorithm-day-start-hour 3600))))
          (decoded-time (decode-time shifted))
          (target (if (and offset (not (zerop offset)))
-                     (decoded-time-add decoded-time (make-decoded-time :day offset))
+                     (decoded-time-add
+                      decoded-time
+                      (make-decoded-time :day offset))
                    decoded-time)))
     (list (decoded-time-year target)
           (decoded-time-month target)
@@ -167,8 +172,9 @@ DATE format must be given as (year month day)."
 		  (time-to-days given-date))))
     (if (>= diff 0) diff (error "`DATE2' must be higher than `DATE'"))))
 
-(cl-defun gnosis-algorithm-next-gnosis (&key gnosis success epignosis agnoia anagnosis
-					     c-successes c-failures lethe)
+(cl-defun gnosis-algorithm-next-gnosis
+    (&key gnosis success epignosis agnoia anagnosis
+          c-successes c-failures lethe)
   "Return the neo GNOSIS value. (gnosis-plus gnosis-minus gnosis-synolon)
 
 Calculate the new e-factor given existing GNOSIS and SUCCESS, either t or nil.
@@ -186,15 +192,24 @@ When C-SUCCESSES (consecutive successes) reach ANAGNOSIS,
 increase gnosis-plus by EPIGNOSIS.
 
 When C-FAILURES reach ANAGOSNIS, increase gnosis-minus by AGNOIA."
-  (cl-assert (listp gnosis) nil "Assertion failed: gnosis must be a list of floats.")
-  (cl-assert (booleanp success) nil "Assertion failed: success must be a boolean value")
-  (cl-assert (and (floatp epignosis) (< epignosis 1)) nil "Assertion failed: epignosis must be a float < 1")
-  (cl-assert (and (floatp agnoia) (< agnoia 1)) nil "Assertion failed: agnoia must be a float < 1")
-  (cl-assert (integerp anagnosis) nil "Assertion failed: anagosis must be an integer.")
+  (cl-assert (listp gnosis) nil
+             "gnosis must be a list of floats.")
+  (cl-assert (booleanp success) nil
+             "success must be a boolean value")
+  (cl-assert (and (floatp epignosis) (< epignosis 1)) nil
+             "epignosis must be a float < 1")
+  (cl-assert (and (floatp agnoia) (< agnoia 1)) nil
+             "agnoia must be a float < 1")
+  (cl-assert (integerp anagnosis) nil
+             "anagnosis must be an integer.")
   (let* ((g-plus (nth 0 gnosis))
 	 (g-minus (nth 1 gnosis))
 	 (g-synolon (nth 2 gnosis))
-	 (anagnosis-p (= (% (max 1 (if success c-successes c-failures)) anagnosis) 0))
+	 (anagnosis-p (= (% (max 1 (if success
+				       c-successes
+				     c-failures))
+			    anagnosis)
+			 0))
 	 ;; Update synolon
 	 (neo-synolon (if success
 			  (min (+ g-synolon g-plus) gnosis-algorithm-synolon-max)
@@ -212,8 +227,9 @@ When C-FAILURES reach ANAGOSNIS, increase gnosis-minus by AGNOIA."
 		     neo-plus)))
     (gnosis-algorithm-round-items (list neo-plus neo-minus neo-synolon))))
 
-(cl-defun gnosis-algorithm-next-interval (&key last-interval gnosis-synolon success successful-reviews
-					       amnesia proto c-fails lethe)
+(cl-defun gnosis-algorithm-next-interval
+    (&key last-interval gnosis-synolon success
+          successful-reviews amnesia proto c-fails lethe)
   "Calculate next interval.
 
 LAST-INTERVAL: Number of days since last review
@@ -234,13 +250,19 @@ Until successfully completing proto reviews, for every failed attempt
 the next interval will be set to 0.
 
 LETHE: Upon having C-FAILS >= lethe, set next interval to 0."
-  (cl-assert (booleanp success) nil "Success value must be a boolean")
-  (cl-assert (integerp successful-reviews) nil "Successful-reviews must be an integer")
-  (cl-assert (and (floatp amnesia) (<= amnesia 1)) nil "Amnesia must be a float <=1")
-  (cl-assert (and (<= amnesia 1) (> amnesia 0)) nil "Value of amnesia must be a float <= 1")
-  (cl-assert (and (integerp lethe) (>= lethe 1)) nil "Value of lethe must be an integer >= 1")
+  (cl-assert (booleanp success) nil
+             "Success value must be a boolean")
+  (cl-assert (integerp successful-reviews) nil
+             "Successful-reviews must be an integer")
+  (cl-assert (and (floatp amnesia) (<= amnesia 1)) nil
+             "Amnesia must be a float <=1")
+  (cl-assert (and (<= amnesia 1) (> amnesia 0)) nil
+             "Value of amnesia must be a float <= 1")
+  (cl-assert (and (integerp lethe) (>= lethe 1)) nil
+             "Value of lethe must be an integer >= 1")
   ;; If last-interval is 0, use 1 instead, only for successful reviews.
-  (let* ((last-interval (if (and (<= last-interval 0) success) 1 last-interval))
+  (let* ((last-interval (if (and (<= last-interval 0) success)
+			    1 last-interval))
 	 (amnesia (- 1 amnesia)) ;; inverse amnesia
 	 (interval (cond ((and (< successful-reviews (length proto))
 			       success)
@@ -259,13 +281,18 @@ LETHE: Upon having C-FAILS >= lethe, set next interval to 0."
 				;; Cap failure interval at 7 days to prevent
 				;; overly lenient reschedules for mature cards.
 			        (max (min success-interval failure-interval 7) 0)))))))
-    (gnosis-algorithm-date (round (gnosis-algorithm-fuzz-interval interval)))))
+    (gnosis-algorithm-date
+     (round (gnosis-algorithm-fuzz-interval interval)))))
 
 (defun gnosis-algorithm--date-later-p (date1 date2)
   "Return non-nil if DATE1 is later than DATE2.
 Both dates are lists of (year month day)."
-  (> (time-to-days (encode-time 0 0 0 (caddr date1) (cadr date1) (car date1)))
-     (time-to-days (encode-time 0 0 0 (caddr date2) (cadr date2) (car date2)))))
+  (> (time-to-days (encode-time 0 0 0
+				(caddr date1) (cadr date1)
+				(car date1)))
+     (time-to-days (encode-time 0 0 0
+				(caddr date2) (cadr date2)
+				(car date2)))))
 
 
 (provide 'gnosis-algorithm)

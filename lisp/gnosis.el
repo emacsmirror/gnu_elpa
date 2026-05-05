@@ -8,7 +8,8 @@
 
 ;; Version: 0.10.4
 
-;; Package-Requires: ((emacs "29.1") (compat "29.1.4.2") (keymap-popup "0.2.0"))
+;; Package-Requires: ((emacs "29.1") (compat "29.1.4.2")
+;;                     (keymap-popup "0.2.0"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -250,11 +251,11 @@ When VERIFICATION is non-nil, skip `y-or-n-p' prompt."
       (dolist (table '("thema_tag" "thema_links" "review"
                        "review_log" "extras" "themata"))
         (gnosis-sqlite-execute-batch db
-          (format "DELETE FROM %s WHERE %s IN (%%s)"
-                  table
-                  (if (string= table "thema_tag") "thema_id"
-                    (if (string= table "thema_links") "source" "id")))
-          ids)))))
+				     (format "DELETE FROM %s WHERE %s IN (%%s)"
+					     table
+					     (if (string= table "thema_tag") "thema_id"
+					       (if (string= table "thema_links") "source" "id")))
+				     ids)))))
 
 
 (defun gnosis-calculate-average-daily-reviews (&optional days)
@@ -292,7 +293,8 @@ History is disabled."
 
 (defun gnosis-insert-separator ()
   "Insert a line separator."
-  (insert "\n" (propertize " " 'display '(space :width text) 'face 'gnosis-face-separator)))
+  (insert "\n" (propertize " " 'display '(space :width text)
+                           'face 'gnosis-face-separator)))
 
 (defun gnosis-center-current-line ()
   "Centers text in the current line ignoring leading spaces."
@@ -375,7 +377,8 @@ images using `org-format-latex'."
                               (point-min) (point-max) temporary-file-directory
                               'overlays nil 'forbuffer
                               org-preview-latex-default-process)
-            ;; Convert overlays to text properties so they survive buffer-string
+            ;; Convert overlays to text properties so they
+            ;; survive buffer-string
             (dolist (ov (overlays-in (point-min) (point-max)))
               (when-let ((display (overlay-get ov 'display)))
                 (put-text-property (overlay-start ov) (overlay-end ov)
@@ -395,14 +398,17 @@ Set SPLIT to t to split all input given."
   (cl-loop with input = nil
            for response = (read-string (concat prompt " (q for quit): "))
 	   do (if downcase (setf response (downcase response)))
-           for response-parts = (if split (split-string response " ") (list response))
+           for response-parts = (if split
+                                    (split-string response " ")
+                                  (list response))
            if (member "q" response-parts) return (nreverse input)
            do (cl-loop for part in response-parts
 	               unless (string-empty-p part)
                        do (push part input))))
 
 
-(cl-defun gnosis-toggle-suspend-themata (ids &optional suspend-value verification)
+(cl-defun gnosis-toggle-suspend-themata
+    (ids &optional suspend-value verification)
   "Suspend or unsuspend themata IDS.
 
 When SUSPEND-VALUE is nil and IDS has one element, toggle that thema's
@@ -415,7 +421,10 @@ When VERIFICATION is non-nil, skips `y-or-n-p' prompt."
          (suspend-value
           (or suspend-value
               (if (= items-num 1)
-                  (if (= (gnosis-get 'suspend 'review-log `(= id ,(car ids))) 1) 0 1)
+                  (if (= (gnosis-get 'suspend 'review-log
+                                     `(= id ,(car ids)))
+                         1)
+                      0 1)
                 1)))
          (action (if (= suspend-value 1) "Suspend" "Unsuspend"))
          (verification
@@ -425,9 +434,9 @@ When VERIFICATION is non-nil, skips `y-or-n-p' prompt."
                 (y-or-n-p (format "%s %d themata? " action items-num))))))
     (when verification
       (gnosis-sqlite-execute-batch (gnosis--ensure-db)
-        "UPDATE review_log SET suspend = ? WHERE id IN (%s)"
-        ids
-        (list suspend-value)))))
+				   "UPDATE review_log SET suspend = ? WHERE id IN (%s)"
+				   ids
+				   (list suspend-value)))))
 
 (defun gnosis-mcq-answer (id)
   "Choose the correct answer, from mcq choices for question ID."
@@ -445,7 +454,8 @@ When VERIFICATION is non-nil, skips `y-or-n-p' prompt."
 						     (gnosis-utils-trim-quotes str2))))
          (max-length (max (length normalized-str1) (length normalized-str2))))
     (if (> max-length gnosis-string-difference)
-        (<= (string-distance normalized-str1 normalized-str2) gnosis-string-difference)
+        (<= (string-distance normalized-str1 normalized-str2)
+            gnosis-string-difference)
       (string= normalized-str1 normalized-str2))))
 
 (defun gnosis--read-string-with-input-method (prompt answer)
@@ -493,8 +503,8 @@ When THEMA-IDS is non-nil, restrict to that subset."
 
 
 (defun gnosis-add-thema-fields (type keimenon hypothesis answer
-				       parathema tags suspend links
-				       &optional review-image gnosis-id)
+				     parathema tags suspend links
+				     &optional review-image gnosis-id)
   "Insert fields for new thema.
 
 TYPE: Thema type e.g \"mcq\"
@@ -517,13 +527,17 @@ LINKS: List of id links."
   (let* ((gnosis-id (or gnosis-id (gnosis-generate-id)))
 	 (review-image (or review-image "")))
     (gnosis-sqlite-with-transaction (gnosis--ensure-db)
-      (gnosis--insert-into 'themata `([,gnosis-id ,(downcase type) ,keimenon ,hypothesis
-					      ,answer nil]))
-      (gnosis--insert-into 'review  `([,gnosis-id ,gnosis-algorithm-gnosis-value
-						,gnosis-algorithm-amnesia-value]))
+      (gnosis--insert-into 'themata
+			   `([,gnosis-id ,(downcase type)
+					 ,keimenon ,hypothesis
+					 ,answer nil]))
+      (gnosis--insert-into 'review
+			   `([,gnosis-id
+			      ,gnosis-algorithm-gnosis-value
+			      ,gnosis-algorithm-amnesia-value]))
       (gnosis--insert-into 'review-log `([,gnosis-id ,(gnosis--today-int)
-						   ,(gnosis--today-int) 0 0 0 0
-						   ,suspend 0]))
+						     ,(gnosis--today-int) 0 0 0 0
+						     ,suspend 0]))
       (gnosis--insert-into 'extras `([,gnosis-id ,parathema ,review-image]))
       (cl-loop for link in links
 	       do (gnosis--insert-into 'thema-links `([,gnosis-id ,link])))
@@ -531,7 +545,7 @@ LINKS: List of id links."
 	       do (gnosis--insert-into 'thema-tag `([,gnosis-id ,tag]))))))
 
 (defun gnosis-update-thema (id keimenon hypothesis answer parathema tags links
-			      &optional type)
+			       &optional type)
   "Update thema entry for ID.
 
 If gnosis ID does not exist, create it anew.
@@ -544,9 +558,9 @@ When `gnosis--id-cache' is bound, uses hash table for existence check."
 	(gnosis-sqlite-with-transaction (gnosis--ensure-db)
 	  ;; Single multi-column UPDATE for themata
 	  (gnosis-sqlite-execute (gnosis--ensure-db)
-	    "UPDATE themata SET keimenon = ?, hypothesis = ?, answer = ?, type = ? WHERE id = ?"
-	    (list keimenon hypothesis answer
-		  (or type current-type) id))
+				 "UPDATE themata SET keimenon = ?, hypothesis = ?, answer = ?, type = ? WHERE id = ?"
+				 (list keimenon hypothesis answer
+				       (or type current-type) id))
 	  ;; Single UPDATE for extras
 	  (gnosis-update 'extras `(= parathema ,parathema) `(= id ,id))
 	  ;; Re-sync links
@@ -559,7 +573,7 @@ When `gnosis--id-cache' is bound, uses hash table for existence check."
 		   do (gnosis--insert-into 'thema-tag `([,id ,tag]))))
       (message "Gnosis with id: %d does not exist, creating anew." id)
       (gnosis-add-thema-fields type keimenon hypothesis answer parathema tags
-			      0 links nil id))))
+			       0 links nil id))))
 
 ;;;;;;;;;;;;;;;;;;;;;; THEMA HELPERS ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; These functions provide assertions depending on the type of thema.
@@ -574,9 +588,12 @@ When `gnosis--id-cache' is bound, uses hash table for existence check."
   "Assert common fields shared by all thema types.
 KEIMENON, TAGS, SUSPEND, and LINKS are validated."
   (cl-assert (stringp keimenon) nil "Keimenon must be a string.")
-  (cl-assert (and (listp tags) (cl-every #'stringp tags)) nil "Tags must be a list of strings.")
-  (cl-assert (memq suspend '(0 1)) nil "Suspend value must be 0 or 1.")
-  (cl-assert (and (listp links) (cl-every #'stringp links)) nil "Links must be a list of strings."))
+  (cl-assert (and (listp tags) (cl-every #'stringp tags))
+             nil "Tags must be a list of strings.")
+  (cl-assert (memq suspend '(0 1)) nil
+             "Suspend value must be 0 or 1.")
+  (cl-assert (and (listp links) (cl-every #'stringp links))
+             nil "Links must be a list of strings."))
 
 (defun gnosis-add-thema--dispatch (id type keimenon hypothesis
 				      answer parathema tags suspend links)
@@ -586,7 +603,8 @@ Otherwise, update via `gnosis-update-thema'."
   (if (equal id "NEW")
       (gnosis-add-thema-fields type keimenon (or hypothesis (list ""))
 			       answer parathema tags suspend links)
-    (gnosis-update-thema id keimenon hypothesis answer parathema tags links type)))
+    (gnosis-update-thema id keimenon hypothesis answer
+                         parathema tags links type)))
 
 (defun gnosis-add-thema--basic (id type keimenon hypothesis
 				   answer parathema tags suspend links)
@@ -615,10 +633,11 @@ Otherwise, update via `gnosis-update-thema'."
 				   answer parathema tags suspend links)
 	  (gnosis-add-thema-fields type (car answer) hypothesis
 				   (list keimenon) parathema tags suspend links))
-      (gnosis-update-thema id keimenon hypothesis answer parathema tags links type))))
+      (gnosis-update-thema id keimenon hypothesis answer
+                           parathema tags links type))))
 
 (defun gnosis-add-thema--mcq (id type keimenon hypothesis
-				answer parathema tags suspend links)
+				 answer parathema tags suspend links)
   "Add or update an MCQ thema."
   (gnosis-add-thema--assert-common keimenon tags suspend links)
   (cl-assert (string= type "mcq") nil "TYPE must be \"mcq\".")
@@ -631,7 +650,7 @@ Otherwise, update via `gnosis-update-thema'."
 			      answer parathema tags suspend links))
 
 (defun gnosis-add-thema--cloze (id type keimenon hypothesis
-				  answer parathema tags suspend links)
+				   answer parathema tags suspend links)
   "Add or update a cloze thema."
   (gnosis-add-thema--assert-common keimenon tags suspend links)
   (cl-assert (string= type "cloze") nil "TYPE must be \"cloze\".")
@@ -652,10 +671,11 @@ Otherwise, update via `gnosis-update-thema'."
 						   parathema tags suspend links)))
 	  (gnosis-add-thema-fields type keimenon-clean (or hypothesis (list ""))
 				   answer parathema tags suspend links))
-      (gnosis-update-thema id keimenon-clean hypothesis answer parathema tags links type))))
+      (gnosis-update-thema id keimenon-clean hypothesis
+                           answer parathema tags links type))))
 
 (defun gnosis-add-thema--mc-cloze (id type keimenon hypothesis
-				  answer parathema tags suspend links)
+				      answer parathema tags suspend links)
   "Add or update an mc-cloze thema."
   (gnosis-add-thema--assert-common keimenon tags suspend links)
   (cl-assert (string= type "mc-cloze") nil "TYPE must be \"mc-cloze\".")
@@ -683,7 +703,7 @@ Otherwise, update via `gnosis-update-thema'."
       (erase-buffer))
     (gnosis-edit-mode)
     (gnosis-export--insert-thema "NEW" type keimenon hypothesis
-				answer parathema tags example))
+				 answer parathema tags example))
   (search-backward "keimenon")
   (forward-line))
 
@@ -747,7 +767,9 @@ Defaults to current date."
 
 Defaults to current date."
   (let* ((date (or date (gnosis--today-int)))
-	 (reviewed-new (or (car (gnosis-select 'reviewed-new 'activity-log `(= date ,date) t))
+	 (reviewed-new (or (car (gnosis-select 'reviewed-new
+					       'activity-log
+					       `(= date ,date) t))
 			   0)))
     reviewed-new))
 (defun gnosis-search-thema (&optional query)
@@ -758,8 +780,8 @@ Return thema ids for themata that match QUERY."
   (let* ((query (or query (read-string "Search for thema: ")))
          (words (split-string query))
          (clause-keimenon `(and ,@(mapcar (lambda (word)
-					`(like keimenon ,(format "%%%s%%" word)))
-                                      words)))
+					    `(like keimenon ,(format "%%%s%%" word)))
+					  words)))
 	 (clause-answer `(and ,@(mapcar (lambda (word)
 					  `(like answer ,(format "%%%s%%" word)))
 					words))))
@@ -778,19 +800,26 @@ Return thema ids for themata that match QUERY."
   (setq gnosis-due-themata-total (length (gnosis-review-get-due-themata)))
   (if gnosis-modeline-mode
       (progn
-        (add-to-list 'global-mode-string
-                     '(:eval
-                       (if (and gnosis-due-themata-total (> gnosis-due-themata-total 0))
-                           (propertize (format " [%d] " gnosis-due-themata-total) 'face 'warning
-                                       'gnosis-modeline t)
-                         "")))
+        (add-to-list
+         'global-mode-string
+         '(:eval
+           (if (and gnosis-due-themata-total
+                    (> gnosis-due-themata-total 0))
+               (propertize
+                (format " [%d] " gnosis-due-themata-total)
+                'face 'warning
+                'gnosis-modeline t)
+             "")))
         (force-mode-line-update))
     (setq global-mode-string
-          (seq-remove (lambda (item)
-                        (and (listp item)
-                             (eq (car item) :eval)
-                             (get-text-property 0 'gnosis-modeline (format "%s" (eval (cadr item))))))
-                      global-mode-string))
+          (seq-remove
+           (lambda (item)
+             (and (listp item)
+                  (eq (car item) :eval)
+                  (get-text-property
+                   0 'gnosis-modeline
+                   (format "%s" (eval (cadr item))))))
+           global-mode-string))
     (force-mode-line-update)))
 
 (define-derived-mode gnosis-mode special-mode "Gnosis"

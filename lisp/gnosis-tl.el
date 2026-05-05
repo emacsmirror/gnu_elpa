@@ -1,4 +1,4 @@
-;;; gnosis-tl.el --- Fast tabulated-list operations for large datasets  -*- lexical-binding: t; -*-
+;;; gnosis-tl.el --- Fast tabulated-list  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2023-2026  Free Software Foundation, Inc.
 
@@ -77,8 +77,10 @@ Truncated text is suffixed with `gnosis-tl-ellipsis'."
                       text))
          (padding (max 0 (- width (string-width truncated)))))
     (if right-align
-        (concat (make-string padding ?\s) truncated (make-string pad-right ?\s))
-      (concat truncated (make-string (+ padding pad-right) ?\s)))))
+        (concat (make-string padding ?\s) truncated
+                (make-string pad-right ?\s))
+      (concat truncated
+              (make-string (+ padding pad-right) ?\s)))))
 
 (defun gnosis-tl--format-line (id cols specs)
   "Build a propertized line string for entry ID with COLS and SPECS.
@@ -93,8 +95,9 @@ Returns a single string with tabulated-list text properties attached."
              for width = (plist-get spec :width)
              for segment = (if (= i last-idx)
                                (if (> (string-width text) width)
-                                   (truncate-string-to-width text width nil nil
-                                                             gnosis-tl-ellipsis)
+                                   (truncate-string-to-width
+                                    text width nil nil
+                                    gnosis-tl-ellipsis)
                                  text)
                              (gnosis-tl--pad-column
                               text width
@@ -107,16 +110,17 @@ Returns a single string with tabulated-list text properties attached."
     (let ((line (concat (apply #'concat (nreverse parts)) "\n")))
       (add-text-properties 0 (length line)
                            `(tabulated-list-id ,id
-                             tabulated-list-entry ,cols)
+					       tabulated-list-entry ,cols)
                            line)
       line)))
 
 ;;; Column position detection
 
 (defun gnosis-tl--column-at-point ()
-  "Return the column index at point based on cursor position and format widths.
-Computes which tabulated-list column the cursor is in by walking
-through `tabulated-list-format' widths starting from `tabulated-list-padding'."
+  "Return the column index at point from cursor position.
+Computes which tabulated-list column the cursor is in by
+walking through `tabulated-list-format' widths starting from
+`tabulated-list-padding'."
   (let* ((col (current-column))
          (pos (- col (or tabulated-list-padding 0)))
          (n-cols (length tabulated-list-format))
@@ -128,7 +132,9 @@ through `tabulated-list-format' widths starting from `tabulated-list-padding'."
                for spec = (aref tabulated-list-format i)
                for width = (nth 1 spec)
                for pad-right = (if (= i last-idx) 0
-                                 (or (plist-get (nthcdr 3 spec) :pad-right) 1))
+                                 (or (plist-get (nthcdr 3 spec)
+						:pad-right)
+                                     1))
                do (setq accum (+ accum width pad-right))
                when (< pos accum) return i
                finally return last-idx))))
@@ -171,17 +177,24 @@ minimise per-entry overhead.  Properties set per line:
          (last-idx (1- n-cols))
          (ellipsis gnosis-tl-ellipsis)
          (pad-str (when (> padding 0) (make-string padding ?\s)))
-         ;; Pre-compute per-column vectors (avoid plist-get in hot loop)
-         (widths    (vconcat (mapcar (lambda (s) (plist-get s :width)) specs)))
-         (pad-rights (vconcat (cl-loop for s in specs for i from 0
-                                       collect (if (= i last-idx) 0
-                                                 (plist-get s :pad-right)))))
-         (right-aligns (vconcat (mapcar (lambda (s) (plist-get s :right-align)) specs)))
+         ;; Pre-compute per-column vectors (no plist-get in hot loop)
+         (widths (vconcat (mapcar (lambda (s)
+                                    (plist-get s :width))
+                                  specs)))
+         (pad-rights (vconcat
+                      (cl-loop for s in specs for i from 0
+                               collect (if (= i last-idx) 0
+                                         (plist-get s :pad-right)))))
+         (right-aligns (vconcat
+                        (mapcar (lambda (s)
+                                  (plist-get s :right-align))
+                                specs)))
          ;; Pre-computed "%-Ns" format strings for ASCII fast-path
-         (fmt-strs (vconcat (cl-loop for i below n-cols
-                                     collect (format "%%-%ds"
-                                                     (+ (aref widths i)
-                                                        (aref pad-rights i)))))))
+         (fmt-strs (vconcat
+                    (cl-loop for i below n-cols
+                             collect (format "%%-%ds"
+                                             (+ (aref widths i)
+						(aref pad-rights i)))))))
     (dolist (entry entries)
       (let ((id (car entry))
             (cols (cadr entry))
@@ -195,14 +208,15 @@ minimise per-entry overhead.  Properties set per line:
                  (ascii-p (= len (string-bytes text)))
                  (width (aref widths i)))
             (if (= i last-idx)
-                ;; Last column — no padding, just truncate if needed
+                ;; Last column -- no padding, just truncate if needed
                 (insert (if (and ascii-p (<= len width))
                             text
                           (let ((sw (if ascii-p len (string-width text))))
                             (if (> sw width)
-                                (truncate-string-to-width text width nil nil ellipsis)
+                                (truncate-string-to-width
+                                 text width nil nil ellipsis)
                               text))))
-              ;; Non-last columns — pad to width + pad-right
+              ;; Non-last columns -- pad to width + pad-right
               (if (and ascii-p (<= len width))
                   ;; Fast path: single C-level format call does padding
                   (insert (format (aref fmt-strs i) text))
@@ -210,12 +224,15 @@ minimise per-entry overhead.  Properties set per line:
                 (let ((sw (if ascii-p len (string-width text)))
                       (pr (aref pad-rights i)))
                   (if (> sw width)
-                      (insert (truncate-string-to-width text width nil nil ellipsis)
+                      (insert (truncate-string-to-width
+                               text width nil nil ellipsis)
                               (make-string pr ?\s))
                     (if (aref right-aligns i)
                         (insert (make-string (- width sw) ?\s) text
                                 (make-string pr ?\s))
-                      (insert text (make-string (+ (- width sw) pr) ?\s))))))))
+                      (insert text
+                              (make-string
+                               (+ (- width sw) pr) ?\s))))))))
           (setq i (1+ i)))
         (insert ?\n)
         (add-text-properties beg (point)
@@ -257,7 +274,9 @@ same entry ID and column."
         (progn
           (goto-char (point-min))
           (while (and (not (eobp))
-                      (not (equal (get-text-property (point) 'tabulated-list-id)
+                      (not (equal (get-text-property
+                                   (point)
+                                   'tabulated-list-id)
                                   saved-id)))
             (forward-line 1))
           (when saved-col
@@ -279,7 +298,7 @@ restore original order."
         (tabulated-list-init-header)
         (gnosis-tl-print t))
     (let ((name (car (aref tabulated-list-format
-                          (if n n (gnosis-tl--column-at-point))))))
+                           (if n n (gnosis-tl--column-at-point))))))
       (unless (nth 2 (assoc name (append tabulated-list-format nil)))
         (user-error "Cannot sort by %s" name))
       (if (equal name (car tabulated-list-sort-key))
@@ -300,10 +319,14 @@ Point is preserved via `save-excursion'."
     (save-excursion
       (goto-char (point-min))
       (while (and (not (eobp))
-                  (not (equal (get-text-property (point) 'tabulated-list-id) id)))
+                  (not (equal (get-text-property
+                               (point) 'tabulated-list-id)
+                              id)))
         (forward-line 1))
       (when (and (not (eobp))
-                 (equal (get-text-property (point) 'tabulated-list-id) id))
+                 (equal (get-text-property
+                         (point) 'tabulated-list-id)
+                        id))
         (let ((beg (line-beginning-position))
               (end (progn (forward-line 1) (point))))
           (delete-region beg end)
@@ -317,10 +340,14 @@ Point is preserved via `save-excursion'."
     (save-excursion
       (goto-char (point-min))
       (while (and (not (eobp))
-                  (not (equal (get-text-property (point) 'tabulated-list-id) id)))
+                  (not (equal (get-text-property
+                               (point) 'tabulated-list-id)
+                              id)))
         (forward-line 1))
       (when (and (not (eobp))
-                 (equal (get-text-property (point) 'tabulated-list-id) id))
+                 (equal (get-text-property
+                         (point) 'tabulated-list-id)
+                        id))
         (delete-region (line-beginning-position)
                        (progn (forward-line 1) (point)))))))
 

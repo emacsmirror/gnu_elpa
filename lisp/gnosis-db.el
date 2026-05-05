@@ -62,7 +62,9 @@ Creates `gnosis-dir' and runs schema initialization on first use."
   (unless gnosis-db
     (unless (file-directory-p gnosis-dir)
       (make-directory gnosis-dir))
-    (setq gnosis-db (gnosis-sqlite-open (expand-file-name "gnosis.db" gnosis-dir)))
+    (setq gnosis-db
+	  (gnosis-sqlite-open
+	   (expand-file-name "gnosis.db" gnosis-dir)))
     (gnosis-db-init))
   gnosis-db)
 
@@ -117,7 +119,7 @@ rows that violate a UNIQUE constraint."
     (gnosis-sqlite--execute-compiled (gnosis--ensure-db) sql (cdr compiled))))
 
 (defun gnosis-update (table value where)
-  "Update records in TABLE with to new VALUE based on the given WHERE condition.
+  "Update TABLE records with VALUE based on WHERE condition.
 
 Example:
  (gnosis-update ='themata ='(= keimenon \"NEW VALUE\") ='(= id 12))"
@@ -149,7 +151,7 @@ Example:
 ;;; Date utilities
 
 (defun gnosis--date-to-int (date)
-  "Convert DATE list (year month day) to YYYYMMDD integer for fast comparison."
+  "Convert DATE list (year month day) to YYYYMMDD integer."
   (+ (* (nth 0 date) 10000) (* (nth 1 date) 100) (nth 2 date)))
 
 (defun gnosis--int-to-date (int)
@@ -430,8 +432,10 @@ Used by migrations that run before the thema-tag junction table exists."
 					    `(= id ,thema) t))
                        (hypothesis (nth 0 data))
                        (old-answer (car (nth 1 data)))
-                       (new-answer (when (integerp old-answer)
-                                     (list (nth (1- old-answer) hypothesis)))))
+                       (new-answer
+			(when (integerp old-answer)
+			  (list (nth (1- old-answer)
+				     hypothesis)))))
                   (when (integerp old-answer)
                     (gnosis-update 'themata `(= answer ',new-answer)
                                    `(= id ,thema)))))
@@ -452,15 +456,34 @@ Used by migrations that run before the thema-tag junction table exists."
     (cl-loop for tag in (gnosis--migrate-get-tags-from-column)
              if (string-match-p "-" tag)
              do (let ((new-tag (replace-regexp-in-string "-" "_" tag)))
-                  (cl-loop for thema in (gnosis-select 'id 'themata
-						       `(like tags ',(format "%%\"%s\"%%" tag)) t)
-                           do (let* ((tags-val (car (gnosis-select '[tags] 'themata `(= id ,thema) t)))
-                                     (new-tags (cl-substitute new-tag tag tags-val :test #'string-equal)))
-                                (gnosis-update 'themata `(= tags ',new-tags) `(= id ,thema))))
-                  (gnosis-sqlite-execute db "DELETE FROM tags")
-                  (cl-loop for tag-item in (gnosis--migrate-get-tags-from-column)
-                           do (gnosis-sqlite-execute db "INSERT OR IGNORE INTO tags VALUES (?)"
-                                                     (list tag-item))))))
+                  (cl-loop
+		   for thema in
+		   (gnosis-select
+		    'id 'themata
+		    `(like tags
+			   ',(format "%%\"%s\"%%" tag))
+		    t)
+		   do (let* ((tags-val
+			      (car (gnosis-select
+				    '[tags] 'themata
+				    `(= id ,thema) t)))
+			     (new-tags
+			      (cl-substitute
+			       new-tag tag tags-val
+			       :test #'string-equal)))
+			(gnosis-update
+			 'themata
+			 `(= tags ',new-tags)
+			 `(= id ,thema))))
+                  (gnosis-sqlite-execute
+		   db "DELETE FROM tags")
+                  (cl-loop
+		   for tag-item in
+		   (gnosis--migrate-get-tags-from-column)
+		   do (gnosis-sqlite-execute
+		       db
+		       "INSERT OR IGNORE INTO tags VALUES (?)"
+		       (list tag-item))))))
   (gnosis--db-set-version 4))
 
 (defun gnosis-db--migrate-v5 ()

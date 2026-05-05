@@ -51,7 +51,9 @@
   (cl-assert (listp tags))
   (if (null tags) ids
     (gnosis-collect-tag-thema-ids (cdr tags)
-                                  (append ids (gnosis-get-tag-themata (car tags))))))
+                                  (append ids
+                                          (gnosis-get-tag-themata
+                                           (car tags))))))
 
 (defun gnosis-get-tag-themata (tag)
   "Return thema ids for TAG."
@@ -124,7 +126,8 @@ When a thema already has NEW-TAG, the duplicate OLD row is removed."
     (when (string= tag new-tag)
       (user-error "New tag name is the same as the old one"))
     (gnosis-sqlite-with-transaction db
-      ;; Remove rows where the thema already has new-tag (avoid UNIQUE conflict)
+      ;; Remove rows where the thema already has new-tag
+      ;; (avoid UNIQUE conflict)
       (gnosis-sqlite-execute db
 			     "DELETE FROM thema_tag WHERE tag = ? AND thema_id IN
          (SELECT thema_id FROM thema_tag WHERE tag = ?)"

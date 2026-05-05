@@ -96,7 +96,8 @@ Reopens the gnosis database after successful pull."
 	       (when (and gnosis-db (gnosis-sqlite-live-p gnosis-db))
 		 (gnosis-sqlite-close gnosis-db))
 	       (setf gnosis-db
-                     (gnosis-sqlite-open (expand-file-name "gnosis.db" gnosis-dir)))
+                     (gnosis-sqlite-open
+                      (expand-file-name "gnosis.db" gnosis-dir)))
 	       (gnosis-db-init)
 	       (message "Gnosis: Pull successful, database reopened"))
 	   (error (message "Gnosis: Failed to reopen database: %s"

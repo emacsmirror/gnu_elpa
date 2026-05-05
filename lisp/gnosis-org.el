@@ -57,7 +57,9 @@ Converts [[id:xxx][Description]] to Description."
   (let* ((parsed-data (or parsed-data (org-element-parse-buffer)))
          (filetags (org-element-map parsed-data 'keyword
                      (lambda (kw)
-                       (when (string-equal (org-element-property :key kw) "FILETAGS")
+                       (when (string-equal
+                              (org-element-property :key kw)
+                              "FILETAGS")
                          (org-element-property :value kw)))
                      nil t)))
     (when (and filetags (not (string-empty-p (string-trim filetags))))
@@ -73,9 +75,15 @@ Returns (title tags id).  ID will be nil if no file-level ID exists."
                  (let ((parent (org-element-property :parent drawer)))
                    (when (and parent
                               (eq (org-element-type parent) 'section)
-                              (let ((section-parent (org-element-property :parent parent)))
-                                (eq (org-element-type section-parent) 'org-data)))
-                     (org-element-map (org-element-contents drawer) 'node-property
+                              (let ((section-parent
+                                     (org-element-property
+                                      :parent parent)))
+                                (eq (org-element-type
+                                     section-parent)
+                                    'org-data)))
+                     (org-element-map
+                         (org-element-contents drawer)
+                         'node-property
                        (lambda (prop)
                          (when (string= (org-element-property :key prop) "ID")
                            (org-element-property :value prop)))
@@ -96,7 +104,8 @@ Returns (title tags id).  ID will be nil if no file-level ID exists."
   "Combine INHERITED-TAGS and HEADLINE-TAGS, removing duplicates."
   (delete-dups (append (or inherited-tags '()) (or headline-tags '()))))
 
-(defun gnosis-org--parse-headlines-recursive (element parent-id parent-title parent-tags)
+(defun gnosis-org--parse-headlines-recursive
+    (element parent-id parent-title parent-tags)
   "Recursively parse headlines from ELEMENT.
 ELEMENT can be the parsed-data (org-data) or a headline element.
 PARENT-ID is the ID of nearest ancestor with ID (or 0).
@@ -109,9 +118,11 @@ PARENT-TAGS are the inherited tags from ancestors."
                (title (org-element-property :raw-value headline))
                (level (org-element-property :level headline))
                (headline-tags (org-element-property :tags headline))
-               (combined-tags (gnosis-org--combine-tags parent-tags headline-tags)))
+               (combined-tags (gnosis-org--combine-tags
+                               parent-tags headline-tags)))
           (if current-id
-              (let* ((clean-title (gnosis-org-adjust-title (string-trim title)))
+              (let* ((clean-title (gnosis-org-adjust-title
+                                   (string-trim title)))
                      (full-title (if parent-title
                                      (concat parent-title ":" clean-title)
                                    clean-title))
@@ -136,7 +147,8 @@ PARENT-TAGS are the inherited tags from ancestors."
     results))
 
 (defun gnosis-org-buffer-data (&optional data)
-  "Parse DATA in current buffer for topics & headlines with their ID, tags, links."
+  "Parse DATA in current buffer for topics & headlines.
+Extracts their ID, tags, and links."
   (let* ((parsed-data (or data (org-element-parse-buffer)))
          (topic-info (gnosis-org-get-data--topic parsed-data))
          (topic-title (nth 0 topic-info))
@@ -183,7 +195,9 @@ the link list and the SHA1 hash of the file content."
     (insert-file-contents file)
     (secure-hash 'sha1 (current-buffer))))
 
-(defun gnosis-org--create-name (title &optional timestring gpg-p default-gpg default-timestring)
+(defun gnosis-org--create-name
+    (title &optional timestring gpg-p
+           default-gpg default-timestring)
   "Create filename for TITLE.
 TIMESTRING defaults to DEFAULT-TIMESTRING.  When both are nil,
 the filename is just the title without a time prefix.

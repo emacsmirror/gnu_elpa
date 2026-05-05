@@ -1,4 +1,4 @@
-;;; gnosis-nodes.el --- Node management for gnosis  -*- lexical-binding: t; -*-
+;;; gnosis-nodes.el --- Node management  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2026  Free Software Foundation, Inc.
 
@@ -20,10 +20,6 @@
 (require 'gnosis-db)
 (require 'gnosis-sqlite)
 (declare-function gnosis-journal--dir "gnosis-journal")
-
-(defvar gnosis-journal-dir)
-(defvar gnosis-journal-file)
-(defvar gnosis-journal-templates)
 
 (defgroup gnosis-nodes nil
   "Gnosis node management."
@@ -83,7 +79,7 @@ adds two, etc."
 (defun gnosis-nodes-select (value table &optional restrictions flatten)
   "Select VALUE from TABLE, optionally with RESTRICTIONS.
 Optional argument FLATTEN, when non-nil, flattens the result.
-Delegates to `gnosis-select' (unified DB)."
+Delegates to `gnosis-select'."
   (gnosis-select value table restrictions flatten))
 
 (defun gnosis-nodes--insert-into (table values &optional or-ignore)
@@ -101,7 +97,7 @@ Delegates to `gnosis--delete' (unified DB)."
   "Return all unique node tags from the junction table."
   (mapcar #'car
 	  (gnosis-sqlite-select (gnosis--ensure-db)
-	    "SELECT DISTINCT tag FROM node_tag")))
+				"SELECT DISTINCT tag FROM node_tag")))
 
 ;;; Ensure directories
 
@@ -119,11 +115,11 @@ When BUFFER is non-nil, parse it instead of reading FILE from disk.
 This avoids re-reading (and re-decrypting) files already open."
   (condition-case err
       (let* ((info (if buffer
-		      (with-temp-buffer
-			(insert (with-current-buffer buffer
-				  (save-restriction (widen) (buffer-string))))
-			(gnosis-org-get-buffer-info))
-		    (gnosis-org-get-file-info file)))
+		       (with-temp-buffer
+			 (insert (with-current-buffer buffer
+				   (save-restriction (widen) (buffer-string))))
+			 (gnosis-org-get-buffer-info))
+		     (gnosis-org-get-file-info file)))
 	     (hash (car (last info)))
 	     (data (butlast info 2))
 	     (table (if journal 'journal 'nodes))
@@ -144,8 +140,8 @@ This avoids re-reading (and re-decrypting) files already open."
 			    (tags (plist-get item :tags))
 			    (level (plist-get item :level)))
 			(gnosis-nodes--insert-into table
-			  `([,id ,filename ,title ,level
-			     ,(prin1-to-string tags) ,mtime ,hash]))
+						   `([,id ,filename ,title ,level
+							  ,(prin1-to-string tags) ,mtime ,hash]))
 			;; Insert tags
 			(cl-loop for tag in tags
 				 do (gnosis-nodes--insert-into 'node-tag `([,id ,tag]) t))
@@ -153,16 +149,23 @@ This avoids re-reading (and re-decrypting) files already open."
 			(when (and (not journal)
 				   (plist-get item :master)
 				   (stringp (plist-get item :master)))
-			  (gnosis-nodes--insert-into 'node-links `([,id ,(plist-get item :master)]) t))))
+			  (gnosis-nodes--insert-into
+			   'node-links
+			   `([,id ,(plist-get item :master)])
+			   t))))
 	  ;; Insert ID links (nodes only)
 	  (unless journal
 	    (cl-loop for link in links
-		     do (gnosis-nodes--insert-into 'node-links `[,(cdr link) ,(car link)] t)))))
+		     do (gnosis-nodes--insert-into
+			 'node-links
+			 `[,(cdr link) ,(car link)] t)))))
     (file-error
-     (message "File error updating %s: %s.  Try M-x gnosis-nodes-db-force-sync to rebuild database."
+     (message "File error updating %s: %s.  \
+Try M-x gnosis-nodes-db-force-sync to rebuild database."
               file (error-message-string err)))
     (error
-     (message "Error updating %s: %s.  Try M-x gnosis-nodes-db-force-sync if issue persists."
+     (message "Error updating %s: %s.  \
+Try M-x gnosis-nodes-db-force-sync if issue persists."
               file (error-message-string err)))))
 
 (defun gnosis-nodes--delete-file (&optional file)
@@ -224,9 +227,11 @@ Delete file contents in database & file."
 		    (when tags
 		      (let ((tag-list (if (stringp tags) (read tags) tags)))
 			(when (and tag-list (not (equal tag-list '())))
-                          (concat (propertize "#" 'face 'gnosis-nodes-face-tags)
-                                  (propertize (mapconcat #'identity tag-list "#")
-					      'face 'gnosis-nodes-face-tags)))))))
+                          (concat
+                           (propertize "#" 'face 'gnosis-nodes-face-tags)
+                           (propertize
+                            (mapconcat #'identity tag-list "#")
+                            'face 'gnosis-nodes-face-tags)))))))
               (if propertized-tags
                   (format "%s  %s" title propertized-tags)
 		title)))
@@ -270,17 +275,21 @@ EXTRAS: The template to be inserted at the start."
 PROMPT: Prompt message."
   (replace-regexp-in-string
    "  #[^[:space:]]+" ""
-   (funcall gnosis-nodes-completing-read-func (or prompt "Select gnosis node: ")
+   (funcall gnosis-nodes-completing-read-func
+	    (or prompt "Select gnosis node: ")
 	    (gnosis-nodes-find--tag-with-tag-prop
-	     (or entries (gnosis-nodes-select '[title tags] 'nodes))))))
+	     (or entries
+		 (gnosis-nodes-select '[title tags] 'nodes))))))
 
 (defun gnosis-nodes--find (prompt entries-with-tags entries)
   "PROMPT user to select from ENTRIES.
 If `gnosis-nodes-show-tags' is non-nil, ENTRIES-WITH-TAGS will be used
 instead."
   (let* ((entry (if gnosis-nodes-show-tags
-                    (gnosis-nodes-find--with-tags prompt entries-with-tags)
-                  (funcall gnosis-nodes-completing-read-func prompt entries))))
+                    (gnosis-nodes-find--with-tags
+                     prompt entries-with-tags)
+                  (funcall gnosis-nodes-completing-read-func
+                           prompt entries))))
     entry))
 
 ;;;###autoload
@@ -304,9 +313,9 @@ DIRECTORY."
 				      (gnosis-nodes-select-template templates)))
 	  ((file-exists-p (expand-file-name file directory))
 	   (gnosis-nodes-goto-id id))
-	  (t (error
-	      "File %s does not exist.  Try running `gnosis-nodes-db-force-sync' to resolve this"
-	      file)))))
+	  (t (error "File %s does not exist.  \
+Try `gnosis-nodes-db-force-sync' to resolve this"
+		    file)))))
 
 (defun gnosis-nodes--nodes-by-tag (tag)
   "Return all node IDs associated with TAG.
@@ -321,7 +330,9 @@ Uses the node-tag junction table for proper querying."
 			       "Select tag: "
 			       (gnosis-nodes--all-tags))))
 	 (nodes-ids (gnosis-nodes--nodes-by-tag tag))
-	 (node-titles (gnosis-nodes-select 'title 'nodes `(in id ,(vconcat nodes-ids)) t))
+	 (node-titles (gnosis-nodes-select
+		       'title 'nodes
+		       `(in id ,(vconcat nodes-ids)) t))
 	 (node (completing-read "Select node: " node-titles nil t)))
     (gnosis-nodes-find node)))
 
@@ -349,11 +360,15 @@ The caller expands markers via `gnosis-org-expand-headings'.
          (template (if (= (length templates) 1)
                        (cdar templates)
                      (cdr (assoc
-			   (funcall gnosis-nodes-completing-read-func "Select template: "
-                                    (mapcar #'car templates))
+			   (funcall
+			    gnosis-nodes-completing-read-func
+			    "Select template: "
+			    (mapcar #'car templates))
                            templates)))))
     (unless (functionp template)
-      (user-error "Template is not a valid function; check `gnosis-nodes-templates' or `gnosis-journal-templates'"))
+      (user-error
+       "Template is not a valid function; \
+check `gnosis-nodes-templates'"))
     (funcall template)))
 
 ;;;###autoload
@@ -377,12 +392,16 @@ If JOURNAL-P is non-nil, retrieve/create node as a journal entry."
          (id (car (gnosis-nodes-select 'id table `(= title ,node) t)))
 	 (title (car (last (split-string node ":"))))
          (desc (cond ((use-region-p)
-                      (buffer-substring-no-properties (region-beginning) (region-end)))
+                      (buffer-substring-no-properties
+                       (region-beginning) (region-end)))
                      (arg (read-string "Description: "))
                      (t title))))
     (unless id
       (save-window-excursion
-        (gnosis-nodes--create-file node (if journal-p (gnosis-journal--dir) gnosis-nodes-dir))
+        (gnosis-nodes--create-file
+         node (if journal-p
+                  (gnosis-journal--dir)
+                gnosis-nodes-dir))
         (save-buffer)
         (setf id (car (gnosis-nodes-select 'id table `(= title ,node) t)))))
     (org-insert-link nil (format "id:%s" id) desc)
@@ -431,7 +450,9 @@ At a heading, add TAG to heading tags.  Otherwise, add to #+FILETAGS."
   (let ((tag (or tag (funcall gnosis-nodes-completing-read-func
                               "Select tag: " (gnosis-nodes--all-tags)))))
     (if (org-at-heading-p)
-        (org-set-tags (cl-union (list tag) (org-get-tags nil t) :test #'string=))
+        (org-set-tags
+         (cl-union (list tag) (org-get-tags nil t)
+                   :test #'string=))
       (let ((existing (gnosis-nodes--filetags)))
         (unless (member tag existing)
           (gnosis-nodes--write-filetags (append existing (list tag))))))))
@@ -460,8 +481,8 @@ At a heading, add TAG to heading tags.  Otherwise, add to #+FILETAGS."
 	 (titles (when source-ids
 		   (mapcar #'car
 			   (gnosis-sqlite-select-batch (gnosis--ensure-db)
-			     "SELECT title FROM nodes WHERE id IN (%s)"
-			     source-ids)))))
+						       "SELECT title FROM nodes WHERE id IN (%s)"
+						       source-ids)))))
     (if titles
 	(gnosis-nodes-find
 	 (completing-read "Backlink: " titles))
@@ -495,9 +516,11 @@ Returns a list of (ID TITLE BACKLINK-COUNT) for each node."
 (defun gnosis-nodes--get-id-at-point ()
   "Return the Org ID link at point, if any."
   (let* ((element (org-element-context))
-         (id-link (when (and (eq (org-element-type element) 'link)
-                             (string= (org-element-property :type element) "id"))
-                    (org-element-property :path element))))
+         (id-link
+          (when (and (eq (org-element-type element) 'link)
+                     (string= (org-element-property :type element)
+                              "id"))
+            (org-element-property :path element))))
     id-link))
 
 (defun gnosis-nodes-goto-id (&optional id)
@@ -513,8 +536,10 @@ If file or id are not found, use `org-open-at-point'."
 	   (org-id-goto id))
 	  ((gnosis-nodes-select 'file 'journal `(= id ,id))
 	   (find-file
-	    (expand-file-name (car (gnosis-nodes-select 'file 'journal `(= id ,id) t))
-			      (gnosis-journal--dir)))
+	    (expand-file-name
+	     (car (gnosis-nodes-select 'file 'journal
+				       `(= id ,id) t))
+	     (gnosis-journal--dir)))
 	   (org-id-goto id))
 	  (t (org-open-at-point)))
     (gnosis-nodes-mode 1)))
@@ -525,9 +550,13 @@ If file or id are not found, use `org-open-at-point'."
   "Check if FILE changed since last sync using mtime then hash.
 TABLE is either \\='nodes or \\='journal."
   (let* ((filename (file-name-nondirectory file))
-         (file-mtime (format-time-string "%s" (file-attribute-modification-time
-					       (file-attributes file))))
-         (db-data (car (gnosis-nodes-select '[mtime hash] table `(= file ,filename))))
+         (file-mtime
+          (format-time-string
+           "%s" (file-attribute-modification-time
+                 (file-attributes file))))
+         (db-data (car (gnosis-nodes-select
+                        '[mtime hash] table
+                        `(= file ,filename))))
          (db-mtime (car db-data))
          (db-hash (cadr db-data)))
     (or (not db-mtime)
@@ -551,7 +580,9 @@ When FORCE, update all files.  Otherwise, only update changed files."
     (if (zerop (length files))
         (message "No files to sync")
       (let ((progress (make-progress-reporter
-                       (format "Processing %d/%d files..." (length files) (length all-files))
+                       (format "Processing %d/%d files..."
+                               (length files)
+                               (length all-files))
                        0 (length files))))
         (cl-loop for file in files
                  for i from 0
@@ -612,14 +643,15 @@ When FORCE (prefix arg), rebuild from scratch."
 Added to `org-mode-hook'."
   (when (and buffer-file-name
              (derived-mode-p 'org-mode)
-             (or (file-in-directory-p buffer-file-name gnosis-nodes-dir)
-                 (file-in-directory-p buffer-file-name (gnosis-journal--dir))))
+             (or (file-in-directory-p
+                  buffer-file-name gnosis-nodes-dir)
+                 (file-in-directory-p
+                  buffer-file-name (gnosis-journal--dir))))
     (gnosis-nodes-mode 1)))
 
 (add-hook 'org-mode-hook #'gnosis-nodes--find-file-h)
 
-;; Forward declaration for journal directory
-(declare-function gnosis-journal--dir "gnosis-journal")
+;; Forward declarations for journal functions
 (declare-function gnosis-journal-db-sync "gnosis-journal")
 (declare-function gnosis-journal--update-todos "gnosis-journal")
 

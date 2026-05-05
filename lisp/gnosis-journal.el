@@ -49,7 +49,9 @@ If nil, journal entries are created as separate files in
 
 (defcustom gnosis-journal-templates
   (list (cons "Default"
-              (lambda () (concat "{*} Daily Notes\n\n{*} Goals\n" (gnosis-journal-todos))))
+              (lambda ()
+                (concat "{*} Daily Notes\n\n{*} Goals\n"
+                        (gnosis-journal-todos))))
         (cons "Empty" (lambda () "")))
   "Templates for journaling.
 Template functions return strings.  Use \"{*}\" as a heading
@@ -87,7 +89,8 @@ adds two, etc."
   (when (and gnosis-journal-file
 	     (not (file-exists-p gnosis-journal-file)))
     (with-current-buffer (find-file-noselect gnosis-journal-file)
-      (insert (format "#+title: %s Journal\n#+filetags: \n" (or user-full-name "")))
+      (insert (format "#+title: %s Journal\n#+filetags: \n"
+                      (or user-full-name "")))
       (gnosis-nodes-mode)
       (save-buffer)
       (message "Created journal file."))))
@@ -176,7 +179,8 @@ ELEMENT should be the output of `org-element-parse-buffer'."
 
 (defun gnosis-journal-mark-todo-as-done (todo-title)
   "Mark scheduled TODO with TODO-TITLE as DONE if not already done today."
-  (let* ((file (gnosis-journal-find-file-with-heading todo-title gnosis-journal-todo-files))
+  (let* ((file (gnosis-journal-find-file-with-heading
+                todo-title gnosis-journal-todo-files))
          (today (format-time-string "%Y-%m-%d")))
     (when file
       (save-current-buffer
@@ -186,12 +190,18 @@ ELEMENT should be the output of `org-element-parse-buffer'."
               (org-element-map (org-element-parse-buffer) 'headline
                 (lambda (headline)
                   (when (and (not found)
-                             (string= (org-element-property :raw-value headline)
-                                      todo-title)
-                             (string= (org-element-property :todo-keyword headline)
-                                      "TODO")
-                             (not (org-entry-get (org-element-property :begin headline)
-					       "LAST_DONE_DATE")))
+                             (string=
+                              (org-element-property
+                               :raw-value headline)
+                              todo-title)
+                             (string=
+                              (org-element-property
+                               :todo-keyword headline)
+                              "TODO")
+                             (not (org-entry-get
+                                   (org-element-property
+                                    :begin headline)
+                                   "LAST_DONE_DATE")))
                     (org-with-point-at (org-element-property :begin headline)
                       (org-todo 'done)
                       (org-entry-put nil "LAST_DONE_DATE" today))
@@ -204,23 +214,32 @@ ELEMENT should be the output of `org-element-parse-buffer'."
          (buf (get-file-buffer file))
          (parsed-buffer (with-temp-buffer
                           (if buf
-                              (insert (with-current-buffer buf
-                                        (save-restriction (widen) (buffer-string))))
+                              (insert
+                               (with-current-buffer buf
+                                 (save-restriction
+                                   (widen)
+                                   (buffer-string))))
                             (insert-file-contents file))
                           (unless (derived-mode-p 'org-mode)
                             (org-mode))
                           (org-element-parse-buffer)))
          (done-todos (if (and gnosis-journal-file
-                              (string= (file-name-nondirectory file)
-                                       (file-name-nondirectory gnosis-journal-file)))
+                              (string=
+                               (file-name-nondirectory file)
+                               (file-name-nondirectory
+                                gnosis-journal-file)))
                          (let ((today-heading
                                 (org-element-map parsed-buffer 'headline
                                   (lambda (headline)
-                                    (when (string= (org-element-property :raw-value headline) today)
+                                    (when (string=
+                                           (org-element-property
+                                            :raw-value headline)
+                                           today)
                                       headline))
                                   nil t)))
                            (if today-heading
-                               (gnosis-journal-get-checked-items today-heading)
+                               (gnosis-journal-get-checked-items
+                                today-heading)
                              nil))
                        (gnosis-journal-get-checked-items parsed-buffer))))
     (cl-loop for done-todo in done-todos
@@ -282,11 +301,13 @@ When FORCE, update all files.  Otherwise, only update changed files."
          (files (if force
                     all-files
                   (cl-remove-if-not
-                   (lambda (file) (gnosis-nodes--file-changed-p file 'journal))
+                   (lambda (file)
+                     (gnosis-nodes--file-changed-p file 'journal))
                    all-files))))
     (when (> (length files) 0)
       (let ((progress (make-progress-reporter
-                       (format "Processing %d/%d journal files..." (length files) (length all-files))
+                       (format "Processing %d/%d journal files..."
+                               (length files) (length all-files))
                        0 (length files))))
         (cl-loop for file in files
                  for i from 0

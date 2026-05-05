@@ -84,11 +84,13 @@
           (typed-char (char-before end)))
       ;; Debugging ;;
       ;; (when (and correct-char typed-char)
-      ;; 	(message "Comparing: %c with %c POS: %d" typed-char correct-char end))
+      ;; 	(message "Comparing: %c with %c POS: %d"
+      ;;          typed-char correct-char end))
       (if (and correct-char typed-char (char-equal correct-char typed-char))
           (progn
             (delete-char -1)
-            (put-text-property (1- end) end 'face 'gnosis-monkeytype-face-correct)
+            (put-text-property (1- end) end
+                               'face 'gnosis-monkeytype-face-correct)
             (goto-char end)
             ;; Check if complete
             (when (= end (1+ (length gnosis-monkeytype-string)))

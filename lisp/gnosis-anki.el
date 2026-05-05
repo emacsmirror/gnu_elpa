@@ -59,9 +59,11 @@ Short-circuits when STR contains no HTML markup or entities."
         (setq s (replace-regexp-in-string "<sub>\\(.*?\\)</sub>" "_{\\1}" s))
         (setq s (replace-regexp-in-string "<sup>\\(.*?\\)</sup>" "^{\\1}" s))
         (setq s (replace-regexp-in-string
-                 "<a [^>]*href=\"\\([^\"]+\\)\"[^>]*>\\(.*?\\)</a>" "[[\\1][\\2]]" s))
+                 "<a [^>]*href=\"\\([^\"]+\\)\"[^>]*>\\(.*?\\)</a>"
+                 "[[\\1][\\2]]" s))
         (setq s (replace-regexp-in-string "<br\\s*/?>\\s*" "\n" s))
-        (setq s (replace-regexp-in-string "<div>\\(.*?\\)</div>" "\\1\n" s))
+        (setq s (replace-regexp-in-string
+                 "<div>\\(.*?\\)</div>" "\\1\n" s))
         (setq s (replace-regexp-in-string "<[^>]+>" "" s)))
       (when (string-match-p "&" s)
         (setq s (replace-regexp-in-string "&nbsp;" " " s))
@@ -174,7 +176,9 @@ Protobuf layout: field 1 (tag 0x0a) = qfmt, field 2 (tag 0x12) = afmt."
 Parses {{FieldName}} and {{type:FieldName}} placeholders.
 Returns a list of field name strings in order of first appearance."
   (let ((pos 0) fields)
-    (while (string-match "{{\\(?:type:\\|cloze:\\)?\\([^}#/!]+\\)}}" template pos)
+    (while (string-match
+            "{{\\(?:type:\\|cloze:\\)?\\([^}#/!]+\\)}}"
+            template pos)
       (let ((field (match-string 1 template)))
         (unless (or (member field fields)
                     (string= field "FrontSide")
@@ -208,9 +212,12 @@ field as front, rest as back if templates are unavailable."
 (defun gnosis-anki--media-value-p (value)
   "Return non-nil if VALUE contains only media references, not text."
   (and (not (string-empty-p value))
-       (string-match-p "\\`\\s-*\\(\\[sound:[^]]*\\]\\|<img [^>]*>\\)\\s-*\\'" value)))
+       (string-match-p
+        "\\`\\s-*\\(\\[sound:[^]]*\\]\\|<img [^>]*>\\)\\s-*\\'"
+        value)))
 
-(defun gnosis-anki--resolve-field-values (field-names-to-get all-field-names raw-fields)
+(defun gnosis-anki--resolve-field-values
+    (field-names-to-get all-field-names raw-fields)
   "Get field values for FIELD-NAMES-TO-GET from RAW-FIELDS.
 ALL-FIELD-NAMES is the ordered list of all field names.
 Skips fields whose values are pure media (sound/image).
@@ -231,9 +238,12 @@ Returns a list of org-mode text strings."
 Checks for \"Image Occlusion\" or \"IO\" prefix in the note type name,
 or for IO-specific fields (InSVG, OutSVG, Original Mask, I0)."
   (or (string-match-p "\\(?:Image Occlusion\\|\\`IO\\)" name)
-      (cl-find-if (lambda (f)
-                    (string-match-p "\\`\\(InSVG\\|OutSVG\\|Original Mask\\|Mask\\|I0\\)\\'" f))
-                  fields)))
+      (cl-find-if
+       (lambda (f)
+         (string-match-p
+          "\\`\\(InSVG\\|OutSVG\\|Original Mask\\|Mask\\|I0\\)\\'"
+          f))
+       fields)))
 
 (defun gnosis-anki--extract-db (file)
   "Extract SQLite database from Anki .apkg FILE.
@@ -250,7 +260,9 @@ which is decompressed via zstd or 7z."
       (delete-directory tmpdir t)
       (user-error "7z not found; install p7zip to import .apkg files"))
     ;; Try collection.anki21b (modern, zstd-compressed), then legacy formats
-    (dolist (name '("collection.anki21b" "collection.anki21" "collection.anki2"))
+    (dolist (name '("collection.anki21b"
+                    "collection.anki21"
+                    "collection.anki2"))
       (when (and (null db-name)
                  (zerop (call-process 7z nil nil nil
                                       "e" abs-file
@@ -302,14 +314,18 @@ Returns a list of plists (one per cloze deletion), or nil if skipped."
     (when clozes
       (cl-loop for cloze in clozes
                for hint in hints
-               collect (list :type "cloze" :keimenon keimenon
+               collect (list :type "cloze"
+                             :keimenon keimenon
                              :hypothesis hint
-                             :answer (mapcar #'gnosis-anki--strip-emphasis cloze)
-                             :parathema extra :tags tags)))))
+                             :answer (mapcar
+                                      #'gnosis-anki--strip-emphasis
+                                      cloze)
+                             :parathema extra
+                             :tags tags)))))
 
 (defun gnosis-anki--parse-basic-note (flds front-field-names back-field-names
-                                            all-field-names tag-str tmpl-count
-                                            seg-cache seen)
+                                           all-field-names tag-str tmpl-count
+                                           seg-cache seen)
   "Parse a basic note from FLDS string.
 FRONT-FIELD-NAMES, BACK-FIELD-NAMES, ALL-FIELD-NAMES control
 field extraction.  TAG-STR is the raw tag string.  TMPL-COUNT
@@ -328,15 +344,23 @@ Returns a list of plists (1 or 2 items), or nil if skipped."
          (tags (gnosis-anki--parse-tags tag-str seg-cache seen)))
     (when (and (not (string-empty-p front))
                back (not (string-empty-p back)))
-      (let ((items (list (list :type "basic" :keimenon front
+      (let ((items (list (list :type "basic"
+                               :keimenon front
                                :hypothesis '("")
-                               :answer (list (gnosis-anki--strip-emphasis back))
-                               :parathema extra :tags tags))))
+                               :answer (list
+                                        (gnosis-anki--strip-emphasis
+                                         back))
+                               :parathema extra
+                               :tags tags))))
         (when (and tmpl-count (= tmpl-count 2))
-          (push (list :type "basic" :keimenon back
+          (push (list :type "basic"
+                      :keimenon back
                       :hypothesis '("")
-                      :answer (list (gnosis-anki--strip-emphasis front))
-                      :parathema extra :tags tags)
+                      :answer (list
+                               (gnosis-anki--strip-emphasis
+                                front))
+                      :parathema extra
+                      :tags tags)
                 items))
         items))))
 
@@ -348,7 +372,7 @@ Each plist has keys :type :keimenon :hypothesis :answer
 MODEL-INFO maps mid strings to
   (mtype tmpl-count front-fields back-fields . all-fields)."
   (let ((notes (sqlite-select anki-db
-                 "SELECT id, mid, flds, tags, guid FROM notes"))
+			      "SELECT id, mid, flds, tags, guid FROM notes"))
         (seg-cache (make-hash-table :test 'equal :size 50000))
         (seen (make-hash-table :test 'equal :size 200))
         (result nil)
@@ -386,14 +410,15 @@ Batches inserts in groups of `gnosis-anki--tag-batch-size'."
                  (batch-n (- end offset))
                  (batch-params (cl-subseq tag-params (* offset 2) (* end 2))))
             (sqlite-execute db
-              (concat "INSERT INTO thema_tag VALUES "
-                      (mapconcat (lambda (_) "(?,?)")
-                                 (number-sequence 1 batch-n) ", "))
-              batch-params)
+			    (concat "INSERT INTO thema_tag VALUES "
+				    (mapconcat (lambda (_) "(?,?)")
+					       (number-sequence 1 batch-n) ", "))
+			    batch-params)
             (setq offset end)))))))
 
-(defun gnosis-anki--bulk-insert-chunk (db items ids gnosis-val amnesia-val today
-                                         &optional extra-tag suspend)
+(defun gnosis-anki--bulk-insert-chunk
+    (db items ids gnosis-val amnesia-val today
+	&optional extra-tag suspend)
   "Bulk-insert ITEMS into DB with pre-assigned IDS.
 ITEMS is a list of plists from `gnosis-anki--parse-notes'.
 IDS is a list of integer IDs, one per item.
@@ -419,8 +444,9 @@ SUSPEND, when non-nil, imports themata as suspended."
                               (if (and extra-tag (not (member extra-tag tl)))
                                   (append tl (list extra-tag))
                                 tl))))
-                  ;; themata: id, type, keimenon, hypothesis, answer, source_guid
-                  ;; Strings must be prin1-encoded (emacsql compat)
+                  ;; themata: id, type, keimenon, hypothesis,
+                  ;; answer, source_guid
+                  ;; Strings are prin1-encoded (emacsql compat)
                   (setq themata-params
                         (nconc themata-params
                                (list id (prin1-to-string type)
@@ -447,26 +473,26 @@ SUSPEND, when non-nil, imports themata as suspended."
                           (nconc tag-params
                                  (list id (prin1-to-string tag)))))))
     (gnosis-sqlite-with-transaction db
-        (sqlite-execute db
-          (concat "INSERT INTO themata (id, type, keimenon, hypothesis, answer, source_guid) VALUES "
-                  (mapconcat (lambda (_) "(?,?,?,?,?,?)") items ", "))
-          themata-params)
-        ;; INSERT INTO review (3 cols)
-        (sqlite-execute db
-          (concat "INSERT INTO review VALUES "
-                  (mapconcat (lambda (_) "(?,?,?)") items ", "))
-          review-params)
-        ;; INSERT INTO review_log (9 cols)
-        (sqlite-execute db
-          (concat "INSERT INTO review_log VALUES "
-                  (mapconcat (lambda (_) "(?,?,?,?,?,?,?,?,?)") items ", "))
-          review-log-params)
-        ;; INSERT INTO extras (3 cols)
-        (sqlite-execute db
-          (concat "INSERT INTO extras VALUES "
-                  (mapconcat (lambda (_) "(?,?,?)") items ", "))
-          extras-params)
-        (gnosis-anki--insert-tags db tag-params))))
+      (sqlite-execute db
+		      (concat "INSERT INTO themata (id, type, keimenon, hypothesis, answer, source_guid) VALUES "
+			      (mapconcat (lambda (_) "(?,?,?,?,?,?)") items ", "))
+		      themata-params)
+      ;; INSERT INTO review (3 cols)
+      (sqlite-execute db
+		      (concat "INSERT INTO review VALUES "
+			      (mapconcat (lambda (_) "(?,?,?)") items ", "))
+		      review-params)
+      ;; INSERT INTO review_log (9 cols)
+      (sqlite-execute db
+		      (concat "INSERT INTO review_log VALUES "
+			      (mapconcat (lambda (_) "(?,?,?,?,?,?,?,?,?)") items ", "))
+		      review-log-params)
+      ;; INSERT INTO extras (3 cols)
+      (sqlite-execute db
+		      (concat "INSERT INTO extras VALUES "
+			      (mapconcat (lambda (_) "(?,?,?)") items ", "))
+		      extras-params)
+      (gnosis-anki--insert-tags db tag-params))))
 
 (defun gnosis-anki--build-model-info-from-col (anki-db model-info)
   "Build MODEL-INFO from ANKI-DB using col.models JSON.
@@ -494,7 +520,7 @@ Values are (mtype tmpl-count front-fields back-fields . all-fields)."
                ((= mtype 1) 1)
                (t 0))))
         (puthash mid (cl-list* mtype-resolved tmpl-count
-                            (car fb) (cdr fb) fields)
+                               (car fb) (cdr fb) fields)
                  model-info)))))
 
 (defun gnosis-anki--build-model-info-from-tables (anki-db model-info)
@@ -505,14 +531,14 @@ Uses 5 total queries instead of 3N+2.
 Values are (mtype tmpl-count front-fields back-fields . all-fields)."
   (let ((notetypes (sqlite-select anki-db "SELECT id, name FROM notetypes"))
         (cloze-ids (mapcar #'car
-                    (sqlite-select anki-db
-                      "SELECT DISTINCT ntid FROM templates WHERE name COLLATE NOCASE = 'Cloze'")))
+			   (sqlite-select anki-db
+					  "SELECT DISTINCT ntid FROM templates WHERE name COLLATE NOCASE = 'Cloze'")))
         (all-fields (sqlite-select anki-db
-                      "SELECT ntid, ord, name FROM fields ORDER BY ntid, ord"))
+				   "SELECT ntid, ord, name FROM fields ORDER BY ntid, ord"))
         (all-configs (sqlite-select anki-db
-                       "SELECT ntid, config FROM templates ORDER BY ntid, ord"))
+				    "SELECT ntid, config FROM templates ORDER BY ntid, ord"))
         (all-counts (sqlite-select anki-db
-                      "SELECT ntid, count(*) FROM templates GROUP BY ntid"))
+				   "SELECT ntid, count(*) FROM templates GROUP BY ntid"))
         (fields-ht (make-hash-table :test 'equal))
         (config-ht (make-hash-table :test 'equal))
         (count-ht (make-hash-table :test 'equal)))
@@ -539,9 +565,15 @@ Values are (mtype tmpl-count front-fields back-fields . all-fields)."
              (tmpl-count (or (gethash ntid count-ht) 0))
              (decoded (gnosis-anki--decode-template-config config-blob))
              (fb (if decoded
-                     (let* ((q-fields (gnosis-anki--template-fields (car decoded)))
-                            (a-fields (cl-remove-if (lambda (f) (member f q-fields))
-                                                    (gnosis-anki--template-fields (cdr decoded)))))
+                     (let* ((q-fields
+                             (gnosis-anki--template-fields
+                              (car decoded)))
+                            (a-fields
+                             (cl-remove-if
+                              (lambda (f)
+                                (member f q-fields))
+                              (gnosis-anki--template-fields
+                               (cdr decoded)))))
                        (if (and q-fields a-fields)
                            (cons q-fields a-fields)
                          (cons (list (car fields)) (cdr fields))))
@@ -551,7 +583,7 @@ Values are (mtype tmpl-count front-fields back-fields . all-fields)."
                      ((member ntid cloze-ids) 1)
                      (t 0))))
         (puthash mid (cl-list* mtype tmpl-count
-                            (car fb) (cdr fb) fields)
+                               (car fb) (cdr fb) fields)
                  model-info)))))
 
 (defun gnosis-anki--build-model-info (anki-db)
@@ -561,7 +593,7 @@ templates tables with protobuf config) or old format (col.models
 JSON) and dispatches accordingly."
   (let ((model-info (make-hash-table :test 'equal))
         (has-notetypes (sqlite-select anki-db
-                         "SELECT 1 FROM sqlite_master WHERE type='table' AND name='notetypes'")))
+				      "SELECT 1 FROM sqlite_master WHERE type='table' AND name='notetypes'")))
     (if has-notetypes
         (gnosis-anki--build-model-info-from-tables anki-db model-info)
       (gnosis-anki--build-model-info-from-col anki-db model-info))
@@ -642,12 +674,13 @@ Uses raw `sqlite-select' because source_guid is stored without
 `prin1-to-string' encoding."
   (let ((cache (make-hash-table :test 'equal))
         (rows (sqlite-select (gnosis--ensure-db)
-                "SELECT source_guid FROM themata WHERE source_guid IS NOT NULL")))
+			     "SELECT source_guid FROM themata WHERE source_guid IS NOT NULL")))
     (dolist (row rows)
       (puthash (car row) t cache))
     cache))
 
-(defun gnosis-anki--import-db (db-file &optional tmp-p extra-tag suspend source-file)
+(defun gnosis-anki--import-db
+    (db-file &optional tmp-p extra-tag suspend source-file)
   "Import notes from Anki database at DB-FILE asynchronously.
 Parses all notes, then bulk-inserts in chunks using timers so
 Emacs stays responsive.  When TMP-P is non-nil, clean up DB-FILE
@@ -698,7 +731,8 @@ is the original .apkg path for the git commit message."
     (user-error "File not found: %s" file))
   (unless (string-match-p "\\.apkg\\'" file)
     (user-error "Unsupported file type: %s (only .apkg supported)" file))
-  (let ((extra-tag (let ((tag (read-string "Tag for imported themata (empty to skip): ")))
+  (let ((extra-tag (let ((tag (read-string
+                               "Tag for imported themata (empty to skip): ")))
                      (if (string-empty-p tag) nil tag)))
         (suspend (y-or-n-p "Import as suspended?"))
         (db-file (gnosis-anki--extract-db file)))

@@ -895,22 +895,26 @@ Reads state from BUF.  Consumes the reentering flag on read."
 
 (defun keymap-popup--make-on-exit (buf)
   "Return an on-exit callback for `set-transient-map' closing BUF.
-Pops the sub-menu stack if non-empty, otherwise tears down."
+Pops the sub-menu stack if exit-key or \\`C-g' caused the exit,
+otherwise tears down completely."
   (lambda ()
     (when (buffer-live-p buf)
       (with-current-buffer buf
-        (if keymap-popup--stack
-            (pcase-let ((`(:keymap ,km :descriptions ,descs :docstring ,doc
-                                   :exit-key ,ek)
-                         (pop keymap-popup--stack)))
-              (setq-local keymap-popup--active-keymap km
-                          keymap-popup--active-descriptions descs
-                          keymap-popup--active-docstring doc
-                          keymap-popup--active-exit-key ek
-                          keymap-popup--reentering t
-                          keymap-popup--prefix-mode nil)
-              (keymap-popup--refresh buf))
-          (keymap-popup--teardown buf))))))
+        (let ((key-str (key-description (this-command-keys-vector))))
+          (if (and keymap-popup--stack
+                   (or (equal key-str keymap-popup--active-exit-key)
+                       (equal key-str "C-g")))
+              (pcase-let ((`(:keymap ,km :descriptions ,descs :docstring ,doc
+                                     :exit-key ,ek)
+                           (pop keymap-popup--stack)))
+                (setq-local keymap-popup--active-keymap km
+                            keymap-popup--active-descriptions descs
+                            keymap-popup--active-docstring doc
+                            keymap-popup--active-exit-key ek
+                            keymap-popup--reentering t
+                            keymap-popup--prefix-mode nil)
+                (keymap-popup--refresh buf))
+            (keymap-popup--teardown buf)))))))
 
 (defun keymap-popup--collect-entries (descriptions fn)
   "Collect non-nil results of (FN ENTRY GROUP) across DESCRIPTIONS.

@@ -831,5 +831,56 @@
   (let ((map (make-sparse-keymap)))
     (should-error (keymap-popup map) :type 'user-error)))
 
+(ert-deftest keymap-popup-test-on-exit-tears-down-for-suffix ()
+  "On-exit tears down when a suffix (non-exit-key) caused the exit."
+  (let ((buf (get-buffer-create "*keymap-popup-test-exit*")))
+    (unwind-protect
+        (progn
+          (with-current-buffer buf
+            (setq-local keymap-popup--active-exit-key "q")
+            (setq-local keymap-popup--stack '((:keymap nil :descriptions nil
+                                                       :docstring nil :exit-key "q")))
+            (setq-local keymap-popup--display-backend
+                        (list :show #'ignore :fit #'ignore :hide #'ignore)))
+          (let ((on-exit (keymap-popup--make-on-exit buf)))
+            (cl-letf (((symbol-function 'this-command-keys-vector)
+                       (lambda () [?a])))
+              (funcall on-exit))
+            (should-not (buffer-live-p buf))))
+      (when (buffer-live-p buf)
+        (kill-buffer buf)))))
+
+(ert-deftest keymap-popup-test-on-exit-pops-for-exit-key ()
+  "On-exit pops to parent when exit-key caused the exit."
+  (let ((buf (get-buffer-create "*keymap-popup-test-pop*"))
+        (parent-map (make-sparse-keymap))
+        (descs '(((:name nil :entries nil)))))
+    (unwind-protect
+        (progn
+          (with-current-buffer buf
+            (setq-local keymap-popup--active-exit-key "q")
+            (setq-local keymap-popup--active-keymap (make-sparse-keymap))
+            (setq-local keymap-popup--active-descriptions descs)
+            (setq-local keymap-popup--active-docstring nil)
+            (setq-local keymap-popup--source-buffer buf)
+            (setq-local keymap-popup--stack
+                        (list (list :keymap parent-map
+                                    :descriptions descs
+                                    :docstring nil
+                                    :exit-key "x")))
+            (setq-local keymap-popup--display-backend
+                        (list :show #'ignore :fit #'ignore :hide #'ignore)))
+          (let ((on-exit (keymap-popup--make-on-exit buf)))
+            (cl-letf (((symbol-function 'this-command-keys-vector)
+                       (lambda () [?q])))
+              (funcall on-exit))
+            (should (buffer-live-p buf))
+            (with-current-buffer buf
+              (should (eq keymap-popup--active-keymap parent-map))
+              (should (equal keymap-popup--active-exit-key "x"))
+              (should-not keymap-popup--stack))))
+      (when (buffer-live-p buf)
+        (kill-buffer buf)))))
+
 (provide 'keymap-popup-tests)
 ;;; keymap-popup-tests.el ends here

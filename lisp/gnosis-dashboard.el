@@ -288,8 +288,8 @@ If IDS is not provided, use current themata being displayed."
     (when (string-empty-p query) (user-error "Search query cannot be empty"))
     ;; Filter and display
     (let ((filtered (cl-intersection ids
-                                    (gnosis-collect-thema-ids :query query)
-                                    :test #'equal)))
+                                     (gnosis-collect-thema-ids :query query)
+                                     :test #'equal)))
       (if filtered
           (progn
             ;; Save current position and IDs to history
@@ -301,8 +301,8 @@ If IDS is not provided, use current themata being displayed."
   "Show themata with at most MAX-REVIEWS total reviews.
 With prefix arg, prompt for count.  Default 0 (never reviewed)."
   (interactive (list (if current-prefix-arg
-                        (read-number "Max reviews: " 0)
-                      0)))
+                         (read-number "Max reviews: " 0)
+                       0)))
   (let ((ids (gnosis-get-themata-by-reviews max-reviews)))
     (if ids
         (progn
@@ -315,8 +315,8 @@ With prefix arg, prompt for count.  Default 0 (never reviewed)."
   "Filter current themata to those with at most MAX-REVIEWS total reviews.
 With prefix arg, prompt for count.  Default 0 (never reviewed)."
   (interactive (list (if current-prefix-arg
-                        (read-number "Max reviews: " 0)
-                      0)))
+                         (read-number "Max reviews: " 0)
+                       0)))
   (unless gnosis-dashboard-themata-current-ids
     (user-error "No themata to filter"))
   (let ((filtered (gnosis-get-themata-by-reviews
@@ -342,7 +342,7 @@ With prefix arg, prompt for count.  Default 0 (never reviewed)."
       (when previous-id
         (goto-char (point-min))
         (while (and (not (eobp))
-                   (not (equal (tabulated-list-get-id) previous-id)))
+                    (not (equal (tabulated-list-get-id) previous-id)))
           (forward-line 1)))))
    ;; If no themata history but we're in themata mode and nodes history exists
    ((and (not gnosis-dashboard-themata-history)
@@ -412,8 +412,8 @@ Uses `gnosis-dashboard--entry-cache' to avoid re-querying known entries."
     ;; Fetch and cache only the missing entries
     (when uncached
       (let ((rows (gnosis-sqlite-select-batch (gnosis--ensure-db)
-                    "SELECT themata.id, themata.keimenon, themata.hypothesis, themata.answer, (SELECT '(' || GROUP_CONCAT(tag, ' ') || ')' FROM thema_tag WHERE thema_id = themata.id) AS tags, themata.type, review_log.suspend FROM themata JOIN review_log ON themata.id = review_log.id WHERE themata.id IN (%s)"
-                    uncached)))
+					      "SELECT themata.id, themata.keimenon, themata.hypothesis, themata.answer, (SELECT '(' || GROUP_CONCAT(tag, ' ') || ')' FROM thema_tag WHERE thema_id = themata.id) AS tags, themata.type, review_log.suspend FROM themata JOIN review_log ON themata.id = review_log.id WHERE themata.id IN (%s)"
+					      uncached)))
 	(dolist (row rows)
 	  (puthash (car row) (gnosis-dashboard--format-entry row)
 		   gnosis-dashboard--entry-cache))))
@@ -504,8 +504,8 @@ Continues as long as the dashboard buffer exists."
            (new-warmed (+ warmed (length ids))))
       (when uncached
         (let ((rows (gnosis-sqlite-select-batch (gnosis--ensure-db)
-                      "SELECT themata.id, themata.keimenon, themata.hypothesis, themata.answer, (SELECT '(' || GROUP_CONCAT(tag, ' ') || ')' FROM thema_tag WHERE thema_id = themata.id) AS tags, themata.type, review_log.suspend FROM themata JOIN review_log ON themata.id = review_log.id WHERE themata.id IN (%s)"
-                      uncached)))
+						"SELECT themata.id, themata.keimenon, themata.hypothesis, themata.answer, (SELECT '(' || GROUP_CONCAT(tag, ' ') || ')' FROM thema_tag WHERE thema_id = themata.id) AS tags, themata.type, review_log.suspend FROM themata JOIN review_log ON themata.id = review_log.id WHERE themata.id IN (%s)"
+						uncached)))
           (dolist (row rows)
             (puthash (car row) (gnosis-dashboard--format-entry row)
                      gnosis-dashboard--entry-cache))))
@@ -743,8 +743,8 @@ which tags will be renamed (and how many will merge), then
 applies via `gnosis--tag-rename-batch'."
   (interactive)
   (let* ((tags (or (and gnosis-dashboard--selected-ids
-		       (prog1 gnosis-dashboard--selected-ids
-			 (setq gnosis-dashboard--selected-ids nil)))
+			(prog1 gnosis-dashboard--selected-ids
+			  (setq gnosis-dashboard--selected-ids nil)))
 		   gnosis-dashboard-tags-current))
 	 (pattern (gnosis-dashboard--pcre-to-emacs
 		   (read-string "Rename pattern (regex): ")))
@@ -752,7 +752,7 @@ applies via `gnosis--tag-rename-batch'."
 		       "-" "_"
 		       (read-string "Replacement: ")))
 	 (all-tags (mapcar #'car (gnosis-sqlite-select (gnosis--ensure-db)
-				"SELECT DISTINCT tag FROM thema_tag")))
+						       "SELECT DISTINCT tag FROM thema_tag")))
 	 (existing-ht (let ((ht (make-hash-table :test 'equal)))
 			(dolist (t1 all-tags ht)
 			  (puthash t1 t ht))))
@@ -782,7 +782,7 @@ canonical; ties are broken alphabetically.  The rest are renamed
 to the canonical form via `gnosis--tag-rename-batch'."
   (interactive)
   (let* ((tag-counts (gnosis-sqlite-select (gnosis--ensure-db)
-		       "SELECT tag, COUNT(*) FROM thema_tag GROUP BY tag"))
+					   "SELECT tag, COUNT(*) FROM thema_tag GROUP BY tag"))
 	 (groups (make-hash-table :test 'equal))
 	 pairs)
     ;; Group tags by downcased form
@@ -822,8 +822,8 @@ to the canonical form via `gnosis--tag-rename-batch'."
                   (list (or tag (tabulated-list-get-id))))))
     (when (y-or-n-p (format "Delete %d tag(s)?" (length tags)))
       (gnosis-sqlite-execute-batch (gnosis--ensure-db)
-        "DELETE FROM thema_tag WHERE tag IN (%s)"
-        tags)
+				   "DELETE FROM thema_tag WHERE tag IN (%s)"
+				   tags)
       (gnosis-dashboard--invalidate-tag-caches)
       (remove-overlays nil nil 'gnosis-mark t)
       (setq tabulated-list-entries
@@ -843,17 +843,17 @@ to the canonical form via `gnosis--tag-rename-batch'."
                           (setq gnosis-dashboard--selected-ids nil)))
                    (list (or tag (tabulated-list-get-id)))))
          (themata (mapcar #'car
-		   (gnosis-sqlite-select-batch (gnosis--ensure-db)
-		     "SELECT DISTINCT thema_id FROM thema_tag WHERE tag IN (%s)"
-		     tags)))
+			  (gnosis-sqlite-select-batch (gnosis--ensure-db)
+						      "SELECT DISTINCT thema_id FROM thema_tag WHERE tag IN (%s)"
+						      tags)))
          (suspend (if current-prefix-arg 0 1))
          (action (if (= suspend 0) "Unsuspend" "Suspend")))
     (when (y-or-n-p (format "%s %d themata across %d tag(s)?"
                             action (length themata) (length tags)))
       (gnosis-sqlite-execute-batch (gnosis--ensure-db)
-        "UPDATE review_log SET suspend = ? WHERE id IN (%s)"
-        themata
-        (list suspend))
+				   "UPDATE review_log SET suspend = ? WHERE id IN (%s)"
+				   themata
+				   (list suspend))
       (remove-overlays nil nil 'gnosis-mark t)
       (message "%sed %d themata" action (length themata)))))
 
@@ -889,7 +889,7 @@ to the canonical form via `gnosis--tag-rename-batch'."
   "Format gnosis dashboard with output of TAGS."
   (interactive)
   (let* ((tag-counts (gnosis-sqlite-select (gnosis--ensure-db)
-                       "SELECT tag, COUNT(*) FROM thema_tag GROUP BY tag"))
+					   "SELECT tag, COUNT(*) FROM thema_tag GROUP BY tag"))
          (count-ht (let ((ht (make-hash-table :test 'equal :size (length tag-counts))))
                      (dolist (row tag-counts ht)
                        (puthash (car row) (cadr row) ht))))
@@ -1234,7 +1234,12 @@ GENERATION prevents stale updates when the user navigates away."
             (gnosis-insert-separator)
             (funcall (symbol-value module))))
         (goto-char (point-min))))
-    (gnosis-dashboard--compute-link-issues)))
+    (run-with-idle-timer
+     0.5 nil
+     (lambda ()
+       (when (and (buffer-live-p buffer)
+                  (= generation gnosis-dashboard--load-generation))
+         (gnosis-dashboard--compute-link-issues))))))
 
 ;;;###autoload
 (defun gnosis-dashboard ()
@@ -1380,12 +1385,12 @@ Isolated nodes have no backlinks, no forward links, and no themata links."
 			(dolist (link themata-raw h)
 			  (puthash (nth 0 link) t h))))
          (isolated-ids (cl-loop for node in all-nodes-data
-                               for id = (nth 0 node)
-                               for backlink-count = (nth 2 node)
-                               when (and (= backlink-count 0)
-					 (not (gethash id fwd-set))
-					 (not (gethash id themata-set)))
-                               collect id)))
+				for id = (nth 0 node)
+				for backlink-count = (nth 2 node)
+				when (and (= backlink-count 0)
+					  (not (gethash id fwd-set))
+					  (not (gethash id themata-set)))
+				collect id)))
     (if isolated-ids
         (progn
           (push (cons (tabulated-list-get-id) gnosis-dashboard-nodes-current-ids)
@@ -1401,10 +1406,10 @@ Searches the database for nodes whose titles contain the search term."
     (user-error "Search query cannot be empty"))
   (let* ((all-nodes (gnosis-select '[id title] 'nodes))
          (matching-ids (cl-loop for node in all-nodes
-                               for id = (nth 0 node)
-                               for title = (nth 1 node)
-                               when (string-match-p (regexp-quote query) title)
-                               collect id)))
+				for id = (nth 0 node)
+				for title = (nth 1 node)
+				when (string-match-p (regexp-quote query) title)
+				collect id)))
     (if matching-ids
         (progn
           ;; Save current view to history
@@ -1424,10 +1429,10 @@ Only searches within currently displayed nodes."
   (let* ((current-nodes (gnosis-select '[id title] 'nodes
                                        `(in id ,(vconcat gnosis-dashboard-nodes-current-ids))))
          (matching-ids (cl-loop for node in current-nodes
-                               for id = (nth 0 node)
-                               for title = (nth 1 node)
-                               when (string-match-p (regexp-quote query) title)
-                               collect id)))
+				for id = (nth 0 node)
+				for title = (nth 1 node)
+				when (string-match-p (regexp-quote query) title)
+				collect id)))
     (if matching-ids
         (progn
           ;; Save current view to history
@@ -1547,7 +1552,7 @@ When NODE-IDS is non-nil, only search files whose node ID is in that list."
         (when previous-id
           (goto-char (point-min))
           (while (and (not (eobp))
-                     (not (equal (tabulated-list-get-id) previous-id)))
+                      (not (equal (tabulated-list-get-id) previous-id)))
             (forward-line 1))))
     ;; No history - go back to main dashboard
     (gnosis-dashboard)))

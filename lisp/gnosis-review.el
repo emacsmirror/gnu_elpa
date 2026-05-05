@@ -137,21 +137,21 @@ Applies highlighting for CORRECT & FALSE."
 
 When SUCCESS nil, display USER-INPUT as well"
   (with-current-buffer gnosis-review-buffer-name
-      (goto-char (point-max))
-  (insert "\n\n"
-	  (propertize "Answer:" 'face 'gnosis-face-directions)
-	  " "
-	  (propertize answer 'face 'gnosis-face-correct))
-  (when gnosis-center-content
-    (gnosis-center-current-line))
-  ;; Insert user wrong answer
-  (when (not success)
-    (insert "\n"
-	    (propertize "Your answer:" 'face 'gnosis-face-directions)
+    (goto-char (point-max))
+    (insert "\n\n"
+	    (propertize "Answer:" 'face 'gnosis-face-directions)
 	    " "
-	    (propertize user-input 'face 'gnosis-face-false))
+	    (propertize answer 'face 'gnosis-face-correct))
     (when gnosis-center-content
-      (gnosis-center-current-line)))))
+      (gnosis-center-current-line))
+    ;; Insert user wrong answer
+    (when (not success)
+      (insert "\n"
+	      (propertize "Your answer:" 'face 'gnosis-face-directions)
+	      " "
+	      (propertize user-input 'face 'gnosis-face-false))
+      (when gnosis-center-content
+	(gnosis-center-current-line)))))
 
 (defun gnosis-display-hint (hint)
   "Display HINT."
@@ -159,7 +159,9 @@ When SUCCESS nil, display USER-INPUT as well"
     (unless (string-empty-p hint)
       (goto-char (point-max))
       (and (not (string-empty-p hint))
-	   (insert "\n" (gnosis-format-string (propertize hint 'face 'gnosis-face-hint))))
+	   (insert "\n"
+		   (gnosis-format-string
+		    (propertize hint 'face 'gnosis-face-hint))))
       (gnosis-insert-separator))))
 
 (defun gnosis-display-cloze-user-answer (user-input &optional false)
@@ -194,7 +196,10 @@ If FALSE t, use gnosis-face-false face"
   "Display PARATHEMA."
   (when (and parathema (not (string-empty-p parathema)))
     (goto-char (point-max))
-    (insert "\n" (gnosis-format-string (gnosis-org-format-string parathema)) "\n")))
+    (insert "\n"
+	    (gnosis-format-string
+	     (gnosis-org-format-string parathema))
+	    "\n")))
 
 (defun gnosis-display-next-review (interval success)
   "Display INTERVAL as next review date.
@@ -228,12 +233,14 @@ SUCCESS controls the face used when overriding a previous display."
     (when links
       (mapcar #'car
 	      (gnosis-sqlite-select-batch (gnosis--ensure-db)
-		"SELECT title FROM nodes WHERE id IN (%s)"
-		links)))))
+					  "SELECT title FROM nodes WHERE id IN (%s)"
+					  links)))))
 
 (defun gnosis-view-linked-node (id)
   "Visit linked node(s) for thema ID."
-  (let* ((node (gnosis-completing-read "Select node: " (gnosis-get-linked-nodes id) t)))
+  (let* ((node (gnosis-completing-read
+		"Select node: "
+		(gnosis-get-linked-nodes id) t)))
     (window-configuration-to-register :gnosis-link-view)
     (gnosis-nodes-find node)
     (gnosis-link-view-mode)))
@@ -287,9 +294,9 @@ well."
 				     `(and (= n 0) (= suspend 0)
 					   (<= next-rev ,today)))))
     (let ((limited-new (if gnosis-new-themata-limit
-			  (cl-subseq new-themata 0 (min gnosis-new-themata-limit
-						       (length new-themata)))
-			new-themata)))
+			   (cl-subseq new-themata 0 (min gnosis-new-themata-limit
+							 (length new-themata)))
+			 new-themata)))
       (if gnosis-review-new-first
 	  (append limited-new old-themata)
 	(append old-themata limited-new)))))
@@ -309,8 +316,8 @@ well."
   "Return count of overdue themata."
   (let ((today (gnosis--today-int)))
     (or (caar (gnosis-sqlite-select (gnosis--ensure-db)
-	        "SELECT COUNT(*) FROM review_log WHERE n > 0 AND suspend = 0 AND next_rev < ?"
-		(list today)))
+				    "SELECT COUNT(*) FROM review_log WHERE n > 0 AND suspend = 0 AND next_rev < ?"
+				    (list today)))
 	0)))
 
 ;;; Algorithm bridge
@@ -327,12 +334,13 @@ keys n, c-success, c-fails, t-success, t-fails for
 `gnosis-review--update'."
   (let* (;; Fetch all review-log fields in one query (includes n, t-fails)
 	 (log-data (car (gnosis-select '[t-success c-success c-fails
-					last-rev next-rev n t-fails]
+						   last-rev next-rev n t-fails]
 				       'review-log `(= id ,id))))
 	 (t-success (nth 0 log-data))
 	 (c-success (nth 1 log-data))
 	 (c-fails (nth 2 log-data))
-	 (last-interval (gnosis-algorithm-date-diff (gnosis--int-to-date (nth 3 log-data))))
+	 (last-interval (gnosis-algorithm-date-diff
+			 (gnosis--int-to-date (nth 3 log-data))))
 	 (existing-next-rev (gnosis--int-to-date (nth 4 log-data)))
 	 (n (nth 5 log-data))
 	 (t-fails (nth 6 log-data))
@@ -385,13 +393,13 @@ RESULT is the return value of `gnosis-review-algorithm'."
     (gnosis-review-increment-activity-log (not (> n 0)))
     ;; Single review-log UPDATE
     (gnosis-sqlite-execute (gnosis--ensure-db)
-	     "UPDATE review_log SET last_rev = ?, next_rev = ?, n = ?, c_success = ?, c_fails = ?, t_success = ?, t_fails = ? WHERE id = ?"
-	     (list (gnosis--today-int) (gnosis--date-to-int next-rev) (1+ n)
-		   (if success (1+ c-success) 0)
-		   (if success 0 (1+ c-fails))
-		   (if success (1+ t-success) t-success)
-		   (if success t-fails (1+ t-fails))
-		   id))
+			   "UPDATE review_log SET last_rev = ?, next_rev = ?, n = ?, c_success = ?, c_fails = ?, t_success = ?, t_fails = ? WHERE id = ?"
+			   (list (gnosis--today-int) (gnosis--date-to-int next-rev) (1+ n)
+				 (if success (1+ c-success) 0)
+				 (if success 0 (1+ c-fails))
+				 (if success (1+ t-success) t-success)
+				 (if success t-fails (1+ t-fails))
+				 id))
     ;; Single review UPDATE
     (gnosis-update 'review `(= gnosis ',gnosis-score) `(= id ,id))))
 
@@ -425,15 +433,19 @@ TAGS are pre-fetched for custom value lookup."
 (defun gnosis-review-basic (id tags)
   "Review basic type thema for ID.
 TAGS are pre-fetched for custom value lookup."
-  (let* ((data (car (gnosis-select '[keimenon hypothesis answer] 'themata `(= id ,id))))
+  (let* ((data (car (gnosis-select
+		     '[keimenon hypothesis answer]
+		     'themata `(= id ,id))))
 	 (keimenon (nth 0 data))
 	 (hypothesis (car (nth 1 data)))
 	 (answer (car (nth 2 data)))
-	 (parathema (gnosis-get 'parathema 'extras `(= id ,id))))
+	 (parathema (gnosis-get 'parathema 'extras
+				`(= id ,id))))
     (gnosis-display-image keimenon)
     (gnosis-display-keimenon (gnosis-org-format-string keimenon))
     (gnosis-display-hint hypothesis)
-    (let* ((user-input (gnosis--read-string-with-input-method "Answer: " answer))
+    (let* ((user-input (gnosis--read-string-with-input-method
+			"Answer: " answer))
 	   (success (gnosis-compare-strings answer user-input))
 	   (result (gnosis-review-algorithm id success tags)))
       (unless success (setq gnosis-review--monkeytype-text answer))
@@ -452,53 +464,74 @@ Returns a cons; ='(position . user-input) if correct,
   (let* ((user-input (or user-input
                          (gnosis--read-string-with-input-method
                           "Answer: " (car clozes))))
-         (position (cl-position user-input clozes :test #'gnosis-compare-strings)))
+         (position (cl-position user-input clozes
+				:test #'gnosis-compare-strings)))
     (cons position user-input)))
 
 (defun gnosis-review-cloze (id tags)
   "Review cloze type thema for ID.
 TAGS are pre-fetched for custom value lookup."
-  (let* ((data (car (gnosis-select '[keimenon answer hypothesis] 'themata `(= id ,id))))
+  (let* ((data (car (gnosis-select
+		     '[keimenon answer hypothesis]
+		     'themata `(= id ,id))))
 	 (keimenon (nth 0 data))
          (all-clozes (nth 1 data))
          (all-hints (nth 2 data))
-         (revealed-clozes '()) ;; List of revealed clozes
+         (revealed-clozes '())
          (unrevealed-clozes all-clozes)
          (unrevealed-hints all-hints)
-         (parathema (gnosis-get 'parathema 'extras `(= id ,id)))
+         (parathema (gnosis-get 'parathema 'extras
+				`(= id ,id)))
          (success t))
-    ;; Initially display the sentence with no reveals
-    (gnosis-display-cloze-string keimenon unrevealed-clozes unrevealed-hints nil nil)
+    (gnosis-display-cloze-string
+     keimenon unrevealed-clozes
+     unrevealed-hints nil nil)
     (catch 'done
       (while unrevealed-clozes
-        (let* ((input (gnosis-review-cloze--input unrevealed-clozes))
+        (let* ((input (gnosis-review-cloze--input
+		       unrevealed-clozes))
                (position (car input))
-               (matched-cloze (when position (nth position unrevealed-clozes)))
-               (matched-hint (when (and position (< position (length unrevealed-hints)))
-                               (nth position unrevealed-hints))))
+               (matched-cloze
+		(when position
+		  (nth position unrevealed-clozes)))
+               (matched-hint
+		(when (and position
+			   (< position
+			      (length unrevealed-hints)))
+		  (nth position unrevealed-hints))))
           (if matched-cloze
-              ;; Correct answer - move cloze from unrevealed to revealed
               (progn
-                ;; Add to revealed clozes list, preserving original order
                 (setq revealed-clozes
-                      (cl-sort (cons matched-cloze revealed-clozes)
-                               #'< :key (lambda (cloze)
-                                          (cl-position cloze all-clozes))))
-                ;; Remove from unrevealed lists by position
-                (setq unrevealed-clozes (append (cl-subseq unrevealed-clozes 0 position)
-                                               (cl-subseq unrevealed-clozes (1+ position))))
-                (when (and matched-hint (< position (length unrevealed-hints)))
-		  (setq unrevealed-hints (append (cl-subseq unrevealed-hints 0 position)
-                                                (cl-subseq unrevealed-hints (1+ position)))))
-                ;; Display with updated revealed/unrevealed lists
-                (gnosis-display-cloze-string keimenon unrevealed-clozes unrevealed-hints
-                                           revealed-clozes nil))
-            ;; Incorrect answer
-            (gnosis-display-cloze-string keimenon nil nil
-                                       revealed-clozes unrevealed-clozes)
+                      (cl-sort
+		       (cons matched-cloze revealed-clozes)
+		       #'< :key
+		       (lambda (cloze)
+			 (cl-position cloze all-clozes))))
+                (setq unrevealed-clozes
+		      (append
+		       (cl-subseq unrevealed-clozes
+				  0 position)
+		       (cl-subseq unrevealed-clozes
+				  (1+ position))))
+                (when (and matched-hint
+			   (< position
+			      (length unrevealed-hints)))
+		  (setq unrevealed-hints
+			(append
+			 (cl-subseq unrevealed-hints
+				    0 position)
+			 (cl-subseq unrevealed-hints
+				    (1+ position)))))
+                (gnosis-display-cloze-string
+		 keimenon unrevealed-clozes
+		 unrevealed-hints revealed-clozes nil))
+            (gnosis-display-cloze-string
+	     keimenon nil nil
+	     revealed-clozes unrevealed-clozes)
             (gnosis-display-cloze-user-answer (cdr input))
             (setq success nil)
-            (setq gnosis-review--monkeytype-text (car unrevealed-clozes))
+            (setq gnosis-review--monkeytype-text
+		  (car unrevealed-clozes))
             (throw 'done nil)))))
     (let ((result (gnosis-review-algorithm id success tags)))
       (gnosis-display-parathema parathema)
@@ -508,11 +541,14 @@ TAGS are pre-fetched for custom value lookup."
 (defun gnosis-review-mc-cloze (id tags)
   "Review mc-cloze type thema for ID.
 TAGS are pre-fetched for custom value lookup."
-  (let* ((data (car (gnosis-select '[keimenon answer hypothesis] 'themata `(= id ,id))))
+  (let* ((data (car (gnosis-select
+		     '[keimenon answer hypothesis]
+		     'themata `(= id ,id))))
 	 (keimenon (nth 0 data))
 	 (cloze (nth 1 data))
 	 (options (nth 2 data))
-	 (parathema (gnosis-get 'parathema 'extras `(= id ,id)))
+	 (parathema (gnosis-get 'parathema 'extras
+				`(= id ,id)))
 	 (user-input)
 	 (success))
     (gnosis-display-cloze-string keimenon cloze nil nil nil)
@@ -546,8 +582,13 @@ If NEW? is non-nil, increment new themata log by 1."
 	 (current-new-value (gnosis-get-date-new-themata))
 	 (inc-new (cl-incf current-new-value))
 	 (date (or date (gnosis--today-int))))
-    (gnosis-update 'activity-log `(= reviewed-total ,inc-total) `(= date ,date))
-    (and new? (gnosis-update 'activity-log `(= reviewed-new ,inc-new) `(= date ,date)))))
+    (gnosis-update 'activity-log
+		   `(= reviewed-total ,inc-total)
+		   `(= date ,date))
+    (and new?
+	 (gnosis-update 'activity-log
+			`(= reviewed-new ,inc-new)
+			`(= date ,date)))))
 
 (defun gnosis-history-clear ()
   "Delete all activity log entries."
@@ -657,7 +698,8 @@ the changes with a message containing the reviewed number THEMA-NUM."
         ,(format "Total themata reviewed: %d" thema-num)))
      (lambda ()
        (when gnosis-vc-auto-push (gnosis-vc-push))
-       (message "Review session finished.  %d themata reviewed." thema-num)))))
+       (message "Review session finished.  %d themata reviewed."
+		thema-num)))))
 
 ;;; Review actions
 
@@ -712,8 +754,8 @@ be called with new SUCCESS value plus THEMA."
   "View linked node(s) for THEMA.
 RESULT is the algorithm result to thread through."
   (if (gnosis-get-linked-nodes thema)
-    (progn (gnosis-view-linked-node thema)
-	   (recursive-edit))
+      (progn (gnosis-view-linked-node thema)
+	     (recursive-edit))
     (message (format "No linked nodes for thema: %d" thema))
     (sleep-for 0.5))
   (gnosis-review-actions success thema result))
@@ -727,7 +769,9 @@ RESULT: Return value of `gnosis-review-algorithm'.
 
 To customize the keybindings, adjust `gnosis-review-keybindings'."
   (let* ((prompt
-	  "Action: %sext, %sverride result, %suspend, %selete, %sdit thema, %siew link, %suit: ")
+	  (concat "Action: %sext, %sverride result, "
+		  "%suspend, %selete, %sdit thema, "
+		  "%siew link, %suit: "))
 	 (choice (read-char-choice
 		  (apply #'format prompt
 			 (mapcar
@@ -760,8 +804,11 @@ To customize the keybindings, adjust `gnosis-review-keybindings'."
 (defun gnosis-monkeytype-thema (thema)
   "Process monkeytyping for THEMA id.
 
-This is used to type the keimenon of thema, with the answers highlighted."
-  (let* ((thema-context (gnosis-select '[keimenon type answer] 'themata `(= id ,thema) t))
+This is used to type the keimenon of thema, with the
+answers highlighted."
+  (let* ((thema-context
+	  (gnosis-select '[keimenon type answer]
+			 'themata `(= id ,thema) t))
 	 (keimenon (replace-regexp-in-string
 		    "\\[\\[\\([^]]+\\)\\]\\[\\([^]]+\\)\\]\\]" "\\2" ;; remove links
 		    (nth 0 thema-context)))
@@ -776,6 +823,7 @@ This is used to type the keimenon of thema, with the answers highlighted."
 
 (keymap-popup-define gnosis-review-map
   "Review"
+  :description "Review"
   :group "Review"
   "d" ("Due themata" (lambda () (interactive)
 		       (gnosis-review-loop

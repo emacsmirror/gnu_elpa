@@ -1,6 +1,5 @@
 ;;; csv-mode.el --- Major mode for editing comma/char separated values  -*- lexical-binding: t -*-
-
-;; Copyright (C) 2003-2024  Free Software Foundation, Inc
+;; Copyright (C) 2003-2026 Free Software Foundation, Inc
 
 ;; Author: "Francis J. Wright" <F.J.Wright@qmul.ac.uk>
 ;; Maintainer: emacs-devel@gnu.org
@@ -1220,14 +1219,14 @@ If there is no selected region, default to the whole buffer."
                     (when (> left-padding 0) ; Pad on the left.
                       ;; Insert spaces before field:
                       (if (= beg end)   ; null field
-                          (insert (make-string left-padding ?\ ))
+                          (insert-char ?\  left-padding)
                         (goto-char beg) ; beginning of current field
-                        (insert (make-string left-padding ?\ ))
+                        (insert-char ?\  left-padding)
                         (goto-char end))) ; end of current field
                     (unless (eolp)
                       (if (> right-padding 0) ; pad on the right
                           ;; Insert spaces after field:
-                          (insert (make-string right-padding ?\ )))
+                          (insert-char ?\  right-padding))
                       ;; Make separator (potentially) invisible;
                       ;; in Emacs 21.3, neighbouring overlays
                       ;; conflict, so use the following only

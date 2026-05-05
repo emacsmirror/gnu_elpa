@@ -42,6 +42,7 @@
 (require 'forgejo-filter)
 (require 'forgejo-utils)
 (require 'forgejo-buffer)
+(require 'forgejo-view)
 
 (declare-function forgejo-issue-view "forgejo-issue.el"
                   (owner repo number))
@@ -50,7 +51,6 @@
 
 (defvar forgejo-repo--host)
 (defvar forgejo-default-sort)
-(declare-function forgejo-view--list-format "forgejo-view.el" (columns))
 (declare-function forgejo-api-default-limit "forgejo-api.el" ())
 
 ;;; Customization

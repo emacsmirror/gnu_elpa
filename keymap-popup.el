@@ -429,7 +429,6 @@ time, so the popup always reflects the user's current bindings."
     `(progn
        (setf (keymap-popup--meta ,keymap 'descriptions)
              ,(keymap-popup--build-descriptions-form rows))
-       (setf (keymap-popup--meta ,keymap 'annotated) 'yes)
        ,@(and popup-key
               `((keymap-set ,keymap ,popup-key
                             (lambda () (interactive) (keymap-popup ,keymap)))))
@@ -933,43 +932,33 @@ its parent group plist; non-nil return values are collected."
                     row))
           descriptions))
 
-(defun keymap-popup--inapt-keys (descriptions)
-  "Return key-strings that may be inapt in DESCRIPTIONS.
-Includes keys with entry-level or group-level :inapt-if."
-  (keymap-popup--collect-entries
-   descriptions
-   (lambda (entry group)
-     (and-let* ((key (plist-get entry :key))
-                (_ (or (plist-get entry :inapt-if)
-                       (plist-get group :inapt-if))))
-       key))))
-
-(defun keymap-popup--stay-open-suffix-keys (descriptions)
-  "Return key-strings for :stay-open suffix entries in DESCRIPTIONS."
-  (keymap-popup--collect-entries
-   descriptions
-   (lambda (entry _group)
-     (and-let* ((key (plist-get entry :key))
-                (_ (eq (plist-get entry :type) 'suffix))
-                (_ (plist-get entry :stay-open)))
-       key))))
-
-(defun keymap-popup--switch-keys (descriptions)
-  "Return key-strings for switch entries in DESCRIPTIONS."
-  (keymap-popup--collect-entries
-   descriptions
-   (lambda (entry _group)
-     (and (eq (plist-get entry :type) 'switch)
-          (plist-get entry :key)))))
-
-(defun keymap-popup--submenu-keys (descriptions)
-  "Return alist of (KEY-STRING . TARGET-KEYMAP) from DESCRIPTIONS."
-  (keymap-popup--collect-entries
-   descriptions
-   (lambda (entry _group)
-     (when (eq (plist-get entry :type) 'keymap)
-       (cons (plist-get entry :key)
-             (plist-get entry :target))))))
+(defun keymap-popup--classify-entries (descriptions)
+  "Walk DESCRIPTIONS once, classify entries by type and properties.
+Returns plist (:inapt KEYS :switches KEYS :submenus PAIRS :stay-open KEYS)."
+  (let ((entries (keymap-popup--collect-entries
+                  descriptions
+                  (lambda (entry group)
+                    (and-let* ((key (plist-get entry :key)))
+                      (list :key key
+                            :type (plist-get entry :type)
+                            :target (plist-get entry :target)
+                            :inapt (or (plist-get entry :inapt-if)
+                                       (plist-get group :inapt-if))
+                            :stay-open (plist-get entry :stay-open)))))))
+    (list :inapt (cl-loop for e in entries
+                          when (plist-get e :inapt)
+                          collect (plist-get e :key))
+          :switches (cl-loop for e in entries
+                             when (eq (plist-get e :type) 'switch)
+                             collect (plist-get e :key))
+          :submenus (cl-loop for e in entries
+                             when (eq (plist-get e :type) 'keymap)
+                             collect (cons (plist-get e :key)
+                                           (plist-get e :target)))
+          :stay-open (cl-loop for e in entries
+                              when (and (eq (plist-get e :type) 'suffix)
+                                        (plist-get e :stay-open))
+                              collect (plist-get e :key)))))
 
 (defun keymap-popup--push-submenu (buf child-keymap)
   "Push current popup state in BUF and activate CHILD-KEYMAP's transient map."
@@ -979,10 +968,9 @@ Includes keys with entry-level or group-level :inapt-if."
                 :docstring keymap-popup--active-docstring
                 :exit-key keymap-popup--active-exit-key)
           keymap-popup--stack)
-    (let* ((raw (keymap-popup--collect-descriptions child-keymap))
-           (descs (if (keymap-popup--meta child-keymap 'annotated)
-                      (keymap-popup--resolve-descriptions raw child-keymap)
-                    raw))
+    (let* ((descs (keymap-popup--resolve-descriptions
+                   (keymap-popup--collect-descriptions child-keymap)
+                   child-keymap))
            (doc (keymap-popup--meta child-keymap 'description))
            (exit-key (or (keymap-popup--meta child-keymap 'exit-key)
                          keymap-popup-default-exit-key)))
@@ -1032,17 +1020,17 @@ When not inapt, calls CMD."
               (setq prefix-arg '(4))))
         (funcall cmd)))))
 
-(defun keymap-popup--submenu-overrides (descriptions buf)
-  "Return alist of submenu key overrides from DESCRIPTIONS for BUF."
+(defun keymap-popup--submenu-overrides (submenu-pairs buf)
+  "Return alist of submenu key overrides from SUBMENU-PAIRS for BUF."
   (mapcar (lambda (pair)
             (cons (car pair)
                   (let ((target (cdr pair)))
                     (lambda () (interactive)
                       (keymap-popup--push-submenu buf target)))))
-          (keymap-popup--submenu-keys descriptions)))
+          submenu-pairs))
 
-(defun keymap-popup--switch-overrides (keymap descriptions buf)
-  "Return alist of switch key overrides for KEYMAP DESCRIPTIONS in BUF.
+(defun keymap-popup--switch-overrides (keymap switch-keys buf)
+  "Return alist of switch key overrides for KEYMAP's SWITCH-KEYS in BUF.
 Wraps the toggle command with prefix-mode consumption."
   (mapcar (lambda (key-str)
             (cons key-str
@@ -1053,27 +1041,31 @@ Wraps the toggle command with prefix-mode consumption."
                         (setq-local keymap-popup--prefix-mode nil))
                       (setq prefix-arg nil))
                     (keymap-popup--refresh buf))))
-          (keymap-popup--switch-keys descriptions)))
+          switch-keys))
 
-(defun keymap-popup--stay-open-overrides (keymap descriptions buf)
-  "Return alist of stay-open suffix overrides for KEYMAP DESCRIPTIONS in BUF.
+(defun keymap-popup--stay-open-overrides (keymap stay-open-keys buf)
+  "Return alist of stay-open suffix overrides for KEYMAP's STAY-OPEN-KEYS in BUF.
 Each command executes and refreshes the popup in place."
   (mapcar (lambda (key-str)
             (cons key-str
                   (lambda () (interactive)
                     (call-interactively (keymap-lookup keymap key-str))
                     (keymap-popup--refresh buf))))
-          (keymap-popup--stay-open-suffix-keys descriptions)))
+          stay-open-keys))
 
 (defun keymap-popup--build-wrapper-map (keymap descriptions buf exit-key)
   "Build wrapper keymap over KEYMAP with DESCRIPTIONS for BUF.
 EXIT-KEY and inapt guards are applied as a layer over specialized handlers."
   (let* ((map (make-sparse-keymap))
-         (inapt (keymap-popup--inapt-keys descriptions))
+         (classified (keymap-popup--classify-entries descriptions))
+         (inapt (plist-get classified :inapt))
          (overrides (append (keymap-popup--core-overrides exit-key)
-                            (keymap-popup--switch-overrides keymap descriptions buf)
-                            (keymap-popup--submenu-overrides descriptions buf)
-                            (keymap-popup--stay-open-overrides keymap descriptions buf))))
+                            (keymap-popup--switch-overrides
+                             keymap (plist-get classified :switches) buf)
+                            (keymap-popup--submenu-overrides
+                             (plist-get classified :submenus) buf)
+                            (keymap-popup--stay-open-overrides
+                             keymap (plist-get classified :stay-open) buf))))
     (set-keymap-parent map keymap)
     (pcase-dolist (`(,key . ,cmd) overrides)
       (keymap-set map key
@@ -1100,10 +1092,9 @@ navigation stack.  \\[universal-argument] toggles prefix mode."
   (let* ((source (current-buffer))
          (buf (keymap-popup--prepare-buffer))
          (backend (funcall keymap-popup-backend))
-         (raw (keymap-popup--collect-descriptions keymap))
-         (descriptions (if (keymap-popup--meta keymap 'annotated)
-                           (keymap-popup--resolve-descriptions raw keymap)
-                         raw))
+         (descriptions (keymap-popup--resolve-descriptions
+			(keymap-popup--collect-descriptions keymap)
+			keymap))
          (docstring (keymap-popup--meta keymap 'description))
          (exit-key (or (keymap-popup--meta keymap 'exit-key)
                        keymap-popup-default-exit-key))

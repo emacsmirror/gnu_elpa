@@ -649,31 +649,39 @@
         (should (functionp (keymap-lookup map "C-u")))
       (kill-buffer buf))))
 
-(ert-deftest keymap-popup-test-inapt-keys-collected ()
-  (let ((descs (list (list (list :name nil
-                                 :entries (list (list :key "m" :type 'suffix
-                                                      :inapt-if (lambda () t))
-                                                (list :key "c" :type 'suffix)))))))
-    (should (equal (keymap-popup--inapt-keys descs) '("m")))))
+(ert-deftest keymap-popup-test-classify-inapt ()
+  "Entry-level :inapt-if is classified."
+  (let* ((descs (list (list (list :name nil
+                                  :entries (list (list :key "m" :type 'suffix
+                                                       :inapt-if (lambda () t))
+                                                 (list :key "c" :type 'suffix))))))
+         (classified (keymap-popup--classify-entries descs)))
+    (should (equal (plist-get classified :inapt) '("m")))))
 
-(ert-deftest keymap-popup-test-inapt-keys-from-group ()
-  (let ((descs (list (list (list :name "G" :inapt-if (lambda () t)
-                                 :entries (list (list :key "a" :type 'suffix)
-                                                (list :key "b" :type 'suffix)))))))
-    (should (equal (keymap-popup--inapt-keys descs) '("a" "b")))))
+(ert-deftest keymap-popup-test-classify-inapt-from-group ()
+  "Group-level :inapt-if classifies all entries in the group."
+  (let* ((descs (list (list (list :name "G" :inapt-if (lambda () t)
+                                  :entries (list (list :key "a" :type 'suffix)
+                                                 (list :key "b" :type 'suffix))))))
+         (classified (keymap-popup--classify-entries descs)))
+    (should (equal (plist-get classified :inapt) '("a" "b")))))
 
-(ert-deftest keymap-popup-test-submenu-keys-collected ()
-  (let ((descs (list (list (list :name nil
-                                 :entries (list (list :key "a" :type 'keymap :target 'sub)
-                                                (list :key "c" :type 'suffix)))))))
-    (should (equal (keymap-popup--submenu-keys descs) '(("a" . sub))))))
+(ert-deftest keymap-popup-test-classify-submenus ()
+  "Keymap entries are classified as submenus."
+  (let* ((descs (list (list (list :name nil
+                                  :entries (list (list :key "a" :type 'keymap :target 'sub)
+                                                 (list :key "c" :type 'suffix))))))
+         (classified (keymap-popup--classify-entries descs)))
+    (should (equal (plist-get classified :submenus) '(("a" . sub))))))
 
-(ert-deftest keymap-popup-test-stay-open-suffix-keys ()
-  (let ((descs (list (list (list :name nil
-                                 :entries (list (list :key "g" :type 'suffix :stay-open t)
-                                                (list :key "v" :type 'switch :variable 'x)
-                                                (list :key "c" :type 'suffix)))))))
-    (should (equal (keymap-popup--stay-open-suffix-keys descs) '("g")))))
+(ert-deftest keymap-popup-test-classify-stay-open ()
+  "Stay-open suffix entries are classified."
+  (let* ((descs (list (list (list :name nil
+                                  :entries (list (list :key "g" :type 'suffix :stay-open t)
+                                                 (list :key "v" :type 'switch :variable 'x)
+                                                 (list :key "c" :type 'suffix))))))
+         (classified (keymap-popup--classify-entries descs)))
+    (should (equal (plist-get classified :stay-open) '("g")))))
 
 ;;; Add/remove entry tests
 
@@ -728,6 +736,7 @@
     (should (eq (plist-get entry :command) 'forward-char))
     (should (equal (plist-get entry :description) "Forward"))))
 
+
 (ert-deftest keymap-popup-test-resolve-key ()
   (let* ((entry (list :key nil :description "Forward" :type 'suffix
                       :command 'forward-char))
@@ -757,9 +766,6 @@
            forward-char "Forward"
            backward-char "Backward")
         t)
-  (should (eq (keymap-popup--meta keymap-popup--test-annotate-map
-                                  'annotated)
-              'yes))
   (let* ((descs (keymap-popup--meta keymap-popup--test-annotate-map
                                     'descriptions))
          (entries (plist-get (car (car descs)) :entries)))

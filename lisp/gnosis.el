@@ -548,7 +548,7 @@ LINKS: List of id links."
 			       &optional type)
   "Update thema entry for ID.
 
-If gnosis ID does not exist, create it anew.
+If gnosis ID does not exist, create it anew and issue a warning.
 When `gnosis--id-cache' is bound, uses hash table for existence check."
   (let* ((id (if (stringp id) (string-to-number id) id))
 	 (current-type (gnosis-get 'type 'themata `(= id ,id))))
@@ -571,7 +571,9 @@ When `gnosis--id-cache' is bound, uses hash table for existence check."
 	  (gnosis--delete 'thema-tag `(= thema-id ,id))
 	  (cl-loop for tag in tags
 		   do (gnosis--insert-into 'thema-tag `([,id ,tag]))))
-      (message "Gnosis with id: %d does not exist, creating anew." id)
+      (display-warning 'gnosis
+		       (format "Thema id:%d does not exist, creating anew" id)
+		       :warning)
       (gnosis-add-thema-fields type keimenon hypothesis answer parathema tags
 			       0 links nil id))))
 

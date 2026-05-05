@@ -183,9 +183,11 @@ KEY is a key string for normal entries, or a command symbol for
 annotated entries.  SPEC is (DESCRIPTION COMMAND-OR-TYPE &rest PROPS)
 for key-based entries, or (DESCRIPTION &rest PROPS) for annotated ones."
   (if (symbolp key)
-      ;; Annotated entry: key is a command symbol, spec is (DESC . PROPS)
-      ;; or a bare string
-      (let* ((spec (if (stringp spec) (list spec) spec))
+      ;; Annotated entry: key is a command symbol, spec is (DESC . PROPS),
+      ;; a bare string, or a bare lambda/function form.
+      (let* ((spec (cond ((stringp spec) (list spec))
+                         ((memq (car-safe spec) '(lambda function)) (list spec))
+                         (t spec)))
              (description (car spec))
              (props (cdr spec)))
         `(:key nil :description ,description :type suffix

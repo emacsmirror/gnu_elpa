@@ -736,6 +736,13 @@
     (should (eq (plist-get entry :command) 'forward-char))
     (should (equal (plist-get entry :description) "Forward"))))
 
+(ert-deftest keymap-popup-test-annotate-parse-lambda-description ()
+  "Bare lambda as description is preserved, not destructured."
+  (let* ((desc '(lambda () (if t "On" "Off")))
+         (entry (keymap-popup--parse-entry 'forward-char desc)))
+    (should (equal (plist-get entry :description) desc))
+    (should (eq (plist-get entry :command) 'forward-char))))
+
 
 (ert-deftest keymap-popup-test-resolve-key ()
   (let* ((entry (list :key nil :description "Forward" :type 'suffix

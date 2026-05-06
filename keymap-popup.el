@@ -184,8 +184,8 @@ annotated entries.  SPEC is (DESCRIPTION COMMAND-OR-TYPE &rest PROPS)
 for key-based entries, or (DESCRIPTION &rest PROPS) for annotated ones."
   (if (symbolp key)
       ;; Annotated entry: key is a command symbol, spec is (DESC . PROPS),
-      ;; a bare string, or a bare lambda/function form.
-      (let* ((spec (cond ((stringp spec) (list spec))
+      ;; any atom, or a bare lambda/function form.
+      (let* ((spec (cond ((not (consp spec)) (list spec))
                          ((memq (car-safe spec) '(lambda function)) (list spec))
                          (t spec)))
              (description (car spec))

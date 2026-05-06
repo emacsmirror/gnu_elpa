@@ -5,6 +5,7 @@
 * Development
 
 - Add support for minor modes to ~jinx-include-*~ and ~jinx-exclude-*~ variables.
+- Require Compat 31.
 
 * Version 2.7 (2026-03-09)
 

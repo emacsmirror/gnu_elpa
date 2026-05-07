@@ -414,7 +414,7 @@ With prefix arg FORCE-PUSH-P, force-push to update an existing PR."
              (default-body (cdr defaults))
              (template (forgejo-vc--find-pr-template remote))
              (use-template (and template
-                                (y-or-n-p "PR template found. Use it? ")))
+                                (y-or-n-p "PR template found.  Use it? ")))
              (initial-body
               (cond
                ((and (not (string-empty-p default-body)) use-template)
@@ -574,25 +574,6 @@ and mark it as manually merged after a successful push."
   (cl-destructuring-bind (host owner repo) (forgejo-vc--require-repo)
     (forgejo-utils-browse-repo host owner repo)))
 
-;;; Remote selection
-
-(defun forgejo-vc--multiple-remotes-p ()
-  "Return non-nil when more than one forge remote exists."
-  (> (length (forgejo-vc--all-forge-remotes)) 1))
-
-(defun forgejo-vc-select-remote ()
-  "Select which forge remote to use for this repository."
-  (interactive)
-  (let* ((all (forgejo-vc--all-forge-remotes))
-         (candidates (mapcar (lambda (r)
-                               (format "%s (%s/%s)" (nth 3 r) (nth 1 r) (nth 2 r)))
-                             all))
-         (choice (completing-read "Remote: " candidates nil t))
-         (idx (cl-position choice candidates :test #'string=))
-         (root (forgejo-vc--repo-root)))
-    (puthash root (nth 3 (nth idx all)) forgejo-vc--selected-remotes)
-    (setq forgejo-vc--repo-key nil)))
-
 ;;; Popup keymap
 
 (defun forgejo-vc--no-remote-p ()
@@ -645,6 +626,26 @@ and mark it as manually merged after a successful push."
                               'face 'keymap-popup-value)))
        forgejo-vc-select-remote
        :if (lambda () (forgejo-vc--multiple-remotes-p))))
+
+;;; Remote selection
+
+(defun forgejo-vc--multiple-remotes-p ()
+  "Return non-nil when more than one forge remote exists."
+  (> (length (forgejo-vc--all-forge-remotes)) 1))
+
+(defun forgejo-vc-select-remote ()
+  "Select which forge remote to use for this repository."
+  (interactive)
+  (let* ((all (forgejo-vc--all-forge-remotes))
+         (candidates (mapcar (lambda (r)
+                               (format "%s (%s/%s)" (nth 3 r) (nth 1 r) (nth 2 r)))
+                             all))
+         (choice (completing-read "Remote: " candidates nil t))
+         (idx (cl-position choice candidates :test #'string=))
+         (root (forgejo-vc--repo-root)))
+    (puthash root (nth 3 (nth idx all)) forgejo-vc--selected-remotes)
+    (setq forgejo-vc--repo-key nil)
+    (keymap-popup forgejo-vc-map)))
 
 ;;;###autoload
 (defun forgejo-vc ()

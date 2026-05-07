@@ -1009,27 +1009,17 @@ contain quoted strings with non-ASCII characters."
 (defun -parse-fetch ()
   (with-peg-rules
       (-imap-peg-rules
-       (address "("
-                (list (and nqpstring `(s -- `(name . ,s)))
-                      sp (and nstring `(_ --)) ;discard useless addr-adl field
-                      sp (and nstring `(s -- `(mailbox . ,s)))
-                      sp (and nstring `(s -- `(host . ,s))))
-                ")")
-       (addresses (or anil
-                      (and "(" (list (* address)) ")")))
+       (address "(" nqpstring sp nstring sp nstring sp nstring ")"
+                `(name adl mailbox host -- (vector name adl mailbox host)))
+       (addresses (or anil (and "(" (list (* address)) ")")))
        (envelope "ENVELOPE ("
-                 (list nstring `(s -- `(date . ,(when s (parse-time-string s))))
-                       sp nqpstring `(s -- `(subject . ,s))
-                       sp addresses `(v -- `(from . ,v))
-                       sp addresses `(v -- `(sender . ,v))
-                       sp addresses `(v -- `(reply-to . ,v))
-                       sp addresses `(v -- `(to . ,v))
-                       sp addresses `(v -- `(cc . ,v))
-                       sp addresses `(v -- `(bcc . ,v))
-                       sp nstring `(v -- `(in-reply-to . ,v))
-                       sp nstring `(v -- `(message-id . ,v)))
+                 nstring sp nqpstring sp addresses sp addresses sp addresses
+                 sp addresses sp addresses sp addresses sp nstring sp nstring
                  ")"
-                 `(s -- `(envelope . ,s)))
+                 `( date subject from sender reply-to
+                    to cc bcc in-reply-to message-id
+                    -- `(envelope . ,(vector date subject from sender reply-to
+                                             to cc bcc in-reply-to message-id))))
        (body-param (or anil
                        (list "("
                              (+ (opt sp) qstring sp qstring
@@ -1076,12 +1066,23 @@ contain quoted strings with non-ASCII characters."
     (car-safe
      (peg-run (peg (list (* (list item))))))))
 
-;; Helpers to access message information alists from the FETCH command
-(defsubst -message-id (msg) (let-alist msg .id))
-(defsubst -message-uid (msg) (let-alist msg .uid))
-(defsubst -message-flags (msg) (let-alist msg .flags))
-(defsubst -message-envelope (msg) (let-alist msg .envelope))
-(defsubst -message-subject (msg) (let-alist msg .envelope.subject))
+;; Helpers to access message information from the FETCH command
+(defsubst -address-name    (addr) (elt addr 0))
+(defsubst -address-mailbox (addr) (elt addr 2))
+(defsubst -address-host    (addr) (elt addr 3))
+
+(defsubst -message-id          (msg) (let-alist msg .id))
+(defsubst -message-uid         (msg) (let-alist msg .uid))
+(defsubst -message-flags       (msg) (let-alist msg .flags))
+(defsubst -message-date        (msg) (elt (let-alist msg .envelope) 0))
+(defsubst -message-subject     (msg) (elt (let-alist msg .envelope) 1))
+(defsubst -message-from        (msg) (elt (let-alist msg .envelope) 2))
+(defsubst -message-reply-to    (msg) (elt (let-alist msg .envelope) 4))
+(defsubst -message-to          (msg) (elt (let-alist msg .envelope) 5))
+(defsubst -message-cc          (msg) (elt (let-alist msg .envelope) 6))
+(defsubst -message-bcc         (msg) (elt (let-alist msg .envelope) 7))
+(defsubst -message-in-reply-to (msg) (elt (let-alist msg .envelope) 8))
+(defsubst -message-message-id  (msg) (elt (let-alist msg .envelope) 9))
 
 (defun -parse-search ()
   (with-peg-rules
@@ -2104,7 +2105,7 @@ MENU and CLICK are as expected of a member of `context-menu-functions'."
                       (reverse (-thread-ancestors message)))))
     (concat
      ;; Indicate an incomplete thread
-     (when (alist-get 'in-reply-to (-message-envelope (car ancestors)))
+     (when (-message-in-reply-to (car ancestors))
        (when (eq (car ancestors) message)
          (icon-string 'minimail-thread-false-root)))
      ;; Thread tree prefix
@@ -2136,22 +2137,21 @@ MENU and CLICK are as expected of a member of `context-menu-functions'."
   (propertize
    (mapconcat
     (lambda (addr)
-      (let-alist addr
-        (or .name .mailbox "(unknown)")))
+      (or (-address-name addr) (-address-mailbox addr) "(unknown)"))
     addresses
     ", ")
    'help-echo
    (lambda (&rest _)
      (mapconcat
       (lambda (addr)
-        (let-alist addr
-          (mail-header-make-address .name (concat .mailbox "@" .host))))
+        (mail-header-make-address
+         (-address-name addr)
+         (concat (-address-mailbox addr) "@" (-address-host addr))))
       addresses
       "\n"))))
 
-(defun -format-date (date)
+(defun -format-date (timestamp)
   (let* ((current-time-list nil)
-         (timestamp (condition-case nil (encode-time date) (t 0)))
          (today (let ((v (decode-time)))
                   (setf (decoded-time-hour v) 0)
                   (setf (decoded-time-minute v) 0)
@@ -2160,6 +2160,7 @@ MENU and CLICK are as expected of a member of `context-menu-functions'."
          ;; Message age in seconds since start of this day
          (age (- (encode-time today) timestamp))
          (fmt (cond
+               ((zerop timestamp) "")
                ((<= age (- (* 24 60 60))) "%Y %b %d")
                ((<= age 0) "%R")
                ((<= age (* 6 24 60 60)) "%a %R")
@@ -2176,7 +2177,7 @@ MENU and CLICK are as expected of a member of `context-menu-functions'."
   "The MESSAGE envelope date as a Unix timestamp."
     (let ((current-time-list nil))
       (condition-case nil
-          (encode-time (alist-get 'date (-message-envelope message)))
+          (encode-time (parse-time-string (-message-date message)))
         (t 0))))
 
 (defvar minimail-mailbox-mode-column-alist
@@ -2220,19 +2221,18 @@ MENU and CLICK are as expected of a member of `context-menu-functions'."
     (from
      :name "From"
      :max-width 30
-     :getter ,(lambda (msg _)
-                (-format-names (alist-get 'from (-message-envelope msg)))))
+     :getter ,(lambda (msg _) (-format-names (-message-from msg))))
     (to
      :name "To"
      :max-width 30
-     :getter ,(lambda (msg _)
-                (-format-names (alist-get 'to (-message-envelope msg)))))
+     :getter ,(lambda (msg _) (-format-names (-message-to msg))))
     (recipients
      :name "Recipients"
      :max-width 30
      :getter ,(lambda (msg _)
-                (let-alist (-message-envelope msg)
-                  (-format-names (append .to .cc .bcc)))))
+                (-format-names (append (-message-to msg)
+                                       (-message-cc msg)
+                                       (-message-bcc msg)))))
     (subject
      :name "Subject"
      :max-width 80
@@ -2244,14 +2244,9 @@ MENU and CLICK are as expected of a member of `context-menu-functions'."
     (date
      :name "Date"
      :width 12
-     :getter ,(lambda (msg _)
-                ;; The envelope date as Unix timestamp, formatted as a
-                ;; hex string.  This ensures the correct sorting.
-                (propertize (format "%09x" (-message-timestamp msg))
-                            'minimail (alist-get 'date (-message-envelope msg))))
-     :formatter ,(lambda (s)
-                   (propertize (-format-date (-get-data s))
-                               'face 'vtable)))
+     :align left
+     :getter ,(lambda (msg _) (-message-timestamp msg))
+     :formatter -format-date)
     (size
      :name "Size"
      :getter ,(lambda (msg _) (alist-get 'rfc822-size msg))
@@ -2321,7 +2316,7 @@ MENU and CLICK are as expected of a member of `context-menu-functions'."
                 (colnames (-settings-alist-get :mailbox-columns mailbox))
                 (sortnames (-settings-alist-get :mailbox-sort-by mailbox)))
            (make-vtable
-            :objects-function (lambda () (or -message-list '(((uid . 0)))))
+            :objects-function (lambda () (or -message-list '(())))
             :columns (mapcar (lambda (v)
                                (alist-get v minimail-mailbox-mode-column-alist))
                              colnames)
@@ -2505,11 +2500,11 @@ envelope and doesn't use server-side threading information."
   (let* ((result (make-hash-table))
          (msgids (make-hash-table :test #'equal))) ;map Message-ID -> msg
     (dolist (msg messages)
-      (when-let* ((msgid (alist-get 'message-id (-message-envelope msg))))
+      (when-let* ((msgid (-message-message-id msg)))
         (puthash msgid msg msgids)))
     (dolist (msg messages)
       (when-let*
-          ((inreply (alist-get 'in-reply-to (-message-envelope msg)))
+          ((inreply (-message-in-reply-to msg))
            (inreply (when (string-match "<.*?>" inreply)
                       (match-string-no-properties 0 inreply)))
            (parent (gethash inreply msgids)))

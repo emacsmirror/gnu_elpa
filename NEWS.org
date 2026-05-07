@@ -3,6 +3,11 @@
 + [[https://git.thanosapollo.org/gnosis/][Upstream]]
 + [[https://thanosapollo.org/log/gnosis/][Changelog]]
 
+* 0.10.6
+#+date: 2026/05/08
+
++ Dashboard sub-views use dedicated major modes instead of minor modes.
+
 * 0.10.5
 #+date: 2026/05/05
 

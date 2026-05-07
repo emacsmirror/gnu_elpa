@@ -1083,6 +1083,14 @@ EXIT-KEY and inapt guards are applied as a layer over specialized handlers."
 						      (call-interactively (keymap-lookup keymap key)))))))
     map))
 
+(defun keymap-popup-dismiss ()
+  "Dismiss the active popup, if any.
+Deactivates the transient map and removes the popup display."
+  (when-let* ((buf (get-buffer "*keymap-popup*"))
+              (map (buffer-local-value 'keymap-popup--wrapper-map buf)))
+    (internal-pop-keymap map 'overriding-terminal-local-map)
+    (keymap-popup--teardown buf)))
+
 ;;;###autoload
 (defun keymap-popup (keymap)
   "Show popup help for described KEYMAP.

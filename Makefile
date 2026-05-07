@@ -68,7 +68,7 @@ load: clean
 	               forgejo-pull-view-mode-map forgejo-issue-view-mode-map \
 	               forgejo-repo-search-mode-map forgejo-watch-list-mode-map \
 	               forgejo-view-mode-map forgejo-compose-mode-map \
-	               forgejo-buffer-diff-map \
+	               forgejo-buffer-diff-map forgejo-vc-map \
 	               forgejo-buffer-ref-map forgejo-buffer-commit-map)) \
 	    (when (boundp sym) (makunbound sym))))" > /dev/null
 	@for f in $(SRCS); do \

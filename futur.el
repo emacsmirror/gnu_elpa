@@ -165,6 +165,10 @@
 
 ;;; News:
 
+;; Since Version 1.7:
+
+;; - New function `futur-catch-abort'.
+
 ;; Version 1.5:
 
 ;; - New synchronization objects: full/empty cells and semaphores.
@@ -710,8 +714,8 @@ HANDLER can be:
   (let ((count 0))
     (while (and clients (< count 2))
       (let ((client (pop clients)))
-        (if (eq :unwind (car client)) nil
-         (cl-incf count))))
+        (if (symbolp (car client)) nil
+          (cl-incf count))))
     (>= count 2)))
 
 (defun futur-register-unwind-protect (futur fun)
@@ -781,29 +785,40 @@ Return non-nil if we successfully waited until the completion of BLOCKER."
   (pcase blocker
     ((futur--waiting pblocker clients)
      (let ((c (assq futur clients)))
-       (cl-assert c)
-       (if (futur--multi-clients-p clients)
-           ;; If there are more than 1 clients, presumably someone else is
-           ;; still interested in FUTURs result, so we shouldn't abort it.
-           (progn
-             ;; But we can unregister ourselves from its callbacks.
-             (setf (futur--clients blocker) (delq c clients))
-             nil)
-         ;; If CLIENTS has only one "real" element, it's presumably the future
-         ;; we're in the process of aborting (call it CHILD), so there's
-         ;; no harm in aborting FUTUR.  We should not just `futur-abort'
-         ;; FUTUR because we shouldn't run CHILD's client, but we should
-         ;; still run the other (auxiliary/cleanup) functions.
+       ;; (trace-values :C c :while-aborting blocker :for futur)
+       (cond
+        ((null c)
+         (cl-assert (not (futur--waiting-p futur)))
+         nil)
+        ((futur--multi-clients-p clients)
+         ;; If there are more than 1 clients, presumably someone else is
+         ;; still interested in FUTURs result, so we shouldn't abort it.
+         ;; Mark that FUTUR is not really waiting for it any more.
+         (setf (car c) :aborted)
+         nil)
+        (t
+         ;; If FUTUR was the only client still waiting for
+         ;; BLOCKER's result, we can propagate the abortion to BLOCKER.
          (futur-blocker-abort pblocker error blocker)
-         (setf (futur--clients blocker) 'error)
-         (setf (futur--value blocker) error)
-         (dolist (client clients)
-           (when (eq (car client) :unwind)
-             (futur--funcall (cdr client) error nil))))))))
+         (futur-deliver-failure blocker error)))))))
 
 (cl-defmethod futur-blocker-abort ((_ (eql nil)) _error _futur)
   ;; No blocker to abort.
   nil)
+
+(defun futur-catch-abort (handler futur)
+  "Return a new future which catches aborts.
+The new future returns the same value as FUTUR, but upon abortion,
+instead of propagating the abortion to FUTUR, it calls HANDLER
+with one argument, the error descriptor of the abortion."
+  (futur-new (lambda (fut)
+               (futur--register-callback
+                (lambda (err val) (futur--deliver fut err val))
+                futur fut)
+               `(abort-handler . ,handler))))
+
+(cl-defmethod futur-blocker-abort ((blocker (head abort-handler)) error _futur)
+  (funcall (cdr blocker) error))
 
 ;;;; Postpone
 

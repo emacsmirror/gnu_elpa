@@ -600,7 +600,11 @@ and mark it as manually merged after a successful push."
   (not (forgejo-vc--repo-from-remote)))
 
 (keymap-popup-define forgejo-vc-map
-  :description "Forgejo operations for the current repository."
+  :description (lambda ()
+		 (let ((remote (forgejo-vc--repo-from-remote)))
+		   (format "Forgejo operations for %s/%s"
+			   (propertize (nth 1 remote) 'face 'font-lock-type-face)
+			   (propertize (nth 2 remote) 'face 'font-lock-type-face))))
   :group "View"
   "i" ((lambda ()
          (cond

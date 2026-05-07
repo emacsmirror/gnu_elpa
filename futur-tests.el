@@ -269,26 +269,34 @@
     (should (equal (nth 0 vals) (nth 2 vals))))
 
   ;; Test interruption of long running code.
-  (let ((inhibit-interaction nil)
-        (start (float-time))
-        (fut1 (funcall elisp-funcall
-                       (lambda ()
-                         (message "Finishing FUT1 in %S with: %S"
-                                  (emacs-pid)
-                         (setq futur--last-result
-                               (condition-case err (sleep-for 1)
-                                 (t err))))))))
-    (sit-for 0.1)
-    (futur-abort fut1 "testing")
-    (message "Aborted after %.2f" (- (float-time) start))
-    (sit-for 0.5)
-    (message "Starting second step after %.2f" (- (float-time) start))
-    (let ((fut2 (funcall elisp-funcall
+  ;; This test is inherently fiddly because we're trying to test
+  ;; some aspects which `futur-elisp' tries to hide: when we abort
+  ;; a `futur-elisp-funcall', the abortion is "immediate" before we even
+  ;; know if the subprocess has received the signal, we don't know
+  ;; when that subprocess will be ready again to handle a new request,
+  ;; and when start another `futur-elisp-funcall' we have no guarantee that
+  ;; it will reuse the same process anyway.
+  (if (eq elisp-funcall #'futur-elisp-sandbox--funcall)
+      (message "Skipping interruption test, known to fail in sandboxes")
+    (defvar futur--last-result)
+    (let ((inhibit-interaction nil)
+          ;; (start (float-time))
+          (fut1 (funcall elisp-funcall
                          (lambda ()
-                           (message "Running FUT2 in %S" (emacs-pid))
-                           (bound-and-true-p futur--last-result)))))
-      (should (equal (futur-blocking-wait-to-get-result fut2)
-                     '(quit)))))
+                           (setq futur--last-result
+                                 (condition-case err (sleep-for 1)
+                                   (t err)))))))
+      (sit-for 0.1)
+      (futur-abort fut1 "testing")
+      ;; (message "Aborted after %.2f" (- (float-time) start))
+      (sit-for 0.1)
+      ;; (message "Starting second step after %.2f" (- (float-time) start))
+      (let ((fut2 (funcall elisp-funcall
+                           (lambda ()
+                             ;; (message "Running FUT2 in %S" (emacs-pid))
+                             (bound-and-true-p futur--last-result)))))
+        (should (equal (futur-blocking-wait-to-get-result fut2)
+                       '(quit))))))
   )
 
 (ert-deftest futur-elisp-funcall ()

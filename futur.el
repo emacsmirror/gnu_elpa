@@ -168,6 +168,7 @@
 ;; Since Version 1.7:
 
 ;; - New function `futur-catch-abort'.
+;; - Better support for aborting futur-elisp subprocesses.
 
 ;; Version 1.5:
 

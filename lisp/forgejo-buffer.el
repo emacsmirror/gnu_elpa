@@ -77,6 +77,21 @@ ACTION-MAP is the keymap attached to interactive text regions."
   "Face for timeline events (close, label, assign, etc.)."
   :group 'forgejo)
 
+(defface forgejo-review-approved-face
+  '((t :inherit success))
+  "Face for approved reviews."
+  :group 'forgejo)
+
+(defface forgejo-review-rejected-face
+  '((t :inherit warning))
+  "Face for reviews requesting changes."
+  :group 'forgejo)
+
+(defface forgejo-review-comment-face
+  '((t :inherit shadow))
+  "Face for comment-only reviews."
+  :group 'forgejo)
+
 (defface forgejo-separator-face
   '((default :inherit org-hide)
     (((background light)) :strike-through "gray70")
@@ -349,6 +364,9 @@ NODE-DATA is a plist with :type and type-specific keys."
                                   ("closed" 'forgejo-closed-face)
                                   ("reopened" 'forgejo-open-face)
                                   ("merged" 'success)
+                                  ("approved" 'forgejo-review-approved-face)
+                                  ("requested changes" 'forgejo-review-rejected-face)
+                                  ("commented" 'forgejo-review-comment-face)
                                   (_ 'forgejo-event-face)))))
     ;; Detail: deadline, label with color, ref with link, or plain
     (cond
@@ -518,11 +536,20 @@ NODE-DATA is a plist with :type and type-specific keys."
           :deadline (unless (string= type "removed_deadline")
                       (alist-get 'body event)))))
 
+(defun forgejo-buffer--review-state-text (state)
+  "Return display text for review STATE string."
+  (pcase state
+    ("APPROVED" "approved")
+    ("REQUEST_CHANGES" "requested changes")
+    ("COMMENT" "commented")
+    (_ "reviewed")))
+
 (defun forgejo-buffer--node-review (event actor timeline)
   "Build review node(s) from EVENT with ACTOR using TIMELINE for context.
 Returns a list of nodes (may be multiple for review with threads)."
   (let* ((body (alist-get 'body event))
          (review-id (alist-get 'review_id event))
+         (state (alist-get 'review_state event))
          (threads (forgejo-review--summary review-id timeline)))
     (cond
      (threads
@@ -530,6 +557,7 @@ Returns a list of nodes (may be multiple for review with threads)."
                   :review-id review-id
                   :actor actor
                   :created-at (alist-get 'created_at event)
+                  :review-state state
                   :threads threads
                   :body (when (and body (not (string-empty-p body)))
                           body))))
@@ -541,7 +569,7 @@ Returns a list of nodes (may be multiple for review with threads)."
                   :created-at (alist-get 'created_at event))))
      (t
       (list (list :type 'event
-                  :event-type "reviewed"
+                  :event-type (forgejo-buffer--review-state-text state)
                   :actor actor
                   :created-at (alist-get 'created_at event)
                   :detail nil))))))
@@ -745,13 +773,22 @@ Replaces raw markdown with fontified text in place."
 
 (defun forgejo-buffer--pp-review-link (data)
   "Render a review with thread links from DATA plist."
-  (let ((actor (plist-get data :actor))
-        (created (plist-get data :created-at))
-        (threads (plist-get data :threads))
-        (review-id (plist-get data :review-id))
-        (body (plist-get data :body)))
+  (let* ((actor (plist-get data :actor))
+         (created (plist-get data :created-at))
+         (threads (plist-get data :threads))
+         (review-id (plist-get data :review-id))
+         (body (plist-get data :body))
+         (state (plist-get data :review-state))
+         (verb (forgejo-buffer--review-state-text state))
+         (verb-face (pcase state
+                      ("APPROVED" 'forgejo-review-approved-face)
+                      ("REQUEST_CHANGES" 'forgejo-review-rejected-face)
+                      ("COMMENT" 'forgejo-review-comment-face)
+                      (_ 'shadow))))
     (insert (propertize actor 'face 'forgejo-comment-author-face)
-            (propertize (concat " reviewed " (forgejo-buffer--relative-time created))
+            " "
+            (propertize verb 'face verb-face)
+            (propertize (concat " " (forgejo-buffer--relative-time created))
                         'face 'shadow)
             "\n")
     (dolist (thread threads)

@@ -293,6 +293,20 @@ HOST-URL is the instance URL."
                                #'forgejo-pull--sync-detail
                                #'forgejo-utils-browse-pull))
 
+(defun forgejo-pull--enrich-timeline-reviews (timeline reviews)
+  "Return TIMELINE with review_state merged from REVIEWS.
+Each review-type event gains a review_state key looked up by review_id."
+  (let ((state-map (make-hash-table :test 'eql)))
+    (dolist (r reviews)
+      (puthash (alist-get 'id r) (alist-get 'state r) state-map))
+    (mapcar (lambda (event)
+              (if (and (equal (alist-get 'type event) "review")
+                       (alist-get 'review_id event))
+                  (let ((state (gethash (alist-get 'review_id event) state-map)))
+                    (cons (cons 'review_state state) event))
+                event))
+            timeline)))
+
 (defun forgejo-pull--sync-detail (host owner repo number buf-name
                                        &optional restore-line)
   "Sync PR NUMBER from API in background, re-render BUF-NAME if changed.
@@ -309,23 +323,29 @@ When RESTORE-LINE is non-nil, go to that line after re-rendering."
         host-url tl-endpoint
         (list (cons "limit" (number-to-string forgejo-timeline-page-size)))
         (lambda (timeline _tl-headers)
-          (forgejo-db-save-timeline host owner repo number timeline)
-          (forgejo-db-set-sync-time
-           host owner repo (format "timeline/%d" number)
-           (format-time-string "%Y-%m-%dT%H:%M:%SZ" nil t))
-          ;; Render with whatever we have
-          (forgejo-view--re-render
-           buf-name host-url host owner repo number
-           #'forgejo-pull--render-detail restore-line)
-          ;; Fetch review comments, then re-render
-          (let ((tl-alists (mapcar #'forgejo-db--row-to-timeline-alist
-                                   (forgejo-db-get-timeline host owner repo number))))
-            (forgejo-review-sync-comments
-             host-url host owner repo number tl-alists
-             (lambda ()
+          (forgejo-api-get
+           host-url
+           (format "repos/%s/%s/pulls/%d/reviews" owner repo number)
+           nil
+           (lambda (reviews _rv-headers)
+             (let ((enriched (forgejo-pull--enrich-timeline-reviews
+                              timeline reviews)))
+               (forgejo-db-save-timeline host owner repo number enriched)
+               (forgejo-db-set-sync-time
+                host owner repo (format "timeline/%d" number)
+                (format-time-string "%Y-%m-%dT%H:%M:%SZ" nil t))
                (forgejo-view--re-render
                 buf-name host-url host owner repo number
-                #'forgejo-pull--render-detail restore-line))))))))))
+                #'forgejo-pull--render-detail restore-line)
+               (let ((tl-alists (mapcar #'forgejo-db--row-to-timeline-alist
+                                        (forgejo-db-get-timeline
+                                         host owner repo number))))
+                 (forgejo-review-sync-comments
+                  host-url host owner repo number tl-alists
+                  (lambda ()
+                    (forgejo-view--re-render
+                     buf-name host-url host owner repo number
+                     #'forgejo-pull--render-detail restore-line)))))))))))))
 
 (defun forgejo-pull-view-at-point ()
   "View the PR at point in the list."
@@ -349,15 +369,15 @@ Shows cached data from DB instantly, syncs in background."
     (if pr-alist
         (switch-to-buffer
          (forgejo-pull--render-detail buf-name host-url owner repo
-                                      pr-alist tl-alists))
+				      pr-alist tl-alists))
       (with-current-buffer (get-buffer-create buf-name)
         (let ((inhibit-read-only t))
           (erase-buffer)
           (insert "Loading..."))
         (forgejo-pull-view-mode)
         (setq forgejo-repo--host host-url
-              forgejo-repo--owner owner
-              forgejo-repo--name repo)
+	      forgejo-repo--owner owner
+	      forgejo-repo--name repo)
         (switch-to-buffer (current-buffer))))
     (forgejo-pull--sync-detail host owner repo number buf-name)))
 
@@ -367,17 +387,17 @@ Shows cached data from DB instantly, syncs in background."
   "Reply to the comment or review at point."
   (interactive)
   (when-let* ((node (forgejo-view--node-at-point))
-              (data forgejo-view--data)
-              (number (alist-get 'number data))
-              (refresh (forgejo--post-action-callback)))
+	      (data forgejo-view--data)
+	      (number (alist-get 'number data))
+	      (refresh (forgejo--post-action-callback)))
     (pcase (plist-get node :type)
       ('review-link
        (forgejo-review-open-thread))
       (_
        (let* ((body (plist-get node :body))
-              (quoted (when body
+	      (quoted (when body
                         (concat "> " (replace-regexp-in-string
-                                      "\n" "\n> " (string-trim body))
+				      "\n" "\n> " (string-trim body))
                                 "\n\n"))))
          (forgejo-utils-post-comment
           forgejo-repo--host
@@ -398,10 +418,10 @@ Shows cached data from DB instantly, syncs in background."
   "Show the full diff for the current pull request."
   (interactive)
   (when-let* ((data forgejo-view--data)
-              (number (alist-get 'number data))
-              (owner forgejo-repo--owner)
-              (repo forgejo-repo--name)
-              (host-url forgejo-repo--host))
+	      (number (alist-get 'number data))
+	      (owner forgejo-repo--owner)
+	      (repo forgejo-repo--name)
+	      (host-url forgejo-repo--host))
     (let* ((url (format "%s/api/v1/repos/%s/%s/pulls/%d.diff"
                         host-url owner repo number))
            (url-request-method "GET")
@@ -415,12 +435,12 @@ Shows cached data from DB instantly, syncs in background."
          (goto-char (point-min))
          (re-search-forward "\r?\n\r?\n" nil t)
          (let ((diff-text (buffer-substring-no-properties (point) (point-max)))
-               (buf-name (format "*forgejo-diff: %s/%s#%d*" owner repo number)))
+	       (buf-name (format "*forgejo-diff: %s/%s#%d*" owner repo number)))
            (kill-buffer (current-buffer))
            (with-current-buffer (get-buffer-create buf-name)
              (let ((inhibit-read-only t))
-               (erase-buffer)
-               (insert diff-text))
+	       (erase-buffer)
+	       (insert diff-text))
              (diff-mode)
              (use-local-map forgejo-view-diff-map)
 	     (read-only-mode 1)
@@ -436,11 +456,11 @@ Shows cached data from DB instantly, syncs in background."
 Only works when `default-directory' is inside the same repository."
   (interactive)
   (when-let* ((data forgejo-view--data)
-              (number (alist-get 'number data)))
+	      (number (alist-get 'number data)))
     (let ((remote (forgejo-vc--repo-from-remote)))
       (if (and remote
-               (string= (nth 1 remote) forgejo-repo--owner)
-               (string= (nth 2 remote) forgejo-repo--name))
+	       (string= (nth 1 remote) forgejo-repo--owner)
+	       (string= (nth 2 remote) forgejo-repo--name))
           (forgejo-vc-fetch number)
         (user-error "Not in %s/%s directory; cd there first"
                     forgejo-repo--owner forgejo-repo--name)))))
@@ -449,10 +469,10 @@ Only works when `default-directory' is inside the same repository."
   "Show commits for the current pull request."
   (interactive)
   (when-let* ((data forgejo-view--data)
-              (number (alist-get 'number data))
-              (owner forgejo-repo--owner)
-              (repo forgejo-repo--name)
-              (host-url forgejo-repo--host))
+	      (number (alist-get 'number data))
+	      (owner forgejo-repo--owner)
+	      (repo forgejo-repo--name)
+	      (host-url forgejo-repo--host))
     (forgejo-api-get
      host-url
      (format "repos/%s/%s/pulls/%d/commits" owner repo number)
@@ -463,20 +483,20 @@ Only works when `default-directory' is inside the same repository."
            (let ((inhibit-read-only t))
              (erase-buffer)
              (insert (propertize
-                      (format "Commits for %s/%s#%d\n\n" owner repo number)
-                      'face 'bold))
+		      (format "Commits for %s/%s#%d\n\n" owner repo number)
+		      'face 'bold))
              (dolist (commit commits)
-               (let* ((sha (alist-get 'sha commit))
-                      (msg (alist-get 'message
-                                      (alist-get 'commit commit)))
-                      (author (alist-get 'name
+	       (let* ((sha (alist-get 'sha commit))
+		      (msg (alist-get 'message
+				      (alist-get 'commit commit)))
+		      (author (alist-get 'name
                                          (alist-get 'author
                                                     (alist-get 'commit commit))))
-                      (date (alist-get 'date
-                                       (alist-get 'author
+		      (date (alist-get 'date
+				       (alist-get 'author
                                                   (alist-get 'commit commit))))
-                      (short-sha (substring sha 0 (min 8 (length sha))))
-                      (subject (car (split-string (or msg "") "\n"))))
+		      (short-sha (substring sha 0 (min 8 (length sha))))
+		      (subject (car (split-string (or msg "") "\n"))))
                  (insert (propertize short-sha
                                      'face 'font-lock-constant-face
                                      'forgejo-commit-sha sha
@@ -493,8 +513,8 @@ Only works when `default-directory' is inside the same repository."
                          "\n\n"))))
            (special-mode)
            (setq-local forgejo-repo--host host-url
-                       forgejo-repo--owner owner
-                       forgejo-repo--name repo)
+		       forgejo-repo--owner owner
+		       forgejo-repo--name repo)
            (use-local-map forgejo-pull-log-map)
            (goto-char (point-min))
            (switch-to-buffer (current-buffer))))))))

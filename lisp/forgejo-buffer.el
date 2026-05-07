@@ -77,6 +77,11 @@ ACTION-MAP is the keymap attached to interactive text regions."
   "Face for timeline events (close, label, assign, etc.)."
   :group 'forgejo)
 
+(defface forgejo-mention-face
+  '((t :inherit font-lock-keyword-face))
+  "Face for @username mentions in comments."
+  :group 'forgejo)
+
 (defface forgejo-review-approved-face
   '((t :inherit success))
   "Face for approved reviews."
@@ -239,6 +244,16 @@ Much faster than fontifying each body in a separate buffer."
         (split-string (buffer-substring (+ (point-min) 1) (point-max))
                       sep)))))
 
+(defun forgejo-buffer--fontify-mentions (start end)
+  "Apply `forgejo-mention-face' to @username mentions between START and END."
+  (save-excursion
+    (goto-char start)
+    (while (re-search-forward "@\\([a-zA-Z0-9_./-]+\\)" end t)
+      (when (or (= (match-beginning 0) start)
+                (memq (char-before (match-beginning 0)) '(?\s ?\n ?\t)))
+        (put-text-property (match-beginning 0) (match-end 0)
+                           'face 'forgejo-mention-face)))))
+
 (defun forgejo-buffer--insert-body (body)
   "Insert BODY into the current buffer.
 BODY should already be fontified (via `forgejo-buffer--fontify-bodies')
@@ -247,7 +262,8 @@ or a plain string."
     (let ((start (point)))
       (insert body "\n")
       (forgejo-buffer--linkify-refs start (point))
-      (forgejo-buffer--linkify-commits start (point)))))
+      (forgejo-buffer--linkify-commits start (point))
+      (forgejo-buffer--fontify-mentions start (point)))))
 
 ;;; Separator
 

@@ -351,6 +351,8 @@
 
  '(sh-heredoc                      ((t (:inherit (aircon-goblin italic)))))
  '(sh-quoted-exec                  ((t (:inherit (aircon-hibiscus)))))
+
+ '(org-table                       ((t (:inherit (aircon-sapphire)))))
  )
 
 ;;;###autoload

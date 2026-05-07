@@ -92,8 +92,6 @@ via `gnosis-dashboard--update-entries', `gnosis-dashboard--remove-entries',
 or `gnosis-dashboard-rebuild-cache'.")
 
 
-(defvar gnosis-dashboard-themata-mode)
-
 (defvar gnosis-dashboard-modules
   '(gnosis-dashboard-module-header
     gnosis-dashboard-module-today-stats
@@ -343,7 +341,7 @@ With prefix arg, prompt for count.  Default 0 (never reviewed)."
           (forward-line 1)))))
    ;; If no themata history but we're in themata mode and nodes history exists
    ((and (not gnosis-dashboard-themata-history)
-         gnosis-dashboard-themata-mode
+         (eq major-mode 'gnosis-dashboard-themata-mode)
          gnosis-dashboard-nodes-history)
     (gnosis-dashboard-nodes-back))
    ;; If view history exists, go back to previous view (tags, etc.)
@@ -354,6 +352,7 @@ With prefix arg, prompt for count.  Default 0 (never reviewed)."
     (gnosis-dashboard))))
 
 (keymap-popup-define gnosis-dashboard-common-map
+  :parent tabulated-list-mode-map
   :group "Common"
   "g" ("Refresh" gnosis-dashboard-return :stay-open t)
   :group "Mark"
@@ -385,9 +384,12 @@ With prefix arg, prompt for count.  Default 0 (never reviewed)."
   "b" ("Bulk link" gnosis-dashboard-bulk-link :stay-open t)
   "t" ("Modify tags" gnosis-dashboard-modify-tags :stay-open t))
 
-(define-minor-mode gnosis-dashboard-themata-mode
-  "Minor mode for gnosis dashboard themata output."
-  :keymap gnosis-dashboard-themata-mode-map)
+(define-derived-mode gnosis-dashboard-themata-mode
+  tabulated-list-mode "Gnosis Themata"
+  "Major mode for gnosis dashboard themata output."
+  :keymap gnosis-dashboard-themata-mode-map
+  :interactive nil
+  (gnosis-dashboard--common-setup))
 
 (defun gnosis-dashboard--format-entry (row)
   "Format a single database ROW into a tabulated-list entry.
@@ -470,7 +472,7 @@ Does not touch any buffer — only updates `gnosis-dashboard--entry-cache'."
 Called from `gnosis-save-hook'.
 When in themata view, updates the visible list.  Otherwise silently
 refreshes the cache so the next themata view is current."
-  (if gnosis-dashboard-themata-mode
+  (if (eq major-mode 'gnosis-dashboard-themata-mode)
       (progn
         (gnosis-dashboard--update-entries (list id))
         (goto-char (point-min))
@@ -678,12 +680,7 @@ GEN: load generation — no-op if stale."
   (cl-assert (listp thema-ids) t "`thema-ids' must be a list of thema ids.")
   (cl-incf gnosis-dashboard--load-generation)
   (pop-to-buffer-same-window gnosis-dashboard-buffer-name)
-  (gnosis-dashboard-enable-mode)
-  ;; Disable other dashboard modes
-  (gnosis-dashboard-nodes-mode -1)
-  (gnosis-dashboard-tags-mode -1)
-  ;; Enable themata mode
-  (gnosis-dashboard-themata-mode 1)
+  (gnosis-dashboard-themata-mode)
   ;; Store current thema IDs for history
   (setq gnosis-dashboard-themata-current-ids thema-ids)
   (gnosis-dashboard--set-column-format)
@@ -888,9 +885,12 @@ to the canonical form via `gnosis--tag-rename-batch'."
   "s" ("Suspend tag" gnosis-dashboard-suspend-tag :stay-open t)
   "d" ("Delete tag" gnosis-dashboard-delete-tag :stay-open t))
 
-(define-minor-mode gnosis-dashboard-tags-mode
-  "Mode for dashboard output of tags."
-  :keymap gnosis-dashboard-tags-mode-map)
+(define-derived-mode gnosis-dashboard-tags-mode
+  tabulated-list-mode "Gnosis Tags"
+  "Major mode for dashboard output of tags."
+  :keymap gnosis-dashboard-tags-mode-map
+  :interactive nil
+  (gnosis-dashboard--common-setup))
 
 (defun gnosis-dashboard-output-tags (&optional tags)
   "Format gnosis dashboard with output of TAGS."
@@ -906,12 +906,7 @@ to the canonical form via `gnosis--tag-rename-batch'."
     (setq gnosis-dashboard-tags-current tags
           gnosis-dashboard-tags-count-ht count-ht)
     (pop-to-buffer-same-window gnosis-dashboard-buffer-name)
-    (gnosis-dashboard-enable-mode)
-    ;; Disable other dashboard modes
-    (gnosis-dashboard-themata-mode -1)
-    (gnosis-dashboard-nodes-mode -1)
-    ;; Enable tags mode
-    (gnosis-dashboard-tags-mode 1)
+    (gnosis-dashboard-tags-mode)
     (setf gnosis-dashboard--current '(:type tags))
     (setq tabulated-list-format
           [("Name" 35 t)
@@ -1093,25 +1088,33 @@ Translates {n}, {n,}, {n,m} to \\{n\\}, \\{n,\\}, \\{n,m\\}."
   "x" ("Import/Export" :keymap gnosis-dashboard-import-export-map)
   "!" ("Maintenance" :keymap gnosis-dashboard-maintenance-map))
 
-(define-derived-mode gnosis-dashboard-mode
-  tabulated-list-mode "Gnosis Dashboard"
-  "Major mode for displaying Gnosis dashboard."
-  :keymap gnosis-dashboard-mode-map
-  :interactive nil
+(defun gnosis-dashboard--common-setup ()
+  "Common buffer setup for all dashboard views."
+  (when (fboundp 'keymap-popup-dismiss)
+    (keymap-popup-dismiss))
   (setq-local header-line-format nil)
   ;; Character "…" can mess up column-width depending on the font used.
   (setq-local truncate-string-ellipsis "...")
-  ;; Dashboard always centers content
   (setq-local gnosis-center-content t)
   (setq tabulated-list-padding 2
 	tabulated-list-sort-key nil
 	gnosis-dashboard--selected-ids nil)
   (display-line-numbers-mode 0))
 
+(define-derived-mode gnosis-dashboard-mode
+  tabulated-list-mode "Gnosis Dashboard"
+  "Major mode for displaying Gnosis dashboard."
+  :keymap gnosis-dashboard-mode-map
+  :interactive nil
+  (gnosis-dashboard--common-setup))
+
 (defun gnosis-dashboard-enable-mode ()
-  "Enable `gnosis-dashboard-mode'."
+  "Enable `gnosis-dashboard-mode' if not already in a dashboard mode."
   (when (and (string= (buffer-name) gnosis-dashboard-buffer-name)
-	     (not (eq major-mode 'gnosis-dashboard-mode)))
+	     (not (derived-mode-p 'gnosis-dashboard-mode
+				  'gnosis-dashboard-themata-mode
+				  'gnosis-dashboard-tags-mode
+				  'gnosis-dashboard-nodes-mode)))
     (gnosis-dashboard-mode)))
 
 (defun gnosis-dashboard-mark-toggle ()
@@ -1660,6 +1663,7 @@ Moves cursor to the beginning of the buffer after sorting."
 
 (keymap-popup-define gnosis-dashboard-nodes-mode-map
   "Nodes"
+  :parent gnosis-dashboard-common-map
   :description (lambda ()
                  (format "Nodes (%s)"
                          (propertize
@@ -1684,9 +1688,12 @@ Moves cursor to the beginning of the buffer after sorting."
   "r" ("Review topic" gnosis-dashboard-nodes-review)
   "R" ("Review with depth" gnosis-dashboard-nodes-review-with-depth))
 
-(define-minor-mode gnosis-dashboard-nodes-mode
-  "Minor mode for gnosis dashboard nodes output."
-  :keymap gnosis-dashboard-nodes-mode-map)
+(define-derived-mode gnosis-dashboard-nodes-mode
+  tabulated-list-mode "Gnosis Nodes"
+  "Major mode for gnosis dashboard nodes output."
+  :keymap gnosis-dashboard-nodes-mode-map
+  :interactive nil
+  (gnosis-dashboard--common-setup))
 
 (defun gnosis-dashboard-output-nodes (&optional node-ids)
   "Display nodes in dashboard.
@@ -1695,12 +1702,7 @@ Otherwise display all nodes.  Shows title, link count,
 backlink count, and themata links count."
   (interactive)
   (pop-to-buffer-same-window gnosis-dashboard-buffer-name)
-  (gnosis-dashboard-enable-mode)
-  ;; Disable other dashboard modes
-  (gnosis-dashboard-themata-mode -1)
-  (gnosis-dashboard-tags-mode -1)
-  ;; Enable nodes mode
-  (gnosis-dashboard-nodes-mode 1)
+  (gnosis-dashboard-nodes-mode)
   (setf tabulated-list-format
         `[("Title" ,(/ (window-width) 2) t)
           ("Links" ,(/ (window-width) 8)

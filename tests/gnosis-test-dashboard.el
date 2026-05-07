@@ -17,7 +17,7 @@
 (require 'gnosis-dashboard)
 
 (load (expand-file-name "gnosis-test-helpers.el"
-       (file-name-directory (or load-file-name buffer-file-name))))
+			(file-name-directory (or load-file-name buffer-file-name))))
 
 ;; ──────────────────────────────────────────────────────────
 ;; Dashboard-specific test helpers
@@ -46,14 +46,14 @@ Stubs `pop-to-buffer-same-window' so tests work in batch mode.
 Includes `gnosis-test-with-clean-cache' for isolation."
   (declare (indent 0) (debug t))
   `(gnosis-test-with-clean-cache
-     (let ((gnosis-dashboard-buffer-name "*Gnosis Dashboard Test*"))
-       (get-buffer-create gnosis-dashboard-buffer-name)
-       (cl-letf (((symbol-function 'pop-to-buffer-same-window)
-                  (lambda (buf &rest _) (set-buffer (get-buffer-create buf)))))
-         (unwind-protect
-             (progn ,@body)
-           (when (get-buffer gnosis-dashboard-buffer-name)
-             (kill-buffer gnosis-dashboard-buffer-name)))))))
+    (let ((gnosis-dashboard-buffer-name "*Gnosis Dashboard Test*"))
+      (get-buffer-create gnosis-dashboard-buffer-name)
+      (cl-letf (((symbol-function 'pop-to-buffer-same-window)
+                 (lambda (buf &rest _) (set-buffer (get-buffer-create buf)))))
+        (unwind-protect
+            (progn ,@body)
+          (when (get-buffer gnosis-dashboard-buffer-name)
+            (kill-buffer gnosis-dashboard-buffer-name)))))))
 
 (defun gnosis-test--add-activity (date total new)
   "Insert an activity-log row for DATE with TOTAL and NEW counts."
@@ -117,96 +117,96 @@ Includes `gnosis-test-with-clean-cache' for isolation."
 (ert-deftest gnosis-test-dashboard-output-themata-basic ()
   "Output-themata returns correctly formatted entries."
   (gnosis-test-with-db
-    (gnosis-test-with-clean-cache
-      (let* ((id1 (gnosis-test--add-basic-thema "What is 2+2?" "4"
-                                                '("math")))
-             (id2 (gnosis-test--add-basic-thema "Capital?" "Athens"
-                                                '("geo")))
-             (entries (gnosis-dashboard--output-themata (list id1 id2))))
-        ;; Two entries returned
-        (should (= (length entries) 2))
-        ;; Each entry is (id vector)
-        (let* ((e1 (cl-find id1 entries :key #'car))
-               (vec1 (cadr e1)))
-          (should e1)
-          ;; Keimenon is first field
-          (should (string-search "What is 2+2?" (aref vec1 0)))
-          ;; Type is "basic"
-          (should (equal (aref vec1 4) "basic"))
-          ;; Not suspended → "No"
-          (should (equal (aref vec1 5) "No")))))))
+   (gnosis-test-with-clean-cache
+    (let* ((id1 (gnosis-test--add-basic-thema "What is 2+2?" "4"
+                                              '("math")))
+           (id2 (gnosis-test--add-basic-thema "Capital?" "Athens"
+                                              '("geo")))
+           (entries (gnosis-dashboard--output-themata (list id1 id2))))
+      ;; Two entries returned
+      (should (= (length entries) 2))
+      ;; Each entry is (id vector)
+      (let* ((e1 (cl-find id1 entries :key #'car))
+             (vec1 (cadr e1)))
+        (should e1)
+        ;; Keimenon is first field
+        (should (string-search "What is 2+2?" (aref vec1 0)))
+        ;; Type is "basic"
+        (should (equal (aref vec1 4) "basic"))
+        ;; Not suspended → "No"
+        (should (equal (aref vec1 5) "No")))))))
 
 (ert-deftest gnosis-test-dashboard-output-themata-suspended ()
   "Suspended themata show \"Yes\" in suspend column."
   (gnosis-test-with-db
-    (gnosis-test-with-clean-cache
-      (let* ((id1 (gnosis-test--add-basic-thema "Q?" "A" '("t") nil nil 1))
-             (entries (gnosis-dashboard--output-themata (list id1)))
-             (e1 (cl-find id1 entries :key #'car))
-             (vec1 (cadr e1)))
-        (should (equal (aref vec1 5) "Yes"))))))
+   (gnosis-test-with-clean-cache
+    (let* ((id1 (gnosis-test--add-basic-thema "Q?" "A" '("t") nil nil 1))
+           (entries (gnosis-dashboard--output-themata (list id1)))
+           (e1 (cl-find id1 entries :key #'car))
+           (vec1 (cadr e1)))
+      (should (equal (aref vec1 5) "Yes"))))))
 
 (ert-deftest gnosis-test-dashboard-output-themata-list-tags ()
   "List-valued tags are joined with commas."
   (gnosis-test-with-db
-    (gnosis-test-with-clean-cache
-      (let* ((id1 (gnosis-test--add-basic-thema "Q?" "A"
-                                                '("math" "algebra")))
-             (entries (gnosis-dashboard--output-themata (list id1)))
-             (vec (cadr (car entries))))
-        ;; Tags field (index 3) should contain both tags
-        (should (string-search "math" (aref vec 3)))
-        (should (string-search "algebra" (aref vec 3)))))))
+   (gnosis-test-with-clean-cache
+    (let* ((id1 (gnosis-test--add-basic-thema "Q?" "A"
+                                              '("math" "algebra")))
+           (entries (gnosis-dashboard--output-themata (list id1)))
+           (vec (cadr (car entries))))
+      ;; Tags field (index 3) should contain both tags
+      (should (string-search "math" (aref vec 3)))
+      (should (string-search "algebra" (aref vec 3)))))))
 
 (ert-deftest gnosis-test-dashboard-output-themata-strips-org-links ()
   "Org-mode links in keimenon are simplified to description only."
   (gnosis-test-with-db
-    (gnosis-test-with-clean-cache
-      (let* ((id1 (gnosis-test--add-basic-thema
-                   "See [[id:abc-123][My Node]] for details" "A"))
-             (entries (gnosis-dashboard--output-themata (list id1)))
-             (vec (cadr (car entries))))
-        ;; Link syntax removed, description kept
-        (should (string-search "My Node" (aref vec 0)))
-        (should-not (string-search "[[id:" (aref vec 0)))))))
+   (gnosis-test-with-clean-cache
+    (let* ((id1 (gnosis-test--add-basic-thema
+                 "See [[id:abc-123][My Node]] for details" "A"))
+           (entries (gnosis-dashboard--output-themata (list id1)))
+           (vec (cadr (car entries))))
+      ;; Link syntax removed, description kept
+      (should (string-search "My Node" (aref vec 0)))
+      (should-not (string-search "[[id:" (aref vec 0)))))))
 
 (ert-deftest gnosis-test-dashboard-output-themata-strips-newlines ()
   "Newlines in fields are replaced with spaces."
   (gnosis-test-with-db
-    (gnosis-test-with-clean-cache
-      (let* ((id1 (gnosis-test--add-basic-thema "Line1\nLine2" "A"))
-             (entries (gnosis-dashboard--output-themata (list id1)))
-             (vec (cadr (car entries))))
-        (should-not (string-search "\n" (aref vec 0)))
-        (should (string-search "Line1 Line2" (aref vec 0)))))))
+   (gnosis-test-with-clean-cache
+    (let* ((id1 (gnosis-test--add-basic-thema "Line1\nLine2" "A"))
+           (entries (gnosis-dashboard--output-themata (list id1)))
+           (vec (cadr (car entries))))
+      (should-not (string-search "\n" (aref vec 0)))
+      (should (string-search "Line1 Line2" (aref vec 0)))))))
 
 (ert-deftest gnosis-test-dashboard-output-tag ()
   "Output-tag returns (tag count-string)."
   (gnosis-test-with-db
-    (gnosis-test--add-basic-thema "Q1" "A1" '("math"))
-    (gnosis-test--add-basic-thema "Q2" "A2" '("math" "geo"))
-    (gnosis-test--add-basic-thema "Q3" "A3" '("geo"))
-    (let ((result (gnosis-dashboard-output-tag "math")))
-      (should (equal (car result) "math"))
-      (should (equal (cadr result) "2")))
-    (let ((result (gnosis-dashboard-output-tag "geo")))
-      (should (equal (cadr result) "2")))))
+   (gnosis-test--add-basic-thema "Q1" "A1" '("math"))
+   (gnosis-test--add-basic-thema "Q2" "A2" '("math" "geo"))
+   (gnosis-test--add-basic-thema "Q3" "A3" '("geo"))
+   (let ((result (gnosis-dashboard-output-tag "math")))
+     (should (equal (car result) "math"))
+     (should (equal (cadr result) "2")))
+   (let ((result (gnosis-dashboard-output-tag "geo")))
+     (should (equal (cadr result) "2")))))
 
 (ert-deftest gnosis-test-dashboard-get-themata-links ()
   "Get-themata-links returns thema IDs linked to a node."
   (gnosis-test-with-db
-    (let* ((id1 (gnosis-test--add-basic-thema "Q1" "A1"))
-           (id2 (gnosis-test--add-basic-thema "Q2" "A2"))
-           (_id3 (gnosis-test--add-basic-thema "Q3" "A3"))
-           (node-id "fake-node-uuid"))
-      ;; Link two themata to the node
-      (gnosis-test--add-link id1 node-id)
-      (gnosis-test--add-link id2 node-id)
-      (let ((result (gnosis-dashboard-get-themata-links node-id)))
-        (should (= (length result) 2))
-        ;; source column is TEXT but returns integers
-        (should (member id1 result))
-        (should (member id2 result))))))
+   (let* ((id1 (gnosis-test--add-basic-thema "Q1" "A1"))
+          (id2 (gnosis-test--add-basic-thema "Q2" "A2"))
+          (_id3 (gnosis-test--add-basic-thema "Q3" "A3"))
+          (node-id "fake-node-uuid"))
+     ;; Link two themata to the node
+     (gnosis-test--add-link id1 node-id)
+     (gnosis-test--add-link id2 node-id)
+     (let ((result (gnosis-dashboard-get-themata-links node-id)))
+       (should (= (length result) 2))
+       ;; source column is TEXT but returns integers
+       (should (member id1 result))
+       (should (member id2 result))))))
 
 ;; ──────────────────────────────────────────────────────────
 ;; Entry manipulation tests
@@ -215,48 +215,48 @@ Includes `gnosis-test-with-clean-cache' for isolation."
 (ert-deftest gnosis-test-dashboard-remove-entries ()
   "Remove-entries removes matching entries and updates thema-ids."
   (gnosis-test-with-db
-    (let* ((id1 (gnosis-test--add-basic-thema "Q1" "A1"))
-           (id2 (gnosis-test--add-basic-thema "Q2" "A2"))
-           (id3 (gnosis-test--add-basic-thema "Q3" "A3")))
-      (gnosis-test-with-dashboard-buffer
-        (with-current-buffer gnosis-dashboard-buffer-name
-          (tabulated-list-mode)
-          (setq tabulated-list-format [("Col" 10 t)])
-          (tabulated-list-init-header)
-          (setq tabulated-list-entries
-                (list (list id1 ["Q1"]) (list id2 ["Q2"]) (list id3 ["Q3"])))
-          (setq gnosis-dashboard-thema-ids (list id1 id2 id3))
-          (tabulated-list-print t)
-          ;; Remove id2
-          (gnosis-dashboard--remove-entries (list id2))
-          ;; Two entries remain
-          (should (= (length tabulated-list-entries) 2))
-          (should-not (cl-find id2 tabulated-list-entries :key #'car))
-          ;; thema-ids also updated
-          (should-not (member id2 gnosis-dashboard-thema-ids)))))))
+   (let* ((id1 (gnosis-test--add-basic-thema "Q1" "A1"))
+          (id2 (gnosis-test--add-basic-thema "Q2" "A2"))
+          (id3 (gnosis-test--add-basic-thema "Q3" "A3")))
+     (gnosis-test-with-dashboard-buffer
+      (with-current-buffer gnosis-dashboard-buffer-name
+        (tabulated-list-mode)
+        (setq tabulated-list-format [("Col" 10 t)])
+        (tabulated-list-init-header)
+        (setq tabulated-list-entries
+              (list (list id1 ["Q1"]) (list id2 ["Q2"]) (list id3 ["Q3"])))
+        (setq gnosis-dashboard-thema-ids (list id1 id2 id3))
+        (tabulated-list-print t)
+        ;; Remove id2
+        (gnosis-dashboard--remove-entries (list id2))
+        ;; Two entries remain
+        (should (= (length tabulated-list-entries) 2))
+        (should-not (cl-find id2 tabulated-list-entries :key #'car))
+        ;; thema-ids also updated
+        (should-not (member id2 gnosis-dashboard-thema-ids)))))))
 
 (ert-deftest gnosis-test-dashboard-update-entries ()
   "Update-entries refreshes data from DB for specified IDs."
   (gnosis-test-with-db
-    (let* ((id1 (gnosis-test--add-basic-thema "Original Q" "A1")))
-      (gnosis-test-with-dashboard-buffer
-        (with-current-buffer gnosis-dashboard-buffer-name
-          (tabulated-list-mode)
-          (setq tabulated-list-format [("K" 10 t) ("H" 10 t) ("A" 10 t)
-                                       ("T" 10 t) ("Ty" 10 t) ("S" 5 t)])
-          (tabulated-list-init-header)
-          ;; Initial entries from DB
-          (let ((initial (gnosis-dashboard--output-themata (list id1))))
-            (setq tabulated-list-entries initial)
-            (tabulated-list-print t)
-            ;; Modify the thema in DB
-            (gnosis-update 'themata '(= keimenon "Updated Q") `(= id ,id1))
-            ;; Refresh
-            (gnosis-dashboard--update-entries (list id1))
-            ;; Entry should reflect the update
-            (let* ((entry (cl-find id1 tabulated-list-entries :key #'car))
-                   (vec (cadr entry)))
-              (should (string-search "Updated Q" (aref vec 0))))))))))
+   (let* ((id1 (gnosis-test--add-basic-thema "Original Q" "A1")))
+     (gnosis-test-with-dashboard-buffer
+      (with-current-buffer gnosis-dashboard-buffer-name
+        (tabulated-list-mode)
+        (setq tabulated-list-format [("K" 10 t) ("H" 10 t) ("A" 10 t)
+                                     ("T" 10 t) ("Ty" 10 t) ("S" 5 t)])
+        (tabulated-list-init-header)
+        ;; Initial entries from DB
+        (let ((initial (gnosis-dashboard--output-themata (list id1))))
+          (setq tabulated-list-entries initial)
+          (tabulated-list-print t)
+          ;; Modify the thema in DB
+          (gnosis-update 'themata '(= keimenon "Updated Q") `(= id ,id1))
+          ;; Refresh
+          (gnosis-dashboard--update-entries (list id1))
+          ;; Entry should reflect the update
+          (let* ((entry (cl-find id1 tabulated-list-entries :key #'car))
+                 (vec (cadr entry)))
+            (should (string-search "Updated Q" (aref vec 0))))))))))
 
 ;; ──────────────────────────────────────────────────────────
 ;; Buffer rendering tests
@@ -265,48 +265,42 @@ Includes `gnosis-test-with-clean-cache' for isolation."
 (ert-deftest gnosis-test-dashboard-render-themata ()
   "Output-themata renders a buffer with themata-mode active."
   (gnosis-test-with-db
-    (let* ((id1 (gnosis-test--add-basic-thema "Q1" "A1" '("math")))
-           (id2 (gnosis-test--add-basic-thema "Q2" "A2" '("geo"))))
-      (gnosis-test-with-dashboard-buffer
-        (gnosis-dashboard-output-themata (list id1 id2))
-        (with-current-buffer gnosis-dashboard-buffer-name
-          ;; Themata mode should be active
-          (should gnosis-dashboard-themata-mode)
-          ;; Other modes disabled
-          (should-not gnosis-dashboard-tags-mode)
-          (should-not gnosis-dashboard-nodes-mode)
-          ;; Entries populated
-          (should (= (length tabulated-list-entries) 2))
-          ;; Current state tracked
-          (should (equal (plist-get gnosis-dashboard--current :type) 'themata)))))))
+   (let* ((id1 (gnosis-test--add-basic-thema "Q1" "A1" '("math")))
+          (id2 (gnosis-test--add-basic-thema "Q2" "A2" '("geo"))))
+     (gnosis-test-with-dashboard-buffer
+      (gnosis-dashboard-output-themata (list id1 id2))
+      (with-current-buffer gnosis-dashboard-buffer-name
+        ;; Themata mode should be active
+        (should (eq major-mode 'gnosis-dashboard-themata-mode))
+        ;; Entries populated
+        (should (= (length tabulated-list-entries) 2))
+        ;; Current state tracked
+        (should (equal (plist-get gnosis-dashboard--current :type) 'themata)))))))
 
 (ert-deftest gnosis-test-dashboard-render-tags ()
   "Output-tags renders a buffer with tags-mode active."
   (gnosis-test-with-db
-    (gnosis-test--add-basic-thema "Q1" "A1" '("math"))
-    (gnosis-test--add-basic-thema "Q2" "A2" '("geo"))
-    (gnosis-test-with-dashboard-buffer
-      (gnosis-dashboard-output-tags)
-      (with-current-buffer gnosis-dashboard-buffer-name
-        ;; Tags mode active
-        (should gnosis-dashboard-tags-mode)
-        ;; Other modes disabled
-        (should-not gnosis-dashboard-themata-mode)
-        (should-not gnosis-dashboard-nodes-mode)
-        ;; Two unique tags
-        (should (= (length tabulated-list-entries) 2))))))
+   (gnosis-test--add-basic-thema "Q1" "A1" '("math"))
+   (gnosis-test--add-basic-thema "Q2" "A2" '("geo"))
+   (gnosis-test-with-dashboard-buffer
+    (gnosis-dashboard-output-tags)
+    (with-current-buffer gnosis-dashboard-buffer-name
+      ;; Tags mode active
+      (should (eq major-mode 'gnosis-dashboard-tags-mode))
+      ;; Two unique tags
+      (should (= (length tabulated-list-entries) 2))))))
 
 (ert-deftest gnosis-test-dashboard-render-themata-stores-ids ()
   "Output-themata stores current IDs for history navigation."
   (gnosis-test-with-db
-    (let* ((id1 (gnosis-test--add-basic-thema "Q1" "A1"))
-           (id2 (gnosis-test--add-basic-thema "Q2" "A2"))
-           (ids (list id1 id2)))
-      (gnosis-test-with-dashboard-buffer
-        (gnosis-dashboard-output-themata ids)
-        (with-current-buffer gnosis-dashboard-buffer-name
-          (should (equal gnosis-dashboard-themata-current-ids ids))
-          (should (equal gnosis-dashboard-thema-ids ids)))))))
+   (let* ((id1 (gnosis-test--add-basic-thema "Q1" "A1"))
+          (id2 (gnosis-test--add-basic-thema "Q2" "A2"))
+          (ids (list id1 id2)))
+     (gnosis-test-with-dashboard-buffer
+      (gnosis-dashboard-output-themata ids)
+      (with-current-buffer gnosis-dashboard-buffer-name
+        (should (equal gnosis-dashboard-themata-current-ids ids))
+        (should (equal gnosis-dashboard-thema-ids ids)))))))
 
 ;; ──────────────────────────────────────────────────────────
 ;; Mark/selection tests
@@ -315,17 +309,17 @@ Includes `gnosis-test-with-clean-cache' for isolation."
 (ert-deftest gnosis-test-dashboard-mark-all-and-unmark ()
   "Mark-all collects all IDs, unmark-all clears them."
   (gnosis-test-with-db
-    (let* ((id1 (gnosis-test--add-basic-thema "Q1" "A1"))
-           (id2 (gnosis-test--add-basic-thema "Q2" "A2")))
-      (gnosis-test-with-dashboard-buffer
-        (gnosis-dashboard-output-themata (list id1 id2))
-        (with-current-buffer gnosis-dashboard-buffer-name
-          ;; Mark all
-          (gnosis-dashboard-mark-all)
-          (should (= (length gnosis-dashboard--selected-ids) 2))
-          ;; Unmark all
-          (gnosis-dashboard-unmark-all)
-          (should (null gnosis-dashboard--selected-ids)))))))
+   (let* ((id1 (gnosis-test--add-basic-thema "Q1" "A1"))
+          (id2 (gnosis-test--add-basic-thema "Q2" "A2")))
+     (gnosis-test-with-dashboard-buffer
+      (gnosis-dashboard-output-themata (list id1 id2))
+      (with-current-buffer gnosis-dashboard-buffer-name
+        ;; Mark all
+        (gnosis-dashboard-mark-all)
+        (should (= (length gnosis-dashboard--selected-ids) 2))
+        ;; Unmark all
+        (gnosis-dashboard-unmark-all)
+        (should (null gnosis-dashboard--selected-ids)))))))
 
 ;; ──────────────────────────────────────────────────────────
 ;; Content search helper tests
@@ -351,31 +345,31 @@ Binds `gnosis-nodes-dir' to the temp directory."
 (ert-deftest gnosis-test-dashboard-search-files-all ()
   "Search all files returns matching node IDs."
   (gnosis-test-with-org-files
-      '(("node-aaa" "Emacs is a great editor")
-        ("node-bbb" "Vim is also popular")
-        ("node-ccc" "Emacs and Vim are both editors"))
-    (let ((result (gnosis-dashboard-nodes--search-files "Emacs")))
-      (should (= (length result) 2))
-      (should (member "node-aaa" result))
-      (should (member "node-ccc" result)))))
+   '(("node-aaa" "Emacs is a great editor")
+     ("node-bbb" "Vim is also popular")
+     ("node-ccc" "Emacs and Vim are both editors"))
+   (let ((result (gnosis-dashboard-nodes--search-files "Emacs")))
+     (should (= (length result) 2))
+     (should (member "node-aaa" result))
+     (should (member "node-ccc" result)))))
 
 (ert-deftest gnosis-test-dashboard-search-files-with-filter ()
   "Search with node-ids filter restricts to subset."
   (gnosis-test-with-org-files
-      '(("node-aaa" "Emacs is a great editor")
-        ("node-bbb" "Vim is also popular")
-        ("node-ccc" "Emacs and Vim are both editors"))
-    (let ((result (gnosis-dashboard-nodes--search-files
-                   "Emacs" '("node-aaa"))))
-      (should (= (length result) 1))
-      (should (equal (car result) "node-aaa")))))
+   '(("node-aaa" "Emacs is a great editor")
+     ("node-bbb" "Vim is also popular")
+     ("node-ccc" "Emacs and Vim are both editors"))
+   (let ((result (gnosis-dashboard-nodes--search-files
+                  "Emacs" '("node-aaa"))))
+     (should (= (length result) 1))
+     (should (equal (car result) "node-aaa")))))
 
 (ert-deftest gnosis-test-dashboard-search-files-no-matches ()
   "Search with no matches returns nil."
   (gnosis-test-with-org-files
-      '(("node-aaa" "Emacs is a great editor"))
-    (let ((result (gnosis-dashboard-nodes--search-files "nonexistent-term")))
-      (should (null result)))))
+   '(("node-aaa" "Emacs is a great editor"))
+   (let ((result (gnosis-dashboard-nodes--search-files "nonexistent-term")))
+     (should (null result)))))
 
 ;; ──────────────────────────────────────────────────────────
 ;; Review count filter tests
@@ -388,71 +382,71 @@ Binds `gnosis-nodes-dir' to the temp directory."
 (ert-deftest gnosis-test-get-themata-by-reviews-basic ()
   "Get themata filtered by review count."
   (gnosis-test-with-db
-    (let* ((id1 (gnosis-test--add-basic-thema "Q1" "A1"))
-           (id2 (gnosis-test--add-basic-thema "Q2" "A2"))
-           (id3 (gnosis-test--add-basic-thema "Q3" "A3")))
-      ;; All start at n=0
-      (gnosis-test--set-review-count id2 3)
-      (gnosis-test--set-review-count id3 5)
-      ;; max-reviews=0: only never-reviewed
-      (let ((result (gnosis-get-themata-by-reviews 0)))
-        (should (= (length result) 1))
-        (should (member id1 result)))
-      ;; max-reviews=3: id1 (0) and id2 (3)
-      (let ((result (gnosis-get-themata-by-reviews 3)))
-        (should (= (length result) 2))
-        (should (member id1 result))
-        (should (member id2 result)))
-      ;; max-reviews=5: all three
-      (let ((result (gnosis-get-themata-by-reviews 5)))
-        (should (= (length result) 3))))))
+   (let* ((id1 (gnosis-test--add-basic-thema "Q1" "A1"))
+          (id2 (gnosis-test--add-basic-thema "Q2" "A2"))
+          (id3 (gnosis-test--add-basic-thema "Q3" "A3")))
+     ;; All start at n=0
+     (gnosis-test--set-review-count id2 3)
+     (gnosis-test--set-review-count id3 5)
+     ;; max-reviews=0: only never-reviewed
+     (let ((result (gnosis-get-themata-by-reviews 0)))
+       (should (= (length result) 1))
+       (should (member id1 result)))
+     ;; max-reviews=3: id1 (0) and id2 (3)
+     (let ((result (gnosis-get-themata-by-reviews 3)))
+       (should (= (length result) 2))
+       (should (member id1 result))
+       (should (member id2 result)))
+     ;; max-reviews=5: all three
+     (let ((result (gnosis-get-themata-by-reviews 5)))
+       (should (= (length result) 3))))))
 
 (ert-deftest gnosis-test-get-themata-by-reviews-with-subset ()
   "Get themata by review count restricted to a subset."
   (gnosis-test-with-db
-    (let* ((id1 (gnosis-test--add-basic-thema "Q1" "A1"))
-           (id2 (gnosis-test--add-basic-thema "Q2" "A2"))
-           (id3 (gnosis-test--add-basic-thema "Q3" "A3")))
-      ;; All at n=0
-      (gnosis-test--set-review-count id3 5)
-      ;; Restrict to id1 and id3 with max-reviews=0
-      (let ((result (gnosis-get-themata-by-reviews 0 (list id1 id3))))
-        (should (= (length result) 1))
-        (should (member id1 result))))))
+   (let* ((id1 (gnosis-test--add-basic-thema "Q1" "A1"))
+          (id2 (gnosis-test--add-basic-thema "Q2" "A2"))
+          (id3 (gnosis-test--add-basic-thema "Q3" "A3")))
+     ;; All at n=0
+     (gnosis-test--set-review-count id3 5)
+     ;; Restrict to id1 and id3 with max-reviews=0
+     (let ((result (gnosis-get-themata-by-reviews 0 (list id1 id3))))
+       (should (= (length result) 1))
+       (should (member id1 result))))))
 
 (ert-deftest gnosis-test-dashboard-show-new-renders ()
   "Show-new renders matching themata in the dashboard."
   (gnosis-test-with-db
-    (let* ((id1 (gnosis-test--add-basic-thema "New Q" "A1"))
-           (id2 (gnosis-test--add-basic-thema "Old Q" "A2")))
-      (gnosis-test--set-review-count id2 5)
-      (gnosis-test-with-dashboard-buffer
-        (gnosis-dashboard-themata-show-new 0)
-        (with-current-buffer gnosis-dashboard-buffer-name
-          (should gnosis-dashboard-themata-mode)
-          (should (= (length tabulated-list-entries) 1))
-          (should (equal (caar tabulated-list-entries) id1)))))))
+   (let* ((id1 (gnosis-test--add-basic-thema "New Q" "A1"))
+          (id2 (gnosis-test--add-basic-thema "Old Q" "A2")))
+     (gnosis-test--set-review-count id2 5)
+     (gnosis-test-with-dashboard-buffer
+      (gnosis-dashboard-themata-show-new 0)
+      (with-current-buffer gnosis-dashboard-buffer-name
+        (should (eq major-mode 'gnosis-dashboard-themata-mode))
+        (should (= (length tabulated-list-entries) 1))
+        (should (equal (caar tabulated-list-entries) id1)))))))
 
 (ert-deftest gnosis-test-dashboard-filter-by-reviews ()
   "Filter current themata by review count."
   (gnosis-test-with-db
-    (let* ((id1 (gnosis-test--add-basic-thema "Q1" "A1"))
-           (id2 (gnosis-test--add-basic-thema "Q2" "A2"))
-           (id3 (gnosis-test--add-basic-thema "Q3" "A3")))
-      (gnosis-test--set-review-count id2 2)
-      (gnosis-test--set-review-count id3 5)
-      (gnosis-test-with-dashboard-buffer
-        ;; Start with all themata displayed
-        (gnosis-dashboard-output-themata (list id1 id2 id3))
-        (with-current-buffer gnosis-dashboard-buffer-name
-          (should (= (length tabulated-list-entries) 3))
-          ;; Filter to max 2 reviews
-          (gnosis-dashboard-filter-themata-by-reviews 2)
-          (should (= (length tabulated-list-entries) 2))
-          (let ((displayed-ids (mapcar #'car tabulated-list-entries)))
-            (should (member id1 displayed-ids))
-            (should (member id2 displayed-ids))
-            (should-not (member id3 displayed-ids))))))))
+   (let* ((id1 (gnosis-test--add-basic-thema "Q1" "A1"))
+          (id2 (gnosis-test--add-basic-thema "Q2" "A2"))
+          (id3 (gnosis-test--add-basic-thema "Q3" "A3")))
+     (gnosis-test--set-review-count id2 2)
+     (gnosis-test--set-review-count id3 5)
+     (gnosis-test-with-dashboard-buffer
+      ;; Start with all themata displayed
+      (gnosis-dashboard-output-themata (list id1 id2 id3))
+      (with-current-buffer gnosis-dashboard-buffer-name
+        (should (= (length tabulated-list-entries) 3))
+        ;; Filter to max 2 reviews
+        (gnosis-dashboard-filter-themata-by-reviews 2)
+        (should (= (length tabulated-list-entries) 2))
+        (let ((displayed-ids (mapcar #'car tabulated-list-entries)))
+          (should (member id1 displayed-ids))
+          (should (member id2 displayed-ids))
+          (should-not (member id3 displayed-ids))))))))
 
 ;; ──────────────────────────────────────────────────────────
 ;; gnosis-tl pure function tests
@@ -1321,61 +1315,61 @@ This is the critical bug fix: (not nil) => t was wrong."
 (ert-deftest gnosis-test-dashboard-progressive-render-small ()
   "Progressive render with fewer entries than chunk size renders all at once."
   (gnosis-test-with-db
-    (let* ((id1 (gnosis-test--add-basic-thema "Q1" "A1"))
-           (id2 (gnosis-test--add-basic-thema "Q2" "A2"))
-           (id3 (gnosis-test--add-basic-thema "Q3" "A3")))
-      (gnosis-test-with-dashboard-buffer
-        (gnosis-dashboard-output-themata (list id1 id2 id3))
-        (with-current-buffer gnosis-dashboard-buffer-name
-          ;; All 3 entries rendered immediately (< chunk size)
-          (should (= (length tabulated-list-entries) 3))
-          (should (= (count-lines (point-min) (point-max)) 3))
-          ;; IDs are correct
-          (goto-char (point-min))
-          (let ((ids nil))
-            (while (not (eobp))
-              (push (tabulated-list-get-id) ids)
-              (forward-line 1))
-            (should (= (length ids) 3))))))))
+   (let* ((id1 (gnosis-test--add-basic-thema "Q1" "A1"))
+          (id2 (gnosis-test--add-basic-thema "Q2" "A2"))
+          (id3 (gnosis-test--add-basic-thema "Q3" "A3")))
+     (gnosis-test-with-dashboard-buffer
+      (gnosis-dashboard-output-themata (list id1 id2 id3))
+      (with-current-buffer gnosis-dashboard-buffer-name
+        ;; All 3 entries rendered immediately (< chunk size)
+        (should (= (length tabulated-list-entries) 3))
+        (should (= (count-lines (point-min) (point-max)) 3))
+        ;; IDs are correct
+        (goto-char (point-min))
+        (let ((ids nil))
+          (while (not (eobp))
+            (push (tabulated-list-get-id) ids)
+            (forward-line 1))
+          (should (= (length ids) 3))))))))
 
 (ert-deftest gnosis-test-dashboard-progressive-render-chunked ()
   "Progressive render splits entries when exceeding chunk size."
   (gnosis-test-with-db
-    (let* ((gnosis-dashboard-render-chunk-size 2)
-           (id1 (gnosis-test--add-basic-thema "Q1" "A1"))
-           (id2 (gnosis-test--add-basic-thema "Q2" "A2"))
-           (id3 (gnosis-test--add-basic-thema "Q3" "A3"))
-           (id4 (gnosis-test--add-basic-thema "Q4" "A4"))
-           (id5 (gnosis-test--add-basic-thema "Q5" "A5")))
-      (gnosis-test-with-dashboard-buffer
-        (gnosis-dashboard-output-themata (list id1 id2 id3 id4 id5))
-        (with-current-buffer gnosis-dashboard-buffer-name
-          ;; First chunk: only 2 entries rendered synchronously
-          (should (= (length tabulated-list-entries) 2))
-          (should (= (count-lines (point-min) (point-max)) 2)))))))
+   (let* ((gnosis-dashboard-render-chunk-size 2)
+          (id1 (gnosis-test--add-basic-thema "Q1" "A1"))
+          (id2 (gnosis-test--add-basic-thema "Q2" "A2"))
+          (id3 (gnosis-test--add-basic-thema "Q3" "A3"))
+          (id4 (gnosis-test--add-basic-thema "Q4" "A4"))
+          (id5 (gnosis-test--add-basic-thema "Q5" "A5")))
+     (gnosis-test-with-dashboard-buffer
+      (gnosis-dashboard-output-themata (list id1 id2 id3 id4 id5))
+      (with-current-buffer gnosis-dashboard-buffer-name
+        ;; First chunk: only 2 entries rendered synchronously
+        (should (= (length tabulated-list-entries) 2))
+        (should (= (count-lines (point-min) (point-max)) 2)))))))
 
 (ert-deftest gnosis-test-dashboard-progressive-render-stale-gen ()
   "Progressive render timer no-ops when generation is stale."
   (gnosis-test-with-db
-    (let* ((gnosis-dashboard-render-chunk-size 2)
-           (id1 (gnosis-test--add-basic-thema "Q1" "A1"))
-           (id2 (gnosis-test--add-basic-thema "Q2" "A2"))
-           (id3 (gnosis-test--add-basic-thema "Q3" "A3")))
-      (gnosis-test-with-dashboard-buffer
-        (gnosis-dashboard-output-themata (list id1 id2 id3))
-        (with-current-buffer gnosis-dashboard-buffer-name
-          ;; First chunk rendered
-          (should (= (length tabulated-list-entries) 2))
-          ;; Simulate navigation away (bumps generation)
-          (cl-incf gnosis-dashboard--load-generation)
-          ;; Manually call append-chunk with stale gen — should be no-op
-          (let ((old-count (count-lines (point-min) (point-max))))
-            (gnosis-dashboard--append-chunk
-             (current-buffer)
-             (list (list (list id3 ["Q3" "" "" "test" "basic" "No"])))
-             (last tabulated-list-entries)
-             (1- gnosis-dashboard--load-generation))
-            (should (= (count-lines (point-min) (point-max)) old-count))))))))
+   (let* ((gnosis-dashboard-render-chunk-size 2)
+          (id1 (gnosis-test--add-basic-thema "Q1" "A1"))
+          (id2 (gnosis-test--add-basic-thema "Q2" "A2"))
+          (id3 (gnosis-test--add-basic-thema "Q3" "A3")))
+     (gnosis-test-with-dashboard-buffer
+      (gnosis-dashboard-output-themata (list id1 id2 id3))
+      (with-current-buffer gnosis-dashboard-buffer-name
+        ;; First chunk rendered
+        (should (= (length tabulated-list-entries) 2))
+        ;; Simulate navigation away (bumps generation)
+        (cl-incf gnosis-dashboard--load-generation)
+        ;; Manually call append-chunk with stale gen — should be no-op
+        (let ((old-count (count-lines (point-min) (point-max))))
+          (gnosis-dashboard--append-chunk
+           (current-buffer)
+           (list (list (list id3 ["Q3" "" "" "test" "basic" "No"])))
+           (last tabulated-list-entries)
+           (1- gnosis-dashboard--load-generation))
+          (should (= (count-lines (point-min) (point-max)) old-count))))))))
 
 ;; ──────────────────────────────────────────────────────────
 ;; Benchmark tests
@@ -1431,85 +1425,85 @@ This is the critical bug fix: (not nil) => t was wrong."
 (ert-deftest gnosis-test-tag-rename-simple ()
   "Simple rename with no conflicts."
   (gnosis-test-with-db
-    (gnosis-test--add-basic-thema "Q1" "A1" '("old_name"))
-    (gnosis-test--add-basic-thema "Q2" "A2" '("old_name" "other"))
-    (gnosis-tag-rename "old_name" "new_name")
-    (let ((tags (mapcar #'car (gnosis-select 'tag 'thema-tag))))
-      (should (member "new_name" tags))
-      (should-not (member "old_name" tags))
-      (should (member "other" tags)))))
+   (gnosis-test--add-basic-thema "Q1" "A1" '("old_name"))
+   (gnosis-test--add-basic-thema "Q2" "A2" '("old_name" "other"))
+   (gnosis-tag-rename "old_name" "new_name")
+   (let ((tags (mapcar #'car (gnosis-select 'tag 'thema-tag))))
+     (should (member "new_name" tags))
+     (should-not (member "old_name" tags))
+     (should (member "other" tags)))))
 
 (ert-deftest gnosis-test-tag-rename-merge ()
   "Rename merges when thema already has the target tag."
   (gnosis-test-with-db
-    (let ((id1 (gnosis-test--add-basic-thema "Q1" "A1" '("old" "new"))))
-      (gnosis-test--add-basic-thema "Q2" "A2" '("old"))
-      (gnosis-tag-rename "old" "new")
-      ;; old tag gone entirely
-      (should-not (member "old" (mapcar #'car (gnosis-select 'tag 'thema-tag))))
-      ;; id1 has exactly one "new" row, not two
-      (let ((id1-tags (mapcar #'car
-			      (gnosis-select 'tag 'thema-tag `(= thema-id ,id1)))))
-	(should (equal '("new") (sort id1-tags #'string<)))))))
+   (let ((id1 (gnosis-test--add-basic-thema "Q1" "A1" '("old" "new"))))
+     (gnosis-test--add-basic-thema "Q2" "A2" '("old"))
+     (gnosis-tag-rename "old" "new")
+     ;; old tag gone entirely
+     (should-not (member "old" (mapcar #'car (gnosis-select 'tag 'thema-tag))))
+     ;; id1 has exactly one "new" row, not two
+     (let ((id1-tags (mapcar #'car
+			     (gnosis-select 'tag 'thema-tag `(= thema-id ,id1)))))
+       (should (equal '("new") (sort id1-tags #'string<)))))))
 
 (ert-deftest gnosis-test-tag-rename-all-conflict ()
   "When all themata have both old and new, old tag is fully removed."
   (gnosis-test-with-db
-    (gnosis-test--add-basic-thema "Q1" "A1" '("alpha" "beta"))
-    (gnosis-test--add-basic-thema "Q2" "A2" '("alpha" "beta"))
-    (gnosis-tag-rename "alpha" "beta")
-    (let ((tags (mapcar #'car (gnosis-select 'tag 'thema-tag))))
-      (should-not (member "alpha" tags))
-      (should (member "beta" tags)))))
+   (gnosis-test--add-basic-thema "Q1" "A1" '("alpha" "beta"))
+   (gnosis-test--add-basic-thema "Q2" "A2" '("alpha" "beta"))
+   (gnosis-tag-rename "alpha" "beta")
+   (let ((tags (mapcar #'car (gnosis-select 'tag 'thema-tag))))
+     (should-not (member "alpha" tags))
+     (should (member "beta" tags)))))
 
 (ert-deftest gnosis-test-tag-rename-same-name-error ()
   "Renaming a tag to itself signals user-error."
   (gnosis-test-with-db
-    (gnosis-test--add-basic-thema "Q1" "A1" '("foo"))
-    (should-error (gnosis-tag-rename "foo" "foo") :type 'user-error)))
+   (gnosis-test--add-basic-thema "Q1" "A1" '("foo"))
+   (should-error (gnosis-tag-rename "foo" "foo") :type 'user-error)))
 
 (ert-deftest gnosis-test-tag-rename-batch ()
   "Batch rename with multiple pairs including merges."
   (gnosis-test-with-db
-    (let ((id1 (gnosis-test--add-basic-thema "Q1" "A1" '("01_Math" "Science")))
-	  (_id2 (gnosis-test--add-basic-thema "Q2" "A2" '("01_Math" "02_History"))))
-      (gnosis--tag-rename-batch '(("01_Math" . "Math")
-				  ("02_History" . "History")))
-      (let ((tags (seq-uniq (mapcar #'car (gnosis-select 'tag 'thema-tag)))))
-	(should (member "Math" tags))
-	(should (member "History" tags))
-	(should-not (member "01_Math" tags))
-	(should-not (member "02_History" tags))
-	;; id1 had Science already, now also has Math (no duplicate)
-	(let ((id1-tags (sort (mapcar #'car
-				      (gnosis-select 'tag 'thema-tag
-						     `(= thema-id ,id1)))
-			      #'string<)))
-	  (should (equal '("Math" "Science") id1-tags)))))))
+   (let ((id1 (gnosis-test--add-basic-thema "Q1" "A1" '("01_Math" "Science")))
+	 (_id2 (gnosis-test--add-basic-thema "Q2" "A2" '("01_Math" "02_History"))))
+     (gnosis--tag-rename-batch '(("01_Math" . "Math")
+				 ("02_History" . "History")))
+     (let ((tags (seq-uniq (mapcar #'car (gnosis-select 'tag 'thema-tag)))))
+       (should (member "Math" tags))
+       (should (member "History" tags))
+       (should-not (member "01_Math" tags))
+       (should-not (member "02_History" tags))
+       ;; id1 had Science already, now also has Math (no duplicate)
+       (let ((id1-tags (sort (mapcar #'car
+				     (gnosis-select 'tag 'thema-tag
+						    `(= thema-id ,id1)))
+			     #'string<)))
+	 (should (equal '("Math" "Science") id1-tags)))))))
 
 (ert-deftest gnosis-test-tag-rename-batch-multi-old-same-new ()
   "Multiple old tags map to the same new tag for the same thema."
   (gnosis-test-with-db
-    (let ((id1 (gnosis-test--add-basic-thema "Q1" "A1" '("01_Math" "02_Math"))))
-      (gnosis--tag-rename-batch '(("01_Math" . "Math")
-				  ("02_Math" . "Math")))
-      (let ((id1-tags (mapcar #'car
-			      (gnosis-select 'tag 'thema-tag
-					     `(= thema-id ,id1)))))
-	(should (equal '("Math") id1-tags))))))
+   (let ((id1 (gnosis-test--add-basic-thema "Q1" "A1" '("01_Math" "02_Math"))))
+     (gnosis--tag-rename-batch '(("01_Math" . "Math")
+				 ("02_Math" . "Math")))
+     (let ((id1-tags (mapcar #'car
+			     (gnosis-select 'tag 'thema-tag
+					    `(= thema-id ,id1)))))
+       (should (equal '("Math") id1-tags))))))
 
 (ert-deftest gnosis-test-tag-rename-batch-empty-deletes ()
   "Pairs where new tag is empty string delete those tag rows."
   (gnosis-test-with-db
-    (let ((id1 (gnosis-test--add-basic-thema "Q1" "A1" '("42" "Math"))))
-      (gnosis--tag-rename-batch '(("42" . "")))
-      (let ((id1-tags (mapcar #'car
-			      (gnosis-select 'tag 'thema-tag
-					     `(= thema-id ,id1)))))
-	(should (equal '("Math") id1-tags))
-	;; No empty-string tags exist
-	(should-not (gnosis-sqlite-select (gnosis--ensure-db)
-		      "SELECT * FROM thema_tag WHERE tag = ?" (list "")))))))
+   (let ((id1 (gnosis-test--add-basic-thema "Q1" "A1" '("42" "Math"))))
+     (gnosis--tag-rename-batch '(("42" . "")))
+     (let ((id1-tags (mapcar #'car
+			     (gnosis-select 'tag 'thema-tag
+					    `(= thema-id ,id1)))))
+       (should (equal '("Math") id1-tags))
+       ;; No empty-string tags exist
+       (should-not (gnosis-sqlite-select (gnosis--ensure-db)
+					 "SELECT * FROM thema_tag WHERE tag = ?" (list "")))))))
 
 (provide 'gnosis-test-dashboard)
 

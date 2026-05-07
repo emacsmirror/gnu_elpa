@@ -827,17 +827,24 @@ But first move point inside table if near the end of buffer."
            (vtable-current-table))
       (user-error "No table found")))
 
-(defun -vtable-find-object (pred &optional below)
+(defun -vtable-find-object (pred &optional direction)
   "Go to the first object satisfying PRED in the current table.
-Return the object, or nil if not found.
-If BELOW is non-nil, only search starting from the current position."
-  (let ((start (point)))
-    (unless below (vtable-beginning-of-table))
-    (while (when-let* ((obj (vtable-current-object)))
-             (not (funcall pred obj)))
-      (forward-line))
-    (or (vtable-current-object)
-        (prog1 nil (goto-char start)))))
+If found, move point and return the object; else, just return nil.
+
+If DIRECTION is ±1, only search below/above starting from the current
+position."
+  (let ((start (point)) obj)
+    (unless direction
+      (vtable-beginning-of-table)
+      (setq direction +1))
+    (cl-assert (memq direction '(+1 -1)))
+    (catch 'done
+      (setq obj (vtable-current-object))
+      (while obj
+        (when (funcall pred obj) (throw 'done obj))
+        (setq obj (when (zerop (forward-line direction))
+                    (vtable-current-object))))
+      (prog1 nil (goto-char start)))))
 
 (defvar -vtable-before-sort-by-current-column-hook nil)
 (advice-add #'vtable-sort-by-current-column :before
@@ -1597,7 +1604,7 @@ If MAILBOX-BUFFER is non-nil, updating the UI when done."
                          (get-buffer-window msgbuf)))
               (next (-vtable-find-object
                      (lambda (m) (not (memq (-message-uid m) set)))
-                     t)))
+                     +1)))
           (-mailbox-buffer-update messages)
           (unless next
             ;; Above, we tried to move point to the next message not
@@ -1982,7 +1989,9 @@ current message."
   "DEL" #'minimail-message-scroll-down
   "S-SPC" #'minimail-message-scroll-down
   "n" #'minimail-next-message
+  "N" #'minimail-next-message-unseen
   "p" #'minimail-previous-message
+  "P" #'minimail-previous-message-unseen
   "r" #'minimail-reply
   "R" #'minimail-reply-all
   "f" #'minimail-forward
@@ -2275,8 +2284,7 @@ MENU and CLICK are as expected of a member of `context-menu-functions'."
       (-sort-by-thread (eq -sort-by-thread 'descend)))
     (when arrow-uid
       (save-excursion
-        (if (-vtable-find-object (lambda (m) (eq (-message-uid m)
-                                                 arrow-uid)))
+        (if (-vtable-find-object (lambda (m) (eq (-message-uid m) arrow-uid)))
             (move-marker overlay-arrow-position (point))
           (setq overlay-arrow-position nil))))
     (-vtable-find-object (lambda (m) (eq (-message-uid m) point-uid))))
@@ -2402,6 +2410,26 @@ many message, otherwise use `minimail-fetch-limit'."
 (defun minimail-previous-message (count)
   (interactive "p" minimail-mailbox-mode minimail-message-mode)
   (minimail-next-message (- count)))
+
+(defun minimail-next-message-unseen (direction)
+  (interactive "p" minimail-mailbox-mode minimail-message-mode)
+  (with-current-buffer (-find-buffer 'mailbox)
+    (if (not overlay-arrow-position)
+        (goto-char (point-min))
+      (goto-char overlay-arrow-position))
+    (unless (-vtable-find-object
+             (lambda (msg)
+               (not (assoc-string '\\Seen (-message-flags msg))))
+             (cl-signum direction))
+      (user-error "No unseen messages %s"
+                  (if (cl-minusp direction) 'above 'below)))
+    (when-let* ((window (get-buffer-window)))
+      (set-window-point window (point)))
+    (minimail-show-message)))
+
+(defun minimail-previous-message-unseen (direction)
+  (interactive "p" minimail-mailbox-mode minimail-message-mode)
+  (minimail-next-message-unseen (- direction)))
 
 (defun minimail-quit-message-window (&optional kill)
   "If there is a window showing a message from this mailbox, quit it.

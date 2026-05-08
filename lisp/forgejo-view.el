@@ -453,24 +453,55 @@ Updates the API, then updates pin_order in the DB."
                 forgejo-repo--owner forgejo-repo--name number)
        (funcall refresh)))))
 
-(defun forgejo-view-edit ()
-  "Edit the item at point.
-On the header, prompts for title or body.  On a comment, edits the body."
+(defun forgejo-view-edit-title ()
+  "Edit the title of the current item."
   (interactive)
   (when-let* ((node (forgejo-view--node-at-point))
-              (data forgejo-view--data)
-              (number (alist-get 'number data)))
+              (number (alist-get 'number forgejo-view--data)))
+    (forgejo-utils-edit-title
+     forgejo-repo--host forgejo-repo--owner forgejo-repo--name number
+     (plist-get node :title)
+     (forgejo--post-action-callback))))
+
+(defun forgejo-view-edit-body ()
+  "Edit the body of the current item."
+  (interactive)
+  (when-let* ((node (forgejo-view--node-at-point))
+              (number (alist-get 'number forgejo-view--data)))
+    (forgejo-utils-edit-body
+     forgejo-repo--host forgejo-repo--owner forgejo-repo--name number
+     (plist-get node :body)
+     (forgejo--post-action-callback))))
+
+(defun forgejo-view-edit-base ()
+  "Change the base branch of the current pull request."
+  (interactive)
+  (when-let* ((number (alist-get 'number forgejo-view--data)))
+    (forgejo-utils-edit-base
+     forgejo-repo--host forgejo-repo--owner forgejo-repo--name number
+     (forgejo--post-action-callback))))
+
+(keymap-popup-define forgejo-view-edit-map
+  :description (lambda ()
+                 (if-let* ((num (and (bound-and-true-p forgejo-view--data)
+                                     (alist-get 'number forgejo-view--data))))
+                     (concat "Edit "
+                             (propertize (concat "#" (number-to-string num))
+                                         'face 'font-lock-constant-face))
+                   "Edit"))
+  :group "Actions"
+  "t" ("Title" forgejo-view-edit-title)
+  "b" ("Body" forgejo-view-edit-body)
+  "B" ("Base branch" forgejo-view-edit-base
+       :if (lambda () (alist-get 'pull_request forgejo-view--data))))
+
+(defun forgejo-view-edit ()
+  "Edit the item at point.
+On the header, shows edit menu.  On a comment, edits the body."
+  (interactive)
+  (when-let* ((node (forgejo-view--node-at-point)))
     (pcase (plist-get node :type)
-      ('header
-       (pcase (car (read-multiple-choice "Edit" '((?t "title") (?b "body"))))
-         (?t (forgejo-utils-edit-title
-              forgejo-repo--host forgejo-repo--owner forgejo-repo--name number
-              (plist-get node :title)
-              (forgejo--post-action-callback)))
-         (?b (forgejo-utils-edit-body
-              forgejo-repo--host forgejo-repo--owner forgejo-repo--name number
-              (plist-get node :body)
-              (forgejo--post-action-callback)))))
+      ('header (keymap-popup forgejo-view-edit-map))
       ('comment
        (forgejo-utils-edit-comment
         forgejo-repo--host forgejo-repo--owner forgejo-repo--name

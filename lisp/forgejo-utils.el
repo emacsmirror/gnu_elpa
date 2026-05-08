@@ -453,6 +453,35 @@ CURRENT-BODY is pre-filled in the editor.  CALLBACK is called on success."
          (message "Updated comment %d in %s/%s" comment-id owner repo)
          (when callback (funcall callback)))))))
 
+(defun forgejo-utils-edit-base (host-url owner repo number callback)
+  "Change the base branch of PR NUMBER in OWNER/REPO on HOST-URL.
+Fetches the current base and available branches, then prompts the user.
+CALLBACK is called on success."
+  (forgejo-api-get
+   host-url
+   (format "repos/%s/%s/pulls/%d" owner repo number)
+   nil
+   (lambda (pr-data _headers)
+     (let ((current-base (alist-get 'ref (alist-get 'base pr-data))))
+       (forgejo-api-get
+        host-url
+        (format "repos/%s/%s/branches" owner repo)
+        '(("limit" . "50"))
+        (lambda (branches _headers)
+          (let* ((names (mapcar (lambda (b) (alist-get 'name b)) branches))
+                 (branch (completing-read
+                          (format "Base branch (current: %s): " current-base)
+                          names nil t nil nil current-base)))
+            (when (and branch (not (string= branch current-base)))
+              (forgejo-api-patch
+               host-url
+               (format "repos/%s/%s/pulls/%d" owner repo number)
+               `((base . ,branch))
+               (lambda (_data _headers)
+                 (message "Changed base of %s/%s#%d to %s"
+                          owner repo number branch)
+                 (when callback (funcall callback))))))))))))
+
 ;;; Label/assignee/milestone management
 
 (defun forgejo-utils-add-label (host-url owner repo number host callback)

@@ -946,7 +946,7 @@
   :ignored-files ("test")
   :news "NEWS.txt")
  (wcheck-mode		:url "https://github.com/tlikonen/wcheck-mode")
- (wconf			:url "https://github.com/ilohmar/wconf")
+ (wconf			:url nil ;"https://github.com/ilohmar/wconf")
  (web-server		:url "https://github.com/eschulte/emacs-web-server.git")
  (webfeeder		:url "https://gitlab.com/ambrevar/emacs-webfeeder.git")
  (websocket		:url "https://github.com/ahyatt/emacs-websocket.git")

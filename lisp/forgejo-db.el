@@ -351,10 +351,11 @@ FILTERS is a plist with keys:
     (forgejo-db--with-transaction
       (let ((db (forgejo-db--ensure)))
 	(dolist (event events)
-          (let-alist event
-            (sqlite-execute
-             db
-             "INSERT INTO timeline_events
+          (when (consp event)
+            (let-alist event
+              (sqlite-execute
+               db
+               "INSERT INTO timeline_events
               (id, host, owner, repo, issue_number, type, body,
                user, created_at, data)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -362,12 +363,12 @@ FILTERS is a plist with keys:
               type=excluded.type, body=excluded.body,
               user=excluded.user, created_at=excluded.created_at,
               data=excluded.data"
-             (list .id host owner repo number
-                   (forgejo-db--nullable .type)
-                   (forgejo-db--nullable .body)
-                   (alist-get 'login (forgejo-db--nullable .user))
-                   (forgejo-db--nullable .created_at)
-                   (forgejo-db--encode-json event)))))))))
+               (list .id host owner repo number
+                     (forgejo-db--nullable .type)
+                     (forgejo-db--nullable .body)
+                     (alist-get 'login (forgejo-db--nullable .user))
+                     (forgejo-db--nullable .created_at)
+                     (forgejo-db--encode-json event))))))))))
 
 (defun forgejo-db-get-timeline (host owner repo number)
   "Get cached timeline events for issue NUMBER in HOST/OWNER/REPO."

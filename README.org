@@ -9,6 +9,8 @@ subsystems share a single SQLite database, and their contents are
 linked together so that flashcard questions can refer directly to the
 notes they are drawn from.
 
++ [[https://elpa.gnu.org/packages/doc/gnosis.html][Manual]]
+
 ** Why Gnosis
 
 Most spaced repetition tools treat flashcards as isolated units.

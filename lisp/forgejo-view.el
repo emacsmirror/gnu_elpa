@@ -31,6 +31,7 @@
 (require 'cl-lib)
 (require 'diff-mode)
 (require 'ewoc)
+(require 'text-property-search)
 (require 'url-parse)
 (require 'keymap-popup)
 (require 'forgejo)
@@ -249,6 +250,22 @@ Handles #N issue/PR refs and markdown URLs."
   (interactive)
   (ewoc-goto-prev forgejo-view--ewoc 1))
 
+;;; Link navigation
+
+(defun forgejo-view-next-link ()
+  "Move to the next link in the buffer."
+  (interactive)
+  (if-let* ((match (text-property-search-forward 'keymap nil nil t)))
+      (goto-char (prop-match-beginning match))
+    (message "No next link")))
+
+(defun forgejo-view-previous-link ()
+  "Move to the previous link in the buffer."
+  (interactive)
+  (if-let* ((match (text-property-search-backward 'keymap nil nil t)))
+      (goto-char (prop-match-beginning match))
+    (message "No previous link")))
+
 ;;; Shared view keymap
 
 (keymap-popup-define forgejo-view-mode-map
@@ -266,6 +283,8 @@ Handles #N issue/PR refs and markdown URLs."
   "P" ("Toggle pin" forgejo-view-toggle-pin)
   :group "Navigate"
   "RET" ("Follow link" forgejo-view-follow-link)
+  "TAB" ("Next link" forgejo-view-next-link)
+  "<backtab>" ("Prev link" forgejo-view-previous-link)
   "g" ("Refresh" forgejo-view-refresh)
   "b" ("Open in browser" forgejo-view-browse)
   "n" ("Next" forgejo-view-next)

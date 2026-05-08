@@ -198,7 +198,8 @@ Sets `forgejo-ref-number' for `forgejo-view-follow-link' to use."
                'forgejo-ref-repo (match-string 1)
                'face 'link
                'mouse-face 'highlight
-               'help-echo "RET: view this issue/PR"))))))
+               'help-echo "RET: view this issue/PR"
+               'keymap forgejo-buffer--action-map))))))
 
 (defun forgejo-buffer--linkify-commits (start end)
   "Mark bare commit SHAs between START and END as clickable.

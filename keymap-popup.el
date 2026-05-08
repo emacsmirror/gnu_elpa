@@ -752,9 +752,9 @@ Resolves the docstring for mode-line display."
           (doc (buffer-local-value 'keymap-popup--active-docstring buf))
           (prefix (buffer-local-value 'keymap-popup--prefix-mode buf)))
       (with-current-buffer (if (buffer-live-p source) source buf)
-        (with-current-buffer buf
-          (setq-local keymap-popup--resolved-docstring
-                      (and doc (keymap-popup--resolve-description doc))))
+        (let ((resolved (and doc (keymap-popup--resolve-description doc))))
+          (with-current-buffer buf
+            (setq-local keymap-popup--resolved-docstring resolved)))
         (keymap-popup--refresh-buffer buf descs prefix)))))
 
 (defun keymap-popup--resolve-key (entry keymap)

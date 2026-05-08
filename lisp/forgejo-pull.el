@@ -432,23 +432,25 @@ Shows cached data from DB instantly, syncs in background."
       (url-retrieve
        url
        (lambda (_status)
-         (goto-char (point-min))
-         (re-search-forward "\r?\n\r?\n" nil t)
-         (let ((diff-text (buffer-substring-no-properties (point) (point-max)))
-	       (buf-name (format "*forgejo-diff: %s/%s#%d*" owner repo number)))
-           (kill-buffer (current-buffer))
-           (with-current-buffer (get-buffer-create buf-name)
-             (let ((inhibit-read-only t))
-	       (erase-buffer)
-	       (insert diff-text))
-             (diff-mode)
-             (use-local-map forgejo-view-diff-map)
-	     (read-only-mode 1)
-             (setq forgejo-diff--owner owner
-                   forgejo-diff--repo repo
-                   forgejo-diff--pr-number number)
-             (goto-char (point-min))
-             (switch-to-buffer (current-buffer)))))
+         (unwind-protect
+             (progn
+               (goto-char (point-min))
+               (re-search-forward "\r?\n\r?\n" nil t)
+               (let ((diff-text (buffer-substring-no-properties (point) (point-max)))
+                     (buf-name (format "*forgejo-diff: %s/%s#%d*" owner repo number)))
+                 (with-current-buffer (get-buffer-create buf-name)
+                   (let ((inhibit-read-only t))
+                     (erase-buffer)
+                     (insert diff-text))
+                   (diff-mode)
+                   (use-local-map forgejo-view-diff-map)
+                   (read-only-mode 1)
+                   (setq forgejo-diff--owner owner
+                         forgejo-diff--repo repo
+                         forgejo-diff--pr-number number)
+                   (goto-char (point-min))
+                   (switch-to-buffer (current-buffer)))))
+           (forgejo-api--kill-url-buffer (current-buffer))))
        nil t))))
 
 (defun forgejo-pull-view-fetch ()

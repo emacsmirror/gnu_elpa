@@ -158,13 +158,15 @@ Tries local git first, falls back to the API."
     (url-retrieve
      url
      (lambda (_status)
-       (goto-char (point-min))
-       (re-search-forward "\r?\n\r?\n" nil t)
-       (let ((diff-text (buffer-substring-no-properties (point) (point-max))))
-         (kill-buffer (current-buffer))
-         (if (string-empty-p (string-trim diff-text))
-             (user-error "Commit %s not found" sha)
-           (forgejo-view--show-diff-buffer buf-name diff-text))))
+       (unwind-protect
+           (progn
+             (goto-char (point-min))
+             (re-search-forward "\r?\n\r?\n" nil t)
+             (let ((diff-text (buffer-substring-no-properties (point) (point-max))))
+               (if (string-empty-p (string-trim diff-text))
+                   (user-error "Commit %s not found" sha)
+                 (forgejo-view--show-diff-buffer buf-name diff-text))))
+         (forgejo-api--kill-url-buffer (current-buffer))))
      nil t)))
 
 (defun forgejo-view-compare-diff ()
@@ -189,13 +191,15 @@ Tries local git first, falls back to the API."
       (url-retrieve
        url
        (lambda (_status)
-         (goto-char (point-min))
-         (re-search-forward "\r?\n\r?\n" nil t)
-         (let ((diff-text (buffer-substring-no-properties (point) (point-max))))
-           (kill-buffer (current-buffer))
-           (if (string-empty-p (string-trim diff-text))
-               (message "No diff between %s and %s" short-old short-new)
-             (forgejo-view--show-diff-buffer buf-name diff-text))))
+         (unwind-protect
+             (progn
+               (goto-char (point-min))
+               (re-search-forward "\r?\n\r?\n" nil t)
+               (let ((diff-text (buffer-substring-no-properties (point) (point-max))))
+                 (if (string-empty-p (string-trim diff-text))
+                     (message "No diff between %s and %s" short-old short-new)
+                   (forgejo-view--show-diff-buffer buf-name diff-text))))
+           (forgejo-api--kill-url-buffer (current-buffer))))
        nil t))))
 
 ;;; URL routing

@@ -36,7 +36,7 @@
 (declare-function forgejo-token "forgejo.el" (host-url))
 (defvar forgejo--api-default-limit)
 
-(defcustom forgejo-api-timeout 30
+(defcustom forgejo-api-timeout 120
   "Seconds before an async API request times out.
 When nil, no timeout is enforced."
   :type '(choice (integer :tag "Seconds")
@@ -254,6 +254,14 @@ Updates rate-limit state when headers are present."
        (forgejo-api--report-error
         method endpoint result error-callback)))))
 
+(defun forgejo-api--kill-url-buffer (buf)
+  "Kill url-retrieve buffer BUF, suppressing process query prompts."
+  (when (buffer-live-p buf)
+    (let ((proc (get-buffer-process buf)))
+      (when proc (delete-process proc)))
+    (let (kill-buffer-query-functions)
+      (kill-buffer buf))))
+
 (defun forgejo-api--dispatch-response (status host method endpoint
                                               callback error-callback
                                               completed timer-cell)
@@ -270,8 +278,7 @@ TIMER-CELL is a cons cell whose car holds the timeout timer."
                        status (current-buffer))))
           (forgejo-api--act-on-response
            result host method endpoint callback error-callback))
-      (when (buffer-live-p (current-buffer))
-        (kill-buffer (current-buffer))))))
+      (forgejo-api--kill-url-buffer (current-buffer)))))
 
 (defun forgejo-api--start-timeout (completed url-buf method endpoint
                                              error-callback)
@@ -284,10 +291,7 @@ Returns the timer object."
    (lambda ()
      (unless (car completed)
        (setcar completed t)
-       (when (buffer-live-p url-buf)
-         (let ((proc (get-buffer-process url-buf)))
-           (when proc (delete-process proc)))
-         (kill-buffer url-buf))
+       (forgejo-api--kill-url-buffer url-buf)
        (forgejo-api--report-error
         method endpoint '(:kind timeout) error-callback)))))
 
@@ -311,10 +315,7 @@ ENTRY is (COMPLETED TIMER-CELL . URL-BUF)."
       (setcar completed t)
       (let ((timer (car timer-cell)))
         (when timer (cancel-timer timer)))
-      (when (buffer-live-p url-buf)
-        (let ((proc (get-buffer-process url-buf)))
-          (when proc (delete-process proc)))
-        (kill-buffer url-buf)))))
+      (forgejo-api--kill-url-buffer url-buf))))
 
 (defun forgejo-api-reset ()
   "Cancel all in-flight Forgejo API requests and flush idle connections.

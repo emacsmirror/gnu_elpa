@@ -899,7 +899,8 @@ Optionally show prompt INFO and insert INITIAL input."
        (or (completing-read-multiple
             (format "Change languages (%s): "
                     (string-join (split-string jinx-languages) ", "))
-            (jinx--table-with-metadata langs `((group-function . ,#'jinx--group)))
+            (completion-table-with-metadata
+             langs `((group-function . ,#'jinx--group)))
             nil t)
            (user-error "No languages selected"))
        " ")))

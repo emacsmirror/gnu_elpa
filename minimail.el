@@ -253,10 +253,13 @@ athunk doesn't resolve immediately."
 
 ;;; Customizable options
 
-(defgroup minimail nil
+(defgroup minimail '((auth-sources custom-variable)
+                     (mail-user-agent custom-variable)
+                     (message custom-group))
   "Simple, non-blocking IMAP email client."
   :prefix "minimail-"
-  :group 'mail)
+  :group 'mail
+  :link '(url-link :tag "website" "https://codeberg.org/astoff/minimail"))
 
 (cl-defun -custom-type-query-alist (&key key-type value-type allow-single value)
   (let* ((kt (pcase-exhaustive key-type
@@ -285,12 +288,12 @@ athunk doesn't resolve immediately."
                         (sexp :tag "Complex selector")))))
          (alist `(alist :key-type ,kt :value-type ,value-type)))
     (if allow-single
-        `(choice :tag "Scope"
-                 :value ,value
-                 ,value-type
-                 (alist :tag "Mailbox-specific values"
-                        :match ,(lambda (_ v) (consp v))
-                        ,@(cdr alist)))
+        `(radio :tag "Scope"
+                :value ,value
+                ,value-type
+                (alist :tag "Mailbox-specific values"
+                       :match ,(lambda (_ v) (consp v))
+                       ,@(cdr alist)))
       alist)))
 
 (defcustom minimail-reply-cite-original t
@@ -376,12 +379,17 @@ is available, `hierarchical' otherwise."
 This is used in `minimail-mailbox-mode' buffers."
   :type (-custom-type-query-alist :key-type 'flag :value-type 'face))
 
+(defgroup minimail-accounts
+  '((message-server-alist custom-variable))
+  "Minimail account settings."
+  :group 'minimail)
+
 (defcustom minimail-accounts
   '((yhetil :incoming-url "imaps://;AUTH=ANONYMOUS@yhetil.org/yhetil.emacs"
             :thread-style hierarchical))
   "Account configuration for the Minimail client.
-This is an alist where each keys is name used to refer to an account
-and each value is a plist with the following information:
+This is an alist where each key is a symbol used to refer to an account
+and the corresponding value is a plist with the following information:
 
 :incoming-url
   Information about the IMAP server as a URL. Normally, it suffices to
@@ -2006,6 +2014,15 @@ current message."
   "." #'minimail-toggle-message-seen
   "c" #'compose-mail)
 
+(defvar -base-menu
+  '(["Search Messages" minimail-search
+     :help "Search for messages in this mailbox"]
+    ["Compose New Message" compose-mail
+     :help "Start writing a new mail message"]
+    "---"
+    ["Configure Accounts" (customize-group 'minimail-accounts)]
+    ["Customize Minimail"  (customize-group 'minimail)]))
+
 (defvar-keymap minimail-mailbox-mode-map
   :parent (make-composed-keymap (list minimail-base-keymap vtable-map)
                                 special-mode-map)
@@ -2035,10 +2052,7 @@ current message."
      ["Descending" (minimail-sort-by-thread 'descend)
       :style radio :selected (eq -sort-by-thread 'descend)
       :help "Most relevant threads towards the bottom of the buffer"])
-    ["Search Messages" minimail-search
-     :help "Search for messages in this mailbox"]
-    ["Compose New Message" compose-mail
-     :help "Start writing a new mail message"]))
+    ,@-base-menu))
 
 (defun -message-context-menu (menu &optional click)
   "Context menu for messages.
@@ -2646,7 +2660,7 @@ or t to toggle between those options."
 (easy-menu-define nil minimail-message-mode-map
   "Menu for `minimail-message-mode'."
   ;; TODO: Add the content of the context menu for messages here.
-  '("Message"
+  `("Message"
     ["Reply" minimail-reply]
     ["Reply All" minimail-reply-all]
     ["Forward" minimail-forward]
@@ -2657,10 +2671,7 @@ or t to toggle between those options."
       :active (minimail-message-list-archive)]
      ["Unsubscribe" minimail-message-list-unsubscribe
       :active (minimail-message-list-unsubscribe)])
-    ["Search Messages" minimail-search
-     :help "Search for messages in this mailbox"]
-    ["Compose New Message" compose-mail
-     :help "Start writing a new mail message"]))
+    ,@-base-menu))
 
 (define-derived-mode minimail-message-mode special-mode "Message"
   "Major mode for email messages."
@@ -2955,6 +2966,10 @@ kill ring."
   "s" #'minimail-search
   "c" #'compose-mail)
 
+(easy-menu-define nil minimail-overview-mode-map
+  "Menu for `minimail-overview-mode'."
+  `("Minimail" ,@-base-menu))
+
 (define-derived-mode minimail-overview-mode special-mode "Minimail"
   "Major mode for browsing a mailbox tree."
   :interactive nil
@@ -3080,11 +3095,17 @@ Unless REFRESH is non-nil, use cached mailbox information."
 ;;; MUA definition
 
 ;;;###autoload
-(define-mail-user-agent 'minimail
-  #'-compose-mail
-  #'message-send-and-exit
-  #'message-kill-buffer
-  'message-send-hook)
+(progn
+  (define-mail-user-agent 'minimail
+    #'-compose-mail
+    #'message-send-and-exit
+    #'message-kill-buffer
+    'message-send-hook)
+  ;; Probably can't use `cl-pushnew' here.
+  (let ((item '(const :tag "Minimail" minimail))
+        (items (get 'mail-user-agent 'custom-type)))
+    (unless (member item items)
+      (push item (cdr items)))))
 
 ;;;###autoload
 (defun -compose-mail (&rest args)
@@ -3122,21 +3143,6 @@ Unless REFRESH is non-nil, use cached mailbox information."
         (remove-hook 'message-mode-hook hook)))
     (message-sort-headers)
     (message-position-point)
-    (unless (seq-some (pcase-lambda (`(,cond . ,_))
-                        (or (functionp cond)
-                            (and (stringp cond)
-                                 (string-equal-ignore-case
-                                  cond user-mail-address))))
-                      message-server-alist)
-      (save-excursion
-        (lwarn 'minimail :warning "\
-No entry of `message-server-alist' matches the
-address %S.
-%s this variable to be able to send messages."
-               user-mail-address
-               (buttonize "Customize"
-                          #'customize-variable
-                          'message-server-alist))))
     t))
 
 ;;; Completion framework integration

@@ -179,7 +179,7 @@ CALLBACK is called on success."
      (format "repos/%s/%s/pulls/%d/reviews" owner repo number)
      nil
      `((event . ,event)
-       ,@(when (and body (not (string-empty-p (string-trim body))))
+       ,@(and (not (string-empty-p (string-trim (or body ""))))
            `((body . ,body))))
      (lambda (_data _headers)
        (message "Review submitted: %s on %s/%s#%d" type owner repo number)

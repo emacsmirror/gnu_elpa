@@ -238,7 +238,7 @@ Much faster than fontifying each body in a separate buffer."
       nil
     (let ((sep forgejo-buffer--body-separator))
       (with-temp-buffer
-        (insert "\n" (mapconcat #'identity bodies sep))
+        (insert "\n" (string-join bodies sep))
         (funcall forgejo-markdown-mode)
         (font-lock-ensure)
         (split-string (buffer-substring (+ (point-min) 1) (point-max))

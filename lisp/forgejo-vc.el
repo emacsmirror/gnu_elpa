@@ -314,7 +314,7 @@ Returns 0 if UPSTREAM is not a valid ref."
      (t
       (let ((subjects (forgejo-vc--commit-subjects upstream)))
         (cons (forgejo-vc--head-subject)
-              (mapconcat #'identity subjects "\n")))))))
+              (string-join subjects "\n")))))))
 
 ;;; PR template discovery
 

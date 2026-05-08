@@ -339,7 +339,7 @@ FILTERS is a plist with keys:
     (forgejo-db--select
      (format "SELECT %s FROM issues WHERE %s ORDER BY pin_order DESC, updated_at DESC"
              forgejo-db--issue-columns
-             (mapconcat #'identity clauses " AND "))
+             (string-join clauses " AND "))
      args)))
 
 ;;; Timeline events

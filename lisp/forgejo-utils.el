@@ -118,7 +118,7 @@ free-text prefixes.  Returns the query string."
                                             (or default-query "")))
          (selections (completing-read-multiple
                       "Filter: " candidates nil nil initial)))
-    (mapconcat #'identity selections " ")))
+    (string-join selections " ")))
 
 ;;; Issue/PR # completion
 
@@ -340,7 +340,7 @@ Fetches templates if available, lets user pick one, then compose."
          (format "repos/%s/%s/issues" owner repo)
          nil
          `((title . ,title)
-           ,@(when (and body (not (string-empty-p (string-trim body))))
+           ,@(and (not (string-empty-p (string-trim (or body ""))))
                `((body . ,body))))
          (lambda (_data _headers)
            (message "Issue created: %s/%s \"%s\"" owner repo title))))))))

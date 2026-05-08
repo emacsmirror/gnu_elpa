@@ -84,8 +84,7 @@ PREFIX-MAP defaults to `forgejo-filter--prefix-map'."
         (push token bare-words)))
     (when bare-words
       (setq result (plist-put result :query
-                              (mapconcat #'identity
-                                         (nreverse bare-words) " "))))
+                              (string-join (nreverse bare-words) " "))))
     result))
 
 (defun forgejo-filter-serialize (filters &optional key-map)
@@ -100,7 +99,7 @@ The :query value, if present, is appended as bare words."
              when val do (push (concat prefix ":" val) parts))
     (when-let* ((query (plist-get filters :query)))
       (push query parts))
-    (mapconcat #'identity (nreverse parts) " ")))
+    (string-join (nreverse parts) " ")))
 
 ;;; API param building
 

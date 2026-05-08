@@ -653,7 +653,15 @@ Returns a list of nodes (may be multiple for review with threads)."
              :created-at (alist-get 'created_at event)
              :detail (format "\"%s\" -> \"%s\""
                              (or (alist-get 'old_title event) "?")
-                             (or (alist-get 'new_title event) "?")))))))
+                             (or (alist-get 'new_title event) "?"))))
+      ("change_target_branch"
+       (list :type 'event
+             :event-type "changed target branch"
+             :actor actor
+             :created-at (alist-get 'created_at event)
+             :detail (format "%s -> %s"
+                             (or (alist-get 'old_ref event) "?")
+                             (or (alist-get 'new_ref event) "?")))))))
 
 ;;; Main node builder
 
@@ -676,7 +684,8 @@ Returns a node plist, a list of nodes, or nil to skip."
      (forgejo-buffer--node-dependency event actor))
     ("merge_pull"  (forgejo-buffer--node-simple-event event actor "merged"))
     ("delete_branch" (forgejo-buffer--node-simple-event event actor "deleted branch"))
-    ((or "review_request" "milestone" "change_issue_ref" "change_title")
+    ((or "review_request" "milestone" "change_issue_ref" "change_title"
+         "change_target_branch")
      (forgejo-buffer--node-metadata event actor))
     (type (when type
             (forgejo-buffer--node-simple-event event actor type)))))

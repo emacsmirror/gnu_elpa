@@ -122,7 +122,7 @@ Uses the ref-repo text property for cross-repo references."
   (with-current-buffer (get-buffer-create buf-name)
     (let ((inhibit-read-only t))
       (erase-buffer)
-      (insert text))
+      (insert (decode-coding-string text 'utf-8 t)))
     (diff-mode)
     (use-local-map forgejo-view-diff-map)
     (setq buffer-read-only t)

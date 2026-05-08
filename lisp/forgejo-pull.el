@@ -441,7 +441,7 @@ Shows cached data from DB instantly, syncs in background."
                  (with-current-buffer (get-buffer-create buf-name)
                    (let ((inhibit-read-only t))
                      (erase-buffer)
-                     (insert diff-text))
+                     (insert (decode-coding-string diff-text 'utf-8 t)))
                    (diff-mode)
                    (use-local-map forgejo-view-diff-map)
                    (read-only-mode 1)

@@ -123,6 +123,16 @@
        etag TEXT,
        last_modified TEXT,
        PRIMARY KEY (host, owner, repo, endpoint))"
+    "CREATE TABLE IF NOT EXISTS notifications (
+       thread_id INTEGER NOT NULL,
+       host TEXT NOT NULL,
+       owner TEXT NOT NULL,
+       repo TEXT NOT NULL,
+       number INTEGER NOT NULL,
+       unread INTEGER NOT NULL DEFAULT 1,
+       pinned INTEGER NOT NULL DEFAULT 0,
+       updated_at TEXT,
+       PRIMARY KEY (host, thread_id))"
     )
   "SQL statements to initialize the database schema.")
 
@@ -733,6 +743,113 @@ When IS-PULL is non-nil, only affect pull requests."
           (forgejo-db--select
            "SELECT DISTINCT host FROM issues WHERE owner = ? AND repo = ?"
            (list owner repo))))
+
+;;; Notifications
+
+(defun forgejo-db-save-notifications (host notifications)
+  "Upsert NOTIFICATIONS for HOST.
+Each element is an alist with thread_id, owner, repo, number,
+unread (0/1), pinned (0/1), and updated_at."
+  (forgejo-db--with-transaction
+    (dolist (n notifications)
+      (let-alist n
+        (forgejo-db--execute
+         "INSERT INTO notifications
+            (thread_id, host, owner, repo, number, unread, pinned, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          ON CONFLICT (host, thread_id) DO UPDATE SET
+            owner=excluded.owner, repo=excluded.repo, number=excluded.number,
+            unread=excluded.unread, pinned=excluded.pinned,
+            updated_at=excluded.updated_at"
+         (list .thread_id host
+               (downcase .owner) (downcase .repo) .number
+               .unread .pinned .updated_at))))))
+
+(defun forgejo-db-get-notifications (host &optional filters)
+  "Return notification+issue alists for HOST.
+FILTERS is a plist with optional :status and :subject-type keys.
+Each result has issue fields plus notification_thread_id, notification_unread,
+notification_pinned, and notification_updated_at."
+  (let ((clauses nil)
+        (params (list host))
+        (status (plist-get filters :status))
+        (subject-type (plist-get filters :subject-type)))
+    (when (and status (not (string= status "all")))
+      (pcase status
+        ("unread" (push "n.unread = 1" clauses))
+        ("read" (push "n.unread = 0 AND n.pinned = 0" clauses))
+        ("pinned" (push "n.pinned = 1" clauses))))
+    (when subject-type
+      (pcase subject-type
+        ("issue" (push "i.is_pull = 0" clauses))
+        ("pull" (push "i.is_pull = 1" clauses))))
+    (let* ((where (if clauses
+                      (concat " AND " (string-join clauses " AND "))
+                    ""))
+           (issue-cols (mapconcat (lambda (col)
+                                    (concat "i." (string-trim col)))
+                                  (split-string forgejo-db--issue-columns ",")
+                                  ", "))
+           (sql (format
+                 "SELECT %s, n.thread_id, n.unread, n.pinned, n.updated_at,
+                        n.owner, n.repo
+                  FROM notifications n
+                  JOIN issues i ON n.host = i.host AND n.owner = i.owner
+                    AND n.repo = i.repo AND n.number = i.number
+                  WHERE n.host = ?%s
+                  ORDER BY n.updated_at DESC"
+                 issue-cols where)))
+      (mapcar #'forgejo-db--row-to-notification-alist
+              (forgejo-db--select sql params)))))
+
+(defun forgejo-db--row-to-notification-alist (row)
+  "Convert a notification+issue ROW to an alist.
+ROW has issue columns 0..17, then thread_id(18), unread(19),
+pinned(20), notification_updated_at(21), owner(22), repo(23)."
+  (let ((issue (forgejo-db--row-to-issue-alist row)))
+    (append issue
+            `((notification_thread_id . ,(nth 18 row))
+              (notification_unread . ,(nth 19 row))
+              (notification_pinned . ,(nth 20 row))
+              (notification_updated_at . ,(nth 21 row))
+              (notification_owner . ,(nth 22 row))
+              (notification_repo . ,(nth 23 row))))))
+
+(defun forgejo-db-get-notification-pinned (host thread-id)
+  "Return the pinned state (0 or 1) for THREAD-ID on HOST."
+  (or (caar (forgejo-db--select
+             "SELECT pinned FROM notifications
+              WHERE host = ? AND thread_id = ?"
+             (list host thread-id)))
+      0))
+
+(defun forgejo-db-set-notification-status (host thread-id unread pinned)
+  "Update notification THREAD-ID on HOST with UNREAD and PINNED (0/1)."
+  (forgejo-db--execute
+   "UPDATE notifications SET unread = ?, pinned = ?
+    WHERE host = ? AND thread_id = ?"
+   (list unread pinned host thread-id)))
+
+(defun forgejo-db-clear-notifications (host)
+  "Delete all notifications and sync state for HOST."
+  (forgejo-db--execute
+   "DELETE FROM notifications WHERE host = ?" (list host))
+  (forgejo-db--execute
+   "DELETE FROM sync_state WHERE host = ? AND owner = '' AND repo = '' AND endpoint = 'notifications'"
+   (list host)))
+
+(defun forgejo-db-set-all-notifications-read (host &optional thread-ids)
+  "Mark notifications as read on HOST.
+When THREAD-IDS is provided, only update those."
+  (if thread-ids
+      (let ((placeholders (mapconcat (lambda (_) "?") thread-ids ",")))
+        (forgejo-db--execute
+         (format "UPDATE notifications SET unread = 0, pinned = 0
+                  WHERE host = ? AND thread_id IN (%s)" placeholders)
+         (cons host thread-ids)))
+    (forgejo-db--execute
+     "UPDATE notifications SET unread = 0, pinned = 0 WHERE host = ?"
+     (list host))))
 
 (provide 'forgejo-db)
 ;;; forgejo-db.el ends here

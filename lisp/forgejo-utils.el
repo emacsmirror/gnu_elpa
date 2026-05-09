@@ -341,7 +341,7 @@ Fetches templates if available, lets user pick one, then compose."
          nil
          `((title . ,title)
            ,@(and (not (string-empty-p (string-trim (or body ""))))
-               `((body . ,body))))
+                  `((body . ,body))))
          (lambda (_data _headers)
            (message "Issue created: %s/%s \"%s\"" owner repo title))))))))
 
@@ -361,11 +361,13 @@ Copies the SSH clone URL to the kill ring on success."
 
 ;;; Label creation
 
-(defun forgejo-utils-create-label (host-url owner repo host callback)
+(defun forgejo-utils-create-label (host-url owner repo host callback
+                                            &optional name)
   "Create a new label in OWNER/REPO on HOST-URL.
-HOST is the hostname for DB cache update.  CALLBACK is called on success."
-  (let* ((name (read-string "Label name: "))
-         (color (read-color "Label color: "))
+HOST is the hostname for DB cache update.  CALLBACK is called on success.
+When NAME is provided, skip the name prompt."
+  (let* ((name (or name (read-string "Label name: ")))
+         (color (read-color (format "Color for %s: " name)))
          (description (read-string "Description (optional): ")))
     (when (string-empty-p name)
       (user-error "Label name cannot be empty"))
@@ -484,58 +486,97 @@ CALLBACK is called on success."
 
 ;;; Label/assignee/milestone management
 
-(defun forgejo-utils-add-label (host-url owner repo number host callback)
-  "Add a label to issue/PR NUMBER in OWNER/REPO on HOST-URL.
-HOST is the hostname for DB lookups.  If the entered label does not
-exist, offers to create it first.  CALLBACK is called on success."
-  (let* ((cached (forgejo-db-get-labels host owner repo))
-         (names (mapcar (lambda (row) (nth 4 row)) cached))
-         (name (completing-read "Add label: " names nil nil))
-         (id (forgejo-db-get-label-id host owner repo name)))
-    (if id
-        (forgejo-utils--apply-label host-url owner repo number name id callback)
-      ;; Label doesn't exist, offer to create it
-      (if (y-or-n-p (format "Label %S doesn't exist. Create it? " name))
-          (forgejo-utils-create-label
-           host-url owner repo host
-           (lambda ()
-             (let ((new-id (forgejo-db-get-label-id host owner repo name)))
-               (if new-id
-                   (forgejo-utils--apply-label host-url owner repo number
-                                               name new-id callback)
-                 (user-error "Failed to resolve label %S after creation"
-                             name)))))
-        (user-error "Label %S not found" name)))))
+(defun forgejo-utils--label-candidates (host owner repo number)
+  "Build +/- prefixed label candidates for issue NUMBER on HOST.
+OWNER and REPO identify the repository.
+Labels already on the item get a - prefix, others get +."
+  (let* ((all-names (mapcar (lambda (row) (nth 4 row))
+                            (forgejo-db-get-labels host owner repo)))
+         (current (mapcar (lambda (l) (alist-get 'name l))
+                          (alist-get 'labels
+                                     (forgejo-db-get-issue
+                                      host owner repo number)))))
+    (mapcar (lambda (name)
+              (if (member name current)
+                  (concat "-" name)
+                (concat "+" name)))
+            all-names)))
 
-(defun forgejo-utils--apply-label (host-url owner repo number name id callback)
-  "Add label NAME (with ID) to issue/PR NUMBER in OWNER/REPO on HOST-URL.
+(defun forgejo-utils--apply-label-op (host-url owner repo number
+                                               selection host callback)
+  "Apply a single label operation from SELECTION on HOST-URL.
+OWNER, REPO, and NUMBER identify the issue.  HOST is the hostname
+for DB lookups.  SELECTION is a string like \"+bug\" or \"-feature\".
+When adding a label that doesn't exist, offers to create it first.
 CALLBACK is called on success."
+  (let* ((op (aref selection 0))
+         (name (substring selection 1))
+         (id (forgejo-db-get-label-id host owner repo name)))
+    (pcase op
+      (?+
+       (if id
+           (forgejo-utils--add-label host-url owner repo number name id callback)
+         (if (y-or-n-p (format "Label %S doesn't exist.  Create it? " name))
+             (forgejo-utils-create-label
+              host-url owner repo host
+              (lambda ()
+                (let ((new-id (forgejo-db-get-label-id host owner repo name)))
+                  (if new-id
+                      (forgejo-utils--add-label
+                       host-url owner repo number name new-id callback)
+                    (user-error "Failed to resolve label %S after creation"
+                                name))))
+              name)
+           (when callback (funcall callback)))))
+      (?-
+       (unless id (user-error "Label %S not found in cache" name))
+       (forgejo-api-delete
+        host-url
+        (format "repos/%s/%s/issues/%d/labels/%d" owner repo number id)
+        nil
+        (lambda (_data _headers)
+          (message "Removed label %s from %s/%s#%d" name owner repo number)
+          (when callback (funcall callback)))))
+      (_ (user-error "Invalid label selection %S (must start with + or -)"
+                     selection)))))
+
+(defun forgejo-utils--add-label (host-url owner repo number name id callback)
+  "Add label NAME with ID to issue/PR NUMBER in OWNER/REPO on HOST-URL."
   (forgejo-api-post
    host-url
    (format "repos/%s/%s/issues/%d/labels" owner repo number)
-   nil
-   `((labels . ,(vector id)))
+   nil `((labels . ,(vector id)))
    (lambda (_data _headers)
      (message "Added label %s to %s/%s#%d" name owner repo number)
      (when callback (funcall callback)))))
 
-(defun forgejo-utils-remove-label (host-url owner repo number current-labels
-					    host callback)
-  "Remove a label from issue/PR NUMBER in OWNER/REPO on HOST-URL.
-CURRENT-LABELS is the list of label alists on the issue.
-HOST is the hostname for DB lookups.  CALLBACK is called on success."
-  (let* ((names (mapcar (lambda (l) (alist-get 'name l)) current-labels))
-         (name (completing-read "Remove label: " names nil t))
-         (id (forgejo-db-get-label-id host owner repo name)))
-    (unless id
-      (user-error "Label %S not found in cache" name))
-    (forgejo-api-delete
-     host-url
-     (format "repos/%s/%s/issues/%d/labels/%d" owner repo number id)
-     nil
-     (lambda (_data _headers)
-       (message "Removed label %s from %s/%s#%d" name owner repo number)
-       (when callback (funcall callback))))))
+(defun forgejo-utils--apply-label-ops (host-url owner repo number
+                                                selections host callback)
+  "Apply SELECTIONS sequentially on HOST-URL, calling CALLBACK when done.
+OWNER, REPO, and NUMBER identify the issue.  HOST is the hostname
+for DB lookups.  Each element of SELECTIONS is like \"+bug\" or \"-feature\"."
+  (if (null selections)
+      (when callback (funcall callback))
+    (forgejo-utils--apply-label-op
+     host-url owner repo number (car selections) host
+     (lambda ()
+       (forgejo-utils--apply-label-ops
+        host-url owner repo number (cdr selections) host callback)))))
+
+(defun forgejo-utils-label (host-url owner repo number host callback)
+  "Add or remove labels on issue/PR NUMBER in OWNER/REPO on HOST-URL.
+Present all repo labels prefixed with + (to add) or - (already on item,
+to remove).  Multiple labels can be selected via `completing-read-multiple'.
+HOST is the hostname for DB lookups.  CALLBACK is called after all
+operations complete."
+  (let* ((candidates (forgejo-utils--label-candidates host owner repo number))
+         (selected (mapcar #'string-trim
+                           (completing-read-multiple "Labels (+add -remove): "
+                                                     candidates nil nil))))
+    (if selected
+        (forgejo-utils--apply-label-ops
+         host-url owner repo number selected host callback)
+      (message "No labels selected"))))
 
 (defun forgejo-utils-add-assignee (host-url owner repo number current-assignees
 					    host callback)

@@ -53,6 +53,7 @@
 (declare-function forgejo-view-toggle-state "forgejo-view.el" ())
 (declare-function forgejo-view-toggle-pin "forgejo-view.el" ())
 (declare-function forgejo-view-delete-issue "forgejo-view.el" ())
+(declare-function forgejo-view-label "forgejo-view.el" ())
 
 (keymap-popup-define forgejo-tl-list-mode-map
   "Shared bindings for all Forgejo list views."
@@ -61,6 +62,8 @@
   "x" ("Toggle open/close" forgejo-view-toggle-state)
   "P" ("Toggle pin" forgejo-view-toggle-pin)
   "D" ("Delete" forgejo-view-delete-issue)
+  :group "Metadata"
+  "L" ("Labels" forgejo-view-label)
   :group "Navigate"
   "S" ("Sort" forgejo-tl-sort))
 

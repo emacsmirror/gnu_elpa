@@ -279,7 +279,7 @@ Handles #N issue/PR refs and markdown URLs."
   "b" ("Open in browser" forgejo-view-browse)
   "g" ("Refresh" forgejo-view-refresh)
   :group "Metadata"
-  "L" ("Add label" forgejo-view-add-label)
+  "L" ("Labels" forgejo-view-label)
   "A" ("Add assignee" forgejo-view-add-assignee)
   "M" ("Set milestone" forgejo-view-set-milestone)
   "P" ("Toggle pin" forgejo-view-toggle-pin)
@@ -528,26 +528,17 @@ On the header, shows edit menu.  On a comment, edits the body."
         (forgejo--post-action-callback)))
       (_ (user-error "No editable item at point")))))
 
-(defun forgejo-view-add-label ()
-  "Add a label to the current item."
+(defun forgejo-view-label ()
+  "Add or remove labels on the current item.
+Works from both detail and list views."
   (interactive)
-  (when-let* ((data forgejo-view--data)
-              (number (alist-get 'number data))
+  (when-let* ((number (or (and (bound-and-true-p forgejo-view--data)
+                               (alist-get 'number forgejo-view--data))
+                          (tabulated-list-get-id)))
               (host (url-host (url-generic-parse-url forgejo-repo--host))))
-    (forgejo-utils-add-label
-     forgejo-repo--host forgejo-repo--owner forgejo-repo--name number host
-     (forgejo--post-action-callback))))
-
-(defun forgejo-view-remove-label ()
-  "Remove a label from the current item."
-  (interactive)
-  (when-let* ((data forgejo-view--data)
-              (number (alist-get 'number data))
-              (labels (alist-get 'labels data))
-              (host (url-host (url-generic-parse-url forgejo-repo--host))))
-    (forgejo-utils-remove-label
-     forgejo-repo--host forgejo-repo--owner forgejo-repo--name number labels
-     host (forgejo--post-action-callback))))
+    (forgejo-utils-label
+     forgejo-repo--host forgejo-repo--owner forgejo-repo--name
+     number host (forgejo--post-action-callback))))
 
 (defun forgejo-view-add-assignee ()
   "Add an assignee to the current item."

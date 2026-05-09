@@ -65,7 +65,7 @@ dev: compile lint test
 load: clean
 	@emacsclient --eval "(progn \
 	  (add-to-list 'load-path \"$(CURDIR)/lisp\") \
-	  (dolist (sym '(forgejo-map \
+	  (dolist (sym '(forgejo-map forgejo-tl-list-mode-map \
 	               forgejo-issue-list-mode-map forgejo-pull-list-mode-map \
 	               forgejo-pull-view-mode-map forgejo-issue-view-mode-map \
 	               forgejo-repo-search-mode-map forgejo-watch-list-mode-map \

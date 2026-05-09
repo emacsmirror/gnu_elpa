@@ -304,12 +304,12 @@ TIMER-CELL is a cons cell whose car holds the timeout timer."
     (setcar completed t)
     (let ((timer (car timer-cell)))
       (when timer (cancel-timer timer)))
-    (unwind-protect
-        (let ((result (forgejo-api--classify-response
-                       status (current-buffer))))
-          (forgejo-api--act-on-response
-           result host method endpoint callback error-callback))
-      (forgejo-api--kill-url-buffer (current-buffer)))))
+    (let ((url-buf (current-buffer)))
+      (unwind-protect
+          (let ((result (forgejo-api--classify-response status url-buf)))
+            (forgejo-api--act-on-response
+             result host method endpoint callback error-callback))
+        (forgejo-api--kill-url-buffer url-buf)))))
 
 (defun forgejo-api--start-timeout (completed url-buf method endpoint
                                              error-callback)

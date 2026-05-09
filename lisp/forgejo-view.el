@@ -276,6 +276,8 @@ Handles #N issue/PR refs and markdown URLs."
   "e" ("Edit at point" forgejo-view-edit)
   "x" ("Toggle open/close" forgejo-view-toggle-state)
   "D" ("Delete at point" forgejo-view-delete-at-point)
+  "b" ("Open in browser" forgejo-view-browse)
+  "g" ("Refresh" forgejo-view-refresh)
   :group "Metadata"
   "L" ("Add label" forgejo-view-add-label)
   "A" ("Add assignee" forgejo-view-add-assignee)
@@ -285,8 +287,6 @@ Handles #N issue/PR refs and markdown URLs."
   "RET" ("Follow link" forgejo-view-follow-link)
   "TAB" ("Next link" forgejo-view-next-link)
   "<backtab>" ("Prev link" forgejo-view-previous-link)
-  "g" ("Refresh" forgejo-view-refresh)
-  "b" ("Open in browser" forgejo-view-browse)
   "n" ("Next" forgejo-view-next)
   "p" ("Previous" forgejo-view-previous))
 

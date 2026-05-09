@@ -19,7 +19,7 @@ SRCS = lisp/forgejo.el lisp/forgejo-api.el lisp/forgejo-db.el \
        lisp/forgejo-repo.el lisp/forgejo-issue.el lisp/forgejo-pull.el \
        lisp/forgejo-vc.el lisp/forgejo-review.el lisp/forgejo-settings.el \
        lisp/forgejo-token.el lisp/forgejo-alert.el lisp/forgejo-watch.el \
-       lisp/forgejo-notification.el
+       lisp/forgejo-notification.el lisp/forgejo-ol.el
 
 TESTS = tests/forgejo-test-load.el tests/forgejo-test-api.el \
         tests/forgejo-test-db.el tests/forgejo-test-host.el \
@@ -87,7 +87,9 @@ load: clean
 	          ((derived-mode-p 'forgejo-pull-view-mode) \
 	           (use-local-map forgejo-pull-view-mode-map)) \
 	          ((derived-mode-p 'forgejo-issue-view-mode) \
-	           (use-local-map forgejo-issue-view-mode-map)))))" > /dev/null
+	           (use-local-map forgejo-issue-view-mode-map)) \
+	          ((derived-mode-p 'forgejo-notification-list-mode) \
+	           (use-local-map forgejo-notification-list-mode-map)))))" > /dev/null
 	@printf "\033[32mLoaded all modules into Emacs\033[0m\n"
 
 clean:

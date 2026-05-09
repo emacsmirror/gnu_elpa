@@ -279,12 +279,7 @@ or a plain string."
 
 (defun forgejo-buffer--insert-edited-indicator ()
   "Insert a styled (edited) indicator at point."
-  (insert " "
-          (propertize "(edited)"
-                      'face 'shadow
-                      'mouse-face 'highlight
-                      'help-echo "RET: view edit history"
-                      'keymap forgejo-buffer--action-map)))
+  (insert " " (propertize "(edited)" 'face 'shadow)))
 
 ;;; EWOC pretty-printers
 

@@ -439,10 +439,14 @@ A futur has 3 possible states:
         ;; If VAL is nil, don't check if it's used, so we can use
         ;; (futur-bind F #'ignore) to explicitly ignore a future's value.
         ((or err val) (futur--unused-result futur)))))
-    ((futur--failed `(futur-aborted . ,_))
-     nil)     ;; Just ignore the late delivery.
+    ;; Aborting a future doesn't always stop the code from delivering
+    ;; a value later on, so just ignore the late delivery.
+    ((futur--failed `(futur-aborted . ,_)) nil)
     ((pred futur--p)
-     (error "Delivering a second time: %S %S %S" futur err val))))
+     ;; Ignore abortion requests if the future already completed, so that
+     ;; callers don't need to check beforehand.
+     (if (eq 'futur-aborted (car err)) nil
+       (error "Delivering a second time: %S %S %S" futur err val)))))
 
 (defconst futur--unused-results (make-hash-table :test 'eq :weakness 'key))
 

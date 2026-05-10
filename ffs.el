@@ -48,13 +48,41 @@
 ;;; Code:
 
 ;; TODO:
-;; add user option for echoing slide count
 ;; dedication in README/manual
 ;; acronym and backronyms
+
+(require 'page)
+(require 'format-spec)
 
 (defgroup ffs nil
   "Minor mode for form feed-separated plain text presentations."
   :group 'editing)
+
+(defcustom ffs-page-delimiter ""
+  "The default page delimiter for ffs, the form feed character.
+If you use a custom `page-delimiter' regexp, be sure to customize this
+as well."
+  :type 'string
+  :group 'ffs)
+
+(defcustom ffs-echo-progress nil
+  "Whether to display in echo area the progress through the slides.
+When non-nil, changing slides will also display the progress through
+the slides in the echo area."
+  :type 'boolean
+  :local t
+  :package-version '(ffs . "0.2.0")
+  :group 'ffs)
+
+(defcustom ffs-echo-progress-format "Slide %c of %t"
+  "The format spec used for `ffs-echo-progress'.
+
+%c Number of current slide.
+%t Total number of slides."
+  :type 'string
+  :local t
+  :package-version '(ffs . "0.2.0")
+  :group 'ffs)
 
 (defcustom ffs-default-face-height 370
   "Value of `height' property of `default' face during presentations.
@@ -63,39 +91,32 @@ If a natural number (non-negative integer), it will be used as the
 a larger font size when presenting.
 
 If nil, don't change the `default' face's `height' in presentations."
-  :group 'ffs
   :type '(choice (const nil)
-                 (natnum :value 300)))
+                 (natnum :value 300))
+  :group 'ffs)
 
 (defcustom ffs-start-hook nil
   "Hook run when starting presenting (at the end of `ffs-start')."
-  :group 'ffs
-  :type 'hook)
+  :type 'hook
+  :group 'ffs)
 
 (defcustom ffs-quit-hook nil
   "Hook run when quitting presenting (at the end of `ffs-quit')."
-  :group 'ffs
-  :type 'hook)
+  :type 'hook
+  :group 'ffs)
 
 (defcustom ffs-edit-hook nil
   "Hook run when editing a slide (at the end of `ffs-edit')."
-  :group 'ffs
-  :type 'hook)
+  :type 'hook
+  :group 'ffs)
 
 (defcustom ffs-edit-done-hook nil
   "Hook run after editing a slide (at the end of `ffs-edit-done')."
-  :group 'ffs
-  :type 'hook)
-
-(defcustom ffs-page-delimiter ""
-  "The default page delimiter for ffs, the form feed character.
-If you use a custom `page-delimiter' regexp, be sure to customize this
-as well."
-  :group 'ffs
-  :type 'string)
+  :type 'hook
+  :group 'ffs)
 
 (defvar ffs-edit-buffer-name "*ffs-edit*"
-  "The name of the ffs-edit buffer used when editing a slide.")
+  "The name of the `ffs-edit' buffer used when editing a slide.")
 
 (defvar ffs-find-speaker-notes-function #'find-file-other-frame
   "The function to use when finding a speaker's note file.")
@@ -169,6 +190,28 @@ main ffs presentation slides buffer (`ffs--slides-buffer').")
     (set-background-color fg)
     (set-foreground-color bg)))
 
+(declare-function page--what-page "page")
+(defun ffs-current-slide-number ()
+  "Return the number of current slide."
+  (interactive)
+  (car (page--what-page)))
+
+(defun ffs-total-slide-count ()
+  "Return the total number of slides."
+  (interactive)
+  (save-restriction
+    (save-excursion
+      (widen)
+      (goto-char (point-max))
+      (ffs-current-slide-number))))
+
+(defun ffs-echo-progress ()
+  "Return progress through slides per `ffs-echo-progress-format'."
+  (format-spec
+   ffs-echo-progress-format
+   `((?c . ,(ffs-current-slide-number))
+     (?t . ,(ffs-total-slide-count)))))
+
 (defun ffs--goto-previous (buffer)
   "Go to the previous slide in the given BUFFER."
   (interactive)
@@ -227,7 +270,9 @@ Symbol NAME is the name describing the movement."
        (,hname ffs--slides-buffer)
        (when ffs--notes-buffer
          (,hname ffs--notes-buffer)
-         (redraw-display)))))
+         (redraw-display))
+       (when ffs-echo-progress
+         (message (ffs-echo-progress))))))
 
 (ffs--define-goto-slide previous)
 (ffs--define-goto-slide next)
@@ -245,6 +290,8 @@ Symbol NAME is the name describing the movement."
        (face-remap-add-relative
         'default :height ffs-default-face-height)))
     (narrow-to-page)
+    (when ffs-echo-progress
+      (message (ffs-echo-progress)))
     (run-hooks 'ffs-start-hook)))
 
 (declare-function face-remap-remove-relative "face-remap" (cookie))
@@ -310,14 +357,14 @@ to apply your changes or `\\[ffs-edit-discard]' to discard them.")))
   (ffs-edit 'add-below))
 
 (defun ffs-edit-discard ()
-  "Discard current ffs-edit buffer and return to the presentation."
+  "Discard current `ffs-edit' buffer and return to the presentation."
   (interactive)
   (let ((b (current-buffer)))
     (quit-windows-on b)
     (kill-buffer b)))
 
 (defun ffs-edit-done ()
-  "Apply the ffs-edit changes and return to the presentation."
+  "Apply the `ffs-edit' changes and return to the presentation."
   (interactive)
   (let* ((f nil)
          (str (buffer-string))

@@ -1,0 +1,68 @@
+* R Tree Sitter Mode for Emacs
+Version 1.0.0
+
+Package under active development.
+
+The code for this package has been extracted from the original [[https://codeberg.org/teoten/esr][ESR]] repository, which has been migrated to a new location under the Codeberg organization [[https://codeberg.org/R-for-emacs][R for Emacs]], created to promote Emacs packages for R. Read more at the end of this readme.
+
+* Dependencies
+The most important requirement is to have Emacs built with treesitter support. You can find details on how to compile Emacs on the [[https://www.gnu.org/software/emacs/manual/html_node/efaq/Compiling-and-installing-Emacs.html][Official Documentation]], although we recommend checking the article from [[https://www.masteringemacs.org/article/how-to-get-started-tree-sitter][mastering emacs]].
+
+Then you need to add the language grammar for R. The options are:
+
+- Compile with [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Language-Grammar.html][treesitter functionality]] from the git repository of [[https://github.com/r-lib/tree-sitter-r][tresitter.r]].
+- Download the grammars for your system from [[https://github.com/emacs-tree-sitter/tree-sitter-langs/releases][tree-sitter-langs]] and copy the R grammar to =~/.emacs.d/tree-sitter/= and rename it as =libtree-sitter-r.extension=.
+- Install the R package [[https://cran.r-project.org/web/packages/treesitter.r/index.html][treesitter.r]] and call the function =r-ts-mode-prepare-binaries-from-r-library= to move the binaries to =.emacs.d= directory (supported only for Windows and Linux, feel free to test in Mac OS and help us include it).
+
+* Installation
+The current version can be used by cloning the repository and including it in path. Then you can load it.
+
+#+begin_src emacs-lisp
+(add-to-list 'load-path "/path/r-ts-mode/")
+(require 'r-ts-mode)
+#+end_src
+
+Although, since the package is actively being developed, the recommended way of installing it is with [[https://github.com/radian-software/straight.el][straight.el]] to have the latest updates easily.
+
+#+begin_src emacs-lisp
+(straight-use-package
+ '(r-ts-mode
+   :package "package"
+   :host codeberg
+   :type git
+   :repo "R-for-emacs/r-ts-mode"
+   :branch "main"))
+#+end_src
+
+* Usage
+** R source code
+After installing the package and making sure the R tree-sitter grammar is available, open an =.R= file and enable =r-ts-mode=:
+
+#+begin_src emacs-lisp
+(require 'r-ts-mode)
+(add-to-list 'auto-mode-alist '("\\.R\\'" . r-ts-mode))
+#+end_src
+
+=r-ts-mode= provides tree-sitter based syntax highlighting, indentation, imenu support, and navigation for R source files.
+
+Roxygen support is enabled automatically through =r-ts-mode-roxygen-mode=.
+
+If the R grammar is not installed yet, you can copy the parser binary from the =treesitter.r= R package into Emacs’ tree-sitter directory:
+
+#+begin_src emacs-lisp
+(require 'r-ts-mode)
+(r-ts-mode-prepare-binaries-from-r-library "R")
+#+end_src
+
+** Use as a tree sitter mode for ESS
+Set the variable ~r-ts-mode-inherit-ess~ to true and start using treesitter with ESS by calling ~r-ts-mode~ from R buffers. It is important to set this variable before =r-ts-mode= is loaded. With =straight= you can add it to the ~:init~ section. With default Emacs you can use ~with-eval-after-load~. Here is an example:
+
+#+begin_src emacs-lisp :tangle no :eval no
+(with-eval-after-load 'treesit
+  (when (treesit-language-available-p 'r)
+    (with-eval-after-load 'r-ts-mode
+      (setq r-ts-mode-inherit-ess t)
+      (push '(ess-r-mode . r-ts-mode) major-mode-remap-alist))))
+#+end_src
+
+* Original code and R for Emacs

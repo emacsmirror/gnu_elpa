@@ -247,31 +247,30 @@ main ffs presentation slides buffer (`ffs--slides-buffer').")
 (defun ffs-start ()
   "Start the presentation."
   (interactive)
-  (ffs-mode 1)
-  (when (natnump ffs-default-face-height)
-    (setq-local
-     ffs--default-face-height-cookie
-     (face-remap-add-relative
-      'default :height ffs-default-face-height)))
-  (narrow-to-page)
-  (run-hooks 'ffs-start-hook))
+  (unless (and ffs-mode (buffer-narrowed-p))
+    (ffs-mode 1)
+    (when (natnump ffs-default-face-height)
+      (setq-local
+       ffs--default-face-height-cookie
+       (face-remap-add-relative
+        'default :height ffs-default-face-height)))
+    (narrow-to-page)
+    (run-hooks 'ffs-start-hook)))
 
 (declare-function face-remap-remove-relative "face-remap" (cookie))
 (defun ffs-quit ()
   "Quit the presentation.
 If not currently presenting, quit (disable) `ffs-mode'."
   (interactive)
-  (let ((n (buffer-narrowed-p))
-        (e (= (- (point-max) (point-min)) 0)))
+  (when ffs-mode
     (when ffs--default-face-height-cookie
       (face-remap-remove-relative ffs--default-face-height-cookie))
-    (if n
+    (if (buffer-narrowed-p) ; currently presenting
         (progn
           (goto-char (point-min))
           (widen))
-      (ffs-mode -1))
-    (when e (forward-char -1)))
-  (run-hooks 'ffs-quit-hook))
+      (ffs-mode -1)))
+    (run-hooks 'ffs-quit-hook))
 
 (defun ffs-edit (&optional add-above-or-below)
   "Pop to a new buffer to edit a slide.

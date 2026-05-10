@@ -55,7 +55,8 @@ Keys: :state :labels :milestone :author :query :page")
   "Total number of issues matching current filters (from API header).")
 
 (keymap-popup-define forgejo-issue-list-mode-map
-  "Forgejo issue list."
+  :description (lambda () (forgejo-view--popup-description
+                           "Issues" forgejo-issue--filters))
   :parent forgejo-tl-list-mode-map
   :group "Actions"
   "RET" ("View issue" forgejo-issue-view-at-point)
@@ -234,7 +235,7 @@ Empty input clears all filters."
 ;;; Issue detail view (EWOC)
 
 (keymap-popup-define forgejo-issue-view-mode-map
-  "Issue detail actions."
+  :description (lambda () (forgejo-view--popup-description "Issue"))
   :parent forgejo-view-mode-map
   :group "Actions"
   "r" ("Reply at point" forgejo-issue-reply))

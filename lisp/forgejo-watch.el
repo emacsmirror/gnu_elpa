@@ -240,7 +240,17 @@ and runs `forgejo-watch-hooks' when new ones arrive."
   "Current filter plist for the notification list.")
 
 (keymap-popup-define forgejo-watch-list-mode-map
-  "Forgejo watch list."
+  :description (lambda ()
+                 (let ((host (bound-and-true-p forgejo-watch--host))
+                       (filter-str (and forgejo-watch--filters
+                                        (forgejo-filter-serialize
+                                         forgejo-watch--filters
+                                         forgejo-filter--watch-key-map))))
+                   (concat "Watch"
+                           (when host (format " %s" host))
+                           (when (and filter-str
+                                      (not (string-empty-p filter-str)))
+                             (concat " " filter-str)))))
   :parent forgejo-tl-list-mode-map
   :group "Actions"
   "RET" ("View" forgejo-watch-view-at-point)

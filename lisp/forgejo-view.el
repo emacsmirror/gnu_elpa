@@ -68,6 +68,27 @@ Called with (HOST OWNER REPO NUMBER BUF-NAME &optional RESTORE-LINE).")
   "Function to open the current item in the browser.
 Called with (HOST-URL OWNER REPO NUMBER).")
 
+(defun forgejo-view--popup-description (prefix &optional filters)
+  "Return a popup description string: PREFIX owner/repo#NUM.
+Falls back to PREFIX owner/repo or just PREFIX.
+When FILTERS is a non-nil plist, appends the serialized filter string."
+  (let ((owner (and (bound-and-true-p forgejo-repo--owner) forgejo-repo--owner))
+        (repo (and (bound-and-true-p forgejo-repo--name) forgejo-repo--name))
+        (num (and (bound-and-true-p forgejo-view--data)
+                  (alist-get 'number forgejo-view--data)))
+        (filter-str (and filters
+                         (forgejo-filter-serialize filters))))
+    (concat prefix
+            (when (and owner repo)
+              (concat " "
+                      (propertize (format "%s/%s" owner repo)
+                                  'face 'font-lock-type-face)
+                      (when num
+                        (propertize (format "#%d" num)
+                                    'face 'font-lock-constant-face))))
+            (when (and filter-str (not (string-empty-p filter-str)))
+              (concat " " filter-str)))))
+
 ;;; Text-property action map
 
 (defvar forgejo-view-action-map
@@ -113,7 +134,17 @@ Uses the ref-repo text property for cross-repo references."
 (declare-function forgejo-review-diff-comment "forgejo-review.el" ())
 
 (keymap-popup-define forgejo-view-diff-map
-  "Forgejo diff."
+  :description (lambda ()
+                 (if (and forgejo-diff--owner forgejo-diff--repo
+                          forgejo-diff--pr-number)
+                     (concat "Diff "
+                             (propertize (format "%s/%s"
+                                                 forgejo-diff--owner
+                                                 forgejo-diff--repo)
+                                         'face 'font-lock-type-face)
+                             (propertize (format "#%d" forgejo-diff--pr-number)
+                                         'face 'font-lock-constant-face))
+                   "Diff"))
   :parent diff-mode-map
   "q" ("Quit" quit-window)
   "c" ("Review comment" forgejo-review-diff-comment))
@@ -273,7 +304,7 @@ Handles #N issue/PR refs and markdown URLs."
 ;;; Shared view keymap
 
 (keymap-popup-define forgejo-view-mode-map
-  "Forgejo detail view."
+  :description (lambda () (forgejo-view--popup-description "Forgejo"))
   :parent special-mode-map
   :group "Actions"
   "c" ("Comment" forgejo-view-comment)

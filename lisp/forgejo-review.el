@@ -180,7 +180,7 @@ CALLBACK is called on success."
      nil
      `((event . ,event)
        ,@(and (not (string-empty-p (string-trim (or body ""))))
-           `((body . ,body))))
+              `((body . ,body))))
      (lambda (_data _headers)
        (message "Review submitted: %s on %s/%s#%d" type owner repo number)
        (when callback (funcall callback))))))
@@ -281,7 +281,13 @@ Prompts for review type: comment or request_changes."
   "Diff hunk text for the current review thread.")
 
 (keymap-popup-define forgejo-review-thread-map
-  "Forgejo review thread."
+  :description (lambda ()
+                 (if (and forgejo-review--thread-path
+                          forgejo-review--thread-position)
+                     (format "Review: %s:%d"
+                             forgejo-review--thread-path
+                             forgejo-review--thread-position)
+                   "Review"))
   :parent special-mode-map
   "q" ("Quit" quit-window)
   "c" ("Reply" forgejo-review-thread-reply)

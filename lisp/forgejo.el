@@ -323,6 +323,8 @@ create one via `forgejo-create-token'."
                   (host-url owner repo))
 
 (defvar forgejo-repo--host)
+(defvar forgejo-repo--owner)
+(defvar forgejo-repo--name)
 
 (keymap-popup-define forgejo-map
   "Forgejo."
@@ -359,7 +361,14 @@ create one via `forgejo-create-token'."
 (declare-function forgejo-repo-search--owner-repo-at-point "forgejo-repo.el" ())
 
 (keymap-popup-define forgejo-repo-action-map
-  "Actions for repository at point."
+  :description (lambda ()
+                 (if (and (bound-and-true-p forgejo-repo--owner)
+                          (bound-and-true-p forgejo-repo--name))
+                     (concat "Repo "
+                             (propertize (format "%s/%s" forgejo-repo--owner
+                                                 forgejo-repo--name)
+                                         'face 'font-lock-type-face))
+                   "Repo"))
   :group "Open"
   "i" ("Issues" forgejo-repo-action--issues)
   "p" ("Pull requests" forgejo-repo-action--pulls)

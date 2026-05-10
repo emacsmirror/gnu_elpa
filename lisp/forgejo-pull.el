@@ -56,7 +56,8 @@ Keys: :state :milestone :labels :author :page")
   "Total number of PRs matching current filters.")
 
 (keymap-popup-define forgejo-pull-list-mode-map
-  "Forgejo pull request list."
+  :description (lambda () (forgejo-view--popup-description
+                           "PRs" forgejo-pull--filters))
   :parent forgejo-tl-list-mode-map
   :group "Actions"
   "RET" ("View PR" forgejo-pull-view-at-point)
@@ -225,7 +226,7 @@ Shows cached data immediately, then syncs from the API in the background."
 ;;; Commit log
 
 (keymap-popup-define forgejo-pull-log-map
-  "PR commit log."
+  :description (lambda () (forgejo-view--popup-description "Commits"))
   :parent special-mode-map
   "=" ("View diff" forgejo-view-commit-diff)
   "RET" ("View diff" forgejo-view-commit-diff))
@@ -233,7 +234,7 @@ Shows cached data immediately, then syncs from the API in the background."
 ;;; PR detail view
 
 (keymap-popup-define forgejo-pull-view-mode-map
-  "Pull request detail actions."
+  :description (lambda () (forgejo-view--popup-description "PR"))
   :parent forgejo-view-mode-map
   :group "Actions"
   "r" ("Reply at point" forgejo-pull-reply)

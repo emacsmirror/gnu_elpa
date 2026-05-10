@@ -258,7 +258,16 @@ CALLBACK is called with no args when done."
 ;;; Mode and keymap
 
 (keymap-popup-define forgejo-notification-list-mode-map
-  "Forgejo notifications."
+  :description (lambda ()
+                 (let ((host (bound-and-true-p forgejo-notification--host))
+                       (filter-str (and forgejo-notification--filters
+                                        (forgejo-filter-serialize
+                                         forgejo-notification--filters))))
+                   (concat "Notifications"
+                           (when host (format " %s" host))
+                           (when (and filter-str
+                                      (not (string-empty-p filter-str)))
+                             (concat " " filter-str)))))
   :parent forgejo-tl-list-mode-map
   :group "Actions"
   "RET" ("View" forgejo-notification-view-at-point)

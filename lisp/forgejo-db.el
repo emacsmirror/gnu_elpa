@@ -133,10 +133,23 @@
        pinned INTEGER NOT NULL DEFAULT 0,
        updated_at TEXT,
        PRIMARY KEY (host, thread_id))"
+    "CREATE TABLE IF NOT EXISTS reactions (
+       host TEXT NOT NULL,
+       owner TEXT NOT NULL,
+       repo TEXT NOT NULL,
+       issue_number INTEGER NOT NULL,
+       comment_id INTEGER NOT NULL DEFAULT 0,
+       content TEXT NOT NULL,
+       user TEXT NOT NULL,
+       created_at TEXT,
+       PRIMARY KEY (host, owner, repo, issue_number, comment_id, content, user))"
     )
   "SQL statements to initialize the database schema.")
 
 ;;; Connection management
+
+(defvar forgejo-db--schema-applied nil
+  "Non-nil after schema statements have been executed this session.")
 
 (defun forgejo-db--ensure ()
   "Open or create the SQLite database, run schema if needed.
@@ -153,8 +166,11 @@ Detects stale schema and rebuilds the database if necessary."
         (delete-file db-file)
         (setq forgejo-db (sqlite-open db-file))
         (message "forgejo.el: Rebuilt database (schema changed)"))
-      (dolist (stmt forgejo-db--schema)
-        (sqlite-execute forgejo-db stmt))))
+      (setq forgejo-db--schema-applied nil)))
+  (unless forgejo-db--schema-applied
+    (dolist (stmt forgejo-db--schema)
+      (sqlite-execute forgejo-db stmt))
+    (setq forgejo-db--schema-applied t))
   forgejo-db)
 
 (defun forgejo-db--stale-schema-p ()
@@ -389,6 +405,64 @@ FILTERS is a plist with keys:
             ORDER BY created_at ASC"
            forgejo-db--timeline-columns)
    (list host owner repo number)))
+
+;;; Reactions
+
+(defun forgejo-db-save-reactions (host owner repo issue-number comment-id reactions)
+  "Replace reactions for COMMENT-ID on ISSUE-NUMBER in HOST/OWNER/REPO.
+REACTIONS is a list of API reaction alists.  COMMENT-ID 0 means the
+issue body.  A nil or :null REACTIONS list clears existing entries."
+  (setq owner (downcase owner) repo (downcase repo))
+  (when (eq reactions :null) (setq reactions nil))
+  (forgejo-db--with-transaction
+    (let ((db (forgejo-db--ensure)))
+      (sqlite-execute
+       db
+       "DELETE FROM reactions
+        WHERE host = ? AND owner = ? AND repo = ?
+          AND issue_number = ? AND comment_id = ?"
+       (list host owner repo issue-number comment-id))
+      (dolist (reaction reactions)
+        (let ((content (alist-get 'content reaction))
+              (user (alist-get 'login (alist-get 'user reaction)))
+              (created (alist-get 'created_at reaction)))
+          (when (and content user)
+            (sqlite-execute
+             db
+             "INSERT INTO reactions
+                (host, owner, repo, issue_number, comment_id,
+                 content, user, created_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+             (list host owner repo issue-number comment-id
+                   content user created))))))))
+
+(defun forgejo-db-get-reactions (host owner repo issue-number)
+  "Get reactions for ISSUE-NUMBER in HOST/OWNER/REPO.
+Returns an alist keyed by comment-id, each value a grouped alist:
+  ((0 . ((\"heart\" . (\"alice\" \"bob\")) (\"+1\" . (\"charlie\"))))
+   (42 . ((\"+1\" . (\"dave\")))))"
+  (setq owner (downcase owner) repo (downcase repo))
+  (let ((rows (forgejo-db--select
+               "SELECT comment_id, content, user FROM reactions
+                WHERE host = ? AND owner = ? AND repo = ? AND issue_number = ?
+                ORDER BY comment_id, content, created_at"
+               (list host owner repo issue-number)))
+        result)
+    (dolist (row rows)
+      (let* ((cid (nth 0 row))
+             (content (nth 1 row))
+             (user (nth 2 row))
+             (cid-entry (assoc cid result))
+             (cid-reactions (cdr cid-entry))
+             (content-entry (assoc content cid-reactions #'string=)))
+        (if content-entry
+            (setcdr content-entry (append (cdr content-entry) (list user)))
+          (setq cid-reactions (append cid-reactions
+                                      (list (list content user)))))
+        (if cid-entry
+            (setcdr cid-entry cid-reactions)
+          (push (cons cid cid-reactions) result))))
+    (nreverse result)))
 
 ;;; Labels
 

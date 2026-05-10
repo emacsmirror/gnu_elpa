@@ -280,7 +280,9 @@ When RESTORE-LINE is non-nil, go to that line after re-rendering."
            (format-time-string "%Y-%m-%dT%H:%M:%SZ" nil t))
           (forgejo-view--re-render
            buf-name host-url host owner repo number
-           #'forgejo-issue--render-detail restore-line)))))))
+           #'forgejo-issue--render-detail restore-line)
+          (forgejo-view--sync-reactions
+           host-url host owner repo number buf-name timeline)))))))
 
 ;;; Detail view entry
 

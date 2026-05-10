@@ -218,8 +218,8 @@
         (forgejo-db-set-sync-time
          "codeberg.org" "owner" "repo" "issues" "2026-04-15T12:00:00Z")
         (should (string= (forgejo-db-get-sync-time
-                           "codeberg.org" "owner" "repo" "issues")
-                          "2026-04-15T12:00:00Z")))
+                          "codeberg.org" "owner" "repo" "issues")
+                         "2026-04-15T12:00:00Z")))
     (forgejo-test-db--teardown)))
 
 (ert-deftest forgejo-test-db-sync-state-update ()
@@ -232,8 +232,8 @@
         (forgejo-db-set-sync-time
          "codeberg.org" "owner" "repo" "issues" "2026-04-20T00:00:00Z")
         (should (string= (forgejo-db-get-sync-time
-                           "codeberg.org" "owner" "repo" "issues")
-                          "2026-04-20T00:00:00Z")))
+                          "codeberg.org" "owner" "repo" "issues")
+                         "2026-04-20T00:00:00Z")))
     (forgejo-test-db--teardown)))
 
 ;;; Group 7: JSON helpers
@@ -422,6 +422,78 @@
         (let ((hosts (forgejo-db-get-hosts-for-repo "other" "project")))
           (should (= (length hosts) 1))
           (should (string= (car hosts) "codeberg.org"))))
+    (forgejo-test-db--teardown)))
+
+;;; Group 11: Reactions
+
+(ert-deftest forgejo-test-db-save-and-get-reactions ()
+  "Save reactions and retrieve them grouped by comment-id and content."
+  (forgejo-test-db--setup)
+  (unwind-protect
+      (let ((issue-reactions
+             (list (list (cons 'content "+1")
+                         (cons 'user (list (cons 'login "alice")))
+                         (cons 'created_at "2026-01-01T00:00:00Z"))
+                   (list (cons 'content "+1")
+                         (cons 'user (list (cons 'login "bob")))
+                         (cons 'created_at "2026-01-01T01:00:00Z"))
+                   (list (cons 'content "heart")
+                         (cons 'user (list (cons 'login "alice")))
+                         (cons 'created_at "2026-01-01T02:00:00Z"))))
+            (comment-reactions
+             (list (list (cons 'content "eyes")
+                         (cons 'user (list (cons 'login "charlie")))
+                         (cons 'created_at "2026-01-02T00:00:00Z")))))
+        (forgejo-db-save-reactions "codeberg.org" "owner" "repo" 42 0
+                                   issue-reactions)
+        (forgejo-db-save-reactions "codeberg.org" "owner" "repo" 42 100
+                                   comment-reactions)
+        (let ((all (forgejo-db-get-reactions "codeberg.org" "owner" "repo" 42)))
+          ;; Two comment-ids: 0 (issue body) and 100 (comment)
+          (should (= (length all) 2))
+          (let ((issue-r (cdr (assoc 0 all)))
+                (comment-r (cdr (assoc 100 all))))
+            ;; Issue body: +1 from alice,bob and heart from alice
+            (should (equal (cdr (assoc "+1" issue-r #'string=))
+                           '("alice" "bob")))
+            (should (equal (cdr (assoc "heart" issue-r #'string=))
+                           '("alice")))
+            ;; Comment: eyes from charlie
+            (should (equal (cdr (assoc "eyes" comment-r #'string=))
+                           '("charlie"))))))
+    (forgejo-test-db--teardown)))
+
+(ert-deftest forgejo-test-db-save-reactions-replaces ()
+  "Saving reactions replaces previous ones for the same comment-id."
+  (forgejo-test-db--setup)
+  (unwind-protect
+      (let ((old (list (list (cons 'content "+1")
+                             (cons 'user (list (cons 'login "alice")))
+                             (cons 'created_at "2026-01-01T00:00:00Z"))))
+            (new (list (list (cons 'content "heart")
+                             (cons 'user (list (cons 'login "bob")))
+                             (cons 'created_at "2026-01-02T00:00:00Z")))))
+        (forgejo-db-save-reactions "codeberg.org" "owner" "repo" 42 0 old)
+        (forgejo-db-save-reactions "codeberg.org" "owner" "repo" 42 0 new)
+        (let* ((all (forgejo-db-get-reactions "codeberg.org" "owner" "repo" 42))
+               (issue-r (cdr (assoc 0 all))))
+          ;; Old +1 should be gone, only heart remains
+          (should-not (assoc "+1" issue-r #'string=))
+          (should (equal (cdr (assoc "heart" issue-r #'string=))
+                         '("bob")))))
+    (forgejo-test-db--teardown)))
+
+(ert-deftest forgejo-test-db-save-reactions-empty ()
+  "Saving empty reactions clears existing ones."
+  (forgejo-test-db--setup)
+  (unwind-protect
+      (let ((reactions (list (list (cons 'content "+1")
+                                   (cons 'user (list (cons 'login "alice")))
+                                   (cons 'created_at "2026-01-01T00:00:00Z")))))
+        (forgejo-db-save-reactions "codeberg.org" "owner" "repo" 42 0 reactions)
+        (forgejo-db-save-reactions "codeberg.org" "owner" "repo" 42 0 nil)
+        (let ((all (forgejo-db-get-reactions "codeberg.org" "owner" "repo" 42)))
+          (should (null all))))
     (forgejo-test-db--teardown)))
 
 (provide 'forgejo-test-db)

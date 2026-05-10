@@ -337,6 +337,8 @@ When RESTORE-LINE is non-nil, go to that line after re-rendering."
                (forgejo-view--re-render
                 buf-name host-url host owner repo number
                 #'forgejo-pull--render-detail restore-line)
+               (forgejo-view--sync-reactions
+                host-url host owner repo number buf-name enriched)
                (let ((tl-alists (mapcar #'forgejo-db--row-to-timeline-alist
                                         (forgejo-db-get-timeline
                                          host owner repo number))))

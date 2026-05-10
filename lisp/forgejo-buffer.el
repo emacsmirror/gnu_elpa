@@ -109,6 +109,11 @@ ACTION-MAP is the keymap attached to interactive text regions."
   "Face for quoted text (blockquotes) in comments."
   :group 'forgejo)
 
+(defface forgejo-reaction-face
+  '((t :inherit shadow))
+  "Face for reaction labels."
+  :group 'forgejo)
+
 ;;; Formatting helpers
 
 (defun forgejo-buffer--format-state (state)
@@ -281,6 +286,44 @@ or a plain string."
   "Insert a styled (edited) indicator at point."
   (insert " " (propertize "(edited)" 'face 'shadow)))
 
+;;; Reactions
+
+(defun forgejo-buffer--insert-reactions (reactions)
+  "Insert formatted reaction labels from REACTIONS.
+REACTIONS is a grouped alist: ((\"heart\" . (\"alice\" \"bob\")) ...)."
+  (when reactions
+    (insert "\n"
+            (string-join
+             (mapcar (lambda (entry)
+                       (let ((content (car entry))
+                             (users (cdr entry)))
+                         (propertize (format "%s (%d)" content (length users))
+                                     'face 'forgejo-reaction-face
+                                     'help-echo (string-join users ", "))))
+                     reactions)
+             "  "))))
+
+(declare-function forgejo-db-get-reactions "forgejo-db.el"
+                  (host owner repo issue-number))
+
+(defun forgejo-buffer--update-reactions (ewoc host owner repo issue-number)
+  "Patch reaction data onto EWOC nodes from the DB.
+Walks all nodes, sets :reactions, and invalidates changed ones."
+  (let ((all-reactions (forgejo-db-get-reactions
+                        host owner repo issue-number)))
+    (ewoc-map
+     (lambda (node-data)
+       (let* ((type (plist-get node-data :type))
+              (cid (pcase type
+                     ('header 0)
+                     ('comment (plist-get node-data :id))))
+              (reactions (and cid (cdr (assoc cid all-reactions)))))
+         (when (and cid (not (equal reactions
+                                    (plist-get node-data :reactions))))
+           (plist-put node-data :reactions reactions)
+           t)))
+     ewoc)))
+
 ;;; EWOC pretty-printers
 
 (defun forgejo-buffer--pp (node-data)
@@ -330,6 +373,7 @@ NODE-DATA is a plist with :type and type-specific keys."
       (insert (propertize author 'face 'forgejo-comment-author-face)
               "\n\n")
       (forgejo-buffer--insert-body body)
+      (forgejo-buffer--insert-reactions (plist-get data :reactions))
       (forgejo-buffer--insert-separator))))
 
 (defun forgejo-buffer--pp-comment (data)
@@ -345,6 +389,7 @@ NODE-DATA is a plist with :type and type-specific keys."
       (forgejo-buffer--insert-edited-indicator))
     (insert "\n\n")
     (forgejo-buffer--insert-body body)
+    (forgejo-buffer--insert-reactions (plist-get data :reactions))
     (forgejo-buffer--insert-separator)))
 
 (defun forgejo-buffer--pp-event (data)

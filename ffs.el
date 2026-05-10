@@ -97,6 +97,9 @@ as well."
 (defvar ffs-edit-buffer-name "*ffs-edit*"
   "The name of the ffs-edit buffer used when editing a slide.")
 
+(defvar ffs-find-speaker-notes-function #'find-file-other-frame
+  "The function to use when finding a speaker's note file.")
+
 (defvar-local ffs--edit-source-buffer nil
   "The ffs presentation buffer of the slide being edited.")
 
@@ -371,8 +374,7 @@ A numeric ARG serves as a repeat count."
   (interactive "Fspeakers notes buffer: ")
   (let ((b (current-buffer)))
     (save-excursion
-      ;; XXX defvar ffs-find-notes-function
-      (find-file-other-frame file)
+      (funcall ffs-find-speaker-notes-function file)
       (ffs-minor-mode 1)
       (setq-local
        ffs--slides-buffer b

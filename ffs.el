@@ -437,7 +437,7 @@ changes, or \\[ffs-edit-discard] to discard them."
     (define-key map (kbd "S") #'ffs-find-speaker-notes-file)
     (define-key map (kbd "N") #'narrow-to-page)
     (define-key map (kbd "W") #'widen)
-    (define-key map [remap undo] #'ffs-undo) ; C-/
+    (define-key map [remap undo] #'ffs-undo) ; `C-_', `C-/', `C-x u'
     map)
   "Keymap for `ffs-mode'.")
 
@@ -448,17 +448,12 @@ changes, or \\[ffs-edit-discard] to discard them."
   :lighter " ffs"
   :keymap ffs-mode-map
   (setq-local
+   buffer-read-only ffs-mode
+   ffs--slides-buffer (current-buffer)
    ffs--old-mode-line-format mode-line-format
-   ffs--old-cursor-type cursor-type)
-  (setq buffer-read-only ffs-mode))
+   ffs--old-cursor-type cursor-type))
 
-;; XXX collapse ffs into just ffs-mode, make it an alias,
-;; add autoload cookies
-(defun ffs ()
-  "Enable `ffs-mode' for presenting the current buffer."
-  (interactive)
-  (ffs-mode 1)
-  (setq-local ffs--slides-buffer (current-buffer)))
+(defalias 'ffs #'ffs-mode)
 
 (provide 'ffs)
 ;;; ffs.el ends here

@@ -181,15 +181,6 @@ main ffs presentation slides buffer (`ffs--slides-buffer').")
       (backward-page)
       (when n (narrow-to-page)))))
 
-;; XXX macro to abstract this pattern?
-(defun ffs-goto-previous ()
-  "Go to previous slide in ffs presentation and speaker notes buffer."
-  (interactive)
-  (ffs--goto-previous ffs--slides-buffer)
-  (when ffs--notes-buffer
-    (ffs--goto-previous ffs--notes-buffer)
-    (redraw-display)))
-
 (defun ffs--goto-next (buffer)
   "Go to the next slide in the given BUFFER."
   (interactive)
@@ -202,14 +193,6 @@ main ffs presentation slides buffer (`ffs--slides-buffer').")
       (unless e (forward-page))
       (when n (narrow-to-page)))))
 
-(defun ffs-goto-next ()
-  "Go to next slide in ffs presentation and speaker notes buffer."
-  (interactive)
-  (ffs--goto-next ffs--slides-buffer)
-  (when ffs--notes-buffer
-    (ffs--goto-next ffs--notes-buffer)
-    (redraw-display)))
-
 (defun ffs--goto-first (buffer)
   "Go to the first slide in the given BUFFER."
   (interactive)
@@ -218,14 +201,6 @@ main ffs presentation slides buffer (`ffs--slides-buffer').")
       (when n (widen))
       (goto-char (point-min))
       (when n (narrow-to-page)))))
-
-(defun ffs-goto-first ()
-  "Go to first slide in ffs presentation and speaker notes buffer."
-  (interactive)
-  (ffs--goto-first ffs--slides-buffer)
-  (when ffs--notes-buffer
-    (ffs--goto-first ffs--notes-buffer)
-    (redraw-display)))
 
 (defun ffs--goto-last (buffer)
   "Go to the last slide in the given BUFFER."
@@ -236,13 +211,28 @@ main ffs presentation slides buffer (`ffs--slides-buffer').")
       (goto-char (point-max))
       (when n (narrow-to-page)))))
 
-(defun ffs-goto-last ()
-  "Go to last slide in ffs presentation and speaker notes buffer."
-  (interactive)
-  (ffs--goto-last ffs--slides-buffer)
-  (when ffs--notes-buffer
-    (ffs--goto-last ffs--notes-buffer)
-    (redraw-display)))
+(defmacro ffs--define-goto-slide (name)
+  "Define a function for going to a slide.
+Symbol NAME is the name describing the movement."
+  (declare (indent 1))
+  (let* ((sn (symbol-name name))
+         (fname (intern (format "ffs-goto-%s" (downcase sn))))
+         (hname (intern (format "ffs--goto-%s" (downcase sn))))
+         (doc (format
+               "Go to %s slide in ffs presentation and speaker notes buffer."
+               sn)))
+    `(defun ,fname ()
+       ,doc
+       (interactive)
+       (,hname ffs--slides-buffer)
+       (when ffs--notes-buffer
+         (,hname ffs--notes-buffer)
+         (redraw-display)))))
+
+(ffs--define-goto-slide previous)
+(ffs--define-goto-slide next)
+(ffs--define-goto-slide first)
+(ffs--define-goto-slide last)
 
 (defun ffs-start ()
   "Start the presentation."

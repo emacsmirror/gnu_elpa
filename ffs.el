@@ -49,24 +49,41 @@
 
 ;; TODO:
 ;; add user option for echoing slide count
+;; dedication in README/manual
+;; acronym and backronyms
 
 (defgroup ffs nil
   "Minor mode for form feed-separated plain text presentations."
   :group 'editing)
 
 (defcustom ffs-default-face-height 370
-  "Value `height' property of `default' face to use during presentations."
+  "Value of `height' property of `default' face during presentations.
+If a natural number (non-negative integer), it will be used as the
+`height' of the `default' face during presentations, useful for having
+a larger font size when presenting.
+
+If nil, don't change the `default' face's `height' in presentations."
   :group 'ffs
   :type '(choice (const nil)
                  (natnum :value 300)))
 
 (defcustom ffs-start-hook nil
-  "Hooks to perform when starting presenting."
+  "Hook run when starting presenting (at the end of `ffs-start')."
   :group 'ffs
   :type 'hook)
 
 (defcustom ffs-quit-hook nil
-  "Hooks to perform when quitting presenting."
+  "Hook run when quitting presenting (at the end of `ffs-quit')."
+  :group 'ffs
+  :type 'hook)
+
+(defcustom ffs-edit-hook nil
+  "Hook run when editing a slide (at the end of `ffs-edit')."
+  :group 'ffs
+  :type 'hook)
+
+(defcustom ffs-edit-done-hook nil
+  "Hook run after editing a slide (at the end of `ffs-edit-done')."
   :group 'ffs
   :type 'hook)
 
@@ -110,8 +127,8 @@ main ffs presentation slides buffer (`ffs--slides-buffer').")
 (defvar-local ffs--old-cursor-type nil
   "Old value of `cursor-type'.")
 
-(defvar-local ffs--old-default-face-height nil
-  "Old value of `default' face's `height' property.")
+(defvar-local ffs--default-face-height-cookie nil
+  "Cookie returned from `face-remap-add-relative', for later removal.")
 
 (define-minor-mode ffs-no-mode-line-minor-mode
   "Minor mode for hiding the mode-line."
@@ -138,6 +155,9 @@ main ffs presentation slides buffer (`ffs--slides-buffer').")
     (when ffs--old-cursor-type
       ffs--old-cursor-type nil)))
 
+;; XXX user option for more sophisticated behaviour?
+;; set-face-attribute  for specific frames
+;; face-list  reset to defaults
 (defun ffs-toggle-dark-mode ()
   "Swap the frame background and foreground colours."
   (interactive)
@@ -146,7 +166,6 @@ main ffs presentation slides buffer (`ffs--slides-buffer').")
     (set-background-color fg)
     (set-foreground-color bg)))
 
-;; save-restriction
 (defun ffs--goto-previous (buffer)
   "Go to the previous slide in the given BUFFER."
   (interactive)
@@ -159,6 +178,7 @@ main ffs presentation slides buffer (`ffs--slides-buffer').")
       (backward-page)
       (when n (narrow-to-page)))))
 
+;; XXX macro to abstract this pattern?
 (defun ffs-goto-previous ()
   "Go to previous slide in ffs presentation and speaker notes buffer."
   (interactive)
@@ -225,30 +245,30 @@ main ffs presentation slides buffer (`ffs--slides-buffer').")
   "Start the presentation."
   (interactive)
   (ffs-minor-mode 1)
-  (when (integerp ffs-default-face-height)
+  (when (natnump ffs-default-face-height)
     (setq-local
-     ffs--old-default-face-height
-     (face-attribute 'default :height))
-    (face-remap-add-relative         ; TODO: store and use for removal
-     'default :height ffs-default-face-height))
-  (run-hooks 'ffs-start-hook)
-  (narrow-to-page))
+     ffs--default-face-height-cookie
+     (face-remap-add-relative
+      'default :height ffs-default-face-height)))
+  (narrow-to-page)
+  (run-hooks 'ffs-start-hook))
 
+(declare-function face-remap-remove-relative "face-remap" (cookie))
 (defun ffs-quit ()
-  "Quit the presentation."
+  "Quit the presentation.
+If not currently presenting, quit (disable) `ffs-mode'."
   (interactive)
   (let ((n (buffer-narrowed-p))
         (e (= (- (point-max) (point-min)) 0)))
-    (when (integerp ffs-default-face-height)
-      (face-remap-add-relative
-       'default :height ffs--old-default-face-height))
-    (run-hooks 'ffs-quit-hook)
+    (when ffs--default-face-height-cookie
+      (face-remap-remove-relative ffs--default-face-height-cookie))
     (if n
         (progn
           (goto-char (point-min))
           (widen))
       (ffs-minor-mode -1))
-    (when e (forward-char -1))))
+    (when e (forward-char -1)))
+  (run-hooks 'ffs-quit-hook))
 
 (defun ffs-edit (&optional add-above-or-below)
   "Pop to a new buffer to edit a slide.
@@ -267,11 +287,11 @@ current slide.  The logic is implemented in `ffs-edit-done'."
               (unless n (narrow-to-page))
               (prog1 (buffer-string)
                 (unless n (widen))))))
-    ;; (with-current-buffer buffer
-    ;;   ...)
+    ;; XXX (with-current-buffer buffer ...)
     ;; (display-buffer buffer)
+    ;;   ^ also accepts an alist that we can make a user option
     (pop-to-buffer-same-window
-     (get-buffer-create ffs-edit-buffer-name))
+     (generate-new-buffer ffs-edit-buffer-name))
     (erase-buffer)
     (funcall m)
     (ffs-edit-minor-mode 1)
@@ -284,7 +304,8 @@ current slide.  The logic is implemented in `ffs-edit-done'."
      fill-column fc
      header-line-format
      (substitute-command-keys "Edit, then use `\\[ffs-edit-done]' \
-to apply your changes or `\\[ffs-edit-discard]' to discard them."))))
+to apply your changes or `\\[ffs-edit-discard]' to discard them.")))
+  (run-hooks 'ffs-edit-hook))
 
 (defun ffs-new-above ()
   "Add a new slide above/before the current slide."
@@ -313,11 +334,10 @@ to apply your changes or `\\[ffs-edit-discard]' to discard them."))))
                (concat str "\n")))
          (s (format "\n%s%s" sn ffs-page-delimiter))
          (l ffs--new-location))
-    ;; maybe break out into helper, would be helpful when testing
+    ;; XXX maybe break out into helper, would be helpful when testing
     (with-current-buffer ffs--edit-source-buffer
       (let ((inhibit-read-only t))
         (save-excursion
-          ;; pcase?
           (cond
            ((eq l 'add-above)
             (backward-page)
@@ -334,13 +354,15 @@ to apply your changes or `\\[ffs-edit-discard]' to discard them."))))
             (widen))))))
     (ffs-edit-discard)
     (when (functionp f)
-      (funcall f))))
+      (funcall f)))
+  (run-hooks 'ffs-edit-done-hook))
 
 (defun ffs-undo (&optional arg)
   "Like `undo', but it works even when the buffer is read-only.
 Repeat this command to undo more changes.
 A numeric ARG serves as a repeat count."
   (interactive "P")
+  ;; XXX could rebinding `amalgamating-undo-limit' be useful?
   (let ((inhibit-read-only t))
     (undo arg)))
 
@@ -349,7 +371,7 @@ A numeric ARG serves as a repeat count."
   (interactive "Fspeakers notes buffer: ")
   (let ((b (current-buffer)))
     (save-excursion
-      ;; defvar ffs-find-notes-function
+      ;; XXX defvar ffs-find-notes-function
       (find-file-other-frame file)
       (ffs-minor-mode 1)
       (setq-local
@@ -357,6 +379,7 @@ A numeric ARG serves as a repeat count."
        ffs--notes-buffer (current-buffer)))
     (setq-local ffs--notes-buffer (get-file-buffer file))))
 
+;; XXX write all slides to one file?
 (defun ffs-export-slides-to-pdf ()
   "Export slides to PDF (needs Emacs built with Cairo)."
   (interactive)
@@ -412,10 +435,11 @@ changes, or \\[ffs-edit-discard] to discard them."
     (define-key map (kbd "S") #'ffs-find-speaker-notes-file)
     (define-key map (kbd "N") #'narrow-to-page)
     (define-key map (kbd "W") #'widen)
-    (define-key map [remap undo] #'ffs-undo)
+    (define-key map [remap undo] #'ffs-undo) ; C-/
     map)
   "Keymap for `ffs-minor-mode'.")
 
+;;;###autoload
 (define-minor-mode ffs-minor-mode
   "Minor mode for form feed-separated plain text presentations."
   :group 'ffs
@@ -423,11 +447,11 @@ changes, or \\[ffs-edit-discard] to discard them."
   :keymap ffs-minor-mode-map
   (setq-local
    ffs--old-mode-line-format mode-line-format
-   ffs--old-cursor-type cursor-type
-   ffs--old-default-face-height
-   (face-attribute 'default :height))
+   ffs--old-cursor-type cursor-type)
   (setq buffer-read-only ffs-minor-mode))
 
+;; XXX collapse ffs into just ffs-minor-mode, make it an alias,
+;; add autoload cookies
 (defun ffs ()
   "Enable `ffs-minor-mode' for presenting the current buffer."
   (interactive)

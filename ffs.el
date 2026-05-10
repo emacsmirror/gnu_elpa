@@ -43,7 +43,7 @@
 ;; its various commands.  To see a list of available commands, you can
 ;; either type `M-x ffs- TAB' (to get a completion of commands
 ;; starting with the "ffs-" prefix), or see the definition of
-;; `ffs-minor-mode-map' near the end of this file.
+;; `ffs-mode-map' near the end of this file.
 
 ;;; Code:
 
@@ -247,7 +247,7 @@ main ffs presentation slides buffer (`ffs--slides-buffer').")
 (defun ffs-start ()
   "Start the presentation."
   (interactive)
-  (ffs-minor-mode 1)
+  (ffs-mode 1)
   (when (natnump ffs-default-face-height)
     (setq-local
      ffs--default-face-height-cookie
@@ -269,7 +269,7 @@ If not currently presenting, quit (disable) `ffs-mode'."
         (progn
           (goto-char (point-min))
           (widen))
-      (ffs-minor-mode -1))
+      (ffs-mode -1))
     (when e (forward-char -1)))
   (run-hooks 'ffs-quit-hook))
 
@@ -297,7 +297,7 @@ current slide.  The logic is implemented in `ffs-edit-done'."
      (generate-new-buffer ffs-edit-buffer-name))
     (erase-buffer)
     (funcall m)
-    (ffs-edit-minor-mode 1)
+    (ffs-edit-mode 1)
     (insert s)
     (goto-char (point-min))
     (set-buffer-modified-p nil)
@@ -375,7 +375,7 @@ A numeric ARG serves as a repeat count."
   (let ((b (current-buffer)))
     (save-excursion
       (funcall ffs-find-speaker-notes-function file)
-      (ffs-minor-mode 1)
+      (ffs-mode 1)
       (setq-local
        ffs--slides-buffer b
        ffs--notes-buffer (current-buffer)))
@@ -401,22 +401,22 @@ A numeric ARG serves as a repeat count."
         (ffs-goto-next))
       (fringe-mode fringe))))
 
-(defvar ffs-edit-minor-mode-map
+(defvar ffs-edit-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "C-c C-k") #'ffs-edit-discard)
     (define-key map (kbd "C-c C-c") #'ffs-edit-done)
     map)
-  "Keymap for `ffs-edit-minor-mode'.")
+  "Keymap for `ffs-edit-mode'.")
 
-(define-minor-mode ffs-edit-minor-mode
+(define-minor-mode ffs-edit-mode
   "Minor mode for editing a single ffs slide.
 When done editing the slide, run \\[ffs-edit-done] to apply your
 changes, or \\[ffs-edit-discard] to discard them."
   :group 'ffs
   :lighter " ffs-edit"
-  :keymap ffs-edit-minor-mode-map)
+  :keymap ffs-edit-mode-map)
 
-(defvar ffs-minor-mode-map
+(defvar ffs-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "p") #'ffs-goto-previous)
     (define-key map (kbd "n") #'ffs-goto-next)
@@ -439,25 +439,25 @@ changes, or \\[ffs-edit-discard] to discard them."
     (define-key map (kbd "W") #'widen)
     (define-key map [remap undo] #'ffs-undo) ; C-/
     map)
-  "Keymap for `ffs-minor-mode'.")
+  "Keymap for `ffs-mode'.")
 
 ;;;###autoload
-(define-minor-mode ffs-minor-mode
+(define-minor-mode ffs-mode
   "Minor mode for form feed-separated plain text presentations."
   :group 'ffs
   :lighter " ffs"
-  :keymap ffs-minor-mode-map
+  :keymap ffs-mode-map
   (setq-local
    ffs--old-mode-line-format mode-line-format
    ffs--old-cursor-type cursor-type)
-  (setq buffer-read-only ffs-minor-mode))
+  (setq buffer-read-only ffs-mode))
 
-;; XXX collapse ffs into just ffs-minor-mode, make it an alias,
+;; XXX collapse ffs into just ffs-mode, make it an alias,
 ;; add autoload cookies
 (defun ffs ()
-  "Enable `ffs-minor-mode' for presenting the current buffer."
+  "Enable `ffs-mode' for presenting the current buffer."
   (interactive)
-  (ffs-minor-mode 1)
+  (ffs-mode 1)
   (setq-local ffs--slides-buffer (current-buffer)))
 
 (provide 'ffs)

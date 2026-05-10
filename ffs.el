@@ -442,6 +442,7 @@ changes, or \\[ffs-edit-discard] to discard them."
    ffs--old-mode-line-format mode-line-format
    ffs--old-cursor-type cursor-type))
 
+;;;###autoload
 (defalias 'ffs #'ffs-mode)
 
 (provide 'ffs)

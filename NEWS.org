@@ -1,0 +1,27 @@
+* Version 0.5
+- New commands: =minimail-{next,previous}-message-unseen=.
+- New commands: =minimail-message-archived-at=,
+  =minimail-message-list-archive=,
+  =minimail-message-list-unsubscribe=.
+- New commands: =minimail-toggle-message-{seen,flagged,flags}=.
+- New command: =minimail-copy-to-mailbox=.
+- Add support for OAuth login.
+- Add menus, including context menu for mailbox buffer.
+- Nicer thread tree drawing with customizable icons.
+
+* Version 0.4
+- Transient menu for search.
+- Support for operating on multiple messages using active region (this
+  might eventually be changed to a dired-style marking mechanism).
+
+* Version 0.3
+- Add hierarchical threading mode.
+- Use define-icon for message flag indicators, making them
+  customizable.
+
+* Version 0.2
+- New command: =minimail-show-mailboxes=.
+- New command: =minimail-load-more-messages=.
+
+* Version 0.1
+- First release

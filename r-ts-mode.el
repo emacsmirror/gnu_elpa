@@ -38,7 +38,7 @@
   :group 'languages
   :version "30.1")
 
-(defcustom r-ts-mode-inherit-ess t
+(defcustom r-ts-mode-inherit-ess nil
   "Should r-ts-mode inherit ess-r-mode?"
   :type 'boolean
   :group 'r-ts-mode)
@@ -51,6 +51,12 @@
 (defcustom r-ts-mode-indent-level 2
   "Indentation level for r-ts-mode"
   :type 'integer
+  :group 'r-ts-mode)
+
+(defcustom r-ts-mode-fontify-roxygen nil
+  "Should Roxygen documentation be fontyfied?
+Since this is not handled by tree sitter, the user should choose."
+  :type 'boolean
   :group 'r-ts-mode)
 
 (defcustom r-ts-mode-roxygen-tags-param
@@ -288,44 +294,44 @@ Used to decide highlighting and tag completion."
 (defun r-ts-mode--find-treesitter-r-package-path ()
   "Find the path to the R package 'treesitter.r'."
   (let* ((r-exec "--no-echo -q -e")
-         (r-exec-command (if (string-match ".exe" r-ts-mode-r-program)
-                             (format
-                              "%s %s print(find.package('treesitter.r'))"
-                              r-ts-mode-r-program r-exec)
-                           (format
-                            "%s %s 'print(find.package(\"treesitter.r\"))'"
-                            r-ts-mode-r-program r-exec)))
-         (r-output (progn
-                     (shell-command r-exec-command)
-                     (with-current-buffer
-                         "*Shell Command Output*"
-                       (append (buffer-substring-no-properties
-                                (point-min) (point-max)))))))
+	 (r-exec-command (if (string-match ".exe" r-ts-mode-r-program)
+			     (format
+			      "%s %s print(find.package('treesitter.r'))"
+			      r-ts-mode-r-program r-exec)
+			   (format
+			    "%s %s 'print(find.package(\"treesitter.r\"))'"
+			    r-ts-mode-r-program r-exec)))
+	 (r-output (progn
+		     (shell-command r-exec-command)
+		     (with-current-buffer
+			 "*Shell Command Output*"
+		       (append (buffer-substring-no-properties
+				(point-min) (point-max)))))))
     (kill-buffer "*Shell Command Output*")
     (if (string-match "^Error" r-output)
-        (error r-output)
+	(error r-output)
       (let* ((string-start (string-match "\"" r-output))
-             (string-end (string-match "\"" r-output (+ 1 string-start))))
-        (substring r-output (+ 1 string-start) string-end)))))
+	     (string-end (string-match "\"" r-output (+ 1 string-start))))
+	(substring r-output (+ 1 string-start) string-end)))))
 
 (defun r-ts-mode--r-package-binary-path-unix (package-path)
   "Search within `PACKAGE-PATH' /libs/ for treesitter.r.so"
   (let ((full-path (format "%s/libs/treesitter.r.so" package-path)))
     (if (not (file-exists-p full-path))
-      (error "File not found: %s" full-path)
+	(error "File not found: %s" full-path)
       full-path)))
 
 (defun r-ts-mode--r-package-binary-path-win (package-path)
   "Search within `PACKAGE-PATH' /libs/ and /libs/x64/ for treesitter.r.dll"
   (let* ((rts-lib-path (format "%s/libs/" package-path))
-       (potential-paths (mapcar (lambda (x) (format "%s%s" rts-lib-path x))
-                          '("/treesitter.r.dll" "/x64/treesitter.r.dll"))))
+	 (potential-paths (mapcar (lambda (x) (format "%s%s" rts-lib-path x))
+				  '("/treesitter.r.dll" "/x64/treesitter.r.dll"))))
     (if-let (file-path (remq nil (mapcar (lambda (x) (when (file-exists-p x) x)) potential-paths)))
-      (car file-path)
+	(car file-path)
       (error "File treesitter.r.dll not found at %s. %s %s"
-             package-path
-             "If you are sure it is somewhere there"
-             "report this issue."))))
+	     package-path
+	     "If you are sure it is somewhere there"
+	     "report this issue."))))
 
 (defun r-ts-mode--r-package-binary-path (package-path)
   "Search for the compiled library, treesitter.r, at the potential
@@ -339,8 +345,8 @@ locations within `PACKAGE-PATH'"
   (let ((path (file-name-as-directory path)))
     (when (not (file-exists-p path))
       (if (string-equal "~/.emacs.d/tree-sitter/" path)
-          (make-directory path nil)
-        (error "Path not found: %s" path)))))
+	  (make-directory path nil)
+	(error "Path not found: %s" path)))))
 
 ;;;###autoload
 (defun r-ts-mode-prepare-binaries-from-r-library (&optional package-path emacs-ts-path)
@@ -349,10 +355,10 @@ EMACS-TS-PATH or '~/.emacs.d/tree-sitter/' by searching in the default
 directories where R installed the library or in PACKAGE-PATH."
   (interactive)
   (let* ((binary-ext (if (eq system-type 'windows-nt) "dll" "so"))
-         (emacs-treesitter-path (file-name-as-directory
-                                 (or emacs-ts-path "~/.emacs.d/tree-sitter/")))
-         (p-path (or package-path (r-ts-mode--find-treesitter-r-package-path)))
-         (binary-path (r-ts-mode--r-package-binary-path p-path)))
+	 (emacs-treesitter-path (file-name-as-directory
+				 (or emacs-ts-path "~/.emacs.d/tree-sitter/")))
+	 (p-path (or package-path (r-ts-mode--find-treesitter-r-package-path)))
+	 (binary-path (r-ts-mode--r-package-binary-path p-path)))
     (r-ts-mode--prepare-emacs-path emacs-treesitter-path)
     (copy-file
      binary-path
@@ -363,10 +369,10 @@ directories where R installed the library or in PACKAGE-PATH."
 (defun r-ts-mode--argument-function-name ()
   "When point is at a node 'argument' or 'arguments', returns the function name."
   (let* ((node-atp (treesit-node-parent (treesit-node-at (point))))
-   (potential-call-node (treesit-node-parent node-atp))
-   (call-node (pcase (treesit-node-type node-atp)
-          ("arguments" potential-call-node)
-          ("argument" (treesit-node-parent potential-call-node)))))
+	 (potential-call-node (treesit-node-parent node-atp))
+	 (call-node (pcase (treesit-node-type node-atp)
+		      ("arguments" potential-call-node)
+		      ("argument" (treesit-node-parent potential-call-node)))))
     (when call-node
       (treesit-node-text (treesit-node-child-by-field-name call-node "function") t))))
 
@@ -375,17 +381,17 @@ directories where R installed the library or in PACKAGE-PATH."
 function definitions found in BUFFER-OR-NAME."
   (with-current-buffer buffer-or-name
     (let* ((positions '())
-     (ts-query (treesit-query-compile 'r '((function_definition name: "function" @val))))
-    (range-alist (treesit-query-range 'r ts-query))
-    (ranges (mapcar #'car range-alist)))
+	   (ts-query (treesit-query-compile 'r '((function_definition name: "function" @val))))
+	   (range-alist (treesit-query-range 'r ts-query))
+	   (ranges (mapcar #'car range-alist)))
       (when ranges
-  (dolist (pos ranges)
-    (let* ((parent-node (treesit-node-parent (treesit-node-parent (treesit-node-at pos)))))
-      (when (treesit-node-match-p parent-node "binary_operator")
-        (push
-         (cons (treesit-node-text (treesit-node-child parent-node -3) t) pos)
-         positions))))
-  positions))))
+	(dolist (pos ranges)
+	  (let* ((parent-node (treesit-node-parent (treesit-node-parent (treesit-node-at pos)))))
+	    (when (treesit-node-match-p parent-node "binary_operator")
+	      (push
+	       (cons (treesit-node-text (treesit-node-child parent-node -3) t) pos)
+	       positions))))
+	positions))))
 
 (defun r-ts-mode--recursively-match-node-type (node type)
   "Check if NODE matches TYPE and return it. If not, check recursively the
@@ -393,18 +399,18 @@ parents, until reaching the 'program' node."
   (cond
    ((treesit-node-match-p node type) node)
    ((and (not (string-equal type "program"))
-         (treesit-node-match-p node "program")) nil)
+	 (treesit-node-match-p node "program")) nil)
    (t (r-ts-mode--recursively-match-node-type (treesit-node-parent node) type))))
 
 (defun r-ts-mode--inside-fun-def? ()
   "Retun true if cursor is inside a function definition, including function name
 and assignment symbol."
   (let ((node-ap (treesit-node-at (point)))
-        (type "function_definition"))
+	(type "function_definition"))
     (when
-        (or (r-ts-mode--recursively-match-node-type node-ap type)
-            (treesit-node-match-p (treesit-node-next-sibling (treesit-node-next-sibling node-ap)) type)
-            (treesit-node-match-p (treesit-node-next-sibling node-ap) type))
+	(or (r-ts-mode--recursively-match-node-type node-ap type)
+	    (treesit-node-match-p (treesit-node-next-sibling (treesit-node-next-sibling node-ap)) type)
+	    (treesit-node-match-p (treesit-node-next-sibling node-ap) type))
       t)))
 
 (defun r-ts-mode--is-fun-def (node)
@@ -416,11 +422,11 @@ and assignment symbol."
 
 Return nil if there is no name or if NODE is not a defun node."
   (let ((get-node-text-at-point
-       (lambda () (treesit-node-text (treesit-node-at (point)) t))))
+	 (lambda () (treesit-node-text (treesit-node-at (point)) t))))
     (when (r-ts-mode--is-fun-def node)
       (pcase (treesit-node-type node)
-      ("binary_operator"
-       (treesit-node-text (treesit-node-child node -3) t))))))
+	("binary_operator"
+	 (treesit-node-text (treesit-node-child node -3) t))))))
 
 (defun r-ts-mode--is-simple-object (node)
   "Is NODE a binary_operator which is not function_definition?"
@@ -540,25 +546,25 @@ not a function."
       lhs: (identifier) @r-ts-mode-face-type
       operator: "<-"
       rhs: (call function: (identifier) @fn-name
-             (:match "\\(?:R6Class\\|new_class\\)" @fn-name)))
+		 (:match "\\(?:R6Class\\|new_class\\)" @fn-name)))
      (binary_operator
       lhs: (identifier) @r-ts-mode-face-type
       operator: "="
       rhs: (call function: (identifier) @fn-name
-             (:match "\\(?:R6Class\\|new_class\\)" @fn-name)))
+		 (:match "\\(?:R6Class\\|new_class\\)" @fn-name)))
      ;; S4
      (call function:
-         (identifier) @fn-name
-         arguments: (arguments :anchor (argument value: (string) @r-ts-mode-face-type))
-         (:match "\\`setClass\\'" @fn-name))
+	   (identifier) @fn-name
+	   arguments: (arguments :anchor (argument value: (string) @r-ts-mode-face-type))
+	   (:match "\\`setClass\\'" @fn-name))
      ;; S3
      (call function:
-         (identifier) @fn-name
-         arguments: (arguments
-                   (argument name: (identifier) @arg-name
-                         (:match "\\`class\\'" @arg-name)
-                         value: (_) @r-ts-mode-face-type))
-         (:match "\\`structure\\'" @fn-name)))
+	   (identifier) @fn-name
+	   arguments: (arguments
+		       (argument name: (identifier) @arg-name
+				 (:match "\\`class\\'" @arg-name)
+				 value: (_) @r-ts-mode-face-type))
+	   (:match "\\`structure\\'" @fn-name)))
 
    :feature 'error
    :override t
@@ -570,24 +576,24 @@ not a function."
 (defun r-ts-mode-roxygen-generate-keywords ()
   "Generate a list of keywords suitable for `font-lock-add-keywords'."
   (setq-local r-ts-mode-roxygen-font-lock-keywords
-              `(
-		        (,(concat r-ts-mode-roxygen--initial-regex ".*")
-		         (0 'font-lock-doc-face prepend))
-		        (,(concat r-ts-mode-roxygen--initial-regex " *\\([@\\]"
-                          (regexp-opt r-ts-mode-roxygen-tags-param t)
-                          "\\)\\>")
-                 (1 'font-lock-keyword-face prepend))
-                (,(concat r-ts-mode-roxygen--initial-regex " *\\(@"
-                          (regexp-opt '("param" "importFrom" "importClassesFrom"
-                                        "importMethodsFrom" "describeIn")
-                                      'words)
-			              "\\)\\(?:[ \t]+\\(" r-ts-mode-roxygen--param-name-regexp "\\)\\)")
-                 (1 'font-lock-keyword-face prepend)
-                 (3 'font-lock-variable-name-face prepend))
-                (,(concat "[@\\]" (regexp-opt r-ts-mode-roxygen-tags-noparam t) "\\>")
-                 (0 'font-lock-variable-name-face prepend))
-                (,(concat r-ts-mode-roxygen--initial-regex)
-                 (0 'bold prepend)))))
+	      `(
+		(,(concat r-ts-mode-roxygen--initial-regex ".*")
+		 (0 'font-lock-doc-face prepend))
+		(,(concat r-ts-mode-roxygen--initial-regex " *\\([@\\]"
+			  (regexp-opt r-ts-mode-roxygen-tags-param t)
+			  "\\)\\>")
+		 (1 'font-lock-keyword-face prepend))
+		(,(concat r-ts-mode-roxygen--initial-regex " *\\(@"
+			  (regexp-opt '("param" "importFrom" "importClassesFrom"
+					"importMethodsFrom" "describeIn")
+				      'words)
+			  "\\)\\(?:[ \t]+\\(" r-ts-mode-roxygen--param-name-regexp "\\)\\)")
+		 (1 'font-lock-keyword-face prepend)
+		 (3 'font-lock-variable-name-face prepend))
+		(,(concat "[@\\]" (regexp-opt r-ts-mode-roxygen-tags-noparam t) "\\>")
+		 (0 'font-lock-variable-name-face prepend))
+		(,(concat r-ts-mode-roxygen--initial-regex)
+		 (0 'bold prepend)))))
 
 
 ;; ----- MAJOR MODE DEFINITION
@@ -632,14 +638,14 @@ not a function."
 
   ;; Font-lock
   (setq-local treesit-font-lock-feature-list
-	          '(( comment)
-		        ( operator string repeat)
-		        ( punctuation-bracket boolean conditional function function-call
-		        keyword number constant-builtin variable)
-		        ( punctuation-delimiter string-escape variable-parameter error
-		          namespace keyword-function type)))
+		  '(( comment)
+			( operator string repeat)
+			( punctuation-bracket boolean conditional function function-call
+			keyword number constant-builtin variable)
+			( punctuation-delimiter string-escape variable-parameter error
+			  namespace keyword-function type)))
   ;; TODO: Make below as defcustom
-  (setq-local treesit-font-lock-settings r-ts-mode-settings)  
+  (setq-local treesit-font-lock-settings r-ts-mode-settings)
 
   ;; Navigation
   (setq-local treesit-defun-type-regexp
@@ -656,7 +662,8 @@ not a function."
 
   ;; Finalize
   (treesit-major-mode-setup)
-  (r-ts-mode-roxygen-mode))
+  (when r-ts-mode-fontify-roxygen
+    (r-ts-mode-roxygen-mode)))
 
 ;;;###autoload
 (defalias 'R-ts-mode #'r-ts-mode)
@@ -669,7 +676,7 @@ not a function."
   (if r-ts-mode-roxygen-mode
       ;; Turn on `r-ts-mode-roxygen-mode'
       (progn
-        (font-lock-add-keywords nil (r-ts-mode-roxygen-generate-keywords))
+	(font-lock-add-keywords nil (r-ts-mode-roxygen-generate-keywords))
 	    (add-hook 'completion-at-point-functions #'r-ts-mode-roxygen-complete-tag nil t))
     ;; Turn off `r-ts-mode-roxygen-mode'
     (font-lock-remove-keywords nil r-ts-mode-roxygen-font-lock-keywords))

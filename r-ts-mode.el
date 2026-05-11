@@ -488,7 +488,7 @@ not a function."
 
    :feature 'function-call
    :override t
-   '((call function: (identifier) @r-ts-mode-face-function))
+   '((call function: (identifier) @r-ts-mode-face-function-call))
 
    :feature 'variable-parameter
    :override t
@@ -639,7 +639,6 @@ not a function."
 		        ( punctuation-delimiter string-escape variable-parameter error
 		          namespace keyword-function type)))
   ;; TODO: Make below as defcustom
-  (setq-local treesit-font-lock-level 4)
   (setq-local treesit-font-lock-settings r-ts-mode-settings)  
 
   ;; Navigation

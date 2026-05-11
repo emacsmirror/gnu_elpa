@@ -5,7 +5,7 @@
 ;; Author: Augusto Stoffel <arstoffel@gmail.com>
 ;; Keywords: mail
 ;; URL: https://codeberg.org/astoff/minimail
-;; Package-Requires: ((emacs "30.1") (transient "0.12"))
+;; Package-Requires: ((emacs "30.1") (compat "31") (transient "0.12"))
 ;; Version: 0.4.2
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -132,7 +132,7 @@ Return an athunk which resolves to the value of the last form in BODY."
            (if err
                (funcall cont err val)
              (setf (aref result i) val)
-             (when (zerop (cl-decf n))
+             (when (zerop (decf n))
                (run-with-timer 0 nil cont nil result)))))))))
 
 (defmacro athunk-let (bindings &rest body)
@@ -211,10 +211,10 @@ See `condition-case' for the exact meaning of VAR and HANDLERS."
                            (lambda (err val)
                              (if-let* ((next (pop (cdr state))))
                                  (run-with-timer 0 nil next)
-                               (cl-incf (car state)))
+                               (incf (car state)))
                              (funcall cont err val))))))
       (cond
-       ((> (car state) 0) (cl-decf (car state)) (funcall task))
+       ((> (car state) 0) (decf (car state)) (funcall task))
        (priority (push task (cdr state)))
        (t (nconc state (list task)))))))
 
@@ -244,7 +244,7 @@ athunk doesn't resolve immediately."
       (cond
        (reporter (progress-reporter-update reporter))
        (message (setq reporter (make-progress-reporter message))))
-      (cl-decf max-tries)
+      (decf max-tries)
       (sleep-for interval))
     (when err (signal err val))
     (unless done (error "athunk timed out"))
@@ -1217,7 +1217,7 @@ before that, while possible, blocks Emacs."
 When a response arrives, CALLBACK is called, on a buffer containing the
 server response, with two arguments: an error symbol and a message."
   (with-current-buffer (process-buffer proc)
-    (let ((tag (cl-incf -imap-last-tag)))
+    (let ((tag (incf -imap-last-tag)))
       (-log-message "request: %s %s\n%s"
                     proc
                     (or -current-mailbox "(unselected)")
@@ -1650,7 +1650,7 @@ or a string containing such an alist as a property."
   (let-alist (if (stringp mbinfo) (car (-get-data mbinfo)) mbinfo)
     (when .messages
       (let ((suffix (if (eq 1 .messages) "" "s")))
-        (if (cl-plusp .unseen)
+        (if (plusp .unseen)
             (format " %s message%s, %s unseen" .messages suffix .unseen)
           (format " %s message%s" .messages suffix))))))
 
@@ -2436,7 +2436,7 @@ many message, otherwise use `minimail-fetch-limit'."
                (not (assoc-string '\\Seen (-message-flags msg))))
              (cl-signum direction))
       (user-error "No unseen messages %s"
-                  (if (cl-minusp direction) 'above 'below)))
+                  (if (minusp direction) 'above 'below)))
     (when-let* ((window (get-buffer-window)))
       (set-window-point window (point)))
     (minimail-show-message)))
@@ -2478,8 +2478,8 @@ prefix argument."
                       (query (mapcar
                               (lambda (it) (or (car (member it flags)) it))
                               (completing-read-multiple
-                               (format "%s flags: " (cond ((cl-plusp how) "Add")
-                                                          ((cl-minusp how) "Remove")
+                               (format "%s flags: " (cond ((plusp how) "Add")
+                                                          ((minusp how) "Remove")
                                                           (t "Toggle")))
                                flags nil t))))
                  (list (-selected-messages)
@@ -2492,8 +2492,8 @@ prefix argument."
                                          -message-list)))
                       (assoc-string flag (-message-flags msg)))))
            (remove
-            (cond ((cl-plusp how) nil)
-                  ((cl-minusp how) t)
+            (cond ((plusp how) nil)
+                  ((minusp how) t)
                   (t (seq-every-p flagp (ensure-list set))))))
       (athunk-run
        (-astore-message-flags -current-mailbox set flag remove)))))
@@ -2624,7 +2624,7 @@ style.  If DESCEND is non-nil, use the opposite convention."
                         (t (min i j)))))
           (puthash root k rootpos))
         (push msg messages)
-        (cl-incf i)
+        (incf i)
         (forward-line)))
     (setq -message-list (sort messages :key key :in-place t))
     ;; Little hack to force vtable to redisplay with our new sorting.

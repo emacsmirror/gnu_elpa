@@ -368,10 +368,10 @@ to apply your changes or `\\[ffs-edit-discard]' to discard them.")))
   (interactive)
   (let* ((f nil)
          (str (buffer-string))
-         (sn (if (string-suffix-p "\n" str)
-                 str
-               (concat str "\n")))
-         (s (format "\n%s%s" sn ffs-page-delimiter))
+         (s (if (string-suffix-p "\n" str)
+                str
+              (concat str "\n")))
+         (sn (format "\n%s%s" s ffs-page-delimiter))
          (l ffs--new-location))
     ;; XXX maybe break out into helper, would be helpful when testing
     (with-current-buffer ffs--edit-source-buffer
@@ -380,11 +380,11 @@ to apply your changes or `\\[ffs-edit-discard]' to discard them.")))
           (cond
            ((eq l 'add-above)
             (backward-page)
-            (insert s)
+            (insert sn)
             (setq f #'ffs-goto-previous))
            ((eq l 'add-below)
             (forward-page)
-            (insert s)
+            (insert sn)
             (setq f #'ffs-goto-next))
            ((null l)
             (narrow-to-page)

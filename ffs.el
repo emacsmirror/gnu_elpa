@@ -63,6 +63,7 @@
 If you use a custom `page-delimiter' regexp, be sure to customize this
 as well."
   :type 'string
+  :package-version '(ffs . "0.2.0")
   :group 'ffs)
 
 (defcustom ffs-echo-progress nil
@@ -93,6 +94,16 @@ a larger font size when presenting.
 If nil, don't change the `default' face's `height' in presentations."
   :type '(choice (const nil)
                  (natnum :value 300))
+  :package-version '(ffs . "0.1.0")
+  :group 'ffs)
+
+(defcustom ffs-edit-display-buffer-alist
+  '(display-buffer-same-window
+    (inhibit-same-window . nil))
+  "Window configuration for the `ffs-edit' buffer.
+By default, it will display the `ffs-edit' buffer in the same window."
+  :type display-buffer--action-custom-type
+  :package-version '(ffs . "0.2.0")
   :group 'ffs)
 
 (defcustom ffs-start-hook nil
@@ -318,6 +329,7 @@ slide will be added above/before the current slide, and if it is
 current slide.  The logic is implemented in `ffs-edit-done'."
   (interactive)
   (let* ((b (current-buffer))
+         (nb (generate-new-buffer ffs-edit-buffer-name))
          (fc fill-column)
          (m major-mode)
          (n (buffer-narrowed-p))
@@ -326,25 +338,24 @@ current slide.  The logic is implemented in `ffs-edit-done'."
               (unless n (narrow-to-page))
               (prog1 (buffer-string)
                 (unless n (widen))))))
-    ;; XXX (with-current-buffer buffer ...)
-    ;; (display-buffer buffer)
-    ;;   ^ also accepts an alist that we can make a user option
-    (pop-to-buffer-same-window
-     (generate-new-buffer ffs-edit-buffer-name))
-    (erase-buffer)
-    (funcall m)
-    (ffs-edit-mode 1)
-    (insert s)
-    (goto-char (point-min))
-    (set-buffer-modified-p nil)
-    (setq-local
-     ffs--edit-source-buffer b
-     ffs--new-location add-above-or-below
-     fill-column fc
-     header-line-format
-     (substitute-command-keys "Edit, then use `\\[ffs-edit-done]' \
-to apply your changes or `\\[ffs-edit-discard]' to discard them.")))
-  (run-hooks 'ffs-edit-hook))
+    (with-current-buffer nb
+      (erase-buffer)
+      (funcall m)
+      (ffs-edit-mode 1)
+      (insert s)
+      (goto-char (point-min))
+      (set-buffer-modified-p nil)
+      (setq-local
+       ffs--edit-source-buffer b
+       ffs--new-location add-above-or-below
+       fill-column fc
+       header-line-format
+       (substitute-command-keys "Edit, then use `\\[ffs-edit-done]' \
+to apply your changes or `\\[ffs-edit-discard]' to discard them."))
+      (run-hooks 'ffs-edit-hook))
+    (let ((window (display-buffer nb ffs-edit-display-buffer-alist)))
+      (when window
+        (select-window window)))))
 
 (defun ffs-new-above ()
   "Add a new slide above/before the current slide."

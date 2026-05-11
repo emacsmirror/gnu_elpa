@@ -95,7 +95,7 @@ Used to decide highlighting and tag completion."
   "Regexp to match a parameter name, which can include symbols.")
 
 (defvar r-ts-mode-syntax-table
-  (let ((table (make-syntax-table)))
+  (let ((table (make-syntax-table prog-mode-syntax-table)))
     ;; Comments
     (modify-syntax-entry ?\# "<" table)
     (modify-syntax-entry ?\n ">" table)
@@ -276,10 +276,10 @@ Used to decide highlighting and tag completion."
 	  (add-hook 'project-find-functions #'ess-r-project nil 'local))))
   (progn
     (defalias 'r-ts-mode-parent-mode-map 'prog-mode-map "prog-mode-map")
-    (define-derived-mode r-ts-mode-parent-mode prog-mode "R-ts Parent mode"
-      "r-ts parent Mode independent from ESS"
-      :group 'r-ts
-      (set-syntax-table r-ts-mode-syntax-table)
+    (define-derived-mode r-ts-mode-parent-mode prog-mode "R-ts-mode Parent mode"
+      "r-ts-mode parent Mode independent from ESS"
+      :group 'r-ts-mode
+      :syntax-table r-ts-mode-syntax-table
       (setq-local comment-start "#")
       (setq-local comment-end ""))))
 

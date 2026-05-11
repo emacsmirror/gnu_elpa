@@ -2,7 +2,7 @@ EMACS ?= emacs
 HOMEDIR ?= emacs-init/$(EMACS)
 BATCH = $(EMACS) --batch --init-directory='$(HOMEDIR)' -f package-initialize
 
-EL = minimail.el
+EL = minimail.el online-accounts.el
 ELC = $(EL:.el=.elc)
 
 all: $(ELC)

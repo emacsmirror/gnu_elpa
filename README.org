@@ -10,6 +10,7 @@ sending messages:
 - Rendering of MIME content (via Gnus)
 - Composing, replying to and forwarding messages
 - Multi-account support
+- OAuth login (at least under GNOME, see below)
 - Message search
 - Copying and moving messages between mailboxes (also archive, move to
   trash, move to junk folder)
@@ -21,7 +22,6 @@ Here is a list of planned features:
 
 - Watching for new messages and notifications
 - Virtual mailboxes a.k.a. bookmarked searches
-- Login via OAuth
 - Various optimizations, perhaps a persistent cache
 
 Minimail is an [[https://www.rfc-editor.org/rfc/rfc1733][online]] IMAP client.  It is intended to coexist
@@ -94,6 +94,20 @@ rubric of "enable less secure apps" (for Gmail, see [[https://support.google.com
 
 Once you get the basics up and running, try =M-x customize-group
 minimail RET= to explore all customization options.
+
+*** OAuth access
+
+If instead of passwords you want to (or must) use the OAuth login
+mechanism, and you happen to already have the account in question set
+up in GNOME Online Accounts, then you can try this out:
+
+#+begin_src emacs-lisp
+(push 'online-accounts auth-sources)
+#+end_src
+
+It is possible, though not very likely, that this feature can be
+extended to other platforms.  Let me know if you have and hints or
+suggestions.
 
 ** Usage
 

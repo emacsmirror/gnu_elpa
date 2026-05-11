@@ -544,10 +544,14 @@ Example config:
   :config
   ;; Set the duet provider (openai, claude, gemini, openai-compatible)
   (setq minuet-duet-provider 'gemini)
+
+  ;; Disable thinking for gemini provider
   (minuet-set-optional-options minuet-duet-gemini-options
                                :generationConfig
-                               '(:thinkingConfig (:thinkingLevel "minimal"))))
+                               '(:thinkingConfig (:thinkingLevel "minimal")))
 
+  ;; Disable thinking for openai-compatible provider
+  (minuet-set-optional-options minuet-duet-openai-compatible-options :reasoning_effort "none"))
 ```
 
 This feature is highly experimental:

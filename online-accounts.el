@@ -36,7 +36,8 @@
             "Use the `online-accounts' auth-source backend, if applicable."
             (and (eq entry 'online-accounts)
                  (require 'online-accounts nil t)
-                 (-auth-source-backends-parser entry))))
+                 (-auth-source-backends-parser entry)))
+          -10)                  ;low DEPTH needed because of bug#81024
 
 (defun -auth-source-backends-parser (entry)
   (and (eq entry 'online-accounts)

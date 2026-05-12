@@ -51,6 +51,7 @@
 ;; dedication in README/manual
 ;; acronym and backronyms
 
+(require 'map)
 (require 'page)
 (require 'format-spec)
 
@@ -76,7 +77,7 @@ the slides in the echo area."
   :group 'ffs)
 
 (defcustom ffs-echo-progress-format "Slide %c of %t"
-  "The format spec used for `ffs-echo-progress'.
+  "The format spec used for function `ffs-echo-progress-format'.
 
 %c Number of current slide.
 %t Total number of slides."
@@ -85,7 +86,7 @@ the slides in the echo area."
   :package-version '(ffs . "0.2.0")
   :group 'ffs)
 
-(defcustom ffs-default-face-height 370
+(defcustom ffs-default-face-height nil
   "Value of `height' property of `default' face during presentations.
 If a natural number (non-negative integer), it will be used as the
 `height' of the `default' face during presentations, useful for having
@@ -93,8 +94,8 @@ a larger font size when presenting.
 
 If nil, don't change the `default' face's `height' in presentations."
   :type '(choice (const nil)
-                 (natnum :value 300))
-  :package-version '(ffs . "0.1.0")
+                 (natnum :value 250))
+  :package-version '(ffs . "0.2.0")
   :group 'ffs)
 
 (defcustom ffs-edit-display-buffer-alist
@@ -103,6 +104,30 @@ If nil, don't change the `default' face's `height' in presentations."
   "Window configuration for the `ffs-edit' buffer.
 By default, it will display the `ffs-edit' buffer in the same window."
   :type display-buffer--action-custom-type
+  :package-version '(ffs . "0.2.0")
+  :group 'ffs)
+
+(defcustom ffs-hide-cursor nil
+  "When non-nil hide the cursor.
+This is only relevant when `ffs-present-mode' is enabled."
+  :type 'boolean
+  :local t
+  :package-version '(ffs . "0.2.0")
+  :group 'ffs)
+
+(defcustom ffs-hide-mode-line nil
+  "When non-nil hide the mode line.
+This is only relevant when `ffs-present-mode' is enabled."
+  :type 'boolean
+  :local t
+  :package-version '(ffs . "0.2.0")
+  :group 'ffs)
+
+(defcustom ffs-hide-header-line nil
+  "When non-nil hide the header line.
+This is only relevant when `ffs-present-mode' is enabled."
+  :type 'boolean
+  :local t
   :package-version '(ffs . "0.2.0")
   :group 'ffs)
 
@@ -146,39 +171,8 @@ When the user chooses (and opens) a speaker notes file using
 corresponding buffer is stored in this variable, local to the
 main ffs presentation slides buffer (`ffs--slides-buffer').")
 
-(defvar-local ffs--old-mode-line-format nil
-  "Old value of `mode-line-format'.")
-
-(defvar-local ffs--old-cursor-type nil
-  "Old value of `cursor-type'.")
-
 (defvar-local ffs--default-face-height-cookie nil
   "Cookie returned from `face-remap-add-relative', for later removal.")
-
-(define-minor-mode ffs-no-mode-line-minor-mode
-  "Minor mode for hiding the mode-line."
-  :lighter nil
-  (if ffs-no-mode-line-minor-mode
-      (progn
-        (unless ffs--old-mode-line-format
-          (setq-local ffs--old-mode-line-format mode-line-format))
-        (setq-local mode-line-format nil))
-    (setq-local mode-line-format ffs--old-mode-line-format)
-    (when ffs--old-mode-line-format
-      ffs--old-mode-line-format nil))
-  (redraw-display))
-
-(define-minor-mode ffs-no-cursor-minor-mode
-  "Minor mode for hiding the cursor."
-  :lighter nil
-  (if ffs-no-cursor-minor-mode
-      (progn
-        (unless ffs--old-cursor-type
-          (setq-local ffs--old-cursor-type cursor-type))
-        (setq-local cursor-type nil))
-    (setq-local cursor-type ffs--old-cursor-type)
-    (when ffs--old-cursor-type
-      ffs--old-cursor-type nil)))
 
 ;; XXX user option for more sophisticated behaviour?
 ;; set-face-attribute  for specific frames
@@ -206,8 +200,8 @@ main ffs presentation slides buffer (`ffs--slides-buffer').")
       (goto-char (point-max))
       (ffs-current-slide-number))))
 
-(defun ffs-echo-progress ()
-  "Return progress through slides per `ffs-echo-progress-format'."
+(defun ffs-echo-progress-format ()
+  "Return progress through slides per variable `ffs-echo-progress-format'."
   (format-spec
    ffs-echo-progress-format
    `((?c . ,(ffs-current-slide-number))
@@ -272,8 +266,8 @@ Symbol NAME is the name describing the movement."
        (when ffs--notes-buffer
          (,hname ffs--notes-buffer)
          (redraw-display))
-       (when ffs-echo-progress
-         (message (ffs-echo-progress))))))
+       (when (and ffs-present-mode ffs-echo-progress)
+         (message (ffs-echo-progress-format))))))
 
 (ffs--define-goto-slide previous)
 (ffs--define-goto-slide next)
@@ -439,6 +433,16 @@ changes, or \\[ffs-edit-discard] to discard them."
   :lighter " ffs-edit"
   :keymap ffs-edit-mode-map)
 
+(defvar ffs-toggle-prefix-map nil
+  "Keymap for ffs toggle commands.")
+(define-prefix-command 'ffs-toggle-prefix-map)
+(let ((map ffs-toggle-prefix-map))
+  (define-key map (kbd "e") #'ffs-toggle-echo-progress)
+  (define-key map (kbd "c") #'ffs-toggle-hide-cursor)
+  (define-key map (kbd "m") #'ffs-toggle-hide-mode-line)
+  (define-key map (kbd "h") #'ffs-toggle-hide-header-line)
+  (define-key map (kbd "d") #'ffs-toggle-dark-mode))
+
 (defvar ffs-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "p") #'ffs-goto-previous)
@@ -452,15 +456,15 @@ changes, or \\[ffs-edit-discard] to discard them."
     (define-key map (kbd "s") #'ffs-start)
     (define-key map (kbd "q") #'ffs-stop-or-quit)
     (define-key map (kbd "e") #'ffs-edit)
+    (define-key map (kbd "C-c '") #'ffs-edit)
     (define-key map (kbd "O") #'ffs-new-above)
     (define-key map (kbd "o") #'ffs-new-below)
-    (define-key map (kbd "m") #'ffs-no-mode-line-minor-mode)
-    (define-key map (kbd "c") #'ffs-no-cursor-minor-mode)
-    (define-key map (kbd "d") #'ffs-toggle-dark-mode)
     (define-key map (kbd "S") #'ffs-find-speaker-notes-file)
     (define-key map (kbd "N") #'narrow-to-page)
     (define-key map (kbd "W") #'widen)
     (define-key map [remap undo] #'ffs-undo) ; `C-_', `C-/', `C-x u'
+    (define-key map (kbd "t") ffs-toggle-prefix-map)
+    (define-key map (kbd "?") #'describe-mode)
     map)
   "Keymap for `ffs-mode'.")
 
@@ -479,13 +483,127 @@ changes, or \\[ffs-edit-discard] to discard them."
 ;;;###autoload
 (defalias 'ffs #'ffs-mode)
 
+;; I learned about the method of using `ffs-set-buffer-local-value'
+;; from Protesilaos <https://protesilaos.com> and his Logos package,
+;; who in turn learned about it from Daniel Mendler.  Protesilaos's
+;; version simply uses `push', but I need to retrieve specific values
+;; later, so I use a plist and `plist-put' instead.
+(defvar-local ffs--restore nil)
+
+(defun ffs-set-buffer-local-value (var val)
+  "Set VAR to buffer-local VAL."
+  (let ((old (and (boundp var) (symbol-value var))))
+    (unless (equal old val)
+      (set var val)
+      (if (local-variable-p var)
+          (setq-local
+           ffs--restore
+           (plist-put ffs--restore var (lambda () (set var old))))
+        (make-local-variable var)
+        (setq-local
+         ffs--restore
+         (plist-put
+          ffs--restore var (lambda () (kill-local-variable var))))))))
+
+(defun ffs-hide-cursor ()
+  "Hide cursor if variable `ffs-hide-cursor' is non-nil.
+If we already hid the cursor, restore it.  Otherwise, when variable
+`ffs-hide-cursor' is non-nil, set `cursor-type' to nil."
+  (interactive)
+  (if-let* ((f (plist-get ffs--restore 'cursor-type)))
+      (progn
+        (funcall f)
+        (setq-local
+         ffs--restore (map-delete ffs--restore 'cursor-type)))
+    (when ffs-hide-cursor
+      (ffs-set-buffer-local-value 'cursor-type nil))))
+
+(defun ffs-hide-mode-line ()
+  "Hide mode line if variable `ffs-hide-mode-line' is non-nil.
+If we already hid the mode line, restore it.  Otherwise, when variable
+`ffs-hide-mode-line' is non-nil, set `mode-line-format' to nil."
+  (interactive)
+  (if-let* ((f (plist-get ffs--restore 'mode-line-format)))
+      (progn
+        (funcall f)
+        (setq-local
+         ffs--restore (map-delete ffs--restore 'mode-line-format)))
+    (when ffs-hide-mode-line
+      (ffs-set-buffer-local-value 'mode-line-format nil)))
+  (redraw-display))
+
+(defun ffs-hide-header-line ()
+  "Hide header line if variable `ffs-hide-header-line' is non-nil.
+If we already hid the header line, restore it.  Otherwise, when variable
+`ffs-hide-header-line' is non-nil, set `header-line-format' to nil."
+  (interactive)
+  (if-let* ((f (plist-get ffs--restore 'header-line-format)))
+      (progn
+        (funcall f)
+        (setq-local
+         ffs--restore (map-delete ffs--restore 'header-line-format)))
+    (when ffs-hide-header-line
+      (ffs-set-buffer-local-value 'header-line-format nil))))
+
+(defun ffs-toggle-echo-progress ()
+  "Toggle variable `ffs-echo-progress'."
+  (interactive)
+  (setq-local ffs-echo-progress (not ffs-echo-progress))
+  (message
+   "%s is now locally set to %s"
+   'ffs-echo-progress ffs-echo-progress))
+
+(defun ffs-toggle-hide-cursor ()
+  "Toggle variable `ffs-hide-cursor'."
+  (interactive)
+  (setq-local ffs-hide-cursor (not ffs-hide-cursor))
+  (message
+   "%s is now locally set to %s"
+   'ffs-hide-cursor ffs-hide-cursor)
+  (when ffs-present-mode
+    (ffs-hide-cursor)))
+
+(defun ffs-toggle-hide-mode-line ()
+  "Toggle variable `ffs-hide-mode-line'."
+  (interactive)
+  (setq-local ffs-hide-mode-line (not ffs-hide-mode-line))
+  (message
+   "%s is now locally set to %s"
+   'ffs-hide-mode-line ffs-hide-mode-line)
+  (when ffs-present-mode
+    (ffs-hide-mode-line)))
+
+(defun ffs-toggle-hide-header-line ()
+  "Toggle variable `ffs-hide-header-line'."
+  (interactive)
+  (setq-local ffs-hide-header-line (not ffs-hide-header-line))
+  (message
+   "%s is now locally set to %s"
+   'ffs-hide-header-line ffs-hide-header-line)
+  (when ffs-present-mode
+    (ffs-hide-header-line)))
+
+(defvar ffs-present-mode-map
+  (let ((map (make-sparse-keymap)))
+    (set-keymap-parent map ffs-mode-map)
+    (define-key map (kbd "s") #'ffs-stop-or-quit)
+    map)
+  "Keymap for `ffs-present-mode'.")
+
 (declare-function face-remap-add-relative "face-remap" (cookie))
 (declare-function face-remap-remove-relative "face-remap" (cookie))
 (define-minor-mode ffs-present-mode
   "Minor mode for active ffs presentations."
   :group 'ffs
+  :lighter nil
+  :keymap ffs-present-mode-map
+  (map-do (lambda (_var fun) (funcall fun)) ffs--restore)
+  (setq-local ffs--restore nil)
   (if ffs-present-mode
       (progn
+        (ffs-hide-cursor)
+        (ffs-hide-mode-line)
+        (ffs-hide-header-line)
         (when (natnump ffs-default-face-height)
           (setq-local
            ffs--default-face-height-cookie
@@ -494,13 +612,12 @@ changes, or \\[ffs-edit-discard] to discard them."
         (unless (buffer-narrowed-p)
           (narrow-to-page))
         (when ffs-echo-progress
-          (message (ffs-echo-progress))))
-    (progn
-      (when ffs--default-face-height-cookie
-        (face-remap-remove-relative ffs--default-face-height-cookie))
-      (when (buffer-narrowed-p)
-        (goto-char (point-min))
-        (widen)))))
+          (message (ffs-echo-progress-format))))
+    (when ffs--default-face-height-cookie
+      (face-remap-remove-relative ffs--default-face-height-cookie))
+    (when (buffer-narrowed-p)
+      (goto-char (point-min))
+      (widen))))
 
 (provide 'ffs)
 ;;; ffs.el ends here

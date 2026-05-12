@@ -106,16 +106,6 @@ By default, it will display the `ffs-edit' buffer in the same window."
   :package-version '(ffs . "0.2.0")
   :group 'ffs)
 
-(defcustom ffs-start-hook nil
-  "Hook run when starting presenting (at the end of `ffs-start')."
-  :type 'hook
-  :group 'ffs)
-
-(defcustom ffs-quit-hook nil
-  "Hook run when quitting presenting (at the end of `ffs-quit')."
-  :type 'hook
-  :group 'ffs)
-
 (defcustom ffs-edit-hook nil
   "Hook run when editing a slide (at the end of `ffs-edit')."
   :type 'hook
@@ -291,34 +281,20 @@ Symbol NAME is the name describing the movement."
 (ffs--define-goto-slide last)
 
 (defun ffs-start ()
-  "Start the presentation."
+  "Start presenting."
   (interactive)
-  (unless (and ffs-mode (buffer-narrowed-p))
-    (ffs-mode 1)
-    (when (natnump ffs-default-face-height)
-      (setq-local
-       ffs--default-face-height-cookie
-       (face-remap-add-relative
-        'default :height ffs-default-face-height)))
-    (narrow-to-page)
-    (when ffs-echo-progress
-      (message (ffs-echo-progress)))
-    (run-hooks 'ffs-start-hook)))
+  (unless ffs-mode
+    (ffs-mode 1))
+  (unless ffs-present-mode
+    (ffs-present-mode 1)))
 
-(declare-function face-remap-remove-relative "face-remap" (cookie))
-(defun ffs-quit ()
-  "Quit the presentation.
-If not currently presenting, quit (disable) `ffs-mode'."
+(defun ffs-stop-or-quit ()
+  "Stop presenting.  If not currently presenting, disable `ffs-mode'."
   (interactive)
   (when ffs-mode
-    (when ffs--default-face-height-cookie
-      (face-remap-remove-relative ffs--default-face-height-cookie))
-    (if (buffer-narrowed-p) ; currently presenting
-        (progn
-          (goto-char (point-min))
-          (widen))
-      (ffs-mode -1)))
-    (run-hooks 'ffs-quit-hook))
+    (if ffs-present-mode
+        (ffs-present-mode -1)
+      (ffs-mode -1))))
 
 (defun ffs-edit (&optional add-above-or-below)
   "Pop to a new buffer to edit a slide.
@@ -474,7 +450,7 @@ changes, or \\[ffs-edit-discard] to discard them."
     (define-key map (kbd "<") #'ffs-goto-first)
     (define-key map (kbd ">") #'ffs-goto-last)
     (define-key map (kbd "s") #'ffs-start)
-    (define-key map (kbd "q") #'ffs-quit)
+    (define-key map (kbd "q") #'ffs-stop-or-quit)
     (define-key map (kbd "e") #'ffs-edit)
     (define-key map (kbd "O") #'ffs-new-above)
     (define-key map (kbd "o") #'ffs-new-below)
@@ -502,6 +478,29 @@ changes, or \\[ffs-edit-discard] to discard them."
 
 ;;;###autoload
 (defalias 'ffs #'ffs-mode)
+
+(declare-function face-remap-add-relative "face-remap" (cookie))
+(declare-function face-remap-remove-relative "face-remap" (cookie))
+(define-minor-mode ffs-present-mode
+  "Minor mode for active ffs presentations."
+  :group 'ffs
+  (if ffs-present-mode
+      (progn
+        (when (natnump ffs-default-face-height)
+          (setq-local
+           ffs--default-face-height-cookie
+           (face-remap-add-relative
+            'default :height ffs-default-face-height)))
+        (unless (buffer-narrowed-p)
+          (narrow-to-page))
+        (when ffs-echo-progress
+          (message (ffs-echo-progress))))
+    (progn
+      (when ffs--default-face-height-cookie
+        (face-remap-remove-relative ffs--default-face-height-cookie))
+      (when (buffer-narrowed-p)
+        (goto-char (point-min))
+        (widen)))))
 
 (provide 'ffs)
 ;;; ffs.el ends here

@@ -74,6 +74,7 @@ Falls back to copying TOKEN to the kill ring."
       (kill-new token)
       (message "No writable auth-source; token copied to kill ring."))))
 
+;;;###autoload
 (defun forgejo-create-token (&optional host-url)
   "Create a Forgejo API token and save it to auth-source.
 HOST-URL is the instance URL; prompted when nil.

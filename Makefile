@@ -29,7 +29,7 @@ TESTS = tests/forgejo-test-load.el tests/forgejo-test-api.el \
 
 BATCH = $(EMACS_CMD) -Q --batch -L lisp
 
-.PHONY: all compile do-compile test do-test lint do-lint clean dev load
+.PHONY: all compile do-compile test do-test lint do-lint clean dev load test-env
 
 all: compile
 
@@ -92,5 +92,10 @@ load: clean
 	           (use-local-map forgejo-notification-list-mode-map)))))" > /dev/null
 	@printf "\033[32mLoaded all modules into Emacs\033[0m\n"
 
+test-env:
+	@$(BATCH) --eval "(loaddefs-generate \"$(CURDIR)/lisp\" \"$(CURDIR)/lisp/forgejo-autoloads.el\")"
+	@echo "Generated autoloads. Starting clean Emacs..."
+	@$(EMACS_CMD) -Q -L lisp -l forgejo-autoloads
+
 clean:
-	rm -f *.elc lisp/*.elc
+	rm -f *.elc lisp/*.elc lisp/forgejo-autoloads.el

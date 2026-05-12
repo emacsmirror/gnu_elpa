@@ -885,7 +885,7 @@ Replaces any existing `dmsg' advice on `message'"
                 '((name . dmsg)
                   (depth . -99)))))
 
-(defun dmsg-log-debugger (symb type &optional sig-args)
+(defun dmsg-log-debugger (symb type &optional sig-args &rest _)
   "Debugger function that logs errors via `dmsg' before re-signalling.
 SYMB is the name of the function being debugged (a string).
 TYPE is the debug event symbol (typically `error').
@@ -893,7 +893,9 @@ SIG-ARGS is the error condition cons cell (ERROR-SYMBOL . DATA)."
   (dmsg-write 'error (format "%s: %s" symb
                              (error-message-string sig-args)))
   (when (eq type 'error)
-    (signal (car sig-args) (cdr sig-args))))
+    (let ((debug-on-error nil)
+          (debugger nil))
+      (signal (car sig-args) (cdr sig-args)))))
 
 (defun dmsg--function-advice (oldfn &rest args)
   "Logs any error signalled by (apply OLDFN ARGS) via `dmsg'.
@@ -941,6 +943,20 @@ Returns t if the advice is now active, nil if it was removed."
       (advice-remove symbol #'dmsg--function-advice)
       (dmsg--imessage "dmsg: error advice removed from `%s'" symbol)
       nil)))
+
+(defun dmsg-debug-on-error ()
+  "Toggle debug on error.
+When enabled, output uncaught errors to dmsg."
+  (interactive)
+  (setq
+   debugger (if debug-on-error
+                #'debug
+              (apply-partially #'dmsg-log-debugger "debugger"))
+   debug-on-error (not debug-on-error))
+  (dmsg--imessage
+   (format "dmsg on Error %s globally"
+           (if debug-on-error "enabled"
+             "disabled"))))
 
 (provide 'dmsg)
 ;;; dmsg.el ends here

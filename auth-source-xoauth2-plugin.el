@@ -38,9 +38,18 @@
 (require 'auth-source)
 (require 'cl-lib)
 (require 'map)
+(require 'nnimap)
 (require 'oauth2)
 (require 'org)
 (require 'smtpmail)
+
+(defcustom auth-source-xoauth2-plugin-gnus-workaround t
+  "Enable a workaround for Gnus getting stuck when using xoauth2.
+Based on the comments in `nnimap-wait-for-response', there is a chance
+that the gnutls-cli process gets stuck, and it seems to happen more
+frequently with xoauth2."
+  :type '(boolean)
+  :group 'auth-source)
 
 (defvar auth-source-xoauth2-plugin-predefined-issuers
   '(thunderbird
@@ -76,7 +85,7 @@ Calls ORIG-FUN which would be `auth-source-search-backends' with
 ARGS to get the auth-source-entry.
 
 The substitution only happens if one sets `auth' to `xoauth2' in your
-auth-source-entry. It is expected that one should set
+auth-source-entry.  It is expected that one should set
 `auth-source-xoauth2-predefined-service', or `token_url', `client_id',
 `client_secret', and `refresh_token' are properly set along `host',
 `user', and `port' (note the snake_case)."
@@ -187,7 +196,7 @@ auth-source-entry. It is expected that one should set
                               (plist-put auth-data :refresh-token
                                          (oauth2-token-refresh-token
                                           token)))))
-                  (error "Refresh token failed.  Please retry."))))))
+                  (error "Refresh token failed.  Please retry"))))))
 
         (auth-source-do-debug "[xoauth2-plugin] auth-data after processing: %s"
                               (pp-to-string auth-data))
@@ -202,6 +211,14 @@ auth-source-entry. It is expected that one should set
 (defvar auth-source-xoauth2-plugin--enabled-xoauth2-by-us nil
   "Non-nil means `smtpmail-auth-supported' was set by us.")
 
+(defun auth-source-xoauth2-plugin--timeout (orig-func &rest args)
+  "Let a function time out when it gets stuck.
+ORIG-FUNC will be nnimap-wait-for-response and calls ARGS.  It may get
+stuck more often when enabling xoauth2."
+  (with-timeout (30 (message
+                     "[xoauth2-plugin] nnimap-wait-for-response timed out"))
+    (apply orig-func args)))
+
 (defun auth-source-xoauth2-plugin--enable ()
   "Enable auth-source-xoauth2-plugin."
   (unless (memq 'xoauth2 smtpmail-auth-supported)
@@ -215,7 +232,11 @@ auth-source-entry. It is expected that one should set
     (setq auth-source-xoauth2-plugin--enabled-xoauth2-by-us t))
 
   (advice-add #'auth-source-search-backends :around
-              #'auth-source-xoauth2-plugin--search-backends))
+              #'auth-source-xoauth2-plugin--search-backends)
+
+  (when auth-source-xoauth2-plugin-gnus-workaround
+    (advice-add #'nnimap-wait-for-response :around
+                #'auth-source-xoauth2-plugin--timeout)))
 
 (defun auth-source-xoauth2-plugin--disable ()
   "Disable auth-source-xoauth2-plugin."
@@ -225,7 +246,12 @@ auth-source-entry. It is expected that one should set
     (setq auth-source-xoauth2-plugin--enabled-xoauth2-by-us nil))
 
   (advice-remove #'auth-source-search-backends
-                 #'auth-source-xoauth2-plugin--search-backends))
+                 #'auth-source-xoauth2-plugin--search-backends)
+
+  (when (advice-member-p #'auth-source-xoauth2-plugin--timeout
+                         #'nnimap-wait-for-response)
+    (advice-remove #'auth-source-xoauth2-plugin--timeout
+                   #'nnimap-wait-for-response)))
 
 ;;;###autoload
 (define-minor-mode auth-source-xoauth2-plugin-mode

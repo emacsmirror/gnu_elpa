@@ -1134,7 +1134,7 @@ navigation stack.  \\[universal-argument] toggles prefix mode."
     (add-hook 'minibuffer-setup-hook #'keymap-popup--suspend)
     (add-hook 'minibuffer-exit-hook #'keymap-popup--resume)
     (when persistent
-      (let ((hook-fn (make-symbol "keymap-popup--persistent-refresh")))
+      (let ((hook-fn '#:keymap-popup--persistent-refresh))
         (fset hook-fn
               (lambda ()
                 (if (buffer-live-p buf)

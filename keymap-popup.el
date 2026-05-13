@@ -123,7 +123,7 @@ Can also be set per-keymap via the `:persistent' keyword in
 Applied automatically by `keymap-popup-define' when :popup-key is
 not specified.  Not applied by `keymap-popup-annotate' (must be
 given explicitly)."
-  :type 'string
+  :type 'key
   :group 'keymap-popup)
 
 (defcustom keymap-popup-default-exit-key "q"
@@ -131,7 +131,7 @@ given explicitly)."
 Applied automatically by `keymap-popup-define' when :exit-key is
 not specified.  For `keymap-popup-annotate', used as runtime
 fallback when :exit-key is omitted."
-  :type 'string
+  :type 'key
   :group 'keymap-popup)
 
 ;;; Faces

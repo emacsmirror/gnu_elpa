@@ -441,18 +441,8 @@ Shows cached data from DB instantly, syncs in background."
                (re-search-forward "\r?\n\r?\n" nil t)
                (let ((diff-text (buffer-substring-no-properties (point) (point-max)))
                      (buf-name (format "*forgejo-diff: %s/%s#%d*" owner repo number)))
-                 (with-current-buffer (get-buffer-create buf-name)
-                   (let ((inhibit-read-only t))
-                     (erase-buffer)
-                     (insert (decode-coding-string diff-text 'utf-8 t)))
-                   (diff-mode)
-                   (use-local-map forgejo-view-diff-map)
-                   (read-only-mode 1)
-                   (setq forgejo-diff--owner owner
-                         forgejo-diff--repo repo
-                         forgejo-diff--pr-number number)
-                   (goto-char (point-min))
-                   (switch-to-buffer (current-buffer)))))
+                 (forgejo-view--show-diff-buffer
+                  buf-name diff-text host-url owner repo number)))
            (forgejo-api--kill-url-buffer (current-buffer))))
        nil t))))
 

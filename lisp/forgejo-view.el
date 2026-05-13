@@ -127,20 +127,18 @@ Uses the ref-repo text property for cross-repo references."
            (repo (or (nth 1 parts) forgejo-repo--name)))
       (forgejo-view-item owner repo number))))
 
-(defvar-local forgejo-diff--owner nil "Owner of the repo for this diff.")
-(defvar-local forgejo-diff--repo nil "Repo name for this diff.")
 (defvar-local forgejo-diff--pr-number nil "PR number for this diff.")
 
 (declare-function forgejo-review-diff-comment "forgejo-review.el" ())
 
 (keymap-popup-define forgejo-view-diff-map
   :description (lambda ()
-                 (if (and forgejo-diff--owner forgejo-diff--repo
+                 (if (and forgejo-repo--owner forgejo-repo--name
                           forgejo-diff--pr-number)
                      (concat "Diff "
                              (propertize (format "%s/%s"
-                                                 forgejo-diff--owner
-                                                 forgejo-diff--repo)
+                                                 forgejo-repo--owner
+                                                 forgejo-repo--name)
                                          'face 'font-lock-type-face)
                              (propertize (format "#%d" forgejo-diff--pr-number)
                                          'face 'font-lock-constant-face))
@@ -153,15 +151,22 @@ Uses the ref-repo text property for cross-repo references."
   "Return non-nil if SHA exists in the local git repository."
   (zerop (call-process "git" nil nil nil "cat-file" "-t" sha)))
 
-(defun forgejo-view--show-diff-buffer (buf-name text)
-  "Display TEXT in BUF-NAME using `diff-mode'."
+(defun forgejo-view--show-diff-buffer (buf-name text host-url owner repo
+                                                &optional pr-number)
+  "Display TEXT in BUF-NAME using `diff-mode'.
+HOST-URL, OWNER, and REPO set the repo context for the diff buffer.
+PR-NUMBER, when non-nil, marks this as a PR diff for review comments."
   (with-current-buffer (get-buffer-create buf-name)
     (let ((inhibit-read-only t))
       (erase-buffer)
       (insert (decode-coding-string text 'utf-8 t)))
     (diff-mode)
     (use-local-map forgejo-view-diff-map)
-    (setq buffer-read-only t)
+    (setq forgejo-repo--host host-url
+          forgejo-repo--owner owner
+          forgejo-repo--name repo
+          forgejo-diff--pr-number pr-number
+          buffer-read-only t)
     (goto-char (point-min))
     (switch-to-buffer (current-buffer))))
 
@@ -171,12 +176,15 @@ Tries local git first, falls back to the API."
   (interactive)
   (when-let* ((sha (get-text-property (point) 'forgejo-commit-sha)))
     (let ((buf-name (format "*forgejo-diff: %s*"
-                            (substring sha 0 (min 8 (length sha))))))
+                            (substring sha 0 (min 8 (length sha)))))
+          (host-url forgejo-repo--host)
+          (owner forgejo-repo--owner)
+          (repo forgejo-repo--name))
       (if (forgejo-view--local-commit-p sha)
           (let ((text (with-temp-buffer
                         (call-process "git" nil t nil "show" sha)
                         (buffer-string))))
-            (forgejo-view--show-diff-buffer buf-name text))
+            (forgejo-view--show-diff-buffer buf-name text host-url owner repo))
         (forgejo-view--commit-diff-api sha buf-name)))))
 
 (defun forgejo-view--commit-diff-api (sha buf-name)
@@ -201,7 +209,8 @@ Tries local git first, falls back to the API."
              (let ((diff-text (buffer-substring-no-properties (point) (point-max))))
                (if (string-empty-p (string-trim diff-text))
                    (user-error "Commit %s not found" sha)
-                 (forgejo-view--show-diff-buffer buf-name diff-text))))
+                 (forgejo-view--show-diff-buffer
+                  buf-name diff-text host-url owner repo))))
          (forgejo-api--kill-url-buffer (current-buffer))))
      nil t)))
 
@@ -234,7 +243,8 @@ Tries local git first, falls back to the API."
                (let ((diff-text (buffer-substring-no-properties (point) (point-max))))
                  (if (string-empty-p (string-trim diff-text))
                      (message "No diff between %s and %s" short-old short-new)
-                   (forgejo-view--show-diff-buffer buf-name diff-text))))
+                   (forgejo-view--show-diff-buffer
+                    buf-name diff-text host-url owner repo))))
            (forgejo-api--kill-url-buffer (current-buffer))))
        nil t))))
 

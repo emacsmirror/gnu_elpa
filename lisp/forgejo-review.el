@@ -40,8 +40,6 @@
 (defvar forgejo-repo--owner)
 (defvar forgejo-repo--name)
 (defvar forgejo-view--data)
-(defvar forgejo-diff--owner)
-(defvar forgejo-diff--repo)
 (defvar forgejo-diff--pr-number)
 
 ;;; Pure helpers
@@ -254,7 +252,7 @@ Prompts for review type: comment or request_changes."
         (forgejo-api-post
          forgejo-repo--host
          (format "repos/%s/%s/pulls/%d/reviews"
-                 forgejo-diff--owner forgejo-diff--repo
+                 forgejo-repo--owner forgejo-repo--name
                  forgejo-diff--pr-number)
          nil
          `((body . ,(if (string= event "REQUEST_CHANGES") body ""))

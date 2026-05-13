@@ -161,6 +161,8 @@ fallback when :exit-key is omitted."
 (defun keymap-popup--meta (keymap prop)
   "Get popup metadata PROP from KEYMAP via pseudo-key lookup."
   (let ((val (lookup-key keymap (vector 'keymap-popup prop))))
+    ;; lookup-key returns an integer when the vector is a prefix of a
+    ;; longer binding rather than an exact match.  Filter that out.
     (and (not (numberp val)) val)))
 
 ;; Values are stored via define-key, so t cannot be used as a value

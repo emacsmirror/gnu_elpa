@@ -369,6 +369,38 @@ Returns the template content as a string, or nil."
                     (process-exit-status proc)
                     (buffer-name (process-buffer proc)))))))))
 
+(defun forgejo-vc--read-target (&optional prompt)
+  "Prompt for a target remote/branch.
+PROMPT is the label shown in the minibuffer (default \"Target\").
+Returns (REMOTE . TARGET) where REMOTE is the git remote name
+and TARGET is the branch name."
+  (let* ((prompt (or prompt "Target"))
+         (branch (car (vc-git-branches)))
+         (all-remote-branches (forgejo-vc--remote-branches))
+         (default-target (forgejo-vc--upstream-branch branch))
+         (choice (completing-read
+                  (if default-target
+                      (format "%s (default: %s): " prompt default-target)
+                    (format "%s (remote/branch): " prompt))
+                  all-remote-branches nil nil nil nil default-target)))
+    (if (string-match "\\`\\([^/]+\\)/\\(.+\\)\\'" choice)
+        (cons (match-string 1 choice) (match-string 2 choice))
+      (cons (forgejo-vc--remote branch) choice))))
+
+(defun forgejo-vc--read-topic ()
+  "Prompt for an AGit-Flow topic based on the current branch.
+Uses the branch name as default unless on a pr-N branch."
+  (let* ((branch (car (vc-git-branches)))
+         (default-topic (unless (string-match-p "\\`pr-[0-9]+\\'" branch)
+                          branch)))
+    (if default-topic
+        (let ((input (read-string (format "Topic (default: %s): " default-topic))))
+          (if (string-empty-p input) default-topic input))
+      (let ((input (read-string "Topic: ")))
+        (when (string-empty-p input)
+          (user-error "Topic is required for pr-N branches"))
+        input))))
+
 ;;;###autoload
 (defun forgejo-vc-submit (remote topic target &optional force-push-p)
   "Submit a PR via Forgejo's AGit-Flow workflow.
@@ -376,33 +408,12 @@ REMOTE is the git remote, TOPIC is the session identifier,
 TARGET is the remote branch to target.
 With prefix arg FORCE-PUSH-P, force-push to update an existing PR."
   (interactive
-   (let* ((branch (car (vc-git-branches)))
-          (all-remote-branches (forgejo-vc--remote-branches))
-          (default-target (forgejo-vc--upstream-branch branch))
-          (choice (completing-read
-                   (if default-target
-                       (format "Target (default: %s): " default-target)
-                     "Target (remote/branch): ")
-                   all-remote-branches nil nil nil nil default-target))
-          (remote (if (string-match "\\`\\([^/]+\\)/\\(.+\\)\\'" choice)
-                      (match-string 1 choice)
-                    (forgejo-vc--remote branch)))
-          (target (if (string-match "\\`\\([^/]+\\)/\\(.+\\)\\'" choice)
-                      (match-string 2 choice)
-                    choice)))
-     (let* ((pr-branch-p (string-match-p "\\`pr-[0-9]+\\'" branch))
-            (default-topic (unless pr-branch-p branch)))
-       (list remote
-             (if default-topic
-                 (let ((input (read-string (format "Topic (default: %s): " default-topic))))
-                   (if (string-empty-p input) default-topic input))
-               (let ((input (read-string "Topic: ")))
-                 (when (string-empty-p input)
-                   (user-error "Topic is required for pr-N branches"))
-                 input))
-             target
-             current-prefix-arg))))
-  (let ((target (replace-regexp-in-string "\\`.+/" "" target)))
+   (let ((rt (forgejo-vc--read-target)))
+     (list (car rt) (forgejo-vc--read-topic) (cdr rt) current-prefix-arg)))
+  (let* ((remote-url (forgejo-vc--remote-url remote))
+         (_ (when (and remote-url (string-match-p "\\`https?://" remote-url))
+              (user-error "AGit-Flow requires an SSH remote; %s uses HTTP(S)" remote)))
+         (target (replace-regexp-in-string "\\`.+/" "" target)))
     (if force-push-p
         (forgejo-vc--git-push
          remote
@@ -510,21 +521,8 @@ If the branch already exists, update it to the latest PR head."
 With prefix argument MARK-MERGED-P, also prompt for a PR number
 and mark it as manually merged after a successful push."
   (interactive
-   (let* ((current-branch (car (vc-git-branches)))
-          (all-remote-branches (forgejo-vc--remote-branches))
-          (default-target (forgejo-vc--upstream-branch current-branch))
-          (choice (completing-read
-                   (if default-target
-                       (format "Push to (default: %s): " default-target)
-                     "Push to (remote/branch): ")
-                   all-remote-branches nil nil nil nil default-target))
-          (remote (if (string-match "\\`\\([^/]+\\)/\\(.+\\)\\'" choice)
-                      (match-string 1 choice)
-                    (forgejo-vc--remote current-branch)))
-          (branch (if (string-match "\\`\\([^/]+\\)/\\(.+\\)\\'" choice)
-                      (match-string 2 choice)
-                    choice)))
-     (list remote branch current-prefix-arg)))
+   (let ((rt (forgejo-vc--read-target "Push to")))
+     (list (car rt) (cdr rt) current-prefix-arg)))
   (let* ((context (forgejo-vc--repo-from-remote))
          (pr-number (when mark-merged-p
                       (read-number "PR number to mark as merged: ")))

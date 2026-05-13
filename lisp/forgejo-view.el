@@ -160,13 +160,20 @@ PR-NUMBER, when non-nil, marks this as a PR diff for review comments."
     (let ((inhibit-read-only t))
       (erase-buffer)
       (insert (decode-coding-string text 'utf-8 t)))
+    (setq buffer-read-only t)
     (diff-mode)
     (use-local-map forgejo-view-diff-map)
+    ;; HACK: diff-mode-read-only-map shadows our popup key "h" with
+    ;; describe-mode.  Override just that binding via the higher-priority
+    ;; minor-mode-overriding-map-alist, keyed on buffer-read-only.
+    (let ((map (make-sparse-keymap)))
+      (keymap-set map "h" (lambda () (interactive) (keymap-popup forgejo-view-diff-map)))
+      (setq-local minor-mode-overriding-map-alist
+                  (list (cons 'buffer-read-only map))))
     (setq forgejo-repo--host host-url
           forgejo-repo--owner owner
           forgejo-repo--name repo
-          forgejo-diff--pr-number pr-number
-          buffer-read-only t)
+          forgejo-diff--pr-number pr-number)
     (goto-char (point-min))
     (switch-to-buffer (current-buffer))))
 

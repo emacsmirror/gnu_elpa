@@ -80,6 +80,7 @@ document it was created from."
 		  (inhibit-read-only t))
         (reader-outline-mode)
 	(setq reader-outline--doc-buffername (buffer-name source-buffer))
+	(setq reader-outline--doc-window (get-buffer-window source-buffer))
         (reader--outline-insert-outline outline-data 1)
 	(goto-char (point-min))))
     (pop-to-buffer bufname)))
@@ -108,9 +109,9 @@ Each heading title is its own clickable button."
 (defun reader-outline-select-doc-window ()
   "Display and switch to the original document's window."
   (interactive)
-  (select-window (if (window-valid-p reader-outline--doc-window)
-		     reader-outline--doc-window
-		   (get-buffer-window reader-outline--doc-buffername))))
+  (if (window-valid-p reader-outline--doc-window)
+      (select-window reader-outline--doc-window)
+    (pop-to-buffer reader-outline--doc-buffername)))
 
 (defvar-keymap reader-outline-mode-map
   :doc "Keymap for `reader-outline-mode'"

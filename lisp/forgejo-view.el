@@ -306,6 +306,11 @@ in forgejo.el buffers rather than the web browser."
     (remove-function (local 'browse-url-browser-function)
                      #'forgejo-view--browse-url-handler)))
 
+;;;###autoload
+(define-globalized-minor-mode global-forgejo-browse-mode
+  forgejo-browse-mode forgejo-browse-mode
+  :group 'forgejo)
+
 ;;; bug-reference-forge-alist integration
 
 (defvar forgejo-view--added-forge-hosts nil

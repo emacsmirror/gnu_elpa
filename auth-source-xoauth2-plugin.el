@@ -75,21 +75,16 @@ frequently with xoauth2."
 
 (defun auth-source-xoauth2-plugin--get-predefined-credentials (source provider)
   "Helper function to get the predefined credentials of PROVIDER from SOURCE."
-  (plist-get (plist-get auth-source-xoauth2-plugin-predefined-issuers
-                        (intern source))
-             (intern provider)))
+  (let* ((predefined-source (plist-get
+                             auth-source-xoauth2-plugin-predefined-issuers
+                             (intern source)))
+         (credentials (plist-get predefined-source (intern provider))))
+    credentials))
 
-(defun auth-source-xoauth2-plugin--search-backends (orig-fun &rest args)
-  "Perform `auth-source-search' and set password as access-token when requested.
-Calls ORIG-FUN which would be `auth-source-search-backends' with
-ARGS to get the auth-source-entry.
-
-The substitution only happens if one sets `auth' to `xoauth2' in your
-auth-source-entry.  It is expected that one should set
-`auth-source-xoauth2-predefined-service', or `token_url', `client_id',
-`client_secret', and `refresh_token' are properly set along `host',
-`user', and `port' (note the snake_case)."
-  (auth-source-do-trivia "[xoauth2-plugin] Advising auth-source-search")
+(defun auth-source-xoauth2-plugin--detect-check-secret (args)
+  "Check whether the auth-source query with ARGS requires :secret.
+Disable the :secret check during updating the auth-source entry with
+xoauth2 credentials."
   (let (check-secret)
     (when (memq :secret (nth 5 args))
       (auth-source-do-trivia
@@ -99,104 +94,128 @@ auth-source-entry.  It is expected that one should set
                "it's properly set to a valid access token later."))
       (setf (nth 5 args) (remove :secret (nth 5 args)))
       (setq check-secret t))
-    (let ((orig-res (apply orig-fun args))
+    (list args check-secret)))
+
+(defun auth-source-xoauth2-plugin--check-smtpmail-smtp-user (user)
+  "Check smtpmail-smtp-user is the same as USER when set.
+When sending mails, some auth-source query results from some smtpmail
+authentication methods don't contain the :user field (meanwhile queries
+from Gnus seems to always include :user).  When using predefined
+provider credentials, only the :user field is different to distinguish
+among different accounts, which is unfortunately missing in certain
+cases.  Fortunately, smtpmail may set smtpmail-smtp-user to the user
+value when X-Message-SMTP-Method is properly set.  Therefore
+additionally, assuming X-Message-SMTP-Method is set correctly, we need
+to check whether smtpmail-smtp-user is the same as :user to be sure."
+  (if smtpmail-smtp-user
+      (progn
+        (auth-source-do-trivia
+         "[xoauth2-plugin] user: %s, smtpmail-smtp-user: %s"
+         user smtpmail-smtp-user)
+        (string= smtpmail-smtp-user user))
+    t))
+
+(defun auth-source-xoauth2-plugin--populate-predefined (auth-data)
+  "Update AUTH-DATA with predefined values when using predefined sources."
+  (map-let (:auth-source-xoauth2-predefined-service
+            (:auth-source-xoauth2-predefined-source
+             auth-source-xoauth2-predefined-source
+             auth-source-xoauth2-plugin-default-predefined-source))
+      auth-data
+    (when auth-source-xoauth2-predefined-service
+      (auth-source-do-trivia
+       (concat "[xoauth2-plugin] Using service \"%s\" with "
+               "credentials provided by source \"%s\"")
+       auth-source-xoauth2-predefined-service
+       auth-source-xoauth2-predefined-source)
+      (setq auth-data
+            (org-combine-plists
+             auth-data
+             (auth-source-xoauth2-plugin--get-predefined-credentials
+              auth-source-xoauth2-predefined-source
+              auth-source-xoauth2-predefined-service)))))
+  auth-data)
+
+(defun auth-source-xoauth2-plugin--search-backends (orig-func &rest args)
+  "Perform `auth-source-search' and set password as access-token when requested.
+Calls ORIG-FUNC which would be `auth-source-search-backends' with
+ARGS to get the auth-source-entry.
+
+The substitution only happens if one sets `auth' to `xoauth2' in your
+auth-source-entry.  It is expected that one should set
+`auth-source-xoauth2-predefined-service', or `token_url', `client_id',
+`client_secret', and `refresh_token' are properly set along `host',
+`user', and `port' (note the snake_case)."
+  (auth-source-do-trivia "[xoauth2-plugin] Advising auth-source-search")
+  (pcase-let ((`(,args ,check-secret)
+               (auth-source-xoauth2-plugin--detect-check-secret args)))
+    (let ((orig-res (apply orig-func args))
           res)
       (dolist (auth-data orig-res)
         (auth-source-do-trivia "[xoauth2-plugin] Matched auth data: %s"
                                (pp-to-string auth-data))
-        (let ((auth (plist-get auth-data :auth))
-              (user (plist-get auth-data :user)))
-          (when (and (equal auth "xoauth2")
-                     ;; When sending mails, some auth-source query results from
-                     ;; some smtpmail authentication methods don't contain the
-                     ;; :user field (meanwhile queries from Gnus seems to always
-                     ;; include :user).  When using predefined provider
-                     ;; credentials, only the :user field is different to
-                     ;; distinguish among different accounts, which is
-                     ;; unfortunately missing in certain cases.  Fortunately,
-                     ;; smtpmail may set smtpmail-smtp-user to the user value
-                     ;; when X-Message-SMTP-Method is properly set.  Therefore
-                     ;; additionally, assuming X-Message-SMTP-Method is set
-                     ;; correctly, we need to check whether smtpmail-smtp-user
-                     ;; is the same as :user to be sure.
-                     (if smtpmail-smtp-user
-                         (progn
-                           (auth-source-do-trivia
-                            "[xoauth2-plugin] user: %s, smtpmail-smtp-user: %s"
-                            user smtpmail-smtp-user)
-                           (string= smtpmail-smtp-user user))
-                       t))
+        (when-let* ((auth (plist-get auth-data :auth))
+                    (user (plist-get auth-data :user))
+                    ((and (equal auth "xoauth2")
+                          (auth-source-xoauth2-plugin--check-smtpmail-smtp-user
+                           user))))
+          (auth-source-do-debug
+           (concat "[xoauth2-plugin] account \"%s\" has :auth set to "
+                   "`xoauth2'.  Will get access token.")
+           user)
+
+          (setq auth-data
+                (auth-source-xoauth2-plugin--populate-predefined auth-data))
+
+          ;; Get actual values of required fields.
+          (map-let (:host
+                    :user
+                    :auth-url
+                    :token-url
+                    :scope
+                    :client-id
+                    :client-secret
+                    :redirect-uri
+                    :state
+                    :use-pkce)
+              auth-data
             (auth-source-do-debug
-             (concat "[xoauth2-plugin] account \"%s\" has :auth set to "
-                     "`xoauth2'.  Will get access token.")
-             user)
-            ;; Update auth-data when a predefined source is in use.
-            (map-let (:auth-source-xoauth2-predefined-service
-                      (:auth-source-xoauth2-predefined-source
-                       auth-source-xoauth2-predefined-source
-                       auth-source-xoauth2-plugin-default-predefined-source))
-                auth-data
-              (when auth-source-xoauth2-predefined-service
-                (auth-source-do-trivia
-                 (concat "[xoauth2-plugin] Using service \"%s\" with "
-                         "credentials provided by source \"%s\"")
-                 auth-source-xoauth2-predefined-service
-                 auth-source-xoauth2-predefined-source)
-                (setq auth-data
-                      (org-combine-plists
-                       auth-data
-                       (auth-source-xoauth2-plugin--get-predefined-credentials
-                        auth-source-xoauth2-predefined-source
-                        auth-source-xoauth2-predefined-service)))))
-            ;; Get actual values of required fields.
-            (map-let (:host
-                      :user
-                      :auth-url
-                      :token-url
-                      :scope
-                      :client-id
-                      :client-secret
-                      :redirect-uri
-                      :state
-                      :use-pkce)
-                auth-data
-              (auth-source-do-debug
-               "[xoauth2-plugin] Using oauth2 to auth and store token...")
-              (let ((token (oauth2-auth-and-store
-                            auth-url token-url scope client-id client-secret
-                            redirect-uri state user host use-pkce)))
-                (auth-source-do-trivia "[xoauth2-plugin] oauth2 token: %s"
-                                       (pp-to-string token))
-                (auth-source-do-debug "[xoauth2-plugin] Refreshing token...")
-                (if-let* ((token (oauth2-refresh-access token host)))
-                    (progn
-                      (auth-source-do-debug "[xoauth2-plugin] Refresh successful.")
+             "[xoauth2-plugin] Using oauth2 to auth and store token...")
+            (let ((token (oauth2-auth-and-store
+                          auth-url token-url scope client-id client-secret
+                          redirect-uri state user host use-pkce)))
+              (auth-source-do-trivia "[xoauth2-plugin] oauth2 token: %s"
+                                     (pp-to-string token))
+              (auth-source-do-debug "[xoauth2-plugin] Refreshing token...")
+              (if-let* ((token (oauth2-refresh-access token host)))
+                  (progn
+                    (auth-source-do-debug "[xoauth2-plugin] Refresh successful.")
+                    (auth-source-do-trivia
+                     "[xoauth2-plugin] OAuth2 token after refresh: %s"
+                     (pp-to-string token))
+                    (let ((access-token (oauth2-token-access-token token)))
                       (auth-source-do-trivia
-                       "[xoauth2-plugin] OAuth2 token after refresh: %s"
-                       (pp-to-string token))
-                      (let ((access-token (oauth2-token-access-token token)))
-                        (auth-source-do-trivia
-                         "Updating :secret with access-token: %s" access-token)
-                        (setq auth-data
-                              (plist-put auth-data :secret access-token))
-                        ;; Fill fields that may help 3rd party usage,
-                        ;; e.g. offlineimap.
-                        (setq auth-data
-                              (plist-put auth-data :auth-url auth-url))
-                        (setq auth-data
-                              (plist-put auth-data :token-url token-url))
-                        (setq auth-data
-                              (plist-put auth-data :client-id client-id))
-                        (setq auth-data
-                              (plist-put auth-data :client-secret client-secret))
-                        (setq auth-data
-                              (plist-put auth-data :access-token
-                                         (oauth2-token-access-token token)))
-                        (setq auth-data
-                              (plist-put auth-data :refresh-token
-                                         (oauth2-token-refresh-token
-                                          token)))))
-                  (error "Refresh token failed.  Please retry"))))))
+                       "Updating :secret with access-token: %s" access-token)
+                      (setq auth-data
+                            (plist-put auth-data :secret access-token))
+                      ;; Fill fields that may help 3rd party usage,
+                      ;; e.g. offlineimap.
+                      (setq auth-data
+                            (plist-put auth-data :auth-url auth-url))
+                      (setq auth-data
+                            (plist-put auth-data :token-url token-url))
+                      (setq auth-data
+                            (plist-put auth-data :client-id client-id))
+                      (setq auth-data
+                            (plist-put auth-data :client-secret client-secret))
+                      (setq auth-data
+                            (plist-put auth-data :access-token
+                                       (oauth2-token-access-token token)))
+                      (setq auth-data
+                            (plist-put auth-data :refresh-token
+                                       (oauth2-token-refresh-token
+                                        token)))))
+                (error "Refresh token failed.  Please retry")))))
 
         (auth-source-do-debug "[xoauth2-plugin] auth-data after processing: %s"
                               (pp-to-string auth-data))

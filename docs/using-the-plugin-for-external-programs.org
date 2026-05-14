@@ -1,0 +1,167 @@
+#+TITLE: Using auth-source-xoauth2-plugin for external programs
+#+DATE: 2026-05-14
+
+This document provides examples for using auth-source-xoauth2-plugin
+to provide credentials for external programs, such as offlineimap,
+mbsync, etc. You need to first set up the plugin following the steps
+in [[file:../README.org][README.org]].
+
+Now auth-source should have access to the xoauth2 based credentials,
+they can also be made available to external program, with a little
+help of a Elisp script. Below is an example script (e.g. named
+auth-source-query.el) and you may want to go over the comments and
+make adjustments based on your Emacs set up:
+
+#+BEGIN_SRC emacs-lisp
+  #!/usr/bin/env emacs --script
+
+  (require 'auth-source)
+  ;; Need to initialize package so that it can find the installation of oauth2 and
+  ;; the plugin
+  (require 'package)
+  (package-initialize)
+  (require 'oauth2)
+  (require 'auth-source-xoauth2-plugin)
+  (auth-source-xoauth2-plugin-mode t)
+
+  ;; Assuming you have a proper set up for the plstore decryption in your init.el
+  ;; file. Here I manually load it as "--script" skips the init file.
+  (let ((user-emacs-file (locate-user-emacs-file "init.el" ".emacs")))
+    (when (file-exists-p user-emacs-file)
+      (load-file user-emacs-file)))
+
+  ;; Update the list to add your authinfo file below.
+  (setq auth-sources '("~/.authinfo.json.gpg" "~/.authinfo.gpg"))
+
+  (let* ((user (elt argv 0))
+         (host (elt argv 1))
+         (key (elt argv 2))
+         (hosts `(,user ,host))
+         (port "imaps")
+         (query-result (car (auth-source-search :host hosts
+                                                :user user
+                                                :port port
+                                                :create nil
+                                                :max 1)))
+         (result (when query-result
+                   (pcase key
+                     ("password" (auth-info-password query-result))
+                     ("token_url" (plist-get query-result :token-url))
+                     ("client_id" (plist-get query-result :client-id))
+                     ("client_secret" (plist-get query-result :client-secret))
+                     ("refresh_token" (plist-get query-result :refresh-token))
+                     ("access_token" (plist-get query-result :access-token))
+                     (_ (error "Unknown field: %s" key))))))
+    (princ (concat result "\n")))
+#+END_SRC
+
+You can then use this script to query the tokens as well as other info
+that are made available through the plugin. For example, to query the
+access_token, you can use the following command,
+
+#+BEGIN_SRC shell
+  $ emacs --script auth-source-query.el <account_name> <account_name> access_token 2>/dev/null
+#+END_SRC
+
+and it should print the access_token to STDOUT (and handle the refresh
+of access_token automatically.)
+
+#+BEGIN_QUOTE
+Notice that the =<account_name>= part is used twice, which is
+intended. To be precise, the first one is account name and the second
+one is the host name, but people usually put the same account name
+there for Gnus.
+#+END_QUOTE
+
+If your external program support evaluating a command and use the
+output as part of their configuration, you should now have a way to
+make it work.
+
+Below is an example set up for offlineimap (Python 3 version), which
+is a bit involved as it requires defining some Python functions. This
+is an example Python script file for supporting your configuration
+(e.g. =$HOME/.config/offlineimap/offlineimap.py=):
+
+#+NAME: $HOME/.config/offlineimap/offlineimap.py
+#+BEGIN_SRC python
+  #!/usr/bin/env python3
+  from subprocess import check_output, DEVNULL
+  import fcntl
+
+
+  def query_auth_source(account, imap_url, key):
+      if imap_url is None:
+          imap_url = account
+
+      # Using a flock to avoid concurrent access to plstore which may corrupt the
+      # file.
+      with open("/tmp/offlineimap-emacs-auth-source-query.lock", "w") as lockfile:
+          fcntl.flock(lockfile.fileno(), fcntl.LOCK_EX)
+
+          cmd = ["/usr/bin/emacs", "--script",
+                 "~/.config/offlineimap/auth-source-query.el",
+                 account, imap_url, key]
+          result = check_output(cmd, stderr=DEVNULL, timeout=10)
+
+          # The result should be in UTF-8, except for "password" which should be
+          # in byte.
+          if key != "password":
+              result = result.decode('utf-8')
+
+          return result
+
+
+  def get_password(account, imap_url=None):
+      return query_auth_source(account, imap_url, "password")
+
+
+  def get_request_url(account, imap_url=None):
+      return query_auth_source(account, imap_url, "token_url")
+
+
+  def get_client_id(account, imap_url=None):
+      return query_auth_source(account, imap_url, "client_id")
+
+
+  def get_client_secret(account, imap_url=None):
+      return query_auth_source(account, imap_url, "client_secret")
+
+
+  def get_refresh_token(account, imap_url=None):
+      return query_auth_source(account, imap_url, "refresh_token")
+
+
+  def get_access_token(account, imap_url=None):
+      return query_auth_source(account, imap_url, "access_token")
+
+#+END_SRC
+
+With this, you can update your offlineimap config file to use the
+function defined above to get the values. Below is an excerpt of a
+remote repository set up in your =$HOME/.config/offlineimap/config=:
+
+#+NAME: $HOME/.config/offlineimap/config
+#+BEGIN_SRC python
+  ...
+  [Repository <YOUR_REMOTE_ACCOUNT>-remote]
+  type = Gmail
+  remoteuser = <YOUR_REMOTE_ACCOUNT>
+  ssl = yes
+  sslcacertfile = /etc/ssl/certs/ca-certificates.crt
+  oauth2_client_id_eval = get_client_id('%(remoteuser)s')
+  oauth2_client_secret_eval = get_client_secret('%(remoteuser)s')
+  oauth2_access_token_eval = get_access_token('%(remoteuser)s')
+  oauth2_request_url = get_request_url('%(remoteuser)s')
+  ...
+#+END_SRC
+
+Substitute <YOUR_REMOTE_ACCOUNT> with your real account - it should be
+consistent with the account in auth-source, obviously - and it should
+call the proper functions to get the required values.
+
+#+BEGIN_QUOTE
+For offlineimap, you can instead set `oauth2_refresh_token_eval' to
+let offlineimap get the access token instead. As the plugin already
+handles the token refresh, it seems unnecessary to let offlineimap
+duplicate the work.
+#+END_QUOTE

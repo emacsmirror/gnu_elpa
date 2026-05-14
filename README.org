@@ -139,6 +139,12 @@ the connections.  Please check out [[file:docs/oauth2-initial-set-up.org][the st
 everything goes through the plugin will handle the future
 authentication automatically.
 
+*** For external programs
+
+With a working set up, one can write an Elisp script to make the
+OAuth2 tokens usable by external programs such as offlineimap, mbsync,
+etc.  Please check out [[file:docs/using-the-plugin-for-external-programs.org][this doc for an example]].
+
 * Comparison with other xoauth2 implementations
 
 ** auth-source-xoauth2

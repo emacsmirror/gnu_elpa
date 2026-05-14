@@ -1,6 +1,17 @@
 Summary of changes to auth-source-xoauth2-plugin
 ------------------------------------------------
 
+* 0.4
+
+** Add error handling
+
+Newer oauth2.el versions may return errors when fetching token fails.
+
+** Add a document for use by external programs
+
+Provides an example Elisp script for querying the credentials which
+external programs can use, and added an example for offlineimap.
+
 * 0.3
 
 ** Add support for predefined credentials

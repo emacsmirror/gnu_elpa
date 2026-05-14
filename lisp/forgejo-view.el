@@ -277,34 +277,42 @@ Tries local git first, falls back to the API."
       (forgejo-view-item (nth 0 parsed) (nth 1 parsed) (nth 2 parsed))
     (browse-url-default-browser url)))
 
-(defun forgejo-view--browse-url-regexp (host-url)
-  "Build a `browse-url-handlers' regexp for HOST-URL issue/PR paths."
-  (format "^%s/[^/]+/[^/]+/\\(issues\\|pulls\\)/[0-9]+"
-          (regexp-quote host-url)))
+(defun forgejo-view--browse-url-handler (url &rest _args)
+  "Handle URL if it points to a Forgejo issue or PR.
+Returns non-nil if handled, nil otherwise.  Only matches hosts
+configured in `forgejo-hosts'."
+  (when-let* ((parsed (forgejo-view--parse-forgejo-url url))
+              (url-obj (url-generic-parse-url url))
+              (host (url-host url-obj))
+              (known (cl-find host forgejo-hosts
+                               :key (lambda (e)
+                                      (url-host
+                                       (url-generic-parse-url (car e))))
+                               :test #'string=))
+              (forgejo-repo--host (format "%s://%s"
+                                          (url-type url-obj) host)))
+    (forgejo-view-item (nth 0 parsed) (nth 1 parsed) (nth 2 parsed))
+    t))
 
-(defun forgejo-view-browse-url-setup ()
-  "Register forgejo.el in `browse-url-handlers' and `bug-reference-forge-alist'."
-  (forgejo-view-browse-url-teardown)
-  (dolist (entry forgejo-hosts)
-    (push (cons (forgejo-view--browse-url-regexp (car entry))
-                #'forgejo-view-browse-url)
-          browse-url-handlers))
-  (forgejo-view--bug-reference-setup))
+;;;###autoload
+(define-minor-mode forgejo-browse-mode
+  "Open Forgejo issue/PR URLs in forgejo.el instead of the browser.
+When enabled, URLs matching configured `forgejo-hosts' are opened
+in forgejo.el buffers rather than the web browser."
+  :lighter " Forgejo"
+  (if forgejo-browse-mode
+      (add-function :before-until (local 'browse-url-browser-function)
+                    #'forgejo-view--browse-url-handler)
+    (remove-function (local 'browse-url-browser-function)
+                     #'forgejo-view--browse-url-handler)))
 
-(defun forgejo-view-browse-url-teardown ()
-  "Remove forgejo entries from `browse-url-handlers'.
-Also cleans up `bug-reference-forge-alist'."
-  (setq browse-url-handlers
-        (cl-remove #'forgejo-view-browse-url browse-url-handlers
-                   :key #'cdr))
-  (forgejo-view--bug-reference-teardown))
+;;; bug-reference-forge-alist integration
 
 (defvar forgejo-view--added-forge-hosts nil
   "Hosts added to `bug-reference-forge-alist' by forgejo.el.")
 
 (defun forgejo-view--bug-reference-setup ()
   "Add `forgejo-hosts' entries to `bug-reference-forge-alist'."
-  (forgejo-view--bug-reference-teardown)
   (dolist (entry forgejo-hosts)
     (let* ((url-obj (url-generic-parse-url (car entry)))
            (host-domain (url-host url-obj))
@@ -313,16 +321,6 @@ Also cleans up `bug-reference-forge-alist'."
         (push host-domain forgejo-view--added-forge-hosts)
         (push (list host-domain 'gitea protocol)
               bug-reference-forge-alist)))))
-
-(defun forgejo-view--bug-reference-teardown ()
-  "Remove forgejo-added entries from `bug-reference-forge-alist'."
-  (when (and (boundp 'forgejo-view--added-forge-hosts)
-             forgejo-view--added-forge-hosts)
-    (setq bug-reference-forge-alist
-          (cl-remove-if (lambda (e)
-                          (member (car e) forgejo-view--added-forge-hosts))
-                        bug-reference-forge-alist))
-    (setq forgejo-view--added-forge-hosts nil)))
 
 (defun forgejo-view-follow-link ()
   "Follow the link at point.
@@ -866,8 +864,7 @@ Removes from API, then from DB, then re-renders the list in place."
        (message "Deleted %s" description)
        (when callback (funcall callback))))))
 
-(when forgejo-browse-url-integration
-  (forgejo-view-browse-url-setup))
+(forgejo-view--bug-reference-setup)
 
 (provide 'forgejo-view)
 ;;; forgejo-view.el ends here

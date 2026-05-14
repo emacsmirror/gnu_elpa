@@ -1,0 +1,39 @@
+#+title: Change log of ffs
+#+author: Amin Bandali
+#+email: bandali@gnu.org
+#+options: ':nil toc:nil num:nil author:nil email:nil
+#+startup: content
+#+export_file_name: ffs-changelog.html
+
+The newest release is at the top.  For further details, please consult
+the manual: <https://kelar.org/~bandali/gnu/emacs/ffs.html>.
+
+#+toc: headlines 1 insert TOC here, with one headline level
+
+* Version 0.2.0 on 2026-05-XX
+:PROPERTIES:
+:CUSTOM_ID: ffs-0.2.0
+:END:
+
+After a few years of inactivity, in early 2026 I decided to dust off
+=ffs.el=, polish and document it, and offer for inclusion in GNU ELPA
+as a proper package.
+
+TBD
+
+* Version 0.1.0 on 2022-05-19
+:PROPERTIES:
+:CUSTOM_ID: ffs-0.1.0
+:END:
+
+My first attempt at this concept was what is now available archived as
+=ffsanim.el=, a major mode implementation published on 2022-03-04 that
+uses Emacs's ~animate~ library to animate slides onto the screen.
+Shortly after realizing the shortcomings of that approach, I abandoned
+it in favour a minor mode implementation and published version =0.1.0=
+of what is now =ffs= in my [[https://git.kelar.org/~bandali/configs][personal configs repository]].
+
+I used this implementation for presenting my LibrePlanet 2022 talk,
+[[https://kelar.org/~bandali/essays/net-beyond-web.html][The Net beyond the Web]].
+
+I picked "ffs" as the package name, the acronym for form feed slides.

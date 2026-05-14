@@ -4,6 +4,8 @@
 #+options: ':nil toc:nil num:nil author:nil email:nil
 #+startup: content
 #+export_file_name: ffs-changelog.html
+#+html_head: <link rel="stylesheet" href="../../dek.css?v=20260123" type="text/css" />
+#+html_link_home: ../..
 
 The newest release is at the top.  For further details, please consult
 the manual: <https://kelar.org/~bandali/gnu/emacs/ffs.html>.
@@ -37,3 +39,10 @@ I used this implementation for presenting my LibrePlanet 2022 talk,
 [[https://kelar.org/~bandali/essays/net-beyond-web.html][The Net beyond the Web]].
 
 I picked "ffs" as the package name, the acronym for form feed slides.
+
+* COMMENT Local Variables
+
+# Local Variables:
+# org-html-postamble-format: (("en" "<hr />
+# <p><a href=\"%i\">Org source</a></p>"))
+# End:

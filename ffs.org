@@ -15,6 +15,8 @@
 #+texinfo_header: @set MAINTAINER Amin Bandali
 #+texinfo_header: @set MAINTAINEREMAIL @email{bandali@@gnu.org}
 #+texinfo_header: @set MAINTAINERCONTACT @uref{mailto:bandali@@gnu.org,contact the maintainer}
+#+html_head: <link rel="stylesheet" href="../../dek.css?v=20260123" type="text/css" />
+#+html_link_home: ../..
 
 #+texinfo: @insertcopying
 
@@ -29,14 +31,12 @@ such.
 
 Current development target is {{{development-version}}}.
 
-- Package name (GNU ELPA): [[https://elpa.gnu.org/packages/ffs.html][=ffs=]]
+- Package name (GNU ELPA): =ffs= (not available yet)
 - Official manual: <https://kelar.org/~bandali/gnu/emacs/ffs.html>
 - Change log: <https://kelar.org/~bandali/gnu/emacs/ffs-changelog.html>
 - Git repository: <https://git.kelar.org/~bandali/ffs>
-- Backronyms:
-  - fabulous foolproof slides
-  - for freedom's sake
-  - ffs flips slides
+- Backronyms: fabulous foolproof slides - for freedom's sake -
+  ffs flips slides
 
 Dedicated to the loving memory of [[https://kelar.org/~bandali/life/farangis.html][Farangis Yousefinia]].
 
@@ -68,3 +68,10 @@ modify this GNU manual.”
 :END:
 
 TBD
+
+* COMMENT Local Variables
+
+# Local Variables:
+# org-html-postamble-format: (("en" "<hr />
+# <p><a href=\"%i\">Org source</a></p>"))
+# End:

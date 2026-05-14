@@ -268,9 +268,33 @@ Tries local git first, falls back to the API."
 
 (defun forgejo-view-browse-url (url &rest _args)
   "Open URL in forgejo.el if it's a Forgejo issue/PR, else in browser."
-  (if-let* ((parsed (forgejo-view--parse-forgejo-url url)))
+  (if-let* ((parsed (forgejo-view--parse-forgejo-url url))
+            (url-obj (url-generic-parse-url url))
+            (forgejo-repo--host (format "%s://%s"
+                                        (url-type url-obj)
+                                        (url-host url-obj))))
       (forgejo-view-item (nth 0 parsed) (nth 1 parsed) (nth 2 parsed))
     (browse-url-default-browser url)))
+
+(defun forgejo-view--browse-url-regexp (host-url)
+  "Build a `browse-url-handlers' regexp for HOST-URL issue/PR paths."
+  (format "^%s/[^/]+/[^/]+/\\(issues\\|pulls\\)/[0-9]+"
+          (regexp-quote host-url)))
+
+(defun forgejo-view-browse-url-setup ()
+  "Register `forgejo-view-browse-url' in `browse-url-handlers'.
+Adds one entry per host in `forgejo-hosts'."
+  (forgejo-view-browse-url-teardown)
+  (dolist (entry forgejo-hosts)
+    (push (cons (forgejo-view--browse-url-regexp (car entry))
+                #'forgejo-view-browse-url)
+          browse-url-handlers)))
+
+(defun forgejo-view-browse-url-teardown ()
+  "Remove forgejo entries from `browse-url-handlers'."
+  (setq browse-url-handlers
+        (cl-remove #'forgejo-view-browse-url browse-url-handlers
+                   :key #'cdr)))
 
 (defun forgejo-view-follow-link ()
   "Follow the link at point.
@@ -813,6 +837,9 @@ Removes from API, then from DB, then re-renders the list in place."
      (lambda (_data _headers)
        (message "Deleted %s" description)
        (when callback (funcall callback))))))
+
+(when forgejo-browse-url-integration
+  (forgejo-view-browse-url-setup))
 
 (provide 'forgejo-view)
 ;;; forgejo-view.el ends here

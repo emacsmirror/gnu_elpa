@@ -99,6 +99,23 @@ Example:
                   (list (string :tag "Host URL")
                         (string :tag "API token")))))
 
+(declare-function forgejo-view-browse-url-setup "forgejo-view")
+(declare-function forgejo-view-browse-url-teardown "forgejo-view")
+
+(defcustom forgejo-browse-url-integration nil
+  "When non-nil, open Forgejo issue/PR URLs in forgejo.el buffers.
+Registers a handler in `browse-url-handlers' for all hosts in
+`forgejo-hosts', so that URLs like
+  https://codeberg.org/owner/repo/issues/42
+open in forgejo.el instead of the web browser."
+  :type 'boolean
+  :set (lambda (sym val)
+         (set-default sym val)
+         (when (fboundp 'forgejo-view-browse-url-setup)
+           (if val
+               (forgejo-view-browse-url-setup)
+             (forgejo-view-browse-url-teardown)))))
+
 (defcustom forgejo-token nil
   "Personal access token.
 Used as fallback when no token is found via `forgejo-hosts' or

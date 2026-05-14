@@ -322,7 +322,7 @@ export async function sendUser(user: User, overrides = {}) {
   "Provider options for duet Gemini backend.")
 
 (defvar minuet-duet-openai-compatible-options
-  `(:model "google/gemini-3.1-flash-lite-preview"
+  `(:model "google/gemini-3.1-flash-lite"
     :api-key "OPENROUTER_API_KEY"
     :end-point "https://openrouter.ai/api/v1/chat/completions"
     :name "Openrouter"

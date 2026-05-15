@@ -899,7 +899,6 @@ SIG-ARGS is the error condition cons cell (ERROR-SYMBOL . DATA)."
           (debugger nil))
       (signal (car sig-args) (cdr sig-args)))))
 
-;;;###autoload
 (defun dmsg--function-advice (oldfn &rest args)
   "Logs any error signalled by (apply OLDFN ARGS) via `dmsg'.
 

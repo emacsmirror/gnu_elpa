@@ -656,42 +656,53 @@ If there are no timers, throw an error."
 (declare-function haiku-notifications-notify "haikuselect.c" (&rest params))
 (defvar notifications-application-icon)
 
+(defvar tmr--notification-notify-count 0
+  "Count of how many times `tmr-notification-notify' issues a warning.")
+
 (defun tmr-notification-notify (timer)
   "Dispatch a notification for TIMER.
 Read Info node `(elisp) Desktop Notifications' for details."
-  (if (or (featurep 'dbusbind)
-          (seq-some #'fboundp
-                    (list #'android-notifications-notify
-                          #'w32-notification-notify
-                          #'haiku-notifications-notify)))
-      (let ((title "TMR May Ring (Emacs tmr package)")
-            (body (tmr--long-description-for-finished-timer timer)))
-        (cond ((fboundp 'android-notifications-notify)
-               (android-notifications-notify
-                :title title
-                :body body
-                :urgency tmr-notification-urgency))
-              ((fboundp 'w32-notification-notify)
-               (w32-notification-notify
-                :title title
-                :body body))
-              ((fboundp 'haiku-notifications-notify)
-               (haiku-notifications-notify
-                :title title
-                :body body
-                :app-icon 'emacs
-                :urgency tmr-notification-urgency))
-              (t
-               (unless (fboundp 'notifications-notify)
-                 (require 'notifications))
-               (notifications-notify
-                :title title
-                :body body
-                :app-name "GNU Emacs"
-                :app-icon notifications-application-icon
-                :urgency tmr-notification-urgency
-                :sound-file tmr-sound-file))))
-    (display-warning 'tmr "Emacs has no DBUS support, TMR notifications unavailable")))
+  (cond
+   ((or (featurep 'dbusbind)
+        (seq-some #'fboundp
+                  (list #'android-notifications-notify
+                        #'w32-notification-notify
+                        #'haiku-notifications-notify)))
+    (let ((title "TMR May Ring (Emacs tmr package)")
+          (body (tmr--long-description-for-finished-timer timer)))
+      (setq tmr--notification-notify-count 0)
+      (cond
+       ((fboundp 'android-notifications-notify)
+        (android-notifications-notify
+         :title title
+         :body body
+         :urgency tmr-notification-urgency))
+       ((fboundp 'w32-notification-notify)
+        (w32-notification-notify
+         :title title
+         :body body))
+       ((fboundp 'haiku-notifications-notify)
+        (haiku-notifications-notify
+         :title title
+         :body body
+         :app-icon 'emacs
+         :urgency tmr-notification-urgency))
+       (t
+        (unless (fboundp 'notifications-notify)
+          (require 'notifications))
+        (notifications-notify
+         :title title
+         :body body
+         :app-name "GNU Emacs"
+         :app-icon notifications-application-icon
+         :urgency tmr-notification-urgency
+         :sound-file tmr-sound-file)))))
+   ((> tmr--notification-notify-count 0)
+    (setq tmr--notification-notify-count (+ tmr--notification-notify-count 1))
+    (display-warning 'tmr "No DBUS; disable this with: (remove-hook 'tmr-timer-finished-functions #'tmr-notification-notify)"))
+   (t
+    (setq tmr--notification-notify-count (+ tmr--notification-notify-count 1))
+    (display-warning 'tmr "Emacs has no DBUS support, TMR notifications unavailable"))))
 
 ;; NOTE 2022-04-21: Emacs has a `play-sound' function but it only
 ;; supports .wav and .au formats.  Also, it does not work on all

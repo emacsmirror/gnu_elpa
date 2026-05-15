@@ -866,6 +866,7 @@ FMT ARGS) matches `dmsg--on-message'."
         (when (and msg (string-match-p regex msg))
           (dmsg-write 'debug msg))))))
 
+;;;###autoload
 (defun dmsg-on-message (regex)
   "Advise `message' to log matching output via `dmsg'.
 
@@ -885,6 +886,7 @@ Replaces any existing `dmsg' advice on `message'"
                 '((name . dmsg)
                   (depth . -99)))))
 
+;;;###autoload
 (defun dmsg-log-debugger (symb type &optional sig-args &rest _)
   "Debugger function that logs errors via `dmsg' before re-signalling.
 SYMB is the name of the function being debugged (a string).
@@ -897,6 +899,7 @@ SIG-ARGS is the error condition cons cell (ERROR-SYMBOL . DATA)."
           (debugger nil))
       (signal (car sig-args) (cdr sig-args)))))
 
+;;;###autoload
 (defun dmsg--function-advice (oldfn &rest args)
   "Logs any error signalled by (apply OLDFN ARGS) via `dmsg'.
 
@@ -915,6 +918,7 @@ or interactively with `dmsg-on-error'."
         (car err)
         (cdr err))))))
 
+;;;###autoload
 (defun dmsg-on-error (symbol &optional action)
   "Add, remove, or toggle error-logging advice on SYMBOL.
 ACTION controls what happens:
@@ -944,6 +948,7 @@ Returns t if the advice is now active, nil if it was removed."
       (dmsg--imessage "dmsg: error advice removed from `%s'" symbol)
       nil)))
 
+;;;###autoload
 (defun dmsg-debug-on-error ()
   "Toggle debug on error.
 When enabled, output uncaught errors to dmsg."

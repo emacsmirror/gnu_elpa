@@ -567,6 +567,44 @@
   (let ((all (keymap-popup--collect-descriptions keymap-popup--test-leaf)))
     (should (>= (length all) 3))))
 
+(ert-deftest keymap-popup-test-dedupe-preserves-nil-keys ()
+  "Multiple entries with nil :key (annotated, pre-resolve) are all kept."
+  (let* ((descs `(((:name "Move" :entries ((:key nil :command forward-char
+                                                 :description "Right")
+                                            (:key nil :command backward-char
+                                                 :description "Left"))))))
+         (deduped (keymap-popup--dedupe-descriptions descs))
+         (entries (plist-get (caar deduped) :entries)))
+    (should (= (length entries) 2))
+    (should (equal (mapcar (lambda (e) (plist-get e :description)) entries)
+                   '("Right" "Left")))))
+
+(ert-deftest keymap-popup-test-collect-descriptions-child-shadows-parent ()
+  "Parent/child key collision: child wins, fully-shadowed parent groups disappear."
+  (eval '(keymap-popup-define keymap-popup--test-shadow-parent
+           :group "P"
+           "a" ("Parent A" ignore)
+           :group "Q"
+           "b" ("Parent B" ignore))
+        t)
+  (eval '(keymap-popup-define keymap-popup--test-shadow-child
+           :parent keymap-popup--test-shadow-parent
+           :group "C"
+           "a" ("Child A" ignore))
+        t)
+  (let* ((all (keymap-popup--collect-descriptions keymap-popup--test-shadow-child))
+         (group-names (cl-loop for row in all
+                               append (mapcar (lambda (g) (plist-get g :name)) row)))
+         (entries (cl-loop for row in all
+                           append (cl-loop for group in row
+                                           append (plist-get group :entries))))
+         (keys (mapcar (lambda (e) (plist-get e :key)) entries))
+         (descs (mapcar (lambda (e) (plist-get e :description)) entries)))
+    ;; Parent group "P" is fully shadowed and dropped; "Q" survives.
+    (should (equal group-names '("C" "Q")))
+    (should (equal keys '("a" "b")))
+    (should (equal descs '("Child A" "Parent B")))))
+
 ;;; Macro via-macro integration tests
 
 (ert-deftest keymap-popup-test-inapt-via-macro ()
@@ -696,6 +734,42 @@
                                     'descriptions))
          (output (keymap-popup--render descs)))
     (should (string-match-p "New" output))))
+
+(ert-deftest keymap-popup-test-add-entry-replaces-existing ()
+  "Adding an entry whose key already exists replaces the prior entry."
+  (eval '(keymap-popup-define keymap-popup--test-add-replace
+           :group "Actions"
+           "c" ("Old comment" ignore))
+        t)
+  (keymap-popup-add-entry keymap-popup--test-add-replace
+                          "c" "New comment" #'backward-char "Actions")
+  (should (eq (keymap-lookup keymap-popup--test-add-replace "c") #'backward-char))
+  (let* ((descs (keymap-popup--meta keymap-popup--test-add-replace 'descriptions))
+         (output (keymap-popup--render descs)))
+    (should (string-match-p "New comment" output))
+    (should-not (string-match-p "Old comment" output))))
+
+(ert-deftest keymap-popup-test-add-entry-moves-across-groups ()
+  "Re-adding a key under a different group removes it from the original group."
+  (eval '(keymap-popup-define keymap-popup--test-add-move
+           :group "Old"
+           "x" ("X-old" ignore)
+           :group "New"
+           "n" ("Anchor" ignore))
+        t)
+  (keymap-popup-add-entry keymap-popup--test-add-move
+                          "x" "X-new" #'forward-char "New")
+  (let* ((descs (keymap-popup--meta keymap-popup--test-add-move 'descriptions))
+         (groups (cl-loop for row in descs append row))
+         (old (cl-find "Old" groups :key (lambda (g) (plist-get g :name))
+                       :test #'equal))
+         (new (cl-find "New" groups :key (lambda (g) (plist-get g :name))
+                       :test #'equal))
+         (new-keys (mapcar (lambda (e) (plist-get e :key))
+                           (plist-get new :entries))))
+    (should (null (plist-get old :entries)))
+    (should (member "x" new-keys))
+    (should (member "n" new-keys))))
 
 (ert-deftest keymap-popup-test-remove-entry ()
   (eval '(keymap-popup-define keymap-popup--test-rm

@@ -1,5 +1,5 @@
 EMACS ?= emacs
-TEST_FILES ?= tests/minuet-diff-tests.el tests/minuet-duet-tests.el
+TEST_FILES ?= tests/minuet-tests.el tests/minuet-diff-tests.el tests/minuet-duet-tests.el
 EL_FILES ?= minuet.el minuet-diff.el minuet-duet.el
 
 .PHONY: test check compile

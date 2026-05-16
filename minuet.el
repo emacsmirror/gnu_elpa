@@ -154,13 +154,21 @@ Note that you can always inspect `minuet-buffer-name' to view the
 complete error log."
   :type 'boolean)
 
-(defcustom minuet-after-cursor-filter-length 15
+(defun minuet--default-after-cursor-filter-length-function ()
+  "Return the default after-cursor filter length for the current provider."
+  (if (memq minuet-provider '(codestral openai-fim-compatible)) 0 15))
+
+(defcustom minuet-after-cursor-filter-length
+  #'minuet--default-after-cursor-filter-length-function
   "Length of context after cursor used to filter completion text.
 
 This setting helps prevent the language model from generating
 redundant text.  When filtering completions, the system compares the
 suffix of a completion candidate with the text immediately following
 the cursor.
+
+The value may be either an integer or a function called with no
+arguments that returns an integer.
 
 If the length of the longest common substring between the end of the
 candidate and the beginning of the post-cursor context exceeds this
@@ -170,15 +178,23 @@ For example, if the value is 15, and a completion candidate ends with
 a 20-character string that exactly matches the 20 characters following
 the cursor, the candidate will be truncated by those 20 characters
 before being delivered."
-  :type 'integer)
+  :type '(choice integer function))
 
-(defcustom minuet-before-cursor-filter-length 2
+(defun minuet--default-before-cursor-filter-length-function ()
+  "Return the default before-cursor filter length for the current provider."
+  (if (memq minuet-provider '(codestral openai-fim-compatible)) 0 2))
+
+(defcustom minuet-before-cursor-filter-length
+  #'minuet--default-before-cursor-filter-length-function
   "Length of context before cursor used to filter completion text.
 
 This setting helps prevent the language model from generating
 redundant text at the beginning of completion.  When filtering
 completions, the system compares the prefix of a completion candidate
 with the text immediately before the cursor.
+
+The value may be either an integer or a function called with no
+arguments that returns an integer.
 
 If the length of the longest common substring between the beginning of
 the candidate and the end of the pre-cursor context exceeds this
@@ -188,7 +204,7 @@ For example, if the value is 3, and a completion candidate starts with
 a 10-character string where the last 3 characters exactly match the 3
 characters before the cursor, the candidate will be truncated by those
 3 characters before being delivered."
-  :type 'integer)
+  :type '(choice integer function))
 
 (defcustom minuet-n-completions 3
   "Number of completion items.
@@ -767,26 +783,35 @@ Returns the filtered item after trimming overlapping parts."
   (when (null context)
     (cl-return-from minuet--filter-text item))
 
-  (setq item (string-trim item))
-
   (let* ((before-cursor (plist-get context :before-cursor))
          (after-cursor (plist-get context :after-cursor))
+         (before-filter-length
+          (minuet--eval-value minuet-before-cursor-filter-length))
+         (after-filter-length
+          (minuet--eval-value minuet-after-cursor-filter-length))
          (filtered-item item))
+
+    (when (and (<= before-filter-length 0)
+               (<= after-filter-length 0))
+      (cl-return-from minuet--filter-text item))
+
+    (setq filtered-item (string-trim filtered-item))
+
     ;; Filter against before-cursor context (trim from prefix)
     (when-let* ((before-cursor before-cursor)
-                (should-filter (> minuet-before-cursor-filter-length 0))
+                (should-filter (> before-filter-length 0))
                 (before-cursor (string-trim before-cursor))
                 (match (minuet-find-longest-match filtered-item before-cursor))
                 (should-filter (and (not (string-empty-p match))
-                                    (>= (length match) minuet-before-cursor-filter-length))))
+                                    (>= (length match) before-filter-length))))
       (setq filtered-item (substring filtered-item (length match))))
     ;; Filter against after-cursor context (trim from suffix)
     (when-let* ((after-cursor after-cursor)
-                (should-filter (> minuet-after-cursor-filter-length 0))
+                (should-filter (> after-filter-length 0))
                 (after-cursor (string-trim after-cursor))
                 (match (minuet-find-longest-match after-cursor filtered-item))
                 (should-filter (and (not (string-empty-p match))
-                                    (>= (length match) minuet-after-cursor-filter-length))))
+                                    (>= (length match) after-filter-length))))
       (setq filtered-item (substring filtered-item 0 (- (length filtered-item) (length match)))))
     filtered-item))
 

@@ -124,7 +124,7 @@ Fetches fresh settings from the API, then opens the popup."
     (keymap-set forgejo-settings--map "l"
                 (lambda () (interactive)
                   (keymap-popup forgejo-settings--labels-map)))
-    (setf (keymap-popup--meta forgejo-settings--map 'keymap-popup--descriptions)
+    (setf (keymap-popup--meta forgejo-settings--map 'descriptions)
           (list
            (list
             (list :name (format "Settings: %s/%s" owner repo)
@@ -204,7 +204,7 @@ HOST is the hostname for DB lookups."
                         host owner repo name)
                        (message "Deleted label %s from %s/%s"
                                 name owner repo)))))))
-  (setf (keymap-popup--meta forgejo-settings--labels-map 'keymap-popup--descriptions)
+  (setf (keymap-popup--meta forgejo-settings--labels-map 'descriptions)
         (list
          (list
           (list :name (format "Labels: %s/%s" owner repo)

@@ -1,6 +1,6 @@
 ;;; shell-command+.el --- An extended shell-command -*- lexical-binding: t -*-
 
-;; Copyright (C) 2020-2025  Free Software Foundation, Inc.
+;; Copyright (C) 2020-2026  Free Software Foundation, Inc.
 
 ;; Author: Philip Kaludercic <philipk@posteo.net>
 ;; Maintainer: Philip Kaludercic <philipk@posteo.net>
@@ -464,14 +464,19 @@ entire command."
   "Return a docstring for `shell-command+'."
   (with-temp-buffer
     (insert (documentation (symbol-function 'shell-command+) 'raw))
-    (dolist (feature shell-command+-features)
-      (if (fboundp 'make-separator-line)
-          (insert "\n\n" (make-separator-line) "\n")
-        (newline 2))
-      (insert
-       (let ((doc (get feature 'shell-command+-docstring)))
-         (or doc (documentation feature)
-             (format "`%S' is not explicitly documented." feature)))))
+    (let ((last-line (delete-and-extract-region
+                      (line-beginning-position)
+                      (line-end-position))))
+      (delete-blank-lines)
+      (dolist (feature shell-command+-features)
+        (if (fboundp 'make-separator-line)
+            (insert "\n\n" (make-separator-line) "\n")
+          (newline 2))
+        (insert
+         (let ((doc (get feature 'shell-command+-docstring)))
+           (or doc (documentation feature)
+               (format "`%S' is not explicitly documented." feature)))))
+      (insert "\n\n" last-line))
     (buffer-string)))
 
 ;;;###autoload

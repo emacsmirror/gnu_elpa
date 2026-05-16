@@ -698,6 +698,13 @@ Also print the MESSAGE when MESSAGE-P is t."
                       items)
         items (seq-filter #'identity items)))
 
+(defun minuet--remove-blank-items (items)
+  "Remove empty or whitespace-only strings from ITEMS."
+  (seq-filter (lambda (item)
+                (and (stringp item)
+                     (not (string-match "\\`[\s\t\n]*\\'" item))))
+              items))
+
 (defun minuet--get-context ()
   "Get the context for minuet completion."
   (let* ((point (point))
@@ -1127,7 +1134,7 @@ arrive."
              (setq completion-items (minuet--filter-context-sequence-in-items
                                      completion-items
                                      context))
-             (setq completion-items (minuet--remove-spaces completion-items))
+             (setq completion-items (minuet--remove-blank-items completion-items))
              (funcall callback completion-items))
            :else
            (lambda (err)
@@ -1142,7 +1149,7 @@ arrive."
                    (minuet--filter-context-sequence-in-items
                     completion-items
                     context))
-             (setq completion-items (minuet--remove-spaces completion-items))
+             (setq completion-items (minuet--remove-blank-items completion-items))
              (funcall callback completion-items)))
          minuet--current-requests)))))
 

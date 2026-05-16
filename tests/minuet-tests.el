@@ -7,12 +7,18 @@
 ;;; Code:
 
 (require 'ert)
+(require 'seq)
 (load (expand-file-name "test-helper"
                         (file-name-directory
                          (or load-file-name (buffer-file-name))))
       nil t)
 
 (require 'minuet)
+
+(ert-deftest minuet-remove-blank-items-drops-whitespace-only-items ()
+  "Blank item filtering removes empty items without trimming valid ones."
+  (should (equal (minuet--remove-blank-items '("  indented" "" " \t\n" "tail  "))
+                 '("  indented" "tail  "))))
 
 (ert-deftest minuet-filter-text-filters-before-cursor-with-nonzero-length ()
   "A non-zero before-cursor filter trims duplicated prefix text."

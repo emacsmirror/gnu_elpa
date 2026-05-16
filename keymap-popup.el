@@ -36,6 +36,7 @@
 ;;; Code:
 
 (require 'cl-lib)
+(require 'seq)
 
 (defgroup keymap-popup nil
   "Described keymaps with popup help."
@@ -668,13 +669,35 @@ Switch variables are buffer-local there, so rendering must read
 
 ;;; Popup display
 
+(defun keymap-popup--dedupe-descriptions (descriptions)
+  "Return DESCRIPTIONS with duplicate-key entries removed.
+The first occurrence of each key wins; later duplicates are dropped.
+Entries with nil :key (annotated entries before key resolution)
+are preserved as-is.  Groups and rows that end up empty are removed."
+  (let ((seen (make-hash-table :test 'equal)))
+    (cl-labels ((keep-entry (e)
+                  (let ((k (plist-get e :key)))
+                    (cond ((null k) e)
+                          ((gethash k seen) nil)
+                          (t (puthash k t seen) e))))
+                (keep-group (g)
+                  (when-let* ((es (seq-keep #'keep-entry (plist-get g :entries))))
+                    (plist-put (copy-sequence g) :entries es)))
+                (keep-row (r)
+                  (seq-keep #'keep-group r)))
+      (seq-keep #'keep-row descriptions))))
+
 (defun keymap-popup--collect-descriptions (keymap)
   "Collect descriptions from KEYMAP and all its parent keymaps.
-Walks the native parent chain via `keymap-parent'."
-  (cl-loop for map = keymap then (keymap-parent map)
-           while map
-           when (keymap-popup--meta map 'descriptions)
-           append it))
+Walks the native parent chain via `keymap-parent'.  When a key is
+bound in both child and parent, the child's entry wins and the
+parent's is dropped, matching the dispatch behavior of inherited
+keymaps."
+  (keymap-popup--dedupe-descriptions
+   (cl-loop for map = keymap then (keymap-parent map)
+            while map
+            when (keymap-popup--meta map 'descriptions)
+            append it)))
 
 (defun keymap-popup--find-entry-by-key (descriptions key-str)
   "Find the entry matching KEY-STR in DESCRIPTIONS.

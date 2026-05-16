@@ -27,19 +27,15 @@
 ;; A simple mode for doing simple plain text presentations where the
 ;; slides are separated using the `page-delimiter', by default the
 ;; form feed character (^L).
-
-;; Configuration: TODO
-
-;; Usage:
-
+;;
 ;; After installing `ffs', open a text file/buffer containing your
-;; slides do `M-x ffs RET'.  Optionally, you can add a key binding for
-;; `ffs' to your init file:
+;; slides and do `M-x ffs RET'.  Optionally, you can add a key binding
+;; for `ffs' to your init file:
 ;;
 ;; (global-set-key (kbd "C-c f s") #'ffs)
-
+;;
 ;; You should then see "ffs" appear as one of the currently enabled
-;; minor modes in your mode-line.  Once ffs is enabled, you can invoke
+;; minor modes in your mode line.  Once ffs is enabled, you can invoke
 ;; its various commands.  To see a list of available commands, you can
 ;; either type `M-x ffs- TAB' (to get a completion of commands
 ;; starting with the "ffs-" prefix), or see the definition of
@@ -47,13 +43,12 @@
 
 ;;; Code:
 
-;; TODO:
-;; dedication in README/manual
-;; acronym and backronyms
-
 (require 'map)
 (require 'page)
 (require 'format-spec)
+
+
+;;;; User options and variables
 
 (defgroup ffs nil
   "Minor mode for form feed-separated plain text presentations."
@@ -147,6 +142,8 @@ This is only relevant when `ffs-present-mode' is enabled."
 (defvar ffs-find-speaker-notes-function #'find-file-other-frame
   "The function to use when finding a speaker's note file.")
 
+;;;;; Internal variables
+
 (defvar-local ffs--edit-source-buffer nil
   "The ffs presentation buffer of the slide being edited.")
 
@@ -174,16 +171,7 @@ main ffs presentation slides buffer (`ffs--slides-buffer').")
 (defvar-local ffs--default-face-height-cookie nil
   "Cookie returned from `face-remap-add-relative', for later removal.")
 
-;; XXX user option for more sophisticated behaviour?
-;; set-face-attribute  for specific frames
-;; face-list  reset to defaults
-(defun ffs-toggle-dark-mode ()
-  "Swap the frame background and foreground colours."
-  (interactive)
-  (let ((bg (frame-parameter nil 'background-color))
-        (fg (frame-parameter nil 'foreground-color)))
-    (set-background-color fg)
-    (set-foreground-color bg)))
+;;;; Slide count / presentation progress
 
 (declare-function page--what-page "page")
 (defun ffs-current-slide-number ()
@@ -206,6 +194,9 @@ main ffs presentation slides buffer (`ffs--slides-buffer').")
    ffs-echo-progress-format
    `((?c . ,(ffs-current-slide-number))
      (?t . ,(ffs-total-slide-count)))))
+
+
+;;;; Slide motions
 
 (defun ffs--goto-previous (buffer)
   "Go to the previous slide in the given BUFFER."
@@ -274,21 +265,8 @@ Symbol NAME is the name describing the movement."
 (ffs--define-goto-slide first)
 (ffs--define-goto-slide last)
 
-(defun ffs-start ()
-  "Start presenting."
-  (interactive)
-  (unless ffs-mode
-    (ffs-mode 1))
-  (unless ffs-present-mode
-    (ffs-present-mode 1)))
-
-(defun ffs-stop-or-quit ()
-  "Stop presenting.  If not currently presenting, disable `ffs-mode'."
-  (interactive)
-  (when ffs-mode
-    (if ffs-present-mode
-        (ffs-present-mode -1)
-      (ffs-mode -1))))
+
+;;;; Slide insertion and editing
 
 (defun ffs-edit (&optional add-above-or-below)
   "Pop to a new buffer to edit a slide.
@@ -354,7 +332,6 @@ to apply your changes or `\\[ffs-edit-discard]' to discard them."))
               (concat str "\n")))
          (sn (format "\n%s%s" s ffs-page-delimiter))
          (l ffs--new-location))
-    ;; XXX maybe break out into helper, would be helpful when testing
     (with-current-buffer ffs--edit-source-buffer
       (let ((inhibit-read-only t))
         (save-excursion
@@ -377,47 +354,6 @@ to apply your changes or `\\[ffs-edit-discard]' to discard them."))
       (funcall f)))
   (run-hooks 'ffs-edit-done-hook))
 
-(defun ffs-undo (&optional arg)
-  "Like `undo', but it works even when the buffer is read-only.
-Repeat this command to undo more changes.
-A numeric ARG serves as a repeat count."
-  (interactive "P")
-  ;; XXX could rebinding `amalgamating-undo-limit' be useful?
-  (let ((inhibit-read-only t))
-    (undo arg)))
-
-(defun ffs-find-speaker-notes-file (file)
-  "Prompt user for a speaker notes FILE, open it in a new frame."
-  (interactive "Fspeakers notes buffer: ")
-  (let ((b (current-buffer)))
-    (save-excursion
-      (funcall ffs-find-speaker-notes-function file)
-      (ffs-mode 1)
-      (setq-local
-       ffs--slides-buffer b
-       ffs--notes-buffer (current-buffer)))
-    (setq-local ffs--notes-buffer (get-file-buffer file))))
-
-;; XXX write all slides to one file?
-(defun ffs-export-slides-to-pdf ()
-  "Export slides to PDF (needs Emacs built with Cairo)."
-  (interactive)
-  (with-current-buffer ffs--slides-buffer
-    (ffs-goto-first)
-    (let ((c 1)
-          (fringe fringe-mode))
-      (fringe-mode 0)
-      (while (not (eobp))
-        (let ((fn (format "%s-%03d.pdf"
-                          (file-name-sans-extension (buffer-name))
-                          c))
-              (data (x-export-frames nil 'pdf)))
-          (with-temp-file fn
-            (insert data)))
-        (setq c (+ c 1))
-        (ffs-goto-next))
-      (fringe-mode fringe))))
-
 (defvar ffs-edit-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "C-c C-k") #'ffs-edit-discard)
@@ -433,55 +369,19 @@ changes, or \\[ffs-edit-discard] to discard them."
   :lighter " ffs-edit"
   :keymap ffs-edit-mode-map)
 
-(defvar ffs-toggle-prefix-map nil
-  "Keymap for ffs toggle commands.")
-(define-prefix-command 'ffs-toggle-prefix-map)
-(let ((map ffs-toggle-prefix-map))
-  (define-key map (kbd "e") #'ffs-toggle-echo-progress)
-  (define-key map (kbd "c") #'ffs-toggle-hide-cursor)
-  (define-key map (kbd "m") #'ffs-toggle-hide-mode-line)
-  (define-key map (kbd "h") #'ffs-toggle-hide-header-line)
-  (define-key map (kbd "d") #'ffs-toggle-dark-mode))
+
+;;;; Focus toggles
 
-(defvar ffs-mode-map
-  (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "p") #'ffs-goto-previous)
-    (define-key map (kbd "n") #'ffs-goto-next)
-    (define-key map (kbd "DEL") #'ffs-goto-previous)
-    (define-key map (kbd "SPC") #'ffs-goto-next)
-    (define-key map (kbd "[") #'ffs-goto-previous)
-    (define-key map (kbd "]") #'ffs-goto-next)
-    (define-key map (kbd "<") #'ffs-goto-first)
-    (define-key map (kbd ">") #'ffs-goto-last)
-    (define-key map (kbd "s") #'ffs-start)
-    (define-key map (kbd "q") #'ffs-stop-or-quit)
-    (define-key map (kbd "e") #'ffs-edit)
-    (define-key map (kbd "C-c '") #'ffs-edit)
-    (define-key map (kbd "O") #'ffs-new-above)
-    (define-key map (kbd "o") #'ffs-new-below)
-    (define-key map (kbd "S") #'ffs-find-speaker-notes-file)
-    (define-key map (kbd "N") #'narrow-to-page)
-    (define-key map (kbd "W") #'widen)
-    (define-key map [remap undo] #'ffs-undo) ; `C-_', `C-/', `C-x u'
-    (define-key map (kbd "t") ffs-toggle-prefix-map)
-    (define-key map (kbd "?") #'describe-mode)
-    map)
-  "Keymap for `ffs-mode'.")
-
-;;;###autoload
-(define-minor-mode ffs-mode
-  "Minor mode for form feed-separated plain text presentations."
-  :group 'ffs
-  :lighter " ffs"
-  :keymap ffs-mode-map
-  (setq-local
-   buffer-read-only ffs-mode
-   ffs--slides-buffer (current-buffer)
-   ffs--old-mode-line-format mode-line-format
-   ffs--old-cursor-type cursor-type))
-
-;;;###autoload
-(defalias 'ffs #'ffs-mode)
+;; XXX user option for more sophisticated behaviour?
+;; set-face-attribute  for specific frames
+;; face-list  reset to defaults
+(defun ffs-toggle-dark-mode ()
+  "Swap the frame background and foreground colours."
+  (interactive)
+  (let ((bg (frame-parameter nil 'background-color))
+        (fg (frame-parameter nil 'foreground-color)))
+    (set-background-color fg)
+    (set-foreground-color bg)))
 
 ;; I learned about the method of using `ffs-set-buffer-local-value'
 ;; from Protesilaos <https://protesilaos.com> and his Logos package,
@@ -582,6 +482,116 @@ If we already hid the header line, restore it.  Otherwise, when variable
    'ffs-hide-header-line ffs-hide-header-line)
   (when ffs-present-mode
     (ffs-hide-header-line)))
+
+(defvar ffs-toggle-prefix-map nil
+  "Keymap for ffs toggle commands.")
+(define-prefix-command 'ffs-toggle-prefix-map)
+(let ((map ffs-toggle-prefix-map))
+  (define-key map (kbd "e") #'ffs-toggle-echo-progress)
+  (define-key map (kbd "c") #'ffs-toggle-hide-cursor)
+  (define-key map (kbd "m") #'ffs-toggle-hide-mode-line)
+  (define-key map (kbd "h") #'ffs-toggle-hide-header-line)
+  (define-key map (kbd "d") #'ffs-toggle-dark-mode))
+
+
+;;;; Miscellaneous
+
+(defun ffs-start ()
+  "Start presenting."
+  (interactive)
+  (unless ffs-mode
+    (ffs-mode 1))
+  (unless ffs-present-mode
+    (ffs-present-mode 1)))
+
+(defun ffs-stop-or-quit ()
+  "Stop presenting.  If not currently presenting, disable `ffs-mode'."
+  (interactive)
+  (when ffs-mode
+    (if ffs-present-mode
+        (ffs-present-mode -1)
+      (ffs-mode -1))))
+
+(defun ffs-undo (&optional arg)
+  "Like `undo', but it works even when the buffer is read-only.
+Repeat this command to undo more changes.
+A numeric ARG serves as a repeat count."
+  (interactive "P")
+  (let ((inhibit-read-only t))
+    (undo arg)))
+
+(defun ffs-find-speaker-notes-file (file)
+  "Prompt user for a speaker notes FILE, open it in a new frame."
+  (interactive "Fspeakers notes buffer: ")
+  (let ((b (current-buffer)))
+    (save-excursion
+      (funcall ffs-find-speaker-notes-function file)
+      (ffs-mode 1)
+      (setq-local
+       ffs--slides-buffer b
+       ffs--notes-buffer (current-buffer)))
+    (setq-local ffs--notes-buffer (get-file-buffer file))))
+
+;; XXX write all slides to one file?
+(defun ffs-export-slides-to-pdf ()
+  "Export slides to PDF (needs Emacs built with Cairo)."
+  (interactive)
+  (with-current-buffer ffs--slides-buffer
+    (ffs-goto-first)
+    (let ((c 1)
+          (fringe fringe-mode))
+      (fringe-mode 0)
+      (while (not (eobp))
+        (let ((fn (format "%s-%03d.pdf"
+                          (file-name-sans-extension (buffer-name))
+                          c))
+              (data (x-export-frames nil 'pdf)))
+          (with-temp-file fn
+            (insert data)))
+        (setq c (+ c 1))
+        (ffs-goto-next))
+      (fringe-mode fringe))))
+
+
+;;;; Main minor modes
+
+(defvar ffs-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "p") #'ffs-goto-previous)
+    (define-key map (kbd "n") #'ffs-goto-next)
+    (define-key map (kbd "DEL") #'ffs-goto-previous)
+    (define-key map (kbd "SPC") #'ffs-goto-next)
+    (define-key map (kbd "[") #'ffs-goto-previous)
+    (define-key map (kbd "]") #'ffs-goto-next)
+    (define-key map (kbd "<") #'ffs-goto-first)
+    (define-key map (kbd ">") #'ffs-goto-last)
+    (define-key map (kbd "s") #'ffs-start)
+    (define-key map (kbd "q") #'ffs-stop-or-quit)
+    (define-key map (kbd "e") #'ffs-edit)
+    (define-key map (kbd "C-c '") #'ffs-edit)
+    (define-key map (kbd "O") #'ffs-new-above)
+    (define-key map (kbd "o") #'ffs-new-below)
+    (define-key map (kbd "S") #'ffs-find-speaker-notes-file)
+    (define-key map (kbd "N") #'narrow-to-page)
+    (define-key map (kbd "W") #'widen)
+    (define-key map [remap undo] #'ffs-undo) ; `C-_', `C-/', `C-x u'
+    (define-key map (kbd "t") ffs-toggle-prefix-map)
+    (define-key map (kbd "?") #'describe-mode)
+    map)
+  "Keymap for `ffs-mode'.")
+
+;;;###autoload
+(define-minor-mode ffs-mode
+  "Minor mode for form feed-separated plain text presentations."
+  :group 'ffs
+  :lighter " ffs"
+  :keymap ffs-mode-map
+  (setq-local
+   buffer-read-only ffs-mode
+   ffs--slides-buffer (current-buffer)))
+
+;;;###autoload
+(defalias 'ffs #'ffs-mode)
 
 (defvar ffs-present-mode-map
   (let ((map (make-sparse-keymap)))

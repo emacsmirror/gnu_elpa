@@ -644,7 +644,6 @@ not a function."
 			keyword number constant-builtin variable)
 			( punctuation-delimiter string-escape variable-parameter error
 			  namespace keyword-function type)))
-  ;; TODO: Make below as defcustom
   (setq-local treesit-font-lock-settings r-ts-mode-settings)
 
   ;; Navigation

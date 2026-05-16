@@ -3,6 +3,7 @@
 .aider*
 *.elc
 /.codex
+/.cache
 # ELPA-generated files
 /minuet-autoloads.el
 /minuet-pkg.el

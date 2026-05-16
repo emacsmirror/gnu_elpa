@@ -285,10 +285,10 @@ configured in `forgejo-hosts'."
               (url-obj (url-generic-parse-url url))
               (host (url-host url-obj))
               (known (cl-find host forgejo-hosts
-                               :key (lambda (e)
-                                      (url-host
-                                       (url-generic-parse-url (car e))))
-                               :test #'string=))
+                              :key (lambda (e)
+                                     (url-host
+                                      (url-generic-parse-url (car e))))
+                              :test #'string=))
               (forgejo-repo--host (format "%s://%s"
                                           (url-type url-obj) host)))
     (forgejo-view-item (nth 0 parsed) (nth 1 parsed) (nth 2 parsed))
@@ -607,15 +607,16 @@ Updates the API, then updates pin_order in the DB."
   (interactive)
   (when-let* ((data forgejo-view--data)
               (number (alist-get 'number data))
+              (host forgejo-repo--host)
+              (owner forgejo-repo--owner)
+              (name forgejo-repo--name)
               (refresh (forgejo--post-action-callback)))
     (forgejo-utils-post-comment
-     forgejo-repo--host
-     (format "repos/%s/%s/issues/%d/comments"
-             forgejo-repo--owner forgejo-repo--name number)
+     host
+     (format "repos/%s/%s/issues/%d/comments" owner name number)
      nil
      (lambda (_data _headers)
-       (message "Comment posted on %s/%s#%d"
-                forgejo-repo--owner forgejo-repo--name number)
+       (message "Comment posted on %s/%s#%d" owner name number)
        (funcall refresh)))))
 
 (defun forgejo-view-edit-title ()

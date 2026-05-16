@@ -453,14 +453,21 @@ FN receives a group plist and returns a new group plist."
 
 (defun keymap-popup--add-entry-to-rows (rows entry group-name)
   "Return ROWS with ENTRY appended to the group named GROUP-NAME.
-Falls back to the first group if GROUP-NAME is not found."
-  (let ((target (or (cl-loop for row in rows
-                             thereis (cl-loop for g in row
-                                              when (equal (plist-get g :name) group-name)
-                                              return group-name))
-                    (plist-get (caar rows) :name))))
+Falls back to the first group if GROUP-NAME is not found.
+If ENTRY's key already appears in ROWS (in any group), the prior
+entry is removed first -- matching the replacement semantics of
+`keymap-set'."
+  (let* ((key (plist-get entry :key))
+         (scrubbed (if key
+                       (keymap-popup--remove-key-from-rows rows key)
+                     rows))
+         (target (or (cl-loop for row in scrubbed
+                              thereis (cl-loop for g in row
+                                               when (equal (plist-get g :name) group-name)
+                                               return group-name))
+                     (plist-get (caar scrubbed) :name))))
     (keymap-popup--map-groups
-     rows
+     scrubbed
      (lambda (group)
        (if (equal (plist-get group :name) target)
            (list :name (plist-get group :name)

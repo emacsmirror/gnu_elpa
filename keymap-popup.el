@@ -1175,6 +1175,55 @@ Deactivates the transient map and removes the popup display."
     (internal-pop-keymap map 'overriding-terminal-local-map)
     (keymap-popup--teardown buf)))
 
+(defun keymap-popup--session-inputs (keymap)
+  "Derive a plist of session inputs from KEYMAP and the current buffer.
+Returns (:source BUF :keymap MAP :descriptions D :docstring S
+         :exit-key K :persistent P :backend B)."
+  (list :source (current-buffer)
+        :keymap keymap
+        :descriptions (keymap-popup--resolve-descriptions
+                       (keymap-popup--collect-descriptions keymap)
+                       keymap)
+        :docstring (keymap-popup--meta keymap 'description)
+        :exit-key (or (keymap-popup--meta keymap 'exit-key)
+                      keymap-popup-default-exit-key)
+        :persistent (or (keymap-popup--meta keymap 'persistent)
+                        keymap-popup-persistent)
+        :backend (funcall keymap-popup-backend)))
+
+(defun keymap-popup--init-buffer-state (buf session)
+  "Initialize BUF's buffer-local state from SESSION plist."
+  (with-current-buffer buf
+    (setq-local keymap-popup--source-buffer (plist-get session :source)
+                keymap-popup--active-keymap (plist-get session :keymap)
+                keymap-popup--active-descriptions (plist-get session :descriptions)
+                keymap-popup--active-docstring (plist-get session :docstring)
+                keymap-popup--active-exit-key (plist-get session :exit-key)
+                keymap-popup--persistent (plist-get session :persistent)
+                keymap-popup--display-backend (plist-get session :backend)
+                keymap-popup--stack nil
+                keymap-popup--prefix-mode nil
+                keymap-popup--reentering nil)))
+
+(defun keymap-popup--activate-transient-map (buf keymap descriptions exit-key)
+  "Build the wrapper map, stash it on BUF, and activate it as transient."
+  (let ((wrapper (keymap-popup--build-wrapper-map keymap descriptions buf exit-key)))
+    (with-current-buffer buf
+      (setq-local keymap-popup--wrapper-map wrapper))
+    (set-transient-map wrapper
+                       (keymap-popup--make-keep-pred buf)
+                       (keymap-popup--make-on-exit buf))))
+
+(defun keymap-popup--install-persistent-hook (buf)
+  "Add a self-removing post-command-hook that refreshes BUF until it dies."
+  (let ((hook-fn (make-symbol "keymap-popup--persistent-refresh")))
+    (fset hook-fn
+          (lambda ()
+            (if (buffer-live-p buf)
+                (keymap-popup--refresh buf)
+              (remove-hook 'post-command-hook hook-fn))))
+    (add-hook 'post-command-hook hook-fn)))
+
 ;;;###autoload
 (defun keymap-popup (keymap)
   "Show popup help for described KEYMAP.
@@ -1184,46 +1233,19 @@ without closing.  Inapt keys signal `Command unavailable' via
 \\[universal-argument] toggles prefix mode."
   (or (keymap-popup--meta keymap 'descriptions)
       (user-error "No descriptions in keymap"))
-  (let* ((source (current-buffer))
-         (buf (keymap-popup--prepare-buffer))
-         (backend (funcall keymap-popup-backend))
-         (descriptions (keymap-popup--resolve-descriptions
-			(keymap-popup--collect-descriptions keymap)
-			keymap))
-         (docstring (keymap-popup--meta keymap 'description))
-         (exit-key (or (keymap-popup--meta keymap 'exit-key)
-                       keymap-popup-default-exit-key))
-         (persistent (or (keymap-popup--meta keymap 'persistent)
-                         keymap-popup-persistent)))
-    (with-current-buffer buf
-      (setq-local keymap-popup--source-buffer source
-                  keymap-popup--active-keymap keymap
-                  keymap-popup--active-descriptions descriptions
-                  keymap-popup--active-docstring docstring
-                  keymap-popup--active-exit-key exit-key
-                  keymap-popup--persistent persistent
-                  keymap-popup--display-backend backend
-                  keymap-popup--stack nil
-                  keymap-popup--prefix-mode nil
-                  keymap-popup--reentering nil))
+  (let ((session (keymap-popup--session-inputs keymap))
+        (buf (keymap-popup--prepare-buffer)))
+    (keymap-popup--init-buffer-state buf session)
     (keymap-popup--refresh buf)
-    (funcall (plist-get backend :show) buf)
-    (let ((wrapper (keymap-popup--build-wrapper-map keymap descriptions buf exit-key)))
-      (with-current-buffer buf
-        (setq-local keymap-popup--wrapper-map wrapper))
-      (set-transient-map wrapper
-                         (keymap-popup--make-keep-pred buf)
-                         (keymap-popup--make-on-exit buf)))
+    (funcall (plist-get (plist-get session :backend) :show) buf)
+    (keymap-popup--activate-transient-map
+     buf keymap
+     (plist-get session :descriptions)
+     (plist-get session :exit-key))
     (add-hook 'minibuffer-setup-hook #'keymap-popup--suspend)
     (add-hook 'minibuffer-exit-hook #'keymap-popup--resume)
-    (when persistent
-      (let ((hook-fn '#:keymap-popup--persistent-refresh))
-        (fset hook-fn
-              (lambda ()
-                (if (buffer-live-p buf)
-                    (keymap-popup--refresh buf)
-                  (remove-hook 'post-command-hook hook-fn))))
-        (add-hook 'post-command-hook hook-fn)))))
+    (when (plist-get session :persistent)
+      (keymap-popup--install-persistent-hook buf))))
 
 (provide 'keymap-popup)
 ;;; keymap-popup.el ends here

@@ -424,11 +424,8 @@ FILE."
 (cl-defgeneric dired-preview--get-buffer (file)
   "Get a buffer for FILE.")
 
-;; FIXME 2024-04-22: We have a lot of repetitive code.  Can we expand
-;; a macro inside of a `cl-defmethod' or, alternatively, have a macro
-;; that returns the method with its implementation?
-(cl-defmethod dired-preview--get-buffer ((file (head text)))
-  "Get preview buffer for text FILE type."
+(cl-defmethod dired-preview--get-buffer (file)
+  "Get a generic preview buffer for FILE."
   (dired-preview-with-file-setup
    (find-file-noselect file :nowarn)))
 
@@ -606,11 +603,6 @@ The size of the leading chunk is specified by
 ;; FIXME 2024-04-22: Best way to preview images and PDF files?  For now
 ;; this is the same as the text file type, though we need to refine
 ;; it.
-(cl-defmethod dired-preview--get-buffer ((file (head image)))
-  "Get preview buffer for image FILE type."
-  (dired-preview-with-file-setup
-   (find-file-noselect file :nowarn)))
-
 (defun dired-preview--add-to-previews (file)
   "Add FILE to `dired-preview--buffers', if not already in a buffer.
 Return FILE buffer or nil."

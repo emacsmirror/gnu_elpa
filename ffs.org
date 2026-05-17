@@ -1,4 +1,4 @@
-#+title: ffs: simple form feed-separated plain text presentations
+#+title: ffs: form feed-separated plain text presentations
 #+author: Amin Bandali
 #+email: bandali@gnu.org
 #+language: en
@@ -7,6 +7,7 @@
 #+macro: stable-version 0.1.0
 #+macro: release-date 2022-05-19
 #+macro: development-version 0.2.0-dev
+#+macro: kbd (eval (org-texinfo-kbd-macro $1))
 #+texinfo_filename: ffs.info
 #+texinfo_dir_category: Emacs misc features
 #+texinfo_dir_title: FFS: (ffs)
@@ -67,7 +68,134 @@ modify this GNU manual.”
 :CUSTOM_ID: overview
 :END:
 
-TBD
+This package provides a simple presentation mode which can be applied
+to any buffer for reading, writing, editing, and presenting slides.
+Slides are separated using the ~page-delimiter~, by default the =^L=
+character, known as the form feed, which can be inserted using
+{{{kbd(C-q C-l)}}}.  Commands are provided for moving between those
+pages, aka slides.  These motions work even when narrowing is in
+effect (and they preserve it).  Through detailed explanations and
+concrete examples, this manual hopes to demonstrate that ~ffs~ is
+designed to be simple and flexible, and easy to use and extend.
+
+ffs does not define any global key bindings.  You can define a key
+binding for ~ffs-mode~ in the ~global-map~ like so:
+
+#+begin_src elisp
+(global-set-key (kbd "C-c f s") #'ffs-mode)
+#+end_src
+
+On Emacs 29 or later, you can use the newer keymap functions, for
+instance:
+
+#+begin_src elisp
+(keymap-global-set "C-c f s" #'ffs-mode)
+#+end_src
+
+For convenience, ~ffs~ is provided as an alias for ~ffs-mode~.
+
+Once enabled, ~ffs-mode~ puts the buffer in read-only mode by setting
+~buffer-read-only~, and provides convenient key bindings for moving
+between, editing, and inserting slides.  These are available in the
+~ffs-mode-map~ keymap.
+
+#+findex: ffs-present-mode
+#+vindex: ffs-default-face-height
+#+vindex: ffs-hide-cursor
+#+vindex: ffs-hide-mode-line
+#+vindex: ffs-hide-header-line
+When ready to present your slides, you can enable ~ffs-present-mode~,
+by default bound to the {{{kbd(s)}}} key in ~ffs-mode-map~ to start a
+presentation.  Several user options are provided for customizing the
+appearance of the buffer during presentations, for using a different
+=height= for the ~default~ face (~ffs-default-face-height~), hiding
+the cursor (~ffs-hide-cursor~), hiding the mode line
+(~ffs-hide-mode-line~), and hiding the header line
+(~ffs-hide-header-line~).
+
+* Installation
+:PROPERTIES:
+:CUSTOM_ID: installation
+:END:
+
+** GNU ELPA package
+:PROPERTIES:
+:CUSTOM_ID: installation-gnu-elpa
+:END:
+
+The package is available as =ffs=.  Simply do:
+
+: M-x package-refresh-contents
+: M-x package-install
+
+And search for it.
+
+GNU ELPA provides the latest stable release.  Folks who prefer to
+follow the development process in order to report bugs or suggest
+changes can use the version of the package from the GNU-devel ELPA.
+
+** Manual installation
+:PROPERTIES:
+:CUSTOM_ID: installation-manual
+:END:
+
+Assuming your Emacs files are found in =~/.emacs.d/=, execute the
+following commands in a shell:
+
+#+begin_src sh
+# Make a directory for local lisp files and packages
+mkdir ~/.emacs.d/lisp
+
+# Go to the new directory
+cd ~/.emacs.d/lisp/
+
+# Clone the ffs source repository
+git clone https://git.kelar.org/~bandali/ffs
+#+end_src
+
+Then, in your ~user-init-file~ (=init.el= or equivalent) add:
+
+#+begin_src emacs-lisp
+;; Make Elisp files in the directory available
+(add-to-list 'load-path "~/.emacs.d/lisp/ffs")
+#+end_src
+
+Then restart your Emacs session or simply evaluate that expression
+(using {{{kbd(C-x C-e)}}}) so Emacs can find the package.
+
+On Emacs 31 or later, you can use the new User Lisp feature, where
+Emacs Lisp files in the directory specified by ~user-lisp-directory~
+and its subdirectories will be recursively byte-compiled, scraped for
+autoload cookies, and ensured to be in ~load-path~.  So all you need
+is to designate =~/.emacs.d/lisp/= as your ~user-lisp-directory~ in
+your ~early-init-file~ (=early-init.el=) like so:
+
+#+begin_src elisp
+(setq user-lisp-directory (locate-user-emacs-file "lisp/"))
+#+end_src
+
+* Indices
+:PROPERTIES:
+:CUSTOM_ID: indices
+:END:
+
+** Function index
+:PROPERTIES:
+:INDEX: fn
+:CUSTOM_ID: indices-fn
+:END:
+
+** Variable index
+:PROPERTIES:
+:INDEX: vr
+:CUSTOM_ID: indices-vr
+:END:
+
+** Concept index
+:PROPERTIES:
+:INDEX: cp
+:CUSTOM_ID: indices-cp
+:END:
 
 * COMMENT Local Variables
 

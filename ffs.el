@@ -32,7 +32,7 @@
 ;; slides and do `M-x ffs RET'.  Optionally, you can add a key binding
 ;; for `ffs' to your init file:
 ;;
-;; (global-set-key (kbd "C-c f s") #'ffs)
+;; (global-set-key (kbd "C-c f s") #'ffs-mode)
 ;;
 ;; You should then see "ffs" appear as one of the currently enabled
 ;; minor modes in your mode line.  Once ffs is enabled, you can invoke

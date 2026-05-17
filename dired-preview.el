@@ -398,8 +398,7 @@ FILE."
   (let* ((file (expand-file-name file))
          (file-nondir (file-name-nondirectory file)))
     (cond
-     ((and dired-preview-ignored-extensions-regexp
-           (string-match-p dired-preview-ignored-extensions-regexp file-nondir))
+     ((dired-preview--file-ignored-p file)
       (cons 'ignore file))
      ((file-directory-p file)
       (cons 'directory file))

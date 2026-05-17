@@ -1,3 +1,9 @@
+# Version 0.2.3 (2026-05-17)
+
+## Features
+
+- Added `ghostel` terminal emulator backend support.
+
 # Version 0.2.2 (2026-04-11)
 
 ## Features

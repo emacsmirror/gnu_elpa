@@ -135,6 +135,9 @@ fallback when :exit-key is omitted."
   :type 'key
   :group 'keymap-popup)
 
+(defconst keymap-popup--buffer-name "*keymap-popup*"
+  "Name of the singleton buffer used to display the popup.")
+
 ;;; Faces
 
 (defface keymap-popup-key
@@ -924,7 +927,7 @@ Frame parameters are taken from `keymap-popup-child-frame-parameters'."
 
 (defun keymap-popup--prepare-buffer ()
   "Create and configure the popup buffer."
-  (let ((buf (get-buffer-create "*keymap-popup*")))
+  (let ((buf (get-buffer-create keymap-popup--buffer-name)))
     (with-current-buffer buf
       (pcase-dolist (`(,var . ,val) keymap-popup-buffer-parameters)
         (set (make-local-variable var) val)))
@@ -932,13 +935,13 @@ Frame parameters are taken from `keymap-popup-child-frame-parameters'."
 
 (defun keymap-popup--suspend ()
   "Suspend the popup's transient map for minibuffer input."
-  (when-let* ((buf (get-buffer "*keymap-popup*"))
+  (when-let* ((buf (get-buffer keymap-popup--buffer-name))
               (map (buffer-local-value 'keymap-popup--wrapper-map buf)))
     (internal-pop-keymap map 'overriding-terminal-local-map)))
 
 (defun keymap-popup--resume ()
   "Resume the popup's transient map after minibuffer input."
-  (when-let* ((buf (get-buffer "*keymap-popup*"))
+  (when-let* ((buf (get-buffer keymap-popup--buffer-name))
               (map (buffer-local-value 'keymap-popup--wrapper-map buf)))
     (internal-push-keymap map 'overriding-terminal-local-map)))
 
@@ -1067,7 +1070,7 @@ Returns plist (:switches KEYS :submenus PAIRS :stay-open KEYS)."
 When toggling on, activates `universal-argument-map' so that
 subsequent digit and `negative-argument' keys refine the prefix."
   (interactive)
-  (when-let* ((buf (get-buffer "*keymap-popup*")))
+  (when-let* ((buf (get-buffer keymap-popup--buffer-name)))
     (with-current-buffer buf
       (setq-local keymap-popup--prefix-mode
                   (not keymap-popup--prefix-mode))
@@ -1093,7 +1096,7 @@ prefix-mode state so `\\[universal-argument]' is not consumed."
   ;; The popup's prefix-mode only ever stores `(4)' (see
   ;; `keymap-popup--prefix-argument'), so re-setting that value is
   ;; preservation, not approximation.
-  (when-let* ((buf (get-buffer "*keymap-popup*"))
+  (when-let* ((buf (get-buffer keymap-popup--buffer-name))
               ((buffer-local-value 'keymap-popup--prefix-mode buf)))
     (setq prefix-arg '(4))))
 
@@ -1162,7 +1165,7 @@ so the wrapper carries no inapt logic of its own."
 (defun keymap-popup-dismiss ()
   "Dismiss the active popup, if any.
 Deactivates the transient map and removes the popup display."
-  (when-let* ((buf (get-buffer "*keymap-popup*"))
+  (when-let* ((buf (get-buffer keymap-popup--buffer-name))
               (map (buffer-local-value 'keymap-popup--wrapper-map buf)))
     (internal-pop-keymap map 'overriding-terminal-local-map)
     (keymap-popup--teardown buf)))

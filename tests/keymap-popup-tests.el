@@ -757,7 +757,7 @@
                 :inapt-if (lambda () keymap-popup--test-sw-flag)))
         t)
   (let* ((descs (keymap-popup--meta keymap-popup--test-sw-inapt 'descriptions))
-         (buf (get-buffer-create "*keymap-popup*")))
+         (buf (get-buffer-create keymap-popup--buffer-name)))
     (unwind-protect
         (progn
           (with-current-buffer buf

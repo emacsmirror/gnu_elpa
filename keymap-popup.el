@@ -409,23 +409,68 @@ MAP-NAME is used to derive generated command names.  Entries with
            ,@(and-let* ((c-u (plist-get entry :c-u)))
                (list :c-u c-u)))))
 
+(defun keymap-popup--build-group-form (group)
+  "Build a `list' form for one GROUP plist."
+  (let ((if-pred (plist-get group :if))
+        (inapt-if (plist-get group :inapt-if)))
+    `(list :name ,(plist-get group :name)
+           :entries (list ,@(mapcar #'keymap-popup--build-entry-form
+                                    (plist-get group :entries)))
+           ,@(and if-pred (list :if if-pred))
+           ,@(and inapt-if (list :inapt-if inapt-if)))))
+
 (defun keymap-popup--build-descriptions-form (rows)
   "Build a `list' form that constructs descriptions at load time.
-ROWS is a list of rows, each row a list of groups.
-Uses list calls so lambdas get compiled."
-  `(list ,@(mapcar
-            (lambda (row)
-              `(list ,@(mapcar
-                        (lambda (group)
-                          (let ((if-pred (plist-get group :if))
-                                (inapt-if (plist-get group :inapt-if)))
-                            `(list :name ,(plist-get group :name)
-                                   :entries (list ,@(mapcar #'keymap-popup--build-entry-form
-                                                            (plist-get group :entries)))
-                                   ,@(and if-pred (list :if if-pred))
-                                   ,@(and inapt-if (list :inapt-if inapt-if)))))
-                        row)))
-            rows)))
+ROWS is a list of rows, each row a list of groups.  Uses `list'
+calls so lambdas in :if/:inapt-if/:description get compiled."
+  `(list ,@(mapcar (lambda (row)
+                     `(list ,@(mapcar #'keymap-popup--build-group-form row)))
+                   rows)))
+
+(defun keymap-popup--build-switch-forms (map-name entries)
+  "Build defvar-local + toggle defun forms for switch ENTRIES in MAP-NAME."
+  (mapcan (lambda (e)
+            (let* ((var (plist-get e :variable))
+                   (toggle (keymap-popup--toggle-name map-name var)))
+              `((defvar-local ,var nil
+                  ,(format "Buffer-local switch state toggled by `%s'."
+                           toggle))
+                (defun ,toggle ()
+                  ,(format "Toggle `%s' in the current buffer." var)
+                  (interactive)
+                  (setq ,var (not ,var))
+                  (message "%s: %s" ',var (if ,var "on" "off"))))))
+          entries))
+
+(defun keymap-popup--build-enter-forms (map-name entries)
+  "Build sub-menu enter defun forms for keymap ENTRIES in MAP-NAME."
+  (mapcar (lambda (e)
+            (let* ((target (plist-get e :target))
+                   (enter (keymap-popup--enter-name map-name target)))
+              `(defun ,enter ()
+                 ,(format "Show popup for `%s' (sub-menu of `%s')."
+                          target map-name)
+                 (interactive)
+                 (keymap-popup ,target))))
+          entries))
+
+(defun keymap-popup--build-launcher-form (map-name launcher)
+  "Build the launcher defun form named LAUNCHER for MAP-NAME."
+  `(defun ,launcher ()
+     ,(format "Show popup help for `%s'." map-name)
+     (interactive)
+     (keymap-popup ,map-name)))
+
+(defun keymap-popup--build-meta-forms (map-name exit-key description persistent)
+  "Build trailing `setf' forms for MAP-NAME's popup metadata.
+Each of EXIT-KEY, DESCRIPTION, PERSISTENT is included only when non-nil."
+  (append
+   (and exit-key
+        `((setf (keymap-popup--meta ,map-name 'exit-key) ,exit-key)))
+   (and description
+        `((setf (keymap-popup--meta ,map-name 'description) ,description)))
+   (and persistent
+        `((setf (keymap-popup--meta ,map-name 'persistent) 'yes)))))
 
 ;;; Macro
 
@@ -479,31 +524,9 @@ pairs."
                (keymap-pairs (keymap-popup--build-keymap-pairs name all-entries))
                (launcher (keymap-popup--launcher-name name)))
     `(progn
-       ,@(mapcan (lambda (e)
-                   (let* ((var (plist-get e :variable))
-                          (toggle (keymap-popup--toggle-name name var)))
-                     `((defvar-local ,var nil
-                         ,(format "Buffer-local switch state toggled by `%s'."
-                                  toggle))
-                       (defun ,toggle ()
-                         ,(format "Toggle `%s' in the current buffer." var)
-                         (interactive)
-                         (setq ,var (not ,var))
-                         (message "%s: %s" ',var (if ,var "on" "off"))))))
-                 switch-entries)
-       ,@(mapcar (lambda (e)
-                   (let* ((target (plist-get e :target))
-                          (enter (keymap-popup--enter-name name target)))
-                     `(defun ,enter ()
-                        ,(format "Show popup for `%s' (sub-menu of `%s')."
-                                 target name)
-                        (interactive)
-                        (keymap-popup ,target))))
-                 keymap-entries)
-       (defun ,launcher ()
-         ,(format "Show popup help for `%s'." name)
-         (interactive)
-         (keymap-popup ,name))
+       ,@(keymap-popup--build-switch-forms name switch-entries)
+       ,@(keymap-popup--build-enter-forms name keymap-entries)
+       ,(keymap-popup--build-launcher-form name launcher)
        (defvar-keymap ,name
          ,@(and docstring (list :doc docstring))
          ,@(and parent (list :parent parent))
@@ -511,11 +534,7 @@ pairs."
          ,popup-key #',launcher)
        (setf (keymap-popup--meta ,name 'descriptions)
              ,(keymap-popup--build-descriptions-form rows))
-       (setf (keymap-popup--meta ,name 'exit-key) ,exit-key)
-       ,@(and description
-              `((setf (keymap-popup--meta ,name 'description) ,description)))
-       ,@(and persistent
-              `((setf (keymap-popup--meta ,name 'persistent) 'yes))))))
+       ,@(keymap-popup--build-meta-forms name exit-key description persistent))))
 
 ;;;###autoload
 (defmacro keymap-popup-annotate (keymap &rest body)
@@ -543,21 +562,14 @@ time, so the popup always reflects the user's current bindings."
     `(progn
        (setf (keymap-popup--meta ,keymap 'descriptions)
              ,(keymap-popup--build-descriptions-form rows))
-       ,@(and launcher
-              `((defun ,launcher ()
-                  ,(format "Show popup help for `%s'." keymap)
-                  (interactive)
-                  (keymap-popup ,keymap))
-                (keymap-set ,keymap ,popup-key #',launcher)))
-       ,@(and popup-key (not launcher)
-              `((keymap-set ,keymap ,popup-key
-                            (lambda () (interactive) (keymap-popup ,keymap)))))
-       ,@(and exit-key
-              `((setf (keymap-popup--meta ,keymap 'exit-key) ,exit-key)))
-       ,@(and description
-              `((setf (keymap-popup--meta ,keymap 'description) ,description)))
-       ,@(and persistent
-              `((setf (keymap-popup--meta ,keymap 'persistent) 'yes))))))
+       ,@(cond
+          (launcher
+           `(,(keymap-popup--build-launcher-form keymap launcher)
+             (keymap-set ,keymap ,popup-key #',launcher)))
+          (popup-key
+           `((keymap-set ,keymap ,popup-key
+                         (lambda () (interactive) (keymap-popup ,keymap))))))
+       ,@(keymap-popup--build-meta-forms keymap exit-key description persistent))))
 
 ;;; Public API
 

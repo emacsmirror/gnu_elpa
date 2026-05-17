@@ -870,6 +870,8 @@ Drops entries whose command has no binding."
   "Display BUF in a side window."
   (display-buffer buf (append keymap-popup-display-action
                               '((window-height . fit-window-to-buffer))))
+  ;; Safety net: user-customized `keymap-popup-display-action' may bind a
+  ;; display function that does not honour `window-height'.
   (when-let* ((win (get-buffer-window buf)))
     (fit-window-to-buffer win)))
 
@@ -888,6 +890,8 @@ Drops entries whose command has no binding."
   "Display BUF in a child frame centered on the parent.
 Frame parameters are taken from `keymap-popup-child-frame-parameters'."
   (let* ((parent (selected-frame))
+         ;; Suppress theme/window-system hooks; this is an ephemeral popup
+         ;; frame, not a user workspace.
          (after-make-frame-functions nil)
          (frame (make-frame
                  `((parent-frame . ,parent)
@@ -937,6 +941,9 @@ Frame parameters are taken from `keymap-popup-child-frame-parameters'."
       (pcase-dolist (`(,var . ,val) keymap-popup-buffer-parameters)
         (set (make-local-variable var) val)))
     buf))
+
+;; `internal-{push,pop}-keymap' are the only public path for manipulating
+;; `overriding-terminal-local-map'; `set-transient-map' itself uses them.
 
 (defun keymap-popup--suspend ()
   "Suspend the popup's transient map for minibuffer input."

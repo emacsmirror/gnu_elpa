@@ -295,13 +295,15 @@ The entry is returned unchanged when GROUP has no predicates."
              (r (if merged-inapt (plist-put r :inapt-if merged-inapt) r)))
         r))))
 
+(defun keymap-popup--group-entries-merged (group)
+  "Return GROUP's entries with the group's :if/:inapt-if merged in."
+  (mapcar (lambda (e) (keymap-popup--merge-group-preds e group))
+          (plist-get group :entries)))
+
 (defun keymap-popup--flatten-with-groups (rows)
   "Flatten ROWS into a list of entries with group :if/:inapt-if merged in."
-  (cl-loop for row in rows
-           append (cl-loop for group in row
-                           append (mapcar (lambda (e)
-                                            (keymap-popup--merge-group-preds e group))
-                                          (plist-get group :entries)))))
+  (mapcan (lambda (row) (mapcan #'keymap-popup--group-entries-merged row))
+          rows))
 
 ;;; Infix generators
 

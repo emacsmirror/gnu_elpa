@@ -301,7 +301,7 @@ The entry is returned unchanged when GROUP has no predicates."
              (merged-inapt (keymap-popup--combine-preds
                             g-inapt (plist-get entry :inapt-if)))
              (r (copy-sequence entry))
-             (r (if merged-if    (plist-put r :if    merged-if)    r))
+             (r (if merged-if (plist-put r :if merged-if) r))
              (r (if merged-inapt (plist-put r :inapt-if merged-inapt) r)))
         r))))
 
@@ -647,15 +647,15 @@ rendered with the inapt face."
                                                    'keymap-popup-inapt
 						 'keymap-popup-group-header))))
               (lines (cl-loop for entry in entries
-                              for line = (keymap-popup--render-entry
-					  entry prefix-mode key-width)
-                              when line collect line)))
-	 (when lines
-           (let ((result (if header (cons header lines) lines)))
-             (if group-inapt
-		 (mapcar (lambda (line) (propertize line 'face 'keymap-popup-inapt))
-			 result)
-               result))))))
+                              when (keymap-popup--render-entry
+				    entry prefix-mode key-width)
+                              collect it)))
+	 (and lines
+              (let ((result (if header (cons header lines) lines)))
+                (if group-inapt
+		    (mapcar (lambda (line) (propertize line 'face 'keymap-popup-inapt))
+			    result)
+                  result))))))
 
 (defun keymap-popup--string-width-visible (str)
   "Return the visible width of STR, ignoring text properties."
@@ -921,13 +921,13 @@ Frame parameters are taken from `keymap-popup-child-frame-parameters'."
 (defun keymap-popup-backend-side-window ()
   "Return a side-window display backend."
   (list :show #'keymap-popup--show-side-window
-        :fit  #'keymap-popup--fit-side-window
+        :fit #'keymap-popup--fit-side-window
         :hide #'keymap-popup--hide-side-window))
 
 (defun keymap-popup-backend-child-frame ()
   "Return a child-frame display backend."
   (list :show #'keymap-popup--show-child-frame
-        :fit  #'keymap-popup--fit-child-frame
+        :fit #'keymap-popup--fit-child-frame
         :hide #'keymap-popup--hide-child-frame))
 
 (defun keymap-popup--prepare-buffer ()

@@ -273,6 +273,16 @@ Each row is a list of group plists with :name and :entries."
   (mapcar (lambda (row) (mapcar #'keymap-popup--parse-chunk row))
           (keymap-popup--split-groups bindings)))
 
+(defun keymap-popup--if-allows-p (plist)
+  "Return non-nil when PLIST has no :if, or its :if predicate returns non-nil."
+  (let ((pred (plist-get plist :if)))
+    (or (null pred) (funcall pred))))
+
+(defun keymap-popup--inapt-active-p (plist)
+  "Return non-nil when PLIST's :inapt-if predicate is currently active."
+  (and-let* ((pred (plist-get plist :inapt-if)))
+    (funcall pred)))
+
 (defun keymap-popup--combine-preds (a b)
   "AND-combine zero-arg predicates A and B.  Either may be nil."
   (cond ((null a) b)
@@ -589,10 +599,8 @@ Updates both the keymap and the popup descriptions."
 When PREFIX-MODE is non-nil, entries with :c-u are highlighted and
 their :c-u description is shown; other entries are dimmed.
 KEY-WIDTH pads the key column for alignment."
-  (and (or (null (plist-get entry :if))
-           (funcall (plist-get entry :if)))
-       (let* ((inapt (and-let* ((pred (plist-get entry :inapt-if)))
-                       (funcall pred)))
+  (and (keymap-popup--if-allows-p entry)
+       (let* ((inapt (keymap-popup--inapt-active-p entry))
               (raw-desc (keymap-popup--resolve-description
 			 (plist-get entry :description)))
               (type (plist-get entry :type))
@@ -612,11 +620,8 @@ KEY-WIDTH pads the key column for alignment."
                               'face 'keymap-popup-value)
 			   ""))
               (c-u-str (and c-u-desc
-                            (if prefix-mode
-				(propertize (format " (%s)" c-u-desc)
-                                            'face 'warning)
-                              (propertize (format " (%s)" c-u-desc)
-					  'face 'shadow))))
+                            (propertize (format " (%s)" c-u-desc)
+                                        'face (if prefix-mode 'warning 'shadow))))
               (line (format "  %s  %s%s%s" key-str desc value-str
                             (or c-u-str ""))))
 	 (cond
@@ -631,10 +636,8 @@ When PREFIX-MODE is non-nil, pass it to entry rendering.
 Returns nil if the group is hidden by :if or has no visible entries.
 When the group has :inapt-if that returns non-nil, all entries are
 rendered with the inapt face."
-  (and (or (null (plist-get group :if))
-           (funcall (plist-get group :if)))
-       (let* ((group-inapt (and-let* ((pred (plist-get group :inapt-if)))
-                             (funcall pred)))
+  (and (keymap-popup--if-allows-p group)
+       (let* ((group-inapt (keymap-popup--inapt-active-p group))
               (entries (plist-get group :entries))
               (key-width (cl-loop for entry in entries
 				  maximize (length (plist-get entry :key))))

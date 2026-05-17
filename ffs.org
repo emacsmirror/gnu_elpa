@@ -49,18 +49,18 @@ Dedicated to the loving memory of [[https://kelar.org/~bandali/life/farangis.htm
 :CUSTOM_ID: copying
 :END:
 
-Copyright (c) 2022-2026 Free Software Foundation, Inc.
+Copyright \copy 2022--2026 Free Software Foundation, Inc.
 
 #+begin_quote
 Permission is granted to copy, distribute and/or modify this document
 under the terms of the GNU Free Documentation License, Version 1.3 or
 any later version published by the Free Software Foundation; with no
-Invariant Sections, with the Front-Cover Texts being “A GNU Manual,” and
+Invariant Sections, with the Front-Cover Texts being "A GNU Manual," and
 with the Back-Cover Texts as in (a) below.  A copy of the license is
-included in the section entitled “GNU Free Documentation License.”
+included in the section entitled "GNU Free Documentation License."
 
-(a) The FSF’s Back-Cover Text is: “You have the freedom to copy and
-modify this GNU manual.”
+(a) The FSF's Back-Cover Text is: "You have the freedom to copy and
+modify this GNU manual."
 #+end_quote
 
 * Overview
@@ -173,6 +173,16 @@ your ~early-init-file~ (=early-init.el=) like so:
 #+begin_src elisp
 (setq user-lisp-directory (locate-user-emacs-file "lisp/"))
 #+end_src
+
+* GNU Free Documentation License
+:PROPERTIES:
+:APPENDIX: t
+:CUSTOM_ID: fdl
+:END:
+
+#+cindex: FDL, GNU Free Documentation License
+
+#+include: fdl.org
 
 * Indices
 :PROPERTIES:

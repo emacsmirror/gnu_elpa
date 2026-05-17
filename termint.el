@@ -48,7 +48,8 @@
 ;; with REPLs and CLI apps running inside a terminal emulator backend
 ;; within Emacs.  It allows you to easily configure how Emacs
 ;; communicates with different REPLs, leveraging the capabilities of
-;; fully-featured terminal emulators like `term', `vterm', or `eat'.
+;; fully-featured terminal emulators like `term', `vterm', `eat', or
+;; `ghostel'.
 
 ;; Instead of relying on Emacs’s built-in “dumb” terminal
 ;; (`comint-mode'), termint runs REPLs in a full terminal emulator,
@@ -75,6 +76,10 @@
 (declare-function eat--send-string "eat")
 (declare-function eat--synchronize-scroll "eat")
 
+(defvar ghostel-set-title-function)
+(declare-function ghostel-exec "ghostel")
+(declare-function ghostel-send-string "ghostel")
+
 (declare-function term-exec "term")
 (declare-function term-mode "term")
 (declare-function term-char-mode "term")
@@ -86,9 +91,11 @@
 
 (defcustom termint-backend 'term
   "The backend to use for REPL sessions.
-Supported backends include `eat', `vterm', and the built-in `term'.
-Note that `eat' and `vterm' must be installed separately."
+Supported backends include `eat', `ghostel', `vterm', and the
+built-in `term'.  Note that `eat', `ghostel', and `vterm' must be
+installed separately."
   :type '(choice (const :tag "eat" eat)
+                 (const :tag "ghostel" ghostel)
                  (const :tag "vterm" vterm)
                  (const :tag "term" term)))
 
@@ -212,6 +219,8 @@ buffer name."
                       repl-cmd)))
     (pcase-exhaustive termint-backend
       ('eat (termint--start-eat-backend repl-buffer-name repl-shell session))
+      ('ghostel
+       (termint--start-ghostel-backend repl-buffer-name repl-shell session))
       ('vterm (termint--start-vterm-backend repl-buffer-name repl-shell session))
       ('term
        (termint--start-term-backend repl-buffer-name repl-shell session)))))
@@ -283,13 +292,38 @@ without a number is considered as session 0."
       (termint-mode 1))
     buffer))
 
+(defun termint--start-ghostel-backend (repl-buffer-name repl-shell session)
+  "Start REPL-SHELL in REPL-BUFFER-NAME with numeric SESSION using ghostel."
+  (require 'ghostel)
+  (let* ((session (termint--get-session-suffix session))
+         (ghostel-buffer-name
+          (if session
+              (format "%s<%d>" repl-buffer-name session)
+            repl-buffer-name)))
+    (if-let* ((ghostel-buffer (get-buffer ghostel-buffer-name)))
+        (pop-to-buffer ghostel-buffer)
+      (let* ((shell-list (split-string-shell-command repl-shell))
+             (shell-cmd (car shell-list))
+             (shell-args (cdr shell-list))
+             (ghostel-buffer (get-buffer-create ghostel-buffer-name)))
+        (pop-to-buffer ghostel-buffer)
+        (ghostel-exec ghostel-buffer shell-cmd shell-args)
+        (with-current-buffer ghostel-buffer
+          (termint-mode 1))
+        ghostel-buffer))))
+
 (define-minor-mode termint-mode
   "Minor mode for REPL buffers managed by termint."
   :init-value nil
   (if termint-mode
-      (add-hook 'kill-buffer-hook
-                #'termint--rearrange-session-on-buffer-exit
-                nil t)
+      (progn
+        (when (derived-mode-p 'ghostel-mode)
+          ;; Keep termint's `*repl*' and `*repl*<N>' buffer names stable
+          ;; across shells that emit terminal-title escape sequences.
+          (setq-local ghostel-set-title-function nil))
+        (add-hook 'kill-buffer-hook
+                  #'termint--rearrange-session-on-buffer-exit
+                  nil t))
     (remove-hook 'kill-buffer-hook
                  #'termint--rearrange-session-on-buffer-exit
                  t)))
@@ -318,6 +352,7 @@ with REPL-NAME, initialized during each `termint-define' call."
          (send-string
           (pcase termint-backend
             ('eat #'termint--send-string-eat-backend)
+            ('ghostel #'termint--send-string-ghostel-backend)
             ('vterm #'termint--send-string-vterm-backend)
             ('term #'termint--send-string-term-backend)))
          (multi-lines-p (string-match-p "\n" string))
@@ -394,6 +429,11 @@ line of that matches SOURCE-COMMAND."
   "Send STR to the process behind REPL-BUFFER-NAME with vterm backend."
   (with-current-buffer repl-buffer-name
     (vterm-send-string str)))
+
+(defun termint--send-string-ghostel-backend (repl-buffer-name str)
+  "Send STR to the process behind REPL-BUFFER-NAME with ghostel backend."
+  (with-current-buffer repl-buffer-name
+    (ghostel-send-string str)))
 
 (defun termint--dispatch-paragraph ()
   "Return the beginning and end positions of the current paragraph."

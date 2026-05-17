@@ -428,7 +428,7 @@ calls so lambdas in :if/:inapt-if/:description get compiled."
                    rows)))
 
 (defun keymap-popup--build-switch-forms (map-name entries)
-  "Build defvar-local + toggle defun forms for switch ENTRIES in MAP-NAME."
+  "Build `defvar-local' + toggle `defun' forms for switch ENTRIES in MAP-NAME."
   (mapcan (lambda (e)
             (let* ((var (plist-get e :variable))
                    (toggle (keymap-popup--toggle-name map-name var)))
@@ -1254,7 +1254,8 @@ Returns (:source BUF :keymap MAP :descriptions D :docstring S
                 keymap-popup--reentering nil)))
 
 (defun keymap-popup--activate-transient-map (buf keymap descriptions exit-key)
-  "Build the wrapper map, stash it on BUF, and activate it as transient."
+  "Build the wrapper for KEYMAP using DESCRIPTIONS, stash on BUF, activate.
+EXIT-KEY is bound in the wrapper to dismiss the popup."
   (let ((wrapper (keymap-popup--build-wrapper-map keymap descriptions buf exit-key)))
     (with-current-buffer buf
       (setq-local keymap-popup--wrapper-map wrapper))

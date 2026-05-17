@@ -7,6 +7,8 @@
 #+texinfo_dir_desc: Enchanted Spell Checker
 
 #+html: <a href="https://www.gnu.org/software/emacs/"><img alt="GNU Emacs" src="https://github.com/minad/corfu/blob/screenshots/emacs.svg?raw=true"/></a>
+#+html: <a href="https://elpa.gnu.org/packages/jinx.html"><img alt="GNU ELPA" src="https://elpa.gnu.org/packages/jinx.svg"/></a>
+#+html: <a href="https://elpa.gnu.org/devel/jinx.html"><img alt="GNU-devel ELPA" src="https://elpa.gnu.org/devel/jinx.svg"/></a>
 #+html: <a href="https://melpa.org/#/jinx"><img alt="MELPA" src="https://melpa.org/packages/jinx-badge.svg"/></a>
 #+html: <a href="https://stable.melpa.org/#/jinx"><img alt="MELPA Stable" src="https://stable.melpa.org/packages/jinx-badge.svg"/></a>
 
@@ -40,7 +42,7 @@ these modes composite words in =camelCase= and =PascalCase= are accepted.
 
 * Installation
 
-Jinx can be installed from MELPA directly with =package-install=.
+Jinx can be installed from [[https://elpa.gnu.org/packages/jinx.html][ELPA]] or [[https://melpa.org/#/jinx][MELPA]] directly with =package-install=.
 
 Your Emacs must be compiled with dynamic module support. Furthermore a C
 compiler must be available on your system (=gcc= or =clang=). Jinx requires

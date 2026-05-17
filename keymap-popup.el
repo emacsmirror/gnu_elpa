@@ -869,11 +869,7 @@ Drops entries whose command has no binding."
 (defun keymap-popup--show-side-window (buf)
   "Display BUF in a side window."
   (display-buffer buf (append keymap-popup-display-action
-                              '((window-height . fit-window-to-buffer))))
-  ;; Safety net: user-customized `keymap-popup-display-action' may bind a
-  ;; display function that does not honour `window-height'.
-  (when-let* ((win (get-buffer-window buf)))
-    (fit-window-to-buffer win)))
+                              '((window-height . fit-window-to-buffer)))))
 
 (defun keymap-popup--fit-side-window (buf)
   "Refit the side window displaying BUF."
@@ -890,8 +886,8 @@ Drops entries whose command has no binding."
   "Display BUF in a child frame centered on the parent.
 Frame parameters are taken from `keymap-popup-child-frame-parameters'."
   (let* ((parent (selected-frame))
-         ;; Suppress theme/window-system hooks; this is an ephemeral popup
-         ;; frame, not a user workspace.
+         ;; Skip window-system init hooks (DnD, terminal face setup,
+         ;; user hooks); irrelevant for an ephemeral popup frame.
          (after-make-frame-functions nil)
          (frame (make-frame
                  `((parent-frame . ,parent)

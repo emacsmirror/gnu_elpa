@@ -77,20 +77,13 @@
 
 ;;; Infix generator tests
 
-(ert-deftest keymap-popup-test-create-switch ()
-  "Runtime switch creation produces variable and toggle command."
-  (keymap-popup--create-switch 'keymap-popup--test-cs
-                               'keymap-popup--test-cs-var
-                               "Test switch")
-  (should (boundp 'keymap-popup--test-cs-var))
-  (should (local-variable-if-set-p 'keymap-popup--test-cs-var))
-  (should (fboundp 'keymap-popup--test-cs--toggle-keymap-popup--test-cs-var)))
-
 (ert-deftest keymap-popup-test-entry-command ()
   (should (eq (keymap-popup--entry-command 'map '(:type suffix :command my-cmd))
               'my-cmd))
   (should (eq (keymap-popup--entry-command 'map '(:type switch :variable my-var))
-              'map--toggle-my-var)))
+              'map--toggle-my-var))
+  (should (eq (keymap-popup--entry-command 'map '(:type keymap :target my-sub))
+              'map--enter-my-sub)))
 
 ;;; Macro tests
 
@@ -128,6 +121,26 @@
         t)
   (should (boundp 'keymap-popup--test-sw))
   (should (fboundp 'keymap-popup--test-map-3--toggle-keymap-popup--test-sw)))
+
+(ert-deftest keymap-popup-test-macro-emits-launcher-defun ()
+  "`keymap-popup-define' emits a named `defun' for the popup launcher."
+  (eval '(keymap-popup-define keymap-popup--test-launcher
+           "Test." "c" ("Comment" ignore))
+        t)
+  (should (fboundp 'keymap-popup--test-launcher-popup))
+  (should (commandp 'keymap-popup--test-launcher-popup))
+  (should (eq (keymap-lookup keymap-popup--test-launcher "h")
+              #'keymap-popup--test-launcher-popup)))
+
+(ert-deftest keymap-popup-test-macro-emits-enterer-defun ()
+  "`keymap-popup-define' emits a named `defun' for each `:keymap' sub-menu key."
+  (defvar keymap-popup--test-sub-map (make-sparse-keymap))
+  (eval '(keymap-popup-define keymap-popup--test-with-sub
+           "Test." "s" ("Sub" :keymap keymap-popup--test-sub-map))
+        t)
+  (should (fboundp 'keymap-popup--test-with-sub--enter-keymap-popup--test-sub-map))
+  (should (eq (keymap-lookup keymap-popup--test-with-sub "s")
+              #'keymap-popup--test-with-sub--enter-keymap-popup--test-sub-map)))
 
 (ert-deftest keymap-popup-test-macro-lambda-command ()
   (eval '(keymap-popup-define keymap-popup--test-map-5

@@ -315,27 +315,28 @@ The entry is returned unchanged when GROUP has no predicates."
   (mapcan (lambda (row) (mapcan #'keymap-popup--group-entries-merged row))
           rows))
 
-;;; Infix generators
+;;; Generated symbol names
 
-(defun keymap-popup--create-switch (map-name variable description)
-  "Create buffer-local VARIABLE with toggle command for MAP-NAME.
-DESCRIPTION is used in the toggle message."
-  (defvar-1 variable nil)
-  (make-variable-buffer-local variable)
-  (defalias (intern (format "%s--toggle-%s" map-name variable))
-    (lambda ()
-      (:documentation (format "Toggle %s." description))
-      (interactive)
-      (set variable (not (symbol-value variable)))
-      (message "%s: %s" description (if (symbol-value variable) "on" "off")))))
+(defun keymap-popup--toggle-name (map-name var)
+  "Return the symbol naming the toggle command for VAR in MAP-NAME."
+  (intern (format "%s--toggle-%s" map-name var)))
+
+(defun keymap-popup--enter-name (map-name target)
+  "Return the symbol naming the sub-menu enterer for TARGET in MAP-NAME."
+  (intern (format "%s--enter-%s" map-name target)))
+
+(defun keymap-popup--launcher-name (map-name)
+  "Return the symbol naming the popup launcher for MAP-NAME."
+  (intern (concat (symbol-name map-name) "-popup")))
 
 (defun keymap-popup--entry-command (map-name entry)
-  "Return the command to bind in MAP-NAME's keymap for ENTRY."
+  "Return the command to bind in MAP-NAME's keymap for ENTRY.
+Always a symbol; the corresponding `defun' is emitted by
+`keymap-popup-define'."
   (pcase-exhaustive (plist-get entry :type)
     ('suffix (plist-get entry :command))
-    ('switch (intern (format "%s--toggle-%s" map-name (plist-get entry :variable))))
-    ('keymap (let ((target (plist-get entry :target)))
-               (lambda () (interactive) (keymap-popup target))))))
+    ('switch (keymap-popup--toggle-name map-name (plist-get entry :variable)))
+    ('keymap (keymap-popup--enter-name map-name (plist-get entry :target)))))
 
 ;;; Macro helpers
 
@@ -472,18 +473,42 @@ pairs."
                (switch-entries (cl-loop for entry in all-entries
 					when (eq (plist-get entry :type) 'switch)
 					collect entry))
-               (keymap-pairs (keymap-popup--build-keymap-pairs name all-entries)))
+               (keymap-entries (cl-loop for entry in all-entries
+                                        when (eq (plist-get entry :type) 'keymap)
+                                        collect entry))
+               (keymap-pairs (keymap-popup--build-keymap-pairs name all-entries))
+               (launcher (keymap-popup--launcher-name name)))
     `(progn
-       ,@(mapcar (lambda (e)
-                   `(keymap-popup--create-switch
-                     ',name ',(plist-get e :variable)
-                     ,(plist-get e :description)))
+       ,@(mapcan (lambda (e)
+                   (let* ((var (plist-get e :variable))
+                          (toggle (keymap-popup--toggle-name name var)))
+                     `((defvar-local ,var nil
+                         ,(format "Buffer-local switch state toggled by `%s'."
+                                  toggle))
+                       (defun ,toggle ()
+                         ,(format "Toggle `%s' in the current buffer." var)
+                         (interactive)
+                         (setq ,var (not ,var))
+                         (message "%s: %s" ',var (if ,var "on" "off"))))))
                  switch-entries)
+       ,@(mapcar (lambda (e)
+                   (let* ((target (plist-get e :target))
+                          (enter (keymap-popup--enter-name name target)))
+                     `(defun ,enter ()
+                        ,(format "Show popup for `%s' (sub-menu of `%s')."
+                                 target name)
+                        (interactive)
+                        (keymap-popup ,target))))
+                 keymap-entries)
+       (defun ,launcher ()
+         ,(format "Show popup help for `%s'." name)
+         (interactive)
+         (keymap-popup ,name))
        (defvar-keymap ,name
          ,@(and docstring (list :doc docstring))
          ,@(and parent (list :parent parent))
          ,@keymap-pairs
-         ,popup-key (lambda () (interactive) (keymap-popup ,name)))
+         ,popup-key #',launcher)
        (setf (keymap-popup--meta ,name 'descriptions)
              ,(keymap-popup--build-descriptions-form rows))
        (setf (keymap-popup--meta ,name 'exit-key) ,exit-key)
@@ -512,11 +537,19 @@ time, so the popup always reflects the user's current bindings."
   (pcase-let* ((`(,_docstring ,popup-key ,exit-key ,_parent ,description
                               ,persistent ,bindings)
                 (keymap-popup--extract-macro-opts body))
-               (rows (keymap-popup--parse-bindings bindings)))
+               (rows (keymap-popup--parse-bindings bindings))
+               (launcher (and popup-key (symbolp keymap)
+                              (keymap-popup--launcher-name keymap))))
     `(progn
        (setf (keymap-popup--meta ,keymap 'descriptions)
              ,(keymap-popup--build-descriptions-form rows))
-       ,@(and popup-key
+       ,@(and launcher
+              `((defun ,launcher ()
+                  ,(format "Show popup help for `%s'." keymap)
+                  (interactive)
+                  (keymap-popup ,keymap))
+                (keymap-set ,keymap ,popup-key #',launcher)))
+       ,@(and popup-key (not launcher)
               `((keymap-set ,keymap ,popup-key
                             (lambda () (interactive) (keymap-popup ,keymap)))))
        ,@(and exit-key

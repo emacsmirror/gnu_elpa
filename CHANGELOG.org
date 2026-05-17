@@ -43,6 +43,12 @@ I picked "ffs" as the package name, the acronym for form feed slides.
 * COMMENT Local Variables
 
 # Local Variables:
+# org-html-datetime-formats: ("%F" . "%FT%T%z")
+# org-html-meta-tags: ox-bhtml-meta-tags-default
+# org-html-postamble: t
 # org-html-postamble-format: (("en" "<hr />
 # <p><a href=\"%i\">Org source</a></p>"))
+# org-html-home/up-format: "<p><a accesskey=\"h\" href=\"%s\">&larr; home | خانه</a></p>"
+# org-html-head-include-default-style: nil
+# org-export-timestamp-file: nil
 # End:

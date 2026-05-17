@@ -1,6 +1,7 @@
 *.elc
 *-autoloads.el
 *-pkg.el
-ffs.html
-ffs.info
 ffs.texi
+ffs.info
+ffs.html
+ffs-changelog.html

@@ -54,6 +54,16 @@ clean:
 	@echo "Generating $@ from $<"
 	$(MAKEINFO) $(MAKEINFO_html_opts) $<
 
+.org.html:
+	@echo "Generating $@ from $<"
+	@$(EMACS) --batch \
+	  --load "$$HOME/.emacs.d/lisp/bandali-oxen" \
+	  --eval '(setq enable-local-variables :all)' \
+	  --find-file "$<" \
+	  --funcall ox-bhtml-export-to-html
+
 ffs.texi: ffs.org
 ffs.info: ffs.texi
 ffs.html: ffs.texi
+ffs-changelog.html: CHANGELOG.html CHANGELOG.org
+	@[ -e CHANGELOG.html ] && $(MV) CHANGELOG.html ffs-changelog.html || true

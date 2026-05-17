@@ -691,8 +691,11 @@ aforementioned user option."
 
 (defun dired-preview--close-previews-outside-dired ()
   "Call `dired-preview--close-previews' if the current buffer is not in Dired mode.
-Do not consider the minibuffer as being another mode."
-  (unless (or (eq major-mode 'dired-mode) (minibufferp))
+Do not consider the minibuffer as being another mode.  Also do
+not close previews if the current buffer is one of them."
+  (unless (or (eq major-mode 'dired-mode)
+              (minibufferp)
+              (memq (current-buffer) dired-preview--buffers))
     (dired-preview--close-previews)
     (remove-hook 'window-state-change-hook #'dired-preview--close-previews-outside-dired)))
 

@@ -174,6 +174,135 @@ your ~early-init-file~ (=early-init.el=) like so:
 (setq user-lisp-directory (locate-user-emacs-file "lisp/"))
 #+end_src
 
+* Sample configuration
+:PROPERTIES:
+:CUSTOM_ID: sample-config
+:END:
+#+cindex: Package configuration
+
+~ffs~ tries to make as few opinionated choices as possible
+out-of-the-box, following the principle of least surprise.
+
+#+begin_src elisp
+(require 'ffs)
+
+;; You can add a global key binding for enabling `ffs-mode'.
+
+(global-set-key (kbd "C-c f s") #'ffs-mode)
+
+;; These user options apply when `ffs-present-mode' is enabled.
+;; Their value is buffer-local.
+
+(setq-default
+ ffs-hide-cursor t
+ ffs-hide-mode-line t
+ ffs-hide-header-line t)
+
+;; You can add hooks to `ffs-mode-hook' or `ffs-present-mode-hook' for
+;; hooks that are run every time `ffs-mode' or `ffs-present-mode' are
+;; enabled and disabled.
+
+;; The following sample hook is run when `ffs-present-mode' is enabled
+;; and it disables `flyspell-mode', `show-paren-local-mode', and
+;; `display-fill-column-indicator-mode', and re-enables them when
+;; `ffs-present-mode' is disabled, to prevent visual distractions
+;; from them during presentations.
+
+(add-hook
+ 'ffs-present-mode-hook
+ (lambda ()
+   (let ((arg (if ffs-present-mode -1 1)))
+     (mapc
+      (lambda (mode) (funcall mode arg))
+      '(flyspell-mode
+        show-paren-local-mode
+        display-fill-column-indicator-mode)))))
+
+;; You can also add keys to `ffs-mode-map' for use when `ffs-mode' is
+;; enabled.  For keys that may be only relevant during presentations,
+;; you can add them to `ffs-present-mode-map'.
+#+end_src
+
+* Default key bindings
+:PROPERTIES:
+:CUSTOM_ID: keybindings
+:END:
+
+This section documents the default key bindings of the various keymaps
+of ~ffs~.  Care was taken to choose intuitive mnemonic-based keys for
+commands familiar from other existing similar keymaps, but you may
+override them if you so choose to.
+
+** ~ffs-mode-map~
+:PROPERTIES:
+:CUSTOM_ID: keybindings-ffs-mode-map
+:END:
+
+The ~ffs-mode-map~ is the main keymap of ~ffs-mode~, used both when
+preparing slides with ~ffs-mode~ enabled as well as while presenting
+them with ~ffs-present-mode~ enabled:
+
+| Command                       | Key binding(s)                                   |
+|-------------------------------+--------------------------------------------------|
+| ~ffs-goto-previous~           | {{{kbd(p)}}}, {{{kbd(DEL)}}}, {{{kbd([)}}}       |
+| ~ffs-goto-next~               | {{{kbd(n)}}}, {{{kbd(SPC)}}}, {{{kbd(])}}}       |
+| ~ffs-goto-first~              | {{{kbd(<)}}}                                     |
+| ~ffs-goto-last~               | {{{kbd(>)}}}                                     |
+| ~ffs-start~                   | {{{kbd(s)}}}                                     |
+| ~ffs-stop-or-quit~            | {{{kbd(q)}}}                                     |
+| ~ffs-edit~                    | {{{kbd(e)}}}, {{{kbd(C-c ')}}}                   |
+| ~ffs-new-above~               | {{{kbd(O)}}}                                     |
+| ~ffs-new-below~               | {{{kbd(o)}}}                                     |
+| ~ffs-find-speaker-notes-file~ | {{{kbd(S)}}}                                     |
+| ~narrow-to-page~              | {{{kbd(N)}}}                                     |
+| ~widen~                       | {{{kbd(W)}}}                                     |
+| ~undo~                        | {{{kbd(C-_)}}}, {{{kbd(C-/)}}}, {{{kbd(C-x u)}}} |
+| ~ffs-toggle-prefix-map~       | {{{kbd(t)}}}                                     |
+| ~describe-mode~               | {{{kbd(?)}}}                                     |
+
+** ~ffs-present-mode-map~
+:PROPERTIES:
+:CUSTOM_ID: keybindings-ffs-present-mode-map
+:END:
+
+The ~ffs-present-mode-map~ keymap used when ~ffs-present-mode~ is
+active (during presentations) inherits the key bindings of its parent
+keymap ~ffs-mode-map~, with the following changes:
+
+| Command            | Key binding(s) |
+|--------------------+----------------|
+| ~ffs-stop-or-quit~ | {{{kbd(s)}}}   |
+
+** ~ffs-toggle-prefix-map~
+:PROPERTIES:
+:CUSTOM_ID: keybindings-ffs-toggle-prefix-map
+:END:
+
+The ~ffs-toggle-prefix-map~ keymap, by default bound to {{{kbd(t)}}}
+in ~ffs-mode-map~, maps the following commands:
+
+| Command                       | Key binding(s) |
+|-------------------------------+----------------|
+| ~ffs-toggle-echo-progress~    | {{{kbd(e)}}}   |
+| ~ffs-toggle-hide-cursor~      | {{{kbd(c)}}}   |
+| ~ffs-toggle-hide-mode-line~   | {{{kbd(m)}}}   |
+| ~ffs-toggle-hide-header-line~ | {{{kbd(h)}}}   |
+| ~ffs-toggle-dark-mode~        | {{{kbd(d)}}}   |
+
+** ~ffs-edit-mode-map~
+:PROPERTIES:
+:CUSTOM_ID: keybindings-ffs-edit-mode-map
+:END:
+
+The ~ffs-edit-mode-map~ keymap for ~ffs-edit-mode~ is used in
+~ffs-edit~ buffers, when editing an existing slide or inserting
+a new one:
+
+| Command            | Key binding(s)     |
+|--------------------+--------------------|
+| ~ffs-edit-discard~ | {{{kbd(C-c C-k)}}} |
+| ~ffs-edit-done~    | {{{kbd(C-c C-c)}}} |
+
 * GNU Free Documentation License
 :PROPERTIES:
 :APPENDIX: t

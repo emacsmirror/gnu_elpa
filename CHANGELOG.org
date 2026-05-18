@@ -4,11 +4,11 @@
 #+options: ':nil toc:nil num:nil author:nil email:nil
 #+startup: content
 #+export_file_name: ffs-changelog.html
-#+html_head: <link rel="stylesheet" href="../../dek.css?v=20260123" type="text/css" />
+#+html_head: <link rel="stylesheet" href="../../dek.css?v=20260518" type="text/css" />
 #+html_link_home: ../..
 
 The newest release is at the top.  For further details, please consult
-the manual: <https://kelar.org/~bandali/gnu/emacs/ffs.html>.
+the ~ffs~ manual: <https://kelar.org/~bandali/gnu/emacs/ffs.html>.
 
 #+toc: headlines 1 insert TOC here, with one headline level
 
@@ -17,16 +17,79 @@ the manual: <https://kelar.org/~bandali/gnu/emacs/ffs.html>.
 :CUSTOM_ID: ffs-0.2.0
 :END:
 
+First release of ~ffs~ on GNU ELPA.
+
 After a few years of inactivity, in early 2026 I decided to dust off
 =ffs.el=, polish and document it, and offer for inclusion in GNU ELPA
 as a proper package.
 
-TBD
+** Default value of ~ffs-default-face-height~ changed to nil
+:PROPERTIES:
+:CUSTOM_ID: ffs-0.2.0-ffs-default-face-height
+:END:
+
+To minimize unexpected and/or unnecessary changes out-of-the-box, the
+default value of ~ffs-default-face-height~ has been changed to nil.
+
+** ~ffs-edit-buffer-name~ demoted from user option to variable
+:PROPERTIES:
+:CUSTOM_ID: ffs-0.2.0-ffs-edit-buffer-name
+:END:
+
+This is not an important user-facing setting, so to help avoid
+overwhelming users with many options, this has been demoted from a
+user option to a variable.
+
+** Several new user options for customizing ~ffs~'s behaviour
+:PROPERTIES:
+:CUSTOM_ID: ffs-0.2.0-new-user-options
+:END:
+
+As part of the effort to bring ~ffs~ more in line with the conventions
+of other existing Emacs packages, the mechanisms for toggling various
+parts of Emacs's interface to minimize visual clutter were changed
+from being minor modes to being customizable user options.  These are
+the replacement new user options, with a default value of nil:
+
+- ~ffs-hide-cursor~
+- ~ffs-hide-mode-line~
+- ~ffs-hide-header-line~
+
+Their value is buffer-local, and may be set globally using
+~setq-default~.  See the [[file:ffs.html#Sample-configuration][sample configuration]] in the manual for an
+example of how to customize them.
+
+The new ~ffs-page-delimiter~ user option defines the page delimiter
+inserted by ~ffs-edit-done~ when inserting a new slide.  Emacs's
+~page-delimiter~ regexp should be able to match ~ffs-page-delimiter~'s
+value, so if you use a custom ~page-delimiter~ be sure to customize
+~ffs-page-delimiter~ accordingly.
+
+The new ~ffs-echo-progress~ user option controls whether to display in
+echo area the progress through the slides.  When non-nil, changing
+slides will also display the progress through the slides in the echo
+area.  The format of the displayed progress can be customized using
+the new ~ffs-echo-progress-format~ user option.
+
+The new ~ffs-edit-display-buffer-alist~ user option may be used to
+control the Window configuration for the ~ffs-edit~ buffer.  By
+default, it will display the ~ffs-edit~ buffer in the same window.
+
+The new ~ffs-edit-done-hook~ user option may be used to define hooks
+to be run at the end of ~ffs-edit-done~ after returning to the main
+~ffs~ presentation buffer.
+
+Lastly, a new ~ffs-find-speaker-notes-function~ variable was added to
+allow customizing the find function used for opening the speaker's
+notes file, defaulting to ~find-file-other-frame~.
 
 * Version 0.1.0 on 2022-05-19
 :PROPERTIES:
 :CUSTOM_ID: ffs-0.1.0
 :END:
+
+Initial publication of =ffs.el= as part my personal configurations for
+GNU Emacs.
 
 My first attempt at this concept was what is now available archived as
 =ffsanim.el=, a major mode implementation published on 2022-03-04 that

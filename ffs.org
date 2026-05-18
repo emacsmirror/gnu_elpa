@@ -16,8 +16,6 @@
 #+texinfo_header: @set MAINTAINER Amin Bandali
 #+texinfo_header: @set MAINTAINEREMAIL @email{bandali@@gnu.org}
 #+texinfo_header: @set MAINTAINERCONTACT @uref{mailto:bandali@@gnu.org,contact the maintainer}
-#+html_head: <link rel="stylesheet" href="../../dek.css?v=20260123" type="text/css" />
-#+html_link_home: ../..
 
 #+texinfo: @insertcopying
 

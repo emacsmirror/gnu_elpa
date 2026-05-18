@@ -93,15 +93,6 @@ If nil, don't change the `default' face's `height' in presentations."
   :package-version '(ffs . "0.2.0")
   :group 'ffs)
 
-(defcustom ffs-edit-display-buffer-alist
-  '(display-buffer-same-window
-    (inhibit-same-window . nil))
-  "Window configuration for the `ffs-edit' buffer.
-By default, it will display the `ffs-edit' buffer in the same window."
-  :type display-buffer--action-custom-type
-  :package-version '(ffs . "0.2.0")
-  :group 'ffs)
-
 (defcustom ffs-hide-cursor nil
   "When non-nil hide the cursor.
 This is only relevant when `ffs-present-mode' is enabled."
@@ -126,9 +117,13 @@ This is only relevant when `ffs-present-mode' is enabled."
   :package-version '(ffs . "0.2.0")
   :group 'ffs)
 
-(defcustom ffs-edit-hook nil
-  "Hook run when editing a slide (at the end of `ffs-edit')."
-  :type 'hook
+(defcustom ffs-edit-display-buffer-alist
+  '(display-buffer-same-window
+    (inhibit-same-window . nil))
+  "Window configuration for the `ffs-edit' buffer.
+By default, it will display the `ffs-edit' buffer in the same window."
+  :type display-buffer--action-custom-type
+  :package-version '(ffs . "0.2.0")
   :group 'ffs)
 
 (defcustom ffs-edit-done-hook nil
@@ -288,8 +283,6 @@ current slide.  The logic is implemented in `ffs-edit-done'."
                 (unless n (widen))))))
     (with-current-buffer nb
       (erase-buffer)
-      (funcall m)
-      (ffs-edit-mode 1)
       (insert s)
       (goto-char (point-min))
       (set-buffer-modified-p nil)
@@ -300,7 +293,8 @@ current slide.  The logic is implemented in `ffs-edit-done'."
        header-line-format
        (substitute-command-keys "Edit, then use `\\[ffs-edit-done]' \
 to apply your changes or `\\[ffs-edit-discard]' to discard them."))
-      (run-hooks 'ffs-edit-hook))
+      (funcall m)
+      (ffs-edit-mode 1))
     (let ((window (display-buffer nb ffs-edit-display-buffer-alist)))
       (when window
         (select-window window)))))
@@ -332,6 +326,7 @@ to apply your changes or `\\[ffs-edit-discard]' to discard them."))
               (concat str "\n")))
          (sn (format "\n%s%s" s ffs-page-delimiter))
          (l ffs--new-location))
+    (ffs-edit-mode -1)
     (with-current-buffer ffs--edit-source-buffer
       (let ((inhibit-read-only t))
         (save-excursion
@@ -522,7 +517,7 @@ A numeric ARG serves as a repeat count."
 
 (defun ffs-find-speaker-notes-file (file)
   "Prompt user for a speaker notes FILE, open it in a new frame."
-  (interactive "Fspeakers notes buffer: ")
+  (interactive "Fspeaker's notes buffer: ")
   (let ((b (current-buffer)))
     (save-excursion
       (funcall ffs-find-speaker-notes-function file)

@@ -12,7 +12,7 @@ the ~ffs~ manual: <https://kelar.org/~bandali/gnu/emacs/ffs.html>.
 
 #+toc: headlines 1 insert TOC here, with one headline level
 
-* Version 0.2.0 on 2026-05-XX
+* Version 0.2.0 on 2026-05-19
 :PROPERTIES:
 :CUSTOM_ID: ffs-0.2.0
 :END:

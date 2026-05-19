@@ -297,7 +297,8 @@
  (dts-mode		:url nil) ;; Was "https://github.com/bgamari/dts-mode.git"
  (easy-escape		:url "https://github.com/cpitclaudel/easy-escape")
  (easy-kill		:url "https://github.com/leoliu/easy-kill")
- (ebdb                	:url "https://github.com/girzel/ebdb.git")
+ (ebdb                	:url "https://github.com/girzel/ebdb.git"
+  :doc "ebdb.org")
  (ebdb-gnorb		:url nil)
  (ebdb-i18n-chn		:url nil)
  (ediprolog		:url "https://github.com/triska/ediprolog"

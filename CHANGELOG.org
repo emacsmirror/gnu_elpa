@@ -88,15 +88,15 @@ notes file, defaulting to ~find-file-other-frame~.
 :CUSTOM_ID: ffs-0.1.0
 :END:
 
-Initial publication of =ffs.el= as part my personal configurations for
-GNU Emacs.
+Initial publication of =ffs.el= as part of my personal configurations
+for GNU Emacs.
 
-My first attempt at this concept was what is now available archived as
-=ffsanim.el=, a major mode implementation published on 2022-03-04 that
-uses Emacs's ~animate~ library to animate slides onto the screen.
-Shortly after realizing the shortcomings of that approach, I abandoned
-it in favour a minor mode implementation and published version =0.1.0=
-of what is now =ffs= in my [[https://git.kelar.org/~bandali/configs][personal configs repository]].
+My first attempt at this concept was a now-archived [[https://git.kelar.org/~bandali/ffs/tree/ffsanim.el?id=aed420fca1af108e023eabf2b527850b559cd24c][=ffsanim.el=]],
+a major mode implementation that used Emacs's ~animate~ library to
+animate slide texts onto the screen.  Shortly after realizing the
+shortcomings of that approach, I abandoned it in favour a minor mode
+implementation and published version =0.1.0= of what is now =ffs= in
+my [[https://git.kelar.org/~bandali/configs][personal configs repository]].
 
 I used this implementation for presenting my LibrePlanet 2022 talk,
 [[https://kelar.org/~bandali/essays/net-beyond-web.html][The Net beyond the Web]].

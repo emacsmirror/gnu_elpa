@@ -322,6 +322,9 @@ sessions on the author's website:
 - [[https://kelar.org/~bandali/gnu/emacs/ffs-code-review-prot.html][FFS code review with Protesilaos]]
 - [[https://kelar.org/~bandali/gnu/emacs/ffs-emacs-ext-prot.html][FFS code review and Emacs extensibility with Protesilaos]]
 
+Further, inspiration for parts of ~ffs~'s implementation was
+gratefully drawn from Protesilaos's [[https://protesilaos.com/emacs/logos][Logos]] package for Emacs.
+
 * GNU Free Documentation License
 :PROPERTIES:
 :APPENDIX: t

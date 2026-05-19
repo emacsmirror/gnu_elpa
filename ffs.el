@@ -29,17 +29,24 @@
 ;; form feed character (^L).
 ;;
 ;; After installing `ffs', open a text file/buffer containing your
-;; slides and do `M-x ffs RET'.  Optionally, you can add a key binding
-;; for `ffs' to your init file:
+;; slides and do `M-x ffs-mode RET'.  You can add a key binding for
+;; `ffs-mode' to your init file for convenience:
 ;;
-;; (global-set-key (kbd "C-c f s") #'ffs-mode)
+;;     (global-set-key (kbd "C-c f s") #'ffs-mode)
 ;;
 ;; You should then see "ffs" appear as one of the currently enabled
-;; minor modes in your mode line.  Once ffs is enabled, you can invoke
-;; its various commands.  To see a list of available commands, you can
-;; either type `M-x ffs- TAB' (to get a completion of commands
-;; starting with the "ffs-" prefix), or see the definition of
-;; `ffs-mode-map' near the end of this file.
+;; minor modes in your mode line.  Once `ffs-mode' is enabled, it puts
+;; the buffer in read-only mode, and provides convenient key bindings
+;; for moving between, editing, and inserting slides.  To see a list
+;; of available commands, you can type `?' or `C-h m' to invoke
+;; `describe-mode' which will include a list of the key bindings in
+;; the `ffs-mode-map' keymap, or type `M-x ffs- TAB' to get a
+;; completion of commands starting with the "ffs-" prefix.
+;;
+;;
+;; Refer to the manual for more details on ffs's user options and
+;; usage, a sample configuration, and other pieces of information:
+;; <https://kelar.org/~bandali/gnu/emacs/ffs.html>.
 
 ;;; Code:
 

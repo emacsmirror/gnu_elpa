@@ -301,6 +301,27 @@ a new one:
 | ~ffs-edit-discard~ | {{{kbd(C-c C-k)}}} |
 | ~ffs-edit-done~    | {{{kbd(C-c C-c)}}} |
 
+* Acknowledgements
+:PROPERTIES:
+:CUSTOM_ID: thanks
+:END:
+#+cindex: Contributors
+
+~ffs~ is meant to be a collective effort.  Every bit of help matters
+and is greatly appreciated.
+
+- Author/maintainer :: Amin Bandali.
+
+- Ideas and/or user feedback :: Protesilaos.
+
+~ffs~ and its author owe a debt of gratitude to Protesilaos for rounds
+of code review and feedback for improving and polishing the package in
+preparation for submission to GNU ELPA.  You can watch videos of these
+sessions on the author's website:
+
+- [[https://kelar.org/~bandali/gnu/emacs/ffs-code-review-prot.html][FFS code review with Protesilaos]]
+- [[https://kelar.org/~bandali/gnu/emacs/ffs-emacs-ext-prot.html][FFS code review and Emacs extensibility with Protesilaos]]
+
 * GNU Free Documentation License
 :PROPERTIES:
 :APPENDIX: t

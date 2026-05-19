@@ -1,3 +1,22 @@
+# Version 0.8.0 (2026-05-18)
+
+## Breaking Changes
+
+- Make `minuet-before-cursor-filter-length` and
+  `minuet-after-cursor-filter-length` dynamic depending on provider: FIM
+  providers now default to `0` (no filtering), while chat providers retain their
+  previous defaults.
+
+## Features
+
+- **Experimental Next Edit Prediction**: Add `minuet-duet` for experimental next
+  edit prediction, and `minuet-duet-active-mode` to enable it.
+- `transform` option can now be used with all providers (`openai`, `gemini`,
+  `claude`), not just `openai_fim_compatible`.
+- Change default `openai-compatible` model to `deepseek-v4-flash` with
+  prefix-first style.
+- Change default `openai` provider model to `gpt-5.4-nano`.
+
 # Version 0.7.1 (2025-12-15)
 
 ## Breaking Changes

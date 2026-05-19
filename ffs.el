@@ -1,6 +1,6 @@
-;;; ffs.el --- Form Feed Slides       -*- lexical-binding: t; -*-
+;;; ffs.el --- Form feed-separated plain text presentations -*- lexical-binding: t; -*-
 
-;; Copyright (c) 2022-2026 Amin Bandali <bandali@gnu.org>
+;; Copyright (c) 2022-2026 Free Software Foundation, Inc.
 
 ;; Author: Amin Bandali <bandali@gnu.org>
 ;; Maintainer: Amin Bandali <bandali@gnu.org>

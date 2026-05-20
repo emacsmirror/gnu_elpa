@@ -411,13 +411,20 @@ Handles #N issue/PR refs and markdown URLs."
 (declare-function forgejo-pull-view "forgejo-pull.el"
                   (owner repo number))
 
+(defun forgejo-view--pr-p (alist)
+  "Return non-nil if ALIST describes a pull request.
+Handles both raw API form (`pull_request' is an object or :null) and
+DB-normalised form (`pull_request' is t or nil)."
+  (let ((pr (alist-get 'pull_request alist)))
+    (and pr (not (eq pr :null)))))
+
 (defun forgejo-view-item (owner repo number)
   "View issue or PR NUMBER in OWNER/REPO.
 Checks the DB first, then the API if uncached."
   (let* ((host (url-host (url-generic-parse-url forgejo-repo--host)))
          (cached (forgejo-db-get-issue host owner repo number)))
     (if cached
-        (if (alist-get 'pull_request cached)
+        (if (forgejo-view--pr-p cached)
             (forgejo-pull-view owner repo number)
           (forgejo-issue-view owner repo number))
       (forgejo-api-get
@@ -426,7 +433,7 @@ Checks the DB first, then the API if uncached."
        (lambda (data _headers)
          (when data
            (forgejo-db-save-issues host owner repo (list data))
-           (if (alist-get 'pull_request data)
+           (if (forgejo-view--pr-p data)
                (forgejo-pull-view owner repo number)
              (forgejo-issue-view owner repo number))))))))
 

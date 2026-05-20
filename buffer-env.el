@@ -86,8 +86,7 @@ esac")
     (,(rx ".ps1" eos)
      . "powershell -c '& { param($ignore, $script) . $script > $null; Get-ChildItem env: |\
         % {\"$($_.Name)=$($_.Value)`0\"} | Write-Host -NoNewLine } '")
-    (,(rx any)
-     . ">&2 . \"$1\" && env -0"))
+    ("" . ">&2 . \"$1\" && env -0"))
   "Alist of commands used to produce environment variables.
 For each entry, the car is a regular expression and the cdr is a
 shell command.  The command specifies how to execute a script and
@@ -199,8 +198,8 @@ for more details.")
   (unless (file-remote-p default-directory)
     (seq-some
      (lambda (name)
-       (when-let ((dir (locate-dominating-file default-directory
-					       name)))
+       (when-let* ((dir (locate-dominating-file default-directory
+					        name)))
 	 (expand-file-name name dir)))
      (if (stringp buffer-env-script-name)
          (list buffer-env-script-name)
@@ -208,7 +207,7 @@ for more details.")
 
 (defun buffer-env--get-command (file)
   "Return the appropriate shell command to interpret script FILE."
-  (or (when-let
+  (or (when-let*
           ((c (seq-some (pcase-lambda (`(,patt . ,command))
                           (when (string-match-p (wildcard-to-regexp patt)
                                                 (file-name-nondirectory file))
@@ -250,9 +249,9 @@ When called interactively, ask for a FILE."
            (read-file-name (format-prompt "Environment script"
                                           (when file (file-relative-name file)))
                            nil file t))))
-  (when-let ((file (if file
-                       (expand-file-name file)
-                     (buffer-env--locate-script))))
+  (when-let* ((file (if file
+                        (expand-file-name file)
+                      (buffer-env--locate-script))))
     (let ((modtime (file-attribute-modification-time (file-attributes file)))
           (cached (gethash file buffer-env--cache)))
       (cond
@@ -301,7 +300,7 @@ When called interactively, ask for a FILE."
                           (nconc buffer-env-extra-variables)))))
          (`(0 ,_ ,vars)
           (setq-local process-environment vars)
-          (when-let ((path (getenv "PATH")))
+          (when-let* ((path (getenv "PATH")))
             (setq-local exec-path (nconc (split-string path path-separator)
                                          (list exec-directory))))
           (puthash file (list modtime process-environment exec-path) buffer-env--cache)
@@ -357,11 +356,11 @@ See script output in %s for more information."
                   (buttonize (abbreviate-file-name script) #'find-file script)
                   ".")
           (insert "\n\nOnly in the local process environment:\n")
-          (if-let ((vars (seq-difference local global)))
+          (if-let* ((vars (seq-difference local global)))
               (dolist (var vars) (insert "  " var ?\n))
             (insert "    (None)\n"))
           (insert "\nOnly in the global process environment:\n")
-          (if-let ((vars (seq-difference global local)))
+          (if-let* ((vars (seq-difference global local)))
               (dolist (var vars) (insert "  " var ?\n))
             (insert "    (None)\n"))
           (insert "\nComplete process environment of the buffer:\n")

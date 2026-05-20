@@ -333,7 +333,7 @@ gratefully drawn from Protesilaos's [[https://protesilaos.com/emacs/logos][Logos
 
 #+cindex: FDL, GNU Free Documentation License
 
-#+include: fdl.org
+#+texinfo: @include fdl.texi
 
 * Indices
 :PROPERTIES:

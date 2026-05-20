@@ -48,9 +48,6 @@ following:
 - =drepl-eval=: Evaluate a string read from the minibuffer.
 - =drepl-eval-region= and =drepl-eval-buffer=: Evaluate text of the
   current buffer.
-- =drepl-restart=: Restart the interpreter.  In IPython this is a soft
-  reset; use a prefix argument to kill and start again the
-  interpreter.
 
 Documentation on a symbol in the REPL buffer, if available, can be
 accessed with =eldoc-doc-buffer=.

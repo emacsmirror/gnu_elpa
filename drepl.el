@@ -518,10 +518,14 @@ See that variable's docstring for a description of CALLBACK."
       (while (accept-process-output proc)))
     (drepl--get-buffer-create (type-of repl) nil)))
 
-(defun drepl-restart ()
-  "Restart the current REPL."
-  (interactive)
-  (drepl--restart (drepl--get-repl nil t)))
+(defun drepl--revert-buffer (_ noconfirm)
+  "The `revert-buffer-function' used by dREPL."
+  (let ((repl (drepl--get-repl nil t)))
+    (when (or noconfirm
+              (not (process-live-p (drepl--process repl)))
+              (yes-or-no-p (format "Restart %s? "
+                                   (get (type-of repl) 'drepl--display-name))))
+      (drepl--restart repl))))
 
 ;;; REPL initialization
 
@@ -617,8 +621,7 @@ appropriate mode using `auto-mode-alist'."
   :parent comint-mode-map
   "<remap> <comint-send-input>" #'drepl-send-input-maybe
   "C-c M-:" #'drepl-eval
-  "C-c C-b" #'drepl-eval-buffer
-  "C-c C-n" #'drepl-restart)
+  "C-c C-b" #'drepl-eval-buffer)
 
 (define-derived-mode drepl-mode comint-mode "dREPL"
   "Major mode for the dREPL buffers."
@@ -629,7 +632,8 @@ appropriate mode using `auto-mode-alist'."
   (push '("5161" . drepl--osc-handler) ansi-osc-handlers)
   (setq-local comint-input-sender #'drepl--send-string)
   (setq-local indent-line-function #'comint-indent-input-line-default)
-  (setq-local list-buffers-directory default-directory))
+  (setq list-buffers-directory default-directory)
+  (setq revert-buffer-function #'drepl--revert-buffer))
 
 (provide 'drepl)
 

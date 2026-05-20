@@ -637,8 +637,8 @@ appropriate mode using `auto-mode-alist'."
   (push '("5161" . drepl--osc-handler) ansi-osc-handlers)
   (setq-local comint-input-sender #'drepl--send-string)
   (setq-local indent-line-function #'comint-indent-input-line-default)
-  (setq list-buffers-directory default-directory)
-  (setq revert-buffer-function #'drepl--revert-buffer))
+  (setq-local list-buffers-directory default-directory)
+  (setq-local revert-buffer-function #'drepl--revert-buffer))
 
 (provide 'drepl)
 

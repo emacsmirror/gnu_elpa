@@ -253,11 +253,13 @@ Shows cached data immediately, then syncs from the API in the background."
   (run-hook-with-args 'forgejo-buffer-setup-functions (current-buffer)))
 
 (defun forgejo-pull--commit-collection ()
-  "Return an alist of (DISPLAY . FULL-SHA) for commits on the current branch."
+  "Return an alist of (DISPLAY . FULL-SHA) for commits visible to git.
+Includes all local branches and remotes so commits picked up in
+sibling worktrees or pushed elsewhere remain selectable."
   (let (result)
     (with-temp-buffer
       (process-file "git" nil '(t nil) nil
-                    "log" "--format=%H %s")
+                    "log" "--all" "--format=%H %s")
       (goto-char (point-min))
       (while (not (eobp))
         (when (looking-at "\\([0-9a-f]+\\) \\(.*\\)")
@@ -271,17 +273,21 @@ Shows cached data immediately, then syncs from the API in the background."
     (nreverse result)))
 
 (defun forgejo-pull-view-mark-merged ()
-  "Mark the current PR as manually merged."
+  "Mark the current PR as manually merged.
+Completes against commits visible to git, but free-form input is
+accepted so a SHA from a sibling worktree or remote can be used."
   (interactive)
   (let* ((number (alist-get 'number forgejo-view--data))
          (host forgejo-repo--host)
          (owner forgejo-repo--owner)
          (repo forgejo-repo--name)
          (commits (forgejo-pull--commit-collection))
-         (choice (completing-read "Merge commit: " commits nil t))
-         (sha (alist-get choice commits nil nil #'string=)))
-    (when (y-or-n-p (format "Mark PR #%d as manually merged at %s?"
-                            number (substring sha 0 12)))
+         (choice (completing-read "Merge commit: " commits nil nil))
+         (sha (or (alist-get choice commits nil nil #'string=)
+                  (string-trim choice))))
+    (when (and (not (string-empty-p sha))
+               (y-or-n-p (format "Mark PR #%d as manually merged at %s?"
+                                 number (substring sha 0 (min 12 (length sha))))))
       (forgejo-vc--mark-merged host owner repo number sha))))
 
 (defun forgejo-pull--render-detail (buf-name host-url owner repo pr-alist

@@ -32,7 +32,7 @@
 (defgroup drepl-node nil
   "Node.js shell implemented via dREPL."
   :group 'drepl
-  :group 'lua
+  :group 'js
   :link '(url-link "https://github.com/astoff/drepl"))
 
 (defcustom drepl-node-program "node"

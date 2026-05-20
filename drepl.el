@@ -62,7 +62,11 @@
 It can be a string (the directory name) or a function returning a
 directory name.  The function should accept one argument ASK
 which determines whether to ask or return nil when in doubt."
-  :type '(choice string function))
+  :type '(choice
+          (const :tag "The project root directory" drepl--project-directory)
+          (const :tag "The current directory" ".")
+          directory
+          function))
 
 (defcustom drepl-use-savehist-mode nil
   "Whether to persist REPL input history using `savehist-mode'."
@@ -551,9 +555,10 @@ If MAY-PROMPT is non-nil, allow an interactive query if needed."
   (let ((buffer
          (if (eq type (type-of drepl--current))
              (drepl--buffer drepl--current)
-           (let ((default-directory (if (stringp drepl-directory)
-                                        drepl-directory
-                                      (funcall drepl-directory may-prompt))))
+           (let ((default-directory (file-name-as-directory
+                                     (if (stringp drepl-directory)
+                                         (expand-file-name drepl-directory)
+                                       (funcall drepl-directory may-prompt)))))
              (get-buffer-create (drepl--buffer-name type default-directory))))))
     (unless (comint-check-proc buffer)
       (with-current-buffer buffer

@@ -32,7 +32,7 @@
 
 ;;; Customization options
 
-(defgroup drepl-ipython nil
+(defgroup drepl-ipython '((python-interpreter custom-variable))
   "IPython shell implemented via dREPL."
   :group 'drepl
   :group 'python

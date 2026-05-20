@@ -250,14 +250,16 @@ Empty input clears all filters."
 ;;; Detail view rendering
 
 (defun forgejo-issue--render-detail (buf-name host-url owner repo issue-alist
-					      timeline-alists)
+					      timeline-alists &optional comment-id)
   "Render issue detail into BUF-NAME from alist data.
-HOST-URL is the instance URL."
+HOST-URL is the instance URL.  When COMMENT-ID is non-nil, jump to
+that comment after rendering."
   (forgejo-view--render-detail buf-name host-url owner repo issue-alist
                                timeline-alists
                                #'forgejo-issue-view-mode
                                #'forgejo-issue--sync-detail
-                               #'forgejo-utils-browse-issue))
+                               #'forgejo-utils-browse-issue
+                               comment-id))
 
 (defun forgejo-issue--sync-detail (host owner repo number buf-name
                                         &optional restore-line)
@@ -294,9 +296,10 @@ When RESTORE-LINE is non-nil, go to that line after re-rendering."
     (forgejo-issue-view forgejo-repo--owner forgejo-repo--name number)))
 
 ;;;###autoload
-(defun forgejo-issue-view (owner repo number)
+(defun forgejo-issue-view (owner repo number &optional comment-id)
   "View issue NUMBER in OWNER/REPO.
-Shows cached data from DB instantly, syncs in background."
+Shows cached data from DB instantly, syncs in background.
+When COMMENT-ID is non-nil, jump to that comment after rendering."
   (interactive
    (let ((context (forgejo-repo-read)))
      (list (nth 1 context) (nth 2 context) (read-number "Issue number: "))))
@@ -309,7 +312,7 @@ Shows cached data from DB instantly, syncs in background."
     (if issue-alist
         (switch-to-buffer
          (forgejo-issue--render-detail buf-name host-url owner repo
-                                       issue-alist tl-alists))
+                                       issue-alist tl-alists comment-id))
       (with-current-buffer (get-buffer-create buf-name)
         (let ((inhibit-read-only t))
           (erase-buffer)
@@ -317,7 +320,8 @@ Shows cached data from DB instantly, syncs in background."
         (forgejo-issue-view-mode)
         (setq forgejo-repo--host host-url
               forgejo-repo--owner owner
-              forgejo-repo--name repo)
+              forgejo-repo--name repo
+              forgejo-view--target-comment-id comment-id)
         (switch-to-buffer (current-buffer))))
     (forgejo-issue--sync-detail host owner repo number buf-name)))
 

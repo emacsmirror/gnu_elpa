@@ -69,6 +69,11 @@ Called with (HOST OWNER REPO NUMBER BUF-NAME &optional RESTORE-LINE).")
   "Function to open the current item in the browser.
 Called with (HOST-URL OWNER REPO NUMBER).")
 
+(defvar-local forgejo-view--target-comment-id nil
+  "Comment id to scroll to on (re-)render of the current detail view.
+Set when entering the view from a #issuecomment-N deeplink, and kept
+sticky so async sync re-renders land back on the same comment.")
+
 (defun forgejo-view--popup-description (prefix &optional filters)
   "Return a popup description string: PREFIX owner/repo#NUM.
 Falls back to PREFIX owner/repo or just PREFIX.
@@ -259,13 +264,18 @@ Tries local git first, falls back to the API."
 ;;; URL routing
 
 (defun forgejo-view--parse-forgejo-url (url)
-  "Parse a Forgejo issue/PR URL into (OWNER REPO NUMBER), or nil."
-  (when (and url (string-match
-                  "/\\([^/]+\\)/\\([^/]+\\)/\\(?:issues\\|pulls\\)/\\([0-9]+\\)"
-                  url))
-    (list (match-string 1 url)
-          (match-string 2 url)
-          (string-to-number (match-string 3 url)))))
+  "Parse a Forgejo issue/PR URL into (OWNER REPO NUMBER COMMENT-ID).
+COMMENT-ID is nil unless URL has a #issuecomment-N fragment."
+  (and url
+       (string-match
+        (concat "/\\([^/]+\\)/\\([^/]+\\)/\\(?:issues\\|pulls\\)/\\([0-9]+\\)"
+                "\\(?:/?#issuecomment-\\([0-9]+\\)\\)?")
+        url)
+       (list (match-string 1 url)
+             (match-string 2 url)
+             (string-to-number (match-string 3 url))
+             (and (match-string 4 url)
+                  (string-to-number (match-string 4 url))))))
 
 (defun forgejo-view-browse-url (url &rest _args)
   "Open URL in forgejo.el if it's a Forgejo issue/PR, else in browser."
@@ -274,7 +284,8 @@ Tries local git first, falls back to the API."
             (forgejo-repo--host (format "%s://%s"
                                         (url-type url-obj)
                                         (url-host url-obj))))
-      (forgejo-view-item (nth 0 parsed) (nth 1 parsed) (nth 2 parsed))
+      (forgejo-view-item (nth 0 parsed) (nth 1 parsed) (nth 2 parsed)
+                         (nth 3 parsed))
     (browse-url-default-browser url)))
 
 (defun forgejo-view--browse-url-handler (url &rest _args)
@@ -291,7 +302,8 @@ configured in `forgejo-hosts'."
                               :test #'string=))
               (forgejo-repo--host (format "%s://%s"
                                           (url-type url-obj) host)))
-    (forgejo-view-item (nth 0 parsed) (nth 1 parsed) (nth 2 parsed))
+    (forgejo-view-item (nth 0 parsed) (nth 1 parsed) (nth 2 parsed)
+                       (nth 3 parsed))
     t))
 
 ;;;###autoload
@@ -407,9 +419,9 @@ Handles #N issue/PR refs and markdown URLs."
 ;;; Item routing
 
 (declare-function forgejo-issue-view "forgejo-issue.el"
-                  (owner repo number))
+                  (owner repo number &optional comment-id))
 (declare-function forgejo-pull-view "forgejo-pull.el"
-                  (owner repo number))
+                  (owner repo number &optional comment-id))
 
 (defun forgejo-view--pr-p (alist)
   "Return non-nil if ALIST describes a pull request.
@@ -418,15 +430,16 @@ DB-normalised form (`pull_request' is t or nil)."
   (let ((pr (alist-get 'pull_request alist)))
     (and pr (not (eq pr :null)))))
 
-(defun forgejo-view-item (owner repo number)
+(defun forgejo-view-item (owner repo number &optional comment-id)
   "View issue or PR NUMBER in OWNER/REPO.
-Checks the DB first, then the API if uncached."
+Checks the DB first, then the API if uncached.  When COMMENT-ID is
+non-nil, jump to that comment after the detail view renders."
   (let* ((host (url-host (url-generic-parse-url forgejo-repo--host)))
          (cached (forgejo-db-get-issue host owner repo number)))
     (if cached
         (if (forgejo-view--pr-p cached)
-            (forgejo-pull-view owner repo number)
-          (forgejo-issue-view owner repo number))
+            (forgejo-pull-view owner repo number comment-id)
+          (forgejo-issue-view owner repo number comment-id))
       (forgejo-api-get
        forgejo-repo--host
        (format "repos/%s/%s/issues/%d" owner repo number) nil
@@ -434,8 +447,8 @@ Checks the DB first, then the API if uncached."
          (when data
            (forgejo-db-save-issues host owner repo (list data))
            (if (forgejo-view--pr-p data)
-               (forgejo-pull-view owner repo number)
-             (forgejo-issue-view owner repo number))))))))
+               (forgejo-pull-view owner repo number comment-id)
+             (forgejo-issue-view owner repo number comment-id))))))))
 
 ;;; List-view format
 
@@ -484,14 +497,32 @@ LIST-MODE is the major mode symbol for the list buffer."
 
 ;;; Detail-view rendering
 
+(defun forgejo-view--goto-comment (ewoc comment-id)
+  "Move point to the EWOC node for COMMENT-ID, or `point-min'.
+Returns non-nil when a matching comment node was found."
+  (or (cl-loop for node = (ewoc-nth ewoc 0) then (ewoc-next ewoc node)
+               while node
+               for data = (ewoc-data node)
+               when (and (eq 'comment (plist-get data :type))
+                         (eql comment-id (plist-get data :id)))
+               return (progn (goto-char (ewoc-location node)) t))
+      (progn (goto-char (point-min)) nil)))
+
 (defun forgejo-view--render-detail (buf-name host-url owner repo item-alist
 					     timeline-alists view-mode-fn
-					     sync-fn browse-fn)
+					     sync-fn browse-fn
+					     &optional comment-id)
   "Render detail view into BUF-NAME from alist data.
 HOST-URL is the full instance URL.  ITEM-ALIST is the issue or PR data.
 TIMELINE-ALISTS is the timeline.  VIEW-MODE-FN activates the major mode.
-SYNC-FN and BROWSE-FN are stored as buffer-locals for action commands."
-  (let ((nodes (forgejo-buffer--build-nodes item-alist timeline-alists)))
+SYNC-FN and BROWSE-FN are stored as buffer-locals for action commands.
+When COMMENT-ID is non-nil, jump to that comment after rendering."
+  (let ((nodes (forgejo-buffer--build-nodes item-alist timeline-alists))
+        (sticky-target (or comment-id
+                           (and (get-buffer buf-name)
+                                (buffer-local-value
+                                 'forgejo-view--target-comment-id
+                                 (get-buffer buf-name))))))
     (with-current-buffer (get-buffer-create buf-name)
       (let ((inhibit-read-only t))
         (erase-buffer))
@@ -502,14 +533,17 @@ SYNC-FN and BROWSE-FN are stored as buffer-locals for action commands."
             forgejo-repo--name repo
             forgejo-view--data item-alist
             forgejo-view--sync-fn sync-fn
-            forgejo-view--browse-fn browse-fn)
+            forgejo-view--browse-fn browse-fn
+            forgejo-view--target-comment-id sticky-target)
       (setq forgejo-view--ewoc
             (ewoc-create #'forgejo-buffer--pp nil nil t))
       (dolist (node nodes)
         (ewoc-enter-last forgejo-view--ewoc node))
       (setq header-line-format
             (forgejo-buffer--header-line item-alist))
-      (goto-char (point-min))
+      (if sticky-target
+          (forgejo-view--goto-comment forgejo-view--ewoc sticky-target)
+        (goto-char (point-min)))
       (set-buffer-modified-p nil)
       (current-buffer))))
 

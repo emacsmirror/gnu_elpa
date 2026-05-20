@@ -24,9 +24,9 @@
 
 ;;; Commentary:
 
-;; A simple mode for doing simple plain text presentations where the
-;; slides are separated using the `page-delimiter', by default the
-;; form feed character (^L).
+;; A simple mode for simple plain text presentations where the slides
+;; are separated using the `page-delimiter', by default the form feed
+;; character (^L).
 ;;
 ;; After installing `ffs', open a text file/buffer containing your
 ;; slides and do `M-x ffs-mode RET'.  You can add a key binding for
@@ -48,6 +48,9 @@
 ;; usage, a sample configuration, and other pieces of information:
 ;; <https://kelar.org/~bandali/gnu/emacs/ffs.html>.
 
+;; FIXME: Add some comparison with related packages like `logos',
+;; `org-present', `org-tree-slide', `dslide', etc.
+
 ;;; Code:
 
 (require 'map)
@@ -66,8 +69,7 @@
 If you use a custom `page-delimiter' regexp, be sure to customize this
 as well."
   :type 'string
-  :package-version '(ffs . "0.2.0")
-  :group 'ffs)
+  :package-version '(ffs . "0.2.0"))
 
 (defcustom ffs-echo-progress nil
   "Whether to display in echo area the progress through the slides.
@@ -75,8 +77,7 @@ When non-nil, changing slides will also display the progress through
 the slides in the echo area."
   :type 'boolean
   :local t
-  :package-version '(ffs . "0.2.0")
-  :group 'ffs)
+  :package-version '(ffs . "0.2.0"))
 
 (defcustom ffs-echo-progress-format "Slide %c of %t"
   "The format spec used for function `ffs-echo-progress-format'.
@@ -85,8 +86,7 @@ the slides in the echo area."
 %t Total number of slides."
   :type 'string
   :local t
-  :package-version '(ffs . "0.2.0")
-  :group 'ffs)
+  :package-version '(ffs . "0.2.0"))
 
 (defcustom ffs-default-face-height nil
   "Value of `height' property of `default' face during presentations.
@@ -97,32 +97,28 @@ a larger font size when presenting.
 If nil, don't change the `default' face's `height' in presentations."
   :type '(choice (const nil)
                  (natnum :value 250))
-  :package-version '(ffs . "0.2.0")
-  :group 'ffs)
+  :package-version '(ffs . "0.2.0"))
 
 (defcustom ffs-hide-cursor nil
   "When non-nil hide the cursor.
 This is only relevant when `ffs-present-mode' is enabled."
   :type 'boolean
   :local t
-  :package-version '(ffs . "0.2.0")
-  :group 'ffs)
+  :package-version '(ffs . "0.2.0"))
 
 (defcustom ffs-hide-mode-line nil
   "When non-nil hide the mode line.
 This is only relevant when `ffs-present-mode' is enabled."
   :type 'boolean
   :local t
-  :package-version '(ffs . "0.2.0")
-  :group 'ffs)
+  :package-version '(ffs . "0.2.0"))
 
 (defcustom ffs-hide-header-line nil
   "When non-nil hide the header line.
 This is only relevant when `ffs-present-mode' is enabled."
   :type 'boolean
   :local t
-  :package-version '(ffs . "0.2.0")
-  :group 'ffs)
+  :package-version '(ffs . "0.2.0"))
 
 (defcustom ffs-edit-display-buffer-alist
   '(display-buffer-same-window
@@ -130,13 +126,11 @@ This is only relevant when `ffs-present-mode' is enabled."
   "Window configuration for the `ffs-edit' buffer.
 By default, it will display the `ffs-edit' buffer in the same window."
   :type display-buffer--action-custom-type
-  :package-version '(ffs . "0.2.0")
-  :group 'ffs)
+  :package-version '(ffs . "0.2.0"))
 
 (defcustom ffs-edit-done-hook nil
   "Hook run after editing a slide (at the end of `ffs-edit-done')."
-  :type 'hook
-  :group 'ffs)
+  :type 'hook)
 
 (defvar ffs-edit-buffer-name "*ffs-edit*"
   "The name of the `ffs-edit' buffer used when editing a slide.")
@@ -242,6 +236,9 @@ main ffs presentation slides buffer (`ffs--slides-buffer').")
       (goto-char (point-max))
       (when n (narrow-to-page)))))
 
+;; FIXME: An alternative would be to move the `define-minor-mode' here.
+(defvar ffs-present-mode)
+
 (defmacro ffs--define-goto-slide (name)
   "Define a function for going to a slide.
 Symbol NAME is the name describing the movement."
@@ -258,6 +255,7 @@ Symbol NAME is the name describing the movement."
        (,hname ffs--slides-buffer)
        (when ffs--notes-buffer
          (,hname ffs--notes-buffer)
+         ;; FIXME: Why is this needed?
          (redraw-display))
        (when (and ffs-present-mode ffs-echo-progress)
          (message (ffs-echo-progress-format))))))
@@ -367,9 +365,7 @@ to apply your changes or `\\[ffs-edit-discard]' to discard them."))
   "Minor mode for editing a single ffs slide.
 When done editing the slide, run \\[ffs-edit-done] to apply your
 changes, or \\[ffs-edit-discard] to discard them."
-  :group 'ffs
-  :lighter " ffs-edit"
-  :keymap ffs-edit-mode-map)
+  :lighter " ffs-edit")
 
 
 ;;;; Focus toggles
@@ -485,18 +481,22 @@ If we already hid the header line, restore it.  Otherwise, when variable
   (when ffs-present-mode
     (ffs-hide-header-line)))
 
-(defvar ffs-toggle-prefix-map nil
+(defvar ffs-toggle-prefix-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "e") #'ffs-toggle-echo-progress)
+    (define-key map (kbd "c") #'ffs-toggle-hide-cursor)
+    (define-key map (kbd "m") #'ffs-toggle-hide-mode-line)
+    (define-key map (kbd "h") #'ffs-toggle-hide-header-line)
+    (define-key map (kbd "d") #'ffs-toggle-dark-mode)
+    map)
   "Keymap for ffs toggle commands.")
-(define-prefix-command 'ffs-toggle-prefix-map)
-(let ((map ffs-toggle-prefix-map))
-  (define-key map (kbd "e") #'ffs-toggle-echo-progress)
-  (define-key map (kbd "c") #'ffs-toggle-hide-cursor)
-  (define-key map (kbd "m") #'ffs-toggle-hide-mode-line)
-  (define-key map (kbd "h") #'ffs-toggle-hide-header-line)
-  (define-key map (kbd "d") #'ffs-toggle-dark-mode))
 
 
 ;;;; Miscellaneous
+
+;; FIXME: Here as well, maybe reordering the definitions would remove the
+;; need for this `defvar' directive.
+(defvar ffs-mode)
 
 (defun ffs-start ()
   "Start presenting."
@@ -585,9 +585,7 @@ A numeric ARG serves as a repeat count."
 ;;;###autoload
 (define-minor-mode ffs-mode
   "Minor mode for form feed-separated plain text presentations."
-  :group 'ffs
   :lighter " ffs"
-  :keymap ffs-mode-map
   (setq-local
    buffer-read-only ffs-mode
    ffs--slides-buffer (current-buffer)))
@@ -602,13 +600,11 @@ A numeric ARG serves as a repeat count."
     map)
   "Keymap for `ffs-present-mode'.")
 
-(declare-function face-remap-add-relative "face-remap" (cookie))
+(declare-function face-remap-add-relative "face-remap" (face &rest specs))
 (declare-function face-remap-remove-relative "face-remap" (cookie))
 (define-minor-mode ffs-present-mode
   "Minor mode for active ffs presentations."
-  :group 'ffs
   :lighter nil
-  :keymap ffs-present-mode-map
   (map-do (lambda (_var fun) (funcall fun)) ffs--restore)
   (setq-local ffs--restore nil)
   (if ffs-present-mode

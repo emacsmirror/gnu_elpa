@@ -100,21 +100,6 @@ to standard output."
   :type '(alist :key-type (regexp :tag "File name pattern")
                 :value-type (string :tag "Shell command")))
 
-(defcustom buffer-env-commands nil
-  "Alist of commands used to produce environment variables.
-For each entry, the car is a glob pattern and the cdr is a shell
-command.  The command specifies how to execute a script and
-collect the environment variables it defines.
-
-Specifically, the command corresponding to the script file name
-is executed in a shell, in the directory of the script, with its
-absolute file name as argument.  The command should print a
-null-separated list of environment variables, and nothing else,
-to standard output."
-  :type '(alist :key-type (string :tag "Glob pattern")
-                :value-type (string :tag "Shell command")))
-(make-obsolete-variable 'buffer-env-commands 'buffer-env-command-alist "0.5")
-
 (defcustom buffer-env-safe-files nil
   "List of scripts marked as safe to execute.
 Entries are cons cells consisting of the file name and a hash of
@@ -207,16 +192,7 @@ for more details.")
 
 (defun buffer-env--get-command (file)
   "Return the appropriate shell command to interpret script FILE."
-  (or (when-let*
-          ((c (seq-some (pcase-lambda (`(,patt . ,command))
-                          (when (string-match-p (wildcard-to-regexp patt)
-                                                (file-name-nondirectory file))
-                            command))
-                        buffer-env-commands)))
-        (prog1 c
-          (lwarn 'buffer-env :warning "\
-`buffer-env-commands' is obsolete, use 'buffer-env-command-alist' instead.")))
-      (seq-some (pcase-lambda (`(,patt . ,command))
+  (or (seq-some (pcase-lambda (`(,patt . ,command))
                   (when (string-match-p patt file)
                     command))
                 buffer-env-command-alist)

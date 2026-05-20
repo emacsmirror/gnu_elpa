@@ -312,6 +312,8 @@ and is greatly appreciated.
 
 - Author/maintainer :: Amin Bandali.
 
+- Contributions to code or the manual :: Protesilaos, Stefan Monnier.
+
 - Ideas and/or user feedback :: Protesilaos.
 
 ~ffs~ and its author owe a debt of gratitude to Protesilaos for rounds

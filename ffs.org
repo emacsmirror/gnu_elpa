@@ -4,9 +4,9 @@
 #+language: en
 #+options: ':t toc:nil author:t email:t num:t
 #+startup: content
-#+macro: stable-version 0.2.0
-#+macro: release-date 2026-05-19
-#+macro: development-version 0.2.1-git
+#+macro: stable-version 0.2.1
+#+macro: release-date 2026-05-20
+#+macro: development-version 0.2.2-git
 #+macro: kbd (eval (org-texinfo-kbd-macro $1))
 #+texinfo_filename: ffs.info
 #+texinfo_dir_category: Emacs misc features
@@ -30,7 +30,7 @@ such.
 
 Current development target is {{{development-version}}}.
 
-- Package name (GNU ELPA): =ffs= (not available yet)
+- Package name (GNU ELPA): [[https://elpa.gnu.org/packages/ffs.html][=ffs=]]
 - Official manual: <https://kelar.org/~bandali/gnu/emacs/ffs.html>
 - Change log: <https://kelar.org/~bandali/gnu/emacs/ffs-changelog.html>
 - Git repository: <https://git.kelar.org/~bandali/ffs>

@@ -12,12 +12,24 @@ the ~ffs~ manual: <https://kelar.org/~bandali/gnu/emacs/ffs.html>.
 
 #+toc: headlines 1 insert TOC here, with one headline level
 
+* Version 0.2.1 on 2026-05-20
+:PROPERTIES:
+:CUSTOM_ID: ffs-0.2.1
+:END:
+
+First release of ~ffs~ on GNU ELPA.
+
+The attempted build of ffs 0.2.0 within GNU ELPA build sandbox failed
+with a "Cannot include file" error on the "#+include: fdl.org" in the
+manual.  So, as a workaround, we switch to using the official Texinfo
+copy of the GNU FDL license rather than an Org copy.
+
 * Version 0.2.0 on 2026-05-19
 :PROPERTIES:
 :CUSTOM_ID: ffs-0.2.0
 :END:
 
-First release of ~ffs~ on GNU ELPA.
+First release of ~ffs~ intended for GNU ELPA.
 
 After a few years of inactivity, in early 2026 I decided to dust off
 =ffs.el=, polish and document it, and offer for inclusion in GNU ELPA

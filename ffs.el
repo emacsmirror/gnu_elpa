@@ -5,7 +5,7 @@
 ;; Author: Amin Bandali <bandali@gnu.org>
 ;; Maintainer: Amin Bandali <bandali@gnu.org>
 ;; URL: https://git.kelar.org/~bandali/ffs
-;; Version: 0.2.0
+;; Version: 0.2.1
 ;; Package-Requires: ((emacs "27.1"))
 ;; Keywords: convenience, focus, narrowing, outlines, presentation, text
 

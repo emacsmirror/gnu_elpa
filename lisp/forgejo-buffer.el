@@ -706,9 +706,26 @@ Returns a list of nodes (may be multiple for review with threads)."
 
 ;;; Main node builder
 
-(defun forgejo-buffer--build-event-node (event actor timeline)
-  "Build a node plist for EVENT with ACTOR.  TIMELINE for review context.
-Returns a node plist, a list of nodes, or nil to skip."
+(defun forgejo-buffer--stamp-id (node event-id)
+  "Return NODE with :id set to EVENT-ID if it lacks one."
+  (if (plist-get node :id)
+      node
+    (plist-put node :id event-id)))
+
+(defun forgejo-buffer--stamp-event-id (result event-id)
+  "Stamp EVENT-ID onto RESULT from `forgejo-buffer--build-event-node'.
+RESULT is nil, a single node plist, or a list of node plists."
+  (cond
+   ((null result) nil)
+   ((and (listp result) (listp (car result)))
+    (cl-loop for node in result
+             collect (forgejo-buffer--stamp-id node event-id)))
+   (t (forgejo-buffer--stamp-id result event-id))))
+
+(defun forgejo-buffer--dispatch-event-node (event actor timeline)
+  "Dispatch EVENT to the appropriate node builder for ACTOR.
+TIMELINE is passed to the review builder for context.  Returns a node
+plist, a list of node plists, or nil to skip."
   (pcase (alist-get 'type event)
     ("comment"     (forgejo-buffer--node-comment event actor))
     ((or "close" "reopen") (forgejo-buffer--node-state-change event actor))
@@ -731,10 +748,19 @@ Returns a node plist, a list of nodes, or nil to skip."
     (type (when type
             (forgejo-buffer--node-simple-event event actor type)))))
 
+(defun forgejo-buffer--build-event-node (event actor timeline)
+  "Build a node plist for EVENT with ACTOR.  TIMELINE for review context.
+Returns a node plist, a list of nodes, or nil to skip.  Every returned
+node carries an :id from EVENT so `forgejo-buffer--reconcile-ewoc' can
+key nodes stably across rebuilds."
+  (forgejo-buffer--stamp-event-id
+   (forgejo-buffer--dispatch-event-node event actor timeline)
+   (alist-get 'id event)))
+
 (defun forgejo-buffer--build-nodes (issue-data timeline)
   "Build EWOC node plists from ISSUE-DATA and TIMELINE.
-Both should be alists from the DB.  Bodies are batch-fontified
-in a single `gfm-view-mode' pass for performance."
+Both should be alists from the DB.  Bodies are returned raw;
+callers fontify either in batch (first paint) or per-node (reconcile)."
   (let ((nodes nil))
     ;; Header node
     (let-alist issue-data
@@ -762,10 +788,7 @@ in a single `gfm-view-mode' pass for performance."
           (dolist (node result) (push node nodes)))
          (result
           (push result nodes)))))
-    (setq nodes (nreverse nodes))
-    ;; Batch-fontify all bodies in one pass
-    (forgejo-buffer--fontify-node-bodies nodes)
-    nodes))
+    (nreverse nodes)))
 
 (defun forgejo-buffer--fontify-node-bodies (nodes)
   "Batch-fontify :body in all NODES that have one.
@@ -785,6 +808,94 @@ Replaces raw markdown with fontified text in place."
         (cl-loop for idx in indices
                  for text in fontified
                  do (plist-put (nth idx nodes) :body text))))))
+
+(defun forgejo-buffer--fontify-node-body (node)
+  "Fontify NODE's :body in place, if any.  Used for incremental updates."
+  (when-let* ((body (forgejo-buffer--clean-body (plist-get node :body)))
+              (fontified (car (forgejo-buffer--fontify-bodies (list body)))))
+    (plist-put node :body fontified)))
+
+;;; Incremental EWOC reconcile
+
+(defun forgejo-buffer--node-key (node)
+  "Return a stable key identifying NODE across rebuilds.
+The key is used by `forgejo-buffer--reconcile-ewoc' to match an old
+EWOC node with its equivalent in a freshly built node list."
+  (let ((type (plist-get node :type)))
+    (pcase type
+      ('header '(header))
+      ('review-link (cons 'review-link (plist-get node :review-id)))
+      (_ (cons type (plist-get node :id))))))
+
+(defun forgejo-buffer--ewoc-index-by-key (ewoc)
+  "Return a hash table mapping `forgejo-buffer--node-key' to EWOC nodes."
+  (let ((index (make-hash-table :test 'equal))
+        (n (ewoc-nth ewoc 0)))
+    (while n
+      (puthash (forgejo-buffer--node-key (ewoc-data n)) n index)
+      (setq n (ewoc-next ewoc n)))
+    index))
+
+(defun forgejo-buffer--reconcile-carry-over (old-data new)
+  "Carry forward fontified body and reactions from OLD-DATA into NEW.
+Returns the possibly-extended NEW plist.  Skips fontification when the
+raw body is unchanged; preserves :reactions if NEW lacks the key."
+  (let ((old-body (plist-get old-data :body))
+        (new-body (plist-get new :body)))
+    (if (equal old-body new-body)
+        (setq new (plist-put new :body old-body))
+      (forgejo-buffer--fontify-node-body new)))
+  (unless (plist-member new :reactions)
+    (setq new (plist-put new :reactions (plist-get old-data :reactions))))
+  new)
+
+(defun forgejo-buffer--reconcile-update (ewoc existing new)
+  "Update EXISTING EWOC node in EWOC if NEW differs.
+Carries over already-fontified body and prior reactions when the new
+node doesn't supply them.  No-op when data is `equal'."
+  (let ((old-data (ewoc-data existing)))
+    (unless (equal old-data new)
+      (let ((merged (forgejo-buffer--reconcile-carry-over old-data new)))
+        (ewoc-set-data existing merged)
+        (ewoc-invalidate ewoc existing)))))
+
+(defun forgejo-buffer--reconcile-insert (ewoc cursor new)
+  "Fontify NEW's body and insert into EWOC before CURSOR (or at end)."
+  (forgejo-buffer--fontify-node-body new)
+  (if cursor
+      (ewoc-enter-before ewoc cursor new)
+    (ewoc-enter-last ewoc new)))
+
+(defun forgejo-buffer--reconcile-prune (ewoc index seen)
+  "Delete from EWOC any node in INDEX whose key is not in SEEN."
+  (maphash (lambda (key node)
+             (unless (gethash key seen)
+               (ewoc-delete ewoc node)))
+           index))
+
+(defun forgejo-buffer--reconcile-ewoc (ewoc new-nodes)
+  "Reconcile EWOC's contents against NEW-NODES in place.
+Existing nodes matching by `forgejo-buffer--node-key' are reused and
+re-invalidated only when their data changes.  Brand-new nodes are
+inserted at the correct position; old nodes with no match are deleted.
+Bodies are fontified lazily -- unchanged nodes keep their existing
+fontified body.  Visual order follows the current EWOC; upstream-side
+reorders are not honored (Forgejo timelines are append-only)."
+  (let ((index (forgejo-buffer--ewoc-index-by-key ewoc))
+        (seen (make-hash-table :test 'equal))
+        (cursor (ewoc-nth ewoc 0)))
+    (dolist (new new-nodes)
+      (let* ((key (forgejo-buffer--node-key new))
+             (existing (gethash key index)))
+        (cond
+         (existing
+          (puthash key t seen)
+          (forgejo-buffer--reconcile-update ewoc existing new)
+          (when (eq cursor existing)
+            (setq cursor (ewoc-next ewoc cursor))))
+         (t
+          (forgejo-buffer--reconcile-insert ewoc cursor new)))))
+    (forgejo-buffer--reconcile-prune ewoc index seen)))
 
 ;;; Utilities for detail views
 

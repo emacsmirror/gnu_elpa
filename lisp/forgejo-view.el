@@ -516,36 +516,91 @@ Returns non-nil when a matching comment node was found."
 HOST-URL is the full instance URL.  ITEM-ALIST is the issue or PR data.
 TIMELINE-ALISTS is the timeline.  VIEW-MODE-FN activates the major mode.
 SYNC-FN and BROWSE-FN are stored as buffer-locals for action commands.
-When COMMENT-ID is non-nil, jump to that comment after rendering."
-  (let ((nodes (forgejo-buffer--build-nodes item-alist timeline-alists))
-        (sticky-target (or comment-id
-                           (and (get-buffer buf-name)
-                                (buffer-local-value
-                                 'forgejo-view--target-comment-id
-                                 (get-buffer buf-name))))))
+When COMMENT-ID is non-nil, jump to that comment after rendering.
+
+First call into a buffer does a full paint.  Subsequent calls reconcile
+the existing EWOC against the new nodes, avoiding any work for
+unchanged nodes."
+  (let* ((nodes (forgejo-buffer--build-nodes item-alist timeline-alists))
+         (existing-buf (get-buffer buf-name))
+         (existing-ewoc (and existing-buf
+                             (buffer-local-value 'forgejo-view--ewoc
+                                                 existing-buf)))
+         (host (url-host (url-generic-parse-url host-url)))
+         (number (alist-get 'number item-alist)))
+    (if (and existing-ewoc (ewoc-buffer existing-ewoc))
+        (forgejo-view--reconcile-into existing-buf nodes item-alist
+                                      host owner repo number)
+      (forgejo-view--first-paint buf-name nodes item-alist host-url host
+                                 owner repo number view-mode-fn
+                                 sync-fn browse-fn comment-id))))
+
+(defun forgejo-view--resolve-sticky-target (buf-name comment-id)
+  "Pick the sticky comment id for BUF-NAME, falling back to COMMENT-ID."
+  (or comment-id
+      (and (get-buffer buf-name)
+           (buffer-local-value 'forgejo-view--target-comment-id
+                               (get-buffer buf-name)))))
+
+(defun forgejo-view--install-detail-locals (host-url owner repo item-alist
+                                                     sync-fn browse-fn
+                                                     sticky-target)
+  "Set the detail-view buffer-local variables in the current buffer."
+  (setq forgejo-repo--host host-url
+        forgejo-repo--owner owner
+        forgejo-repo--name repo
+        forgejo-view--data item-alist
+        forgejo-view--sync-fn sync-fn
+        forgejo-view--browse-fn browse-fn
+        forgejo-view--target-comment-id sticky-target))
+
+(defun forgejo-view--populate-ewoc (nodes)
+  "Create the detail EWOC in the current buffer and insert NODES.
+Stores the EWOC in `forgejo-view--ewoc' and returns it."
+  (setq forgejo-view--ewoc
+        (ewoc-create #'forgejo-buffer--pp nil nil t))
+  (dolist (node nodes)
+    (ewoc-enter-last forgejo-view--ewoc node))
+  forgejo-view--ewoc)
+
+(defun forgejo-view--first-paint (buf-name nodes item-alist host-url host
+                                           owner repo number view-mode-fn
+                                           sync-fn browse-fn comment-id)
+  "Build the EWOC from scratch in BUF-NAME and paint NODES."
+  (forgejo-buffer--fontify-node-bodies nodes)
+  (let ((sticky-target (forgejo-view--resolve-sticky-target buf-name comment-id)))
     (with-current-buffer (get-buffer-create buf-name)
       (let ((inhibit-read-only t))
         (erase-buffer))
       (funcall view-mode-fn)
       (forgejo-buffer-setup forgejo-view-action-map)
-      (setq forgejo-repo--host host-url
-            forgejo-repo--owner owner
-            forgejo-repo--name repo
-            forgejo-view--data item-alist
-            forgejo-view--sync-fn sync-fn
-            forgejo-view--browse-fn browse-fn
-            forgejo-view--target-comment-id sticky-target)
-      (setq forgejo-view--ewoc
-            (ewoc-create #'forgejo-buffer--pp nil nil t))
-      (dolist (node nodes)
-        (ewoc-enter-last forgejo-view--ewoc node))
-      (setq header-line-format
-            (forgejo-buffer--header-line item-alist))
+      (forgejo-view--install-detail-locals host-url owner repo item-alist
+                                           sync-fn browse-fn sticky-target)
+      (forgejo-view--populate-ewoc nodes)
+      (forgejo-buffer--update-reactions
+       forgejo-view--ewoc host owner repo number)
+      (setq header-line-format (forgejo-buffer--header-line item-alist))
       (if sticky-target
           (forgejo-view--goto-comment forgejo-view--ewoc sticky-target)
         (goto-char (point-min)))
       (set-buffer-modified-p nil)
       (current-buffer))))
+
+(defun forgejo-view--reconcile-into (buf nodes item-alist host owner repo number)
+  "Reconcile EWOC in BUF against NODES; refresh dependent state.
+Point is left untouched.  Updates `forgejo-view--data', reactions, and
+the header line only if it changed."
+  (with-current-buffer buf
+    (let ((inhibit-read-only t))
+      (setq forgejo-view--data item-alist)
+      (forgejo-buffer--reconcile-ewoc forgejo-view--ewoc nodes)
+      (forgejo-buffer--update-reactions
+       forgejo-view--ewoc host owner repo number)
+      (let ((new-header (forgejo-buffer--header-line item-alist)))
+        (unless (equal header-line-format new-header)
+          (setq header-line-format new-header)))
+      (set-buffer-modified-p nil))
+    buf))
 
 ;;; Reaction sync
 

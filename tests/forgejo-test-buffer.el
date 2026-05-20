@@ -102,5 +102,141 @@
   (should (null (forgejo-buffer--clean-body :null)))
   (should (null (forgejo-buffer--clean-body ""))))
 
+;;; Group 7: Node keys
+
+(ert-deftest forgejo-test-buffer-node-key-header ()
+  (should (equal (forgejo-buffer--node-key '(:type header :number 1))
+                 '(header))))
+
+(ert-deftest forgejo-test-buffer-node-key-comment ()
+  (should (equal (forgejo-buffer--node-key '(:type comment :id 42))
+                 '(comment . 42))))
+
+(ert-deftest forgejo-test-buffer-node-key-event ()
+  (should (equal (forgejo-buffer--node-key
+                  '(:type event :id 7 :event-type "closed"))
+                 '(event . 7))))
+
+(ert-deftest forgejo-test-buffer-node-key-review-link ()
+  (should (equal (forgejo-buffer--node-key
+                  '(:type review-link :review-id 99))
+                 '(review-link . 99))))
+
+;;; Group 8: Build-event-node stamps :id
+
+(ert-deftest forgejo-test-buffer-build-event-node-stamps-id ()
+  "Every non-header event node carries :id from the source event."
+  (let* ((events '(((id . 11) (type . "close") (user . ((login . "a")))
+                    (created_at . "2026-01-01T00:00:00Z"))
+                   ((id . 12) (type . "label") (body . "1")
+                    (label . ((name . "bug") (color . "ff0000")))
+                    (user . ((login . "a")))
+                    (created_at . "2026-01-02T00:00:00Z"))))
+         (nodes (mapcar (lambda (e)
+                          (forgejo-buffer--build-event-node e "a" events))
+                        events)))
+    (should (= 11 (plist-get (nth 0 nodes) :id)))
+    (should (= 12 (plist-get (nth 1 nodes) :id)))))
+
+;;; Group 9: Reconcile
+
+(defun forgejo-test-buffer--make-ewoc (nodes)
+  "Build a fresh EWOC populated with NODES for testing reconcile."
+  (with-current-buffer (generate-new-buffer " *fbtest*")
+    (let ((ewoc (ewoc-create (lambda (data)
+                               (insert (format "%S\n" data)))
+                             nil nil t)))
+      (dolist (n nodes)
+        (ewoc-enter-last ewoc n))
+      ewoc)))
+
+(defun forgejo-test-buffer--ewoc-keys (ewoc)
+  "Return the list of node keys currently in EWOC, in order."
+  (let (keys (n (ewoc-nth ewoc 0)))
+    (while n
+      (push (forgejo-buffer--node-key (ewoc-data n)) keys)
+      (setq n (ewoc-next ewoc n)))
+    (nreverse keys)))
+
+(ert-deftest forgejo-test-buffer-reconcile-noop ()
+  "Reconciling identical node lists makes no changes."
+  (let* ((nodes '((:type header :number 1 :title "t")
+                  (:type comment :id 10 :body "a")
+                  (:type event :id 11 :event-type "closed")))
+         (ewoc (forgejo-test-buffer--make-ewoc nodes))
+         (invalidated 0))
+    (unwind-protect
+        (cl-letf* ((orig (symbol-function 'ewoc-invalidate))
+                   ((symbol-function 'ewoc-invalidate)
+                    (lambda (&rest args) (cl-incf invalidated)
+                      (apply orig args))))
+          (forgejo-buffer--reconcile-ewoc ewoc (copy-tree nodes))
+          (should (= invalidated 0))
+          (should (equal (forgejo-test-buffer--ewoc-keys ewoc)
+                         '((header) (comment . 10) (event . 11)))))
+      (kill-buffer (ewoc-buffer ewoc)))))
+
+(ert-deftest forgejo-test-buffer-reconcile-insert ()
+  "Reconciling with a new comment inserts it at the right position."
+  (let* ((old '((:type header :number 1)
+                (:type comment :id 10 :body "first")
+                (:type event :id 11 :event-type "closed")))
+         (new '((:type header :number 1)
+                (:type comment :id 10 :body "first")
+                (:type comment :id 12 :body "new")
+                (:type event :id 11 :event-type "closed")))
+         (ewoc (forgejo-test-buffer--make-ewoc old)))
+    (unwind-protect
+        (progn
+          (forgejo-buffer--reconcile-ewoc ewoc new)
+          (should (equal (forgejo-test-buffer--ewoc-keys ewoc)
+                         '((header) (comment . 10) (comment . 12)
+                           (event . 11)))))
+      (kill-buffer (ewoc-buffer ewoc)))))
+
+(ert-deftest forgejo-test-buffer-reconcile-update ()
+  "Reconciling a comment with changed body updates and invalidates it."
+  (let* ((old '((:type comment :id 10 :body "old")))
+         (new '((:type comment :id 10 :body "new")))
+         (ewoc (forgejo-test-buffer--make-ewoc old))
+         (invalidated 0))
+    (unwind-protect
+        (cl-letf* ((orig (symbol-function 'ewoc-invalidate))
+                   ((symbol-function 'ewoc-invalidate)
+                    (lambda (&rest args) (cl-incf invalidated)
+                      (apply orig args))))
+          (forgejo-buffer--reconcile-ewoc ewoc new)
+          (should (= invalidated 1))
+          (should (equal (plist-get (ewoc-data (ewoc-nth ewoc 0)) :body)
+                         "new")))
+      (kill-buffer (ewoc-buffer ewoc)))))
+
+(ert-deftest forgejo-test-buffer-reconcile-delete ()
+  "Reconciling with a node removed deletes it from the EWOC."
+  (let* ((old '((:type comment :id 10 :body "a")
+                (:type comment :id 11 :body "b")))
+         (new '((:type comment :id 10 :body "a")))
+         (ewoc (forgejo-test-buffer--make-ewoc old)))
+    (unwind-protect
+        (progn
+          (forgejo-buffer--reconcile-ewoc ewoc new)
+          (should (equal (forgejo-test-buffer--ewoc-keys ewoc)
+                         '((comment . 10)))))
+      (kill-buffer (ewoc-buffer ewoc)))))
+
+(ert-deftest forgejo-test-buffer-reconcile-preserves-reactions ()
+  "Reactions previously patched onto a node survive reconcile when the
+new node doesn't carry :reactions."
+  (let* ((old '((:type comment :id 10 :body "a"
+                       :reactions (("heart" "alice")))))
+         (new '((:type comment :id 10 :body "a")))
+         (ewoc (forgejo-test-buffer--make-ewoc old)))
+    (unwind-protect
+        (progn
+          (forgejo-buffer--reconcile-ewoc ewoc new)
+          (should (equal (plist-get (ewoc-data (ewoc-nth ewoc 0)) :reactions)
+                         '(("heart" "alice")))))
+      (kill-buffer (ewoc-buffer ewoc)))))
+
 (provide 'forgejo-test-buffer)
 ;;; forgejo-test-buffer.el ends here

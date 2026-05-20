@@ -144,7 +144,7 @@ addition to those of `drepl-base'."
 ARGS is the entire argument list of `drepl--log-message'."
   (with-current-buffer (get-buffer-create drepl--log-buffer)
     (goto-char (point-max))
-    (when-let ((w (get-buffer-window)))
+    (when-let* ((w (get-buffer-window)))
       (set-window-point w (point)))
     (insert (propertize (format-time-string "[%T] ") 'face 'warning)
             (apply #'format args)
@@ -237,8 +237,8 @@ TEXT is a still unparsed message received from the interpreter."
                      (apply-partially #'drepl--handle-notification
                                       repl))))
     (when callback (funcall callback data))
-    (when-let ((next (and (eq (drepl--status repl) 'ready)
-                          (pop (drepl--pending repl)))))
+    (when-let* ((next (and (eq (drepl--status repl) 'ready)
+                           (pop (drepl--pending repl)))))
       (drepl--send-request repl next))))
 
 (cl-defgeneric drepl--handle-notification (repl data)
@@ -372,26 +372,27 @@ CANDS is the candidate list computed by the REPL."
 
 (defun drepl--complete ()
   "Function intended for use as a member of `completion-at-point-functions'."
-  (when-let ((repl (when (derived-mode-p 'drepl-mode)
-                     (drepl--get-repl 'ready)))
-             (bounds (drepl--completion-bounds repl))
-             (code (buffer-substring-no-properties
-                    (cdr comint-last-prompt)
-                    (point-max)))
-             (pos (- (point) (cdr comint-last-prompt)))
-             (reply (when (>= pos 0)
-                      (drepl--completion-cadidates repl code pos)))
-             (cands (drepl--adjust-candidates
-                     (buffer-substring-no-properties (car bounds) (cdr bounds))
-                     (car reply)
-                     (cdr reply)))
-             (metadata '(metadata
-                         (category . drepl)
-                         (annotation-function . drepl--capf-annotate)))
-             (coll (lambda (string predicate action)
-                     (if (eq action 'metadata)
-                         metadata
-                       (complete-with-action action cands string predicate)))))
+  (when-let*
+      ((repl (when (derived-mode-p 'drepl-mode)
+               (drepl--get-repl 'ready)))
+       (bounds (drepl--completion-bounds repl))
+       (code (buffer-substring-no-properties
+              (cdr comint-last-prompt)
+              (point-max)))
+       (pos (- (point) (cdr comint-last-prompt)))
+       (reply (when (>= pos 0)
+                (drepl--completion-cadidates repl code pos)))
+       (cands (drepl--adjust-candidates
+               (buffer-substring-no-properties (car bounds) (cdr bounds))
+               (car reply)
+               (cdr reply)))
+       (metadata '(metadata
+                   (category . drepl)
+                   (annotation-function . drepl--capf-annotate)))
+       (coll (lambda (string predicate action)
+               (if (eq action 'metadata)
+                   metadata
+                 (complete-with-action action cands string predicate)))))
     `(,(car bounds) ,(cdr bounds) ,coll)))
 
 ;;; Eval operation
@@ -412,7 +413,7 @@ Otherwise, make an eval request."
         (progn
           (drepl--log-message "send raw %s" string)
           (comint-simple-send proc string))
-      (when-let ((hist (drepl--history-variable repl)))
+      (when-let* ((hist (drepl--history-variable repl)))
         (add-to-history hist string comint-input-ring-size))
       (drepl--eval repl string))))
 
@@ -421,7 +422,7 @@ Otherwise, make an eval request."
   (interactive (list (read-from-minibuffer "Evaluate: ")))
   (let ((repl (drepl--get-repl nil t)))
     (with-current-buffer (drepl--buffer repl)
-      (when-let ((last (cdr comint-last-prompt)))
+      (when-let* ((last (cdr comint-last-prompt)))
         (setq comint-last-prompt nil)
         (save-excursion
           (goto-char last)
@@ -454,11 +455,11 @@ insert start a continuation line instead."
   (interactive "P" drepl-mode)
   (unless (derived-mode-p 'drepl-mode)
     (user-error "Can't run this command here"))
-  (let-alist (when-let ((repl (unless force (drepl--get-repl 'ready)))
-                        (pmark (process-mark (drepl--process repl)))
-                        (code (and (>= (point) pmark)
-                                   (buffer-substring-no-properties
-                                    pmark (field-end)))))
+  (let-alist (when-let* ((repl (unless force (drepl--get-repl 'ready)))
+                         (pmark (process-mark (drepl--process repl)))
+                         (code (and (>= (point) pmark)
+                                    (buffer-substring-no-properties
+                                     pmark (field-end)))))
                (drepl--communicate drepl--current 'sync 'checkinput
                                    :code code))
     (pcase-exhaustive .status
@@ -497,14 +498,14 @@ The return value is passed directly to an Eldoc callback.  See
 (defun drepl--eldoc-function (callback &rest _)
   "Function intended for use as a member of `eldoc-documentation-functions'.
 See that variable's docstring for a description of CALLBACK."
-  (when-let ((repl (when (derived-mode-p 'drepl-mode)
-                     (drepl--get-repl 'ready)))
-             (start (cdr comint-last-prompt))
-             (pos (- (point) start))
-             (code (when (>= pos 0)
-                     (buffer-substring-no-properties start (point-max))))
-             (cb (lambda (data)
-                   (apply callback (drepl--format-eldoc repl data)))))
+  (when-let* ((repl (when (derived-mode-p 'drepl-mode)
+                      (drepl--get-repl 'ready)))
+              (start (cdr comint-last-prompt))
+              (pos (- (point) start))
+              (code (when (>= pos 0)
+                      (buffer-substring-no-properties start (point-max))))
+              (cb (lambda (data)
+                    (apply callback (drepl--format-eldoc repl data)))))
     (drepl--communicate repl cb 'describe :code code :pos pos)))
 
 ;;; REPL restart
@@ -512,7 +513,7 @@ See that variable's docstring for a description of CALLBACK."
 (cl-defgeneric drepl--restart (repl)
   "Generic method to restart a REPL."
   (with-current-buffer (drepl--buffer repl)
-    (when-let ((proc (drepl--process repl)))
+    (when-let* ((proc (drepl--process repl)))
       (kill-process proc)
       (while (accept-process-output proc)))
     (drepl--get-buffer-create (type-of repl) nil)))
@@ -528,7 +529,7 @@ See that variable's docstring for a description of CALLBACK."
   "Return the current project root directory.
 If it can be determined and MAY-PROMPT is non-nil, ask for a
 project; otherwise fall back to `default-directory'."
-  (if-let ((proj (project-current may-prompt)))
+  (if-let* ((proj (project-current may-prompt)))
       (project-root proj)
     default-directory))
 
@@ -573,7 +574,7 @@ activated.  It should start and initialize a Comint process."
            (buffer-name buffer)
            buffer
            program nil switches))
-  (when-let ((hist (drepl--history-variable repl)))
+  (when-let* ((hist (drepl--history-variable repl)))
     (when drepl-use-savehist-mode
       (defvar savehist-minibuffer-history-variables)
       (cl-pushnew hist savehist-minibuffer-history-variables))
@@ -603,9 +604,9 @@ appropriate mode using `auto-mode-alist'."
     (when (autoloadp (symbol-function mode))
       (autoload-do-load (symbol-function mode) mode))
     (setq-local comint-indirect-setup-function mode)
-    (when-let ((syntbl-sym (derived-mode-syntax-table-name mode))
-               (syntbl-val (when (boundp syntbl-sym)
-                             (symbol-value syntbl-sym))))
+    (when-let* ((syntbl-sym (derived-mode-syntax-table-name mode))
+                (syntbl-val (when (boundp syntbl-sym)
+                              (symbol-value syntbl-sym))))
       (when (syntax-table-p syntbl-val)
         (set-syntax-table syntbl-val)))))
 

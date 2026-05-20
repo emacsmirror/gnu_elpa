@@ -74,7 +74,7 @@ Make sure to run \\[drepl-usql-build] after setting this option."
 (drepl--define drepl-usql :display-name "usql")
 
 (cl-defmethod drepl--command ((_ drepl-usql))
-  (if-let ((prog (executable-find drepl-usql-program)))
+  (if-let* ((prog (executable-find drepl-usql-program)))
       (list prog (read-from-minibuffer "Connect to database: "
                                        nil nil nil
                                        'drepl-usql--connection-history))

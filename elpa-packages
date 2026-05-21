@@ -378,7 +378,7 @@
  (f90-interface-browser :url nil) ;; Was "https://github.com/wence-/f90-iface"
  (ffs			:url "https://git.kelar.org/~bandali/ffs"
   :doc "ffs.org"
-  :readme "ffs.org"
+  :readme "README.md"
   :news "CHANGELOG.org"
   :ignored-files ("COPYING"))
  (filechooser		:url "https://codeberg.org/rahguzar/filechooser"

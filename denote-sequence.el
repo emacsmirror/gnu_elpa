@@ -1184,7 +1184,7 @@ sibling is not available and the search needs to be repeated."
 When called from Lisp RELATIVES is the list of files to search through.
 In interactive use, this happens internally when an immediate previous
 sibling is not available and the search needs to be repeated."
-  (interactive (list (denote-sequence--get-current-sequence-or-prompt "Make a new sibling of SEQUENCE") nil))
+  (interactive (list (denote-sequence--get-current-sequence-or-prompt "Find the previous sibling of SEQUENCE") nil))
   (denote-sequence-find-next-prev-sibling-subr 'previous sequence relatives))
 
 (defvar denote-sequence-relative-types

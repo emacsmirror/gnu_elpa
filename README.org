@@ -402,7 +402,7 @@ Denote Sequence is meant to be a collective effort.  Every bit of help matters.
 
 + Contributions to code or the manual :: Ashton Wiersdorf, Claudio
   Migliorelli, Kierin Bell, Nicolas Semrau, Rory Molinari, Peter
-  Prevos, alan-w-255, juh, liyingzhi.
+  Prevos, alan-w-255, juh, liyingzhi, nescias.
 
 + Ideas and/or user feedback :: Alex Carney, Mirko Hernandez.
 

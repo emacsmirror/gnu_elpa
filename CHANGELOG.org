@@ -12,12 +12,31 @@ the ~ffs~ manual: <https://kelar.org/~bandali/gnu/emacs/ffs.html>.
 
 #+toc: headlines 1 insert TOC here, with one headline level
 
+* Version 0.2.2 on 2026-05-21
+:PROPERTIES:
+:CUSTOM_ID: ffs-0.2.2
+:END:
+
+First release of ~ffs~ on GNU ELPA.
+
+The attempted build of ffs 0.2.1 within GNU ELPA build sandbox failed
+with an =Error: void-function (org-texinfo-kbd-macro)= due to use of
+=#+macro: kbd (eval (org-texinfo-kbd-macro $1))= in ffs.org for better
+formatting of key sequences in the exported Texinfo copy.  This seems
+to have happened for the specific case of generating a plain text
+README using =ox-ascii= where ELPA didn't load =ox-texinfo=.  To try
+and mitigate this, a =README.md= has been added for use as the package
+README instead of ffs.org.  If not sufficient, a Texinfo copy of the
+ffs manual will be shipped instead of the Org one in the next release.
+
+ffs 0.2.2 also includes small fixes and improvements throughout
+=ffs.el= from Stefan Monnier, and additional feedback to be addressed
+in future releases.
+
 * Version 0.2.1 on 2026-05-20
 :PROPERTIES:
 :CUSTOM_ID: ffs-0.2.1
 :END:
-
-First release of ~ffs~ on GNU ELPA.
 
 The attempted build of ffs 0.2.0 within GNU ELPA build sandbox failed
 with a "Cannot include file" error on the "#+include: fdl.org" in the

@@ -60,7 +60,12 @@
 
 (defvar elpaa--name "NonGNU")
 (defvar elpaa--gitrepo "emacs/nongnu.git")
-(defvar elpaa--url "https://elpa.gnu.org/nongnu/")
+(defvar elpaa--release-url "https://elpa.gnu.org/nongnu/")
+(defvar elpaa--url elpaa--release-url)
+(defvar elpaa--sister-archive-url "https://elpa.nongnu.org/")
+(defvar elpaa--sister-archive-release-path "release/")
+(defvar elpaa--sister-archive-name "GNU")
+
 (defvar elpaa--devel-url "https://elpa.gnu.org/nongnu-devel/")
 (defvar elpaa--css-url "https://www.gnu.org/software/emacs/manual.css")
 
@@ -1630,51 +1635,52 @@ readme file has an unconventional name"
 ;;; Make the HTML pages for online browsing.
 
 (defun elpaa--html-header (title &optional header head-extra)
-  (format "<!DOCTYPE HTML PUBLIC>
+  (format
+   "<!doctype html>
 <html lang=\"en\" xml:lang=\"en\">
-    <head>
-        <title>%s</title>
-        <meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\">
-        <link rel=\"shortcut icon\" type=\"image/png\" href=\"../favicon.png\">
-        <link rel=\"stylesheet\" href=\"//code.cdn.mozilla.net/fonts/fira.css\">
-        <link rel=\"stylesheet\" type=\"text/css\" href=\"../layout.css\">%s
-        <meta name=\"viewport\" content=\"initial-scale=1.0,maximum-scale=1.0,width=device-width\" />
-    </head>
-    <body>
+<head>
+<title>%s</title>
+<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />
+<link rel=\"shortcut icon\" type=\"image/png\" href=\"../favicon.png\" />
+<link rel=\"stylesheet\" type=\"text/css\" href=\"../layout.css\" />
+<meta name=\"viewport\" content=\"initial-scale=1.0,maximum-scale=1.0,width=device-width\" />
+%s
+</head>
 
-        <div class=\"wrapper\">
+<body>
+<header>
+<h1>
+<img src=\"../images/logo.svg\" alt=\"ELPA Logo\" width=\"60\" height=\"64\" />
+%s
+</h1>
 
-            <header class=\"small\">
-                <div class=\"container\">
-                    <h1>%s</h1>
-                </div>
-            </header>
-
-            <main class=\"container\">\n"
-          title (or head-extra "") (or header title)))
-
-(defvar elpaa--index-javascript-headers "
-        <script src=\"../javascript/package-search.js\" type=\"text/javascript\"></script>")
+<nav>
+<ul>
+<li><a href=\"..\">Index</a></li>
+<li><a href=\"../about.html\">About</a></li>
+<li><a href=\"../contributing.html\">Contribute!</a></li>
+<li class=\"other\"><a href=\"%s\">%s ELPA</a></li>
+<li class=\"other\"><a href=\"../%s\">%s-devel ELPA</a>\n</li>
+</ul>
+</nav>
+</header>
+<main>
+"
+   title (or head-extra "") (or header title)
+   elpaa--sister-archive-url elpaa--sister-archive-name
+   (directory-file-name elpaa--devel-url) elpaa--name))
 
 (defun elpaa--html-footer ()
-  (format "\n
-        <footer>
-            <div class=\"container\">
-                <p>Last refreshed on %s</p>
-                <p>Copyright 2016-%s <a href=\"https://fsf.org\">Free Software Foundation</a>, Inc.</p>
-                <p>Design provided by <a href=\"https://nicolas.petton.fr\">Nicolas Petton</a></p>
-                <p>
-                  This website is licensed under the
-                  <a href=\"https://creativecommons.org/licenses/by-sa/4.0/\">CC BY-SA 4.0</a>
-                  International License.
-                </p>
-                <p><a href=\"/jslicense.html\" data-jslicense=\"1\">JavaScript Licenses</a></p>
-            </div>
-        </footer>
-
-</body>\n"
-          (format-time-string "%Y-%b-%d %R %Z" nil t)
-          (format-time-string "%Y" nil t)))
+  (format-time-string
+   "<footer>
+<p>Copyright 2016-%Y <a href=\"https://fsf.org\">Free Software Foundation</a>, Inc.
+This website is licensed under the
+<a href=\"https://creativecommons.org/licenses/by-sa/4.0/\">CC BY-SA 4.0</a>
+International License.
+<p>Last rendered this page <time datetime=\"%FT%T%z\">%F</time>.</p>
+</footer>
+</body>
+</html>"))
 
 (defun elpaa--html-bytes-format (bytes) ;Aka memory-usage-format.
   (if (null bytes)
@@ -1930,7 +1936,7 @@ arbitrary code."
                     '("cgit/%s/?h=%s"
                       "gitweb/?p=%s;a=shortlog;h=refs/heads/%s")))))
     (insert (format
-             (concat (format "<dt>Browse %srepository</dt> <dd>"
+             (concat (format "<dt>%sRepository</dt> <dd>"
                              (if url "ELPA's " ""))
                      "<a href=%S>%s</a> or <a href=%S>%s</a></dd>\n")
              (concat git-sv (nth 0 urls))
@@ -1994,9 +2000,13 @@ in case of cyclic dependencies."
     (insert "<dt>All Dependencies</dt><dd>"
             (mapconcat
              (lambda (pkg-name)
-               (format "<a href=\"%s.html\">%s</a> (<a href=\"%s.tar\">.tar</a>)"
-                       pkg-name pkg-name pkg-name))
-             reqs ", ")
+               (let ((pref (if (file-exists-p (format "%s.tar" pkg-name))
+                               ""
+                             (concat elpaa--sister-archive-url "/"
+                                     elpaa--sister-archive-release-path))))
+                 (format "<a href=\"%s.html\">%s</a> (<a href=\"%s.tar\">.tar</a>)"
+                         pkg-name pkg-name pkg-name)))
+             reqs "</dd></dd>")
             "</dd>\n")))
 
 (defun elpaa--html-make-pkg (pkg pkg-spec files srcdir plain-readme)
@@ -2011,13 +2021,11 @@ in case of cyclic dependencies."
     (elpaa--make-atom-feed pkg pkg-spec srcdir files)
     (with-temp-buffer
       (insert (elpaa--html-header
-               (format "%s ELPA - %s" elpaa--name name)
-               (format "<a href=\"index.html\">%s ELPA</a> - %s"
-                       elpaa--name name)
-               (format "<link href=\"%s.xml\" type=\"application/atom+xml\" rel=\"alternate\" />"
-                       name)))
+               (format "%s ELPA: %s" elpaa--name name)
+               (format "%s ELPA: %s" elpaa--name name)
+               (format "<link href=\"%s.xml\" type=\"application/atom+xml\" rel=\"alternate\" />\n" name)))
       (insert (format "<h2 class=\"package\">%s" name))
-      (insert " <a class=\"badge\" href=\"" name ".xml\"><img src=\"/images/rss.svg\" alt=\"Atom Feed\"></a>")
+      (insert " <a class=\"badge\" href=\"" name ".xml\"><img src=\"../images/rss.svg\" alt=\"Atom Feed\"></a>")
       (insert "</h2>")
       (insert "<dl>")
       (insert (format "<dt>Description</dt><dd>%s</dd>\n" (elpaa--html-quote desc)))
@@ -2036,7 +2044,7 @@ in case of cyclic dependencies."
       (let ((maints (elpaa--get-prop "Maintainer" name srcdir mainsrcfile)))
         (elpaa--message "maints=%S" maints)
         (insert
-         "<dt>Maintainer</dt> <dd>"
+         "<dt>Maintainer</dt>\n<dd>"
          (mapconcat (lambda (maint)
                       (when (consp maint)
                         (setq maint (concat (if (car maint)
@@ -2046,8 +2054,24 @@ in case of cyclic dependencies."
                     (if (or (null maints) (consp (car-safe maints)))
                         maints
                       (list maints))
-                    ", ")
+                    "</dd>\n<dd>")
          "</dd>\n"))
+
+      (let ((file (concat "../" (file-name-base
+                                 (directory-file-name
+                                  (if (string-suffix-p "-devel" elpaa--name)
+                                      elpaa--release-url
+                                    elpaa--devel-url)))
+                          "/"
+                          (elpaa--html-quote name)
+                          ".html")))
+        (when (file-exists-p file)
+          (insert "<dt>Other versions:</dt><dd><a href=\"" file "\">")
+          (if (string-suffix-p "-devel" elpaa--name)
+              "release"
+            "development")
+          (insert " version</a></dd>")))
+
       (elpaa--insert-repolinks
        pkg-spec
        (or (cdr (assoc :url (aref (cdr pkg) 4)))
@@ -2103,33 +2127,24 @@ in case of cyclic dependencies."
                        (file-readable-p elpaa--wsl-stats-file)
                        (nth 3 (elpaa--form-from-file-contents
                                elpaa--wsl-stats-file)))))
-      (insert (elpaa--html-header
-               (concat elpaa--name " ELPA Packages") nil
-               (concat
-                elpaa--index-javascript-headers
-                (format "<link href=\"%s\" type=\"application/atom+xml\" rel=\"alternate\" />"
-                        elpaa--aggregated-feed-filename))))
-      (insert "<table id=\"packages\">\n")
-      (insert "<thead><tr><th>Package</th><th>Version</th><th>Description</th><th>Rank</th></tr></thead>\n")
-      (insert "<tbody>")
       (dolist (pkg pkgs)
-        (insert (format "<tr><td><a href=\"%s.html\">%s</a></td><td>%s</td><td>%s</td><td>%s</td></tr>\n"
-                        (car pkg) (car pkg)
-                        (package-version-join (aref (cdr pkg) 0))
-                        (aref (cdr pkg) 2)
-                        ;; Average rank over all the weeks' ranks.
-                        ;; FIXME: Only use the more recent weeks?
-                        (let* ((ranks (and (hash-table-p scores)
-                                           (gethash (symbol-name (car pkg))
-                                                    scores)))
-                               (total (apply #'+ (mapcar #'cdr ranks))))
-                          (if (null ranks) "?"
-                            (format "%d%%" (/ total (length ranks))))))))
-      (insert "</tbody></table>
-            <div class=\"push\"></div>
-        </main>")
-      (insert (elpaa--html-footer))
-      (write-region (point-min) (point-max) "index.html"))))
+        (let ((age (file-attribute-modification-time (file-attributes (format "%s.tar" (car pkg))))))
+          (insert (format "<tr><td><a href=\"%s.html\">%s</a></td><td>%s</td><td>%s</td><td>%s</td><td><time datetime=\"%s\">%s</time></td></tr>\n"
+                          (car pkg) (car pkg)
+                          (package-version-join (aref (cdr pkg) 0))
+                          (elpaa--html-quote (aref (cdr pkg) 2))
+                          ;; Average rank over all the weeks' ranks.
+                          ;; FIXME: Only use the more recent weeks?
+                          (let* ((ranks (and (hash-table-p scores)
+                                             (gethash (symbol-name (car pkg))
+                                                      scores)))
+                                 (total (apply #'+ (mapcar #'cdr ranks))))
+                            (if (null ranks) "?"
+                              (format "%d%%" (/ total (length ranks)))))
+                          ;; we add a more accurate timestamp here to allow for correct sorting
+                          (format-time-string "%FT%T%z" age)
+                          (format-time-string "%Y-%m-%d" age)))))
+      (write-region (point-min) (point-max) "table.html"))))
 
 (defun elpaa-batch-html-make-index ()
   (let* ((ac-file (pop command-line-args-left))

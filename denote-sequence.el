@@ -1195,10 +1195,10 @@ sibling is not available and the search needs to be repeated."
 (defun denote-sequence-annotate-relative-types (type)
   "Annotate completion candidate of TYPE for `denote-sequence-type-prompt'."
   (when-let* ((text (pcase type
-                      ("all-parents" "All parent sequences")
+                      ("all-parents" "All ancestors")
                       ("parent" "Immediate parent")
                       ("siblings" "All siblings")
-                      ("all-children" "All children")
+                      ("all-children" "All descendants")
                       ("children" "Immediate children"))))
     (format "%s-- %s"
             (propertize " " 'display '(space :align-to 15))

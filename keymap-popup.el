@@ -635,9 +635,23 @@ Updates both the keymap and the popup descriptions."
 
 ;;; Renderer
 
+(defconst keymap-popup--max-description-width 40
+  "Maximum visible width of a resolved description, in columns.
+Resolved descriptions longer than this are truncated with an
+ellipsis.  Authors should keep descriptions short by convention;
+this bound exists so dynamic descriptions can't blow out the
+column layout.")
+
 (defun keymap-popup--resolve-description (desc)
-  "If DESC is a function, call it; otherwise return as-is."
-  (if (functionp desc) (funcall desc) desc))
+  "Resolve DESC to a display string.
+If DESC is a function, call it; otherwise return as-is.  Collapse
+runs of whitespace into single spaces and truncate to
+`keymap-popup--max-description-width'."
+  (let* ((raw (if (functionp desc) (funcall desc) desc))
+         (collapsed (and raw (string-clean-whitespace raw))))
+    (and collapsed
+         (truncate-string-to-width
+          collapsed keymap-popup--max-description-width nil nil t))))
 
 (defun keymap-popup--render-entry (entry &optional prefix-mode key-width)
   "Render ENTRY into a formatted line, or nil if :if hides it.

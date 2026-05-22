@@ -87,7 +87,7 @@ the replacement new user options, with a default value of nil:
 - ~ffs-hide-header-line~
 
 Their value is buffer-local, and may be set globally using
-~setq-default~.  See the [[file:ffs.html#Sample-configuration][sample configuration]] in the manual for an
+~setq-default~.  See the [[https://kelar.org/~bandali/gnu/emacs/ffs.html#Sample-configuration][sample configuration]] in the manual for an
 example of how to customize them.
 
 The new ~ffs-page-delimiter~ user option defines the page delimiter

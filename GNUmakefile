@@ -52,9 +52,14 @@ readme:
 ########## Updating specific files ############################################
 
 # Apparently `%` can't match the empty string!
-archiv%/index.html: archiv%/archive-contents
+archiv%/table.html: archiv%/archive-contents
 	$(EMACS) -l admin/elpa-admin.el \
 	         -f elpaa-batch-html-make-index $< $*
+
+archive/index.html: archive/table.html html/_index.html
+archive-devel/index.html: archive-devel/table.html html/_devel.html
+archive/index.html archive-devel/index.html:
+	sed -e "/^<tr></d; /^<tbody>/r $<" $(word 2,$^) > $@
 
 ########## Rules for in-place installation ####################################
 pkgs := $(wildcard packages/*)
@@ -141,7 +146,7 @@ packages/%.elc: packages/%.el
 # $(extra_elcs):; rm $@
 
 packages:
-	mkdir $@
+	mkdir -p $@
 
 include $(PKG_DESCS_MK)
 $(PKG_DESCS_MK): elpa-packages packages

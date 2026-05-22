@@ -1,4 +1,9 @@
-/* This program is free software: you can redistribute it and/or
+/**
+ *
+ * @licstart  The following is the entire license notice for the 
+ *  JavaScript code in this page.
+ *
+ * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
@@ -10,7 +15,11 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see
- * <https://www.gnu.org/licenses/>. */
+ * <https://www.gnu.org/licenses/>.
+ *
+ * @licend  The above is the entire license notice
+ * for the JavaScript code in this page.
+ */
 
 "use strict";
 
@@ -20,12 +29,13 @@ function parse_pattern(pattern) { // ala `apropos-parse-pattern'
 	return new RegExp(`((${parts.join("|")}).*)+`, "i");
 }
 
-window.addEventListener("load", function (event) {
+window.addEventListener("DOMContentLoaded", function (event) {
 	const table = document.getElementById("packages");
 
 	const search = document.createElement("input");
 	search.setAttribute("placeholder", "Search packages...");
 	search.setAttribute("type", "search");
+	search.setAttribute("autofocus", "yes");
 
 	let tid = false;			// timeout ID
 	search.addEventListener("input", function(event) {
@@ -61,7 +71,7 @@ window.addEventListener("load", function (event) {
 		}, 100, event.target.value.trim());
 	});
 
-	const main = document.querySelector("main");
+	const main = document.querySelector("search");
 	main.prepend(search);
 });
 

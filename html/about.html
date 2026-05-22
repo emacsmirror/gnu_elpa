@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en" xml:lang="en">
+<head>
+<title>About GNU ELPA</title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<link rel="shortcut icon" type="image/png" href="favicon.png" />
+<link rel="stylesheet" type="text/css" href="layout.css" />
+<meta name="viewport" content="initial-scale=1.0,maximum-scale=1.0,width=device-width" />
+</head>
+
+<body>
+<header>
+<h1>
+<img src="images/logo.svg" alt="GNU ELPA Logo" width="60" height="64" />
+About GNU ELPA
+</h1>
+
+<nav>
+<ul>
+<li><a href="packages/">Index</a></li>
+<li><a href="about.html">About</a></li>
+<li><a href="contributing.html">Contribute!</a></li>
+<li class="other"><a href="https://elpa.nongnu.org/">NonGNU ELPA</a></li>
+<li class="other"><a href="devel/">GNU-devel ELPA</a></li>
+</ul>
+</nav>
+</header>
+
+<main>
+<p>
+GNU <abbr title="Emacs Lisp Package Archive">ELPA</abbr> is one of the
+two
+default <a href="https://www.gnu.org/software/emacs/manual/html_node/emacs/Packages.html">package
+archives</a> of <a href="https://gnu.org/s/emacs">GNU Emacs</a>.  The
+other default package archive
+is <a href="https://elpa.nongnu.org/">NonGNU ELPA</a>.  Package
+archives
+host <a href="https://www.gnu.org/software/emacs/manual/html_node/emacs/Packages.html">Emacs
+Lisp packages</a> that you can easily install and update within Emacs.
+You can view the list of packages included in this
+archive <a href="packages/">here</a> or via <kbd>M-x
+list-packages</kbd> in Emacs.
+</p>
+
+<p>
+To report a bug, use the <kbd>M-x report-emacs-bug</kbd> command in
+Emacs.  For more information on reporting bugs, see the
+<a href="https://www.gnu.org/software/emacs/manual/html_node/emacs/Bugs.html">
+Emacs Manual</a>.  To report package-specific bugs, prefer
+using <kbd>M-x package-report-bug</kbd>.
+</p>
+
+<details>
+<summary>Note for Emacs&lt;27 users</summary>
+
+Older releases of Emacs require the user to manually
+initialize <code>package.el</code>.  Add the following line to
+your <a href="https://www.gnu.org/software/emacs/manual/html_node/emacs/Init-File.html">init
+file</a> to ensure installed packages are activated at startup:
+
+<pre><code>(unless (fboundp &apos;package-activate-all)
+  (package-initialize))</code></pre>
+</details>
+
+<h2 id="ranking">Ranking</h2>
+
+<p>
+The package index includes a <q>Rank</q>, representing the
+<a href="https://en.wikipedia.org/wiki/Percentile">percentile</a>
+ranking packages from most to least downloaded over the last week.  We
+gather the data from the web server logs, so the result is not
+necessarily representative to actual human traffic, but should give
+you a rough approximating how popular a package is relative to the
+other packages in <em>this</em> archive.
+</p>
+
+<h2 id="devel">ELPA-devel</h2>
+
+<p>
+By default all packages on ELPA are built and published when the
+maintainer makes a release.  The assumption is therefore that all
+packages on ELPA should be <q>stable</q>, but it is the maintainers
+responsibility to ensure this.
+</p>
+
+<p>
+Contrasting this, <q>-devel</q> (as in <em>devel</em>opment) archives
+build and publish tarballs for each package every time maintainers
+publish changes that the ELPA build server detects.  This can be
+useful if you are keen on following upstream development of a package
+and getting updates as soon as possible.
+</p>
+
+<p>
+For maintainers, this can also be useful to get a preview of how your
+package will look like before a release is cut.
+</p>
+
+<h2 id="contact">Contact</h2>
+
+<p>
+If you need help, you could try the <a href="https://lists.gnu.org/mailman/listinfo/help-gnu-emacs">help-gnu-emacs mailing list</a>.
+For general inquiries, please contact
+the <a href="https://lists.gnu.org/mailman/listinfo/emacs-devel">emacs-devel
+mailing list</a>.  For questions about specific packages, it is likely
+best to contact the package maintainers directly.
+</p>
+
+</main>
+
+<footer>
+<p>Copyright 2016-2026 <a href="https://fsf.org">Free Software Foundation</a>, Inc.
+This website is licensed under the
+<a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>
+International License.
+</footer>
+</body>
+</html>
+
+<!-- Local Variables: -->
+<!-- sgml-xml-mode: t -->
+<!-- End: -->

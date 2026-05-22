@@ -24,4 +24,10 @@ GNUmakefile
 *.buildlog
 
 # generated html
-html/readme.html
+*.html
+
+# except for the hand-written HTML
+!html/_*.html
+!html/about.html
+!html/contributing.html
+!html/jslicense.html

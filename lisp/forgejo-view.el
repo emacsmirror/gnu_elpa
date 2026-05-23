@@ -396,6 +396,7 @@ Handles #N issue/PR refs and markdown URLs."
   "x" ("Toggle open/close" forgejo-view-toggle-state)
   "D" ("Delete at point" forgejo-view-delete-at-point)
   "b" ("Open in browser" forgejo-view-browse)
+  "u" ("Copy URL at point" forgejo-view-copy-url)
   "g" ("Refresh" forgejo-view-refresh)
   :group "Metadata"
   "!" ("React" forgejo-view-react)
@@ -902,6 +903,14 @@ preserves it from there."
       (funcall sync-fn host forgejo-repo--owner
                forgejo-repo--name number
                (buffer-name) nil))))
+
+(defun forgejo-view-copy-url ()
+  "Copy the URL at point to the kill ring."
+  (interactive)
+  (if-let* ((url (forgejo-buffer--url-at-point)))
+      (progn (kill-new url)
+             (message "Copied: %s" url))
+    (user-error "No URL at point")))
 
 (defun forgejo-view-browse ()
   "Open the current item in the browser."

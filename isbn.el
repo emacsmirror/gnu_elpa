@@ -53,20 +53,23 @@
 
 ;;;;; Hyphenation (may require internet connection)
 
-;; Hyphenation is made possible by ISBNBarcode.org, which provides a
-;; complete set of ISBN hyphenation ranges.  Since hyphenation ranges
-;; are only updated yearly, ranges are cached to
-;; `isbn-hyphenation-ranges-cache-file'.  To cache this file, users
-;; must run `isbn-hyphenation-ranges-update' at least once before
-;; calling any the of functions below.  Users may wish to add
-;; `isbn-hyphenation-ranges-maybe-update' to their `init.el' to check
-;; for updates automatically.
+;; Hyphenation is made possible by the International ISBN Agency,
+;; which provides a complete set of ISBN hyphenation ranges in XML
+;; format [1].  Since hyphenation ranges are only updated yearly,
+;; ranges are cached to `isbn-hyphenation-ranges-cache-file'.  To
+;; cache this file, users must run `isbn-hyphenation-ranges-update' at
+;; least once before calling any the of functions below.  Users may
+;; wish to add `isbn-hyphenation-ranges-maybe-update' to their
+;; `init.el' to check for updates automatically.
+
+;; [1] <https://www.isbn-international.org/range_file_generation>
 
 ;; - (isbn-hyphenate ISBN): Hyphenate ISBN, returning it as an
 ;; ISBN-13.  Hyphenating ISBN-10s is currently not supported.
 
 ;;; Code:
 
+(require 'dom)
 (require 'seq)
 (eval-and-compile (require 'subr-x))
 
@@ -208,7 +211,7 @@ region with the converted ISBN."
   "Interval in days (integer) which must elapse before updating ranges.
 Set to nil to prevent automatic updates.
 
-ISBN ranges from ISBNBarcode.org are updated yearly."
+ISBN ranges from the International ISBN Agency are updated yearly."
   :type '(choice (integer :tag "Days")
                  (const :tag "Do not update" nil))
   :group 'isbn
@@ -221,13 +224,14 @@ Optional argument NOFILE, if non-nil, prevents writing to
 `isbn-hyphenation-ranges-cache-file'."
   (interactive)
   (let ((prgrp (progress-reporter-make
-                "Fetching hyphenation ranges from ISBNBarcode.org...")))
+                "Fetching hyphenation ranges from `www.isbn-international.org'...")))
     (condition-case-unless-debug nil
         (with-current-buffer
             (url-retrieve-synchronously
-             "https://isbnbarcode.org/api/isbn-ranges.json"
+             "https://www.isbn-international.org/export_rangemessage.xml"
              :silent :inhibit-cookies 5)
-          (let ((ranges (json-parse-buffer)))
+          (let* ((ranges (libxml-parse-xml-region (point))))
+            (unless ranges (signal 'error))
             (unless nofile
               (write-region
                (concat ";; TIME: " (prin1-to-string (current-time)) "\n")
@@ -254,12 +258,6 @@ The amount of time before updating is determined by
       (when (> (time-to-number-of-days (time-since time)) isbn-hyphenation-ranges-update-interval)
         (isbn-hyphenation-ranges-update)))))
 
-(defun isbn-hyphenation--ranges-get (source &rest keys)
-  "Recursively retrieve KEYS from SOURCE."
-  (if keys
-      (apply #'isbn-hyphenation--ranges-get (gethash (pop keys) source) keys)
-    source))
-
 ;;;###autoload
 (defun isbn-hyphenate (isbn &optional interactive)
   "Hyphenate ISBN as an ISBN-13.
@@ -268,6 +266,9 @@ Optional argument INTERACTIVE, when non-nil, adds the hyphenated ISBN to
 the kill ring or, when there is an active region, replaces the region
 with the hyphenated ISBN."
   (interactive (list (isbn--get-interactively) t))
+
+  (unless (libxml-available-p)
+    (user-error "Hyphenation requires libxml2 support"))
 
   (unless isbn-hyphenation-ranges-cache
     (let ((prgrp (progress-reporter-make "Loading hyphenation ranges from cache...")))
@@ -287,62 +288,53 @@ Please run `isbn-hyphenation-ranges-update'")))
   ;; latter determines how long the publisher code is.  The rest of
   ;; the ISBN can be determined automatically.
   (let* (hyphenated
+         (ean (substring isbn 0 3))
          (remaining
           (lambda ()
             (let ((len (length (apply #'concat hyphenated))))
               (substring isbn len (+ len 7)))))
-         (ranges-member-p
-          (lambda (number range)
+         (length-from-range
+          (lambda (dom number)
             (setq number (string-to-number number))
-            (let ((range (mapcar #'string-to-number (string-split range "-"))))
-              (and (>= number (car range)) (<= number (cadr range)))))))
+            (thread-last
+              (dom-child-by-tag rule 'Length)
+              dom-text string-to-number
+              (throw 'len)
+              (when (and (>= number (car range)) (<= number (cadr range))))
+              (let ((range (mapcar #'string-to-number
+                                   (string-split (dom-text (dom-child-by-tag rule 'Range)) "-")))))
+              (dolist (rule (dom-by-tag dom 'Rule)))
+              (catch 'len)))))
 
     ;; 1. EAN prefix
-    (push (substring isbn 0 3) hyphenated)
+    (push ean hyphenated)
 
     ;; 2. Group identifier
     (condition-case-unless-debug nil
         (let* ((rem (funcall remaining))
-               (match (catch 'res
-                        (seq-do
-                         (lambda (pref)
-                           (when (string= (car hyphenated) (gethash "Prefix" pref))
-                             (throw 'res pref)))
-                         (isbn-hyphenation--ranges-get
-                          isbn-hyphenation-ranges-cache
-                          "ISBNRangeMessage" "EAN.UCCPrefixes" "EAN.UCC"))))
-               (length (string-to-number
-                        (catch 'length
-                          (seq-do
-                           (lambda (rule)
-                             (when (funcall ranges-member-p
-                                            rem (gethash "Range" rule))
-                               (throw 'length (gethash "Length" rule))))
-                           (isbn-hyphenation--ranges-get match "Rules" "Rule"))))))
-          (unless (eq length 0)
-            (push (substring rem 0 length) hyphenated)))
+               ;; The DOM holds several `Prefix' nodes, but only two
+               ;; reside under an `EAN.UCC' node.  One of these
+               ;; *should* contain the EAN prefix as its only text.
+               (len (thread-last
+                      (throw 'len (funcall length-from-range n rem))
+                      (when (string= (dom-text (dom-child-by-tag n 'Prefix)) ean))
+                      (dolist (n (dom-by-tag isbn-hyphenation-ranges-cache 'EAN.UCC)))
+                      (catch 'len))))
+          (unless (eq len 0)
+            (push (substring rem 0 len) hyphenated)))
       (error (error "Could not determine group identifier")))
 
     ;; 3. Publisher code
     (condition-case-unless-debug nil
         (let* ((prefix (string-join (reverse hyphenated) "-"))
                (rem (funcall remaining))
-               (match (catch 'res
-                        (seq-do (lambda (pref)
-                                  (when (string= prefix (gethash "Prefix" pref))
-                                    (throw 'res pref)))
-                                (isbn-hyphenation--ranges-get
-                                 isbn-hyphenation-ranges-cache
-                                 "ISBNRangeMessage" "RegistrationGroups" "Group"))))
-               (length (string-to-number
-                        (catch 'length
-                          (seq-do
-                           (lambda (rule)
-                             (when (funcall ranges-member-p
-                                            rem (gethash "Range" rule))
-                               (throw 'length (gethash "Length" rule))))
-                           (isbn-hyphenation--ranges-get match "Rules" "Rule"))))))
-          (push (substring rem 0 length) hyphenated))
+               (len (thread-last
+                      (funcall length-from-range n rem)
+                      (throw 'len)
+                      (when (string= (dom-text (dom-child-by-tag n 'Prefix)) prefix))
+                      (dolist (n (dom-by-tag isbn-hyphenation-ranges-cache 'Group)))
+                      (catch 'len))))
+          (push (substring rem 0 len) hyphenated))
       (error (error "Could not determine publisher code")))
 
     ;; 4. Title identifier
@@ -362,7 +354,3 @@ Please run `isbn-hyphenation-ranges-update'")))
 (provide 'isbn)
 
 ;;; isbn.el ends here
-
-;; Local Variables:
-;; indent-tabs-mode: nil
-;; End:

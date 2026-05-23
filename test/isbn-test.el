@@ -38,10 +38,12 @@
   "Test `isbn-hyphenation-ranges-update'."
   (let (isbn-hyphenation-ranges-cache)
     (isbn-hyphenation-ranges-update :nofile)
-    (should (hash-table-p isbn-hyphenation-ranges-cache))))
+    (should isbn-hyphenation-ranges-cache)))
 
 (ert-deftest isbn-test:hyphenate ()
   "Test `isbn-hyphenate'."
+  (unless (libxml-available-p)
+    (ert-skip "libxml2 support is not available"))
   (let ((isbn-hyphenation-ranges-cache-file nil)
         isbn-hyphenation-ranges-cache)
     (should-error (isbn-hyphenate "9780983159285")))
@@ -61,7 +63,3 @@
   (should-not (isbn-valid-p "9780983159280")))     ; invalid
 
 ;;; isbn-test.el ends here
-
-;; Local Variables:
-;; indent-tabs-mode: nil
-;; End:

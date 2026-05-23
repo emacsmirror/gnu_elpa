@@ -873,6 +873,18 @@ node doesn't supply them.  No-op when data is `equal'."
                (ewoc-delete ewoc node)))
            index))
 
+(defun forgejo-buffer--ewoc-invalidate-all (ewoc)
+  "Re-run EWOC's pretty-printer on every node, preserving point.
+Used to refresh wall-clock-dependent display (relative timestamps)
+without rebuilding node data.  `ewoc-refresh' would dump point at
+the footer; per-node `ewoc-invalidate' restores point inside its
+node via `ewoc--refresh-node'."
+  (let (nodes (n (ewoc-nth ewoc 0)))
+    (while n
+      (push n nodes)
+      (setq n (ewoc-next ewoc n)))
+    (apply #'ewoc-invalidate ewoc nodes)))
+
 (defun forgejo-buffer--reconcile-ewoc (ewoc new-nodes)
   "Reconcile EWOC's contents against NEW-NODES in place.
 Existing nodes matching by `forgejo-buffer--node-key' are reused and

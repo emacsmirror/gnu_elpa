@@ -887,16 +887,21 @@ Each reaction type is prefixed with + (to add) or - (to remove)."
      (forgejo--post-action-callback))))
 
 (defun forgejo-view-refresh ()
-  "Force sync the current detail view."
+  "Force sync the current detail view.
+Refreshes wall-clock-dependent display (relative timestamps) from
+cached data immediately, then fires the async sync.  Per-node
+invalidation keeps point on the current comment; the reconcile path
+preserves it from there."
   (interactive)
   (when-let* ((data forgejo-view--data)
               (number (alist-get 'number data))
               (sync-fn forgejo-view--sync-fn))
-    (let ((host (url-host (url-generic-parse-url forgejo-repo--host)))
-          (line (line-number-at-pos)))
+    (when forgejo-view--ewoc
+      (forgejo-buffer--ewoc-invalidate-all forgejo-view--ewoc))
+    (let ((host (url-host (url-generic-parse-url forgejo-repo--host))))
       (funcall sync-fn host forgejo-repo--owner
                forgejo-repo--name number
-               (buffer-name) line))))
+               (buffer-name) nil))))
 
 (defun forgejo-view-browse ()
   "Open the current item in the browser."

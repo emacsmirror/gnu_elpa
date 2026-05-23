@@ -6,7 +6,7 @@
 ;; Created: 05 Mar 2026
 ;; Version: 0.1.0
 ;; Keywords: data
-;; URL: https://codeberg.org/mcookly/isbn.el
+;; URL: https://git.fclr.net/maximilian/isbn.el
 ;; Package-Requires: ((emacs "29.1"))
 
 ;; This file is not part of GNU Emacs.

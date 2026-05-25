@@ -114,6 +114,40 @@ This avoids putting more stuff into *Message*."
          (progn ,@body)
        (plstore-close plstore))))
 
+(defun oauth2--plstore-has-secret-keys (plist)
+  "Return t if PLIST of a plstore entry has secret keys."
+  (string-match-p "\\`:secret-" (symbol-name (car plist))))
+
+(defun oauth2--plstore-safe-delete (plstore name)
+  "Delete the first entry named NAME from PLSTORE.
+This works around an issue with plstore-delete that does not decrypt the
+plstore file before deleting and may end up corrupting the plstore file.
+See also https://debbugs.gnu.org/81061."
+  (when-let* ((entry (assoc name (plstore--get-alist plstore)))
+              (plist (cdr entry)))
+    (when (oauth2--plstore-has-secret-keys plist)
+      (plstore--decrypt plstore)
+      (setq entry (assoc name (plstore--get-alist plstore))))
+    (plstore--set-alist
+     plstore
+     (delq entry (plstore--get-alist plstore))))
+  (when-let* ((entry (assoc name (plstore--get-secret-alist plstore)))
+              (plist (cdr entry)))
+    (when (oauth2--plstore-has-secret-keys plist)
+      (plstore--decrypt plstore)
+      (setq entry (assoc name (plstore--get-secret-alist plstore))))
+    (plstore--set-secret-alist
+     plstore
+     (delq entry (plstore--get-secret-alist plstore))))
+  (when-let* ((entry (assoc name (plstore--get-merged-alist plstore)))
+              (plist (cdr entry)))
+    (when (oauth2--plstore-has-secret-keys plist)
+      (plstore--decrypt plstore)
+      (setq entry (assoc name (plstore--get-merged-alist plstore))))
+    (plstore--set-merged-alist
+     plstore
+     (delq entry (plstore--get-merged-alist plstore)))))
+
 (defun oauth2--current-timestamp ()
   "Get the current timestamp in seconds."
   (time-convert nil 'integer))
@@ -166,7 +200,7 @@ Returns nil if the slot is unavailable."
 
 (defun oauth2--delete-plstore (plstore token)
   "Remove the entry of TOKEN from PLSTORE."
-  (plstore-delete plstore (oauth2-token-plstore-id token))
+  (oauth2--plstore-safe-delete plstore (oauth2-token-plstore-id token))
   (plstore-save plstore))
 
 (defun oauth2--build-url-param-str (&rest data)

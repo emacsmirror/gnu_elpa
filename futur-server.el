@@ -346,5 +346,16 @@ the cache."
           ;;          (- (float-time) start-time))
           ))))))
 
+;;;; Edebug "support"
+
+;; Currently, there is no support for single-stepping through the
+;; async code running in the server process.  The below just tries to
+;; make sure that if we receive Edebug-instrumented code, we're still
+;; able to execute it successfully.
+
+(defun edebug-enter  (_func _args body) (funcall body))
+(defun edebug-before (_before-index))
+(defun edebug-after  (_before-index _after-index arg) arg)
+
 (provide 'futur-server)
 ;;; futur-server.el ends here

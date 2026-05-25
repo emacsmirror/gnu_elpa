@@ -53,6 +53,7 @@
 ;; (trace-function 'futur--funcall)
 ;; (trace-function 'futur-elisp--get-process)
 ;; (trace-function 'futur-elisp--funcall)
+;; (trace-function 'futur-elisp-sandbox--funcall)
 
 (require 'futur)
 
@@ -475,6 +476,7 @@ to `futur-elisp-sandbox--funcall'."
                               (futur-elisp--funcall-1 proc func args))))
 
 (defun futur-elisp--kill-subprocesses ()
+  (interactive)
   (futur-elisp-sandbox--delete-temp-dir)
   (pcase-dolist (`(_kind . ,procs) futur-elisp--servers)
     (mapc #'delete-process procs)))

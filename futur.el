@@ -150,18 +150,18 @@
 
 ;;;; BUGS
 
-;; - There might still be cases where we run code sometimes in the
-;;   "current" dynamic context and sometimes in the background thread.
+;; - Debugging the asynchronous code is a PITA compounded by bugs and
+;;   limitations of ELisp threads (see for example bug#80286 and bug#80537,
+;;   and if you prefer to set `futur--use-threads' to nil you may
+;;   suffer from bug#80468 instead).
+;;   Also, there is no support for single-stepping with Edebug through
+;;   the code running in an ELisp subprocess.
 ;; - Sometimes the `futur--background' thread gets blocked on some
 ;;   operation (e.g. entering the debugger), which blocks all further
 ;;   execution of async tasks.
 ;; - When launching elisp/sandbox servers (or during `futur-reset-context'),
 ;;   the client receives and displays all the `message's from the subprocess,
-;;   which can be annoying more than helpful.
-;; - When using `futur-hacks-mode' I sometimes see void-variable errors
-;;   about `cl-struct-eieio--class-tags' which sound like problems in
-;;   `futur--obarray-snapshot/revert'.  I have not investigated them yet,
-;;   but maybe this idea of obarray snapshots can't work reliably.
+;;   which can be more annoying than helpful.
 
 ;;; News:
 

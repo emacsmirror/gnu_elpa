@@ -51,6 +51,14 @@ frequently with xoauth2."
   :type '(boolean)
   :group 'auth-source)
 
+(defcustom auth-source-xoauth2-plugin-gnus-timeout 60
+  "The timeout for Gnus operations before we cut it off.
+For large topics/folders, the syncing may take longer and could be
+interrupted by this timeout, in which case you may want to further
+increase this value."
+  :type '(integer)
+  :group 'auth-source)
+
 (defvar auth-source-xoauth2-plugin-predefined-issuers
   '(thunderbird
     (google
@@ -234,8 +242,9 @@ auth-source-entry.  It is expected that one should set
   "Let a function time out when it gets stuck.
 ORIG-FUNC will be nnimap-wait-for-response and calls ARGS.  It may get
 stuck more often when enabling xoauth2."
-  (with-timeout (30 (message
-                     "[xoauth2-plugin] nnimap-wait-for-response timed out"))
+  (with-timeout (auth-source-xoauth2-plugin-gnus-timeout
+                 (message
+                  "[xoauth2-plugin] nnimap-wait-for-response timed out"))
     (apply orig-func args)))
 
 (defun auth-source-xoauth2-plugin--enable ()

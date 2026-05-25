@@ -30,6 +30,20 @@
 (declare-function forgejo-token "forgejo.el" (host-url))
 (defvar forgejo-markdown-mode)
 
+;;; Reference parsing
+
+(defconst forgejo-utils-ref-separator "[#!]"
+  "Character class matching Forgejo issue (#) and PR (!) separators.")
+
+(defconst forgejo-utils-ref-regexp
+  (concat "\\(?:\\([A-Za-z0-9._-]+/[A-Za-z0-9._-]+\\)\\)?"
+          forgejo-utils-ref-separator
+          "\\([0-9]+\\)")
+  "Regexp matching a Forgejo issue/PR reference inside text.
+Group 1 is the optional OWNER/REPO.  Group 2 is the number.
+Matches both #N (issues) and !N (pull requests); the number alone
+determines the actual kind on lookup.")
+
 ;;; URL builders
 
 (defun forgejo-utils-repo-url (host-url owner repo)

@@ -238,5 +238,66 @@ new node doesn't carry :reactions."
                          '(("heart" "alice")))))
       (kill-buffer (ewoc-buffer ewoc)))))
 
+;;; Group: Reference linkification
+
+(defun forgejo-test-buffer--linkify (text)
+  "Insert TEXT into a temp buffer and run `forgejo-buffer--linkify-refs'.
+Return a list of (BEG END NUMBER REPO) for each ref found."
+  (with-temp-buffer
+    (insert text)
+    (forgejo-buffer--linkify-refs (point-min) (point-max))
+    (let ((pos (point-min)) refs)
+      (while (< pos (point-max))
+        (if-let* ((n (get-text-property pos 'forgejo-ref-number)))
+            (let ((end (or (next-single-property-change
+                            pos 'forgejo-ref-number)
+                           (point-max))))
+              (push (list pos end n
+                          (get-text-property pos 'forgejo-ref-repo))
+                    refs)
+              (setq pos end))
+          (setq pos (or (next-single-property-change
+                         pos 'forgejo-ref-number)
+                        (point-max)))))
+      (nreverse refs))))
+
+(ert-deftest forgejo-test-buffer-linkify-bare-hash ()
+  "Bare #N is linkified."
+  (let ((refs (forgejo-test-buffer--linkify "see #42 for context")))
+    (should (= (length refs) 1))
+    (should (= (nth 2 (car refs)) 42))
+    (should (null (nth 3 (car refs))))))
+
+(ert-deftest forgejo-test-buffer-linkify-bare-bang ()
+  "Bare !N is linkified (Forgejo PR shorthand)."
+  (let ((refs (forgejo-test-buffer--linkify "merged in !17 yesterday")))
+    (should (= (length refs) 1))
+    (should (= (nth 2 (car refs)) 17))
+    (should (null (nth 3 (car refs))))))
+
+(ert-deftest forgejo-test-buffer-linkify-qualified-hash ()
+  "owner/repo#N is linkified with repo captured."
+  (let ((refs (forgejo-test-buffer--linkify "guix/guix#8544 fixes it")))
+    (should (= (length refs) 1))
+    (should (= (nth 2 (car refs)) 8544))
+    (should (string= (nth 3 (car refs)) "guix/guix"))))
+
+(ert-deftest forgejo-test-buffer-linkify-qualified-bang ()
+  "owner/repo!N is linkified with repo captured."
+  (let ((refs (forgejo-test-buffer--linkify "see guix/guix!8641 for the PR")))
+    (should (= (length refs) 1))
+    (should (= (nth 2 (car refs)) 8641))
+    (should (string= (nth 3 (car refs)) "guix/guix"))))
+
+(ert-deftest forgejo-test-buffer-linkify-no-match-plain-text ()
+  "Plain text without a #N or !N produces no refs."
+  (should (null (forgejo-test-buffer--linkify "no references here"))))
+
+(ert-deftest forgejo-test-buffer-linkify-multiple ()
+  "Multiple refs in one body are all linkified."
+  (let ((refs (forgejo-test-buffer--linkify "see #1 and guix/guix!2 and #3")))
+    (should (= (length refs) 3))
+    (should (equal (mapcar (lambda (r) (nth 2 r)) refs) '(1 2 3)))))
+
 (provide 'forgejo-test-buffer)
 ;;; forgejo-test-buffer.el ends here

@@ -32,6 +32,7 @@
 (require 'ol)
 (require 'forgejo)
 (require 'forgejo-db)
+(require 'forgejo-utils)
 
 (declare-function forgejo-view-item "forgejo-view.el"
                   (owner repo number &optional comment-id))
@@ -45,8 +46,11 @@
 (defvar forgejo-view--data)
 
 (defconst forgejo-ol--path-regexp
-  "\\`\\([^/]+\\)/\\([^#]+\\)#\\([0-9]+\\)\\(?:::\\([0-9]+\\)\\)?\\'"
+  (concat "\\`\\([^/]+\\)/\\([^#!]+\\)"
+          forgejo-utils-ref-separator
+          "\\([0-9]+\\)\\(?:::\\([0-9]+\\)\\)?\\'")
   "Regexp matching a `forgejo:' link path.
+Accepts both #N (issue) and !N (pull request) separators.
 Groups: 1=owner, 2=repo, 3=number, 4=optional comment id.")
 
 (defun forgejo-ol--comment-at-point ()

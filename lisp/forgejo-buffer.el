@@ -28,6 +28,7 @@
 (require 'cl-lib)
 (require 'ewoc)
 (require 'forgejo)
+(require 'forgejo-utils)
 
 (defvar forgejo-repo--host)
 (defvar forgejo-repo--owner)
@@ -188,13 +189,12 @@ Returns nil if BODY is :null, nil, or empty."
     (replace-regexp-in-string "\r" "" body)))
 
 (defun forgejo-buffer--linkify-refs (start end)
-  "Mark bare #N issue/PR references between START and END as clickable.
+  "Mark bare #N and !N issue/PR references between START and END as clickable.
 Skips positions already handled by shr or markdown link rendering.
 Sets `forgejo-ref-number' for `forgejo-view-follow-link' to use."
   (save-excursion
     (goto-char start)
-    (while (re-search-forward
-            "\\(?:\\([A-Za-z0-9._-]+/[A-Za-z0-9._-]+\\)\\)?#\\([0-9]+\\)" end t)
+    (while (re-search-forward forgejo-utils-ref-regexp end t)
       (unless (or (get-text-property (match-beginning 0) 'forgejo-ref-number)
                   (get-text-property (match-beginning 0) 'keymap))
         (add-text-properties

@@ -840,9 +840,90 @@ Works from both detail and list views."
      forgejo-repo--host forgejo-repo--owner forgejo-repo--name
      number host (forgejo--post-action-callback))))
 
+(defun forgejo-view--react-mine (current me)
+  "Return reaction types in CURRENT that ME has placed.
+CURRENT is the grouped reactions alist for a node, each entry
+shaped as (CONTENT USER...).  Returns nil when ME is nil."
+  (and me
+       (cl-loop for (content . users) in current
+                when (member me users) collect content)))
+
+(defun forgejo-view--react-candidates (mine)
+  "Build the +/- reaction candidate list given MINE.
+MINE is the list of reaction types the current user has placed;
+those get a leading \"-\" (remove), the rest get \"+\" (add)."
+  (mapcar (lambda (r) (concat (if (member r mine) "-" "+") r))
+          forgejo-view--reaction-types))
+
+(defun forgejo-view--react-parse-selection (raw)
+  "Parse RAW selection strings into (VERB . CONTENT) pairs.
+VERB is `add' or `remove'.  Signals `user-error' on garbage."
+  (mapcar (lambda (sel)
+            (pcase (and (> (length sel) 1) (substring sel 0 1))
+              ("+" (cons 'add (substring sel 1)))
+              ("-" (cons 'remove (substring sel 1)))
+              (_ (user-error
+                  "Invalid reaction: %s (use +name or -name)" sel))))
+          raw))
+
+(defun forgejo-view--react-endpoint (owner repo number comment-id)
+  "Return the reactions endpoint for COMMENT-ID, or the issue body if 0."
+  (if (= comment-id 0)
+      (format "repos/%s/%s/issues/%d/reactions" owner repo number)
+    (format "repos/%s/%s/issues/comments/%d/reactions"
+            owner repo comment-id)))
+
+(defun forgejo-view--react-dispatch (host-url endpoint ops finish)
+  "Dispatch reaction OPS asynchronously against ENDPOINT on HOST-URL.
+OPS is a list of (VERB . CONTENT) where VERB is `add' or `remove'.
+FINISH is invoked once per completed request."
+  (dolist (op ops)
+    (pcase-let ((`(,verb . ,content) op))
+      (pcase verb
+        ('add
+         (forgejo-api-post
+          host-url endpoint nil
+          `((content . ,content))
+          (lambda (_data _headers)
+            (message "Added %s reaction" content)
+            (funcall finish))))
+        ('remove
+         (forgejo-api-delete
+          host-url endpoint
+          `((content . ,content))
+          (lambda (_data _headers)
+            (message "Removed %s reaction" content)
+            (funcall finish))))))))
+
+(defun forgejo-view--react-prompt (host-url host owner repo number
+                                            comment-id current me buf-name)
+  "Prompt for reactions on COMMENT-ID and dispatch them as ME.
+Only types ME has placed in CURRENT show the remove (-) option;
+when ME is nil, only the add (+) option is offered.  Fires one
+refresh after all dispatched requests complete."
+  (unless me
+    (message "Cannot resolve current user; remove (-) options disabled"))
+  (let* ((mine (forgejo-view--react-mine current me))
+         (candidates (forgejo-view--react-candidates mine))
+         (raw (mapcar #'string-trim
+                      (completing-read-multiple
+                       "Reactions (+add -remove): "
+                       candidates nil nil)))
+         (ops (forgejo-view--react-parse-selection raw))
+         (endpoint (forgejo-view--react-endpoint owner repo number comment-id))
+         (remaining (cons (length ops) nil))
+         (finish (lambda ()
+                   (when (zerop (cl-decf (car remaining)))
+                     (forgejo-view--refresh-reactions
+                      host-url host owner repo number comment-id buf-name)))))
+    (when (null ops)
+      (user-error "No reactions selected"))
+    (forgejo-view--react-dispatch host-url endpoint ops finish)))
+
 (defun forgejo-view-react ()
   "Add or remove reactions on the comment or issue body at point.
-Each reaction type is prefixed with + (to add) or - (to remove)."
+Each reaction type is prefixed with + (to add) or - (to remove).
+Only types you have already reacted with show the remove option."
   (interactive)
   (when-let* ((node (forgejo-view--node-at-point))
               (type (plist-get node :type))
@@ -851,49 +932,17 @@ Each reaction type is prefixed with + (to add) or - (to remove)."
               (host (url-host (url-generic-parse-url host-url)))
               (owner forgejo-repo--owner)
               (repo forgejo-repo--name))
-    (let* ((comment-id (pcase type
-                         ('header 0)
-                         ('comment (plist-get node :id))
-                         (_ (user-error "No reactable item at point"))))
-           (current (plist-get node :reactions))
-           (current-types (mapcar #'car current))
-           (candidates (mapcar (lambda (r)
-                                 (if (member r current-types)
-                                     (concat "-" r)
-                                   (concat "+" r)))
-                               forgejo-view--reaction-types))
-           (selected (mapcar #'string-trim
-                             (completing-read-multiple
-                              "Reactions (+add -remove): "
-                              candidates nil nil)))
-           (endpoint (if (= comment-id 0)
-                         (format "repos/%s/%s/issues/%d/reactions"
-                                 owner repo number)
-                       (format "repos/%s/%s/issues/comments/%d/reactions"
-                               owner repo comment-id)))
-           (buf-name (buffer-name)))
-      (dolist (sel selected)
-        (let ((op (substring sel 0 1))
-              (content (substring sel 1)))
-          (pcase op
-            ("+"
-             (forgejo-api-post
-              host-url endpoint nil
-              `((content . ,content))
-              (lambda (_data _headers)
-                (message "Added %s reaction" content)
-                (forgejo-view--refresh-reactions
-                 host-url host owner repo number comment-id buf-name))))
-            ("-"
-             (forgejo-api-delete
-              host-url endpoint
-              `((content . ,content))
-              (lambda (_data _headers)
-                (message "Removed %s reaction" content)
-                (forgejo-view--refresh-reactions
-                 host-url host owner repo number comment-id buf-name))))
-            (_
-             (user-error "Invalid reaction: %s (use +name or -name)" sel))))))))
+    (let ((comment-id (pcase type
+                        ('header 0)
+                        ('comment (plist-get node :id))
+                        (_ (user-error "No reactable item at point"))))
+          (current (plist-get node :reactions))
+          (buf-name (buffer-name)))
+      (forgejo-api-current-user
+       host-url
+       (lambda (me)
+         (forgejo-view--react-prompt
+          host-url host owner repo number comment-id current me buf-name))))))
 
 (defun forgejo-view--refresh-reactions (host-url host owner repo number
                                                  comment-id buf-name)

@@ -257,8 +257,10 @@ of all formatted lines.  Pure function -- no buffer side effects."
   "Fast drop-in replacement for `tabulated-list-print'.
 Renders directly into the current buffer using optimised bulk
 insertion.  When REMEMBER-POS is non-nil, restore point to the
-same entry ID and column."
+same entry ID and column.  If the saved entry was filtered out,
+fall back to the same screen line so the cursor stays put."
   (let* ((saved-id (and remember-pos (tabulated-list-get-id)))
+         (saved-line (and remember-pos (line-number-at-pos)))
          (saved-col (and remember-pos (current-column)))
          (inhibit-read-only t)
          (entries (if (functionp tabulated-list-entries)
@@ -274,16 +276,25 @@ same entry ID and column."
       (forgejo-tl--render-into-buffer entries tabulated-list-format
                                       (or tabulated-list-padding 0)))
     (set-buffer-modified-p nil)
-    (if (and saved-id remember-pos)
-        (progn
-          (goto-char (point-min))
-          (while (and (not (eobp))
-                      (not (equal (get-text-property (point) 'tabulated-list-id)
-                                  saved-id)))
-            (forward-line 1))
-          (when saved-col
-            (move-to-column saved-col)))
-      (goto-char (point-min)))))
+    (forgejo-tl--restore-point saved-id saved-line saved-col)))
+
+(defun forgejo-tl--restore-point (saved-id saved-line saved-col)
+  "Restore point after a re-render.
+Try to land on SAVED-ID; if it was filtered out, fall back to
+SAVED-LINE.  Otherwise, on column SAVED-COL.  When SAVED-ID is
+nil, just go to `point-min'."
+  (goto-char (point-min))
+  (when saved-id
+    (let (found)
+      (while (and (not found) (not (eobp)))
+        (if (equal (get-text-property (point) 'tabulated-list-id) saved-id)
+            (setq found t)
+          (forward-line 1)))
+      (unless found
+        (goto-char (point-min))
+        (forward-line (1- (or saved-line 1))))
+      (when saved-col
+        (move-to-column saved-col)))))
 
 (defun forgejo-tl-sort (&optional n)
   "Sort the current tabulated-list by column at point.

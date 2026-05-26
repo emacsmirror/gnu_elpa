@@ -25,6 +25,7 @@ TESTS = tests/forgejo-test-load.el tests/forgejo-test-api.el \
         tests/forgejo-test-db.el tests/forgejo-test-host.el \
         tests/forgejo-test-buffer.el tests/forgejo-test-filter.el \
         tests/forgejo-test-issue.el tests/forgejo-test-pull.el \
+        tests/forgejo-test-tl.el \
         tests/forgejo-test-vc.el tests/forgejo-test-view.el
 
 BATCH = $(EMACS_CMD) -Q --batch -L lisp

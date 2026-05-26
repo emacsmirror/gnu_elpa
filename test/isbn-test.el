@@ -33,6 +33,9 @@
 
 ;;;;; Hyphenation
 
+;; NOTE: I do not want to spam the servers with requests for the
+;; hyphenation ranges.  Perhaps there is a workaround...
+
 ;; TODO: Fix file check.
 (ert-deftest isbn-test:hyphenation-ranges-update ()
   "Test `isbn-hyphenation-ranges-update'."

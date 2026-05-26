@@ -245,6 +245,7 @@ Optional argument NOFILE, if non-nil, prevents writing to
           (lambda (_status &rest _cbargs)))
       (error (error "Failed to retrieve hyphenation data")))))
 
+;; NOTE: This function has no testing.
 (defun isbn-hyphenation-ranges-maybe-update ()
   "Update ranges cache if enough time has elapsed.
 The amount of time before updating is determined by

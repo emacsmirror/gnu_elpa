@@ -275,6 +275,7 @@ CALLBACK is called with no args when done."
   "u" ("Mark unread" forgejo-notification-mark-unread)
   "p" ("Toggle pin" forgejo-notification-toggle-pin)
   "R" ("Mark all read" forgejo-notification-mark-all-read)
+  "U" ("Toggle subscription" forgejo-view-toggle-subscription)
   "b" ("Open in browser" forgejo-notification-browse-at-point)
   "g" ("Refresh" forgejo-notification-refresh)
   :group "Navigate"

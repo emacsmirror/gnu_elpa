@@ -62,6 +62,7 @@ Keys: :state :labels :milestone :author :query :page")
   "RET" ("View issue" forgejo-issue-view-at-point)
   "c" ("Create issue" forgejo-issue-create)
   "b" ("Browse" forgejo-issue-browse-at-point)
+  "U" ("Toggle subscription" forgejo-view-toggle-subscription)
   :group "Navigate"
   "g" ("Refresh" forgejo-issue-refresh)
   "l" ("Filter" forgejo-issue-filter))

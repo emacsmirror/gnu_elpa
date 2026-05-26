@@ -397,6 +397,7 @@ Handles #N issue/PR refs and markdown URLs."
   "D" ("Delete at point" forgejo-view-delete-at-point)
   "b" ("Open in browser" forgejo-view-browse)
   "u" ("Copy URL at point" forgejo-view-copy-url)
+  "U" ("Toggle subscription" forgejo-view-toggle-subscription)
   "g" ("Refresh" forgejo-view-refresh)
   :group "Metadata"
   "!" ("React" forgejo-view-react)
@@ -698,6 +699,61 @@ Updates the API, then updates pin_order in the DB."
          (lambda ()
            (forgejo-db-set-pin-order host owner repo number
                                      (if pinned-p 0 1))))))))
+
+(declare-function forgejo-notification--parse-ref-at-point
+                  "forgejo-notification.el" ())
+(defvar forgejo-notification--host-url)
+
+(defun forgejo-view--subscription-context ()
+  "Return (HOST-URL OWNER REPO NUMBER) for the item at point.
+Resolves from the notification list (per-row ref), issue/PR list
+(entry id + buffer-local repo), or detail view (buffer-local repo +
+`forgejo-view--data')."
+  (cond
+   ((derived-mode-p 'forgejo-notification-list-mode)
+    (when-let* ((parsed (forgejo-notification--parse-ref-at-point)))
+      (pcase-let ((`(,owner ,repo ,number) parsed))
+        (list forgejo-notification--host-url owner repo number))))
+   ((bound-and-true-p forgejo-view--data)
+    (when-let* ((number (alist-get 'number forgejo-view--data)))
+      (list forgejo-repo--host forgejo-repo--owner
+            forgejo-repo--name number)))
+   (t
+    (when-let* ((number (tabulated-list-get-id)))
+      (list forgejo-repo--host forgejo-repo--owner
+            forgejo-repo--name number)))))
+
+(defun forgejo-view--apply-subscription (host-url owner repo number
+                                                  user subscribed)
+  "Subscribe or unsubscribe USER based on SUBSCRIBED state."
+  (if subscribed
+      (forgejo-api-issue-unsubscribe
+       host-url owner repo number user
+       (lambda ()
+         (message "Unsubscribed from %s/%s#%d" owner repo number)))
+    (forgejo-api-issue-subscribe
+     host-url owner repo number user
+     (lambda ()
+       (message "Subscribed to %s/%s#%d" owner repo number)))))
+
+(defun forgejo-view-toggle-subscription ()
+  "Toggle subscription for the issue or PR at point.
+Works from issue, PR, and notification list views, and from the
+detail view."
+  (interactive)
+  (pcase (forgejo-view--subscription-context)
+    (`(,host-url ,owner ,repo ,number)
+     (forgejo-api-current-user
+      host-url
+      (lambda (user)
+        (if (not user)
+            (message "Cannot resolve current user on %s" host-url)
+          (forgejo-api-issue-subscription-check
+           host-url owner repo number
+           (lambda (subscribed)
+             (forgejo-view--apply-subscription
+              host-url owner repo number user subscribed)))))))
+    (_ (user-error "No issue or PR at point"))))
 
 (defun forgejo-view-comment ()
   "Post a comment on the current item."

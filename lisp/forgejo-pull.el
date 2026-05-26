@@ -62,6 +62,7 @@ Keys: :state :milestone :labels :author :page")
   :group "Actions"
   "RET" ("View PR" forgejo-pull-view-at-point)
   "b" ("Browse" forgejo-pull-browse-at-point)
+  "U" ("Toggle subscription" forgejo-view-toggle-subscription)
   :group "Navigate"
   "g" ("Refresh" forgejo-pull-refresh)
   "l" ("Filter" forgejo-pull-filter))

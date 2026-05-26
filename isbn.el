@@ -51,7 +51,7 @@
 ;; convert to ISBN-13; if ISBN-13, ISBN-10.  If FORMAT (integer: 10 or
 ;; 13) is non-nil, convert ISBN to ISBN-FORMAT.
 
-;;;;; Hyphenation (may require internet connection)
+;;;;; Hyphenation (requires libxml and an internet connection)
 
 ;; Hyphenation is made possible by the International ISBN Agency,
 ;; which provides a complete set of ISBN hyphenation ranges in XML
@@ -60,7 +60,8 @@
 ;; cache this file, users must run `isbn-hyphenation-ranges-update' at
 ;; least once before calling any the of functions below.  Users may
 ;; wish to add `isbn-hyphenation-ranges-maybe-update' to their
-;; `init.el' to check for updates automatically.
+;; `init.el' to check for updates automatically (every 365 days by
+;; default).
 
 ;; [1] <https://www.isbn-international.org/range_file_generation>
 

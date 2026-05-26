@@ -235,8 +235,8 @@ auth-source-entry.  It is expected that one should set
           (push auth-data res)))
       res)))
 
-(defvar auth-source-xoauth2-plugin--enabled-xoauth2-by-us nil
-  "Non-nil means `smtpmail-auth-supported' was set by us.")
+(defvar auth-source-xoauth2-plugin--xoauth2-enabled-by-us nil
+  "Non-nil means `xoauth2' in `smtpmail-auth-supported' was set by us.")
 
 (defun auth-source-xoauth2-plugin--timeout (orig-func &rest args)
   "Let a function time out when it gets stuck.
@@ -257,7 +257,7 @@ stuck more often when enabling xoauth2."
     ;; in smtpmail-auth-supported so that it is tried last.  See also
     ;; https://debbugs.gnu.org/78366.
     (add-to-list 'smtpmail-auth-supported 'xoauth2 t)
-    (setq auth-source-xoauth2-plugin--enabled-xoauth2-by-us t))
+    (setq auth-source-xoauth2-plugin--xoauth2-enabled-by-us t))
 
   (advice-add #'auth-source-search-backends :around
               #'auth-source-xoauth2-plugin--search-backends)
@@ -268,10 +268,10 @@ stuck more often when enabling xoauth2."
 
 (defun auth-source-xoauth2-plugin--disable ()
   "Disable auth-source-xoauth2-plugin."
-  (when (and auth-source-xoauth2-plugin--enabled-xoauth2-by-us
+  (when (and auth-source-xoauth2-plugin--xoauth2-enabled-by-us
              (memq 'xoauth2 smtpmail-auth-supported))
     (setq smtpmail-auth-supported (delq 'xoauth2 smtpmail-auth-supported))
-    (setq auth-source-xoauth2-plugin--enabled-xoauth2-by-us nil))
+    (setq auth-source-xoauth2-plugin--xoauth2-enabled-by-us nil))
 
   (advice-remove #'auth-source-search-backends
                  #'auth-source-xoauth2-plugin--search-backends)

@@ -248,7 +248,8 @@ Optional argument NOFILE, if non-nil, prevents writing to
 (defun isbn-hyphenation-ranges-maybe-update ()
   "Update ranges cache if enough time has elapsed.
 The amount of time before updating is determined by
-`isbn-hyphenation-ranges-update-interval'."
+`isbn-hyphenation-ranges-update-interval'.  Confirmation will be asked
+of the user before updating."
   (require 'time-date)
   (when (and isbn-hyphenation-ranges-update-interval
              (file-exists-p isbn-hyphenation-ranges-cache-file))
@@ -257,7 +258,10 @@ The amount of time before updating is determined by
                   (goto-char (point-min)) (search-forward "TIME:" (line-end-position))
                   (read (string-trim (buffer-substring (point) (line-end-position)))))))
       (when (> (time-to-number-of-days (time-since time)) isbn-hyphenation-ranges-update-interval)
-        (isbn-hyphenation-ranges-update)))))
+        (if inhibit-interaction
+            (message "New ISBN hyphenation ranges are available, but interaction is inhibited")
+          (when (yes-or-no-p "New ISBN hyphenation ranges are available.  Download them? ")
+            (isbn-hyphenation-ranges-update)))))))
 
 ;;;###autoload
 (defun isbn-hyphenate (isbn &optional interactive)

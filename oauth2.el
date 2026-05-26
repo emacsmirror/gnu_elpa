@@ -120,9 +120,9 @@ This avoids putting more stuff into *Message*."
 
 (defun oauth2--plstore-safe-delete (plstore name)
   "Delete the first entry named NAME from PLSTORE.
-This works around an issue with plstore-delete that does not decrypt the
-plstore file before deleting and may end up corrupting the plstore file.
-See also https://debbugs.gnu.org/81061."
+This works around an issue with `plstore-delete' that does not decrypt
+the plstore file before deleting and may end up corrupting the plstore
+file.  See also https://debbugs.gnu.org/81061."
   (when-let* ((entry (assoc name (plstore--get-alist plstore)))
               (plist (cdr entry)))
     (when (oauth2--plstore-has-secret-keys plist)
@@ -355,6 +355,14 @@ Returns the code provided by the service."
   token-url
   access-response)
 
+(defun oauth2--handle-encoded-code (code)
+  "Handle encoded CODE.
+Microsoft seems to return encoded or double-encoded code, which will
+fail authorization if used directly."
+  (while (string-match-p "%[[:alnum:]]\\{2\\}" code)
+    (setq code (url-unhex-string code)))
+  code)
+
 (defun oauth2-request-access (auth-url token-url client-id client-secret code
                                        &optional redirect-uri host-name
                                        code-verifier)
@@ -371,32 +379,34 @@ request.  CODE-VERIFIER is used for the PKCE extension and is required
 when it was already provided during authorization.
 
 Returns an `oauth2-token'."
-  (when code
-    (let* ((request-timestamp (oauth2--current-timestamp))
-           (access-response (oauth2-make-access-request
-                             token-url
-                             (oauth2--build-url-param-str
-                              "client_id" client-id
-                              "client_secret" client-secret
-                              "code" code
-                              "code_verifier" code-verifier
-                              "redirect_uri" (or redirect-uri
-                                                 oauth2--default-redirect-uri)
-                              "grant_type" "authorization_code")))
-           (access-token (cdr (assoc 'access_token access-response)))
-           (refresh-token (cdr (assoc 'refresh_token access-response)))
-           (request-cache (oauth2--update-request-cache host-name
-                                                        access-token
-                                                        request-timestamp)))
-      (make-oauth2-token :client-id client-id
-                         :client-secret client-secret
-                         :access-token access-token
-                         :refresh-token refresh-token
-                         :request-cache request-cache
-                         :code-verifier code-verifier
-                         :auth-url auth-url
-                         :token-url token-url
-                         :access-response access-response))))
+  (unless code
+    (error "No valid code"))
+  (let* ((code (oauth2--handle-encoded-code code))
+         (request-timestamp (oauth2--current-timestamp))
+         (access-response (oauth2-make-access-request
+                           token-url
+                           (oauth2--build-url-param-str
+                            "client_id" client-id
+                            "client_secret" client-secret
+                            "code" code
+                            "code_verifier" code-verifier
+                            "redirect_uri" (or redirect-uri
+                                               oauth2--default-redirect-uri)
+                            "grant_type" "authorization_code")))
+         (access-token (cdr (assoc 'access_token access-response)))
+         (refresh-token (cdr (assoc 'refresh_token access-response)))
+         (request-cache (oauth2--update-request-cache host-name
+                                                      access-token
+                                                      request-timestamp)))
+    (make-oauth2-token :client-id client-id
+                       :client-secret client-secret
+                       :access-token access-token
+                       :refresh-token refresh-token
+                       :request-cache request-cache
+                       :code-verifier code-verifier
+                       :auth-url auth-url
+                       :token-url token-url
+                       :access-response access-response)))
 
 ;;;###autoload
 (defun oauth2-refresh-access (token &optional host-name)

@@ -561,6 +561,71 @@ ARGS are passed through to `forgejo-api-get'."
            :if-modified-since last-mod
            args)))
 
+;;; Current user
+
+(defvar forgejo-api--user-cache (make-hash-table :test 'equal)
+  "Cache of authenticated user logins keyed by hostname.")
+
+(defun forgejo-api--auth-source-user (hostname)
+  "Return the :user field stored by `auth-source' for HOSTNAME, or nil."
+  (when-let* ((found (car (auth-source-search :host hostname :max 1)))
+              (user (plist-get found :user)))
+    (and (stringp user) (not (string-empty-p user)) user)))
+
+(defun forgejo-api-current-user (host callback)
+  "Resolve the authenticated user's login on HOST, call CALLBACK with it.
+Resolution order: in-memory cache, `auth-source' :user field,
+GET /user.  CALLBACK is called with nil if resolution fails."
+  (let* ((hostname (url-host (url-generic-parse-url host)))
+         (cached (gethash hostname forgejo-api--user-cache))
+         (from-auth (and (not cached)
+                         (forgejo-api--auth-source-user hostname))))
+    (cond
+     (cached (funcall callback cached))
+     (from-auth
+      (puthash hostname from-auth forgejo-api--user-cache)
+      (funcall callback from-auth))
+     (t
+      (forgejo-api-get
+       host "user" nil
+       (lambda (data _headers)
+         (let ((login (and data (alist-get 'login data))))
+           (when login
+             (puthash hostname login forgejo-api--user-cache))
+           (funcall callback login))))))))
+
+;;; Issue subscriptions
+
+(defun forgejo-api-issue-subscription-check (host owner repo number callback)
+  "Check subscription state for issue NUMBER in OWNER/REPO on HOST.
+CALLBACK is called with t when subscribed, nil otherwise."
+  (forgejo-api-get
+   host
+   (format "repos/%s/%s/issues/%d/subscriptions/check" owner repo number)
+   nil
+   (lambda (data _headers)
+     (funcall callback (and data (eq (alist-get 'subscribed data) t))))))
+
+(defun forgejo-api-issue-subscribe (host owner repo number user callback)
+  "Subscribe USER to issue NUMBER in OWNER/REPO on HOST.
+CALLBACK is called with no arguments on success."
+  (forgejo-api-put
+   host
+   (format "repos/%s/%s/issues/%d/subscriptions/%s" owner repo number user)
+   nil
+   (lambda (_data _headers)
+     (when callback (funcall callback)))))
+
+(defun forgejo-api-issue-unsubscribe (host owner repo number user callback)
+  "Unsubscribe USER from issue NUMBER in OWNER/REPO on HOST.
+CALLBACK is called with no arguments on success."
+  (forgejo-api-delete
+   host
+   (format "repos/%s/%s/issues/%d/subscriptions/%s" owner repo number user)
+   nil
+   (lambda (_data _headers)
+     (when callback (funcall callback)))))
+
 ;;; Instance settings
 
 (defun forgejo-api-get-settings (host &optional callback)

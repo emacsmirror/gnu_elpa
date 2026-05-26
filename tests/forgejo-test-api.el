@@ -18,21 +18,21 @@
 (ert-deftest forgejo-test-api-url-no-params ()
   "Build URL without query parameters."
   (should (string= (forgejo-api--url "https://codeberg.org"
-                                      "repos/owner/repo/issues")
+                                     "repos/owner/repo/issues")
                    "https://codeberg.org/api/v1/repos/owner/repo/issues")))
 
 (ert-deftest forgejo-test-api-url-with-params ()
   "Build URL with query parameters."
   (should (string= (forgejo-api--url "https://codeberg.org"
-                                      "repos/owner/repo/issues"
-                                      '(("state" . "open") ("limit" . "30")))
+                                     "repos/owner/repo/issues"
+                                     '(("state" . "open") ("limit" . "30")))
                    "https://codeberg.org/api/v1/repos/owner/repo/issues?state=open&limit=30")))
 
 (ert-deftest forgejo-test-api-url-trailing-slash ()
   "Host with trailing slash should not produce double slashes."
   (should (string-prefix-p "https://codeberg.org/api/v1/"
                            (forgejo-api--url "https://codeberg.org"
-                                              "user/repos"))))
+                                             "user/repos"))))
 
 ;;; Group 2: Header parsing
 
@@ -282,6 +282,49 @@
     (should (string-match-p "404" (nth 2 messages)))
     (should (string-match-p "connection refused" (nth 1 messages)))
     (should (string-match-p "timeout" (nth 0 messages)))))
+
+;;; Group 12: Issue subscriptions
+
+(ert-deftest forgejo-test-api-issue-subscription-endpoints ()
+  "Subscription wrappers issue the right method + path."
+  (let (captured)
+    (cl-letf (((symbol-function 'forgejo-api--request)
+               (lambda (host method endpoint &rest _)
+                 (push (list method host endpoint) captured))))
+      (forgejo-api-issue-subscription-check
+       "https://codeberg.org" "owner" "repo" 42 #'ignore)
+      (forgejo-api-issue-subscribe
+       "https://codeberg.org" "owner" "repo" 42 "alice" #'ignore)
+      (forgejo-api-issue-unsubscribe
+       "https://codeberg.org" "owner" "repo" 42 "alice" #'ignore))
+    (should (equal (nreverse captured)
+                   '(("GET" "https://codeberg.org"
+                      "repos/owner/repo/issues/42/subscriptions/check")
+                     ("PUT" "https://codeberg.org"
+                      "repos/owner/repo/issues/42/subscriptions/alice")
+                     ("DELETE" "https://codeberg.org"
+                      "repos/owner/repo/issues/42/subscriptions/alice"))))))
+
+(ert-deftest forgejo-test-api-current-user-from-cache ()
+  "`forgejo-api-current-user' returns the cached login synchronously."
+  (let ((forgejo-api--user-cache (make-hash-table :test 'equal))
+        result)
+    (puthash "codeberg.org" "cached-user" forgejo-api--user-cache)
+    (forgejo-api-current-user
+     "https://codeberg.org" (lambda (user) (setq result user)))
+    (should (string= result "cached-user"))))
+
+(ert-deftest forgejo-test-api-current-user-from-auth-source ()
+  "Falls back to auth-source `:user' field and caches it."
+  (let ((forgejo-api--user-cache (make-hash-table :test 'equal))
+        result)
+    (cl-letf (((symbol-function 'auth-source-search)
+               (lambda (&rest _) (list (list :user "auth-user")))))
+      (forgejo-api-current-user
+       "https://codeberg.org" (lambda (user) (setq result user))))
+    (should (string= result "auth-user"))
+    (should (string= (gethash "codeberg.org" forgejo-api--user-cache)
+                     "auth-user"))))
 
 (provide 'forgejo-test-api)
 ;;; forgejo-test-api.el ends here

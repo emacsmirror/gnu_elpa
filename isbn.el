@@ -135,14 +135,14 @@ concerning ISBN's validation."
 
 ;;;###autoload
 (defun isbn-10-p (isbn)
-  "Return t if ISBN is matches the ISBN-10 format."
+  "Return t if ISBN matches the ISBN-10 format."
   (and
    (isbn-valid-p isbn)
    (eq (length (isbn--string->list isbn)) 10)))
 
 ;;;###autoload
 (defun isbn-13-p (isbn)
-  "Return t if ISBN is matches the ISBN-13 format."
+  "Return t if ISBN matches the ISBN-13 format."
   (and
    (isbn-valid-p isbn)
    (eq (length (isbn--string->list isbn)) 13)))

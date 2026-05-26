@@ -600,7 +600,7 @@ nothing."
                       (>= (setq count (1- count)) 0)))
         ;; Find innermost enclosing open-bracket
         (goto-char (nth 1 state))
-        (when (= (char-after) ?{)
+        (when (= (char-after) ?\{)
           (let ((scope (get-text-property (point) 'javaimp-parse-scope)))
             (unless scope
               (setq scope (or (run-hook-with-args-until-success
@@ -693,21 +693,34 @@ call this function first."
           (throw 'found nil))))))
 
 (defun javaimp-parse--abstract-methods (parent-scope)
+  "Parse abstract methods inside a given PARENT-SCOPE"
   (let ((start (1+ (javaimp-scope-open-brace parent-scope)))
         (end (ignore-errors
                (1- (scan-lists (javaimp-scope-open-brace parent-scope) 1 0))))
-        res)
+        res just-parsed)
     (goto-char (or end (point-max)))
     (while (and (> (point) start)
-                (javaimp-parse--rsb-keyword ";" start t))
+                ;; We need to make sure that rhs in assignment "A a =
+                ;; foo();" is not misinterpreted as an abstract method
+                ;; declaration, so we check for preceding "="
+                (javaimp-parse--rsb-keyword "[;=]" start t))
       ;; Are we in the same nest?
       (if (= (nth 1 (syntax-ppss)) (javaimp-scope-open-brace parent-scope))
-          (save-excursion
-            ;; Parse as normal method scope, but don't set open-brace
-            ;; because there's no body
-            (when-let* ((scope (javaimp-parse--scope-method-or-stmt (point))))
-              (setf (javaimp-scope-parent scope) parent-scope)
-              (push scope res)))
+          (if (= (char-after) ?\;)
+              (save-excursion
+                ;; Parse as normal method scope, but don't set
+                ;; open-brace because there's no body
+                (if-let* ((scope (javaimp-parse--scope-method-or-stmt (point))))
+                    (progn
+                      (setf (javaimp-scope-parent scope) parent-scope)
+                      (push scope res)
+                      (setq just-parsed t))
+                  (setq just-parsed nil)))
+            ;; We've found =, which means that previous "scope" was
+            ;; not an abstract method, but rhs of assignment
+            (when just-parsed
+              (pop res)
+              (setq just-parsed nil)))
         ;; We've entered another nest, skip to its start
         (goto-char (nth 1 (syntax-ppss)))))
     res))

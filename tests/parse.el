@@ -444,3 +444,27 @@ import static some_class.fun_2; // comment
                 (javaimp-test-parse--simplify-scope
                  (javaimp-parse-get-enclosing-scope
                   (javaimp-scope-defun-p 'method)))))))))
+
+
+(ert-deftest javaimp-parse-get-abstract-methods ()
+  (javaimp-with-temp-buffer nil
+    (insert "
+class C1 {
+    A a = (new Object() {
+            int bar() {
+                return x;
+            }
+            void abstract1();
+        }).foo();
+    A a = B.bar();
+    A a = baz();
+    void abstract2();
+    // void abstract3();
+}
+")
+    (let* ((parent (car (javaimp-parse-get-all-scopes
+                         nil nil (javaimp-scope-defun-p))))
+           (actual (mapcar #'javaimp-test-parse--simplify-scope
+                           (javaimp-parse-get-abstract-methods parent)))
+           (expected '(((method "abstract2()") (class "C1")))))
+      (should (equal expected actual)))))

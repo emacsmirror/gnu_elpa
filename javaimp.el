@@ -126,9 +126,6 @@
 ;; Parsing is also used for Imenu support, for xref support and for
 ;; navigation commands, these are installed by `javaimp-minor-mode'.
 ;;
-;; `javaimp-imenu-use-sub-alists': if non-nil then Imenu items are
-;; presented in a nested fashion, instead of a flat list (default is
-;; flat list).
 
 
 ;;; Code:
@@ -183,14 +180,6 @@ E.g. \"${project.build.directory}/generated-sources/<plugin_name>\"
 becomes \"generated-sources/<plugin_name>\" (note the absence of
 the leading slash)."
   :type '(repeat (string :tag "Relative directory")))
-
-(defcustom javaimp-imenu-use-sub-alists nil
-  "If non-nil, make sub-alist for each containing scope (e.g. a
-class).  In this case, scopes nested inside methods (local
-classes, anonymous classes and their methods) are not shown,
-because otherwise it won't be possible to go to the method
-itself.  Non-method scopes with no children are also omitted."
-  :type 'boolean)
 
 (defcustom javaimp-jar-program "jar"
   "Path to the `jar' program used to read contents of jar files."
@@ -623,6 +612,9 @@ PREDICATE returns non-nil."
   (javaimp-tree-collect-nodes predicate javaimp-project-forest))
 
 (defun javaimp-map-modules (function)
+  "Return all modules in `javaimp-project-forest', mapped according to
+FUNCTION.
+See `javaimp-tree-map-nodes' for description of FUNCTION."
   (javaimp-tree-map-nodes function #'always javaimp-project-forest))
 
 
@@ -786,64 +778,34 @@ form as CLASS-ALIST in return value of
 
 ;; Imenu support
 
-(defsubst javaimp-imenu--make-entry (scope)
-  (list (javaimp-scope-name scope)
-        (if imenu-use-markers
-            (copy-marker (javaimp-scope-open-brace scope))
-          (javaimp-scope-open-brace scope))
+(defsubst javaimp-imenu--make-entry (scope &optional override-name)
+  (list (or override-name (javaimp-scope-name scope))
+        (let ((pos (or (javaimp-scope-open-brace scope)
+                       (javaimp-scope-start scope))))
+          (if imenu-use-markers (copy-marker pos) pos))
         #'javaimp-imenu--function
         scope))
 
 
 ;;;###autoload
 (defun javaimp-imenu-create-index ()
-  "Function to use as `imenu-create-index-function'.
-How to show the index is determined by
-`javaimp-imenu-use-sub-alists', which see."
-  (if javaimp-imenu-use-sub-alists
-      (javaimp-imenu--create-index-nested)
-    (javaimp-imenu--create-index-flat)))
-
-(defun javaimp-imenu--create-index-nested ()
-  "Build nested index for `javaimp-imenu-create-index'.  Scopes
-nested in methods are not included, see
-`javaimp-imenu-use-sub-alists' for explanation."
+  "Function to use as `imenu-create-index-function'.  To support all values
+of `imenu-flatten', hash symbol is appended to all scopes which have
+children."
   (let ((forest (javaimp-imenu--get-forest
-                 (javaimp-scope-defun-p 'method))))
+                 (javaimp-scope-defun-p t))))
     (javaimp-tree-map-nodes
-     (lambda (scope)
-       (if (eq (javaimp-scope-type scope) 'method)
-           ;; Leaf entry for method
-           (cons nil (javaimp-imenu--make-entry scope))
-         ;; Sub-alist for container defuns - classes etc.
-         (cons t (javaimp-scope-name scope))))
-     (lambda (res)
-       (or (functionp (nth 2 res))      ; leaf imenu entry
-           (cdr res)))                  ; non-empty sub-alist
+     (lambda (scope children)
+       (if children
+           ;; Subalist for container defuns - classes etc., with
+           ;; prepended self
+           (cons (javaimp-imenu--make-entry
+                  scope (concat (javaimp-scope-name scope) "#"))
+                 (javaimp-scope-name scope))
+         ;; Leaf entry
+         (cons nil (javaimp-imenu--make-entry scope))))
+     #'always
      forest)))
-
-(defun javaimp-imenu--create-index-flat ()
-  "Build flat index for `javaimp-imenu-create-index'."
-  (let* ((forest (javaimp-imenu--get-forest
-                  (javaimp-scope-defun-p t)))
-         (entries
-          (mapcar #'javaimp-imenu--make-entry
-                  (seq-sort-by #'javaimp-scope-start #'<
-                               (javaimp-tree-collect-nodes #'always forest))))
-         alist)
-    (mapc (lambda (entry)
-            (setf (alist-get (car entry) alist 0 nil #'equal)
-                  (1+ (alist-get (car entry) alist 0 nil #'equal))))
-          entries)
-    ;; Append parents to equal names to disambiguate them
-    (mapc (lambda (entry)
-            (when (> (alist-get (car entry) alist 0 nil #'equal) 1)
-              (setcar entry
-                      (format "%s [%s]"
-                              (car entry)
-                              (javaimp-scope-concat-parents
-                               (nth 3 entry))))))
-          entries)))
 
 (defun javaimp-imenu--get-forest (scope-pred)
   "Build forest for imenu from scopes matching SCOPE-PRED."

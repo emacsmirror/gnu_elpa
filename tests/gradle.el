@@ -17,7 +17,7 @@
 
 (defun javaimp-test-gradle--get-tree (project-dir)
   (javaimp-tree-map-nodes
-   (lambda (mod)
+   (lambda (mod _children)
      (cons t
            (cons (javaimp-print-id (javaimp-module-id mod))
                  (file-relative-name

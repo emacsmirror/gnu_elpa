@@ -128,7 +128,7 @@ return a list of strings - jar file names.")
   "Recursively builds tree for element THIS and its children.
 Children are those elements from ALL for which CHILD-P invoked
 with THIS and tested element returns non-nil.  Children are
-sorted by SORT-PRED, if given.  PARENT-NODE is indented for
+sorted by SORT-PRED, if given.  PARENT-NODE is intended for
 recursive calls."
   (let ((children (seq-filter (apply-partially child-p this)
                               all)))
@@ -183,12 +183,15 @@ non-nil."
 
 
 (defun javaimp-tree-map-nodes (function pred forest)
-  "Recursively apply FUNCTION to each node's contents in FOREST and
-return new tree.  FUNCTION should return (t . VALUE) if the
-result for this node should be made a list of the form (VALUE
-. CHILDREN), or (nil . VALUE) for plain VALUE as the result (in
-this case children are discarded).  The result for each node is
-additionally tested by PRED."
+  "Recursively apply FUNCTION to each node's and its children' contents
+in FOREST and return new tree.
+
+FUNCTION should return (nil . VALUE) for just the VALUE to be
+returned, (t . VALUE) to return a list of the form (VALUE . CHILDREN)
+and (SELF-TO-PREPEND . VALUE) to return a list of the form (VALUE
+. (SELF-TO-PREPEND . CHILDREN)).
+
+The result for each node is additionally tested by PRED."
   (delq nil
         (mapcar (lambda (tree)
                   (javaimp-tree--map-nodes-1 tree function pred))
@@ -196,7 +199,9 @@ additionally tested by PRED."
 
 (defun javaimp-tree--map-nodes-1 (tree function pred)
   (when tree
-    (let* ((cell (funcall function (javaimp-node-contents tree)))
+    (let* ((cell (funcall function (javaimp-node-contents tree)
+                          (mapcar #'javaimp-node-contents
+                                  (javaimp-node-children tree))))
            (res
             (if (car cell)
                 (let ((children
@@ -205,7 +210,9 @@ additionally tested by PRED."
                                        (javaimp-tree--map-nodes-1
                                         child function pred))
                                      (javaimp-node-children tree)))))
-                  (cons (cdr cell) children))
+                  (if (eq (car cell) t)
+                      (cons (cdr cell) children)
+                    (cons (cdr cell) (cons (car cell) children))))
               (cdr cell))))
       (and (funcall pred res)
            res))))

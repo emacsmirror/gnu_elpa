@@ -1,3 +1,7 @@
+2026-05-26  ESS Maintainers <ESS-core@r-project.org>
+
+  * Version 26.05.0 released.
+
 2026-01-25 Christophe Gouel <christophe.gouel@inrae.fr>
 
 	* lisp/ess-custom.el (ess-r-outline-style): Change default from

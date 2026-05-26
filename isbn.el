@@ -162,8 +162,6 @@ region with the converted ISBN."
   (unless (isbn-valid-p isbn)
     (user-error "ISBN is invalid"))
   (setq isbn (string-replace "-" "" isbn))
-  ;; The algorithms are taken from
-  ;; <https://www.isbnservices.com/convert-isbn-10-to-isbn-13/>.
   (let ((res (pcase isbn
                ((pred isbn-10-p)
                 (if (eq format 10) isbn

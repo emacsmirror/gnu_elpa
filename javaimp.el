@@ -53,7 +53,8 @@
 ;;
 ;; - Then in a Java buffer visiting a file under that project or one
 ;; of its submodules call `javaimp-organize-imports' or
-;; `javaimp-add-import'.
+;; `javaimp-add-import'.  See doc for `javaimp-minor-mode' for
+;; bindings of these and other commands.
 ;;
 ;;
 ;;   Visiting projects & managing imports

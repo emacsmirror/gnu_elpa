@@ -463,10 +463,3 @@ emacs --batch -l ert -l keymap-popup.el \
               -f ert-run-tests-batch-and-exit
 #+end_src
 
-* GNU Free Documentation License
-:PROPERTIES:
-:CUSTOM_ID: gfdl
-:APPENDIX: t
-:END:
-
-#+texinfo: @include doclicense.texi

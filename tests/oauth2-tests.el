@@ -65,4 +65,10 @@
             "random_hash_of_verifier")
            "https://authrization.url/request-token?client_id=random_client_id&response_type=code&redirect_uri=https%3A%2F%2Flocalhost%3A5678%2F&scope=email_scope&state=random_state&login_hint=test%40example.com&access_type=offline&prompt=consent&code_challenge=-MXasMXxsnGVodkChYqEubsH0BnyQlhudAhfjqpyeZA&code_challenge_method=S256")))
 
+(ert-deftest oauth2--handle-encoded-authorization-code ()
+  (should (string=
+           (oauth2--handle-encoded-code
+            "M.C543_SN1.2.U.DjYxUvMWVxeks6k*o39EISowXUKV8owObY4Fwb8Ivle7PkLriFpNzxJX4nDna2ub4bPQP71LOZndyOZkN8SAxj2bfZ3r9y6NpdluQSA*7GPcDvQ6b9BQgfJgCRf!WrTrlZsGR6wqX3bTWBFZVDeNvX!rDDTUVGWaRjyRcZCZtrwzdmXovPV8BsjiAEZRGvxKLUFcpKlwy*EepJ*9w7p9R06714EbMqgLNzdEku5aAxJqMVgyrANroJBsutapE!0GYzdN6BS!3BLWY1CUskBLFL1fKGYc0*jJL6!zYKU2nyvr*3RGPlCcFGOmfcP1ptVHKio0bRRQDpvR0cmxJJg8PVWXtipJDvHKZsgOLQFDYnNnEkTzbpQ0o5K9DWgPXc8nWmPi8ZED5j*WSekCPpkyIRdcGfsNb5cJYhRPcA2TuQuZVRegdduVzjjqAotQGFLHZkziUK*I10bGmt8QedIwgVc8GNBvNC7D6EBcF2ytfPSxF477Ke9wPm9TpkzTRkC!MvPGDE4oaLu4siv2Rrq96kK!yme!od8kcxMBadM2PLe06DzkDeH42BhlCDzhnGuqhqW!VHxmQhBVlMop6Z*N8DnV3Bw6knttia21lHQOaMc5sBvE2noA9HiEe9vSKEnMIgeD9AeXDq83686fPkiALE%24")
+           "M.C543_SN1.2.U.DjYxUvMWVxeks6k*o39EISowXUKV8owObY4Fwb8Ivle7PkLriFpNzxJX4nDna2ub4bPQP71LOZndyOZkN8SAxj2bfZ3r9y6NpdluQSA*7GPcDvQ6b9BQgfJgCRf!WrTrlZsGR6wqX3bTWBFZVDeNvX!rDDTUVGWaRjyRcZCZtrwzdmXovPV8BsjiAEZRGvxKLUFcpKlwy*EepJ*9w7p9R06714EbMqgLNzdEku5aAxJqMVgyrANroJBsutapE!0GYzdN6BS!3BLWY1CUskBLFL1fKGYc0*jJL6!zYKU2nyvr*3RGPlCcFGOmfcP1ptVHKio0bRRQDpvR0cmxJJg8PVWXtipJDvHKZsgOLQFDYnNnEkTzbpQ0o5K9DWgPXc8nWmPi8ZED5j*WSekCPpkyIRdcGfsNb5cJYhRPcA2TuQuZVRegdduVzjjqAotQGFLHZkziUK*I10bGmt8QedIwgVc8GNBvNC7D6EBcF2ytfPSxF477Ke9wPm9TpkzTRkC!MvPGDE4oaLu4siv2Rrq96kK!yme!od8kcxMBadM2PLe06DzkDeH42BhlCDzhnGuqhqW!VHxmQhBVlMop6Z*N8DnV3Bw6knttia21lHQOaMc5sBvE2noA9HiEe9vSKEnMIgeD9AeXDq83686fPkiALE$")))
+
 ;;; oauth2-tests.el ends here.

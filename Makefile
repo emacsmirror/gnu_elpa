@@ -17,7 +17,11 @@ SRCS = keymap-popup.el
 TESTS = tests/keymap-popup-tests.el
 BATCH = $(EMACS_CMD) -Q --batch
 
-.PHONY: all compile do-compile test do-test lint do-lint clean dev load
+ORG = docs/keymap-popup.org
+TEXI = docs/keymap-popup.texi
+INFO = docs/keymap-popup.info
+
+.PHONY: all compile do-compile test do-test lint do-lint doc do-doc clean dev load
 
 all: compile
 
@@ -42,6 +46,17 @@ do-lint:
 	@echo "Running checkdoc..."
 	@$(BATCH) --eval '(checkdoc-file "$(SRCS)")'
 
+doc:
+	@$(GUIX_WRAP) do-doc
+
+do-doc: $(INFO)
+
+$(INFO): $(ORG)
+	@echo "Building $(INFO)..."
+	@$(BATCH) --load org \
+	  --eval "(with-current-buffer (find-file \"$(ORG)\") (org-texinfo-export-to-info))" \
+	  --kill
+
 dev: compile lint test
 
 load:
@@ -53,4 +68,4 @@ load:
 	@printf "\033[32mLoaded keymap-popup into Emacs\033[0m\n"
 
 clean:
-	rm -f *.elc
+	rm -f *.elc $(TEXI) $(INFO)

@@ -12,6 +12,7 @@
 ;;       guix shell -D -f guix.scm -- make test
 
 (use-modules (gnu packages emacs)
+             (gnu packages texinfo)
              (guix build-system emacs)
              ((guix licenses) #:prefix license:)
              (guix packages)
@@ -41,6 +42,8 @@ if the command fails."
     (not (or (string-prefix? "." name)
              (string-contains file "/refs/")
              (string-suffix? ".elc" file)
+             (string-suffix? ".info" file)
+             (string-suffix? ".texi" file)
              (string-suffix? "~" file)))))
 
 (define-public emacs-keymap-popup-git
@@ -52,6 +55,29 @@ if the command fails."
                         #:recursive? #t
                         #:select? source-file?))
     (build-system emacs-build-system)
+    (arguments
+     (list
+      #:phases
+      #~(modify-phases %standard-phases
+          (add-after 'unpack 'build-info-manual
+            (lambda _
+              (invoke "emacs" "-Q" "--batch"
+                      "--load" "org"
+                      "--eval" "(with-current-buffer (find-file \"docs/keymap-popup.org\") (org-texinfo-export-to-info))"
+                      "--kill")))
+          (replace 'check
+            (lambda* (#:key tests? #:allow-other-keys)
+              (when tests?
+                (invoke "emacs" "-Q" "--batch"
+                        "-l" "ert"
+                        "-l" "keymap-popup.el"
+                        "-l" "tests/keymap-popup-tests.el"
+                        "-f" "ert-run-tests-batch-and-exit"))))
+          (add-after 'install 'install-info-manual
+            (lambda _
+              (install-file "docs/keymap-popup.info"
+                            (string-append #$output "/share/info")))))))
+    (native-inputs (list texinfo))
     (home-page "https://codeberg.org/thanosapollo/emacs-forgejo")
     (synopsis "Described keymaps with popup help")
     (description

@@ -115,10 +115,11 @@ Ivy, Selectrum, or Vertico."
 
 (defcustom aggressive-completion-trigger-immediately t
   "If non-nil, trigger immediately after entering the minibuffer.
-That means, that the *Completions* buffer will be shown immediately
+That means the *Completions* buffer will be shown immediately
 (if there are at most `aggressive-completion-max-shown-completions').
-If it is `nil', that will only happen after at least one command has
-been performed in the minibuffer (e.g., you've typed something).")
+If `nil' this will only happen after at least one command has
+been performed in the minibuffer (e.g., you've typed something)."
+  :type 'boolean)
 
 (defvar aggressive-completion--timer nil)
 
@@ -134,13 +135,13 @@ been performed in the minibuffer (e.g., you've typed something).")
   (when (window-minibuffer-p)
     (let ((tick (aggressive-completion--get-minibuffer-tick)))
       (if (and (null aggressive-completion--minibuffer-tick)
-               (null aggressive-completion-trigger-immediately))
+               (not aggressive-completion-trigger-immediately))
           ;; The minibuffer has just been activated and we should not trigger
           ;; immediately. Set the tick so we only start with the next command.
-          (setq aggressive-completion--minibuffer-tick tick)
-        (when (not (equal aggressive-completion--minibuffer-tick
-                          tick))
-          (setq aggressive-completion--minibuffer-tick tick)
+          (setq-local aggressive-completion--minibuffer-tick tick)
+        (unless (equal aggressive-completion--minibuffer-tick
+                       tick)
+          (setq-local aggressive-completion--minibuffer-tick tick)
           (let* ((completions (completion-all-sorted-completions))
                  ;; Don't ding if there are no completions, etc.
                  (visible-bell nil)

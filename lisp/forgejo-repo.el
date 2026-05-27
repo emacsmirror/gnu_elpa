@@ -109,6 +109,7 @@ When no buffer-local host is set, aggregates across all hosts."
 
 ;;; Repo metadata sync
 
+;;;###autoload
 (defun forgejo-repo-sync-metadata (host-url owner repo)
   "Fetch and cache metadata for OWNER/REPO on HOST-URL.
 Calls GET /repos/{owner}/{repo} and saves to the DB."

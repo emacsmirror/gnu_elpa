@@ -149,6 +149,15 @@ Handles API URLs like /api/v1/repos/OWNER/REPO/issues/N."
 
 ;;; Sync
 
+(defvar forgejo-notification-fetch-batch-size 10
+  "Number of missing issues to fetch before pausing.
+A 3-second pause is inserted between batches to avoid triggering
+infrastructure-level rate limits.")
+
+(defvar forgejo-notification-fetch-max-per-sync 30
+  "Max missing issues to fetch per sync cycle.
+Remaining ones are picked up on subsequent polls.")
+
 (defun forgejo-notification--sync (host-url host &optional callback)
   "Fetch notifications from HOST-URL, save to DB, fetch missing issues.
 CALLBACK is called with no args when done."
@@ -194,15 +203,6 @@ Fires `forgejo-notification-hooks' for unread items in this page."
                        (lambda (r) (= (alist-get 'unread r) 1)) rows)))
           (when unread
             (run-hook-with-args 'forgejo-notification-hooks unread)))))))
-
-(defvar forgejo-notification-fetch-batch-size 10
-  "Number of missing issues to fetch before pausing.
-A 3-second pause is inserted between batches to avoid triggering
-infrastructure-level rate limits.")
-
-(defvar forgejo-notification-fetch-max-per-sync 30
-  "Max missing issues to fetch per sync cycle.
-Remaining ones are picked up on subsequent polls.")
 
 (defun forgejo-notification--fetch-missing (host-url host missing &optional count)
   "Fetch MISSING issues ((OWNER REPO NUMBER) ...) sequentially.

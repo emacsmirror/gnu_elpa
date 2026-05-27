@@ -897,6 +897,14 @@ pinned(20), notification_updated_at(21), owner(22), repo(23)."
              (list host thread-id)))
       0))
 
+(defun forgejo-db-get-notification-unread (host thread-id)
+  "Return the unread state (0 or 1) for THREAD-ID on HOST."
+  (or (caar (forgejo-db--select
+             "SELECT unread FROM notifications
+              WHERE host = ? AND thread_id = ?"
+             (list host thread-id)))
+      0))
+
 (defun forgejo-db-set-notification-status (host thread-id unread pinned)
   "Update notification THREAD-ID on HOST with UNREAD and PINNED (0/1)."
   (forgejo-db--execute

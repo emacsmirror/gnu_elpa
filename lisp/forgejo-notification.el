@@ -332,10 +332,16 @@ Renders instantly from DB, then syncs in background."
             (string-to-number (match-string 3 full))))))
 
 (defun forgejo-notification-view-at-point ()
-  "Navigate to the subject of the notification at point."
+  "Navigate to the subject of the notification at point.
+Marks the notification as read on both the local DB and the server."
   (interactive)
   (when-let* ((entry (tabulated-list-get-entry))
-              (parsed (forgejo-notification--parse-ref-at-point)))
+              (parsed (forgejo-notification--parse-ref-at-point))
+              (thread-id (forgejo-notification--thread-id-at-point)))
+    (when (= (forgejo-db-get-notification-unread
+              forgejo-notification--host thread-id)
+             1)
+      (forgejo-notification--set-status thread-id "read"))
     (pcase-let ((`(,owner ,repo ,number) parsed))
       (let ((type (aref entry 0)))
         (if (string= type "PR")

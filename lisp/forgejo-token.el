@@ -54,8 +54,9 @@
                                 (format "users/%s/tokens/%s" username token-id)))
          (url-request-method "DELETE")
          (url-request-extra-headers
-          `(("Authorization" . ,(forgejo-token--auth-header username password)))))
-    (url-retrieve-synchronously url)))
+          `(("Authorization" . ,(forgejo-token--auth-header username password))))
+         (buf (url-retrieve-synchronously url t)))
+    (when buf (kill-buffer buf))))
 
 (defun forgejo-token--create (host-url username password token-name)
   "POST a new token named TOKEN-NAME and return its sha1 string."
@@ -64,7 +65,7 @@
          (url-request-method "POST")
          (url-request-extra-headers
           `(("Authorization" . ,(forgejo-token--auth-header username password))
-            ("Content-Type"  . "application/json")))
+            ("Content-Type" . "application/json")))
          (url-request-data
           (encode-coding-string
            (json-encode `((name . ,token-name) (scopes . ("all"))))

@@ -4,6 +4,23 @@ Summary of changes to oauth2.el
 (For changes of 0.16 and older please check the git history of the
 repository of oauth2.el.)
 
+* 0.19
+
+** Better error handling
+
+A refresh request may fail, especially when a request to refresh
+access_token fails with `invalid_grant', a new authorization request
+is required. These cases are now handled properly by obsoleting the
+outdated cache. In case of `invalid_grant', the user will be prompted
+to go over the initial set up of the account again on the next
+request.
+
+** Handle encoded authorization code
+
+Some OAuth2 service (e.g. Microsoft) may encode the authorization
+code, and directly use the code will fail the code challenge.
+oauth2.el now detects and decode the code properly.
+
 * 0.18
 
 ** Support reusing cached access_token before it expires

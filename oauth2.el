@@ -359,7 +359,7 @@ Returns the code provided by the service."
   "Handle encoded CODE.
 Microsoft seems to return encoded or double-encoded code, which will
 fail authorization if used directly."
-  (while (string-match-p "%[[:alnum:]]\\{2\\}" code)
+  (while (string-match-p "%[[:xdigit:]]\\{2\\}" code)
     (setq code (url-unhex-string code)))
   code)
 

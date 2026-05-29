@@ -6,7 +6,7 @@
 ;; Maintainer: Tassilo Horn <tsdh@gnu.org>
 ;; Keywords: minibuffer completion
 ;; Package-Requires: ((emacs "27.1"))
-;; Version: 1.7
+;; Version: 1.8
 
 ;; This file is part of GNU Emacs.
 

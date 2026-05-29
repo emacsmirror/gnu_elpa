@@ -672,8 +672,10 @@ it is excluded from the list of candidates."
           (completion-regexp-list
            (and (not current-prefix-arg)
                 (symbol-at-point)
+                (not (string= (symbol-at-point) "@"))
                 (list (rx (and symbol-start
-                               (literal (symbol-name (symbol-at-point)))
+                               (literal (string-remove-prefix
+                                         "@" (symbol-name (symbol-at-point))))
                                eol))))))
      (when javaimp-exclude-imports
        (let ((regexp (mapconcat #'identity javaimp-exclude-imports "\\|")))
@@ -681,7 +683,10 @@ it is excluded from the list of candidates."
                (seq-filter (lambda (s) (not (string-match-p regexp s)))
                            classes))))
      (list (completing-read "Import: " classes nil t nil nil
-                            (symbol-name (symbol-at-point))))))
+                            (and (symbol-at-point)
+                                 (not (string= (symbol-at-point) "@"))
+                                 (string-remove-prefix
+                                  "@" (symbol-name (symbol-at-point))))))))
   (javaimp-organize-imports (list (cons classname 'normal))))
 
 (defun javaimp--get-jdk-classes (java-home)

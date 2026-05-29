@@ -507,7 +507,7 @@ recognisable by Embark and registers the ~tmr-action-map~ in Embark.
 TMR is meant to be a collective effort.  Every bit of help matters.
 
 + Authors :: Protesilaos (maintainer), Carlos Pajuelo Rojo, Damien
-  Cassou, Daniel Mendler, Óscar Fuentes, Steven Allen.
+  Cassou, Daniel Mendler, Óscar Fuentes, Pavlo Lysov, Steven Allen.
 
 + Contributions to the code or manual :: Christian Tietze, Ed Tavinor,
   Eugene Mikhaylov, Karol Mróz, Lucas Quintana, Mirko Hernandez,

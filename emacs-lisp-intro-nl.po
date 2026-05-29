@@ -37717,7 +37717,7 @@ msgstr ""
 "* (setq getal (1= getal))\n"
 "* (while (> getal 0) (setq totaal (+ totaal getal))\n"
 "        (setq getal (1= getal)))\n"
-  
+
 #. type: group
 #: emacs-lisp-intro.texi:18100
 #, no-wrap
@@ -38533,19 +38533,19 @@ msgstr ""
 #: emacs-lisp-intro.texi:18481
 #, no-wrap
 msgid "The @code{the-the} Function"
-msgstr ""
+msgstr "De @code{de-de} functie"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:18483
 #, no-wrap
 msgid "Duplicated words function"
-msgstr ""
+msgstr "Gedupliceerde woorden functie"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:18484
 #, no-wrap
 msgid "Words, duplicated"
-msgstr ""
+msgstr "Woorden, gedupliceerd"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18490
@@ -38555,6 +38555,10 @@ msgid ""
 "duplicate ``the''; hence, I call the function for detecting duplicated "
 "words, @code{the-the}."
 msgstr ""
+"Wanneer je je tekst schrijft dupliceer je soms woorden---zoals ``je "
+"je'' aan het begin van deze zin. Ik ontdekte dat ik het meest van "
+"``de'' dupliceer, daarom noem ik de functie om gedupliceerde "
+"woorden te detecteren @code{de-de}"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18494
@@ -38562,12 +38566,14 @@ msgid ""
 "As a first step, you could use the following regular expression to search "
 "for duplicates:"
 msgstr ""
+"Als eerste stap zou de volgende reguliere expressie kunnen gebruiken "
+"om naar duplicaten te zoeken:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:18497
 #, no-wrap
 msgid "\\\\(\\\\w+[ \\t\\n]+\\\\)\\\\1\n"
-msgstr ""
+msgstr "\\\\(\\\\w+[ \\t\\n]+\\\\)\\\\1\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18509
@@ -38581,6 +38587,16 @@ msgid ""
 "Expressions, emacs, The GNU Emacs Manual}, and @ref{Regular Expressions, , "
 "Regular Expressions, elisp, The GNU Emacs Lisp Reference Manual}.)"
 msgstr ""
+"Deze regexp matcht een of meer woorden-vormende karakters gevolg "
+"door een of meer spaties, tabs of nieuwe-regel-tekens. Het "
+"detecteert echter geen op verschillende regels gedupliceerde "
+"woorden, omdat het einde van het eerste woord, het einde van de "
+"regel, verschilt van het einde van het tweede woord, een spatie. "
+"(Voor meer informatie over reguliere expressies zie @ref{Regexp "
+"zoeken, , Reguliere expressie zoekopdrachten}, en ook @ref{Regexps, "
+", Syntax of Regular Expressions, emacs, The GNU Emacs Manual}, and "
+"@ref{Regular Expressions, , Regular Expressions, elisp, The GNU "
+"Emacs Lisp Reference Manual}.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18513
@@ -38589,6 +38605,9 @@ msgid ""
 "that does not work since the pattern detects doubles such as the two "
 "occurrences of ``th'' in ``with the''."
 msgstr ""
+"Je zou ook slechts kunnen zoeken naar gedupliceerde woord-vormende "
+"karakters maar dat werkt niet omdat het patroon doublures detecteert "
+"zoals het twee keer voorkomen van ``de'' in ``belde de''."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18518
@@ -38598,17 +38617,21 @@ msgid ""
 "matches one or more word-constituent characters and @w{@samp{\\\\W*}} "
 "matches zero or more non-word-constituent characters."
 msgstr ""
+"Een andere mogelijke regexp zoekt naar woord-vormende karakters "
+"gevolgd door niet-woord-vormende karakters, herhaald. Hier matcht "
+"@w{@samp{\\\\w+}} een of meer woord-vormende karakters en "
+"@w{@samp{\\\\W*}}matcht nul of meer niet-woord-vormende karakters."
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:18521
 #, no-wrap
 msgid "\\\\(\\\\(\\\\w+\\\\)\\\\W*\\\\)\\\\1\n"
-msgstr ""
+msgstr "\\\\(\\\\(\\\\w+\\\\)\\\\W*\\\\)\\\\1\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18525
 msgid "Again, not useful."
-msgstr ""
+msgstr "Opnieuw, niet nuttig"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18530
@@ -38618,12 +38641,17 @@ msgid ""
 "or end of a word; @w{@samp{[^@@ \\n\\t]+}} matches one or more occurrences "
 "of any characters that are @emph{not} an @@-sign, space, newline, or tab."
 msgstr ""
+"Hier is het patroon dat ik gebruik. Het is niet perfect, maar goed "
+"genoeg. @w{@samp{\\\\b}} matcht de lege string, onder voorwaarde dat "
+"het aan het begin of eind van een woord staat. @w{@samp{[^@@ "
+"\\n\\t]+}} matcht een of meer karakters die @emph{niet} een "
+"@@-teken, spatie, nieuwe-regel-teken of tab zijn."
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:18533
 #, no-wrap
 msgid "\\\\b\\\\([^@@ \\n\\t]+\\\\)[ \\n\\t]+\\\\1\\\\b\n"
-msgstr ""
+msgstr "\\\\b\\\\([^@@ \\n\\t]+\\\\)[ \\n\\t]+\\\\1\\\\b\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18537
@@ -38631,6 +38659,8 @@ msgid ""
 "One can write more complicated expressions, but I found that this expression "
 "is good enough, so I use it."
 msgstr ""
+"Je kunt meer ingewikkelde expressies schrijven, maar ik vind deze "
+"expressie goeg genoeg en gebruik die daarom."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18540
@@ -38638,6 +38668,8 @@ msgid ""
 "Here is the @code{the-the} function, as I include it in my @file{.emacs} "
 "file, along with a handy global key binding:"
 msgstr ""
+"Hier is de functie @code{de-de} die ik in mijn @file{.emacs} bestand "
+"opneem, samen met een handige globale keybinding."
 
 #. type: group
 #: emacs-lisp-intro.texi:18548
@@ -38649,6 +38681,11 @@ msgid ""
 "  (message \"Searching for for duplicated words ...\")\n"
 "  (push-mark)\n"
 msgstr ""
+"(defun de-de ()\n"
+"  \"Zoek voorwaarts naar naar een gedupliceerd woord..\"\n"
+"  (interactive)\n"
+"  (message \"Zoeken naar naar gedupliceerde woorden ...\")\n"
+"  (push-mark)\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:18556
@@ -38661,6 +38698,12 @@ msgid ""
 "      (message \"Found duplicated word.\")\n"
 "    (message \"End of buffer\")))\n"
 msgstr ""
+"  ;; Deze regexp is niet perfect\n"
+"  ;; maar is behoorlijk goed:\n"
+"  (if (re-search-forward\n"
+"       \"\\\\b\\\\([^@@ \\n\\t]+\\\\)[ \\n\\t]+\\\\1\\\\b\" nil 'move)\n"
+"      (message \"Gedupliceerd woord gevonden\")\n"
+"    (message \"End of buffer\")))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:18561
@@ -38669,11 +38712,13 @@ msgid ""
 ";; Bind 'the-the' to  C-c \\\n"
 "(keymap-global-set \"C-c \\\\\" 'the-the)\n"
 msgstr ""
+";; Bind 'de-de' to  C-c \\\n"
+"(keymap-global-set \"C-c \\\\\" 'de-de)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18566
 msgid "Here is test text:"
-msgstr ""
+msgstr "Hier is de test tekst:"
 
 #. type: group
 #: emacs-lisp-intro.texi:18571
@@ -38682,6 +38727,8 @@ msgid ""
 "one two two three four five\n"
 "five six seven\n"
 msgstr ""
+"een twee twee drie vier vijf\n"
+"vijf zes zeven\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18576
@@ -38689,24 +38736,26 @@ msgid ""
 "You can substitute the other regular expressions shown above in the function "
 "definition and try each of them on this list."
 msgstr ""
+"Je kunt de andere hierboven getoonde reguliere expressies in de "
+"functiedefinitie substitueren en elke op deze lijst proberen."
 
 #. type: cindex
 #: emacs-lisp-intro.texi:18579
 #, no-wrap
 msgid "Kill ring handling"
-msgstr ""
+msgstr "Killring hanteren"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:18580
 #, no-wrap
 msgid "Handling the kill ring"
-msgstr ""
+msgstr "Hanteren van de killring"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:18581
 #, no-wrap
 msgid "Ring, making a list like a"
-msgstr ""
+msgstr "Ring, een lijst maken zoals een"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18586
@@ -38715,6 +38764,9 @@ msgid ""
 "the @code{current-kill} function.  The @code{yank} and @code{yank-pop} "
 "commands use the @code{current-kill} function."
 msgstr ""
+"De killring is een lijst die is getransformeerd in een ring door de "
+"functie @code{current-kill}. De @code{yank} en @code{yank-pop} "
+"commando's gebruiken de functie @code{current-kill}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18590
@@ -38723,6 +38775,9 @@ msgid ""
 "@code{yank} and the @code{yank-pop} commands, but first, consider the "
 "workings of the kill ring."
 msgstr ""
+"Deze appendix beschrijft de functie @code{current-kill} en ook de "
+"commando's @code{yank} en @code{yank-pop}, maar eerst beschouwen we "
+"de werking van de killring."
 
 #. type: unnumberedsec
 #: emacs-lisp-intro.texi:18600 emacs-lisp-intro.texi:18601
@@ -38737,6 +38792,9 @@ msgid ""
 "too large for an explanation.  Instead, set it to four.  Please evaluate the "
 "following:"
 msgstr ""
+"De killring heeft een standaard maximum lengte van zestig items. Dit "
+"getal is te groot voor een uitleg. Zet in het in plaats daarvan op "
+"vier. Evalueer het volgende:"
 
 #. type: group
 #: emacs-lisp-intro.texi:18613
@@ -38745,6 +38803,8 @@ msgid ""
 "(setq old-kill-ring-max kill-ring-max)\n"
 "(setq kill-ring-max 4)\n"
 msgstr ""
+"(setq old-kill-ring-max kill-ring-max)\n"
+"(setq kill-ring-max 4)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18620
@@ -38753,6 +38813,9 @@ msgid ""
 "ring.  You may kill each line with @kbd{C-k} or mark it and copy it with "
 "@kbd{M-w}."
 msgstr ""
+"Kopieer daarna elke regel van het volgende voorbeeld in de killring. "
+"Je kunt elke regel killen met @kbd{C-k} of markeren en dan kopiëren "
+"met @kbd{M-w}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18629
@@ -38771,6 +38834,8 @@ msgid ""
 "Please invoke the calls in order, so that five elements attempt to fill the "
 "kill ring:"
 msgstr ""
+"Roep deze calls op volgorde aan, zodat vijf elementen de killring "
+"proberen te vullen."
 
 #. type: group
 #: emacs-lisp-intro.texi:18642
@@ -38782,22 +38847,27 @@ msgid ""
 "fourth line of text\n"
 "fifth bit of text\n"
 msgstr ""
+"eerst wat tekst\n"
+"tweede stukje tekst\n"
+"derde regel\n"
+"vierde regel tekst\n"
+"vijfde stukje tekst\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18648
 msgid "Then find the value of @code{kill-ring} by evaluating"
-msgstr ""
+msgstr "Vind vervolgens de waarde van @code{kill-ring} door het evalueren van"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:18651
 #, no-wrap
 msgid "kill-ring\n"
-msgstr ""
+msgstr "kill-ring\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18656
 msgid "It is:"
-msgstr ""
+msgstr "Dit is:"
 
 #. type: group
 #: emacs-lisp-intro.texi:18661
@@ -38806,28 +38876,30 @@ msgid ""
 "(\"fifth bit of text\" \"fourth line of text\"\n"
 "\"third line\" \"second piece of text\")\n"
 msgstr ""
+"(\"vijfde stukje tekst\" \"vierde regel tekst\"\n"
+"\"derde regel\" \"tweede stukje tekst\")\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18666
 msgid "The first element, @samp{first some text}, was dropped."
-msgstr ""
+msgstr "Het eerste element, @samp{eerst wat tekst}, was verwijderd."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18669
 msgid "To return to the old value for the length of the kill ring, evaluate:"
-msgstr ""
+msgstr "Om de oude waarde van de lengte van de killring te herstellen, evalueer:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:18672
 #, no-wrap
 msgid "(setq kill-ring-max old-kill-ring-max)\n"
-msgstr ""
+msgstr "(setq kill-ring-max old-kill-ring-max)\n"
 
 #. type: findex
 #: emacs-lisp-intro.texi:18674 emacs-lisp-intro.texi:18676
 #, no-wrap
 msgid "current-kill"
-msgstr ""
+msgstr "current-kill"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18685
@@ -38839,6 +38911,13 @@ msgid ""
 "indirectly by @code{kill-append}, @code{copy-region-as-kill}, @code{kill-"
 "ring-save}, @code{kill-line}, and @code{kill-region}.)"
 msgstr ""
+"De functie @code{current-kill} wijzigt het element in de killring "
+"naar waar @code{kill-ring-yank-pointer} wijst. (De functie "
+"@code{kill-new} zet ook @code{kill-ring-yank-pointer} zo dat die "
+"wijst naar het laatste element van de killring. De functie "
+"@code{kill-new} wordt direct of indirect gebruikt door "
+"@code{kill-append}, @code{copy-region-as-kill}, "
+"@code{kill-ring-save}, @code{kill-line} en @code{kill-region}.)"
 
 #. type: node
 #: emacs-lisp-intro.texi:18692
@@ -38850,7 +38929,7 @@ msgstr "Code voor current-kill"
 #: emacs-lisp-intro.texi:18693
 #, no-wrap
 msgid "The code for @code{current-kill}"
-msgstr ""
+msgstr "De code voor @code{current-kill}"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18700
@@ -38858,6 +38937,8 @@ msgid ""
 "The @code{current-kill} function is used by @code{yank} and by @code{yank-"
 "pop}.  Here is the code for @code{current-kill}:"
 msgstr ""
+"De functie @code{current-kill} wordt gebruikt door @code{yank} en "
+"door @code{yank-pop}. Hier is de code van @code{current-kill}: "
 
 #. type: group
 #: emacs-lisp-intro.texi:18710
@@ -38871,6 +38952,13 @@ msgid ""
 "to the front of the kill ring and the string (or first string in\n"
 "the list) is returned as the latest kill.\n"
 msgstr ""
+"(defun current-kill (n &optional do-not-move)\n"
+"  \"Rotate the yanking point by N places, and then return that kill.\n"
+"If N is zero and `interprogram-paste-function' is set to a\n"
+"function that returns a string or a list of strings, and if that\n"
+"function doesn't return nil, then that string (or list) is added\n"
+"to the front of the kill ring and the string (or first string in\n"
+"the list) is returned as the latest kill.\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:18715
@@ -38880,6 +38968,9 @@ msgid ""
 "non-nil, use `interprogram-cut-function' to transfer the\n"
 "kill at the new yank point into the window system selection.\n"
 msgstr ""
+"If N is not zero, and if `yank-pop-change-selection' is\n"
+"non-nil, use `interprogram-cut-function' to transfer the\n"
+"kill at the new yank point into the window system selection.\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:18719
@@ -38889,6 +38980,8 @@ msgid ""
 "move the yanking point; just return the Nth kill forward.\"\n"
 "\n"
 msgstr ""
+"If optional arg DO-NOT-MOVE is non-nil, then don't actually\n"
+"move the yanking point; just return the Nth kill forward.\"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:18723
@@ -38898,6 +38991,9 @@ msgid ""
 "                                 interprogram-paste-function\n"
 "                                 (funcall interprogram-paste-function))))\n"
 msgstr ""
+"  (let ((interprogram-paste (and (= n 0)\n"
+"                                 interprogram-paste-function\n"
+"                                 (funcall interprogram-paste-function))))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:18735
@@ -38914,6 +39010,16 @@ msgid ""
 "              (kill-new interprogram-paste)))\n"
 "          (car kill-ring))\n"
 msgstr ""
+"    (if interprogram-paste\n"
+"        (progn\n"
+"          ;; Disable the interprogram cut function when we add the new\n"
+"          ;; text to the kill ring, so Emacs doesn't try to own the\n"
+"          ;; selection, with identical text.\n"
+"          (let ((interprogram-cut-function nil))\n"
+"            (if (listp interprogram-paste)\n"
+"              (mapc 'kill-new (nreverse interprogram-paste))\n"
+"              (kill-new interprogram-paste)))\n"
+"          (car kill-ring))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:18749
@@ -38932,6 +39038,18 @@ msgid ""
 "            (funcall interprogram-cut-function (car ARGth-kill-element))))\n"
 "        (car ARGth-kill-element)))))\n"
 msgstr ""
+"      (or kill-ring (error \"Kill ring is empty\"))\n"
+"      (let ((ARGth-kill-element\n"
+"             (nthcdr (mod (- n (length kill-ring-yank-pointer))\n"
+"                          (length kill-ring))\n"
+"                     kill-ring)))\n"
+"        (unless do-not-move\n"
+"          (setq kill-ring-yank-pointer ARGth-kill-element)\n"
+"          (when (and yank-pop-change-selection\n"
+"                     (> n 0)\n"
+"                     interprogram-cut-function)\n"
+"            (funcall interprogram-cut-function (car ARGth-kill-element))))\n"
+"        (car ARGth-kill-element)))))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18757
@@ -38942,6 +39060,12 @@ msgid ""
 "@code{copy-region-as-kill}, @code{kill-ring-save}, @code{kill-line}, and "
 "@code{kill-region}."
 msgstr ""
+"Bedenk dat ook de @code{kill-new} functie "
+"@code{kill-ring-yank-pointer} naar het laatste element van de "
+"killring laat wijzen, wat betekent dat al de functies die het "
+"aanroepen de waarde indirect zetten: @code{kill-append}, "
+"@code{copy-region-as-kill}, @code{kill-ring-save}, @code{kill-line} "
+"en @code{kill-region}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18761
@@ -38949,6 +39073,8 @@ msgid ""
 "Here is the line in @code{kill-new}, which is explained in @ref{kill-new "
 "function, , The @code{kill-new} function}."
 msgstr ""
+"Hier is de regel in @code{kill-new}, die uitgelegd is in "
+"@ref{kill-new functie, , The @code{kill-new} function}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18774
@@ -38957,6 +39083,9 @@ msgid ""
 "understood by taking it apart piece by piece.  First look at it in skeletal "
 "form:"
 msgstr ""
+"De functie @code{current-kill} ziet er ingewikkeld uit, maar zoals "
+"gewoonlijk, wordt die begrijpelijk door het stuk voor stuk uit te "
+"rafelen. Kijk eerst naar de vorm van het geraamte:"
 
 #. type: group
 #: emacs-lisp-intro.texi:18781
@@ -38967,6 +39096,10 @@ msgid ""
 "  (let @var{varlist}\n"
 "    @var{body}@dots{})\n"
 msgstr ""
+"(defun current-kill (n &optional do-not-move)\n"
+"  \"Rotate the yanking point by N places, and then return that kill.\"\n"
+"  (let @var{varlist}\n"
+"    @var{body}@dots{})\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18786
@@ -38974,6 +39107,8 @@ msgid ""
 "This function takes two arguments, one of which is optional.  It has a "
 "documentation string.  It is @emph{not} interactive."
 msgstr ""
+"De functie heeft twee argumenten waarvan er een optioneel is. Het "
+"heeft een documentatiestring. Het is @emph{niet} interactief."
 
 #. type: node
 #: emacs-lisp-intro.texi:18794
@@ -38993,6 +39128,8 @@ msgid ""
 "The body of the function definition is a @code{let} expression, which itself "
 "has a body as well as a @var{varlist}."
 msgstr ""
+"De body van de functiedefinitie is een @code{let} expressie, die "
+"zelf een body en een @var{varlist} heeft."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18809
@@ -39005,6 +39142,15 @@ msgid ""
 "only for the last element.  Most windowing systems have not adopted a ring "
 "of many possibilities, even though Emacs has provided it for decades."
 msgstr ""
+"De @code{let} expressie declareert een variabele die alleen "
+"bruikbaar is binnen de grenzen van deze functie. Deze variabele heet "
+"@code{interprogram-paste} en is voor het kopiëren naar een ander "
+"programma. Het is niet voor kopiëren binnen deze instantie van GNU "
+"Emacs. De meeste window systemen verschaffen een faciliteit voor het "
+"plakken tussen programma's. Helaas werkt zo'n faciliteit meestal "
+"alleen met het laatste element. De meeste window systemen hebben een "
+"ring met veel mogelijkheden niet geadopteerd, hoewel Emacs dat al "
+"tientallen jaren heeft."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18812
@@ -39012,6 +39158,9 @@ msgid ""
 "The @code{if} expression has two parts, one if there exists "
 "@code{interprogram-paste} and one if not."
 msgstr ""
+"De @code{if} expressie heeft twee delen, eentje voor als er een "
+"@code{interprogram-paste} bestaat, en eentje voor als dat niet zo "
+"is."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18818
@@ -39020,8 +39169,8 @@ msgid ""
 "then-part uses the @code{kill-new} function, which we have already "
 "described.  @xref{kill-new function, , The @code{kill-new} function}.)"
 msgstr ""
-"Laat ons het else-gedeelte van de @code{current-kill} functie beschouwen. "
-"(Het then-gedeelte gebruikt de @code{kill-new} functie, die we al eerder "
+"Laat ons het anders-gedeelte van de @code{current-kill} functie beschouwen. "
+"(Het dan-gedeelte gebruikt de @code{kill-new} functie, die we al eerder "
 "hebben beschreven. @xref{kill-new functie, , De @code{kill-new} functie}.)"
 
 #. type: group
@@ -39037,6 +39186,14 @@ msgid ""
 "      (setq kill-ring-yank-pointer ARGth-kill-element))\n"
 "  (car ARGth-kill-element))\n"
 msgstr ""
+"(or kill-ring (error \"Kill ring is empty\"))\n"
+"(let ((ARGth-kill-element\n"
+"       (nthcdr (mod (- n (length kill-ring-yank-pointer))\n"
+"                    (length kill-ring))\n"
+"               kill-ring)))\n"
+"  (or do-not-move\n"
+"      (setq kill-ring-yank-pointer ARGth-kill-element))\n"
+"  (car ARGth-kill-element))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18835
@@ -39044,6 +39201,8 @@ msgid ""
 "The code first checks whether the kill ring has content; otherwise it "
 "signals an error."
 msgstr ""
+"De code controleert eerst of de killring inhoud heeft, zo niet, dan "
+"geeft het een foutmelding."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18839
@@ -39051,18 +39210,20 @@ msgid ""
 "Note that the @code{or} expression is very similar to testing length with an "
 "@code{if}:"
 msgstr ""
+"Merk op dat de @code{or} expressie erg lijkt op het testen van de "
+"lengte met een @code{if}."
 
 #. type: findex
 #: emacs-lisp-intro.texi:18840
 #, no-wrap
 msgid "zerop"
-msgstr ""
+msgstr "zerrop"
 
 #. type: findex
 #: emacs-lisp-intro.texi:18841
 #, no-wrap
 msgid "error"
-msgstr ""
+msgstr "error"
 
 #. type: group
 #: emacs-lisp-intro.texi:18847
@@ -39072,6 +39233,9 @@ msgid ""
 "    (error \"Kill ring is empty\"))       ; @r{then-part}\n"
 "  ;; No else-part\n"
 msgstr ""
+"(if (zerop (length kill-ring))          ; @r{if-deel}\n"
+"    (error \"Kill ring is empty\"))       ; @r{dan-deel}\n"
+"  ;; Geen anders-deel\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18855
@@ -39081,6 +39245,11 @@ msgid ""
 "@code{current-kill} function uses an @code{or} expression which is simpler.  "
 "But an @code{if} expression reminds us what goes on."
 msgstr ""
+"Wanneer er niets in de killring is, moet zijn lengte nul zijn en "
+"krijgt de gebruiker een foutboodschap: @samp{Kill ring is empty}. De "
+"functie @code{current-kill} gebruikt een @code{or} expressie die "
+"eenvoudiger is. Maar een @code{if} expressie vertelt ons aan wat "
+"er gebeurt."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18866
@@ -39095,6 +39264,17 @@ msgid ""
 "within which it is embedded.  This means that the rest of the function will "
 "not be evaluated if the length of the kill ring is zero."
 msgstr ""
+"Deze @code{if} expressie gebruikt de functie @code{zerop} die waar "
+"teruggeeft wanneer de waarde die die test nul is. Wanneer "
+"@code{zerop} waar test, wordt het dan-deel van de @code{if} "
+"geëvalueerd. Het dan-deel is een lijst die begint met de functie "
+"@code{error}, die een functie sis vergelijkbaar met de functie "
+"@code{message} (@pxref{message, , De @code{message} functie}), het "
+"toont een een-regelige boodschap in het echogebied. In aanvulling op "
+"het tonen van een boodschap stopt @code{error} echter ook de "
+"evaluatie van de functie waarin die is opgenomen. Dit betekent dat "
+"de rest van de functie niet wordt geëvalueerd wanneer de lengte van "
+"de killring nul is."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18870
@@ -39103,6 +39283,10 @@ msgid ""
 "selection depends on the number of places that @code{current-kill} rotates "
 "and on where @code{kill-ring-yank-pointer} points."
 msgstr ""
+"Dan selecteert de functie @code{current-kill} het element om "
+"terug te geven. De selectie hangt af van het aantal plaatsen dat "
+"@code{current-kill} roteert en van waar "
+"@code{kill-ring-yank-pointer} naar wijst."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18875
@@ -39112,12 +39296,17 @@ msgid ""
 "Finally, another expression returns the first element of the list even if "
 "the @code{do-not-move} argument is true."
 msgstr ""
+"Vervolgens is hetzij het optionele argument @code{do-not-move} waar, "
+"dan wel de huidige waarde van @code{kill-ring-yank-pointer} wordt zo "
+"gezet dat die naar de lijst wijst. Tenslotte geeft een andere "
+"expressie het eerste element van de lijst terug, zelfs als het "
+"argument @code{do-not-move} waar is."
 
 #. type: unnumberedsubsubsec
 #: emacs-lisp-intro.texi:18878
 #, no-wrap
 msgid "Digression about the word ``error''"
-msgstr ""
+msgstr "Uitweiding over het woord ``error''"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18889
@@ -39130,6 +39319,14 @@ msgid ""
 "to attempt this sort of thing, if only to find out whether the kill ring is "
 "full or empty.  This is an act of exploration."
 msgstr ""
+"Naar mijn mening is het lichtelijk misleidend, tenminste voor "
+"mensen, om de term ``error'' te gebruiken voor de naam van de "
+"functie @code{error}. Een betere term zou ``cancel'' zijn. Strikt "
+"genomen kan je natuurlijk niet wijzen, of een pointer roteren, "
+"naar een lijst die geen lengte heeft, zodat vanuit het perspectief "
+"van de computer is het woord ``error'' correct. Maar een mens "
+"verwacht zo iets te proberen, als is het maar om vast te stellen od "
+"de killring vol of leeg is. Dit is een daad van verkenning."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18897
@@ -39142,6 +39339,14 @@ msgid ""
 "does when there is an error, a term such as ``cancel'' would have a clearer "
 "connotation."
 msgstr ""
+"Vanuit het menselijk perspectief is de daad van verkenning en "
+"ontdekking niet noodzakelijkerwijs een fout, en daarom zou het niet "
+"als zodanig moeten worden bestempeld, zelfs in de buik van de "
+"computer. Zoals het nu is, impliceert de code in Emacs dat een mens "
+"die deugdzaam handelt door zijn of haar omgeving te verkennen een "
+"fout maakt. Dat is niet goed. Alhoewel de computer dezelfde stappen "
+"zet die het doet wanneer er een fout is, zou een term zoals "
+"``cancel'' een helderder connotatie hebben."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18907
@@ -39151,6 +39356,10 @@ msgid ""
 "kill ring has something in it and the value of @code{do-not-move} is "
 "@code{nil}."
 msgstr ""
+"Naast andere acties zet het anders-deel van de @code{if} expressie "
+"de waarde van @code{kill-ring-yank-pointer} naar "
+"@code{ARGth-kill-element}, wanneer de killring iets bevat en de "
+"waarde van @code{do-not-move} @code{nil} is."
 
 #. type: group
 #: emacs-lisp-intro.texi:18916
@@ -39160,6 +39369,9 @@ msgid ""
 "             (length kill-ring))\n"
 "        kill-ring)))\n"
 msgstr ""
+"(nthcdr (mod (- n (length kill-ring-yank-pointer))\n"
+"             (length kill-ring))\n"
+"        kill-ring)))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18928
@@ -39172,6 +39384,14 @@ msgid ""
 "@code{nthcdr} function that is described in an earlier section.  (@xref{copy-"
 "region-as-kill}.)  How does it do this?"
 msgstr ""
+"Dit vereist wat onderzoek. Tenzij het niet de bedoeling is de "
+"pointer te verplaatsen, wijzigt de functie @code{current-kill} naar "
+"waar @code{kill-ring-yank-pointer} wijst. Dat is wat de expressie "
+"@w{@code{(setq kill-ring-yank-pointer ARGth-kill-element))}} doet. "
+"Ook wordt @code{ARGth-kill-element} hetzelfde ingesteld als een "
+"@sc{cdr} in de killring, met de functie @code{nthcdr} die in een "
+"eerdere sectie besproken is. (@xref{copy-region-as-kill}.) Hoe doet "
+"het dat?"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18932
@@ -39180,11 +39400,14 @@ msgid ""
 "repeatedly taking the @sc{cdr} of a list---it takes the @sc{cdr} of the "
 "@sc{cdr} of the @sc{cdr} @dots{}"
 msgstr ""
+"Zoals we eerder zagen (@pxref{nthcdr}), werkt de @code{nthcdr} functie door "
+"herhaaldelijk de @sc{cdr} van een lijst te nemen---het neemt de  "
+"@sc{cdr} van de @sc{cdr} van de @sc{cdr} @dots{}"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18935
 msgid "The two following expressions produce the same result:"
-msgstr ""
+msgstr "De volgende twee expressies produceren hetzelfde resultaat:"
 
 #. type: group
 #: emacs-lisp-intro.texi:18939
@@ -39193,12 +39416,14 @@ msgid ""
 "(setq kill-ring-yank-pointer (cdr kill-ring))\n"
 "\n"
 msgstr ""
+"(setq kill-ring-yank-pointer (cdr kill-ring))\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:18941
 #, no-wrap
 msgid "(setq kill-ring-yank-pointer (nthcdr 1 kill-ring))\n"
-msgstr ""
+msgstr "(setq kill-ring-yank-pointer (nthcdr 1 kill-ring))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18946
@@ -39206,6 +39431,9 @@ msgid ""
 "However, the @code{nthcdr} expression is more complicated.  It uses the "
 "@code{mod} function to determine which @sc{cdr} to select."
 msgstr ""
+"De @code{nthcdr} expressie is echter meer gecompliceerd. Het "
+"gebruikt de functie @code{mod} om vast te stellen welke @sc{cdr} te "
+"selecteren."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18949
@@ -39213,6 +39441,8 @@ msgid ""
 "(You will remember to look at inner functions first; indeed, we will have to "
 "go inside the @code{mod}.)"
 msgstr ""
+"(Je herinnert je om eerst naar de binnenste functie te kijken, we "
+"moeten inderdaad de @code{mod} in.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18954
@@ -39222,11 +39452,15 @@ msgid ""
 "argument by the second.  The value returned has the same sign as the second "
 "argument."
 msgstr ""
+"De functie @code{mod} geeft de waarde van het eerste argument modulo "
+"het tweede. Met andere woorden, het geeft de rest na het delen van "
+"het eerste argument door het tweede. De teruggegeven waarde heeft "
+"hetzelfde teken als het tweede argument."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18957 emacs-lisp-intro.texi:20535
 msgid "Thus,"
-msgstr ""
+msgstr "Dus"
 
 #. type: group
 #: emacs-lisp-intro.texi:18964
@@ -39237,6 +39471,10 @@ msgid ""
 "(mod 13 4)\n"
 "  @result{} 1\n"
 msgstr ""
+"(mod 12 4)\n"
+"  @result{} 0  ;; @r{omdat er geen rest is}\n"
+"(mod 13 4)\n"
+"  @result{} 1\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18970
@@ -39244,6 +39482,8 @@ msgid ""
 "In this case, the first argument is often smaller than the second.  That is "
 "fine."
 msgstr ""
+"In dit geval is het eerste argument vaak kleiner dan het tweede. Dat "
+"is prima."
 
 #. type: group
 #: emacs-lisp-intro.texi:18977
@@ -39254,6 +39494,10 @@ msgid ""
 "(mod 1 4)\n"
 "  @result{} 1\n"
 msgstr ""
+"(mod 0 4)\n"
+"  @result{} 0\n"
+"(mod 1 4)\n"
+"  @result{} 1\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18984
@@ -39263,6 +39507,11 @@ msgid ""
 "argument from its first.  Also, we already know what the @code{length} "
 "function does (@pxref{length}).  It returns the length of a list."
 msgstr ""
+"We kunnen raden wat de functie @code{-} doet. Het is net als "
+"@code{+} maar trekt af in plaats van optellen. De functie @code{-} "
+"trekt het tweede argument af van het eerste. We weten al wat de "
+"functie @code{length} doet (@pxref{length}). Het geeft de lengte van "
+"een lijst terug."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18987
@@ -39270,6 +39519,8 @@ msgid ""
 "And @code{n} is the name of the required argument to the @code{current-kill} "
 "function."
 msgstr ""
+"En @code{n} is de naam van het vereiste argument van de functie "
+"@code{current-kill}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:18992
@@ -39278,6 +39529,9 @@ msgid ""
 "expression returns the whole list, as you can see by evaluating the "
 "following:"
 msgstr ""
+"Dus wanneer het eerste argument van @code{nthcdr} nul is, geeft de "
+"@code{nthcdr} expressie de hele lijst terug, zoals je kunt zien door "
+"het evalueren van het volgende:"
 
 #. type: group
 #: emacs-lisp-intro.texi:19002
@@ -39291,6 +39545,13 @@ msgid ""
 "          \"second piece of text\"\n"
 "          \"first some text\"))\n"
 msgstr ""
+";; kill-ring-yank-pointer @r{en} kill-ring @r{hebben een lengte van 4}\n"
+";; @r{en} (mod (- 0 4) 4) @result{} 0\n"
+"(nthcdr (mod (- 0 4) 4)\n"
+"        '(\"vierde regel tekst\"\n"
+"          \"derde regel\"\n"
+"          \"tweede stukje tekst\"\n"
+"          \"eerst wat tekst\"))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19009
@@ -39298,6 +39559,9 @@ msgid ""
 "When the first argument to the @code{current-kill} function is one, the "
 "@code{nthcdr} expression returns the list without its first element."
 msgstr ""
+"Wanneer het eerste argument van de functie @code{current-kill} één "
+"is, geeft de @code{nthcdr} expressie de lijst terug zonder het "
+"eerste element."
 
 #. type: group
 #: emacs-lisp-intro.texi:19017
@@ -39309,18 +39573,23 @@ msgid ""
 "          \"second piece of text\"\n"
 "          \"first some text\"))\n"
 msgstr ""
+"(nthcdr (mod (- 1 4) 4)\n"
+"        '(\"vierde regel tekst\"\n"
+"          \"derde regel\"\n"
+"          \"tweede stukje tekst\"\n"
+"          \"eerst wat tekst\"))\n"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:19020
 #, no-wrap
 msgid "@samp{global variable} defined"
-msgstr ""
+msgstr "@samp{global variable} gedefinieerd"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:19021
 #, no-wrap
 msgid "@samp{variable, global}, defined"
-msgstr ""
+msgstr "@samp{variable, global}, gedefinieerd"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19029
@@ -39332,21 +39601,29 @@ msgid ""
 "within the @code{let} that defines them or the function that specifies them "
 "in an argument list (and within expressions called by them)."
 msgstr ""
+"Overigens zijn zowel @code{kill-ring} als "
+"@code{kill-ring-yank-pointer} @dfn{globale variabelen}. Dat betekent "
+"dat elke expressie in Emacs Lisp toegang tot ze heeft. Zij zijn niet "
+"zoals de lokale variabelen gezet door @code{let} of zoals de "
+"symbolen in een argument list. Lokale variabelen zijn alleen "
+"toegankelijk binnen de @code{let} die ze definieert of de functie "
+"die ze specificeert in een argument list (en binnen de door ze "
+"aangeroepen expressies)."
 
 #. type: ifnottex
 #: emacs-lisp-intro.texi:19033
 msgid "(@xref{Prevent confusion, , @code{let} Prevents Confusion}, and"
-msgstr ""
+msgstr "(@xref{Voorkom verwarring, , @code{let} voorkomt verwarring}, en"
 
 #. type: iftex
 #: emacs-lisp-intro.texi:19036
 msgid "(@xref{Permanent Installation, , @code{let} Prevents Confusion}, and"
-msgstr ""
+msgstr "(@xref{Permanent installeren, , @code{let} voorkomt verwarring}, en"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19038
 msgid "@ref{defun, , The @code{defun} Macro}.)"
-msgstr ""
+msgstr "@ref{defun, , De @code{defun} macro}.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19045
@@ -39354,6 +39631,8 @@ msgid ""
 "After learning about @code{current-kill}, the code for the @code{yank} "
 "function is almost easy."
 msgstr ""
+"Na het bestuderen van @code{current-kill} is de code van de functie "
+"@code{yank} bijna makkelijk."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19050
@@ -39362,6 +39641,10 @@ msgid ""
 "variable directly.  It calls @code{insert-for-yank} which calls "
 "@code{current-kill} which sets the @code{kill-ring-yank-pointer} variable."
 msgstr ""
+"De functie @code{yank} gebruikt de variabele "
+"@code{kill-ring-yank-pointer} niet direct. Het roept "
+"@code{insert-for-yank} aan, die roept @code{current-kill} aan welke de "
+"variabele @code{kill-ring-yank-pointer} zet."
 
 #. type: group
 #: emacs-lisp-intro.texi:19064
@@ -39376,6 +39659,14 @@ msgid ""
 "text.\n"
 "\n"
 msgstr ""
+"(defun yank (&optional arg)\n"
+"  \"Reinsert (\\\"paste\\\") the last stretch of killed text.\n"
+"More precisely, reinsert the stretch of killed text most recently\n"
+"killed OR yanked.  Put point at end, and set mark at beginning.\n"
+"With just \\\\[universal-argument] as argument, same but put point at beginning (and mark at end).\n"
+"With argument N, reinsert the Nth most recently killed stretch of killed\n"
+"text.\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:19068
@@ -39386,12 +39677,16 @@ msgid ""
 "doc string for `insert-for-yank-1', which see.\n"
 "\n"
 msgstr ""
+"When this command inserts killed text into the buffer, it honors\n"
+"`yank-excluded-properties' and `yank-handler' as described in the\n"
+"doc string for `insert-for-yank-1', which see.\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:19070
 #, no-wrap
 msgid "See also the command `yank-pop' (\\\\[yank-pop]).\"\n"
-msgstr ""
+msgstr "See also the command `yank-pop' (\\\\[yank-pop]).\"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:19078
@@ -39404,6 +39699,12 @@ msgid ""
 "  (setq this-command t)\n"
 "  (push-mark (point))\n"
 msgstr ""
+"  (interactive \"*P\")\n"
+"  (setq yank-window-start (window-start))\n"
+"  ;; If we don't get all the way thru, make last-command indicate that\n"
+"  ;; for the following command.\n"
+"  (setq this-command t)\n"
+"  (push-mark (point))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:19090
@@ -39420,6 +39721,16 @@ msgid ""
 "      (goto-char (prog1 (mark t)\n"
 "                   (set-marker (mark-marker) (point) (current-buffer)))))\n"
 msgstr ""
+"  (insert-for-yank (current-kill (cond\n"
+"                                  ((listp arg) 0)\n"
+"                                  ((eq arg '-) -2)\n"
+"                                  (t (1- arg)))))\n"
+"  (if (consp arg)\n"
+"      ;; This is like exchange-point-and-mark, but doesn't activate the mark.\n"
+"      ;; It is cleaner to avoid activation, even though the command\n"
+"      ;; loop would deactivate the mark because we inserted text.\n"
+"      (goto-char (prog1 (mark t)\n"
+"                   (set-marker (mark-marker) (point) (current-buffer)))))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:19096
@@ -39430,6 +39741,10 @@ msgid ""
 "      (setq this-command 'yank))\n"
 "  nil)\n"
 msgstr ""
+"  ;; If we do get all the way thru, make this-command indicate that.\n"
+"  (if (eq this-command t)\n"
+"      (setq this-command 'yank))\n"
+"  nil)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19102
@@ -39437,6 +39752,9 @@ msgid ""
 "The key expression is @code{insert-for-yank}, which inserts the string "
 "returned by @code{current-kill}, but removes some text properties from it."
 msgstr ""
+"De sleutel-expressie is @code{insert-for-yank}, die de string "
+"teruggeven door @code{current-kill} invoegt, maar verwijdert enkele "
+"teksteigenschappen er van."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19108
@@ -39446,6 +39764,11 @@ msgid ""
 "start)} expression, the position at which the display currently starts.  The "
 "@code{yank} function also sets @code{this-command} and pushes the mark."
 msgstr ""
+"Voor dat het bij die expressie komt, zet de functie de waarde van "
+"@code{yank-window-start} op de positie teruggegeven door de "
+"@code{window-start} expressie., de positie waarop het display thans "
+"begint. De functie @code{yank} zet ook @code{this-command} en pusht "
+"de mark."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19112
@@ -39454,6 +39777,9 @@ msgid ""
 "@sc{cons} rather than a number or nothing, it puts point at beginning of the "
 "yanked text and mark at its end."
 msgstr ""
+"Nadat het het passende element yankt, wanneer het optionele argument "
+"een @sc{cons} is in plaats van een getal of niets, dan plaatst het "
+"point aan het begin van de geyankte tekst en markeert het einde."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19120
@@ -39465,11 +39791,18 @@ msgid ""
 "buffer and then typing @kbd{C-h f} (@code{describe-function}) followed by a "
 "@kbd{RET}; the default is the function.)"
 msgstr ""
+"(De functie @code{prog1} is net als @code{progn} maar geeft de "
+"waarde van het eerste argument terug in plaats van de waarde van het "
+"laatste argument. Het eerste argument is geforceerd om de mark van "
+"de buffer als integer terug te geven. Je kunt de documentatie van "
+"deze functies zien door in dit buffer point op ze te plaatsten en "
+"dan @kbd{C-h f} (@code{describe-function}) te typen, gevold door een "
+"@kbd{RET}; de default is de functie.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19122
 msgid "The last part of the function tells what to do when it succeeds."
-msgstr ""
+msgstr "Het laatste deel van de functie zegt wat te doen wanneer het succesvol is."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19130
@@ -39478,6 +39811,9 @@ msgid ""
 "approach the @code{yank-pop} function.  Leaving out the documentation to "
 "save space, it looks like this:"
 msgstr ""
+"Na het begrijpen van @code{yank} en @code{current-kill}, weet je hoe "
+"de functie @code{yank-pop} te benaderen. Met het weglaten van de "
+"documentatie om plek te besparen, ziet die er zo uit:"
 
 #. type: group
 #: emacs-lisp-intro.texi:19139
@@ -39489,6 +39825,11 @@ msgid ""
 "  (if (not (eq last-command 'yank))\n"
 "      (error \"Previous command was not a yank\"))\n"
 msgstr ""
+"(defun yank-pop (&optional arg)\n"
+"  \"@dots{}\"\n"
+"  (interactive \"*p\")\n"
+"  (if (not (eq last-command 'yank))\n"
+"      (error \"Previous command was not a yank\"))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:19145
@@ -39499,6 +39840,10 @@ msgid ""
 "  (let ((inhibit-read-only t)\n"
 "        (before (< (point) (mark t))))\n"
 msgstr ""
+"  (setq this-command 'yank)\n"
+"  (unless arg (setq arg 1))\n"
+"  (let ((inhibit-read-only t)\n"
+"        (before (< (point) (mark t))))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:19151
@@ -39509,6 +39854,10 @@ msgid ""
 "      (funcall (or yank-undo-function 'delete-region) (mark t) (point)))\n"
 "    (setq yank-undo-function nil)\n"
 msgstr ""
+"    (if before\n"
+"        (funcall (or yank-undo-function 'delete-region) (point) (mark t))\n"
+"      (funcall (or yank-undo-function 'delete-region) (mark t) (point)))\n"
+"    (setq yank-undo-function nil)\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:19158
@@ -39520,6 +39869,11 @@ msgid ""
 "    ;; if possible.\n"
 "    (set-window-start (selected-window) yank-window-start t)\n"
 msgstr ""
+"    (set-marker (mark-marker) (point) (current-buffer))\n"
+"    (insert-for-yank (current-kill arg))\n"
+"    ;; Set the window start back where it was in the yank command,\n"
+"    ;; if possible.\n"
+"    (set-window-start (selected-window) yank-window-start t)\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:19170
@@ -39536,6 +39890,16 @@ msgid ""
 "                                 (current-buffer))))))\n"
 "  nil)\n"
 msgstr ""
+"    (if before\n"
+"        ;; This is like exchange-point-and-mark,\n"
+"        ;;     but doesn't activate the mark.\n"
+"        ;; It is cleaner to avoid activation, even though the command\n"
+"        ;; loop would deactivate the mark because we inserted text.\n"
+"        (goto-char (prog1 (mark t)\n"
+"                     (set-marker (mark-marker)\n"
+"                                 (point)\n"
+"                                 (current-buffer))))))\n"
+"  nil)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19179
@@ -39546,6 +39910,12 @@ msgid ""
 "variable @code{last-command} which is set by @code{yank} and is discussed "
 "elsewhere.  (@xref{copy-region-as-kill}.)"
 msgstr ""
+"De functie is interactief met een kleine letter @samp{p} zodat het "
+"prefix argument wordt verwerkt en doorgegeven aan de functie. Het "
+"commando kan alleen worden gebruikt na een voorgaande yank, anders "
+"wordt een foutboodschap gegeven. Deze check gebruikt de variabele "
+"@code{last-command} die gezet is door @code{yank} en elders is "
+"besproken. (@xref{copy-region-as-kill}.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19185
@@ -39555,6 +39925,11 @@ msgid ""
 "point and mark is deleted.  This is the region that was just inserted by the "
 "previous yank and it is this text that will be replaced."
 msgstr ""
+"De @code{let} clausule zet de variabele @code{before} op waar of "
+"onwaar afhankelijk of point voor of na de mark is en delete dan de "
+"region tussen point en mark. Dit is de region dat zojuist was "
+"ingevoegd door de voorgaande yank en dit is de tekst die wordt "
+"vervangen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19190
@@ -39564,23 +39939,27 @@ msgid ""
 "returns.  The two remaining arguments are the positions of point and mark "
 "set by the preceding @code{yank} command."
 msgstr ""
+"@code{funcall} roept het eerste argument als functie aan, en geeft "
+"de resterende argumenten er aan door. Het eerste argument is wat de "
+"@code{or} teruggeeft. De twee resterende argumenten zijn de posities "
+"van point en mark, gezet door het voorafgaande @code{yank} commando."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19192
 msgid "There is more, but that is the hardest part."
-msgstr ""
+msgstr "Er is meer, maar dit is het moeilijkste deel."
 
 #. type: appendixsec
 #: emacs-lisp-intro.texi:19194
 #, no-wrap
 msgid "The @file{ring.el} File"
-msgstr ""
+msgstr "Het bestand @file{ring.el}"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:19195
 #, no-wrap
 msgid "@file{ring.el} file"
-msgstr ""
+msgstr "@file{ring.el} bestand"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19201
@@ -39590,6 +39969,11 @@ msgid ""
 "@code{kill-ring-yank-pointer} do not use this library, possibly because they "
 "were written earlier."
 msgstr ""
+"Interessant is dat GNU Emacs een bestand bevat met de naam "
+"@code{ring.el} dat veel van de functies bevat die we zojuist "
+"bespaken. Maar functies zoals @code{kill-ring-yank-pointer} "
+"gebruiken deze library niet, mogelijk omdat ze eerder zijn "
+"geschreven."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19210

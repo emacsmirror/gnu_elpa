@@ -168,6 +168,7 @@
 ;; Since Version 1.7:
 
 ;; - New function `futur-catch-abort'.
+;; - New function `futur-dbus-call-method'.
 ;; - Better support for aborting futur-elisp subprocesses.
 
 ;; Version 1.5:
@@ -1369,6 +1370,30 @@ URL-encoded before it's used."
      (with-current-buffer buf (funcall body-fun))
      (lambda () (and (buffer-live-p buf)
                 (kill-buffer buf))))))
+
+;;;; D-BUS futures
+
+(defun futur-dbus-call-method (bus service path interface method &rest args)
+  "Call METHOD on the D-Bus BUS.
+This is like `dbus-call-method' (which see for details
+about the meaning of each argument), except that it returns a `futur'."
+  (require 'dbus)
+  (declare-function dbus-call-method-asynchronously "dbus"
+                    (bus service path interface method handler &rest args))
+  ;; FIXME: IIUC, this won't work reliably when used inside
+  ;; a `futur-blocking-wait-to-get-result' because the D-Bus events get
+  ;; stuck in the input queue and don't get processed if there a real
+  ;; input event in front of them.
+  (futur-new (lambda (fut)
+               (apply #'dbus-call-method-asynchronously
+                      bus service path interface method
+                      (if (< emacs-major-version 32)
+                          ;; Sadly in Emacs<32 we can't get access to errors.
+                          (lambda (&rest args) (futur-deliver-value fut args))
+                        (cons (lambda (&rest args) (futur-deliver-value fut args))
+                              (lambda (err) (futur-deliver-failure fut err))))
+                      args)
+               nil)))
 
 (provide 'futur)
 ;;; futur.el ends here

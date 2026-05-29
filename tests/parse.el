@@ -33,6 +33,8 @@
 @org.foo.Annotation_2(value_1 = \"value1 , (){}\", value2 = -2.3) String[][] arr"
                    ("int" . "i")
                    ("String[][]" . "arr"))
+                  ("List<String>... lists"
+                   ("List<String>..." . "lists"))
                   ))
     (javaimp-with-temp-buffer nil
       (insert (car data))

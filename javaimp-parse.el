@@ -105,7 +105,8 @@ regexp.  First group is directive, second group is identifier."
     ;; To be able to skip over generic types as over lists
     (modify-syntax-entry ?< "(>" st)
     (modify-syntax-entry ?> ")<" st)
-    ;; Dot separates parts of fully-qualified type
+    ;; Dot separates parts of fully-qualified type and ellipsis is the
+    ;; vararg suffix
     (modify-syntax-entry ?. "_" st) ;
     ;; Override prefix syntax so that scan-sexps backwards right after
     ;; @ in annotation doesn't ignore it.
@@ -189,7 +190,10 @@ skipping further backwards is done by the caller."
                 (lambda (_last-what last-pos)
                   (save-excursion
                     (if last-pos (goto-char last-pos))
-                    (looking-at "\\_<"))))))
+                    (and (looking-at "\\_<")
+                         ;; Do not stop at vararg ellipsis like in
+                         ;; List<String>...
+                         (not (string= (current-word t) "..."))))))))
         (progn
           (unless (eq last-skip t)
             (goto-char (cdr last-skip))) ;undo skipping by ..-until

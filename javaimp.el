@@ -82,7 +82,8 @@
 ;; `javaimp-gradle-program'.
 ;;
 ;; `javaimp-java-home': defcustom giving location of JDK to use.
-;; Classes from JDK are included into import completion candidates.
+;; Classes from JDK are included into import completion candidates,
+;; except for java.lang.* by default (see `javaimp-exclude-imports').
 ;; Also, when invoking a Java program, JAVA_HOME environment variable
 ;; is added to the subprocess environment.  The variable is
 ;; initialized from JAVA_HOME environment variable, so typically you
@@ -181,6 +182,11 @@ E.g. \"${project.build.directory}/generated-sources/<plugin_name>\"
 becomes \"generated-sources/<plugin_name>\" (note the absence of
 the leading slash)."
   :type '(repeat (string :tag "Relative directory")))
+
+(defcustom javaimp-exclude-imports '("\\`java\\.lang\\.")
+  "List of regular expressions matching class names to exclude from import
+candidates."
+  :type '(repeat (string :tag "Class name regexp")))
 
 (defcustom javaimp-jar-program "jar"
   "Path to the `jar' program used to read contents of jar files."
@@ -631,14 +637,15 @@ name (without package) against `symbol-at-point' (with prefix arg
 
 The set of relevant classes is collected from the following:
 
-- If `javaimp-java-home' is set then add JDK classes, see
-`javaimp--get-jdk-classes'.
-
+- If `javaimp-java-home' is set then add JDK classes (except for
+java.lang.* by default), see `javaimp--get-jdk-classes'.
 - If current module can be determined, then add all classes from
 its jar dependencies, as well as its source dependencies.
-
 - Add classes in current module (if any) or source tree (see
-`javaimp--get-current-source-dir')."
+`javaimp--get-current-source-dir').
+
+If a class name matches any of the regexps in `javaimp-exclude-imports',
+it is excluded from the list of candidates."
   (interactive
    (let* ((module (javaimp--detect-module))
           (scope-pred (javaimp-scope-defun-p))
@@ -668,6 +675,11 @@ its jar dependencies, as well as its source dependencies.
                 (list (rx (and symbol-start
                                (literal (symbol-name (symbol-at-point)))
                                eol))))))
+     (when javaimp-exclude-imports
+       (let ((regexp (mapconcat #'identity javaimp-exclude-imports "\\|")))
+         (setq classes
+               (seq-filter (lambda (s) (not (string-match-p regexp s)))
+                           classes))))
      (list (completing-read "Import: " classes nil t nil nil
                             (symbol-name (symbol-at-point))))))
   (javaimp-organize-imports (list (cons classname 'normal))))

@@ -136,9 +136,9 @@ The value may also be a predicate function."
 
 (defun aggressive-completion--trigger-immediately-p ()
   "Return non-nil, if aggressive-completion should trigger immediately."
-  (or (and (functionp aggressive-completion-trigger-immediately)
-           (funcall aggressive-completion-trigger-immediately))
-      aggressive-completion-trigger-immediately))
+  (if (functionp aggressive-completion-trigger-immediately)
+      (funcall aggressive-completion-trigger-immediately)
+    aggressive-completion-trigger-immediately))
 
 (defun aggressive-completion--get-minibuffer-tick ()
   "Return the current state of the minibuffer."

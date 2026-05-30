@@ -121,18 +121,21 @@ When FORCE is non-nil, fetch all and mark missing PRs as closed."
             buf-name host-url host owner repo forgejo-pull--filters))))
      ;; Done: close missing, set sync time, final re-render
      (lambda (all-data headers)
-       (when (and force (equal (plist-get filters :state) "open"))
-         (let ((numbers (mapcar (lambda (p) (alist-get 'number p)) all-data)))
-           (forgejo-db-close-missing host owner repo numbers t)))
-       (forgejo-db-set-sync-time host owner repo "pulls"
-                                 (format-time-string "%Y-%m-%dT%H:%M:%SZ"
-                                                     nil t))
-       (when (buffer-live-p (get-buffer buf-name))
-         (with-current-buffer buf-name
-           (forgejo-pull--render-from-db
-            buf-name host-url host owner repo forgejo-pull--filters)
-           (when-let* ((total (plist-get headers :total-count)))
-             (setq forgejo-pull--total-count total))))))))
+       (let ((partial (plist-get headers :partial)))
+         (when (and force
+                    (forgejo-filter-authoritative-open-sync-p filters partial))
+           (let ((numbers (mapcar (lambda (p) (alist-get 'number p)) all-data)))
+             (forgejo-db-close-missing host owner repo numbers t)))
+         (unless partial
+           (forgejo-db-set-sync-time host owner repo "pulls"
+                                     (format-time-string "%Y-%m-%dT%H:%M:%SZ"
+                                                         nil t)))
+         (when (buffer-live-p (get-buffer buf-name))
+           (with-current-buffer buf-name
+             (forgejo-pull--render-from-db
+              buf-name host-url host owner repo forgejo-pull--filters)
+             (when-let* ((total (plist-get headers :total-count)))
+               (setq forgejo-pull--total-count total)))))))))
 
 ;;;###autoload
 (defun forgejo-pull-list (&optional owner repo)

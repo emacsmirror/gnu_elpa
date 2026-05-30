@@ -99,7 +99,22 @@
     (should (equal (plist-get parsed :state) (plist-get reparsed :state)))
     (should (equal (plist-get parsed :labels) (plist-get reparsed :labels)))))
 
-;;; Group 4: List entries
+;;; Group 4: Authoritative sync predicate
+
+(ert-deftest forgejo-test-filter-authoritative-open-sync-p ()
+  "Recognize only complete unfiltered open syncs."
+  (should (forgejo-filter-authoritative-open-sync-p '(:state "open") nil))
+  (should-not (forgejo-filter-authoritative-open-sync-p '(:state "open") t))
+  (dolist (filters '((:state "closed")
+                     (:state "open" :labels "bug")
+                     (:state "open" :milestone "v1")
+                     (:state "open" :author "alice")
+                     (:state "open" :query "crash")
+                     (:state "open" :page 2)
+                     (:state "open" :since "2026-01-01T00:00:00Z")))
+    (should-not (forgejo-filter-authoritative-open-sync-p filters nil))))
+
+;;; Group 5: List entries
 
 (ert-deftest forgejo-test-filter-list-entries ()
   "Convert API alists to tabulated-list entries."

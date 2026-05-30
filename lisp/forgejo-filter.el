@@ -101,6 +101,14 @@ The :query value, if present, is appended as bare words."
       (push query parts))
     (string-join (nreverse parts) " ")))
 
+(defun forgejo-filter-authoritative-open-sync-p (filters partial)
+  "Return non-nil when FILTERS describe a complete open sync.
+PARTIAL non-nil means the API response did not include all pages."
+  (and (not partial)
+       (equal (plist-get filters :state) "open")
+       (not (cl-some (lambda (key) (plist-get filters key))
+                     '(:labels :milestone :author :query :page :since)))))
+
 ;;; API param building
 
 (defconst forgejo-filter--api-param-map

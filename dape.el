@@ -3056,9 +3056,9 @@ Using BUFFER and STR."
 
 (defun dape--compile (config fn)
   "Start compilation for CONFIG then call FN."
-  (let ((default-directory (dape--guess-root config))
-        (command (dape-config-get config 'compile))
-        (buffer (funcall dape-compile-function command)))
+  (let* ((default-directory (dape--guess-root config))
+         (command (dape-config-get config 'compile))
+         (buffer (funcall dape-compile-function command)))
     (if buffer
         (with-current-buffer buffer
           (setq dape--compile-after-fn fn)

@@ -87,6 +87,42 @@
 
 ;;; Macro tests
 
+(ert-deftest keymap-popup-test-macro-declarations-filter-keymap-expressions ()
+  (let* ((forms (cdr (macroexpand-1
+                      '(keymap-popup-define keymap-popup--test-root-map
+                         :parent (make-sparse-keymap)
+                         "a" ("A" :keymap keymap-popup--test-sub-map)
+                         "b" ("B" :keymap keymap-popup--test-sub-map)
+                         "c" ("C" :keymap (make-sparse-keymap))))))
+         (declarations (seq-filter
+                        (lambda (form) (eq (car-safe form) 'defvar))
+                        forms)))
+    (should (equal declarations
+                   '((defvar keymap-popup--test-root-map)
+                     (defvar keymap-popup--test-sub-map))))))
+
+(ert-deftest keymap-popup-test-macro-declarations-omit-nil-parent ()
+  (let* ((forms (cdr (macroexpand-1
+                      '(keymap-popup-define keymap-popup--test-no-parent-map
+                         "r" ("Refresh" ignore)))))
+         (declarations (seq-filter
+                        (lambda (form) (eq (car-safe form) 'defvar))
+                        forms)))
+    (should (equal declarations
+                   '((defvar keymap-popup--test-no-parent-map))))))
+
+(ert-deftest keymap-popup-test-macro-declarations-include-parent ()
+  (let* ((forms (cdr (macroexpand-1
+                      '(keymap-popup-define keymap-popup--test-child-map
+                         :parent keymap-popup--test-parent-map
+                         "s" ("Sub" :keymap keymap-popup--test-parent-map)))))
+         (declarations (seq-filter
+                        (lambda (form) (eq (car-safe form) 'defvar))
+                        forms)))
+    (should (equal declarations
+                   '((defvar keymap-popup--test-child-map)
+                     (defvar keymap-popup--test-parent-map))))))
+
 (ert-deftest keymap-popup-test-macro-creates-keymap ()
   (eval '(keymap-popup-define keymap-popup--test-map-1
            "Test keymap."
@@ -121,6 +157,43 @@
         t)
   (should (boundp 'keymap-popup--test-sw))
   (should (fboundp 'keymap-popup--test-map-3--toggle-keymap-popup--test-sw)))
+
+(ert-deftest keymap-popup-test-macro-declares-maps-before-helpers ()
+  (let* ((forms (cdr (macroexpand-1
+                      '(keymap-popup-define keymap-popup--test-declared-map
+                         "Test."
+                         :parent keymap-popup--test-declared-parent
+                         "s" ("Sub" :keymap keymap-popup--test-declared-sub)))))
+         (map-pos (cl-position '(defvar keymap-popup--test-declared-map)
+                               forms :test #'equal))
+         (parent-pos (cl-position '(defvar keymap-popup--test-declared-parent)
+                                  forms :test #'equal))
+         (sub-pos (cl-position '(defvar keymap-popup--test-declared-sub)
+                               forms :test #'equal))
+         (launcher-pos (cl-position-if
+                        (lambda (form)
+                          (and (eq (car-safe form) 'defun)
+                               (eq (cadr form)
+                                   'keymap-popup--test-declared-map-popup)))
+                        forms))
+         (enter-pos (cl-position-if
+                     (lambda (form)
+                       (and (eq (car-safe form) 'defun)
+                            (eq (cadr form)
+                                'keymap-popup--test-declared-map--enter-keymap-popup--test-declared-sub)))
+                     forms))
+         (keymap-pos (cl-position-if
+                      (lambda (form) (eq (car-safe form) 'defvar-keymap))
+                      forms)))
+    (should map-pos)
+    (should parent-pos)
+    (should sub-pos)
+    (should launcher-pos)
+    (should enter-pos)
+    (should keymap-pos)
+    (should (< map-pos launcher-pos))
+    (should (< sub-pos enter-pos))
+    (should (< parent-pos keymap-pos))))
 
 (ert-deftest keymap-popup-test-macro-emits-launcher-defun ()
   "`keymap-popup-define' emits a named `defun' for the popup launcher."

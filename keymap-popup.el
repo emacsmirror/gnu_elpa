@@ -461,6 +461,19 @@ calls so lambdas in :if/:inapt-if/:description get compiled."
      (interactive)
      (keymap-popup ,map-name)))
 
+(defun keymap-popup--build-declaration-forms (map-name parent entries)
+  "Build bare `defvar' forms for MAP-NAME, PARENT, and targets in ENTRIES."
+  (mapcar (lambda (symbol) `(defvar ,symbol))
+          (seq-uniq
+           (append (list map-name)
+                   (and parent (symbolp parent) (list parent))
+                   (cl-loop for entry in entries
+                            for target = (plist-get entry :target)
+                            when (and (eq (plist-get entry :type) 'keymap)
+                                      target
+                                      (symbolp target))
+                            collect target)))))
+
 (defun keymap-popup--build-meta-forms (map-name exit-key description persistent)
   "Build trailing `setf' forms for MAP-NAME's popup metadata.
 Each of EXIT-KEY, DESCRIPTION, PERSISTENT is included only when non-nil."
@@ -524,6 +537,7 @@ pairs."
                (keymap-pairs (keymap-popup--build-keymap-pairs name all-entries))
                (launcher (keymap-popup--launcher-name name)))
     `(progn
+       ,@(keymap-popup--build-declaration-forms name parent all-entries)
        ,@(keymap-popup--build-switch-forms name switch-entries)
        ,@(keymap-popup--build-enter-forms name keymap-entries)
        ,(keymap-popup--build-launcher-form name launcher)

@@ -1906,23 +1906,25 @@ See `dape-request' for expected CB signature."
 (defun dape--update-threads (conn cb)
   "Update threads for CONN in-place if possible.
 See `dape-request' for expected CB signature."
-  (dape--with-request-bind ((&key threads &allow-other-keys) error)
-      (dape-request conn :threads nil)
-    (setf (dape--threads conn)
-          (mapcar
-           (lambda (new-thread)
-             (if-let* ((old-thread
-                        (cl-find-if (lambda (old-thread)
-                                      (eql (plist-get new-thread :id)
-                                           (plist-get old-thread :id)))
-                                    (dape--threads conn))))
-                 (plist-put old-thread :name (plist-get new-thread :name))
-               new-thread))
-           (append threads nil)))
-    (dape--maybe-select-thread conn
-                               (cl-some (lambda (thread) (plist-get thread :id))
-                                        (dape--threads conn)))
-    (dape--request-continue cb error)))
+  (if (not (jsonrpc-running-p conn))
+      (dape--request-continue cb)
+    (dape--with-request-bind ((&key threads &allow-other-keys) error)
+        (dape-request conn :threads nil)
+      (setf (dape--threads conn)
+            (mapcar
+             (lambda (new-thread)
+               (if-let* ((old-thread
+                          (cl-find-if (lambda (old-thread)
+                                        (eql (plist-get new-thread :id)
+                                             (plist-get old-thread :id)))
+                                      (dape--threads conn))))
+                   (plist-put old-thread :name (plist-get new-thread :name))
+                 new-thread))
+             (append threads nil)))
+      (dape--maybe-select-thread conn
+                                 (cl-some (lambda (thread) (plist-get thread :id))
+                                          (dape--threads conn)))
+      (dape--request-continue cb error))))
 
 (defun dape--stack-trace (conn thread nof cb)
   "Update stack trace in THREAD plist with NOF frames by adapter CONN.

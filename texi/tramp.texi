@@ -4227,6 +4227,14 @@ called is local or remote, since @value{tramp} would add just the
 @env{HGPLAIN} setting and local processes would take whole value of
 @code{process-environment} along with the new value of @env{HGPLAIN}.
 
+@vindex tramp-propagate-emacsclient-tramp
+@vindex EMACSCLIENT_TRAMP@r{, environment variable}
+If you set the user option @code{tramp-propagate-emacsclient-tramp} to
+a non-@code{nil} value, the environment variable
+@env{EMACSCLIENT_TRAMP} will be set to a value which allows to call
+@command{emacsclient} from a process running on the remote
+host. @xref{emacsclient Options, , , emacs}.
+
 For integrating other Emacs packages so @value{tramp} can execute
 remotely, please file a bug report.  @xref{Bug Reports}.
 
@@ -6426,6 +6434,13 @@ You can change this directory by setting the user option
 @env{XDG_RUNTIME_DIR}, which you can use instead via @code{(getenv
 "XDG_RUNTIME_DIR")}.
 
+
+@item
+I get an error @samp{Method `gdrive' not supported by GVFS}.
+
+@samp{google-drive} has been disabled in @acronym{GNOME} 50.  It is
+not clear yet whether and when it will be reenabled.
+@c @uref{https://discourse.gnome.org/t/google-drive-in-gnome-50/34417}
 
 @item
 How to ignore errors when changing file attributes?

@@ -3091,8 +3091,27 @@ will be used."
 			(if (string-search "=" elt)
 			    (setq env (append env `(,elt)))
 			  (setq uenv (cons elt uenv))))))
+	     (env (if tramp-propagate-emacsclient-tramp
+		      (setenv-internal
+		       env "EMACSCLIENT_TRAMP"
+		       (tramp-make-tramp-file-name v 'noloc) 'keep)
+		    env))
 	     (env (setenv-internal
 		   env "INSIDE_EMACS" (tramp-inside-emacs) 'keep))
+	     ;; Environment is too large.  Keep it here.
+	     (eenv (and (> (apply #'+ (length env) (seq-map #'length env)) 2000)
+			env))
+	     (env (if (not eenv) env
+		    `(,(concat
+			"INSIDE_EMACS=" (getenv-internal "INSIDE_EMACS" env))
+		      ,(concat "PS1=" (getenv-internal "PS1" env)))))
+	     (eenv (setenv-internal eenv "INSIDE_EMACS" nil nil))
+	     (eenv (setenv-internal eenv "PS1" nil nil))
+	     vars
+	     (eenv (dolist (item (reverse eenv) vars)
+		     (setq item (split-string item "=" 'omit))
+		     (setcdr item (string-join (cdr item) "="))
+		     (push (format "%s %s" (car item) (cdr item)) vars)))
 	     (command
 	      (when (stringp program)
 		(format "cd %s && %s exec %s %s env %s %s"
@@ -3207,6 +3226,16 @@ will be used."
 			(widen)
 			(delete-region mark (point-max))
 			(narrow-to-region (point-max) (point-max))
+			;; Send delayed environment.
+			(when eenv
+			  (tramp-send-command
+			   v
+			   (format
+			    "while read var val; do export $var=\"$val\"; done <<'%s'\n%s\n%s"
+			    tramp-end-of-heredoc
+			    (string-join eenv "\n")
+			    tramp-end-of-heredoc)
+			   t))
 			;; Now do it.
 			(if command
 			    ;; Send the command.
@@ -3326,7 +3355,13 @@ will be used."
             (if (string-search "=" elt)
                 (setq env (append env `(,elt)))
               (setq uenv (cons elt uenv)))))
+      (when tramp-propagate-emacsclient-tramp
+	(setq env (setenv-internal
+		   env "EMACSCLIENT_TRAMP"
+		   (tramp-make-tramp-file-name v 'noloc) 'keep)))
       (setq env (setenv-internal env "INSIDE_EMACS" (tramp-inside-emacs) 'keep))
+      ;; Remove looong environment variables, for example from tramp-tests.el.
+      (setq env (seq-remove (lambda (x) (length> x 256)) env))
       (when env
 	(setq command
 	      (format

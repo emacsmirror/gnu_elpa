@@ -729,7 +729,7 @@ See `dape-breakpoint-load' and `dape-breakpoint-save'."
 (define-obsolete-variable-alias 'dape-compile-fn 'dape-compile-function "0.21.0")
 (defcustom dape-compile-function #'compile
   "Function to compile with.
-The function is called with a command string."
+The function is called with a command string and should return a buffer."
   :type 'function)
 
 (define-obsolete-variable-alias 'dape-cwd-fn 'dape-cwd-function "0.21.0")
@@ -3046,7 +3046,9 @@ For more information see `dape-configs'."
 (defun dape--compile-compilation-finish (buffer str)
   "Hook for `dape--compile-compilation-finish'.
 Using BUFFER and STR."
-  (remove-hook 'compilation-finish-functions #'dape--compile-compilation-finish)
+  (with-current-buffer buffer
+    (remove-hook 'compilation-finish-functions
+                 #'dape--compile-compilation-finish t))
   (if (equal "finished\n" str)
       (progn (funcall dape--compile-after-fn)
              (run-hook-with-args 'dape-compile-hook buffer))
@@ -3055,11 +3057,15 @@ Using BUFFER and STR."
 (defun dape--compile (config fn)
   "Start compilation for CONFIG then call FN."
   (let ((default-directory (dape--guess-root config))
-        (command (dape-config-get config 'compile)))
-    (funcall dape-compile-function command)
-    (with-current-buffer (compilation-find-buffer)
-      (setq dape--compile-after-fn fn)
-      (add-hook 'compilation-finish-functions #'dape--compile-compilation-finish nil t))))
+        (command (dape-config-get config 'compile))
+        (buffer (funcall dape-compile-function command)))
+    (if buffer
+        (with-current-buffer buffer
+          (setq dape--compile-after-fn fn)
+          (add-hook 'compilation-finish-functions
+                    #'dape--compile-compilation-finish nil t))
+      (user-error "Compile function `%s' did not return a buffer"
+                  dape-compile-function))))
 
 
 ;;; Memory viewer

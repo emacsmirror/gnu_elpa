@@ -496,7 +496,7 @@ foo: bar
 - [ {JSON: like}:adjacent ]"))
 
   ;; example 7.22
-  (should (not (condition-case n
+  (should (not (condition-case nil
                    (yaml-parse-string "[ foo
  bar: invalid,
  \"foo...>1K characters...bar\": invalid ]")
@@ -552,7 +552,7 @@ keep: |+
 (defun yaml-test-round-trip (o)
   "Test (equal (decode (encode o)) o)"
   (let* ((encoded (yaml-encode o))
-         (parsed (yaml-parse-string encoded
+         (_parsed (yaml-parse-string encoded
 					                :object-type 'alist
 					                :sequence-type 'list))
          (encoded-2 (yaml-encode o)))

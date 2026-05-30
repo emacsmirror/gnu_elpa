@@ -63,7 +63,7 @@
 
 (defvar-local forgejo-view--sync-fn nil
   "Function to sync the current item from the API.
-Called with (HOST OWNER REPO NUMBER BUF-NAME &optional RESTORE-LINE).")
+Called with (HOST OWNER REPO NUMBER BUF-NAME &optional RESTORE-LINE COMMENT-ID).")
 
 (defvar-local forgejo-view--browse-fn nil
   "Function to open the current item in the browser.
@@ -277,6 +277,15 @@ COMMENT-ID is nil unless URL has a #issuecomment-N fragment."
              (and (match-string 4 url)
                   (string-to-number (match-string 4 url))))))
 
+(defun forgejo-view--url-target-at-point ()
+  "Return (HOST-URL OWNER REPO NUMBER COMMENT-ID) for Forgejo URL at point."
+  (when-let* ((url (forgejo-buffer--url-at-point))
+              (parsed (forgejo-view--parse-forgejo-url url))
+              (url-obj (url-generic-parse-url url))
+              (protocol (url-type url-obj))
+              (host (url-host url-obj)))
+    (cons (format "%s://%s" protocol host) parsed)))
+
 (defun forgejo-view-browse-url (url &rest _args)
   "Open URL in forgejo.el if it's a Forgejo issue/PR, else in browser."
   (if-let* ((parsed (forgejo-view--parse-forgejo-url url))
@@ -343,12 +352,16 @@ in forgejo.el buffers rather than the web browser."
   "Follow the link at point.
 Handles #N issue/PR refs and markdown URLs."
   (interactive)
-  (cond
-   ((get-text-property (point) 'forgejo-ref-number)
-    (forgejo-view-follow-ref))
-   ((forgejo-buffer--url-at-point)
-    (forgejo-view-browse-url (forgejo-buffer--url-at-point)))
-   (t (user-error "No link at point"))))
+  (if-let* ((target (forgejo-view--url-target-at-point)))
+      (pcase-let ((`(,host-url ,owner ,repo ,number ,comment-id) target))
+        (let ((forgejo-repo--host host-url))
+          (forgejo-view-item owner repo number comment-id)))
+    (cond
+     ((get-text-property (point) 'forgejo-ref-number)
+      (forgejo-view-follow-ref))
+     ((forgejo-buffer--url-at-point)
+      (forgejo-view-browse-url (forgejo-buffer--url-at-point)))
+     (t (user-error "No link at point")))))
 
 (declare-function forgejo-review-open-thread "forgejo-review.el" ())
 
@@ -418,6 +431,12 @@ Handles #N issue/PR refs and markdown URLs."
   "Return the data plist of the EWOC node at point, or nil."
   (forgejo-buffer--node-at-point forgejo-view--ewoc))
 
+(defun forgejo-view--comment-id-at-point ()
+  "Return the id of the comment node at point, or nil."
+  (when-let* ((node (forgejo-view--node-at-point)))
+    (and (eq (plist-get node :type) 'comment)
+         (plist-get node :id))))
+
 ;;; Item routing
 
 (declare-function forgejo-issue-view "forgejo-issue.el"
@@ -436,21 +455,23 @@ DB-normalised form (`pull_request' is t or nil)."
   "View issue or PR NUMBER in OWNER/REPO.
 Checks the DB first, then the API if uncached.  When COMMENT-ID is
 non-nil, jump to that comment after the detail view renders."
-  (let* ((host (url-host (url-generic-parse-url forgejo-repo--host)))
-         (cached (forgejo-db-get-issue host owner repo number)))
+  (let* ((host-url forgejo-repo--host)
+         (host (url-host (url-generic-parse-url host-url)))
+         (cached (forgejo-db-get-issue host owner repo number))
+         (view (lambda (item)
+                 (let ((forgejo-repo--host host-url))
+                   (if (forgejo-view--pr-p item)
+                       (forgejo-pull-view owner repo number comment-id)
+                     (forgejo-issue-view owner repo number comment-id))))))
     (if cached
-        (if (forgejo-view--pr-p cached)
-            (forgejo-pull-view owner repo number comment-id)
-          (forgejo-issue-view owner repo number comment-id))
+        (funcall view cached)
       (forgejo-api-get
-       forgejo-repo--host
+       host-url
        (format "repos/%s/%s/issues/%d" owner repo number) nil
        (lambda (data _headers)
          (when data
            (forgejo-db-save-issues host owner repo (list data))
-           (if (forgejo-view--pr-p data)
-               (forgejo-pull-view owner repo number comment-id)
-             (forgejo-issue-view owner repo number comment-id))))))))
+           (funcall view data)))))))
 
 ;;; List-view format
 
@@ -499,26 +520,44 @@ LIST-MODE is the major mode symbol for the list buffer."
 
 ;;; Detail-view rendering
 
+(defun forgejo-view--comment-node (ewoc comment-id)
+  "Return the EWOC comment node for COMMENT-ID, or nil."
+  (and ewoc
+       (cl-loop for node = (ewoc-nth ewoc 0) then (ewoc-next ewoc node)
+                while node
+                for data = (ewoc-data node)
+                when (and (eq 'comment (plist-get data :type))
+                          (eql comment-id (plist-get data :id)))
+                return node)))
+
 (defun forgejo-view--goto-comment (ewoc comment-id)
-  "Move point to the EWOC node for COMMENT-ID, or `point-min'.
+  "Move point to the EWOC comment node for COMMENT-ID.
 Returns non-nil when a matching comment node was found."
-  (or (cl-loop for node = (ewoc-nth ewoc 0) then (ewoc-next ewoc node)
-               while node
-               for data = (ewoc-data node)
-               when (and (eq 'comment (plist-get data :type))
-                         (eql comment-id (plist-get data :id)))
-               return (progn (goto-char (ewoc-location node)) t))
-      (progn (goto-char (point-min)) nil)))
+  (when-let* ((node (forgejo-view--comment-node ewoc comment-id)))
+    (ewoc-goto-node ewoc node)
+    t))
+
+(defun forgejo-view--goto-target-comment (comment-id)
+  "Move point to COMMENT-ID when non-nil."
+  (and comment-id
+       (forgejo-view--goto-comment forgejo-view--ewoc comment-id)))
+
+(defun forgejo-view--comment-target-for-sync (ewoc comment-id)
+  "Return COMMENT-ID when EWOC does not already contain it."
+  (and comment-id
+       (not (forgejo-view--comment-node ewoc comment-id))
+       comment-id))
 
 (defun forgejo-view--render-detail (buf-name host-url owner repo item-alist
 					     timeline-alists view-mode-fn
 					     sync-fn browse-fn
 					     &optional comment-id)
   "Render detail view into BUF-NAME from alist data.
-HOST-URL is the full instance URL.  ITEM-ALIST is the issue or PR data.
-TIMELINE-ALISTS is the timeline.  VIEW-MODE-FN activates the major mode.
-SYNC-FN and BROWSE-FN are stored as buffer-locals for action commands.
-When COMMENT-ID is non-nil, jump to that comment after rendering.
+HOST-URL is the full instance URL.  OWNER and REPO identify the repo.
+ITEM-ALIST is the issue or PR data.  TIMELINE-ALISTS is the timeline.
+VIEW-MODE-FN activates the major mode.  SYNC-FN and BROWSE-FN are stored
+as buffer-locals for action commands.  When COMMENT-ID is non-nil, jump
+to that comment after rendering.
 
 First call into a buffer does a full paint.  Subsequent calls reconcile
 the existing EWOC against the new nodes, avoiding any work for
@@ -532,13 +571,13 @@ unchanged nodes."
          (number (alist-get 'number item-alist)))
     (if (and existing-ewoc (ewoc-buffer existing-ewoc))
         (forgejo-view--reconcile-into existing-buf nodes item-alist
-                                      host owner repo number)
+                                      host owner repo number comment-id)
       (forgejo-view--first-paint buf-name nodes item-alist host-url host
                                  owner repo number view-mode-fn
                                  sync-fn browse-fn comment-id))))
 
 (defun forgejo-view--resolve-sticky-target (buf-name comment-id)
-  "Pick the sticky comment id for BUF-NAME, falling back to COMMENT-ID."
+  "Return COMMENT-ID or BUF-NAME's existing sticky comment target."
   (or comment-id
       (and (get-buffer buf-name)
            (buffer-local-value 'forgejo-view--target-comment-id
@@ -547,7 +586,8 @@ unchanged nodes."
 (defun forgejo-view--install-detail-locals (host-url owner repo item-alist
                                                      sync-fn browse-fn
                                                      sticky-target)
-  "Set the detail-view buffer-local variables in the current buffer."
+  "Set detail locals for HOST-URL OWNER REPO ITEM-ALIST.
+SYNC-FN, BROWSE-FN, and STICKY-TARGET are stored as buffer-local state."
   (setq forgejo-repo--host host-url
         forgejo-repo--owner owner
         forgejo-repo--name repo
@@ -568,7 +608,9 @@ Stores the EWOC in `forgejo-view--ewoc' and returns it."
 (defun forgejo-view--first-paint (buf-name nodes item-alist host-url host
                                            owner repo number view-mode-fn
                                            sync-fn browse-fn comment-id)
-  "Build the EWOC from scratch in BUF-NAME and paint NODES."
+  "Build a fresh detail view in BUF-NAME from NODES and ITEM-ALIST.
+HOST-URL, HOST, OWNER, REPO, and NUMBER identify the issue or PR.
+VIEW-MODE-FN, SYNC-FN, BROWSE-FN, and COMMENT-ID configure the view."
   (forgejo-buffer--fontify-node-bodies nodes)
   (let ((sticky-target (forgejo-view--resolve-sticky-target buf-name comment-id)))
     (with-current-buffer (get-buffer-create buf-name)
@@ -582,16 +624,18 @@ Stores the EWOC in `forgejo-view--ewoc' and returns it."
       (forgejo-buffer--update-reactions
        forgejo-view--ewoc host owner repo number)
       (setq header-line-format (forgejo-buffer--header-line item-alist))
-      (if sticky-target
-          (forgejo-view--goto-comment forgejo-view--ewoc sticky-target)
+      (unless (and sticky-target
+                   (forgejo-view--goto-target-comment sticky-target))
         (goto-char (point-min)))
       (set-buffer-modified-p nil)
       (current-buffer))))
 
-(defun forgejo-view--reconcile-into (buf nodes item-alist host owner repo number)
-  "Reconcile EWOC in BUF against NODES; refresh dependent state.
-Point is left untouched.  Updates `forgejo-view--data', reactions, and
-the header line only if it changed."
+(defun forgejo-view--reconcile-into (buf nodes item-alist host owner repo number
+                                         &optional comment-id)
+  "Reconcile EWOC in BUF against NODES for ITEM-ALIST.
+HOST, OWNER, REPO, and NUMBER identify the issue or PR.  Point is left
+untouched unless COMMENT-ID is non-nil.  Updates `forgejo-view--data',
+reactions, and the header line only if it changed."
   (with-current-buffer buf
     (let ((inhibit-read-only t))
       (setq forgejo-view--data item-alist)
@@ -601,7 +645,8 @@ the header line only if it changed."
       (let ((new-header (forgejo-buffer--header-line item-alist)))
         (unless (equal header-line-format new-header)
           (setq header-line-format new-header)))
-      (set-buffer-modified-p nil))
+      (set-buffer-modified-p nil)
+      (forgejo-view--goto-target-comment comment-id))
     buf))
 
 ;;; Reaction sync
@@ -645,17 +690,18 @@ event alists (used to extract comment IDs)."
 ;;; Re-render from DB
 
 (defun forgejo-view--re-render (buf-name host-url host owner repo number
-					 render-fn &optional restore-line)
+                                         render-fn &optional restore-line comment-id)
   "Re-render detail buffer BUF-NAME from fresh DB data.
-HOST-URL is the instance.  HOST is the hostname.
-RENDER-FN is called with (BUF-NAME HOST-URL OWNER REPO ITEM TIMELINE).
-Restores point to RESTORE-LINE if given."
+HOST-URL is the instance.  HOST is the hostname.  OWNER, REPO, and
+NUMBER identify the issue or PR.  RENDER-FN is called with the cached
+item, timeline, and COMMENT-ID.  COMMENT-ID takes precedence over
+RESTORE-LINE when both are non-nil."
   (when (buffer-live-p (get-buffer buf-name))
     (let* ((issue (forgejo-db-get-issue host owner repo number))
            (tl-rows (forgejo-db-get-timeline host owner repo number))
            (tl-alists (mapcar #'forgejo-db--row-to-timeline-alist tl-rows)))
-      (funcall render-fn buf-name host-url owner repo issue tl-alists)
-      (when restore-line
+      (funcall render-fn buf-name host-url owner repo issue tl-alists comment-id)
+      (when (and restore-line (not comment-id))
         (with-current-buffer buf-name
           (goto-char (point-min))
           (forward-line (1- restore-line)))))))
@@ -996,18 +1042,19 @@ Only types you have already reacted with show the remove option."
   "Force sync the current detail view.
 Refreshes wall-clock-dependent display (relative timestamps) from
 cached data immediately, then fires the async sync.  Per-node
-invalidation keeps point on the current comment; the reconcile path
-preserves it from there."
+invalidation keeps point on the current comment; the sync render uses
+that comment id as its explicit target."
   (interactive)
   (when-let* ((data forgejo-view--data)
               (number (alist-get 'number data))
               (sync-fn forgejo-view--sync-fn))
-    (when forgejo-view--ewoc
-      (forgejo-buffer--ewoc-invalidate-all forgejo-view--ewoc))
-    (let ((host (url-host (url-generic-parse-url forgejo-repo--host))))
-      (funcall sync-fn host forgejo-repo--owner
-               forgejo-repo--name number
-               (buffer-name) nil))))
+    (let ((comment-id (forgejo-view--comment-id-at-point)))
+      (when forgejo-view--ewoc
+        (forgejo-buffer--ewoc-invalidate-all forgejo-view--ewoc))
+      (let ((host (url-host (url-generic-parse-url forgejo-repo--host))))
+        (funcall sync-fn host forgejo-repo--owner
+                 forgejo-repo--name number
+                 (buffer-name) nil comment-id)))))
 
 (defun forgejo-view-copy-url ()
   "Copy the URL at point to the kill ring."

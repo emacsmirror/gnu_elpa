@@ -9,6 +9,8 @@
 (require 'ert)
 (require 'cl-lib)
 
+(defvar forgejo-markdown-mode)
+
 (setq forgejo-markdown-mode 'text-mode)
 (require 'forgejo-issue)
 
@@ -87,6 +89,98 @@
                            " *forgejo-test-missing*" t)
       (should-not close-called)
       (should-not sync-called))))
+
+;;; Group 4: Detail view entry
+
+(defun forgejo-test-issue--issue-alist ()
+  "Return an issue alist for detail view tests."
+  '((number . 1)
+    (title . "Test issue")
+    (state . "open")
+    (body . "")
+    (user . ((login . "alice")))
+    (created_at . "2026-01-01T00:00:00Z")
+    (updated_at . "2026-01-01T00:00:00Z")))
+
+(defun forgejo-test-issue--comment-alist (id)
+  "Return a timeline comment alist with ID."
+  `((type . "comment")
+    (id . ,id)
+    (body . ,(format "Comment %d" id))
+    (user . ((login . "commenter")))
+    (created_at . "2026-01-01T00:00:00Z")
+    (updated_at . "2026-01-01T00:00:00Z")))
+
+(defun forgejo-test-issue--timeline (&rest ids)
+  "Return timeline comment events for IDS."
+  (mapcar #'forgejo-test-issue--comment-alist ids))
+
+(ert-deftest forgejo-test-issue-view-passes-missing-comment-id-to-sync ()
+  (let ((forgejo-repo--host "https://codeberg.org")
+        sync-args)
+    (unwind-protect
+        (cl-letf (((symbol-function 'forgejo-db-get-issue)
+                   (lambda (&rest _args) '((number . 1))))
+                  ((symbol-function 'forgejo-db-get-timeline)
+                   (lambda (&rest _args) nil))
+                  ((symbol-function 'forgejo-issue--render-detail)
+                   (lambda (buf-name &rest _args) (get-buffer-create buf-name)))
+                  ((symbol-function 'forgejo-issue--sync-detail)
+                   (lambda (&rest args) (setq sync-args args))))
+          (forgejo-issue-view "owner" "repo" 1 99)
+          (should (equal sync-args
+                         '("codeberg.org" "owner" "repo" 1
+                           "*forgejo-issue: owner/repo#1*" nil 99))))
+      (when-let* ((buf (get-buffer "*forgejo-issue: owner/repo#1*")))
+        (kill-buffer buf)))))
+
+(ert-deftest forgejo-test-issue-view-omits-present-comment-id-from-sync ()
+  (let ((forgejo-repo--host "https://codeberg.org")
+        sync-args)
+    (unwind-protect
+        (cl-letf (((symbol-function 'forgejo-db-get-issue)
+                   (lambda (&rest _args) '((number . 1))))
+                  ((symbol-function 'forgejo-db-get-timeline)
+                   (lambda (&rest _args) nil))
+                  ((symbol-function 'forgejo-issue--render-detail)
+                   (lambda (buf-name &rest _args)
+                     (with-current-buffer (get-buffer-create buf-name)
+                       (setq forgejo-view--ewoc (ewoc-create #'ignore nil nil t))
+                       (ewoc-enter-last forgejo-view--ewoc '(:type comment :id 99))
+                       (current-buffer))))
+                  ((symbol-function 'forgejo-issue--sync-detail)
+                   (lambda (&rest args) (setq sync-args args))))
+          (forgejo-issue-view "owner" "repo" 1 99)
+          (should (equal sync-args
+                         '("codeberg.org" "owner" "repo" 1
+                           "*forgejo-issue: owner/repo#1*" nil nil))))
+      (when-let* ((buf (get-buffer "*forgejo-issue: owner/repo#1*")))
+        (kill-buffer buf)))))
+
+(ert-deftest forgejo-test-issue-view-jumps-existing-buffer-window ()
+  (let ((forgejo-repo--host "https://codeberg.org")
+        (buf-name "*forgejo-issue: owner/repo#1*")
+        (other (get-buffer-create "*forgejo-test-issue-other*")))
+    (unwind-protect
+        (cl-letf (((symbol-function 'forgejo-db-get-issue)
+                   (lambda (&rest _args) (forgejo-test-issue--issue-alist)))
+                  ((symbol-function 'forgejo-db-get-timeline)
+                   (lambda (&rest _args) (forgejo-test-issue--timeline 10 20)))
+                  ((symbol-function 'forgejo-db--row-to-timeline-alist)
+                   #'identity)
+                  ((symbol-function 'forgejo-buffer--update-reactions)
+                   #'ignore)
+                  ((symbol-function 'forgejo-issue--sync-detail)
+                   #'ignore))
+          (forgejo-issue-view "owner" "repo" 1)
+          (forgejo-view--goto-comment forgejo-view--ewoc 10)
+          (switch-to-buffer other)
+          (forgejo-issue-view "owner" "repo" 1 20)
+          (should (eql 20 (plist-get (forgejo-view--node-at-point) :id))))
+      (when-let* ((buf (get-buffer buf-name)))
+        (kill-buffer buf))
+      (when (buffer-live-p other)
+        (kill-buffer other)))))
 
 (provide 'forgejo-test-issue)
 ;;; forgejo-test-issue.el ends here

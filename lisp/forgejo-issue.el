@@ -256,8 +256,9 @@ Empty input clears all filters."
 (defun forgejo-issue--render-detail (buf-name host-url owner repo issue-alist
 					      timeline-alists &optional comment-id)
   "Render issue detail into BUF-NAME from alist data.
-HOST-URL is the instance URL.  When COMMENT-ID is non-nil, jump to
-that comment after rendering."
+HOST-URL is the instance URL.  OWNER and REPO identify the repository.
+ISSUE-ALIST is the issue data and TIMELINE-ALISTS is its timeline.  When
+COMMENT-ID is non-nil, jump to that comment after rendering."
   (forgejo-view--render-detail buf-name host-url owner repo issue-alist
                                timeline-alists
                                #'forgejo-issue-view-mode
@@ -266,9 +267,10 @@ that comment after rendering."
                                comment-id))
 
 (defun forgejo-issue--sync-detail (host owner repo number buf-name
-                                        &optional restore-line)
-  "Sync issue NUMBER from API in background, re-render BUF-NAME if changed.
-When RESTORE-LINE is non-nil, go to that line after re-rendering."
+                                        &optional restore-line comment-id)
+  "Sync issue NUMBER from API for HOST OWNER/REPO into BUF-NAME.
+When RESTORE-LINE is non-nil, go to that line after re-rendering.
+When COMMENT-ID is non-nil, jump to that comment after re-rendering."
   (let ((host-url (forgejo--host-url-for-hostname host))
         (endpoint (format "repos/%s/%s/issues/%d" owner repo number))
         (tl-endpoint (format "repos/%s/%s/issues/%d/timeline"
@@ -287,7 +289,7 @@ When RESTORE-LINE is non-nil, go to that line after re-rendering."
            (format-time-string "%Y-%m-%dT%H:%M:%SZ" nil t))
           (forgejo-view--re-render
            buf-name host-url host owner repo number
-           #'forgejo-issue--render-detail restore-line)
+           #'forgejo-issue--render-detail restore-line comment-id)
           (forgejo-view--sync-reactions
            host-url host owner repo number buf-name timeline)))))))
 
@@ -312,22 +314,26 @@ When COMMENT-ID is non-nil, jump to that comment after rendering."
          (buf-name (format "*forgejo-issue: %s/%s#%d*" owner repo number))
          (issue-alist (forgejo-db-get-issue host owner repo number))
          (tl-rows (forgejo-db-get-timeline host owner repo number))
-         (tl-alists (mapcar #'forgejo-db--row-to-timeline-alist tl-rows)))
-    (if issue-alist
-        (switch-to-buffer
-         (forgejo-issue--render-detail buf-name host-url owner repo
-                                       issue-alist tl-alists comment-id))
-      (with-current-buffer (get-buffer-create buf-name)
-        (let ((inhibit-read-only t))
-          (erase-buffer)
-          (insert "Loading..."))
-        (forgejo-issue-view-mode)
-        (setq forgejo-repo--host host-url
-              forgejo-repo--owner owner
-              forgejo-repo--name repo
-              forgejo-view--target-comment-id comment-id)
-        (switch-to-buffer (current-buffer))))
-    (forgejo-issue--sync-detail host owner repo number buf-name)))
+         (tl-alists (mapcar #'forgejo-db--row-to-timeline-alist tl-rows))
+         (buf (if issue-alist
+                  (forgejo-issue--render-detail buf-name host-url owner repo
+                                                issue-alist tl-alists comment-id)
+                (with-current-buffer (get-buffer-create buf-name)
+                  (let ((inhibit-read-only t))
+                    (erase-buffer)
+                    (insert "Loading..."))
+                  (forgejo-issue-view-mode)
+                  (setq forgejo-repo--host host-url
+                        forgejo-repo--owner owner
+                        forgejo-repo--name repo
+                        forgejo-view--target-comment-id comment-id)
+                  (current-buffer))))
+         (sync-target (with-current-buffer buf
+                        (forgejo-view--comment-target-for-sync
+                         forgejo-view--ewoc comment-id))))
+    (switch-to-buffer buf)
+    (forgejo-view--goto-target-comment comment-id)
+    (forgejo-issue--sync-detail host owner repo number buf-name nil sync-target)))
 
 ;;; Issue-specific commands
 

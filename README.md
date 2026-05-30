@@ -91,3 +91,16 @@ Questions and patches can be submitted to the [mailing list](https://lists.sr.ht
 Bugs can be submitted here: [bug tracker](https://todo.sr.ht/~dannyfreeman/jarchive).
 Any bugs found should include steps to reproduce. 
 If possible, and example repository containing a project and instructions (or a nix shell) for installing the language servers would be appreciated.
+
+# Releasing
+
+To release a new version create a new commit on main for the version to be release.
+This commit should:
+- Ensure that the change log is up to date.
+- Update the version number at the top of jarchive.el (IMPORTANT: this is how elpa checks for releases)
+
+Create a tag for the new release. Place it on the new release commit.
+
+Push both the tag and main branch up to the origin repo.
+
+Send an email to the mailing list about the new release.

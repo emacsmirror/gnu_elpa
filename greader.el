@@ -1886,5 +1886,72 @@ to the next sentence, or when you stop the reading."
 (define-obsolete-function-alias 'greader-toggle-auto-tired-mode
   'greader-auto-tired-mode "0.16")
 
+(defcustom greader-move-default-seconds 30
+  "Default number of seconds used by time-based cursor movement commands."
+  :type 'number)
+
+(defcustom greader-move-default-minutes 1
+  "Default number of minutes used by time-based cursor movement commands."
+  :type 'number)
+
+(defun greader-move-by-time (time)
+  "Move point by TIME seconds, using the backend reading rate.
+TIME is in seconds; positive values move forward, negative values move backward.
+The number of words to skip is computed as: rate * abs(TIME) / 60, where
+rate is the backend WPM value returned by `greader-get-rate'.
+After the word-level skip, point is snapped to the nearest sentence boundary
+so that reading always resumes at the start of a complete sentence.
+Movement stops at buffer boundaries."
+  (let* ((rate (greader-get-rate))
+         (words (round (* rate (/ (abs time) 60.0)))))
+    (forward-word (if (>= time 0) words (- words)))
+    (if (>= time 0)
+        (greader-forward-sentence)
+      (greader-backward-sentence))))
+
+(defun greader--seek (time)
+  "Stop reading, move point by TIME seconds, and resume.
+Calls `greader-move-by-time' to compute the word offset from the WPM rate."
+  (greader-tts-stop)
+  (greader-move-by-time time)
+  (greader-set-register)
+  (greader-read))
+
+(defun greader-move-by-seconds-backward (&optional seconds)
+  "Move point backward by SECONDS seconds and resume reading.
+Word count is derived from the backend WPM rate via `greader-move-by-time'.
+If SECONDS is omitted, use `greader-move-default-seconds'.
+With a numeric prefix argument, skip that many seconds instead."
+  (interactive "P")
+  (greader--seek (- (if seconds (prefix-numeric-value seconds)
+                      greader-move-default-seconds))))
+
+(defun greader-move-by-minutes-backward (&optional minutes)
+  "Move point backward by MINUTES minutes and resume reading.
+Word count is derived from the backend WPM rate via `greader-move-by-time'.
+If MINUTES is omitted, use `greader-move-default-minutes'.
+With a numeric prefix argument, skip that many minutes instead."
+  (interactive "P")
+  (greader--seek (* -60 (if minutes (prefix-numeric-value minutes)
+                           greader-move-default-minutes))))
+
+(defun greader-move-by-seconds-forward (&optional seconds)
+  "Move point forward by SECONDS seconds and resume reading.
+Word count is derived from the backend WPM rate via `greader-move-by-time'.
+If SECONDS is omitted, use `greader-move-default-seconds'.
+With a numeric prefix argument, skip that many seconds instead."
+  (interactive "P")
+  (greader--seek (if seconds (prefix-numeric-value seconds)
+                   greader-move-default-seconds)))
+
+(defun greader-move-by-minutes-forward (&optional minutes)
+  "Move point forward by MINUTES minutes and resume reading.
+Word count is derived from the backend WPM rate via `greader-move-by-time'.
+If MINUTES is omitted, use `greader-move-default-minutes'.
+With a numeric prefix argument, skip that many minutes instead."
+  (interactive "P")
+  (greader--seek (* 60 (if minutes (prefix-numeric-value minutes)
+                          greader-move-default-minutes))))
+
 (provide 'greader)
 ;;; greader.el ends here

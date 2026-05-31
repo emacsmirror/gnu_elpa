@@ -1900,14 +1900,22 @@ TIME is in seconds; positive values move forward, negative values move backward.
 The number of words to skip is computed as: rate * abs(TIME) / 60, where
 rate is the backend WPM value returned by `greader-get-rate'.
 After the word-level skip, point is snapped to the nearest sentence boundary
-so that reading always resumes at the start of a complete sentence.
+via `greader-forward-sentence' or `greader-backward-sentence', UNLESS the
+sentence at the destination is longer (in words) than the computed offset:
+in that case point stays at the raw word-level position, since snapping
+would move it further than the requested skip.
 Movement stops at buffer boundaries."
   (let* ((rate (greader-get-rate))
          (words (round (* rate (/ (abs time) 60.0)))))
     (forward-word (if (>= time 0) words (- words)))
-    (if (>= time 0)
-        (greader-forward-sentence)
-      (greader-backward-sentence))))
+    (let* ((sentence (greader-get-sentence))
+           (sentence-words (when sentence
+                             (length (split-string sentence nil t)))))
+      (when (or (null sentence-words)
+                (<= sentence-words words))
+        (if (>= time 0)
+            (greader-forward-sentence)
+          (greader-backward-sentence))))))
 
 (defun greader--seek (time)
   "Stop reading, move point by TIME seconds, and resume.

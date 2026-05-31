@@ -116,6 +116,8 @@ All commands are under the prefix `C-r` (configurable via `greader-keymap-prefix
 | `C-r s` | `greader-tired-mode` — toggle tired/relax mode |
 | `C-r f` | Get text attributes |
 | `←` / `→` | Navigate backward/forward sentence |
+| `C-←` / `C-→` | Seek backward/forward by `greader-move-default-seconds` seconds (default 30); numeric prefix overrides |
+| `M-←` / `M-→` | Seek backward/forward by `greader-move-default-minutes` minutes (default 1); numeric prefix overrides |
 | `p` | Toggle punctuation |
 | `.` | Stop with timer |
 | `+` / `-` | Increase/decrease speech rate by 10 WPM |
@@ -235,6 +237,17 @@ Tests are in `greader-dict-tests.el` (covers dict functionality).
   following the GNU Emacs convention. Only `greader.texi` (the Texinfo source) is tracked.
   Generate with: `makeinfo greader.texi -o greader.info`
 - `greader-tired-mode` internals: the wakeup intercept uses `greader--tired-intercept-mode`, a transient buffer-local minor mode with a `[t]` catch-all keymap. Any key press calls `greader--tired-wakeup` (swallowing the command) and resumes reading. With `greader-soft-timer` on, the idle timer is armed in `greader--default-action` (after the last sentence finishes) via `greader--tired-pending`, not in `greader-stop-timer-callback`. `greader-stop` clears `greader--tired-pending` to prevent spurious restarts. All cleanup paths go through `greader--tired-cleanup`.
+- Time-based seek API: `greader-move-by-time` computes a word offset as
+  `round(rate × abs(time) / 60.0)`, moves with `forward-word`, then snaps to a sentence
+  boundary via `greader-forward-sentence` / `greader-backward-sentence` — UNLESS the
+  sentence at the destination is longer (in words) than the offset, in which case point
+  stays at the raw word-level position to avoid over-shooting.  The internal helper
+  `greader--seek` wraps the full stop→move→register→read sequence.  Public commands:
+  `greader-move-by-seconds-backward/forward` (`C-←`/`C-→`) and
+  `greader-move-by-minutes-backward/forward` (`M-←`/`M-→`); all accept a numeric prefix.
+  Keymap definitions use `defvar (make-sparse-keymap)` + top-level `define-key` calls so
+  that re-evaluating any keymap defvar during development does not orphan the object
+  stored in `minor-mode-map-alist`.
 - `greader-audiobook-convert-block` uses `greader-call-backend 'audio-write` — do not
   hardcode espeak-ng there. Error handling: non-zero exit code + WAV size check
   (`greader-audiobook-min-wav-size`). Hard-error policy: `greader-audiobook-on-error`

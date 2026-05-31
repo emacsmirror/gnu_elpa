@@ -71,6 +71,10 @@ The following commands work when you are in `greader-reading-mode', which happen
 |---|---|---|
 | `<left>` | `greader-backward` | Move to the previous sentence. |
 | `<right>` | `greader-forward` | Move to the next sentence. |
+| `C-<left>` | `greader-move-by-seconds-backward` | Seek backward by `greader-move-default-seconds` seconds (default 30). With a numeric prefix, seek by that many seconds instead. |
+| `C-<right>` | `greader-move-by-seconds-forward` | Seek forward by `greader-move-default-seconds` seconds (default 30). With a numeric prefix, seek by that many seconds instead. |
+| `M-<left>` | `greader-move-by-minutes-backward` | Seek backward by `greader-move-default-minutes` minutes (default 1). With a numeric prefix, seek by that many minutes instead. |
+| `M-<right>` | `greader-move-by-minutes-forward` | Seek forward by `greader-move-default-minutes` minutes (default 1). With a numeric prefix, seek by that many minutes instead. |
 | `p` | `greader-toggle-punctuation` | Toggle reading of punctuation characters. |
 | `.` | `greader-stop-with-timer` | Stop reading and reset the timer. |
 | `+` | `greader-inc-rate` | Increase speech rate by 10 WPM. |
@@ -456,6 +460,8 @@ Some of the customizable variables are:
 *   `greader-tired-time`: Idle seconds to wait after the reading timer expires before moving point back (default 60). Used by `greader-tired-mode`.
 *   `greader-auto-tired-mode-time`: Hour (as a string, e.g. `"22"`) at which `greader-auto-tired-mode` activates tired mode.
 *   `greader-auto-tired-time-end`: Hour (as a string, e.g. `"07"`) at which `greader-auto-tired-mode` deactivates tired mode. Intervals crossing midnight are supported.
+*   `greader-move-default-seconds`: Default number of seconds used by `greader-move-by-seconds-backward` and `greader-move-by-seconds-forward`. Default `30`.
+*   `greader-move-default-minutes`: Default number of minutes used by `greader-move-by-minutes-backward` and `greader-move-by-minutes-forward`. Default `1`.
 *   `greader-backward-acoustic-feedback`: If `t`, plays a brief beep when the cursor returns to the previous reading position after backward navigation. Default `nil`.
 *   `greader-backward-seconds`: Number of seconds to wait at the previous sentence before automatically returning to the reading position. Default `5`.
 *   `greader-dict-save-after-time`: Idle time in seconds before the dictionary is saved automatically. Default `30`. (Requires `greader-dict-mode`.)

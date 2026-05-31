@@ -186,16 +186,46 @@ enabling @code{greader-timer-mode} directly.
 
 @node Navigation
 @subsection Navigation
-The following commands work when you are in
-@code{greader-reading-mode', which happens when you call}greader-read'.
-| Keybinding | Command | Description | |---|---|---| | @code{<left>} |
-@code{greader-backward} | Move to the previous sentence. | |
-@code{<right>} | @code{greader-forward} | Move to the next sentence. | |
-@code{p} | @code{greader-toggle-punctuation} | Toggle reading of
-punctuation characters. | | @code{.} | @code{greader-stop-with-timer} |
-Stop reading and reset the timer. | | @code{+} | @code{greader-inc-rate}
-| Increase speech rate by 10 WPM. | | @code{-} | @code{greader-dec-rate}
-| Decrease speech rate by 10 WPM. |
+The following commands work when you are in @code{greader-reading-mode},
+which is active while @code{greader-read} is running.
+
+@multitable @columnfractions 0.30 0.35 0.35
+@headitem Keybinding @tab Command @tab Description
+@item @code{<left>}
+ @tab @code{greader-backward}
+ @tab Move to the previous sentence.
+@item @code{<right>}
+ @tab @code{greader-forward}
+ @tab Move to the next sentence.
+@item @code{C-<left>}
+ @tab @code{greader-move-by-seconds-backward}
+ @tab Seek backward by @code{greader-move-default-seconds} seconds
+(default 30).  A numeric prefix overrides the default.
+@item @code{C-<right>}
+ @tab @code{greader-move-by-seconds-forward}
+ @tab Seek forward by @code{greader-move-default-seconds} seconds
+(default 30).  A numeric prefix overrides the default.
+@item @code{M-<left>}
+ @tab @code{greader-move-by-minutes-backward}
+ @tab Seek backward by @code{greader-move-default-minutes} minutes
+(default 1).  A numeric prefix overrides the default.
+@item @code{M-<right>}
+ @tab @code{greader-move-by-minutes-forward}
+ @tab Seek forward by @code{greader-move-default-minutes} minutes
+(default 1).  A numeric prefix overrides the default.
+@item @code{p}
+ @tab @code{greader-toggle-punctuation}
+ @tab Toggle reading of punctuation characters.
+@item @code{.}
+ @tab @code{greader-stop-with-timer}
+ @tab Stop reading and reset the timer.
+@item @code{+}
+ @tab @code{greader-inc-rate}
+ @tab Increase speech rate by 10 WPM.
+@item @code{-}
+ @tab @code{greader-dec-rate}
+ @tab Decrease speech rate by 10 WPM.
+@end multitable
 
 @node Commands
 @section Commands
@@ -1038,6 +1068,16 @@ mode.
 @code{greader-auto-tired-time-end}: Hour (as a string, e.g.@:
 @code{"07"}) at which @code{greader-auto-tired-mode} deactivates tired
 mode.  Intervals crossing midnight are supported.
+@item
+@code{greader-move-default-seconds}: Default number of seconds used by
+@code{greader-move-by-seconds-backward} and
+@code{greader-move-by-seconds-forward} (@kbd{C-<left>}/@kbd{C-<right>}).
+Default @code{30}.
+@item
+@code{greader-move-default-minutes}: Default number of minutes used by
+@code{greader-move-by-minutes-backward} and
+@code{greader-move-by-minutes-forward} (@kbd{M-<left>}/@kbd{M-<right>}).
+Default @code{1}.
 @item
 @code{greader-backward-acoustic-feedback}: If @code{t}, plays a brief
 beep when the cursor returns to the previous reading position after

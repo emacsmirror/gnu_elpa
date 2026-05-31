@@ -268,33 +268,31 @@ if set to t, when you call function `greader-read', that function sets a
   :type 'string
   :group 'greader)
 
-(defvar greader-prefix-keymap
-  (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "s")   #'greader-tired-mode)
-    (define-key map (kbd "r")   #'isearch-backward)
-    (define-key map (kbd "SPC") #'greader-read)
-    (define-key map (kbd "l")   #'greader-set-language)
-    (define-key map (kbd "t")   #'greader-timer-mode)
-    (define-key map (kbd "f")   #'greader-get-attributes)
-    (define-key map (kbd "b")   #'greader-change-backend)
-    (define-key map (kbd "c") #'greader-compile-at-point)
-    map))
+(defvar greader-prefix-keymap (make-sparse-keymap))
+(define-key greader-prefix-keymap (kbd "s")   #'greader-tired-mode)
+(define-key greader-prefix-keymap (kbd "r")   #'isearch-backward)
+(define-key greader-prefix-keymap (kbd "SPC") #'greader-read)
+(define-key greader-prefix-keymap (kbd "l")   #'greader-set-language)
+(define-key greader-prefix-keymap (kbd "t")   #'greader-timer-mode)
+(define-key greader-prefix-keymap (kbd "f")   #'greader-get-attributes)
+(define-key greader-prefix-keymap (kbd "b")   #'greader-change-backend)
+(define-key greader-prefix-keymap (kbd "c")   #'greader-compile-at-point)
 
-(defvar greader-mode-map
-  (let ((map (make-sparse-keymap)))
-    (define-key map (kbd greader-keymap-prefix) greader-prefix-keymap)
-    map))
+(defvar greader-mode-map (make-sparse-keymap))
+(define-key greader-mode-map (kbd greader-keymap-prefix) greader-prefix-keymap)
 
-(defvar greader-reading-map
-  (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "SPC") #'greader-stop)
-    (define-key map (kbd "p")   #'greader-toggle-punctuation)
-    (define-key map (kbd ".")   #'greader-stop-with-timer)
-    (define-key map (kbd "+")   #'greader-inc-rate)
-    (define-key map (kbd "-")   #'greader-dec-rate)
-    (define-key map (kbd "<left>")   #'greader-backward)
-    (define-key map (kbd "<right>")   #'greader-forward)
-    map))
+(defvar greader-reading-map (make-sparse-keymap))
+(define-key greader-reading-map (kbd "SPC")      #'greader-stop)
+(define-key greader-reading-map (kbd "p")        #'greader-toggle-punctuation)
+(define-key greader-reading-map (kbd ".")        #'greader-stop-with-timer)
+(define-key greader-reading-map (kbd "+")        #'greader-inc-rate)
+(define-key greader-reading-map (kbd "-")        #'greader-dec-rate)
+(define-key greader-reading-map (kbd "<left>")   #'greader-backward)
+(define-key greader-reading-map (kbd "<right>")  #'greader-forward)
+(define-key greader-reading-map (kbd "C-<left>")  #'greader-move-by-seconds-backward)
+(define-key greader-reading-map (kbd "C-<right>") #'greader-move-by-seconds-forward)
+(define-key greader-reading-map (kbd "M-<left>")  #'greader-move-by-minutes-backward)
+(define-key greader-reading-map (kbd "M-<right>") #'greader-move-by-minutes-forward)
 
 (defvar greader-queue-mode)
 ;;;###autoload
@@ -939,13 +937,11 @@ Enabling this mode implicitly enables `greader-timer-mode'."
     (unless greader-timer-enabled-interactively
       (greader-timer-mode -1))))
 
-(defvar greader--tired-intercept-map
-  (let ((map (make-sparse-keymap)))
-    (define-key map [t] #'greader--tired-wakeup)
-    map)
+(defvar greader--tired-intercept-map (make-sparse-keymap)
   "Keymap used by `greader--tired-intercept-mode'.
 Binds every key to `greader--tired-wakeup', swallowing the original
 command so that only reading is resumed.")
+(define-key greader--tired-intercept-map [t] #'greader--tired-wakeup)
 
 (define-minor-mode greader--tired-intercept-mode
   "Transient buffer-local mode that intercepts any key to resume greader.
@@ -1551,13 +1547,13 @@ else."
     (greader-queue-read)))
 
 ;; this is the keymap for greader-queue-mode.
-(defvar-keymap greader-queue-mode-map
-  :doc "greader-queue-mode map."
-  "C-r RET" #'greader-queue-add-element
-  "C-r SPC" #'greader-queue-read
-  "C-r <left>" #'greader-queue-backward
-  "C-r <right>" #'greader-queue-forward
-  "C-r ." #'greader-queue-stop)
+(defvar greader-queue-mode-map (make-sparse-keymap)
+  "Keymap for `greader-queue-mode'.")
+(define-key greader-queue-mode-map (kbd "C-r RET")    #'greader-queue-add-element)
+(define-key greader-queue-mode-map (kbd "C-r SPC")    #'greader-queue-read)
+(define-key greader-queue-mode-map (kbd "C-r <left>")  #'greader-queue-backward)
+(define-key greader-queue-mode-map (kbd "C-r <right>") #'greader-queue-forward)
+(define-key greader-queue-mode-map (kbd "C-r .")      #'greader-queue-stop)
 (defvar-local greader-greader-mode-was-active nil
   "This variable becomes t if `greader-mode' is active when
 `greader-queue-mode' is enabled.

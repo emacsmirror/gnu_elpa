@@ -1,10 +1,10 @@
 ;;; lex.el --- Lexical analyser construction  -*- lexical-binding:t -*-
 
-;; Copyright (C) 2008-2024  Free Software Foundation, Inc.
+;; Copyright (C) 2008-2026  Free Software Foundation, Inc.
 
 ;; Author: Stefan Monnier <monnier@iro.umontreal.ca>
 ;; Keywords:
-;; Version: 1.2
+;; Version: 1.3
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -72,6 +72,10 @@
 ;;   - agrep
 
 ;;; News:
+
+;; Since 1.2:
+
+;; - Bug fix for `not-char'.
 
 ;;; Notes
 
@@ -598,13 +602,14 @@ or (check (not (PREDICATE . ARG))).")
          (setq state (lex--nfa elem state)))
        state)
       ((or `char `in `not-char)
-       (let ((chars (cdr re))
-             (checks nil)
-             (fail nil)
-             (char nil)  ;The char seen, or nil if none, or t if more than one.
-             (ct (make-char-table 'lexer)))
-         (when (or (eq 'not (car chars)) (eq 'not-char (car re)))
-           (setq chars (cdr chars))
+       (let* ((chars (cdr re))
+              (checks nil)
+              (fail nil)
+              (char nil) ;The char seen, or nil if none, or t if more than one.
+              (ct (make-char-table 'lexer))
+              (has-not (eq 'not (car chars))))
+         (when (or has-not (eq 'not-char (car re)))
+           (when has-not (setq chars (cdr chars)))
            (set-char-table-range ct t state)
            (setq fail state)
            (setq state nil))

@@ -1108,19 +1108,29 @@ than BOUND.  POS should not be in arglist or similar list."
   "Function to be used as `end-of-defun-function'."
   ;; This function is called after javaimp-beginning-of-defun, which
   ;; in the normal course will position the point before the
-  ;; open-brace, so we can inspect property.
-  (when-let* ((brace-pos
-               (next-single-property-change (point) 'javaimp-parse-scope))
-              (_ (get-text-property brace-pos 'javaimp-parse-scope))
-              ;; When there're no siblings, javaimp-beginning-of-defun
-              ;; moves to the parent start.  In this case we should
-              ;; stay inside the parent.
-              (_ (eql (nth 1 (syntax-ppss))
-                      (save-excursion
-                        (nth 1 (syntax-ppss brace-pos))))))
-    (ignore-errors
-      (goto-char
-       (scan-lists brace-pos 1 0)))))
+  ;; open-brace (for example, where javaimp--beg-of-defun-decl puts
+  ;; it), so we look for next property change.  However we need to
+  ;; skip any array-init scopes which may occur within annotation
+  ;; values, like "@Annotation({"val1"})".
+  (let ((pos (point)))
+    (while-let ((_ pos)
+                (brace-pos (next-single-property-change pos 'javaimp-parse-scope))
+                (scope (get-text-property brace-pos 'javaimp-parse-scope))
+                (_ (eq (javaimp-scope-type scope) 'array-init)))
+      (setq pos (ignore-errors (scan-lists brace-pos 1 0))))
+    (when-let* ((_ pos)
+                (brace-pos (next-single-property-change pos 'javaimp-parse-scope))
+                (_ (get-text-property brace-pos 'javaimp-parse-scope))
+                ;; When there're no siblings,
+                ;; javaimp-beginning-of-defun moves to the parent
+                ;; start.  In this case we should stay inside the
+                ;; parent.
+                (_ (eql (nth 1 (syntax-ppss))
+                        (save-excursion
+                          (nth 1 (syntax-ppss brace-pos))))))
+      (ignore-errors
+        (goto-char
+         (scan-lists brace-pos 1 0))))))
 
 (defun javaimp--get-sibling-context ()
   "Return list of the form (PARENT-START PREV-INDEX .

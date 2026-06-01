@@ -192,7 +192,10 @@ skipping further backwards is done by the caller."
                     (if last-pos (goto-char last-pos))
                     (and (looking-at "\\_<")
                          ;; Do not stop at vararg ellipsis like in
-                         ;; List<String>...
+                         ;; "List<String>... ".  FIXME Support other
+                         ;; cases when ws is put before/after
+                         ;; ellipsis, or no ws at all, which is valid
+                         ;; Java syntax, although discouraged.
                          (not (string= (current-word t) "..."))))))))
         (progn
           (unless (eq last-skip t)
@@ -801,18 +804,18 @@ then no filtering is done."
               (setq tmp (javaimp-scope-parent tmp)))))))
     res))
 
-(defun javaimp-parse-get-enclosing-scope (&optional pred no-filter)
+(defun javaimp-parse-get-enclosing-scope (&optional pred no-filter-parents)
   "Return copy of innermost enclosing scope at point.  If PRED is
 non-nil then the scope must satisfy it, otherwise the next outer
 scope is tried.
 
 Scope parents are filtered according to
-`javaimp-parse--scope-type-defun-p', but if NO-FILTER is non-nil
+`javaimp-parse--scope-type-defun-p', but if NO-FILTER-PARENTS is non-nil
 then no filtering is done."
   (save-excursion
     (javaimp-parse--all-scopes))
   (when-let* ((scope (javaimp-parse--enclosing-scope pred)))
-    (javaimp-scope-copy scope (unless no-filter
+    (javaimp-scope-copy scope (unless no-filter-parents
                                 #'javaimp-parse--scope-type-defun-p))))
 
 (defun javaimp-parse-get-defun-decl-start (pos &optional bound)

@@ -285,6 +285,10 @@
                    (eval `(or ,@a68-keywords-upper))
                    word-end)
                ''a68-keyword-face)
+         ;; A proc followed by a tag and then = should be highlighted as a
+         ;; keyword, not as a mode declarer constituent.
+         '("\\(\\<PROC\\>\\)[ \t]*\\<\\([a-z][a-z]+_?\\)+\\>[ \t]*="
+           1 ''a68-keyword-face)
          (cons (rx word-start
                    (eval `(or ,@a68-std-modes-upper))
                    word-end)
@@ -313,6 +317,10 @@
               (eval `(or ,@a68-keywords-supper))
               word-end)
           ''a68-keyword-face)
+    ;; A proc followed by a tag and then = should be highlighted as a
+    ;; keyword, not as a mode declarer constituent.
+    '("\\(\\<proc\\>\\)[ \t]*\\<\\([a-z][a-z]+_?\\)+\\>[ \t]*="
+      1 ''a68-keyword-face)
     (cons (rx word-start
               (eval `(or ,@a68-std-modes-supper))
               word-end)

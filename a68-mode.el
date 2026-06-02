@@ -72,6 +72,15 @@
   :type 'integer
   :safe #'integerp)
 
+(defface a68-constant-face '((t :inherit font-lock-constant-face))
+  "Face for printing Algol 68 constants.")
+
+(defface a68-mode-face '((t :inherit font-lock-type-face))
+  "Face for printing Algol 68 modes.")
+
+(defface a68-keyword-face '((t :inherit font-lock-keyword-face))
+  "Face for printing Algol 68 keywords.")
+
 (defface a68-operator-face '((t :weight bold :foreground "white"))
   "Face for printing Algol 68 operators.")
 
@@ -271,25 +280,25 @@
 (defconst a68-font-lock-keywords-upper
   (append
    a68-font-lock-keywords-common
-   (list (cons "'" ''font-lock-keyword-face)
+   (list (cons "'" ''a68-keyword-face)
          (cons (rx word-start
                    (eval `(or ,@a68-keywords-upper))
                    word-end)
-               ''font-lock-keyword-face)
+               ''a68-keyword-face)
          (cons (rx word-start
                    (eval `(or ,@a68-std-modes-upper))
                    word-end)
-               ''font-lock-type-face)
+               ''a68-mode-face)
          (cons (rx word-start
                    (or "TRUE" "FALSE")
                    word-end)
-               ''font-lock-constant-face)
+               ''a68-constant-face)
          (cons (rx word-start
               (eval `(or ,@a68-generators-upper))
               word-end)
           ''a68-generator-face)
          '("\\<\\([A-Z]+[A-Z_]*\\>\\)\\(_+\\)?"
-           (1 'font-lock-type-face)
+           (1 'a68-mode-face)
            (2 'font-lock-warning-face nil t))
          (cons "\\('\\w*'\\)"
                ''font-lock-variable-name-face)))
@@ -299,30 +308,30 @@
   (append
    a68-font-lock-keywords-common
    (list
-    (cons "'" ''font-lock-keyword-face)
+    (cons "'" ''a68-keyword-face)
     (cons (rx word-start
               (eval `(or ,@a68-keywords-supper))
               word-end)
-          ''font-lock-keyword-face)
+          ''a68-keyword-face)
     (cons (rx word-start
               (eval `(or ,@a68-std-modes-supper))
               word-end)
-          ''font-lock-type-face)
+          ''a68-mode-face)
     (cons (rx word-start
               (eval `(or ,@a68-constants-supper))
               word-end)
-          ''font-lock-constant-face)
+          ''a68-constant-face)
     (cons (rx word-start
               (eval `(or ,@a68-generators-supper))
               word-end)
           ''a68-generator-face)
     ;; Parentheses can be used like begin/end so font-lock them as
     ;; keywords.
-    (cons "[()]" ''font-lock-keyword-face)
+    ;(cons "[()]" ''a68-keyword-face)
     ;; Ditto for vertical bars.
-    (cons "|" ''font-lock-keyword-face)
+    (cons "|" ''a68-keyword-face)
     ;; ~ is an alternative representation of skip.
-    (cons "~" ''font-lock-constant-face)
+    (cons "~" ''a68-constant-face)
     ;; Numbers.
     (cons "\\<\\([0-9][0-9.]*\\)\\>" ''a68-numbers-face)
     ;; Tags.
@@ -331,7 +340,7 @@
     ;; To distinguish from operator indications in highlighting,
     ;; we mandate type faced strings to have at least one
     ;; lower-case letter.
-    (cons "\\<\\([A-Z][A-Za-z0-9_]*[a-z][A-Za-z0-9_]*\\)\\>" ''font-lock-type-face)
+    (cons "\\<\\([A-Z][A-Za-z0-9_]*[a-z][A-Za-z0-9_]*\\)\\>" ''a68-mode-face)
     (cons "\\<\\([A-Z][A-Z0-9_]*\\)\\>" ''a68-operator-face)))
   "Highlighting expressions for Algol 68 mode in SUPPER stropping.")
 

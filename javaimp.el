@@ -33,9 +33,9 @@
 ;; is implemented; finding references is left at default) and some
 ;; navigation functions, like beginning-of-defun.
 ;;
-;;   Quick start
+;;   Quick start:
 ;;
-;; - Put something like this in your .emacs:
+;; Put something like this in your .emacs:
 ;;
 ;; (require 'javaimp)
 ;; (add-to-list 'javaimp-import-group-alist
@@ -43,16 +43,16 @@
 ;; (keymap-global-set "C-c J v" #'javaimp-visit-project)
 ;; (add-hook 'java-mode-hook #'javaimp-minor-mode)
 ;;
-;; - Call `javaimp-visit-project', giving it the top-level build file
-;; of your project.  If called within a project, supplies useful
-;; default candidates in minibuffer input (topmost build file in the
-;; current directory hierarchy, then nested ones).  If you don't visit
-;; a project, then Javaimp will try to determine current source root
+;; Call `javaimp-visit-project', giving it the top-level build file of
+;; your project.  If called within a project, supplies useful default
+;; candidates in minibuffer input (topmost build file in the current
+;; directory hierarchy, then nested ones).  If you don't visit a
+;; project, then Javaimp will try to determine current source root
 ;; directory from the 'package' directive in the current file, and
 ;; will still offer some functions.
 ;;
-;; - Then in a Java buffer visiting a file under that project or one
-;; of its submodules call `javaimp-organize-imports' or
+;; Then in a Java buffer visiting a file under that project or one of
+;; its submodules call `javaimp-organize-imports' or
 ;; `javaimp-add-import'.  See doc for `javaimp-minor-mode' for
 ;; bindings of these and other commands.
 ;;

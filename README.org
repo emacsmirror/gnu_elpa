@@ -44,6 +44,14 @@ The following setting makes preview always use DVI's, which generate faster than
 #+begin_src elisp
 (setq preview-LaTeX-command-replacements '(preview-LaTeX-disable-pdfoutput))
 #+end_src
+On some systems, especially stable-release distributions such as Debian, the
+DVI workflow can be more robust if =preview-latex= converts DVI files directly
+to PNG files with =dvipng= instead of using Ghostscript.  After installing
+=dvipng=, use:
+#+begin_src elisp
+(setq preview-image-type 'dvi*)
+(setq preview-dvi*-image-type 'png)
+#+end_src
 If you use a package such as =hyperref= that works only with PDF's, then you should replace =\usepackage{hyperref}= in your TeX file with something like the following:
 #+begin_src latex
 \usepackage{ifpdf}
@@ -76,6 +84,11 @@ I use something like the following =use-package= declaration:
 
   ;; (preview-LaTeX-command-replacements
   ;;  '(preview-LaTeX-disable-pdfoutput))
+
+  ;; If you have installed dvipng and want to avoid Ghostscript in the
+  ;; DVI workflow:
+  ;; (preview-image-type 'dvi*)
+  ;; (preview-dvi*-image-type 'png)
   )
 #+end_src
 

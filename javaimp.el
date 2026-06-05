@@ -1098,8 +1098,8 @@ See also `javaimp-beginning-of-defun-only-siblings'."
                                          #'previous-single-property-change
                                        #'next-single-property-change)
                                      pos 'javaimp-parse-scope)))
-        (when-let ((scope (get-text-property pos 'javaimp-parse-scope))
-                   (_ (funcall defun-pred scope)))
+        (when-let* ((scope (get-text-property pos 'javaimp-parse-scope))
+                    (_ (funcall defun-pred scope)))
           (goto-char (or (javaimp--beg-of-defun-decl pos) pos))
           (if (> arg 0) (decf arg) (incf arg))))
       (when (/= arg 0)

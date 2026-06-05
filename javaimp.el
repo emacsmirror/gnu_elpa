@@ -37,11 +37,10 @@
 ;;
 ;; Put something like this in your .emacs:
 ;;
-;; (require 'javaimp)
-;; (add-to-list 'javaimp-import-group-alist
-;;   '("\\`my.company\\." . 80))
-;; (keymap-global-set "C-c J v" #'javaimp-visit-project)
-;; (add-hook 'java-mode-hook #'javaimp-minor-mode)
+;; (with-eval-after-load 'javaimp
+;;   (add-to-list 'javaimp-import-group-alist
+;;                '("\\`my.company\\." . 80))
+;;   (add-hook 'java-mode-hook #'javaimp-minor-mode))
 ;;
 ;; Call `javaimp-visit-project', giving it the top-level build file of
 ;; your project.  If called within a project, supplies useful default

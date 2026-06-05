@@ -737,6 +737,9 @@ call this function first."
 ;; do not preserve excursion / restriction - it's the caller's
 ;; responsibility.
 
+(defun javaimp-parse-all-scopes ()
+  (javaimp-parse--all-scopes))
+
 (defun javaimp-parse-get-package ()
   "Return the package declared in the current file.  Leaves point
 at the end of directive."

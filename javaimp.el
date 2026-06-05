@@ -187,6 +187,11 @@ the leading slash)."
 candidates."
   :type '(repeat (string :tag "Class name regexp")))
 
+(defcustom javaimp-use-beginning-of-defun-only-siblings t
+  "If non-nil then use `javaimp-beginning-of-defun-only-siblings' (which
+see) as `beginning-of-defun-function' in `javaimp-minor-mode'."
+  :type 'boolean)
+
 (defcustom javaimp-jar-program "jar"
   "Path to the `jar' program used to read contents of jar files."
   :type 'string)
@@ -1055,7 +1060,55 @@ then no filtering is done."
 ;; Navigation
 
 (defun javaimp-beginning-of-defun (arg)
-  "Function to be used as `beginning-of-defun-function'."
+  "Function to be used as `beginning-of-defun-function'.
+See also `javaimp-beginning-of-defun-only-siblings'."
+  (if (zerop arg)
+      t
+    (save-excursion
+      (javaimp-parse-all-scopes))
+    (let* ((opoint (point))
+           (pos opoint)
+           (defun-pred (javaimp-scope-defun-p t)))
+      ;; Handle the case when we're somewhere in defun declaration.
+      ;; Search forward for defun start, while skipping uninteresting
+      ;; scopes.
+      (while pos
+        (if-let* ((scope (get-text-property pos 'javaimp-parse-scope)))
+          (if (funcall defun-pred scope)
+              (progn
+                (goto-char pos)
+                (setq pos nil))
+            (setq pos (ignore-errors (scan-lists pos 1 0))))
+          (setq pos (next-single-property-change pos 'javaimp-parse-scope))))
+      (if (and (> (point) opoint)
+               (setq pos (javaimp--beg-of-defun-decl (point)))
+               (< pos opoint))
+          ;; We've found something, and going to decl start really
+          ;; would move us back - move.  This also counts as 1 in case
+          ;; arg is positive.
+          (progn
+            (goto-char pos)
+            (when (> arg 0)
+              (decf arg)))
+        (goto-char opoint))
+      ;; Main part - find suitable scope and move arg times
+      (setq pos (point))
+      (while (and (/= arg 0)
+                  (setq pos (funcall (if (> arg 0)
+                                         #'previous-single-property-change
+                                       #'next-single-property-change)
+                                     pos 'javaimp-parse-scope)))
+        (when-let ((scope (get-text-property pos 'javaimp-parse-scope))
+                   (_ (funcall defun-pred scope)))
+          (goto-char (or (javaimp--beg-of-defun-decl pos) pos))
+          (if (> arg 0) (decf arg) (incf arg))))
+      (when (/= arg 0)
+        (goto-char (if (> arg 0) (point-min) (point-max)))))))
+
+(defun javaimp-beginning-of-defun-only-siblings (arg)
+  "Function to be used as `beginning-of-defun-function'.
+It can move only between sibling defuns and never leaves current scope.
+See also `javaimp-beginning-of-defun'."
   (if (zerop arg)
       t
     (let* ((ctx (javaimp--get-sibling-context))
@@ -1105,12 +1158,13 @@ than BOUND.  POS should not be in arglist or similar list."
 
 (defun javaimp-end-of-defun ()
   "Function to be used as `end-of-defun-function'."
-  ;; This function is called after javaimp-beginning-of-defun, which
-  ;; in the normal course will position the point before the
-  ;; open-brace (for example, where javaimp--beg-of-defun-decl puts
-  ;; it), so we look for next property change.  However we need to
-  ;; skip any array-init scopes which may occur within annotation
-  ;; values, like "@Annotation({"val1"})".
+  ;; This function is called after javaimp-beginning-of-defun /
+  ;; javaimp-beginning-of-defun-only-siblings, which in the normal
+  ;; course will position the point somewhere before the open-brace
+  ;; (for example, where javaimp--beg-of-defun-decl puts it), so we
+  ;; look for next property change.  However we need to skip any
+  ;; array-init scopes which may occur within annotation values, like
+  ;; "@Annotation({"val1"})".
   (let ((pos (point)))
     (while-let ((_ pos)
                 (brace-pos (next-single-property-change pos 'javaimp-parse-scope))
@@ -1121,9 +1175,10 @@ than BOUND.  POS should not be in arglist or similar list."
                 (brace-pos (next-single-property-change pos 'javaimp-parse-scope))
                 (_ (get-text-property brace-pos 'javaimp-parse-scope))
                 ;; When there're no siblings,
-                ;; javaimp-beginning-of-defun moves to the parent
-                ;; start.  In this case we should stay inside the
-                ;; parent.
+                ;; javaimp-beginning-of-defun-only-siblings moves to
+                ;; the parent start.  In this case we should stay
+                ;; inside the parent.
+                ;; TODO check this with javaimp-beginning-of-defun
                 (_ (eql (nth 1 (syntax-ppss))
                         (save-excursion
                           (nth 1 (syntax-ppss brace-pos))))))
@@ -1294,7 +1349,10 @@ defun javadoc to be included in the narrowed region when using
         (add-function :override (local 'imenu-create-index-function)
                       #'javaimp-imenu-create-index)
         (add-function :override (local 'beginning-of-defun-function)
-                      #'javaimp-beginning-of-defun)
+                      (if javaimp-use-beginning-of-defun-only-siblings
+                          #'javaimp-beginning-of-defun-only-siblings
+                        #'javaimp-beginning-of-defun)
+                      '((name . "javaimp-beginning-of-defun")))
         (add-function :override (local 'end-of-defun-function)
                       #'javaimp-end-of-defun)
         (add-function :override (local 'add-log-current-defun-function)
@@ -1312,7 +1370,7 @@ defun javadoc to be included in the narrowed region when using
     (remove-function (local 'imenu-create-index-function)
                      #'javaimp-imenu-create-index)
     (remove-function (local 'beginning-of-defun-function)
-                     #'javaimp-beginning-of-defun)
+                     "javaimp-beginning-of-defun")
     (remove-function (local 'end-of-defun-function)
                      #'javaimp-end-of-defun)
     (remove-function (local 'add-log-current-defun-function)

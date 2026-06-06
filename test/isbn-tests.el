@@ -1,4 +1,4 @@
-;;; isbn-test.el --- Tests for isbn  -*- lexical-binding: t; -*-
+;;; isbn-tests.el --- Tests for isbn  -*- lexical-binding: t; -*-
 
 ;;; Code:
 
@@ -8,11 +8,11 @@
 
 ;;;; Core
 
-(ert-deftest isbn-test:list->string ()
+(ert-deftest isbn-tests-list->string ()
   "Test `isbn--list->string'."
   (should (string= (isbn--list->string '(0 1 2 3 4 5 6 7 8 9 10)) "0123456789X")))
 
-(ert-deftest isbn-test:string->list ()
+(ert-deftest isbn-tests-string->list ()
   "Test `isbn--string->list'."
   ;; Case-insensitivity is important.
   (should (equal (isbn--string->list "0123456789x") '(0 1 2 3 4 5 6 7 8 9 10)))
@@ -22,7 +22,7 @@
 
 ;;;;; Conversion
 
-(ert-deftest isbn-test:convert ()
+(ert-deftest isbn-tests-convert ()
   "Test `isbn-convert'."
   (should (string= (isbn-convert "0983159289")       "9780983159285"))
   (should (string= (isbn-convert "9780983159285")    "0983159289"))
@@ -31,7 +31,7 @@
 
 ;;;;; Hyphenation
 
-(ert-deftest isbn-test:hyphenation-ranges-update ()
+(ert-deftest isbn-tests-hyphenation-ranges-update ()
   "Test `isbn-hyphenation-ranges-update'."
   (ert-with-temp-directory dir
     (let ((isbn-hyphenation-ranges-cache-file (file-name-concat dir "cache")))
@@ -39,7 +39,7 @@
       (should (file-exists-p isbn-hyphenation-ranges-cache-file))
       (should isbn-hyphenation-ranges-cache))))
 
-(ert-deftest isbn-test:hyphenate ()
+(ert-deftest isbn-tests-hyphenate ()
   "Test `isbn-hyphenate'."
   (unless (libxml-available-p)
     (ert-skip "libxml2 support is not available"))
@@ -50,7 +50,7 @@
 
 ;;;;; Validation
 
-(ert-deftest isbn-test:valid-p ()
+(ert-deftest isbn-tests-valid-p ()
   "Test `isbn-valid-p'."
 
   ;; ISBN-10
@@ -61,4 +61,4 @@
   (should     (isbn-valid-p "9780983159285"))      ; valid
   (should-not (isbn-valid-p "9780983159280")))     ; invalid
 
-;;; isbn-test.el ends here
+;;; isbn-tests.el ends here

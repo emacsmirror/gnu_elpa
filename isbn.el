@@ -245,24 +245,31 @@ Optional argument NOFILE, if non-nil, prevents writing to
           (lambda (_status &rest _cbargs)))
       (error (error "Failed to retrieve hyphenation data")))))
 
-;; NOTE: This function has no testing.
-(defun isbn-hyphenation-ranges-maybe-update ()
+(defun isbn-hyphenation-ranges-maybe-update (&optional time)
   "Update ranges cache if enough time has elapsed.
 The amount of time before updating is determined by
 `isbn-hyphenation-ranges-update-interval'.  Confirmation will be asked
-of the user before updating."
+of the user before updating.
+
+Optional argument TIME, if non-nil, overrides the time recorded within
+`isbn-hyphenation-ranges-cache-file'.
+
+This function returns t if new hyphenation ranges are available."
   (require 'time-date)
   (when (and isbn-hyphenation-ranges-update-interval
              (file-exists-p isbn-hyphenation-ranges-cache-file))
-    (let ((time (with-temp-buffer
-                  (insert-file-contents isbn-hyphenation-ranges-cache-file nil 0 64)
-                  (goto-char (point-min)) (search-forward "TIME:" (line-end-position))
-                  (read (string-trim (buffer-substring (point) (line-end-position)))))))
-      (when (> (time-to-number-of-days (time-since time)) isbn-hyphenation-ranges-update-interval)
-        (if inhibit-interaction
-            (message "New ISBN hyphenation ranges are available, but interaction is inhibited")
-          (when (yes-or-no-p "New ISBN hyphenation ranges are available.  Download them? ")
-            (isbn-hyphenation-ranges-update)))))))
+    (setq time (or time (with-temp-buffer
+                          (insert-file-contents isbn-hyphenation-ranges-cache-file nil 0 64)
+                          (goto-char (point-min)) (search-forward "TIME:" (line-end-position))
+                          (read (string-trim (buffer-substring (point) (line-end-position)))))))
+    (when (> (time-to-number-of-days (time-since time)) isbn-hyphenation-ranges-update-interval)
+      (if inhibit-interaction
+          (message "New ISBN hyphenation ranges are available, but interaction is inhibited")
+        (when (yes-or-no-p "New ISBN hyphenation ranges are available.  Download them? ")
+          (isbn-hyphenation-ranges-update)))
+      ;; While this return may be useful for users, it's mostly for
+      ;; testing purposes.
+      t)))
 
 ;;;###autoload
 (defun isbn-hyphenate (isbn &optional interactive)

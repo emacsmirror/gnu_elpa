@@ -39,6 +39,12 @@
       (should (file-exists-p isbn-hyphenation-ranges-cache-file))
       (should isbn-hyphenation-ranges-cache))))
 
+(ert-deftest isbn-tests-hyphenation-ranges-maybe-update ()
+  "Test `isbn-hyphenation-ranges-maybe-update'."
+  (let ((inhibit-interaction t))
+    (should-not (isbn-hyphenation-ranges-maybe-update))
+    (should     (isbn-hyphenation-ranges-maybe-update 0))))
+
 (ert-deftest isbn-tests-hyphenate ()
   "Test `isbn-hyphenate'."
   (unless (libxml-available-p)

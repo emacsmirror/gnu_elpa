@@ -6,9 +6,6 @@
 (require 'ert-x)
 (require 'isbn)
 
-;; To prevent spamming servers, cache the ranges for testing.
-(isbn-hyphenation-ranges-update :nofile)
-
 ;;;; Core
 
 (ert-deftest isbn-test:list->string ()
@@ -34,19 +31,15 @@
 
 ;;;;; Hyphenation
 
-;; NOTE: I do not want to spam the servers with requests for the
-;; hyphenation ranges.  Perhaps there is a workaround...
-
 (ert-deftest isbn-test:hyphenation-ranges-update ()
   "Test `isbn-hyphenation-ranges-update'."
-
-(ert-deftest isbn-test:hyphenate ()
   (ert-with-temp-directory dir
-    (let ((isbn-hyphenation-ranges-cache-file (file-name-concat dir "cache"))
-          isbn-hyphenation-ranges-cache)
+    (let ((isbn-hyphenation-ranges-cache-file (file-name-concat dir "cache")))
       (isbn-hyphenation-ranges-update)
       (should (file-exists-p isbn-hyphenation-ranges-cache-file))
       (should isbn-hyphenation-ranges-cache))))
+
+(ert-deftest isbn-test:hyphenate ()
   "Test `isbn-hyphenate'."
   (unless (libxml-available-p)
     (ert-skip "libxml2 support is not available"))

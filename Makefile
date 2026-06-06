@@ -1,14 +1,14 @@
 # -*- indent-tabs-mode: t; -*-
 
 EMACS := emacs
-ERT_SELECTOR := (member                                     \
-		 isbn-tests-list->string                    \
-		 isbn-tests-string->list                    \
-		 isbn-tests-valid-p                         \
-		 isbn-tests-convert                         \
-		 isbn-tests-hyphenation-ranges-update       \
-		 isbn-tests-hyphenation-ranges-maybe-update \
-		 isbn-tests-hyphenate                       \
+ERT_SELECTOR := (member                                            \
+		 isbn-tests-list->string                           \
+		 isbn-tests-string->list                           \
+		 isbn-tests-valid-p                                \
+		 isbn-tests-convert                                \
+		 isbn-tests-hyphenation-ranges-update              \
+		 isbn-tests-hyphenation-ranges-maybe-prompt-update \
+		 isbn-tests-hyphenate                              \
 )
 
 .PHONY: test

@@ -58,7 +58,7 @@
 ;; format [1].  Since hyphenation ranges are only updated yearly,
 ;; ranges are cached to `isbn-hyphenation-ranges-cache-file'.  To
 ;; cache this file, users must run `isbn-hyphenation-ranges-update' at
-;; least once before calling any the of functions below.  Users may
+;; least once before calling any of the functions below.  Users may
 ;; wish to add `isbn-hyphenation-ranges-maybe-prompt-update' to their
 ;; `init.el' to check for updates automatically (every 365 days by
 ;; default).

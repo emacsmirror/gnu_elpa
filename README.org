@@ -1,0 +1,114 @@
+#+title: Syntax focused Common Lisp tree-sitter grammar
+
+A very much WIP grammar for Common Lisp. [[https://github.com/tree-sitter-grammars/tree-sitter-commonlisp][Other implementations exist]] but with
+this I focused specifically on the syntax of the language, so this grammar lacks
+rules for things like "definition". Because of Lisp's extensibility, it doesn't
+lend itself to a formal, authoritative definition of "intent" the way many other
+languages' grammars permit. What I mean by that is
+#+begin_src lisp
+  (defmacro cool-defun (name args &body body)
+    "😎"
+    `(defun ,name ,args ,@body))
+#+end_src
+could break a grammar which hinges on ~CL:DEFUN~ as the "function_definition"
+operator. This is a contrived example but you get the point.
+
+"Syntax focused" does /not/ mean this grammar is simple. Some of the neat
+features of this grammar:
+- True nested block comments :: ~#| |#~ comments are represented as
+  ~block_comment~ nodes, which can contain ~nested_comment~ children (identical
+  rule, different name). Since that's a non-terminal rule, we cannot use [[https://tree-sitter.github.io/tree-sitter/creating-parsers/3-writing-the-grammar.html#using-extras][extras]],
+  *so we have to manually manage whitespace and comments*. This is a pain in the
+  ass.
+- Symbols are non-terminal :: symbols are not represented as terminal token
+  rules, but instead have a syntax tree like
+  #+begin_example
+    (interned_symbol
+      package: (symbol_tokens `cl`)
+      ":"
+      name: (symbol_tokens `cons`))
+  #+end_example
+  ~symbol_tokens~ nodes can have ~single_escape~ and ~multiple_escape~ child nodes.
+- A grammar for FORMAT directives :: This is a multi grammar repo, containing a
+  separate [[file:grammars/format/grammar.js][grammar for FORMAT]]. The string ~"​~3[​~:;hi~]"~ will generate a tree
+  roughly like
+  #+begin_example
+    (format_string
+      (format_group
+        start: (format_directive "~" (numeric_parameter `3`) (directive_character `[`))
+        (format_directive "~" ":" (directive_character `;`))
+        (string_chars `hi`)
+        end: (format_directive "~" (directive_character `]`))))
+  #+end_example
+I had to use an [[https://tree-sitter.github.io/tree-sitter/creating-parsers/4-external-scanners.html][external scanner]] for both symbol and format directive parsing. [[file:common/scanner.h][My C isn't great]], feel free to let me know what I'm doing wrong.
+
+* Emacs support
+This repo contains a [[file:cl-ts-mode.el][CL tree-sitter major mode]] and a very funky [[file:clparse.el][semantic
+font-lock library]]. Shield your eyes:
+
+[[file:screenshot.png]]
+
+The font-lock library is currently called "clparse", but this will almost
+certainly change. I didn't use "cl-parse" because I didn't want the prefix to
+clash with ~cl-lib~. I'm tentatively thinking "semantic-cl", or maybe
+"cl-scope".
+
+The most useful part of this mess by far is the ~FORMAT~ directive highlighting.
+The fatigue of counting and squinting at format directives was a major
+motivation for this entire project. If you have [[https://github.com/Fanael/rainbow-delimiters][rainbow-delimiters.el]] those
+faces can be used to highlight paired directives based on depth. See the
+different colors of the ~>~ and ~}~ in the screenshot. And the face for the
+whitespace skipped by ~~<newline>~ directives (dashed underline in the
+screenshot) is very helpful. If you're horrified by the rainbow, you can simply
+customize every ~cl-ts-mode-format-*~ face to the same appearance. While the
+format fontifying logic is implemented in ~cl-ts-mode~, currently the format
+local parsers are only added by ~clparse~.
+
+I took a *lot* of inspiration from elisp-scope.el (which should ship with
+Emacs 31) and pushed it to its extreme. There are 9 faces for local functions,
+variables, blocks and tags which are cycled through on successive local
+bindings. I also added faces for a variety of types of symbols ("roles" in the
+elisp-scope parlance) like ~LOOP~ keywords, slot names, macros and special
+operators, declaration names, special faces for ~T~ and ~NIL~, and so on. The
+boxes in the screenshot are from an additional minor mode which highlights local
+bindings at point.
+
+Almost all of this hinges on communication with an inferior lisp. Currently only
+[[https://github.com/joaotavora/sly][Sly]] is supported, but [[https://github.com/slime/slime][SLIME]] support should be super simple, just haven't gotten
+around to it (patches welcome).
+
+** Some /clparse/ implementation details
+Symbols are passed to the Lisp via a Sly channel, who reports back with the
+attributes of the symbol. The database of symbols is stored in obarrays on the
+Emacs side. One "universal" obarray contains the complete package qualified
+symbol names, like ~COMMON-LISP::CONS~. Information about the symbols, like
+whether they're defined as variables, functions, macros etc. are stored in their
+~symbol-plist~. Individual packages have their own specialized obarrays, whose
+symbols are verbatim substrings of text from buffers where we found an
+~in-package~ form specifying that package. Those symbols' ~symbol-function~ is a
+symbol in the aforementioned universal obarray (or nil if we couldn't resolve
+it). It may sound a little complicated but it's pretty simple in practice. To
+check if the symbol represented by a treesit-node is defined as a function:
+#+begin_src elisp :tangle yes :lexical yes
+  (get (symbol-function (intern (treesit-node-text NODE) package-obarray)) :definition)
+#+end_src
+Or more simply
+#+begin_src elisp :tangle yes :lexical yes
+  (get (clparse-canonize-node NODE) :definition)
+#+end_src
+I'm not sure why I went with the term "canonize" but it's now used throughout.
+
+Local variables/functions/blocks/tags are stored as a nested alist in the
+dynamic variable ~clparse-locals~. The keys are keywords like ~:variables~, and
+the value is ~(DEPTH . LOCALS)~, where each of ~LOCALS~ is ~(CANONIZED-SYMBOL
+TREESIT-NODE . FACE-LIST)~. Storing all of this in a single variable is quite
+handy:
+- When encountering a quasiquote or unquote, the value of ~clparse-locals~ is
+  pushed to/popped from ~clparse-locals-stack~
+- Supporting new types of bindings is trivial, just use a unique key in
+  ~clparse-locals~
+When parsing a binding form like ~let~, the macro ~clparse-with-new-env~ is used
+to create a new entry from the innermost respective ~clparse-locals~ entry.
+Bindings are then added by destructively pushing into the entry's ~cddr~, and
+incrementing the depth in the ~cadr~.
+

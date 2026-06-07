@@ -5,11 +5,10 @@
 ;; Author: zach shaftel <zach@shaf.tel>
 ;; Maintainer: zach shaftel <zach@shaf.tel>
 ;; Created: May 14, 2026
-;; Modified: May 14, 2026
 ;; Version: 0.0.1
 ;; Keywords:
-;; Homepage:
-;; Package-Requires: ((emacs 31.0.50))
+;; URL:
+;; Package-Requires: ((emacs "31"))
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -27,6 +26,14 @@
 (setf (alist-get 'common-lisp ts-language-source-alist)
       `(,(file-name-directory (macroexp-file-name))
         :source-dir "grammars/cl/src"))
+(setf (alist-get 'cl-format ts-language-source-alist)
+      `(,(file-name-directory (macroexp-file-name))
+        :source-dir "grammars/format/src"))
+
+;; eventually, but it's not ready yet
+;; (static-if (boundp 'treesit-major-mode-remap-alist)
+;;     (add-to-list 'treesit-major-mode-remap-alist
+;;                  '(lisp-mode . cl-ts-mode)))
 
 (defgroup cl-ts-mode ()
   "Common Lisp mode with tree-sitter support."
@@ -68,10 +75,10 @@ used.")
 
 (defface cl-ts-mode-format-skipped-whitespace
   '((default :inherit font-lock-comment-face :weight bold)
-    (((supports :underline (:color foreground-color :style dots)))
-     :underline (:color foreground-color :style dots))
     (((supports :underline (:color foreground-color :style dashes)))
      :underline (:color foreground-color :style dashes))
+    (((supports :underline (:color foreground-color :style dots)))
+     :underline (:color foreground-color :style dots))
     (((supports :strike-through t)) :strike-through t)
     (t :underline t))
   "Face placed over all whitespace ignored by the ~<newline> format directive.")
@@ -134,12 +141,19 @@ it will be set to nil."
                             "disabling `cl-ts-mode-format-rainbow-delimiters'"))
              (setq-default cl-ts-mode-format-rainbow-delimiters nil)))))
 
+(defvar cl-ts-mode-fontify-format-funcall-function ;say that three times fast!
+  nil
+  "A function called on the function nodes in ~/function/ FORMAT directives.
+It can either return a face which will be added to the node, or add the
+face itself and return nil.")
+
 (defun cl-ts-mode--fontify-one-format-directive (node &optional paired-depth mismatch-p)
   (defvar rainbow-delimiters-pick-face-function)
   (let ((child (ts-node-child node 0)))
     (while child
       (when-let* ((face (pcase (ts-node-type child)
                           ('"~" 'cl-ts-mode-format-tilde)
+                          ;; "v" is aliased to "V" in the grammar
                           ('"V" 'cl-ts-mode-format-arg-parameter)
                           ('"#" 'cl-ts-mode-format-remaining-parameter)
                           ('"char_parameter" 'cl-ts-mode-format-char-parameter)
@@ -160,7 +174,10 @@ it will be set to nil."
                               'cl-ts-mode-format-paired-directive)
                              (t (funcall rainbow-delimiters-pick-face-function
                                          paired-depth (not mismatch-p)
-                                         (ts-node-start child))))))))
+                                         (ts-node-start child)))))
+                          ('"interned_symbol"
+                           (when cl-ts-mode-fontify-format-funcall-function
+                             (funcall cl-ts-mode-fontify-format-funcall-function child))))))
         (add-face-text-property (ts-node-start child)
                                 (ts-node-end child)
                                 face))
@@ -190,9 +207,9 @@ it will be set to nil."
 (defun cl-ts-mode--fontify-string (node override start end &rest _)
   (ignore override)
   (when (and (>= (ts-node-start node) start) (<= (ts-node-end node) end))
-    (add-face-text-property (ts-node-start node)
-                            (ts-node-end node)
-                            'font-lock-string-face)
+    ;; (add-face-text-property (ts-node-start node)
+    ;;                         (ts-node-end node)
+    ;;                         'font-lock-string-face)
     (when (memq 'format-directive cl-ts-mode--enabled-fl-features)
       (cl-ts-mode--fontify-format-directives (ts-node-child node 1) 0))))
 
@@ -297,9 +314,16 @@ it will be set to nil."
 
 (defun cl-ts-mode--font-lock-rules ()
   (ts-font-lock-rules
+   ;; this is an embedded parser and we don't have range settings here.
+   ;; currently this rule will only run if triggered by `clparse-mode'.
+   :language 'cl-format
+   :feature 'format-directive
+   :override 'prepend
+   `((format_string) @cl-ts-mode--fontify-string)
    :default-language 'common-lisp
    :feature 'string
-   `((string) @cl-ts-mode--fontify-string)
+   ;; `((string) @cl-ts-mode--fontify-string)
+   `((string) @font-lock-string-face)
    :feature 'comment
    `([(line_comment) (block_comment)] @cl-ts-mode--fontify-comment)
    :feature 'number
@@ -318,6 +342,9 @@ it will be set to nil."
        !package
        [":" "::"] @font-lock-delimiter-face
        name: (symbol_tokens) @font-lock-builtin-face)
+      (uninterned_symbol
+       "#:" @font-lock-delimiter-face
+       name: (symbol_tokens) @font-lock-builtin-face)
       ;; other symbols
       (interned_symbol
        package: (symbol_tokens) :? @font-lock-keyword-face
@@ -331,7 +358,7 @@ it will be set to nil."
                  ",." @font-lock-warning-face]))
    :feature 'bits
    :override 'prepend
-   `([(bit_vector) (rational)] @clparse--fontify-bits)))
+   `([(bit_vector) (rational)] @cl-ts-mode--fontify-bits)))
 
 (defconst cl-ts-mode-font-lock-feature-list
   '((string comment)
@@ -420,7 +447,7 @@ it will be set to nil."
   (setq-local comment-end-skip "[ \t]*\\(\\s>\\||#\\)")
   (setq-local font-lock-comment-end-skip "|#")
   (setq imenu-case-fold-search t)
-  (when (ts-ensure-installed 'common-lisp)
+  (when (and (ts-ensure-installed 'common-lisp) (ts-ensure-installed 'cl-format))
     (setq ts-primary-parser (ts-parser-create 'common-lisp))
     (setq ts-font-lock-settings (cl-ts-mode--font-lock-rules))
     (setq ts-font-lock-feature-list cl-ts-mode-font-lock-feature-list)
@@ -441,7 +468,11 @@ it will be set to nil."
                          ,@body
                          ,@(nreverse restore)))))
       (with-saved-vars
-       (up-list-function forward-list-function forward-sexp-function)
+       (up-list-function
+        forward-list-function
+        forward-sexp-function
+        ;; this one seems to be broken in some other languages too
+        forward-comment-function)
        (ts-major-mode-setup)))
     ;; (make-local-variable 'up-list-function)
     ;; (make-local-variable 'forward-list-function)

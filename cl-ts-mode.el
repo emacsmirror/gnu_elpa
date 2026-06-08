@@ -1,7 +1,7 @@
 ;;; cl-ts-mode.el --- lisp-mode with tree-sitter support -*- lexical-binding: t; -*-
-;;
+
 ;; Copyright (C) 2026 zach shaftel
-;;
+
 ;; Author: zach shaftel <zach@shaf.tel>
 ;; Maintainer: zach shaftel <zach@shaf.tel>
 ;; Created: May 14, 2026
@@ -9,13 +9,13 @@
 ;; Keywords:
 ;; URL:
 ;; Package-Requires: ((emacs "31"))
-;;
+
 ;; This file is not part of GNU Emacs.
-;;
+
 ;;; Commentary:
-;;
+
 ;;  lisp-mode with tree-sitter support
-;;
+
 ;;; Code:
 
 (require 'treesit)
@@ -39,6 +39,8 @@
   "Common Lisp mode with tree-sitter support."
   :group 'lisp)
 
+;; most of the inherited faces are arbitrary, it's just to keep the faces
+;; consistent with the current theme's color palette.
 (defface cl-ts-mode-format-tilde '((t :inherit font-lock-regexp-grouping-backslash))
   "Face for the ~ in format directive")
 
@@ -93,6 +95,46 @@ comments are highlighted with `font-lock-comment-face'.")
 (defface cl-ts-mode-block-comment-depth-3 '((t :inherit cl-ts-mode-block-comment-depth-2))
   "Face used to highlight block comments nested by 3 levels.")
 
+(defface cl-ts-mode-reader-macro-base '((t :weight extra-bold))
+  "All faces for reader macros (like `cl-ts-mode-quote') inherit from
+this face.")
+
+(defface cl-ts-mode-positive-read-conditional
+  '((t :inherit (success cl-ts-mode-reader-macro-base)))
+  "Face used for #+.")
+
+(defface cl-ts-mode-negative-read-conditional
+  '((t :inherit (cl-ts-mode-reader-macro-base error)))
+  "Face used for #-.")
+
+(defface cl-ts-mode-read-eval
+  '((t :inherit (cl-ts-mode-reader-macro-base font-lock-misc-punctuation-face)))
+  "Face used for #..")
+
+(defface cl-ts-mode-quote
+  '((t :inherit (font-lock-preprocessor-face cl-ts-mode-reader-macro-base)))
+  "Face for \\='.")
+
+(defface cl-ts-mode-sharpquote
+  '((t :inherit (font-lock-constant-face cl-ts-mode-reader-macro-base)))
+  "Face for #\\='.")
+
+(defface cl-ts-mode-quasiquote
+  '((t :inherit (font-lock-string-face cl-ts-mode-reader-macro-base)))
+  "Face for \\=`.")
+
+(defface cl-ts-mode-comma
+  '((t :inherit (font-lock-property-use-face cl-ts-mode-reader-macro-base)))
+  "Face for , (unquote).")
+
+(defface cl-ts-mode-comma-at
+  '((t :inherit (font-lock-delimiter-face cl-ts-mode-comma)))
+  "Face for ,@ (unquote splice).")
+
+(defface cl-ts-mode-comma-dot
+  '((t :inherit (font-lock-warning-face cl-ts-mode-comma)))
+  "Face for ,. (unquote nconc).")
+
 (defconst cl-ts-mode--block-comment-faces
   [font-lock-comment-face
    cl-ts-mode-block-comment-depth-1
@@ -107,17 +149,21 @@ comments are highlighted with `font-lock-comment-face'.")
 (declare-function color-darken-name "color")
 
 ;;;###autoload
-(defun cl-ts-mode-update-comment-faces (&optional _theme)
+(defun cl-ts-mode-update-comment-faces (&optional theme)
   "A function to update the block comment faces by increasing darkness.
 Meant to be added to `enable-theme-functions'. The darkening ratio is
-controlled by `cl-ts-mode-comment-darken-percentage'."
-  (let* ((comment-fore (face-attribute 'font-lock-comment-face :foreground nil t)))
+controlled by `cl-ts-mode-comment-darken-percentage', or by THEME's
+`cl-ts-mode-comment-darken-percentage' symbol property if that's
+non-nil."
+  (let* ((comment-fore (face-attribute 'font-lock-comment-face :foreground nil t))
+         (percentage (or (and theme (get theme 'cl-ts-mode-comment-darken-percentage))
+                         cl-ts-mode-comment-darken-percentage)))
     (when (stringp comment-fore)
       (require 'color)
       (let ((i 0))
         (while (< i 3)
           (incf i)
-          (thread-last (* cl-ts-mode-comment-darken-percentage i)
+          (thread-last (* percentage i)
             (color-darken-name comment-fore)
             (set-face-attribute (aref cl-ts-mode--block-comment-faces i)
                                 nil :foreground)))))))
@@ -141,6 +187,8 @@ it will be set to nil."
                             "disabling `cl-ts-mode-format-rainbow-delimiters'"))
              (setq-default cl-ts-mode-format-rainbow-delimiters nil)))))
 
+;; FIXME: should this be a defcustom? this is really just for `clparse-mode' to
+;; hook into `cl-ts-mode--fontify-one-format-directive'.
 (defvar cl-ts-mode-fontify-format-funcall-function ;say that three times fast!
   nil
   "A function called on the function nodes in ~/function/ FORMAT directives.
@@ -175,6 +223,7 @@ face itself and return nil.")
                              (t (funcall rainbow-delimiters-pick-face-function
                                          paired-depth (not mismatch-p)
                                          (ts-node-start child)))))
+                          ;; ~/
                           ('"interned_symbol"
                            (when cl-ts-mode-fontify-format-funcall-function
                              (funcall cl-ts-mode-fontify-format-funcall-function child))))))
@@ -322,17 +371,18 @@ face itself and return nil.")
    `((format_string) @cl-ts-mode--fontify-string)
    :default-language 'common-lisp
    :feature 'string
-   ;; `((string) @cl-ts-mode--fontify-string)
    `((string) @font-lock-string-face)
    :feature 'comment
    `([(line_comment) (block_comment)] @cl-ts-mode--fontify-comment)
+   :feature 'bits
+   :override 'prepend
+   `([(bit_vector) (rational)] @cl-ts-mode--fontify-bits)
    :feature 'number
-   ;; complexes are defined as
-   ;; (complex [(float) (rational)] [(float) (rational)])
-   ;; so their whole and imaginary parts will both get the face. highlighting
-   ;; the entire expression #C(1/3 99.1) with font-lock-number-face seems weird
-   ;; to me.
-   `([(float) (rational)] @font-lock-number-face)
+   :override 'prepend
+   ;; complexes have a tree like (complex (real) (real)) so their whole and
+   ;; imaginary parts will both get the face. highlighting the entire expression
+   ;; #C(1/3 99.1) with font-lock-number-face seems weird to me.
+   `((real) @font-lock-number-face)
    :feature 'symbol
    :override 'prepend
    `((symbol_tokens [(single_escape) @font-lock-escape-face
@@ -349,16 +399,20 @@ face itself and return nil.")
       (interned_symbol
        package: (symbol_tokens) :? @font-lock-keyword-face
        [":" "::"] :? @font-lock-delimiter-face)])
+   ;; these next 2 should probably be merged right?
    :feature 'quote
-   `((quote      "'"  @font-lock-preprocessor-face)
-     (sharpquote "#'" @font-lock-constant-face)
-     (quasiquote "`"  @font-lock-builtin-face)
-     (unquote   [","  @font-lock-property-name-face
-                 ",@" @font-lock-property-use-face
-                 ",." @font-lock-warning-face]))
-   :feature 'bits
    :override 'prepend
-   `([(bit_vector) (rational)] @cl-ts-mode--fontify-bits)))
+   `((quote      "'"  @cl-ts-mode-quote)
+     (sharpquote "#'" @cl-ts-mode-sharpquote)
+     (quasiquote "`"  @cl-ts-mode-quasiquote)
+     (unquote   [","  @cl-ts-mode-comma
+                 ",@" @cl-ts-mode-comma-at
+                 ",." @cl-ts-mode-comma-at]))
+   :feature 'reader-macros
+   :override 'prepend
+   `(["#." @cl-ts-mode-read-eval
+      "#+" @cl-ts-mode-positive-read-conditional
+      "#-" @cl-ts-mode-negative-read-conditional])))
 
 (defconst cl-ts-mode-font-lock-feature-list
   '((string comment)

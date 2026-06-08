@@ -40,7 +40,8 @@ features of this grammar:
         (string_chars `hi`)
         end: (format_directive "~" (directive_character `]`))))
   #+end_example
-I had to use an [[https://tree-sitter.github.io/tree-sitter/creating-parsers/4-external-scanners.html][external scanner]] for both symbol and format directive parsing. [[file:common/scanner.h][My C isn't great]], feel free to let me know what I'm doing wrong.
+I had to use an [[https://tree-sitter.github.io/tree-sitter/creating-parsers/4-external-scanners.html][external scanner]] for both [[file:grammars/cl/src/scanner.c][symbol]] and [[file:grammars/format/src/scanner.c][format directive]] parsing.
+My C isn't great, feel free to let me know what I'm doing wrong.
 
 * Emacs support
 This repo contains a [[file:cl-ts-mode.el][CL tree-sitter major mode]] and a very funky [[file:clparse.el][semantic
@@ -94,15 +95,13 @@ check if the symbol represented by a treesit-node is defined as a function:
 #+end_src
 Or more simply
 #+begin_src elisp :tangle yes :lexical yes
-  (get (clparse-canonize-node NODE) :definition)
+  (get (clparse-canonicalize-node NODE) :definition)
 #+end_src
-I'm not sure why I went with the term "canonize" but it's now used throughout.
-
 Local variables/functions/blocks/tags are stored as a nested alist in the
 dynamic variable ~clparse-locals~. The keys are keywords like ~:variables~, and
-the value is ~(DEPTH . LOCALS)~, where each of ~LOCALS~ is ~(CANONIZED-SYMBOL
-TREESIT-NODE . FACE-LIST)~. Storing all of this in a single variable is quite
-handy:
+the value is ~(DEPTH . LOCALS)~, where each of ~LOCALS~ is
+~(CANONICALIZED-SYMBOL TREESIT-NODE . FACE-LIST)~. Storing all of this in a
+single variable is quite handy:
 - When encountering a quasiquote or unquote, the value of ~clparse-locals~ is
   pushed to/popped from ~clparse-locals-stack~
 - Supporting new types of bindings is trivial, just use a unique key in
@@ -112,3 +111,25 @@ to create a new entry from the innermost respective ~clparse-locals~ entry.
 Bindings are then added by destructively pushing into the entry's ~cddr~, and
 incrementing the depth in the ~cadr~.
 
+*** TODO more details
+
+* FIXMEs
+*Note*: If you wanna use this just know it is a WIP and I won't hesitate to make
+drastic changes until it's close to release-ready.
+
+Most of these are for ~clparse~, ~cl-ts-mode~ is much further along.
+- [ ] SLIME support
+- [ ] Better integration with the inferior Lisp (automatically re-caching when
+  files are loaded, defuns are evalled etc.)
+- [ ] Better support for multiple buffers/packages. Right now ~clparse~ more or
+  less commits to the
+- [ ] Better interaction between ~clparse-walk~ and ~clparse-apply-type~. I
+  think that ~clparse-apply-type~ should be the one to decide whether its type
+  applies based on the level of quoting of its argument. Right now this decision
+  is very clumsily made by ~clparse-walk~.
+- [ ] Some notion of an "expected value type", in order to correctly give ~slot~
+  in ~(slot-value object (progn 'slot))~ the correct face. elisp-scope does an
+  excellent job at this with ~elisp-scope-output-spec~. The complicating factor
+  is the prevalence of nonlocal control transfer compared to Elisp. Ideally we
+  would track the expected type at each ~CL:BLOCK~ for ~CL:RETURN-FROM~ to
+  determine its argument's role.

@@ -20,7 +20,7 @@ features of this grammar:
   rule, different name). Since that's a non-terminal rule, we cannot use [[https://tree-sitter.github.io/tree-sitter/creating-parsers/3-writing-the-grammar.html#using-extras][extras]],
   *so we have to manually manage whitespace and comments*. This is a pain in the
   ass.
-- Symbols are non-terminal :: symbols are not represented as terminal token
+- Symbols are non-terminal :: Symbols are not represented as terminal token
   rules, but instead have a syntax tree like
   #+begin_example
     (interned_symbol
@@ -30,7 +30,7 @@ features of this grammar:
   #+end_example
   ~symbol_tokens~ nodes can have ~single_escape~ and ~multiple_escape~ child nodes.
 - A grammar for FORMAT directives :: This is a multi grammar repo, containing a
-  separate [[file:grammars/format/grammar.js][grammar for FORMAT]]. The string ~"​~3[​~:;hi~]"~ will generate a tree
+  separate [[file:grammars/format/grammar.js][grammar for FORMAT]]. The string ~"​~3[​~​:;hi~]"~ will generate a tree
   roughly like
   #+begin_example
     (format_string
@@ -44,21 +44,29 @@ I had to use an [[https://tree-sitter.github.io/tree-sitter/creating-parsers/4-e
 My C isn't great, feel free to let me know what I'm doing wrong.
 
 * Emacs support
+*Note*: If you wanna use this just know it is a WIP and I won't hesitate to make
+drastic changes until it's closer to release-ready. So if you put any
+customizations in your init make sure to read the diffs carefully before
+updating.
+
+I also will probably split the Emacs libraries into separate repos. Again, be
+careful upgrading.
+
 This repo contains a [[file:cl-ts-mode.el][CL tree-sitter major mode]] and a very funky [[file:clparse.el][semantic
 font-lock library]]. Shield your eyes:
 
+#+ATTR_HTML: :width 700px
 [[file:screenshot.png]]
 
 The font-lock library is currently called "clparse", but this will almost
-certainly change. I didn't use "cl-parse" because I didn't want the prefix to
-clash with ~cl-lib~. I'm tentatively thinking "semantic-cl", or maybe
-"cl-scope".
+certainly change. I don't want the prefix to clash with ~cl-lib~, so I'm
+tentatively thinking "semantic-cl".
 
 The most useful part of this mess by far is the ~FORMAT~ directive highlighting.
 The fatigue of counting and squinting at format directives was a major
 motivation for this entire project. If you have [[https://github.com/Fanael/rainbow-delimiters][rainbow-delimiters.el]] those
 faces can be used to highlight paired directives based on depth. See the
-different colors of the ~>~ and ~}~ in the screenshot. And the face for the
+different colors of the ~~>~ and ~~}~ in the screenshot. And the face for the
 whitespace skipped by ~~<newline>~ directives (dashed underline in the
 screenshot) is very helpful. If you're horrified by the rainbow, you can simply
 customize every ~cl-ts-mode-format-*~ face to the same appearance. While the
@@ -114,15 +122,19 @@ incrementing the depth in the ~cadr~.
 *** TODO more details
 
 * FIXMEs
-*Note*: If you wanna use this just know it is a WIP and I won't hesitate to make
-drastic changes until it's close to release-ready.
-
 Most of these are for ~clparse~, ~cl-ts-mode~ is much further along.
 - [ ] SLIME support
+- [ ] *TESTS* for both grammar and emacs stuff
+- [ ] Possibly support CL-INTERPOL in the grammar
+- [ ] ~treesit-range-settings~ for the format grammar, for those who don't want
+  to use ~clparse~
+- [ ] ~LOOP~ parsing hasn't been tested extensively.
+- [ ] A lot of common macros need parsers, eg. ~ITERATE~
 - [ ] Better integration with the inferior Lisp (automatically re-caching when
   files are loaded, defuns are evalled etc.)
-- [ ] Better support for multiple buffers/packages. Right now ~clparse~ more or
-  less commits to the
+- [ ] Better support for multiple buffers/packages. Right now there practically
+  is none, ~clparse~ just commits to the current package any time it's
+  activated. I'm thinking of using separate Sly/SLIME channels for each package.
 - [ ] Better interaction between ~clparse-walk~ and ~clparse-apply-type~. I
   think that ~clparse-apply-type~ should be the one to decide whether its type
   applies based on the level of quoting of its argument. Right now this decision
@@ -132,4 +144,5 @@ Most of these are for ~clparse~, ~cl-ts-mode~ is much further along.
   excellent job at this with ~elisp-scope-output-spec~. The complicating factor
   is the prevalence of nonlocal control transfer compared to Elisp. Ideally we
   would track the expected type at each ~CL:BLOCK~ for ~CL:RETURN-FROM~ to
-  determine its argument's role.
+  determine its argument's role. Another option is of course to just skip
+  non-local exits entirely and only support tail position values.

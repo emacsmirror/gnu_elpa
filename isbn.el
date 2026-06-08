@@ -7,7 +7,7 @@
 ;; Version: 0.1.0
 ;; Keywords: data
 ;; URL: https://git.sr.ht/~cook/isbn.el
-;; Package-Requires: ((emacs "29.1"))
+;; Package-Requires: ((emacs "28.1"))
 
 ;; This file is not part of GNU Emacs.
 
@@ -224,7 +224,7 @@ ISBN ranges from the International ISBN Agency are updated yearly."
 Optional argument NOFILE, if non-nil, prevents writing to
 `isbn-hyphenation-ranges-cache-file'."
   (interactive)
-  (let ((prgrp (progress-reporter-make
+  (let ((prgrp (make-progress-reporter
                 "Fetching hyphenation ranges from `www.isbn-international.org'...")))
     (condition-case-unless-debug nil
         (with-current-buffer
@@ -284,7 +284,7 @@ with the hyphenated ISBN."
     (user-error "Hyphenation requires libxml2 support"))
 
   (unless isbn-hyphenation-ranges-cache
-    (let ((prgrp (progress-reporter-make "Loading hyphenation ranges from cache...")))
+    (let ((prgrp (make-progress-reporter "Loading hyphenation ranges from cache...")))
       (with-temp-buffer
         (condition-case-unless-debug nil
             (insert-file-contents isbn-hyphenation-ranges-cache-file)
@@ -315,7 +315,7 @@ Please run `isbn-hyphenation-ranges-update'")))
               (throw 'len)
               (when (and (>= number (car range)) (<= number (cadr range))))
               (let ((range (mapcar #'string-to-number
-                                   (string-split (dom-text (dom-child-by-tag rule 'Range)) "-")))))
+                                   (split-string (dom-text (dom-child-by-tag rule 'Range)) "-")))))
               (dolist (rule (dom-by-tag dom 'Rule)))
               (catch 'len)))))
 

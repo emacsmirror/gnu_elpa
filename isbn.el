@@ -1,4 +1,4 @@
-;;; isbn.el --- ISBN library for Emacs  -*- lexical-binding: t; -*-
+;;; isbn.el --- ISBN library  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2026 Maximilian Cook
 
@@ -75,7 +75,7 @@
 (eval-and-compile (require 'subr-x))
 
 (defgroup isbn nil
-  "ISBN library for Emacs."
+  "ISBN library."
   :prefix "isbn-"
   :group 'data)
 

@@ -1,0 +1,24 @@
+;;; Eldev --- Eldev configuration  -*- lexical-binding: t; mode: emacs-lisp; -*-
+
+;;; Commentary:
+
+;;; Code:
+
+;; Functions within `isbn.el' build upon each other, and in the case
+;; of hyphenation the hyphenation ranges much be downloaded and cached
+;; before further testing is possible.
+(eldev-defcommand isbn-test-in-order (&rest parameters)
+  "Run `eldev test' with a pre-specified SELECTOR."
+  :custom-parsing t
+  :category       testing
+  (thread-last
+    '(member
+      isbn-tests-list<->string
+      isbn-tests-valid-p
+      isbn-tests-convert
+      isbn-tests-hyphenation-ranges-cache
+      isbn-tests-hyphenate)
+    prin1-to-string eldev-test
+    (let ((parsed (eldev-parse-command-line parameters :command 'test))))))
+
+;;; Eldev ends here

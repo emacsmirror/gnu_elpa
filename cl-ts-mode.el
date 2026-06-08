@@ -21,19 +21,20 @@
 (require 'treesit)
 (eval-when-compile
   (require 'subr-x))
+
 (ts-declare-unavailable-functions)
 
 (setf (alist-get 'common-lisp ts-language-source-alist)
-      `(,(file-name-directory (macroexp-file-name))
+      `("https://codeberg.org/zshaftel/tree-sitter-cl-syntax"
         :source-dir "grammars/cl/src"))
 (setf (alist-get 'cl-format ts-language-source-alist)
-      `(,(file-name-directory (macroexp-file-name))
+      `("https://codeberg.org/zshaftel/tree-sitter-cl-syntax"
         :source-dir "grammars/format/src"))
 
-;; eventually, but it's not ready yet
-;; (static-if (boundp 'treesit-major-mode-remap-alist)
-;;     (add-to-list 'treesit-major-mode-remap-alist
-;;                  '(lisp-mode . cl-ts-mode)))
+;; not ready yet
+;; (when (boundp 'treesit-major-mode-remap-alist)
+;;   (add-to-list 'treesit-major-mode-remap-alist
+;;                '(lisp-mode . cl-ts-mode)))
 
 (defgroup cl-ts-mode ()
   "Common Lisp mode with tree-sitter support."
@@ -418,7 +419,42 @@ face itself and return nil.")
   '((string comment)
     (format-directive number)
     (block-comment symbol)
-    (quote bits)))
+    (quote reader-macros bits)))
+
+;; i might use this stuff for treesit based structural editing/navigation
+;; (forward-sexp, up-list, raise-sexp etc.) since the generic treesit
+;; implementation doesn't seem to work, tho ideally we get those to work instead
+;; of reinventing the wheel.
+(defun cl-ts-mode--thing-node-at-pos (valid-result-pred &optional pos while-match)
+  (let* ((root (ts-parser-root-node ts-primary-parser))
+         (pos (or pos (point)))
+         (node root)
+         (curpos pos)
+         (while-match (or while-match 'sexp))
+         (result nil)
+         next)
+    (while (and (or (and (setq next (ts-node-first-child-for-pos node curpos t))
+                         (<= (ts-node-start next) pos (ts-node-end next)))
+                    ;; if point is right after a sexp, return that one
+                    (and (eq curpos pos)
+                         (setq next (ts-node-first-child-for-pos node (decf curpos) t))
+                         (<= (ts-node-start next) pos (ts-node-end next))))
+                (ts-node-match-p next while-match t))
+      (setq node next)
+      (when (ts-node-match-p node valid-result-pred t)
+        (setq result node)))
+    result))
+
+(define-inline cl-ts-mode-sexp-node-at-pos (&optional pos)
+  ;; slight KLUDGE: `treesit-node-match-p' expects a function value, not a
+  ;; function name. makes sense tho, since `list' is a very common treesit thing
+  (inline-quote (cl-ts-mode--thing-node-at-pos (symbol-function 'always) ,pos)))
+
+(define-inline cl-ts-mode-list-node-at-pos (&optional pos)
+  (inline-quote (cl-ts-mode--thing-node-at-pos 'list ,pos)))
+
+(define-inline cl-ts-mode-symbol-node-at-pos (&optional pos)
+  (inline-quote (cl-ts-mode--thing-node-at-pos 'symbol ,pos)))
 
 (defun cl-ts-mode--compute-features ()
   (let ((n (cond

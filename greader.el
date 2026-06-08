@@ -1589,7 +1589,7 @@ If it is a function, it must return a string."
   "Return the value of `greader-enriched-tag'."
   (pcase greader-enriched-tag
     ((pred functionp)
-     (with-no-warnings (funcall #'greader-enriched-tag)))
+     (funcall greader-enriched-tag))
     ((pred stringp)
      greader-enriched-tag)))
 
@@ -1608,8 +1608,8 @@ If it is a function, it must return a string."
         (setq result (concat (substring result 0 pos)
                              (greader--get-enriched-tag)
                              (substring result pos)))
-	;; Update the search position taking into account the "link: " string we just entered.
-        (setq pos (+ pos 6))))
+	;; Update the search position taking into account the inserted tag string.
+        (setq pos (+ pos (length (greader--get-enriched-tag))))))
     ;; Return the modified string if links were found.
     (if modified result input-string)))
 

@@ -47,7 +47,7 @@ My C isn't great, feel free to let me know what I'm doing wrong.
 *Note*: If you wanna use this just know it is a WIP and I won't hesitate to make
 drastic changes until it's closer to release-ready. So if you put any
 customizations in your init make sure to read the diffs carefully before
-updating.
+updating. That said, see [[#quickstart]].
 
 I also will probably split the Emacs libraries into separate repos. Again, be
 careful upgrading.
@@ -79,12 +79,46 @@ variables, blocks and tags which are cycled through on successive local
 bindings. I also added faces for a variety of types of symbols ("roles" in the
 elisp-scope parlance) like ~LOOP~ keywords, slot names, macros and special
 operators, declaration names, special faces for ~T~ and ~NIL~, and so on. The
-boxes in the screenshot are from an additional minor mode which highlights local
-bindings at point.
+boxes in the screenshot are from an additional minor mode
+~clparse-highlight-mode~ which highlights local bindings at point.
 
 Almost all of this hinges on communication with an inferior lisp. Currently only
 [[https://github.com/joaotavora/sly][Sly]] is supported, but [[https://github.com/slime/slime][SLIME]] support should be super simple, just haven't gotten
 around to it (patches welcome).
+
+** Quick start
+:PROPERTIES:
+:CUSTOM_ID: quickstart
+:END:
+The only dependencies are Sly and ~cond*~ which is on ELPA and I believe ships
+with Emacs 31+. I haven't tested this on Emacs 30 yet but it should work on 31
+(31.0.9 prerelease is out now). It's not available yet on ELPA/MELPA, so clone
+this repo, add eval something like this:
+
+#+begin_src elisp :tangle yes :lexical yes
+  (add-to-list 'load-path "/path/to/repo")
+
+  ;; optional, but a good idea
+  (byte-compile (locate-library "cl-ts-mode"))
+  (byte-compile (locate-library "clparse"))
+
+  (load "cl-ts-mode")
+  (load "clparse")
+  ;; or
+  (require 'cl-ts-mode)
+  (require 'clparse)
+
+  ;; not recommended yet!
+  ;; (setf (alist-get 'lisp-mode major-mode-remap-alist) 'cl-ts-mode)
+#+end_src
+
+In a Lisp file, activate the major-mode with ~M-x cl-ts-mode~, which will prompt
+to install the grammars. Emacs must be built with tree-sitter support, which it
+typically is.
+
+For the semantic highlighting library, connect to a lisp first with ~M-x sly~,
+then ~M-x clparse-mode~, and ~M-x clparse-highlight-mode~ if you're interested
+in that.
 
 ** Some /clparse/ implementation details
 Symbols are passed to the Lisp via a Sly channel, who reports back with the

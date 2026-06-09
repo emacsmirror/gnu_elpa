@@ -616,7 +616,7 @@ TEMPLATES must be a list of elements of the form (MODE COND . TEMPLATES)."
         ((boundp fun) (push (symbol-value fun) list))
         (t (error "Template source is not a function or a variable: %S" fun)))
        nil))
-    (apply #'append list)))
+    (apply #'append (nreverse list))))
 
 (defun tempel--region ()
   "Return region bounds."

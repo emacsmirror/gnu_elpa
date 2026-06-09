@@ -187,9 +187,11 @@ the leading slash)."
 candidates."
   :type '(repeat (string :tag "Class name regexp")))
 
-(defcustom javaimp-use-beginning-of-defun-only-siblings t
-  "If non-nil then use `javaimp-beginning-of-defun-only-siblings' (which
-see) as `beginning-of-defun-function' in `javaimp-minor-mode'."
+(defcustom javaimp-defun-movement-preserves-scope nil
+  "If non-nil then `beginning-of-defun' / `end-of-defun' will move only
+between siblings in the current scope and will never leave it.  To see
+the effect after changing this variable you need to re-enter
+`javaimp-minor-mode'."
   :type 'boolean)
 
 (defcustom javaimp-jar-program "jar"
@@ -1061,7 +1063,8 @@ then no filtering is done."
 
 (defun javaimp-beginning-of-defun (arg)
   "Function to be used as `beginning-of-defun-function'.
-See also `javaimp-beginning-of-defun-only-siblings'."
+See also `javaimp-beginning-of-defun-preserve-scope' for an alternative
+function."
   (if (zerop arg)
       t
     (save-excursion
@@ -1069,9 +1072,9 @@ See also `javaimp-beginning-of-defun-only-siblings'."
     (let* ((opoint (point))
            (pos opoint)
            (defun-pred (javaimp-scope-defun-p t)))
-      ;; Handle the case when we're somewhere in defun declaration.
-      ;; Search forward for defun start, while skipping uninteresting
-      ;; scopes.
+      ;; Handle the case when we're somewhere in defun declaration,
+      ;; like within annotations.  Search forward for defun start,
+      ;; while skipping uninteresting scopes.
       (while pos
         (if-let* ((scope (get-text-property pos 'javaimp-parse-scope)))
           (if (funcall defun-pred scope)
@@ -1085,13 +1088,14 @@ See also `javaimp-beginning-of-defun-only-siblings'."
                (< pos opoint))
           ;; We've found something, and going to decl start really
           ;; would move us back - move.  This also counts as 1 in case
-          ;; arg is positive.
+          ;; arg is positive.  When arg is negative we just move to
+          ;; the starting point from where we move forward.
           (progn
             (goto-char pos)
             (when (> arg 0)
               (decf arg)))
         (goto-char opoint))
-      ;; Main part - find suitable scope and move arg times
+      ;; Main part - find a suitable scope and move arg times
       (setq pos (point))
       (while (and (/= arg 0)
                   (setq pos (funcall (if (> arg 0)
@@ -1102,13 +1106,16 @@ See also `javaimp-beginning-of-defun-only-siblings'."
                     (_ (funcall defun-pred scope)))
           (goto-char (or (javaimp--beg-of-defun-decl pos) pos))
           (if (> arg 0) (decf arg) (incf arg))))
-      (when (/= arg 0)
-        (goto-char (if (> arg 0) (point-min) (point-max)))))))
+      (if (/= arg 0)
+          (progn
+            (goto-char (if (> arg 0) (point-min) (point-max)))
+            nil)
+        t))))
 
-(defun javaimp-beginning-of-defun-only-siblings (arg)
-  "Function to be used as `beginning-of-defun-function'.
-It can move only between sibling defuns and never leaves current scope.
-See also `javaimp-beginning-of-defun'."
+(defun javaimp-beginning-of-defun-preserve-scope (arg)
+  "Alternative function to be used as `beginning-of-defun-function'.
+It will only move between sibling defuns and will never leave current
+scope.  See also `javaimp-beginning-of-defun'."
   (if (zerop arg)
       t
     (let* ((ctx (javaimp--get-sibling-context))
@@ -1158,14 +1165,14 @@ than BOUND.  POS should not be in arglist or similar list."
 
 (defun javaimp-end-of-defun ()
   "Function to be used as `end-of-defun-function'."
-  ;; This function is called after javaimp-beginning-of-defun /
-  ;; javaimp-beginning-of-defun-only-siblings, which in the normal
-  ;; course will position the point somewhere before the open-brace
-  ;; (for example, where javaimp--beg-of-defun-decl puts it), so we
-  ;; look for next property change.  However we need to skip any
-  ;; array-init scopes which may occur within annotation values, like
-  ;; "@Annotation({"val1"})".
-  (let ((pos (point)))
+  ;; This function is called after beginning-of-defun-function, which
+  ;; in the normal course will position the point somewhere before the
+  ;; open-brace (for example, where javaimp--beg-of-defun-decl puts
+  ;; it), so we look for next property change.  However we need to
+  ;; skip any array-init scopes which may occur within annotation
+  ;; values, like "@Annotation({"val1"})".
+  (let ((pos (point))
+        (defun-pred (javaimp-scope-defun-p t)))
     (while-let ((_ pos)
                 (brace-pos (next-single-property-change pos 'javaimp-parse-scope))
                 (scope (get-text-property brace-pos 'javaimp-parse-scope))
@@ -1173,15 +1180,16 @@ than BOUND.  POS should not be in arglist or similar list."
       (setq pos (ignore-errors (scan-lists brace-pos 1 0))))
     (when-let* ((_ pos)
                 (brace-pos (next-single-property-change pos 'javaimp-parse-scope))
-                (_ (get-text-property brace-pos 'javaimp-parse-scope))
-                ;; When there're no siblings,
-                ;; javaimp-beginning-of-defun-only-siblings moves to
-                ;; the parent start.  In this case we should stay
-                ;; inside the parent.
-                ;; TODO check this with javaimp-beginning-of-defun
-                (_ (eql (nth 1 (syntax-ppss))
-                        (save-excursion
-                          (nth 1 (syntax-ppss brace-pos))))))
+                (scope (get-text-property brace-pos 'javaimp-parse-scope))
+                (_ (and (funcall defun-pred scope)
+                        (or (not javaimp-defun-movement-preserves-scope)
+                            ;; When there're no siblings,
+                            ;; javaimp-beginning-of-defun-preserve-scope
+                            ;; moves to the parent start.  In this
+                            ;; case we should stay inside the parent.
+                            (eql (nth 1 (syntax-ppss))
+                                 (save-excursion
+                                   (nth 1 (syntax-ppss brace-pos))))))))
       (ignore-errors
         (goto-char
          (scan-lists brace-pos 1 0))))))
@@ -1346,11 +1354,12 @@ defun javadoc to be included in the narrowed region when using
   :interactive (java-mode)
   (if javaimp-minor-mode
       (progn
+        (make-local-variable 'javaimp-defun-movement-preserves-scope)
         (add-function :override (local 'imenu-create-index-function)
                       #'javaimp-imenu-create-index)
         (add-function :override (local 'beginning-of-defun-function)
-                      (if javaimp-use-beginning-of-defun-only-siblings
-                          #'javaimp-beginning-of-defun-only-siblings
+                      (if javaimp-defun-movement-preserves-scope
+                          #'javaimp-beginning-of-defun-preserve-scope
                         #'javaimp-beginning-of-defun)
                       '((name . "javaimp-beginning-of-defun")))
         (add-function :override (local 'end-of-defun-function)
@@ -1367,6 +1376,7 @@ defun javadoc to be included in the narrowed region when using
         (setq syntax-ppss-table java-mode-syntax-table)
         ;; There're spaces within generic types, just show them
         (setq-local imenu-space-replacement nil))
+    (kill-local-variable 'javaimp-defun-movement-preserves-scope)
     (remove-function (local 'imenu-create-index-function)
                      #'javaimp-imenu-create-index)
     (remove-function (local 'beginning-of-defun-function)

@@ -1,10 +1,10 @@
 ;;; rnc-mode.el --- Emacs mode to edit Relax-NG Compact files  -*- lexical-binding:t -*-
 
-;; Copyright (C) 1994-1998, 2001-2022 Free Software Foundation, Inc.
+;; Copyright (C) 1994-2026 Free Software Foundation, Inc.
 
 ;; Author: Stefan Monnier <monnier@iro.umontreal.ca>
 ;; Keywords: xml relaxng
-;; Version: 0.3
+;; Version: 0.4
 
 ;; This file is part of GNU Emacs.
 
@@ -24,10 +24,19 @@
 
 ;;; Commentary:
 
-(require 'smie)
-(require 'nxml-mode)
+;; Provides mostly indentation, syntax highlighting, and Imenu support.
+;; Partly based on the info in https://relaxng.org/compact-20021121.html.
+
+;;; News:
+
+;; Since 0.3:
+;;
+;; - Understands '...' strings.
 
 ;;; Code:
+
+(require 'smie)
+(require 'nxml-mode)
 
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.rnc\\'" . rnc-mode))
@@ -36,7 +45,11 @@
   (let ((st (make-syntax-table)))
     (modify-syntax-entry ?# "<" st)
     (modify-syntax-entry ?\n ">" st)
+    ;; The `literalSegment' accepts both single quotes and double quotes
+    ;; (without backslash-escape hatch).
+    ;; FIXME: It also accepts Python-style '''...''' and """...""".
     (modify-syntax-entry ?\" "\"" st)
+    (modify-syntax-entry ?\' "\"" st)
     (modify-syntax-entry ?- "_" st)
     (modify-syntax-entry ?. "_" st)
     (modify-syntax-entry ?: "_" st)
@@ -44,8 +57,7 @@
     st))
 
 (defconst rnc--keywords
-  ;; Taken from the grammar in https://relaxng.org/compact-20021121.html,
-  ;; by order of appearance.
+  ;; Taken from the EBNF grammar by order of appearance.
   '("namespace" "default" "datatypes" "element" "attribute"
     "list" "mixed" "parent" "empty" "text" "notAllowed" "external"
     "grammar" "div" "include" ;; "start"

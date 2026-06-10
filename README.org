@@ -72,20 +72,6 @@ screenshot) is very helpful. If you're horrified by the rainbow, you can simply
 customize every ~cl-ts-mode-format-*~ face to the same appearance. While the
 format fontifying logic is implemented in ~cl-ts-mode~, currently the format
 local parsers are only added by ~clparse~.
-
-I took a *lot* of inspiration from elisp-scope.el (which should ship with
-Emacs 31) and pushed it to its extreme. There are 9 faces for local functions,
-variables, blocks and tags which are cycled through on successive local
-bindings. I also added faces for a variety of types of symbols ("roles" in the
-elisp-scope parlance) like ~LOOP~ keywords, slot names, macros and special
-operators, declaration names, special faces for ~T~ and ~NIL~, and so on. The
-boxes in the screenshot are from an additional minor mode
-~clparse-highlight-mode~ which highlights local bindings at point.
-
-Almost all of this hinges on communication with an inferior lisp. Currently only
-[[https://github.com/joaotavora/sly][Sly]] is supported, but [[https://github.com/slime/slime][SLIME]] support should be super simple, just haven't gotten
-around to it (patches welcome).
-
 ** Quick start
 :PROPERTIES:
 :CUSTOM_ID: quickstart
@@ -120,7 +106,69 @@ For the semantic highlighting library, connect to a lisp first with ~M-x sly~,
 then ~M-x clparse-mode~, and ~M-x clparse-highlight-mode~ if you're interested
 in that.
 
-** Some /clparse/ implementation details
+** Unique features in ~clparse-ts-mode~
+So far not a ton, because a lot of things that tree-sitter specializes in like
+indentation are done as well if not better with good old fashioned
+~parse-partial-sexp~ used by mechanisms like ~lisp-indent-function~.
+*** ~FORMAT~ directive indentation
+There is optional (but currently enabled by default) auto-indentation of format
+directives. This is mainly to indent relative to the paired directives (~~[~,
+~~{~​, ~~(~ and ~~<~). Example:
+#+begin_src lisp :tangle yes
+  "~<
+  ~A
+   ~:>"
+#+end_src
+After ~TAB~​ing on the second line:
+#+begin_src lisp :tangle yes
+  "~<~@
+     ~A
+   ~:>"
+#+end_src
+The directive is indented to the column after the ~~<~, and the newline is
+converted to a ~~@<newline>~ directive so that the indentation of the output
+isn't affected. The behavior depends on a few customizable variables:
+- ~cl-ts-mode-format-indent-auto-escape-eol~ :: Controls the behavior of the
+  newline directive. It can be set to nil (don't indent if there isn't already a
+  ~~<newline>~), t (don't add it but indent anyway), a string specifying the
+  directive to add, or a cons pair ~(LOGICAL-BLOCK . DEFAULT)~ to specify a
+  different string (like ~~:@_~~) to use within ~~<​~:>~.
+- ~cl-ts-mode-format-indent-parent-predicate~ :: A predicate for
+  ~treesit-node-match-p~ (usually a function or regexp matching a treesit node's
+  type) to determine which nodes should have their contents indented. By default
+  it matches the four paired directives, but you can also set it to indent
+  relative to the start of the entire format string.
+- ~cl-ts-mode-format-indent-align-block-ends~ :: Controls indentation of the end
+  of a paired directive when it begins a line. If non-nil (the default), the
+  directive characters themselves are aligned, like
+  #+begin_src lisp :tangle yes
+    "~:@{
+       ~}"
+  #+end_src
+  If set to ~nil~, the ~~~​s are aligned:
+  #+begin_src lisp :tangle yes
+    "~:@{
+     ~}"
+  #+end_src
+- ~cl-ts-mode-format-group-indent-offset~ :: Number of columns added to
+  indentation relative to the start of a paired directive.
+- ~cl-ts-mode-format-string-indent-offset~ :: Like the above but controls
+  indentation relative to the start of the string, if that's enabled by
+  ~cl-ts-mode-format-indent-parent-predicate~.
+** Some ~clparse~ implementation details
+I took a *lot* of inspiration from elisp-scope.el (which should ship with
+Emacs 31) and pushed it to its extreme. There are 9 faces for local functions,
+variables, blocks and tags which are cycled through on successive local
+bindings. I also added faces for a variety of types of symbols ("roles" in the
+elisp-scope parlance) like ~LOOP~ keywords, slot names, macros and special
+operators, declaration names, special faces for ~T~ and ~NIL~, and so on. The
+boxes in the screenshot are from an additional minor mode
+~clparse-highlight-mode~ which highlights local bindings at point.
+
+Almost all of this hinges on communication with an inferior lisp. Currently only
+[[https://github.com/joaotavora/sly][Sly]] is supported, but [[https://github.com/slime/slime][SLIME]] support should be super simple, just haven't gotten
+around to it (patches welcome).
+
 Symbols are passed to the Lisp via a Sly channel, who reports back with the
 attributes of the symbol. The database of symbols is stored in obarrays on the
 Emacs side. One "universal" obarray contains the complete package qualified

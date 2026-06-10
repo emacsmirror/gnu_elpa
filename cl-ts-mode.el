@@ -470,6 +470,233 @@ face itself and return nil.")
       (decf n))
     a))
 
+;; treesit-parsers-at and co can only find the ones added by
+;; `treesit-range-settings'
+(defun cl-ts-mode--find-parser-at (pos parser-list)
+  (while (and parser-list
+              (not (let ((ranges (ts-parser-included-ranges (car parser-list))))
+                     (while (and ranges (not (<= (caar ranges) pos (cdar ranges))))
+                       (pop ranges))
+                     ranges)))
+    (pop parser-list))
+  (car parser-list))
+
+(defun cl-ts-mode--parsers-in-region (beg end parser-list)
+  (let* ((intersection ()))
+    (dolist (parser parser-list)
+      (pcase-dolist (`(,lo . ,hi) (ts-parser-included-ranges parser))
+        (let ((range-lo (max lo beg))
+              (range-hi (min end hi)))
+          (when (< range-lo range-hi)
+            (push (list range-lo range-hi parser) intersection)))))
+    ;; reverse because we wanna do the
+    (sort intersection :key #'car :in-place t :reverse t)))
+
+(defun cl-ts-mode--format-directive-at-pos (node pos)
+  (let ((child (ts-node-first-child-for-pos node pos)))
+    (pcase child
+      ('nil nil)
+      ((app ts-node-type "format_directive") child)
+      ((app ts-node-type "format_group")
+       (cl-ts-mode--format-directive-at-pos child pos)))))
+
+(defcustom cl-ts-mode-format-indent-auto-escape-eol "~@"
+  "Whether a ~<newline> directive is automatically inserted when indenting
+format strings.
+
+If non-nil, when indenting a format directive after a plain newline, a
+string is added to the end of the preceding line escaping the newline so
+that the directive can be indented without affecting the whitespace of
+the output."
+  :type
+  '(choice (const :tag "Don't indent if the newline isn't escaped" nil)
+           (const :tag "Always indent regardless of whether it's escaped" t)
+           (string :tag "Always add a specific string" :default "~@")
+           (cons :tag "Choose based on context"
+                 (string :tag "String used inside a ~<~:> directive" :default "~:@_~")
+                 (string :tag "String used anywhere else" :default "~@"))))
+
+(defconst cl-ts-mode--format-pprint-logical-block-query
+  (ts-query-compile 'cl-format
+                    '((format_group
+                       end: (format_directive ":" ((directive_character) @cap
+                                                   (:eq? @cap ">")))))))
+
+(defcustom cl-ts-mode-format-indent-parent-predicate
+  (rx bos "format_group" eos)
+  "A predicate to determine where indentation should occur within format
+strings. When a node matches this predicate, any text *within* it is
+indented relative to it. For format groups, indent relative to the
+opening delimiter + `cl-ts-mode-format-group-indent-offset'; if the
+predicate matches the entire format string, indent relative to the
+opening \" + `cl-ts-mode-format-string-indent-offset'."
+  :type
+  '(choice (const :tag "Never indent inside format strings" nil)
+           (const :tag "Any format group or the entire format string"
+                  "\\`format_\\(?:group\\|string\\)\\'")
+           (function :tag "A function to match nodes")
+           (regexp :tag "A regexp matching the node's type"
+                   :default "\\`format_group\\'")))
+
+(defcustom cl-ts-mode-format-indent-align-block-ends t
+  "Determines how the start and directives of paired format constructs are aligned.
+Applies to ~<~>, ~[~], ~{~} and ~(~) when the closing delimiter is the
+first non whitespace character on a line. If non-nil, the directive
+characters themselves are aligned. If nil, the ~ that introduces the
+directives are aligned.
+
+non-nil:
+~:@{~
+    ~A~
+  ~}
+
+nil:
+~:@{~
+    ~A~
+~}"
+  :type 'boolean)
+
+;; FIXME should also offer "~ relative" indentation.
+(defcustom cl-ts-mode-format-group-indent-offset 1
+  "Additional columns of indentation used when indenting inside paired
+format directives, relative to the opening directive. Example:
+
+With value of 2:
+  ~{
+     ~A
+  ~}
+With a value of 0:
+  ~{
+   ~A
+  ~}"
+  :type 'integer)
+
+(defcustom cl-ts-mode-format-string-indent-offset 1
+  "Additional columns of indentation used when indenting relative to the
+start of the format string. Example:
+
+With value of 2:
+  \"
+     ~A\"
+With value of 0:
+  \"
+  ~A\""
+  :type 'integer)
+
+(defun cl-ts-mode--format-indent-parent (directive parser lbeg)
+  (let ((pred (if (symbolp cl-ts-mode-format-indent-parent-predicate)
+                  (indirect-function cl-ts-mode-format-indent-parent-predicate)
+                cl-ts-mode-format-indent-parent-predicate)))
+    (cond
+      ;; already escaped. with a : modifier the whitespace wouldn't actually be
+      ;; escaped (only the newline), but i can't think of a good way to handle
+      ;; that situation. maybe we should unconditionally skip indenting if
+      ;; there's a colon modifier?
+      ((and directive (= (ts-node-end directive) lbeg))
+       (ts-parent-until directive pred))
+      (cl-ts-mode-format-indent-auto-escape-eol
+       (let* ((esc (cond
+                     ((stringp cl-ts-mode-format-indent-auto-escape-eol)
+                      cl-ts-mode-format-indent-auto-escape-eol)
+                     ((atom cl-ts-mode-format-indent-auto-escape-eol) nil)
+                     ((ts-query-capture
+                       parser
+                       cl-ts-mode--format-pprint-logical-block-query
+                       (1- lbeg) lbeg t)
+                      (car cl-ts-mode-format-indent-auto-escape-eol))
+                     (t (cdr cl-ts-mode-format-indent-auto-escape-eol)))))
+         (if (and directive (null esc))
+             (ts-parent-until directive pred t)
+           (cl-assert (length= (ts-parser-included-ranges parser) 1))
+           (let* ((root (ts-parser-root-node parser))
+                  (beg (ts-node-start root))
+                  (end (ts-node-end root))
+                  (new-end (copy-marker end t)))
+             (goto-char lbeg)
+             (unwind-protect
+                 (save-excursion
+                   (goto-char (1- lbeg))
+                   (insert esc)
+                   (ts-parser-set-included-ranges
+                    parser
+                    `((,beg . ,(marker-position new-end)))))
+               (move-marker new-end nil))
+             (thread-first parser
+               (ts-parser-root-node)
+               (ts-node-descendant-for-range (point) (point) t)
+               (ts-parent-until pred t)))))))))
+
+(defun cl-ts-mode--indent-format-line (parser)
+  (let* ((lbeg (line-beginning-position))
+         (root (ts-parser-root-node parser))
+         (end-directive (cl-ts-mode--format-directive-at-pos root (1- lbeg)))
+         (parent (cl-ts-mode--format-indent-parent end-directive parser lbeg)))
+    (if (not (ts-node-match-p parent cl-ts-mode-format-indent-parent-predicate))
+        'noindent
+      (indent-line-to
+       (save-excursion
+         (let ((starter (ts-node-child-by-field-name parent "start"))
+               (ender (ts-node-child-by-field-name parent "end")))
+           (max
+            0
+            (cond*
+              ;; whole string
+              ((null starter)
+               (goto-char (ts-node-start parent))
+               (+ (current-column) cl-ts-mode-format-string-indent-offset))
+              (t (back-to-indentation)) ;non exit clause
+              ((/= (ts-node-start ender) (point))
+               ;; not indenting the closing directive so indent relative to the
+               ;; opener
+               (goto-char (ts-node-end starter))
+               (+ (1- (current-column)) ;-1 cuz we're after the opener but the
+                                        ;offset is relative to the opener
+                  cl-ts-mode-format-group-indent-offset))
+              (cl-ts-mode-format-indent-align-block-ends
+               (goto-char (ts-node-end starter))
+               (- (current-column) (- (ts-node-end ender) (ts-node-start ender))))
+              (t (goto-char (ts-node-start starter))
+                 (current-column))))))))))
+
+(defun cl-ts-mode-maybe-indent-format-line (&optional parser)
+  (if-let* ((_ cl-ts-mode-format-indent-parent-predicate)
+            (parser-at (or parser (cl-ts-mode--find-parser-at
+                                   (point) (ts-parser-list nil 'cl-format t))))
+            (_ (> (line-beginning-position)
+                  (1+ (ts-node-start (ts-parser-root-node parser-at))))))
+      (cl-ts-mode--indent-format-line parser-at)
+    'noindent))
+
+(defun cl-ts-mode-indent-region-wrapper (orig beg end)
+  (let ((end-marker (copy-marker end t)))
+    (unwind-protect
+        (prog1 (funcall orig beg end)
+          (redisplay)                   ;force clparse to readjust the ranges
+          (when-let* ((_ cl-ts-mode-format-indent-parent-predicate)
+                      (parser-ranges
+                       (thread-last (ts-parser-list nil 'cl-format t)
+                         (cl-ts-mode--parsers-in-region beg end-marker))))
+            (save-excursion
+              (pcase-dolist (`(,beg ,end ,parser) parser-ranges)
+                (goto-char end)
+                (while (> (point) (1+ beg))
+                  (save-excursion (cl-ts-mode-maybe-indent-format-line parser))
+                  (beginning-of-line 0))))))
+      (move-marker end-marker nil))))
+
+(defcustom cl-ts-mode-indent-format-excluded-commands ()
+  "List of commands in which format indentation is suppressed.
+When indentation is triggered by a command in this list, indentation of
+format directives is suppressed."
+  :type '(repeat :default (newline-and-indent) function))
+
+(defun cl-ts-mode-indent-line-wrapper (orig)
+  (if (memq this-command cl-ts-mode-indent-format-excluded-commands)
+      (funcall orig)
+    (let ((lindent (cl-ts-mode-maybe-indent-format-line)))
+      (if (eq lindent 'noindent)
+          (funcall orig)
+        lindent))))
 (defun cl-ts-mode--extend-fl-region ()
   (defvar font-lock-beg)
   (defvar font-lock-end)
@@ -480,9 +707,9 @@ face itself and return nil.")
     (if (and bnode (>= (ts-node-end bnode) font-lock-end))
         (or (< font-lock-end (setq font-lock-end (ts-node-end bnode))) ;in case it's =
             changed-beg)
-      ;; font-lock-end - 1 cuz the node returned by
-      ;; `ts-node-at' always ends after POS, and if a node ends
-      ;; /at/ POS we don't need to extend the region
+      ;; font-lock-end - 1 cuz the node returned by `ts-node-at' always ends
+      ;; after POS, and if a node ends /at/ POS we don't need to extend the
+      ;; region
       (let ((enode (ts-node-at (1- font-lock-end) treesit-primary-parser t))
             ignore-it)
         ;; we don't use parent-until here cuz we also wanna stop if we hit BNODE
@@ -564,6 +791,10 @@ face itself and return nil.")
         ;; this one seems to be broken in some other languages too
         forward-comment-function)
        (ts-major-mode-setup)))
+    (add-function :around (local 'indent-region-function)
+                  #'cl-ts-mode-indent-region-wrapper)
+    (add-function :around (local 'indent-line-function)
+                  #'cl-ts-mode-indent-line-wrapper)
     ;; (make-local-variable 'up-list-function)
     ;; (make-local-variable 'forward-list-function)
     ;; (make-local-variable 'forward-sexp-function)

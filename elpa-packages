@@ -275,6 +275,8 @@
   :doc "README.org"
   :readme "README.md"
   :ignored-files ("COPYING" "doclicense.texi"))
+ ;; FIXME: Depends on dired-hacks (dired-subtree, more specifically).
+ ;;(dired-sidebar	:url "https://github.com/jojojames/dired-sidebar")
  (disk-usage		:url "https://gitlab.com/ambrevar/emacs-disk-usage")
  (dismal		:url nil)
  (disproject		:url "https://github.com/aurtzy/disproject"
@@ -456,6 +458,9 @@
   :make ("kotl/kotl-autoloads.el")
   :doc "man/hyperbole.texi"
   :news "HY-NEWS")
+ (ibuffer-sidebar	:url "https://github.com/jojojames/ibuffer-sidebar"
+  :ignored-files ("LICENSE" "screenshots"
+  :readme "readme.org"))
  (idlwave		:url "https://github.com/jdtsmith/idlwave"
   :doc "idlwave.texi"
   :news "CHANGES"

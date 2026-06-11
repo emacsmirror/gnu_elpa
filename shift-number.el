@@ -467,12 +467,9 @@ Return (OLD-BEG . OLD-END) on success, nil on failure."
                           ""))
                         num-str-raw)))
 
-             (str-prev-strip
-              (cond
-               (sep-char
-                (shift-number--strip-chars str-prev sep-char))
-               (t
-                str-prev)))
+             ;; NOTE: `shift-number--strip-chars' is a no-op when `sep-char' is
+             ;; nil, so no separator guard is needed.
+             (str-prev-strip (shift-number--strip-chars str-prev sep-char))
 
              ;; Auto-detect leading zeros: if number starts with 0 and has more digits.
              (has-leading-zeros (and (> (length num-str-raw) 1) (eq (aref num-str-raw 0) ?0)))
@@ -497,7 +494,8 @@ Return (OLD-BEG . OLD-END) on success, nil on failure."
                (abs num-next)
                (cond
                 (use-padding
-                 (- (match-end num-group) (match-beginning num-group)))
+                 ;; Width in digits, separators must not count towards padding.
+                 (length (shift-number--strip-chars num-str-raw sep-char)))
                 (t
                  1))
                base)))

@@ -1804,6 +1804,76 @@ Separator position is preserved relative to the end of the number."
       (cursor-marker)
       (should (equal text-expected (buffer-string))))))
 
+(ert-deftest separator-padding-width ()
+  "Check that padding width counts digits only, not separator characters.
+Previously the width included the separator, so \"00_10\" decremented
+gave \"000_09\", growing the number by one character."
+  (let ((text-initial "00_10")
+        (text-expected "|00_09")
+        (shift-number-separator-chars "_"))
+    (with-shift-number-test text-initial
+      (shift-number-down 1)
+      (cursor-marker)
+      (should (equal text-expected (buffer-string))))))
+
+(ert-deftest separator-padding-pad-default ()
+  "Check that pad-default preserves the digit count with separators."
+  (let ((text-initial "1_000")
+        (text-expected "|0_999")
+        (shift-number-separator-chars "_")
+        (shift-number-pad-default t))
+    (with-shift-number-test text-initial
+      (shift-number-down 1)
+      (cursor-marker)
+      (should (equal text-expected (buffer-string))))))
+
+(ert-deftest separator-padding-width-hex ()
+  "Check that padding width counts hex digits only, not separators.
+Exercises the base-16 formatter: \"0F_FF\" incremented previously grew
+to \"0x010_00\" instead of \"0x10_00\"."
+  (let ((text-initial "0x0F_FF")
+        (text-expected "|0x10_00")
+        (shift-number-separator-chars "_"))
+    (with-shift-number-test text-initial
+      (shift-number-up 1)
+      (cursor-marker)
+      (should (equal text-expected (buffer-string))))))
+
+(ert-deftest separator-padding-width-octal ()
+  "Check that padding width counts octal digits only, not separators.
+Exercises the base-8 formatter: \"07_77\" incremented previously grew
+to \"0o010_00\" instead of \"0o10_00\"."
+  (let ((text-initial "0o07_77")
+        (text-expected "|0o10_00")
+        (shift-number-separator-chars "_"))
+    (with-shift-number-test text-initial
+      (shift-number-up 1)
+      (cursor-marker)
+      (should (equal text-expected (buffer-string))))))
+
+(ert-deftest separator-padding-width-binary ()
+  "Check that padding width counts binary digits only, not separators.
+Exercises the base-2 formatter: \"0111_1111\" incremented previously
+grew to \"0b01000_0000\" instead of \"0b1000_0000\"."
+  (let ((text-initial "0b0111_1111")
+        (text-expected "|0b1000_0000")
+        (shift-number-separator-chars "_"))
+    (with-shift-number-test text-initial
+      (shift-number-up 1)
+      (cursor-marker)
+      (should (equal text-expected (buffer-string))))))
+
+(ert-deftest separator-padding-zero ()
+  "Check that padding width is correct for an all-zero grouped number.
+\"0_0\" incremented previously grew to \"00_1\" instead of \"0_1\"."
+  (let ((text-initial "0_0")
+        (text-expected "|0_1")
+        (shift-number-separator-chars "_"))
+    (with-shift-number-test text-initial
+      (shift-number-up 1)
+      (cursor-marker)
+      (should (equal text-expected (buffer-string))))))
+
 (ert-deftest separator-incremental-backward ()
   "Check that a separator-grouped number is changed once in backward mode.
 Backward scanning previously re-found the digits before the separator

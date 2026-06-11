@@ -1762,6 +1762,68 @@ Separator position is preserved relative to the end of the number."
       (cursor-marker)
       (should (equal text-expected (buffer-string))))))
 
+(ert-deftest separator-incremental-backward ()
+  "Check that a separator-grouped number is changed once in backward mode.
+Backward scanning previously re-found the digits before the separator
+and modified them as a second number (1_000 became 3_001)."
+  (let ((text-initial "1_000")
+        (text-expected "|1_001")
+        (shift-number-separator-chars "_")
+        (shift-number-incremental-direction-from-region t))
+    (with-shift-number-test text-initial
+      (goto-char (point-min))
+      (set-mark (point-max))
+      (shift-number-up-incremental 1)
+      (cursor-marker)
+      (should (equal text-expected (buffer-string))))))
+
+(ert-deftest separator-incremental-backward-multiple ()
+  "Check backward scanning steps over a separator-grouped number cleanly.
+The number before it must be found and use the next count (not a count
+inflated by re-matching part of the separator-grouped number)."
+  (let ((text-initial "5 1_000")
+        (text-expected "|7 1_001")
+        (shift-number-separator-chars "_")
+        (shift-number-incremental-direction-from-region t))
+    (with-shift-number-test text-initial
+      (goto-char (point-min))
+      (set-mark (point-max))
+      (shift-number-up-incremental 1)
+      (cursor-marker)
+      (should (equal text-expected (buffer-string))))))
+
+(ert-deftest separator-incremental-backward-dash ()
+  "Check a dash separator stays literal when reporting number bounds.
+A `-' must not be read as a character range while scanning the
+separator-grouped number, otherwise the bounds collapse and the
+leading digit is modified a second time."
+  (let ((text-initial "1-000")
+        (text-expected "|1-001")
+        (shift-number-separator-chars "-")
+        (shift-number-incremental-direction-from-region t))
+    (with-shift-number-test text-initial
+      (goto-char (point-min))
+      (set-mark (point-max))
+      (shift-number-up-incremental 1)
+      (cursor-marker)
+      (should (equal text-expected (buffer-string))))))
+
+(ert-deftest separator-incremental-backward-multichar ()
+  "Check a multi-character separator list containing a dash works.
+A dash anywhere but the end of the list used to form a range with the
+preceding character and silently drop every separator, re-exposing the
+double-modify bug."
+  (let ((text-initial "1_000")
+        (text-expected "|1_001")
+        (shift-number-separator-chars "-_")
+        (shift-number-incremental-direction-from-region t))
+    (with-shift-number-test text-initial
+      (goto-char (point-min))
+      (set-mark (point-max))
+      (shift-number-up-incremental 1)
+      (cursor-marker)
+      (should (equal text-expected (buffer-string))))))
+
 ;; ---------------------------------------------------------------------------
 ;; Padding Default Option Tests
 

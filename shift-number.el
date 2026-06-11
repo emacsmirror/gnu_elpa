@@ -691,11 +691,15 @@ Return (OLD-BOUNDS . NEW-BOUNDS) on success, nil on failure."
         (let* ((num-chars
                 (concat
                  "[:xdigit:]oOxXbB" shift-number--chars-superscript shift-number--chars-subscript))
-               (old-beg (car old-bounds))
-               (old-end (cdr old-bounds))
+               ;; NOTE: reuse the matcher's separator stepping
+               ;; (a separator only counts between digits) so a grouped number
+               ;; like "1_000" reports its full bounds.
+               ;; A flat `skip-chars' set would both swallow a separator that merely
+               ;; abuts the number and mis-parse a `-' separator as range syntax.
                (new-beg
                 (save-excursion
-                  (skip-chars-backward num-chars limit-beg)
+                  (shift-number--skip-chars-impl
+                   num-chars shift-number-separator-chars -1 most-positive-fixnum limit-beg)
                   (when (and shift-number-negative (memq (char-before) '(?- ?+ ?⁻ ?⁺ ?₋ ?₊)))
                     (backward-char))
                   (point)))
@@ -703,7 +707,8 @@ Return (OLD-BOUNDS . NEW-BOUNDS) on success, nil on failure."
                 (cond
                  ((< dir 0)
                   (save-excursion
-                    (skip-chars-forward num-chars limit-end)
+                    (shift-number--skip-chars-impl
+                     num-chars shift-number-separator-chars 1 most-positive-fixnum limit-end)
                     (point)))
                  (t
                   ;; Forward search leaves point at end of number.

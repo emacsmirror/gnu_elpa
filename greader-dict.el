@@ -463,6 +463,7 @@ as a word definition."
    (greader-dict-mode
     (setq greader-dictionary (make-hash-table :test 'ignore-case))
     (setq greader-dict--current-reading-buffer (current-buffer))
+    (greader-dict--auto-select-file)
     (greader-dict-read-from-dict-file)
     (greader-dict-load-merges)
     (greader-dict-merge--dictionaries)
@@ -924,6 +925,36 @@ If you answer yes, instead, data will be saved in the current
   dictionary before setting the dictionary at newone."
   :type 'boolean)
 
+(defcustom greader-dict-auto-select nil
+  "When non-nil, automatically select the most specific available dictionary.
+On each buffer switch and at `greader-dict-mode' activation, greader-dict
+checks in order for a buffer-local dictionary, a major-mode dictionary,
+and finally the global dictionary, loading the first one that exists on
+disk.  When nil (the default), the dictionary file set manually via
+`greader-dict-change-dictionary' is used unchanged, preserving the
+previous behaviour."
+  :type 'boolean)
+
+(defun greader-dict--auto-select-file ()
+  "Set `greader-dict-filename' to the most specific existing dictionary.
+Checks in order: a buffer-local file (<buffer-name>.dict), a major-mode
+file (<major-mode-name>.dict), and the global file (greader-dict.global).
+Falls back to the global dictionary if none of the more specific files
+exist on disk.  Does nothing when `greader-dict-auto-select' is nil."
+  (when greader-dict-auto-select
+    ;; Ensure greader-dict-directory reflects the current language
+    ;; before probing for files.
+    (greader-dict--get-file-name)
+    (setq-local greader-dict-filename
+		(let ((buffer-file (concat (buffer-name) ".dict"))
+		      (mode-file   (concat (symbol-name major-mode) ".dict")))
+		  (cond
+		   ((file-exists-p (concat greader-dict-directory buffer-file))
+		    buffer-file)
+		   ((file-exists-p (concat greader-dict-directory mode-file))
+		    mode-file)
+		   (t "greader-dict.global"))))))
+
 (defun greader-dict--file-type ()
   "Return the file type of dictionary for the current buffer.
 The `file type' refers to the scope in a given context:
@@ -1009,6 +1040,7 @@ asked."
       (unless greader-reading-mode
 	(let ((dict-mode-state greader-dict-mode))
 	  (greader-dict-mode 1)
+	  (greader-dict--auto-select-file)
 	  (greader-dict-read-from-dict-file t)
 	  (unless dict-mode-state
 	    (greader-dict-mode -1)))))
@@ -1023,6 +1055,7 @@ asked."
       ;;   Indeed it is superfluous as it is, because "buffer-locality", so
       ;; the following conditional is not necessary.
       (unless greader-reading-mode
+	(greader-dict--auto-select-file)
 	(clrhash
 	 (buffer-local-value 'greader-dictionary
 			     greader-dict--current-reading-buffer))

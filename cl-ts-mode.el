@@ -612,6 +612,7 @@ With value of 0:
          (if (and directive (null esc))
              (ts-parent-until directive pred t)
            (cl-assert (length= (ts-parser-included-ranges parser) 1))
+           ;; FIXME: we shouldn't be adding this if the line is already indented
            (let* ((root (ts-parser-root-node parser))
                   (beg (ts-node-start root))
                   (end (ts-node-end root))
@@ -691,7 +692,7 @@ With value of 0:
 (defcustom cl-ts-mode-indent-format-excluded-commands ()
   "List of commands in which format indentation is suppressed.
 When indentation is triggered by a command in this list, indentation of
-format directives is suppressed."
+format directives is not performed."
   :type '(repeat :default (newline-and-indent) function))
 
 (defun cl-ts-mode-indent-line-wrapper (orig)
@@ -725,6 +726,49 @@ format directives is suppressed."
                  (> (ts-node-end enode) font-lock-end)
                  (setq font-lock-end (ts-node-end enode)))
             changed-beg)))))
+
+(defconst cl-ts-mode--syntax-propertize-query
+  (treesit-query-compile 'common-lisp
+                         ;; giving #3r or #x prefix syntax doesn't seem
+                         ;; appropriate to me, but should the # on those get
+                         ;; symbol syntax?
+                         '(([",@" ",." "#+" "#." "#-" "#:" "#C" "#P"]
+                            @prefix)
+                           ([(bit_vector) (array)] @array)
+                           ((multiple_escape) @escape))))
+
+(defun cl-ts-mode-syntax-propertize (start end)
+  (pcase-dolist (`(,cap . ,node)
+                 (ts-query-capture ts-primary-parser
+                                   cl-ts-mode--syntax-propertize-query
+                                   start end))
+    (pcase cap
+      ;; on the prefixes the first char is either , or # which already have
+      ;; prefix syntax, so just add the property to the chars following it
+      ('prefix (let ((nbeg (1+ (ts-node-start node)))
+                     (nend (ts-node-end node)))
+                 (when (string= (ts-node-type node) "#S(") (decf nend))
+                 ;; treesit-query-capture gives us nodes intersecting with the
+                 ;; range, not necessarily fully contained within it, so we
+                 ;; still have to check the ranges on each node
+                 (and (>= nbeg start)
+                      (<= nend end)
+                      (put-text-property nbeg nend 'syntax-table
+                                         (string-to-syntax "'")))))
+      ('array (let* ((contents (ts-node-child node -1))
+                     (last-prefix-node (ts-node-prev-sibling contents)))
+                (and (>= (1+ (ts-node-start node)) start)
+                     (<= (ts-node-end last-prefix-node) end)
+                     (put-text-property (1+ (ts-node-start node))
+                                        (ts-node-end last-prefix-node)
+                                        'syntax-table
+                                        (string-to-syntax "'")))))
+      ('escape (and (>= (ts-node-start node) start)
+                    (<= (ts-node-end node) end)
+                    (put-text-property (ts-node-start node)
+                                       (ts-node-end node)
+                                       'syntax-table
+                                       (string-to-syntax "_")))))))
 
 (defconst cl-ts-mode-thing-settings
   `((common-lisp
@@ -799,6 +843,7 @@ format directives is suppressed."
                   #'cl-ts-mode-indent-region-wrapper)
     (add-function :around (local 'indent-line-function)
                   #'cl-ts-mode-indent-line-wrapper)
+    (setq-local syntax-propertize-function #'cl-ts-mode-syntax-propertize)
     ;; (make-local-variable 'up-list-function)
     ;; (make-local-variable 'forward-list-function)
     ;; (make-local-variable 'forward-sexp-function)

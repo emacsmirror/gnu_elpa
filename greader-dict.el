@@ -1026,7 +1026,10 @@ asked."
 	(clrhash
 	 (buffer-local-value 'greader-dictionary
 			     greader-dict--current-reading-buffer))
-	(greader-dict-read-from-dict-file t)))))
+	(greader-dict-read-from-dict-file t)
+	;; Re-apply merged dictionaries after reloading, so that
+	;; auxiliary entries are not lost on buffer switch.
+	(greader-dict-merge--dictionaries)))))
 
 ;; Questa funzione è solo di utilità e potrebbe essere rimossa o
 ;; modificata in qualsiasi momento.

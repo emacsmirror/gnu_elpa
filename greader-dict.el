@@ -642,39 +642,43 @@ rebuilding it on every call."
 ;; `greader-after-get-sentence-functions'.
 ;;;###autoload
 (defun greader-dict-check-and-replace (text)
-  "Return TEXT modified by applying dictionary to TEXT."
+  "Return TEXT modified by applying dictionary to TEXT.
+Word and match substitutions are applied first, then filters.  This
+ensures that specific word/match entries take precedence over general
+filter rules: a word entry for a given token is looked up before any
+filter pattern can alter that token."
   (with-greader-dict-temp-buffer
     (insert text)
     (goto-char (point-min))
+    ;; Apply word/match substitutions first so specific entries win
+    ;; over general filter patterns.
+    (when (buffer-local-value 'greader-dict-mode
+			      (or greader--current-buffer greader-dict--current-reading-buffer))
+      ;; If the buffer contains exactly one word, append a newline so
+      ;; that `thing-at-point' can find it reliably.
+      (when (= (count-words (point-min) (point-max)) 1)
+	(save-excursion (goto-char (point-max)) (ignore-errors (newline))))
+      (let ((inhibit-read-only t)
+	    (matches (greader-dict--get-matches 'match)))
+	(re-search-forward "\\w" nil t)
+	(while (not (eobp))
+	  (let* ((key (greader-dict--get-key-from-word
+		       (thing-at-point 'word) matches)))
+	    (cond
+	     ((equal (greader-dict-item-type key) 'word)
+	      (greader-dict-substitute-word (string-remove-suffix
+					     greader-dict-match-indicator
+					     key)))
+	     ((equal (greader-dict-item-type key) 'match)
+	      (greader-dict-substitute-match key))
+	     ((not (greader-dict-item-type key))
+	      nil)))
+	  (re-search-forward "\\W*\\w" nil 1))))
+    ;; Apply filters last: they act as general post-processing rules
+    ;; on the already-substituted text.
     (when greader-dict-filters-mode
       (greader-dict-filters-apply))
-    (if
-	(buffer-local-value 'greader-dict-mode
-			    (or greader--current-buffer greader-dict--current-reading-buffer))
-	(progn
-	  ;; We check if text is actually just one word, and in that case
-	  ;; insert a new line at end of temp buffer.
-	  (when (= (count-words (point-min) (point-max)) 1)
-	    (save-excursion (goto-char (point-max)) (ignore-errors (newline))))
-	  (let ((inhibit-read-only t)
-		(matches (greader-dict--get-matches 'match)))
-	    (re-search-forward "\\w" nil t)
-	    (while (not (eobp))
-	      (let*
-		  ((key (greader-dict--get-key-from-word
-			  (thing-at-point 'word) matches)))
-		(cond
-		 ((equal (greader-dict-item-type key) 'word)
-		  (greader-dict-substitute-word (string-remove-suffix
-						 greader-dict-match-indicator
-						 key)))
-		 ((equal (greader-dict-item-type key) 'match)
-		  (greader-dict-substitute-match key))
-		 ((not (greader-dict-item-type key))
-		  nil)))
-	      (re-search-forward "\\W*\\w" nil 1))
-	    (buffer-string)))
-      (buffer-string))))
+    (buffer-string)))
 
 (defun greader-dict-write-file ()
   "Save `greader-dictionary' stored in `greader-dict-filename'."

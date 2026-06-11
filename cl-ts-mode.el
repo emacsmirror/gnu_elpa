@@ -71,10 +71,11 @@
 (defface cl-ts-mode-format-standalone-directive '((t :inherit font-lock-property-use-face))
   "Face for simple format directive characters like A and S.")
 
-(defface cl-ts-mode-format-paired-directive '((t :inherit font-lock-regexp-grouping-construct))
+(defface cl-ts-mode-format-paired-directive '((t :weight extra-bold
+                                                 :inherit font-lock-regexp-grouping-construct))
   "Face used to highlight paired format directives: ~<~>, ~{~}, ~(~), and ~[~].
-If `cl-ts-mode-format-rainbow-delimiters' is non-nil, this face isn't
-used.")
+If `cl-ts-mode-format-rainbow-delimiters' is non-nil, this face is
+merged with the rainbow delimiters face (the latter taking precedence).")
 
 (defface cl-ts-mode-format-skipped-whitespace
   '((default :inherit font-lock-comment-face :weight bold)
@@ -221,9 +222,11 @@ face itself and return nil.")
                              ((not paired-depth) 'cl-ts-mode-format-standalone-directive)
                              ((not (cl-ts-mode--format-use-rainbow-delimiters-p))
                               'cl-ts-mode-format-paired-directive)
-                             (t (funcall rainbow-delimiters-pick-face-function
-                                         paired-depth (not mismatch-p)
-                                         (ts-node-start child)))))
+                             (t (list (funcall rainbow-delimiters-pick-face-function
+                                               paired-depth (not mismatch-p)
+                                               (ts-node-start child))
+                                      ;; put this behind it to merge the two faces
+                                      'cl-ts-mode-format-paired-directive))))
                           ;; ~/
                           ('"interned_symbol"
                            (when cl-ts-mode-fontify-format-funcall-function

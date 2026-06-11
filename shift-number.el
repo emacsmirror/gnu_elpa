@@ -952,33 +952,39 @@ chain identifier."
 
 ;;;###autoload
 (defun shift-number-up (&optional arg)
-  "Increase the number at point (or on the current line) by ARG."
+  "Increase the number at point (or on the current line) by ARG (default 1)."
   (interactive "*p")
-  (shift-number--maybe-redo 'shift-number (lambda (prev) (+ prev arg)) #'shift-number--on-context))
+  (shift-number--maybe-redo
+   'shift-number (lambda (prev) (+ prev (or arg 1))) #'shift-number--on-context))
 
 ;;;###autoload
 (defun shift-number-down (&optional arg)
-  "Decrease the number at point (or on the current line) by ARG."
+  "Decrease the number at point (or on the current line) by ARG (default 1)."
   (interactive "*p")
-  (shift-number--maybe-redo 'shift-number (lambda (prev) (- prev arg)) #'shift-number--on-context))
+  (shift-number--maybe-redo
+   'shift-number (lambda (prev) (- prev (or arg 1))) #'shift-number--on-context))
 
 ;;;###autoload
 (defun shift-number-up-incremental (&optional arg)
-  "Incrementally increase numbers between point and mark by ARG.
+  "Incrementally increase numbers between point and mark by ARG (default 1).
 The first number is increased by ARG, the second by 2*ARG, etc.
 Works with rectangle selection when `rectangle-mark-mode' is active."
   (interactive "*p")
   (shift-number--maybe-redo
-   'shift-number-incremental (lambda (prev) (+ prev arg)) #'shift-number--on-context-incremental))
+   'shift-number-incremental
+   (lambda (prev) (+ prev (or arg 1)))
+   #'shift-number--on-context-incremental))
 
 ;;;###autoload
 (defun shift-number-down-incremental (&optional arg)
-  "Incrementally decrease numbers between point and mark by ARG.
+  "Incrementally decrease numbers between point and mark by ARG (default 1).
 The first number is decreased by ARG, the second by 2*ARG, etc.
 Works with rectangle selection when `rectangle-mark-mode' is active."
   (interactive "*p")
   (shift-number--maybe-redo
-   'shift-number-incremental (lambda (prev) (- prev arg)) #'shift-number--on-context-incremental))
+   'shift-number-incremental
+   (lambda (prev) (- prev (or arg 1)))
+   #'shift-number--on-context-incremental))
 
 ;;;###autoload
 (defun shift-number-increment-at-point-with-search (&rest args)

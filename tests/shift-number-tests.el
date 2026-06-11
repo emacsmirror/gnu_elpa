@@ -85,6 +85,48 @@
       (cursor-marker)
       (should (equal text-expected (buffer-string))))))
 
+(ert-deftest no-arg-increment ()
+  "Check that ARG defaults to 1 when omitted in a Lisp call."
+  (let ((text-initial "1")
+        (text-expected "|2"))
+    (with-shift-number-test text-initial
+      (shift-number-up)
+      (cursor-marker)
+      (should (equal text-expected (buffer-string))))))
+
+(ert-deftest no-arg-decrement ()
+  "Check that ARG defaults to 1 when omitted in a Lisp call."
+  (let ((text-initial "2")
+        (text-expected "|1"))
+    (with-shift-number-test text-initial
+      (shift-number-down)
+      (cursor-marker)
+      (should (equal text-expected (buffer-string))))))
+
+(ert-deftest no-arg-incremental-up ()
+  "Check that ARG defaults to 1 when omitted in a Lisp call."
+  (let ((text-initial "0 0 0")
+        (text-expected "1 2 |3"))
+    (with-shift-number-test text-initial
+      (goto-char (point-min))
+      (set-mark (point))
+      (goto-char (point-max))
+      (shift-number-up-incremental)
+      (cursor-marker)
+      (should (equal text-expected (buffer-string))))))
+
+(ert-deftest no-arg-incremental-down ()
+  "Check that ARG defaults to 1 when omitted in a Lisp call."
+  (let ((text-initial "10 10 10")
+        (text-expected "9 8 |7"))
+    (with-shift-number-test text-initial
+      (goto-char (point-min))
+      (set-mark (point))
+      (goto-char (point-max))
+      (shift-number-down-incremental)
+      (cursor-marker)
+      (should (equal text-expected (buffer-string))))))
+
 (ert-deftest delta-zero ()
   "Check that delta of zero leaves number unchanged."
   (let ((text-initial "42")

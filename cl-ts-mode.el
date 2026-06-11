@@ -345,6 +345,7 @@ face itself and return nil.")
            (ratp (equal node-type "rational"))
            (chars ["0" "1"])
            (faces [cl-ts-mode-0-bit cl-ts-mode-1-bit]))
+      (goto-char (ts-node-start node))
       (when (cond
               (ratp (looking-at (rx "#" (or (any "Bb")
                                             (seq (* "0") "2" (any "Rr"))))))
@@ -375,15 +376,15 @@ face itself and return nil.")
    `((string) @font-lock-string-face)
    :feature 'comment
    `([(line_comment) (block_comment)] @cl-ts-mode--fontify-comment)
-   :feature 'bits
-   :override 'prepend
-   `([(bit_vector) (rational)] @cl-ts-mode--fontify-bits)
    :feature 'number
    :override 'prepend
    ;; complexes have a tree like (complex (real) (real)) so their whole and
    ;; imaginary parts will both get the face. highlighting the entire expression
    ;; #C(1/3 99.1) with font-lock-number-face seems weird to me.
    `((real) @font-lock-number-face)
+   :feature 'bits
+   :override 'prepend
+   `([(bit_vector) (rational)] @cl-ts-mode--fontify-bits)
    :feature 'symbol
    :override 'prepend
    `((symbol_tokens [(single_escape) @font-lock-escape-face
@@ -730,7 +731,7 @@ format directives is suppressed."
                         "struct"
                         "list"
                         "vector"
-                        "bool_vector"
+                        "bit_vector"
                         "array"
                         "quote"
                         "sharpquote"

@@ -199,7 +199,9 @@ face itself and return nil.")
 
 (defun cl-ts-mode--fontify-one-format-directive (node &optional paired-depth mismatch-p)
   (defvar rainbow-delimiters-pick-face-function)
-  (let ((child (ts-node-child node 0)))
+  (let ((child (ts-node-child node 0))
+        (colonp nil)
+        (atp nil))
     (while child
       (when-let* ((face (pcase (ts-node-type child)
                           ('"~" 'cl-ts-mode-format-tilde)
@@ -209,16 +211,23 @@ face itself and return nil.")
                           ('"char_parameter" 'cl-ts-mode-format-char-parameter)
                           ('"numeric_parameter" 'cl-ts-mode-format-numeric-parameter)
                           ('"," 'cl-ts-mode-format-comma)
-                          ('"@" 'cl-ts-mode-format-at)
-                          ('":" 'cl-ts-mode-format-colon)
+                          ('"@"
+                           (setq atp t)
+                           'cl-ts-mode-format-at)
+                          ('":"
+                           (setq colonp t)
+                           'cl-ts-mode-format-colon)
                           ('"directive_character"
                            (cond
                              ((eq (char-after (ts-node-start child)) ?\n)
                               (save-excursion
                                 (goto-char (ts-node-start child))
-                                (skip-chars-forward "\n\t ")
-                                (add-face-text-property (ts-node-start child) (point)
-                                                        'cl-ts-mode-format-skipped-whitespace)))
+                                (when atp (forward-char)) ;first newline kept
+                                (let ((start (point)))
+                                  (unless colonp ; only the newline was skipped
+                                    (skip-chars-forward "\n\t "))
+                                  (add-face-text-property start (point)
+                                                          'cl-ts-mode-format-skipped-whitespace))))
                              ((not paired-depth) 'cl-ts-mode-format-standalone-directive)
                              ((not (cl-ts-mode--format-use-rainbow-delimiters-p))
                               'cl-ts-mode-format-paired-directive)

@@ -869,7 +869,8 @@ with the equivalent upcased form."
      ;; @ of from by to ) operator.
      (looking-back (regexp-opt '(":" "," ";" "begin" "if" "then" "elif"
                                  "else" "case" "in" "ouse" "out"
-                                 "while" "do" "(" "|" "|:" "def" "postlude"))
+                                 "while" "do" "(" "|" "|:" "def" "postlude")
+                               'words)
                    (- (point) 8))
      ;; tag denotation or mode indication
      (and (looking-back "[A-Z][A-Za-z0-9_]+" (pos-bol))
@@ -885,7 +886,9 @@ with the equivalent upcased form."
              ;; In the case of an access-clause, the
              ;; module-indication is preceded by one of the
              ;; following symbols:
-             (looking-back (regexp-opt '("access" "," "pub")) (- (point) 6))
+             (looking-back (regexp-opt '("access" "," "pub")
+                                       'words)
+                           (- (point) 6))
              ;; The symbols that may precede a cast are the same
              ;; as those that may precede an enclosed-clause, with
              ;; the exception of the close-symbol, mode-indication
@@ -894,7 +897,8 @@ with the equivalent upcased form."
                                          "@" "begin" "if" "then" "elif"
                                          "else" "case" "in" "ouse" "out"
                                          "of" "'" "from" "by" "to" "while"
-                                         "do" "(" "|" "def" "postlude"))
+                                         "do" "(" "|" "def" "postlude")
+                                       'words)
                            (- (point) 8))
              ;; operator, so any nomad or monad.
              (looking-back (regexp-opt '("%" "^" "&" "+" "-" "~" "!" "?"
@@ -906,7 +910,8 @@ with the equivalent upcased form."
   (save-excursion
     (forward-comment (- (point)))
     (or (looking-back (regexp-opt '("end" "fi" "esac" "]" "nil" "od" ")"
-                                    "skip" "~"))
+                                    "skip" "~")
+                                  'words)
                       (- (point) 4))
         ;; This cover the end of denotations.
         (looking-back "\\([0-9]+\\|[\"]\\)" (pos-bol))
@@ -922,7 +927,8 @@ with the equivalent upcased form."
         (or (looking-back "[A-Z][A-Za-z0-9_]+" (pos-bol))
             (looking-back (regexp-opt '("loc" "heap"
                                         "ref" ")" "]"
-                                        "proc" "flex"))
+                                        "proc" "flex")
+                                      'words)
                           (- (point) 4))))))
 
 (defun a68--smie-forward-token-supper ()
@@ -1178,7 +1184,8 @@ UPPER stropping version."
      ;; @ of from by to ) operator.
      (looking-back (regexp-opt '(":" "," ";" "BEGIN" "IF" "THEN" "ELIF"
                                  "ELSE" "CASE" "IN" "OUSE" "OUT"
-                                 "WHILE" "DO" "(" "|" "|:" "DEF" "POSTLUDE"))
+                                 "WHILE" "DO" "(" "|" "|:" "DEF" "POSTLUDE")
+                               'words)
                    (- (point) 8))
      ;; tag denotation or mode indication
      (and (looking-back "[A-Z][A-Z_]*" (pos-bol))
@@ -1194,7 +1201,7 @@ UPPER stropping version."
              ;; In the case of an access-clause, the
              ;; module-indication is preceded by one of the
              ;; following symbols:
-             (looking-back (regexp-opt '("ACCESS" "," "PUB")) (- (point) 6))
+             (looking-back (regexp-opt '("ACCESS" "," "PUB") 'words) (- (point) 6))
              ;; The symbols that may precede a cast are the same
              ;; as those that may precede an enclosed-clause, with
              ;; the exception of the close-symbol, mode-indication
@@ -1203,7 +1210,8 @@ UPPER stropping version."
                                          "@" "BEGIN" "IF" "THEN" "ELIF"
                                          "ELSE" "CASE" "IN" "OUSE" "OUT"
                                          "OF" "'" "FROM" "BY" "TO" "WHILE"
-                                         "DO" "(" "|" "DEF" "POSTLUDE"))
+                                         "DO" "(" "|" "DEF" "POSTLUDE")
+                                       'words)
                            (- (point) 8))
              ;; operator, so any nomad or monad.
              (looking-back (regexp-opt '("%" "^" "&" "+" "-" "~" "!" "?"
@@ -1216,7 +1224,8 @@ UPPER stropping version."
   (save-excursion
     (forward-comment (- (point)))
     (or (looking-back (regexp-opt '("END" "FI" "ESAC" "]" "NIL" "OD" ")"
-                                    "SKIP" "~"))
+                                    "SKIP" "~")
+                                  'word)
                       (- (point) 4))
         ;; This cover the end of denotations.
         (looking-back "\\([0-9]+\\|[\"]\\)" (pos-bol))

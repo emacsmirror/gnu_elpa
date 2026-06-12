@@ -459,8 +459,8 @@
   :doc "man/hyperbole.texi"
   :news "HY-NEWS")
  (ibuffer-sidebar	:url "https://github.com/jojojames/ibuffer-sidebar"
-  :ignored-files ("LICENSE" "screenshots"
-  :readme "readme.org"))
+  :ignored-files ("LICENSE" "screenshots")
+  :readme "readme.org")
  (idlwave		:url "https://github.com/jdtsmith/idlwave"
   :doc "idlwave.texi"
   :news "CHANGES"

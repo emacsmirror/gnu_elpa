@@ -847,7 +847,7 @@ with the equivalent upcased form."
 
 (defvar a68--oper-regexp
   (concat "\\("
-          "=\\|/=\\|>\\|<\\|<=\\|>=\\|>\\|*\\|**\\|/"
+          "=\\|/=\\|>\\|<\\|<=\\|>=\\|>\\|*\\|/"
           "\\|"
           (concat "\\(?:"
                   (regexp-opt a68--monads)

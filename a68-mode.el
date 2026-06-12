@@ -292,6 +292,10 @@
          ;; Ditto for an OP followed by an indicant and then a =.
          '("\\(\\<OP\\>\\)[ \t]*\\<\\([A-Z][A-Z0-9_]*\\)\\>[ \t]*="
            1 ''a68-keyword-face)
+         ;; Ditto for an op followed by monads/nomads and then a =.
+         (list
+          (concat "\\(\\<OP\\>\\)[ \t]*" a68--oper-regexp "[ \t]*=")
+          1 ''a68-keyword-face)
          (cons (rx word-start
                    (eval `(or ,@a68-std-modes-upper))
                    word-end)
@@ -327,6 +331,10 @@
     ;; Ditto for an op followed by an indicant and then a =.
     '("\\(\\<op\\>\\)[ \t]*\\<\\([A-Z][A-Za-z0-9_]*\\)\\>[ \t]*="
       1 ''a68-keyword-face)
+    ;; Ditto for an op followed by monads/nomads and then a =.
+    (list
+     (concat "\\(\\<op\\>\\)[ \t]*" a68--oper-regexp "[ \t]*=")
+     1 ''a68-keyword-face)
     (cons (rx word-start
               (eval `(or ,@a68-std-modes-supper))
               word-end)

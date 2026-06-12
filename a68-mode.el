@@ -839,16 +839,21 @@ with the equivalent upcased form."
 
 ;; An operator indication is:
 ;; - A bold tag, or.
+;; - Any of the standard operators: =, /=, >, <, <=, >=, >
 ;; - Any monad, or
 ;; - A monad followed by a nomad, or
 ;; - A monad optionally followed by a nomad followd by either
 ;;   := or =:, but not by both.
 
 (defvar a68--oper-regexp
-  (concat "\\(?:"
-          (regexp-opt a68--monads)
-          (regexp-opt a68--nomads) "?"
-          "\\(?::=\\|=:\\)?"
+  (concat "\\("
+          "=\\|/=\\|>\\|<\\|<=\\|>=\\|>"
+          "\\|"
+          (concat "\\(?:"
+                  (regexp-opt a68--monads)
+                  (regexp-opt a68--nomads) "?"
+                  "\\(?::=\\|=:\\)?"
+                  "\\)")
           "\\)"))
 
 (defun a68-at-strong-void-enclosed-clause-supper ()

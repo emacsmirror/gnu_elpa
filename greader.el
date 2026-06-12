@@ -1252,6 +1252,8 @@ When called interactively and point is on a word, this function asks
 for the definition, assuming you want to define current word.
 If you want to be asked about the word to define, call this command
 with prefix.
+The word is always downcased before insertion, because espeak-ng
+treats entries with different case as distinct definitions.
 When called from a function, you should specify SRC and DST, even if
 SRC and DST are declared as optional."
   (interactive "P")
@@ -1268,6 +1270,7 @@ SRC and DST are declared as optional."
     (setq src (read-string "word to add: "))
     (if (equal src "")
 	(setq src (thing-at-point 'word t))))
+  (setq src (downcase src))
   (unless dst
     (let ((history-delete-duplicates  greader-compile-history-delete-duplicates))
       (setq dst (read-string (concat "Redefine " src " to: ") nil

@@ -847,7 +847,7 @@ with the equivalent upcased form."
 
 (defvar a68--oper-regexp
   (concat "\\("
-          "=\\|/=\\|>\\|<\\|<=\\|>=\\|>\\|*\\|/"
+          "=\\|/=\\|>\\|<\\|<=\\|>=\\|>\\|\\*\\*?\\|/"
           "\\|"
           (concat "\\(?:"
                   (regexp-opt a68--monads)
@@ -1090,7 +1090,7 @@ with the equivalent upcased form."
     (cond
      ;; operator, so any nomad or monad.
      ((looking-back a68--oper-regexp
-                    (pos-bol))
+                    (pos-bol) t)
       (goto-char (match-beginning 0))
       "-oper-")
      ((looking-back "[A-Z][A-Za-z0-9_]+" (pos-bol))

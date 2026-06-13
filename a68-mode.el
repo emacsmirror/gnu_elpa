@@ -907,8 +907,8 @@ with the equivalent upcased form."
                                                  "do" "def" "postlude")
                                                'words)
                                    "\\|"
-                                   (regexp-opt (":" ":=" ":/=:" "=" "," ";" "["
-                                                "@" "'" "(" "|"))
+                                   (regexp-opt '(":" ":=" ":/=:" "=" "," ";" "["
+                                                 "@" "'" "(" "|"))
                                    "\\)")
                            (- (point) 8))
              ;; operator, so any nomad or monad.

@@ -1123,7 +1123,7 @@ with the equivalent upcased form."
       (goto-char (- (point) 2))
       "):")
      ;; A -proc- follows pub.
-     ((looking-back "\\<proc\\>")
+     ((looking-back "\\<proc\\>" nil)
       (goto-char (- (point) 4))
       (cond
        ((looking-back "\\<pub\\>[ \t\n]*" nil)
@@ -1433,7 +1433,7 @@ UPPER stropping version."
       (goto-char (- (point) 2))
       "):")
      ;; A -proc- follows pub.
-     ((looking-back "\\<PROC\\>")
+     ((looking-back "\\<PROC\\>" nil)
       (goto-char (- (point) 4))
       (cond
        ((looking-back "\\<PUB\\>[ \t\n]*" nil)

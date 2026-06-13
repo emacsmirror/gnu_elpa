@@ -24,12 +24,17 @@
 
 (ts-declare-unavailable-functions)
 
-(setf (alist-get 'common-lisp ts-language-source-alist)
-      `("https://codeberg.org/zshaftel/tree-sitter-cl-syntax"
-        :source-dir "grammars/cl/src"))
-(setf (alist-get 'cl-format ts-language-source-alist)
-      `("https://codeberg.org/zshaftel/tree-sitter-cl-syntax"
-        :source-dir "grammars/format/src"))
+;; this guard is temporary, just while developing so i can test grammar changes
+;; locally before pushing commits. it's much easier to debug the grammar in a
+;; buffer than with tree-sitter-cli.
+(let* ((this-dir (file-name-directory (or (macroexp-file-name) (buffer-file-name))))
+       (repo (if (file-exists-p (expand-file-name "grammars/cl/grammar.js" this-dir))
+                 (directory-file-name this-dir)
+               "https://codeberg.org/zshaftel/tree-sitter-cl-syntax")))
+  (setf (alist-get 'common-lisp ts-language-source-alist)
+        `(,repo :source-dir "grammars/cl/src"))
+  (setf (alist-get 'cl-format ts-language-source-alist)
+        `(,repo :source-dir "grammars/format/src")))
 
 ;; not ready yet
 ;; (when (boundp 'treesit-major-mode-remap-alist)
@@ -97,44 +102,42 @@ comments are highlighted with `font-lock-comment-face'.")
 (defface cl-ts-mode-block-comment-depth-3 '((t :inherit cl-ts-mode-block-comment-depth-2))
   "Face used to highlight block comments nested by 3 levels.")
 
-(defface cl-ts-mode-reader-macro-base '((t :weight extra-bold))
-  "All faces for reader macros (like `cl-ts-mode-quote') inherit from
-this face.")
-
 (defface cl-ts-mode-positive-read-conditional
-  '((t :inherit (success cl-ts-mode-reader-macro-base)))
+  '((t :weight extra-bold :inherit success))
   "Face used for #+.")
 
 (defface cl-ts-mode-negative-read-conditional
-  '((t :inherit (cl-ts-mode-reader-macro-base error)))
+  '((t :weight extra-bold :inherit error))
   "Face used for #-.")
 
 (defface cl-ts-mode-read-eval
-  '((t :inherit (cl-ts-mode-reader-macro-base font-lock-misc-punctuation-face)))
+  '((t :weight extra-bold :inherit font-lock-misc-punctuation-face))
   "Face used for #..")
 
 (defface cl-ts-mode-quote
-  '((t :inherit (font-lock-preprocessor-face cl-ts-mode-reader-macro-base)))
+  '((t :weight extra-bold :inherit font-lock-preprocessor-face))
   "Face for \\='.")
 
 (defface cl-ts-mode-sharpquote
-  '((t :inherit (font-lock-constant-face cl-ts-mode-reader-macro-base)))
+  '((t :weight extra-bold :inherit font-lock-constant-face))
   "Face for #\\='.")
 
 (defface cl-ts-mode-quasiquote
-  '((t :inherit (font-lock-string-face cl-ts-mode-reader-macro-base)))
+  '((t :weight extra-bold :inherit font-lock-string-face))
   "Face for \\=`.")
 
 (defface cl-ts-mode-comma
-  '((t :inherit (font-lock-property-use-face cl-ts-mode-reader-macro-base)))
+  '((t :weight extra-bold :inherit font-lock-property-use-face))
   "Face for , (unquote).")
 
 (defface cl-ts-mode-comma-at
-  '((t :inherit (font-lock-delimiter-face cl-ts-mode-comma)))
+  '((t :weight extra-bold
+       :inherit (font-lock-string-face cl-ts-mode-comma)))
   "Face for ,@ (unquote splice).")
 
 (defface cl-ts-mode-comma-dot
-  '((t :inherit (font-lock-warning-face cl-ts-mode-comma)))
+  '((t :weight extra-bold
+       :inherit (font-lock-warning-face cl-ts-mode-comma)))
   "Face for ,. (unquote nconc).")
 
 (defconst cl-ts-mode--block-comment-faces

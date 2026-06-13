@@ -135,6 +135,7 @@ Uses the ref-repo text property for cross-repo references."
 
 (defvar-local forgejo-diff--pr-number nil "PR number for this diff.")
 
+(declare-function forgejo-review-diff-approve "forgejo-review.el" ())
 (declare-function forgejo-review-diff-comment "forgejo-review.el" ())
 
 (keymap-popup-define forgejo-view-diff-map
@@ -151,7 +152,8 @@ Uses the ref-repo text property for cross-repo references."
                    "Diff"))
   :parent diff-mode-map
   "q" ("Quit" quit-window)
-  "c" ("Review comment" forgejo-review-diff-comment))
+  "c" ("Review comment" forgejo-review-diff-comment)
+  "a" ("Approve review" forgejo-review-diff-approve))
 
 (defun forgejo-view--local-commit-p (sha)
   "Return non-nil if SHA exists in the local git repository."

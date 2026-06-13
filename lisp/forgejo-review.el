@@ -161,6 +161,16 @@ Calls CALLBACK when all are done."
            (when (zerop remaining)
              (when callback (funcall callback)))))))))
 
+(defun forgejo-review--post-review (host-url owner repo number body callback)
+  "Post review BODY for PR NUMBER in OWNER/REPO on HOST-URL.
+CALLBACK is passed the response data and headers."
+  (forgejo-api-post
+   host-url
+   (format "repos/%s/%s/pulls/%d/reviews" owner repo number)
+   nil
+   body
+   callback))
+
 (defun forgejo-review--submit (host-url owner repo number callback)
   "Submit a review on PR NUMBER in OWNER/REPO on HOST-URL.
 Prompts for the review type and an optional body.
@@ -172,10 +182,8 @@ CALLBACK is called on success."
                   ("approve" "APPROVED")
                   ("comment" "COMMENT")))
          (body (forgejo-utils-read-body)))
-    (forgejo-api-post
-     host-url
-     (format "repos/%s/%s/pulls/%d/reviews" owner repo number)
-     nil
+    (forgejo-review--post-review
+     host-url owner repo number
      `((event . ,event)
        ,@(and (not (string-empty-p (string-trim (or body ""))))
               `((body . ,body))))
@@ -212,6 +220,28 @@ CALLBACK is called on success."
 
 ;;; Diff review
 
+(defun forgejo-review--diff-context ()
+  "Return the current diff review context, or raise `user-error'."
+  (let ((host (and (boundp 'forgejo-repo--host) forgejo-repo--host))
+        (owner (and (boundp 'forgejo-repo--owner) forgejo-repo--owner))
+        (repo (and (boundp 'forgejo-repo--name) forgejo-repo--name))
+        (number (and (boundp 'forgejo-diff--pr-number)
+                     forgejo-diff--pr-number)))
+    (unless (and host owner repo number)
+      (user-error "No PR associated with this diff"))
+    (list host owner repo number)))
+
+(defun forgejo-review-diff-approve ()
+  "Approve the pull request associated with the current diff buffer."
+  (interactive)
+  (cl-destructuring-bind (host owner repo number)
+      (forgejo-review--diff-context)
+    (forgejo-review--post-review
+     host owner repo number
+     '((event . "APPROVED"))
+     (lambda (_data _headers)
+       (message "Approved %s/%s#%d" owner repo number)))))
+
 (defun forgejo-review--diff-new-line-number ()
   "Return the new-file line number for the diff line at point.
 Parses the @@ hunk header and counts context/added lines."
@@ -232,36 +262,32 @@ Parses the @@ hunk header and counts context/added lines."
   "Post a review comment on the line at point in the diff.
 Prompts for review type: comment or request_changes."
   (interactive)
-  (unless forgejo-diff--pr-number
-    (user-error "No PR associated with this diff"))
-  (let* ((file-raw (car (diff-hunk-file-names)))
-         (file (when file-raw
-                 (replace-regexp-in-string
-                  "\\`[ab]/" ""
-                  (substring-no-properties file-raw))))
-         (line (forgejo-review--diff-new-line-number)))
-    (unless file
-      (user-error "Cannot determine file at point"))
-    (let* ((type (completing-read "Review type: "
-                                  '("comment" "request_changes") nil t))
-           (event (pcase type
-                    ("comment" "COMMENT")
-                    ("request_changes" "REQUEST_CHANGES")))
-           (body (forgejo-utils-read-body)))
-      (when (and body (not (string-empty-p (string-trim body))))
-        (forgejo-api-post
-         forgejo-repo--host
-         (format "repos/%s/%s/pulls/%d/reviews"
-                 forgejo-repo--owner forgejo-repo--name
-                 forgejo-diff--pr-number)
-         nil
-         `((body . ,(if (string= event "REQUEST_CHANGES") body ""))
-           (event . ,event)
-           (comments . [((path . ,file)
-                         (new_position . ,line)
-                         (body . ,body))]))
-         (lambda (_data _headers)
-           (message "Review %s posted on %s:%d" type file line)))))))
+  (cl-destructuring-bind (host owner repo number)
+      (forgejo-review--diff-context)
+    (let* ((file-raw (car (diff-hunk-file-names)))
+           (file (when file-raw
+                   (replace-regexp-in-string
+                    "\\`[ab]/" ""
+                    (substring-no-properties file-raw))))
+           (line (forgejo-review--diff-new-line-number)))
+      (unless file
+        (user-error "Cannot determine file at point"))
+      (let* ((type (completing-read "Review type: "
+                                    '("comment" "request_changes") nil t))
+             (event (pcase type
+                      ("comment" "COMMENT")
+                      ("request_changes" "REQUEST_CHANGES")))
+             (body (forgejo-utils-read-body)))
+        (when (and body (not (string-empty-p (string-trim body))))
+          (forgejo-review--post-review
+           host owner repo number
+           `((body . ,(if (string= event "REQUEST_CHANGES") body ""))
+             (event . ,event)
+             (comments . [((path . ,file)
+                           (new_position . ,line)
+                           (body . ,body))]))
+           (lambda (_data _headers)
+             (message "Review %s posted on %s:%d" type file line))))))))
 
 ;;; Review thread buffer
 

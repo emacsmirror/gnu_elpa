@@ -15,7 +15,17 @@
 (setq forgejo-markdown-mode 'text-mode)
 (require 'forgejo-view)
 
-;;; Group 1: URL parsing
+;;; Group 1: Diff keymap
+
+(ert-deftest forgejo-test-view-diff-map-approve-review-binding ()
+  (should (eq (keymap-lookup forgejo-view-diff-map "a")
+              'forgejo-review-diff-approve))
+  (should-not (eq (keymap-lookup forgejo-view-diff-map "R")
+                  'forgejo-review-diff-approve))
+  (should-not (eq (keymap-lookup forgejo-view-diff-map "A")
+                  'forgejo-review-diff-approve)))
+
+;;; Group 2: URL parsing
 
 (ert-deftest forgejo-test-view-parse-issue-url ()
   (should (equal (forgejo-view--parse-forgejo-url
@@ -42,7 +52,7 @@
                "https://example.com/some/page"))
   (should-not (forgejo-view--parse-forgejo-url nil)))
 
-;;; Group 2: EWOC comment navigation
+;;; Group 3: EWOC comment navigation
 
 (defun forgejo-test-view--issue-alist ()
   "Return a minimal issue alist for detail rendering."

@@ -3,3 +3,5 @@ Makefile
 *.scm
 .*
 tests
+*.nix
+flake.lock

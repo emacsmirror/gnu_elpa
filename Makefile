@@ -1,17 +1,15 @@
 .POSIX:
 
-ifndef EMACS_CMD
-GUIX := $(shell command -v guix 2>/dev/null)
-ifdef GUIX
-GUIX_SHELL := guix shell --pure -D -f guix.scm emacs-next --
-EMACS_CMD := $(GUIX_SHELL) emacs
-else
-GUIX_SHELL :=
-EMACS_CMD := emacs
+NIX := $(shell command -v nix 2>/dev/null)
+
+ENV_MAKE = $(MAKE) --no-print-directory
+ifeq ($(FORGEJO_ENV_WRAPPED),)
+ifneq ($(NIX),)
+ENV_MAKE = nix develop path:$(CURDIR) --command env FORGEJO_ENV_WRAPPED=1 $(MAKE) --no-print-directory
 endif
 endif
 
-GUIX_WRAP = $(if $(GUIX_SHELL),$(GUIX_SHELL) $(MAKE) --no-print-directory EMACS_CMD=emacs,$(MAKE) --no-print-directory)
+EMACS_CMD ?= emacs
 
 SRCS = lisp/forgejo.el lisp/forgejo-api.el lisp/forgejo-db.el \
        lisp/forgejo-filter.el lisp/forgejo-utils.el \
@@ -25,17 +23,17 @@ TESTS = tests/forgejo-test-load.el tests/forgejo-test-api.el \
         tests/forgejo-test-db.el tests/forgejo-test-host.el \
         tests/forgejo-test-buffer.el tests/forgejo-test-filter.el \
         tests/forgejo-test-issue.el tests/forgejo-test-pull.el \
-        tests/forgejo-test-tl.el \
+        tests/forgejo-test-review.el tests/forgejo-test-tl.el \
         tests/forgejo-test-vc.el tests/forgejo-test-view.el
 
 BATCH = $(EMACS_CMD) -Q --batch -L lisp
 
-.PHONY: all compile do-compile test do-test lint do-lint clean dev load test-env
+.PHONY: all compile do-compile test do-test lint do-lint clean dev do-dev load test-env
 
 all: compile
 
 compile:
-	@$(GUIX_WRAP) do-compile
+	@$(ENV_MAKE) do-compile
 
 do-compile:
 	@for f in $(SRCS); do \
@@ -44,7 +42,7 @@ do-compile:
 	done
 
 test:
-	@$(GUIX_WRAP) do-test
+	@$(ENV_MAKE) do-test
 
 do-test:
 	@for f in $(TESTS); do \
@@ -53,7 +51,7 @@ do-test:
 	done
 
 lint:
-	@$(GUIX_WRAP) do-lint
+	@$(ENV_MAKE) do-lint
 
 do-lint:
 	@echo "Running checkdoc..."
@@ -61,7 +59,10 @@ do-lint:
 	  $(BATCH) --eval "(checkdoc-file \"$$f\")" || exit 1; \
 	done
 
-dev: compile lint test
+dev:
+	@$(ENV_MAKE) do-dev
+
+do-dev: do-compile do-lint do-test
 
 load: clean
 	@emacsclient --eval "(progn \
@@ -71,9 +72,10 @@ load: clean
 	               forgejo-pull-view-mode-map forgejo-issue-view-mode-map \
 	               forgejo-repo-search-mode-map forgejo-watch-list-mode-map \
 	               forgejo-notification-list-mode-map \
-	               forgejo-view-mode-map forgejo-compose-mode-map \
-	               forgejo-buffer-diff-map forgejo-vc-map \
-	               forgejo-buffer-ref-map forgejo-buffer-commit-map)) \
+	               forgejo-view-mode-map forgejo-view-diff-map \
+	               forgejo-compose-mode-map forgejo-buffer-diff-map \
+	               forgejo-vc-map forgejo-buffer-ref-map \
+	               forgejo-buffer-commit-map)) \
 	    (when (boundp sym) (makunbound sym))))" > /dev/null
 	@for f in $(SRCS); do \
 	  emacsclient --eval "(load-file \"$(CURDIR)/$$f\")" > /dev/null || \
@@ -90,7 +92,10 @@ load: clean
 	          ((derived-mode-p 'forgejo-issue-view-mode) \
 	           (use-local-map forgejo-issue-view-mode-map)) \
 	          ((derived-mode-p 'forgejo-notification-list-mode) \
-	           (use-local-map forgejo-notification-list-mode-map)))))" > /dev/null
+	           (use-local-map forgejo-notification-list-mode-map)) \
+	          ((and (derived-mode-p 'diff-mode) \
+	                (bound-and-true-p forgejo-diff--pr-number)) \
+	           (use-local-map forgejo-view-diff-map)))))" > /dev/null
 	@printf "\033[32mLoaded all modules into Emacs\033[0m\n"
 
 test-env:

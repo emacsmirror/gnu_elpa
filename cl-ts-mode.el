@@ -724,9 +724,81 @@ format directives is not performed."
       (if (eq lindent 'noindent)
           (funcall orig)
         lindent))))
+
+(defun cl-ts-mode-up-list (arg escape-strings no-syntax-crossing)
+  (cond
+    ((not no-syntax-crossing)
+     ;; no good way to handle this with the grammar, but FIXME: we can
+     ;; *definitely* handle this for paired format directives, where it would
+     ;; actually be really useful!
+     (up-list-default-function arg escape-strings no-syntax-crossing))
+    (t (let* ((pred '(or "\\`string\\'" list))
+              (node (cl-ts-mode--thing-node-at-pos pred))
+              (backwards-p (minusp arg))
+              (arg (truncate (abs arg)))
+              (parent nil))
+         (unless (or (= (ts-node-start node) (point))
+                     (= (ts-node-end node) (point)))
+           (and (equal (ts-node-type node) "string")
+                (not escape-strings)
+                (plusp arg)
+                (error "At top level"))
+           (decf arg))
+         (while (and (plusp arg)
+                     (setq parent (ts-parent-until node 'list)))
+           (decf arg)
+           (setq node parent))
+         (goto-char (if backwards-p
+                        (ts-node-start node)
+                      (ts-node-end node)))))))
+
+;; a basic treesit version of `lispy-convolute'. FIXME: this shouldn't be here
+;; and ought to be in some dedicated treesit navigation/editing package. i know
+;; of combobulate but it's still a WIP and i don't know of any commands along
+;; these lines in it.
+(defun cl-ts-mode-convolute (n)
+  (interactive "p")
+  (let* ((lnode (cl-ts-mode-sexp-node-at-pos))
+         (inner (ts-parent-until lnode 'list))
+         (outer inner))
+    (while (progn
+             (unless outer (error "Not enough depth"))
+             (plusp n))
+      (decf n)
+      (setq outer (ts-parent-until outer 'list)))
+    (let* ((out-beg (ts-node-start outer))
+           (in-beg (ts-node-start inner))
+           (in-end (ts-node-end inner))
+           (out-end (ts-node-end outer))
+           (self-beg (copy-marker (ts-node-start lnode) t))
+           (self-end (copy-marker (ts-node-end lnode) t))
+           (pre-string (buffer-substring out-beg in-beg))
+           (post-string (buffer-substring in-end out-end)))
+      (atomic-change-group
+        (unwind-protect
+            (progn
+              (delete-region in-end out-end)
+              (delete-region out-beg in-beg)
+              (goto-char self-beg)
+              (insert pre-string)
+              (goto-char self-end)
+              (insert post-string)
+              (goto-char out-beg)
+              (indent-sexp))
+          ;; save-excursion uses a before-insertion marker, we want
+          ;; after-insertion
+          (goto-char self-beg)
+          (set-marker self-beg nil)
+          (set-marker self-end nil))))))
+
 (defun cl-ts-mode--extend-fl-region ()
   (defvar font-lock-beg)
   (defvar font-lock-end)
+  ;; FIXME: use `treesit-node-first-child-for-pos'. kinda silly to traverse the
+  ;; tree to get to the smallest node, then go back up to a bigger one.
+  ;; actually, `treesit-node-descendant-for-range' seems even better, if you
+  ;; give it the same start and end it kinda behaves like a more predictable
+  ;; `treesit-node-at'
   (let* ((bnode (thread-first (ts-node-at font-lock-beg treesit-primary-parser t)
                   (treesit-parent-until 'sexp t)))
          (changed-beg (and bnode (< (ts-node-start bnode) font-lock-beg)
@@ -793,6 +865,52 @@ format directives is not performed."
                                        'syntax-table
                                        (string-to-syntax "_")))))))
 
+(defun cl-ts-mode-update-modeline ()
+  (setq mode-name (concat "Lisp/" comment-start))
+  (force-mode-line-update))
+
+(defun cl-ts-mode-toggle-comment-style (&optional arg)
+  "Toggle between #| block |# and ;; line comments for comment commands.
+
+With a positive prefix-arg, enable block comments; with a negative
+prefix arg, enable line comments; zero or unsupplied prefix argument
+toggles between them."
+  (interactive (cond
+                 ((null current-prefix-arg) '(nil))
+                 ;; same as c-toggle-comment-style
+                 ((minusp (prefix-numeric-value current-prefix-arg)) '(line))
+                 (t '(block)))
+               lisp-mode cl-ts-mode)
+  (unless arg
+    (setq arg (if (string-empty-p comment-end) 'block 'line)))
+  (if (eq arg 'line)
+      (setq-local comment-start ";"
+                  comment-end ""
+                  comment-continue nil)
+    (setq-local comment-start "#|"
+                comment-end "|#"
+                ;; i would much rather use " |" but it just doesn't handle it
+                ;; correctly. sly-lisp-indent-function sometimes errors and when
+                ;; it doesn't it ends up indenting like
+                ;; #|
+                ;; |
+                ;; | |#
+                ;; which looks terrible
+                ;; so FIXME: block comment indentation
+                comment-continue "# "))
+  (message "Enabled %s %s comments %s"
+           comment-start arg comment-end)
+  (cl-ts-mode-update-modeline))
+
+(defvar-keymap cl-ts-mode-map
+  :parent lisp-mode-map
+  "<remap> <indent-sexp>" #'cl-ts-mode-indent-sexp
+  ;; KLUDGE: would prefer C-c C-k to match the key bindings for
+  ;; `c[-ts-mode]-toggle-comment-style' but sly (and probably slime) binds
+  ;; compile-and-load-file to C-c C-k, which many (including me) have probably
+  ;; grown accustomed to
+  "C-c k" #'cl-ts-mode-toggle-comment-style)
+
 (defconst cl-ts-mode-thing-settings
   `((common-lisp
      (sexp ,(rx bos (or "string"
@@ -825,6 +943,7 @@ format directives is not performed."
 ;;;###autoload
 (define-derived-mode cl-ts-mode prog-mode "Lisp"
   "Common Lisp major mode with tree-sitter support."
+  :after-hook (cl-ts-mode-update-modeline)
   (make-local-variable 'font-lock-defaults)
   (let ((font-lock-defaults font-lock-defaults))
     (lisp-mode-variables t t))
@@ -835,6 +954,8 @@ format directives is not performed."
   (setq-local comment-end-skip "[ \t]*\\(\\s>\\||#\\)")
   (setq-local font-lock-comment-end-skip "|#")
   (setq imenu-case-fold-search t)
+  (setq-local lisp-fill-paragraphs-as-doc-string nil) ;specifically designed for elisp
+  (setq-local comment-quote-nested nil)
   (when (and (ts-ensure-installed 'common-lisp) (ts-ensure-installed 'cl-format))
     (setq ts-primary-parser (ts-parser-create 'common-lisp))
     (setq ts-font-lock-settings (cl-ts-mode--font-lock-rules))
@@ -856,8 +977,7 @@ format directives is not performed."
                          ,@body
                          ,@(nreverse restore)))))
       (with-saved-vars
-       (up-list-function
-        forward-list-function
+       (forward-list-function
         forward-sexp-function
         ;; this one seems to be broken in some other languages too
         forward-comment-function)
@@ -866,6 +986,7 @@ format directives is not performed."
                   #'cl-ts-mode-indent-region-wrapper)
     (add-function :around (local 'indent-line-function)
                   #'cl-ts-mode-indent-line-wrapper)
+    (setq-local up-list-function #'cl-ts-mode-up-list)
     (setq-local syntax-propertize-function #'cl-ts-mode-syntax-propertize)
     ;; (make-local-variable 'up-list-function)
     ;; (make-local-variable 'forward-list-function)
@@ -881,6 +1002,7 @@ format directives is not performed."
     (setq-default cl-ts-mode--enabled-fl-features
                   (cl-ts-mode--compute-features))))
 
+;;;###autoload
 (derived-mode-add-parents 'cl-ts-mode '(lisp-mode))
 
 (provide 'cl-ts-mode)

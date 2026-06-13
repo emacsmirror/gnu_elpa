@@ -133,14 +133,15 @@ isn't affected. The behavior depends on a few customizable variables:
   ~~<newline>~), t (don't add it but indent anyway), a string specifying the
   directive to add, or a cons pair ~(LOGICAL-BLOCK . DEFAULT)~ to specify a
   different string (like ~~:@_~~) to use within ~~<​~:>~.
-- ~cl-ts-mode-format-indent-parent-predicate~ :: A predicate for
-  ~treesit-node-match-p~ (usually a function or regexp matching a treesit node's
-  type) to determine which nodes should have their contents indented. By default
-  it matches the four paired directives, but you can also set it to indent
-  relative to the start of the entire format string.
-- ~cl-ts-mode-format-indent-align-block-ends~ :: Controls indentation of the end
-  of a paired directive when it begins a line. If non-nil (the default), the
-  directive characters themselves are aligned, like
+- ~cl-ts-mode-format-indent-predicate~ :: A predicate for ~treesit-node-match-p~
+  (usually a function or regexp matching a treesit node's type) to determine
+  which nodes should have their contents indented. By default it matches the
+  four paired directives, but you can also set it to indent relative to the
+  start of the entire format string.
+- ~cl-ts-mode-format-indent-tilde-relative~ :: Determines which column
+  indentation is calculated relative to (using the following two variables), and
+  the indentation of the end of a paired directive when it begins a line. If nil
+  (the default), the directive characters themselves are aligned, like
   #+begin_src lisp :tangle yes
     "~:@{
        ~}"
@@ -151,10 +152,10 @@ isn't affected. The behavior depends on a few customizable variables:
      ~}"
   #+end_src
 - ~cl-ts-mode-format-group-indent-offset~ :: Number of columns added to
-  indentation relative to the start of a paired directive.
+  indentation relative to the start of a paired directive.x
 - ~cl-ts-mode-format-string-indent-offset~ :: Like the above but controls
   indentation relative to the start of the string, if that's enabled by
-  ~cl-ts-mode-format-indent-parent-predicate~.
+  ~cl-ts-mode-format-indent-predicate~.
 ** Some ~clparse~ implementation details
 I took a *lot* of inspiration from elisp-scope.el (which should ship with
 Emacs 31) and pushed it to its extreme. There are 9 faces for local functions,

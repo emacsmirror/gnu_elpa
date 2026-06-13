@@ -900,16 +900,27 @@ shaped as (CONTENT USER...).  Returns nil when ME is nil."
   "Build the +/- reaction candidate list given MINE.
 MINE is the list of reaction types the current user has placed;
 those get a leading \"-\" (remove), the rest get \"+\" (add)."
-  (mapcar (lambda (r) (concat (if (member r mine) "-" "+") r))
+  (mapcar (lambda (r)
+            (concat (if (member r mine) "-" "+")
+                    (forgejo-buffer--reaction-label r)))
           forgejo-view--reaction-types))
+
+(defun forgejo-view--reaction-content-from-label (label)
+  "Return Forgejo reaction content represented by display LABEL."
+  (or (car (rassoc label forgejo-buffer--reaction-emoji-alist))
+      label))
 
 (defun forgejo-view--react-parse-selection (raw)
   "Parse RAW selection strings into (VERB . CONTENT) pairs.
 VERB is `add' or `remove'.  Signals `user-error' on garbage."
   (mapcar (lambda (sel)
             (pcase (and (> (length sel) 1) (substring sel 0 1))
-              ("+" (cons 'add (substring sel 1)))
-              ("-" (cons 'remove (substring sel 1)))
+              ("+" (cons 'add
+                         (forgejo-view--reaction-content-from-label
+                          (substring sel 1))))
+              ("-" (cons 'remove
+                         (forgejo-view--reaction-content-from-label
+                          (substring sel 1))))
               (_ (user-error
                   "Invalid reaction: %s (use +name or -name)" sel))))
           raw))

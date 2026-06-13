@@ -252,5 +252,44 @@
         (funcall callback '((number . 1)) nil))
       (should (equal seen-host "https://alt.example")))))
 
+;;; Group 4: Reaction completion
+
+(ert-deftest forgejo-test-view-react-candidates-use-emoji-labels ()
+  "Reaction candidates use emoji labels when displayable."
+  (cl-letf (((symbol-function 'forgejo-buffer--displayable-reaction-emoji-p)
+             (lambda (_emoji) t)))
+    (let ((candidates (forgejo-view--react-candidates '("+1"))))
+      (should (member "+❤️" candidates))
+      (should (member "-👍" candidates)))))
+
+(ert-deftest forgejo-test-view-react-candidates-fallback-to-text-labels ()
+  "Reaction candidates keep text labels when emoji is not displayable."
+  (cl-letf (((symbol-function 'forgejo-buffer--displayable-reaction-emoji-p)
+             (lambda (_emoji) nil)))
+    (let ((candidates (forgejo-view--react-candidates nil)))
+      (should (member "+heart" candidates))
+      (should (member "++1" candidates))
+      (should (member "+-1" candidates)))))
+
+(ert-deftest forgejo-test-view-react-parse-emoji-candidates ()
+  "Emoji reaction candidates parse back to API content."
+  (should (equal (forgejo-view--react-parse-selection '("+❤️" "-👍"))
+                 '((add . "heart") (remove . "+1")))))
+
+(ert-deftest forgejo-test-view-react-parse-text-candidates ()
+  "Text reaction candidates keep existing parsing behavior."
+  (should (equal (forgejo-view--react-parse-selection
+                  '("+heart" "-heart" "++1" "+-1" "-+1"))
+                 '((add . "heart")
+                   (remove . "heart")
+                   (add . "+1")
+                   (add . "-1")
+                   (remove . "+1")))))
+
+(ert-deftest forgejo-test-view-react-parse-unknown-label ()
+  "Unknown reaction labels are passed through after the leading sign."
+  (should (equal (forgejo-view--react-parse-selection '("+custom" "-custom"))
+                 '((add . "custom") (remove . "custom")))))
+
 (provide 'forgejo-test-view)
 ;;; forgejo-test-view.el ends here

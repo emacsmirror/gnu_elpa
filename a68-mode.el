@@ -128,6 +128,36 @@
                  (const "{"))
   :safe #'consp)
 
+;;;; Some regexps to identify certain source constructs.
+
+(defvar a68--keywords-regexp
+  (regexp-opt '("|:" "(" ")" "+" "*" ";" ">" "<" ":=" "=" "," ":" "~")))
+
+(defconst a68--monads
+  '("%" "^" "&" "+" "-" "~" "!" "?"))
+
+(defconst a68--nomads
+  '(">" "<" "/" "=" "*"))
+
+;; An operator indication is:
+;; - A bold tag, or.
+;; - Any of the standard operators: *, **, /, =, /=, >, <, <=, >=, >
+;; - Any monad, or
+;; - A monad followed by a nomad, or
+;; - A monad optionally followed by a nomad followd by either
+;;   := or =:, but not by both.
+
+(defvar a68--oper-regexp
+  (concat "\\("
+          "=\\|/=\\|>\\|<\\|<=\\|>=\\|>\\|\\*\\*?\\|/\\|\\*:=\\|/:="
+          "\\|"
+          (concat "\\(?:"
+                  (regexp-opt a68--monads)
+                  (regexp-opt a68--nomads) "?"
+                  "\\(?::=\\|=:\\)?"
+                  "\\)")
+          "\\)"))
+
 ;;;; Our own comment quoting function.
 
 (defun a68--comment-quote-nested (cs ce unp)
@@ -827,34 +857,6 @@ with the equivalent upcased form."
                              "+" "-" "*" "/")))))
 
 ;;;; SMIE lexer, SUPPER stropping.
-
-(defvar a68--keywords-regexp
-  (regexp-opt '("|:" "(" ")" "+" "*" ";" ">" "<" ":=" "=" "," ":" "~")))
-
-(defconst a68--monads
-  '("%" "^" "&" "+" "-" "~" "!" "?"))
-
-(defconst a68--nomads
-  '(">" "<" "/" "=" "*"))
-
-;; An operator indication is:
-;; - A bold tag, or.
-;; - Any of the standard operators: *, **, /, =, /=, >, <, <=, >=, >
-;; - Any monad, or
-;; - A monad followed by a nomad, or
-;; - A monad optionally followed by a nomad followd by either
-;;   := or =:, but not by both.
-
-(defvar a68--oper-regexp
-  (concat "\\("
-          "=\\|/=\\|>\\|<\\|<=\\|>=\\|>\\|\\*\\*?\\|/\\|\\*:=\\|/:="
-          "\\|"
-          (concat "\\(?:"
-                  (regexp-opt a68--monads)
-                  (regexp-opt a68--nomads) "?"
-                  "\\(?::=\\|=:\\)?"
-                  "\\)")
-          "\\)"))
 
 (defun a68-at-strong-void-enclosed-clause-supper ()
   "Return whether the point is at the beginning of a VOID enclosed clause."

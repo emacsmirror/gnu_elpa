@@ -138,7 +138,27 @@
     (should (= 11 (plist-get (nth 0 nodes) :id)))
     (should (= 12 (plist-get (nth 1 nodes) :id)))))
 
-;;; Group 9: Reconcile
+;;; Group 9: Reactions
+
+(ert-deftest forgejo-test-buffer-reaction-label-emoji-path ()
+  "Known reactions use emoji labels when displayable."
+  (cl-letf (((symbol-function 'forgejo-buffer--displayable-reaction-emoji-p)
+             (lambda (_emoji) t)))
+    (should (string= (forgejo-buffer--reaction-label "heart") "❤️"))))
+
+(ert-deftest forgejo-test-buffer-reaction-label-fallback-path ()
+  "Known reactions keep text labels when emoji is not displayable."
+  (cl-letf (((symbol-function 'forgejo-buffer--displayable-reaction-emoji-p)
+             (lambda (_emoji) nil)))
+    (should (string= (forgejo-buffer--reaction-label "rocket") "rocket"))))
+
+(ert-deftest forgejo-test-buffer-reaction-label-unknown ()
+  "Unknown reactions keep their original content."
+  (cl-letf (((symbol-function 'forgejo-buffer--displayable-reaction-emoji-p)
+             (lambda (_emoji) nil)))
+    (should (string= (forgejo-buffer--reaction-label "custom") "custom"))))
+
+;;; Group 10: Reconcile
 
 (defun forgejo-test-buffer--make-ewoc (nodes)
   "Build a fresh EWOC populated with NODES for testing reconcile."

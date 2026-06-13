@@ -288,6 +288,32 @@ or a plain string."
 
 ;;; Reactions
 
+(defconst forgejo-buffer--reaction-emoji-alist
+  '(("+1" . "👍")
+    ("-1" . "👎")
+    ("laugh" . "😄")
+    ("hooray" . "🎉")
+    ("confused" . "😕")
+    ("heart" . "❤️")
+    ("rocket" . "🚀")
+    ("eyes" . "👀"))
+  "Emoji display labels for Forgejo reactions.")
+
+(defun forgejo-buffer--displayable-reaction-emoji-p (emoji)
+  "Return non-nil when EMOJI has a displayable base character."
+  (and (stringp emoji)
+       (not (string-empty-p emoji))
+       (char-displayable-p (aref emoji 0))))
+
+(defun forgejo-buffer--reaction-label (content)
+  "Return the visible label for reaction CONTENT.
+Use an emoji label when CONTENT is known and displayable, otherwise
+return CONTENT unchanged."
+  (let ((emoji (cdr (assoc content forgejo-buffer--reaction-emoji-alist))))
+    (if (and emoji (forgejo-buffer--displayable-reaction-emoji-p emoji))
+        emoji
+      content)))
+
 (defun forgejo-buffer--insert-reactions (reactions)
   "Insert formatted reaction labels from REACTIONS.
 REACTIONS is a grouped alist: ((\"heart\" . (\"alice\" \"bob\")) ...)."
@@ -297,7 +323,9 @@ REACTIONS is a grouped alist: ((\"heart\" . (\"alice\" \"bob\")) ...)."
              (mapcar (lambda (entry)
                        (let ((content (car entry))
                              (users (cdr entry)))
-                         (propertize (format "%s (%d)" content (length users))
+                         (propertize (format "%s (%d)"
+                                             (forgejo-buffer--reaction-label content)
+                                             (length users))
                                      'face 'forgejo-reaction-face
                                      'help-echo (string-join users ", "))))
                      reactions)

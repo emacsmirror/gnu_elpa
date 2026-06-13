@@ -505,8 +505,7 @@ face itself and return nil.")
               (range-hi (min end hi)))
           (when (< range-lo range-hi)
             (push (list range-lo range-hi parser) intersection)))))
-    ;; reverse because we wanna do the
-    (sort intersection :key #'car :in-place t :reverse t)))
+    (sort intersection :key #'car :in-place t)))
 
 (defun cl-ts-mode--format-directive-at-pos (node pos)
   (let ((child (ts-node-first-child-for-pos node pos)))
@@ -538,7 +537,7 @@ the output."
                        end: (format_directive ":" ((directive_character) @cap
                                                    (:eq? @cap ">")))))))
 
-(defcustom cl-ts-mode-format-indent-parent-predicate
+(defcustom cl-ts-mode-format-indent-predicate
   (rx bos "format_group" eos)
   "A predicate to determine where indentation should occur within format
 strings. When a node matches this predicate, any text *within* it is
@@ -554,25 +553,26 @@ opening \" + `cl-ts-mode-format-string-indent-offset'."
            (regexp :tag "A regexp matching the node's type"
                    :default "\\`format_group\\'")))
 
-(defcustom cl-ts-mode-format-indent-align-block-ends t
-  "Determines how the start and directives of paired format constructs are aligned.
-Applies to ~<~>, ~[~], ~{~} and ~(~) when the closing delimiter is the
-first non whitespace character on a line. If non-nil, the directive
-characters themselves are aligned. If nil, the ~ that introduces the
-directives are aligned.
+(defcustom cl-ts-mode-format-indent-tilde-relative nil
+  "Determines how the column used as a basis for format string indentation.
+If non-nil, indentation is performed relative to the ~ of the starting
+directive; otherwise it's relative to the directive character itself ({,
+[, ( or <). This affects both the contents of the paired directive, and
+the indentation of the closing directive (}, ], ) or >) relative to the
+opener when the closing delimiter is the first non whitespace character
+on a line. An example of the effect on the ending directive:
 
-non-nil:
+nil:
 ~:@{~
     ~A~
   ~}
 
-nil:
+non-nil:
 ~:@{~
     ~A~
 ~}"
   :type 'boolean)
 
-;; FIXME should also offer "~ relative" indentation.
 (defcustom cl-ts-mode-format-group-indent-offset 1
   "Additional columns of indentation used when indenting inside paired
 format directives, relative to the opening directive. Example:
@@ -599,84 +599,87 @@ With value of 0:
   ~A\""
   :type 'integer)
 
-(defun cl-ts-mode--format-indent-parent (directive parser lbeg)
-  (let ((pred (if (symbolp cl-ts-mode-format-indent-parent-predicate)
-                  (indirect-function cl-ts-mode-format-indent-parent-predicate)
-                cl-ts-mode-format-indent-parent-predicate)))
-    (cond
-      ;; already escaped. with a : modifier the whitespace wouldn't actually be
-      ;; escaped (only the newline), but i can't think of a good way to handle
-      ;; that situation. maybe we should unconditionally skip indenting if
-      ;; there's a colon modifier?
-      ((and directive (= (ts-node-end directive) lbeg))
-       (ts-parent-until directive pred))
-      (cl-ts-mode-format-indent-auto-escape-eol
-       (let* ((esc (cond
-                     ((stringp cl-ts-mode-format-indent-auto-escape-eol)
-                      cl-ts-mode-format-indent-auto-escape-eol)
-                     ((atom cl-ts-mode-format-indent-auto-escape-eol) nil)
-                     ((ts-query-capture
-                       parser
-                       cl-ts-mode--format-pprint-logical-block-query
-                       (1- lbeg) lbeg t)
-                      (car cl-ts-mode-format-indent-auto-escape-eol))
-                     (t (cdr cl-ts-mode-format-indent-auto-escape-eol)))))
-         (if (and directive (null esc))
-             (ts-parent-until directive pred t)
-           (cl-assert (length= (ts-parser-included-ranges parser) 1))
-           ;; FIXME: we shouldn't be adding this if the line is already indented
-           (let* ((root (ts-parser-root-node parser))
-                  (beg (ts-node-start root))
-                  (end (ts-node-end root))
-                  (new-end (copy-marker end t)))
-             (goto-char lbeg)
-             (unwind-protect
-                 (save-excursion
-                   (goto-char (1- lbeg))
-                   (insert esc)
-                   (ts-parser-set-included-ranges
-                    parser
-                    `((,beg . ,(marker-position new-end)))))
-               (move-marker new-end nil))
-             (thread-first parser
-               (ts-parser-root-node)
-               (ts-node-descendant-for-range (point) (point) t)
-               (ts-parent-until pred t)))))))))
+(defun cl-ts-mode--eol-escape-string-at (parser pos)
+  (cond*
+    ((bind* (node (cl-ts-mode--format-directive-at-pos
+                   (ts-parser-root-node parser)
+                   (1- pos)))))
+    ((and node (= (ts-node-end node) pos)) nil)
+    ((stringp cl-ts-mode-format-indent-auto-escape-eol)
+     cl-ts-mode-format-indent-auto-escape-eol)
+    ((atom cl-ts-mode-format-indent-auto-escape-eol) nil)
+    ((ts-query-capture
+      parser
+      cl-ts-mode--format-pprint-logical-block-query
+      pos (1+ pos) t)
+     (car cl-ts-mode-format-indent-auto-escape-eol))
+    (t (cdr cl-ts-mode-format-indent-auto-escape-eol))))
 
 (defun cl-ts-mode--indent-format-line (parser)
   (let* ((lbeg (line-beginning-position))
          (root (ts-parser-root-node parser))
-         (end-directive (cl-ts-mode--format-directive-at-pos root (1- lbeg)))
-         (parent (cl-ts-mode--format-indent-parent end-directive parser lbeg)))
-    (if (not (ts-node-match-p parent cl-ts-mode-format-indent-parent-predicate))
+         (nearest-node (ts-node-descendant-for-range root lbeg lbeg))
+         (pred cl-ts-mode-format-indent-predicate)
+         (pred (if (and (symbolp pred)
+                        (not (ts-thing-defined-p pred 'cl-format)))
+                   (indirect-function pred)
+                 pred))
+         (parent (ts-parent-until nearest-node pred t)))
+    ;; if point is at the start of the format group, we'll get the starting
+    ;; directive, so get its parent
+    (and parent (= (ts-node-start parent)
+                   (save-excursion (back-to-indentation) (point)))
+         (setq parent (ts-parent-until parent pred)))
+    (if (not (and parent (<= (ts-node-start parent)
+                             lbeg
+                             (ts-node-end parent))))
         'noindent
-      (indent-line-to
-       (save-excursion
-         (let ((starter (ts-node-child-by-field-name parent "start"))
-               (ender (ts-node-child-by-field-name parent "end")))
-           (max
-            0
-            (cond*
-              ;; whole string
-              ((null starter)
-               (goto-char (ts-node-start parent))
-               (+ (current-column) cl-ts-mode-format-string-indent-offset))
-              (t (back-to-indentation)) ;non exit clause
-              ((/= (ts-node-start ender) (point))
-               ;; not indenting the closing directive so indent relative to the
-               ;; opener
-               (goto-char (ts-node-end starter))
-               (+ (1- (current-column)) ;-1 cuz we're after the opener but the
-                                        ;offset is relative to the opener
-                  cl-ts-mode-format-group-indent-offset))
-              (cl-ts-mode-format-indent-align-block-ends
-               (goto-char (ts-node-end starter))
-               (- (current-column) (- (ts-node-end ender) (ts-node-start ender))))
-              (t (goto-char (ts-node-start starter))
-                 (current-column))))))))))
+      (let* ((starter (ts-node-child-by-field-name parent "start"))
+             (ender (ts-node-child-by-field-name parent "end"))
+             (cur-indent (current-indentation))
+             (new-indent
+              (save-excursion
+                (max
+                 0
+                 (cond*
+                   ((null starter)
+                    ;; whole string
+                    (goto-char (ts-node-start parent))
+                    (+ (current-column) cl-ts-mode-format-string-indent-offset))
+                   (t (back-to-indentation)) ;non exit clause
+                   ((/= (ts-node-start ender) (point))
+                    ;; not indenting the closing directive so indent relative to
+                    ;; the opener
+                    (goto-char (if cl-ts-mode-format-indent-tilde-relative
+                                   (ts-node-start starter)
+                                 (1- (ts-node-end starter))))
+                    (+ (current-column) cl-ts-mode-format-group-indent-offset))
+                   ((not cl-ts-mode-format-indent-tilde-relative)
+                    (goto-char (ts-node-end starter))
+                    (- (current-column)
+                       (- (ts-node-end ender) (ts-node-start ender))))
+                   (t (goto-char (ts-node-start starter))
+                      (current-column)))))))
+        (if (= new-indent cur-indent)
+            'noindent
+          (let* ((old-ranges (ts-parser-included-ranges parser))
+                 (_ (cl-assert (length= old-ranges 1)))
+                 (pbeg (caar old-ranges))
+                 (pend (copy-marker (cdar old-ranges) t))
+                 (continuation (cl-ts-mode--eol-escape-string-at parser lbeg)))
+            (indent-line-to new-indent)
+            (when continuation
+              (save-excursion
+                (goto-char (1- lbeg))
+                (insert continuation)))
+            (thread-last (prog1 (marker-position pend)
+                           (set-marker pend nil))
+              (cons pbeg)
+              (list)
+              (ts-parser-set-included-ranges parser))))))))
 
 (defun cl-ts-mode-maybe-indent-format-line (&optional parser)
-  (if-let* ((_ cl-ts-mode-format-indent-parent-predicate)
+  (if-let* ((_ cl-ts-mode-format-indent-predicate)
             (parser-at (or parser (cl-ts-mode--find-parser-at
                                    (point) (ts-parser-list nil 'cl-format t))))
             (_ (> (line-beginning-position)
@@ -689,10 +692,11 @@ With value of 0:
     (unwind-protect
         (prog1 (funcall orig beg end)
           (redisplay)                   ;force clparse to readjust the ranges
-          (when-let* ((_ cl-ts-mode-format-indent-parent-predicate)
+          (when-let* ((_ cl-ts-mode-format-indent-predicate)
                       (parser-ranges
                        (thread-last (ts-parser-list nil 'cl-format t)
-                         (cl-ts-mode--parsers-in-region beg end-marker))))
+                         (cl-ts-mode--parsers-in-region beg end-marker)
+                         (nreverse))))
             (save-excursion
               (pcase-dolist (`(,beg ,end ,parser) parser-ranges)
                 (goto-char end)
@@ -700,6 +704,12 @@ With value of 0:
                   (save-excursion (cl-ts-mode-maybe-indent-format-line parser))
                   (beginning-of-line 0))))))
       (move-marker end-marker nil))))
+
+;; FIXME: indent-sexp doesn't use indent-region, and instead tries to be smart
+;; and skips strings.
+(defun cl-ts-mode-indent-sexp (&optional endpos)
+  (interactive)
+  (indent-region (point) (or endpos (save-excursion (forward-sexp) (point)))))
 
 (defcustom cl-ts-mode-indent-format-excluded-commands ()
   "List of commands in which format indentation is suppressed.
@@ -740,14 +750,12 @@ format directives is not performed."
             changed-beg)))))
 
 (defconst cl-ts-mode--syntax-propertize-query
-  (treesit-query-compile 'common-lisp
-                         ;; giving #3r or #x prefix syntax doesn't seem
-                         ;; appropriate to me, but should the # on those get
-                         ;; symbol syntax?
-                         '(([",@" ",." "#+" "#." "#-" "#:" "#C" "#P"]
-                            @prefix)
-                           ([(bit_vector) (array)] @array)
-                           ((multiple_escape) @escape))))
+  (ts-query-compile 'common-lisp
+                    ;; giving #3r or #x prefix syntax doesn't seem appropriate
+                    ;; to me, but should the # on those get symbol syntax?
+                    '(([",@" ",." "#+" "#." "#-" "#:" "#C" "#P"] @prefix)
+                      ([(bit_vector) (array)] @array)
+                      ((multiple_escape) @escape))))
 
 (defun cl-ts-mode-syntax-propertize (start end)
   (pcase-dolist (`(,cap . ,node)
@@ -775,6 +783,9 @@ format directives is not performed."
                                         (ts-node-end last-prefix-node)
                                         'syntax-table
                                         (string-to-syntax "'")))))
+      ;; the lisp mode syntax table gives | string quote syntax, which is
+      ;; annoying because movement commands treat it as a separate sexp when
+      ;; scanning
       ('escape (and (>= (ts-node-start node) start)
                     (<= (ts-node-end node) end)
                     (put-text-property (ts-node-start node)

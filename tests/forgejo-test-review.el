@@ -11,20 +11,7 @@
 
 (defvar forgejo-markdown-mode)
 
-(defvar forgejo-test-review--lisp-dir
-  (expand-file-name "../lisp/"
-                    (file-name-directory (or load-file-name buffer-file-name)))
-  "Path to the lisp/ directory.")
-
-(defvar forgejo-test-review--keymap-popup-dir
-  (expand-file-name "../../keymap-popup/"
-                    (file-name-directory (or load-file-name buffer-file-name)))
-  "Path to the keymap-popup directory.")
-
 (setq forgejo-markdown-mode 'text-mode)
-(add-to-list 'load-path forgejo-test-review--lisp-dir)
-(when (file-directory-p forgejo-test-review--keymap-popup-dir)
-  (add-to-list 'load-path forgejo-test-review--keymap-popup-dir))
 (require 'forgejo-review)
 
 ;;; Group 1: Diff approval

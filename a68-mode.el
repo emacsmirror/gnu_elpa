@@ -144,7 +144,7 @@
 ;; - Any of the standard operators: *, **, /, =, /=, >, <, <=, >=, >
 ;; - Any monad, or
 ;; - A monad followed by a nomad, or
-;; - A monad optionally followed by a nomad followd by either
+;; - A monad optionally followed by a nomad followed by either
 ;;   := or =:, but not by both.
 
 (defvar a68--oper-regexp
@@ -317,7 +317,7 @@
                ''a68-keyword-face)
          ;; A proc followed by a tag and then = should be highlighted as a
          ;; keyword, not as a mode declarer constituent.
-         '("\\(\\<PROC\\>\\)[ \t]*\\<\\([a-z][a-z]+_?\\)+\\>[ \t]*="
+         '("\\(\\<PROC\\>\\)[ \t]*\\<\\([a-z]+_?\\)+\\>[ \t]*="
            1 ''a68-keyword-face)
          ;; Ditto for an OP followed by an indicant and then a =.
          '("\\(\\<OP\\>\\)[ \t]*\\<\\([A-Z][A-Z0-9_]*\\)\\>[ \t]*="
@@ -356,7 +356,7 @@
           ''a68-keyword-face)
     ;; A proc followed by a tag and then = should be highlighted as a
     ;; keyword, not as a mode declarer constituent.
-    '("\\(\\<proc\\>\\)[ \t]*\\<\\([a-z][a-z]+_?\\)+\\>[ \t]*="
+    '("\\(\\<proc\\>\\)[ \t]*\\<\\([a-z]+_?\\)+\\>[ \t]*="
       1 ''a68-keyword-face)
     ;; Ditto for an op followed by an indicant and then a =.
     '("\\(\\<op\\>\\)[ \t]*\\<\\([A-Z][A-Za-z0-9_]*\\)\\>[ \t]*="
@@ -1125,10 +1125,10 @@ with the equivalent upcased form."
       (goto-char (- (point) 2))
       "):")
      ;; A -proc- follows pub.
-     ((looking-back "\\<proc\\>" nil)
+     ((looking-back "\\<proc\\>" (- (point) 4))
       (goto-char (- (point) 4))
       (cond
-       ((looking-back "\\<pub\\>[ \t\n]*" nil)
+       ((looking-back "\\<pub\\>[ \t\n]*" (pos-bol))
         "-proc-")
        (t
         "proc")))
@@ -1155,7 +1155,7 @@ with the equivalent upcased form."
      ((looking-back "\\<to\\>" (- (point) 2))
       (goto-char (- (point) 2))
       (cond
-       ((looking-back "\\<go\\>[ \t\n]*" nil)
+       ((looking-back "\\<go\\>[ \t\n]*" (pos-bol))
         "-to-jump-")
        ((a68-at-strong-void-enclosed-clause-supper)
         "-to-")
@@ -1320,7 +1320,7 @@ UPPER stropping version."
      ;; A -proc- follows pub.
      ((looking-at "\\<PROC\\>")
       (cond
-       ((looking-back "\\<PUB\\>[ \t\n]*" nil)
+       ((looking-back "\\<PUB\\>[ \t\n]*" (pos-bol))
         (goto-char (+ (point) 4))
         "-proc-")
        (t
@@ -1363,7 +1363,7 @@ UPPER stropping version."
         "-by-")))
      ((looking-at "\\<TO\\>")
       (cond
-       ((looking-back "\\<GO\\>[ \t\n]*" nil)
+       ((looking-back "\\<GO\\>[ \t\n]*" (pos-bol))
         (goto-char (+ (point) 2))
         "-to-jump-")
        ((a68-at-strong-void-enclosed-clause-upper)

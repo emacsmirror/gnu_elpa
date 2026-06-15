@@ -695,28 +695,30 @@ With value of 0:
     'noindent))
 
 (defun cl-ts-mode-indent-region-wrapper (orig beg end)
-  (let ((end-marker (copy-marker end t)))
-    (unwind-protect
-        (prog1 (funcall orig beg end)
-          (redisplay)                   ;force clparse to readjust the ranges
-          (when-let* ((_ cl-ts-mode-format-indent-predicate)
-                      (parser-ranges
-                       (thread-last (ts-parser-list nil 'cl-format t)
-                         (cl-ts-mode--parsers-in-region beg end-marker)
-                         (nreverse))))
-            (save-excursion
-              (pcase-dolist (`(,beg ,end ,parser) parser-ranges)
-                (goto-char end)
-                (while (> (point) (1+ beg))
-                  (save-excursion (cl-ts-mode-maybe-indent-format-line parser))
-                  (beginning-of-line 0))))))
-      (move-marker end-marker nil))))
+  (if (null cl-ts-mode-format-indent-predicate)
+      (funcall orig beg end)
+    (let ((end-marker (copy-marker end t)))
+      (unwind-protect
+          (prog1 (funcall orig beg end)
+            (redisplay)                 ;trigger parser range update
+            (when-let* ((parser-ranges
+                         (thread-last (ts-parser-list nil 'cl-format t)
+                           (cl-ts-mode--parsers-in-region beg end-marker)
+                           (nreverse))))
+              (save-excursion
+                (pcase-dolist (`(,beg ,end ,parser) parser-ranges)
+                  (goto-char end)
+                  (while (> (point) (1+ beg))
+                    (save-excursion (cl-ts-mode-maybe-indent-format-line parser))
+                    (beginning-of-line 0))))))
+        (move-marker end-marker nil)))))
 
-;; FIXME: indent-sexp doesn't use indent-region, and instead tries to be smart
-;; and skips strings.
+;; indent-sexp doesn't use indent-region, and instead tries to be smart and
+;; skips strings.
 (defun cl-ts-mode-indent-sexp (&optional endpos)
   (interactive)
-  (indent-region (point) (or endpos (save-excursion (forward-sexp) (point)))))
+  (indent-region (save-excursion (backward-prefix-chars) (point))
+                 (or endpos (save-excursion (forward-sexp) (point)))))
 
 (defcustom cl-ts-mode-indent-format-excluded-commands ()
   "List of commands in which format indentation is suppressed.

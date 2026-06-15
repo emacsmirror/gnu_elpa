@@ -934,6 +934,7 @@ toggles between them."
 
 (defconst cl-ts-mode-thing-settings
   `((common-lisp
+     ;; FIXME: (not comment) might be faster
      (sexp ,(rx bos (or "string"
                         "interned_symbol"
                         "uninterned_symbol"
@@ -989,7 +990,6 @@ This should be set before `cl-ts-mode' is activated.")
 (define-derived-mode cl-ts-mode prog-mode "Lisp"
   "Common Lisp major mode with tree-sitter support."
   :after-hook (cl-ts-mode-update-modeline)
-  (make-local-variable 'font-lock-defaults)
   (lisp-mode-variables t t)
   ;; copied from `lisp-mode'
   (setq-local lisp-indent-function #'common-lisp-indent-function)
@@ -1041,13 +1041,6 @@ This should be set before `cl-ts-mode' is activated.")
                   #'cl-ts-mode-indent-line-wrapper)
     (setq-local up-list-function #'cl-ts-mode-up-list)
     (setq-local syntax-propertize-function #'cl-ts-mode-syntax-propertize)
-    ;; (make-local-variable 'up-list-function)
-    ;; (make-local-variable 'forward-list-function)
-    ;; (make-local-variable 'forward-sexp-function)
-    ;; (let* ((up-list-function up-list-function))
-    ;;   (ts-major-mode-setup))
-    ;; (kill-local-variable 'up-list-function)
-    ;; (setq-local forward-sexp-function #'treesit-forward-sexp)
     (add-hook 'font-lock-extend-region-functions
               #'cl-ts-mode--extend-fl-region nil t)
     ;; might as well, even if we've already computed it somebody may have decided
@@ -1059,7 +1052,7 @@ This should be set before `cl-ts-mode' is activated.")
 (derived-mode-add-parents 'cl-ts-mode '(lisp-mode))
 
 
-;;; format grammar stuff for those who don't use clparse-mode
+;;; format grammar stuff, for those who don't use clparse-mode
 (defun cl-ts-mode--build-format-query (operator-alist)
   (let ((query (list '(((interned_symbol !package ":" name: (_) @_sym)
                         (:eq? @_sym ":format-control"))
@@ -1115,10 +1108,10 @@ that the ARGth argument to the operator is a format string. Otherwise
 ARG can be t, meaning all string arguments to the operator are matched.
 
 If you want to simply apply the grammar to all strings you can use the
-query \"(string) @format\". Note that this will apply to pathnames, so
-#p\"~/.emacs.d/\" will be incorrectly highlighted as a function call
-format directive."
-  :type `(choice (alist :key-type
+query \"(string) @format\". Note that this will end up applying to
+pathnames, so #p\"~/.emacs.d/\" will be incorrectly highlighted as a
+function call format directive."
+  :type '(choice (alist :key-type
                         (choice (const :tag "All string arguments" t)
                                 (repeat (choice :tag "Nth argument"
                                                 (const 0)
@@ -1131,7 +1124,7 @@ format directive."
                                         :value "format\\|FORMAT")
                                 (function :tag "Predicate for the treesit node")
                                 (repeat (string :tag "The name of an operator"))))
-                 (restricted-sexp :value "(string) @format" ;match all strings
+                 (restricted-sexp :value "(string) @format"
                                   :match-alternatives (treesit-query-p)))
   :set (lambda (var val)
          (setf (default-toplevel-value var)
@@ -1167,6 +1160,7 @@ format grammar automatically."
        (ts-range-rules
         :embed 'cl-format
         :host 'common-lisp
+        :local t
         cl-ts-format-support-mode-query))))))
 
 (provide 'cl-ts-mode)

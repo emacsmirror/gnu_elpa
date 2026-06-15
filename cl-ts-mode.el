@@ -875,7 +875,6 @@ format directives is not performed."
                                        'syntax-table
                                        (string-to-syntax "_")))))))
 
-
 (defvar-keymap cl-ts-mode--mode-line-map
   "<mode-line> <mouse-1>" #'cl-ts-mode-toggle-comment-style)
 
@@ -963,12 +962,35 @@ toggles between them."
      (list ,(rx bos (or "list" "vector" "array" "complex" "struct") eos)))))
 
 ;;;###autoload
+(defconst cl-ts-mode-font-lock-ignore-keywords
+  `(font-lock-negation-char-face   ;this should also be removed from
+                                   ;`lisp-mode', unless you want it for ppcre
+    ;; keyword and uninterned symbol highlighting, done by the `symbol' treesit
+    ;; feature
+    "#:a"
+    (pred ,(lambda (kw)
+             (and (closurep (car-safe kw))
+                  (ignore-errors
+                    (with-temp-buffer
+                      (set-syntax-table lisp-mode-syntax-table)
+                      (insert ":keyword")
+                      (goto-char (point-min))
+                      (funcall (car kw) (point-max))))))))
+  "A recommended list of predicates to use in `font-lock-ignore'. Example usage:
+
+  (use-package cl-ts-mode
+    :config
+    (setf (alist-get \\='cl-ts-mode font-lock-ignore)
+          cl-ts-mode-font-lock-ignore-keywords))
+
+This should be set before `cl-ts-mode' is activated.")
+
+;;;###autoload
 (define-derived-mode cl-ts-mode prog-mode "Lisp"
   "Common Lisp major mode with tree-sitter support."
   :after-hook (cl-ts-mode-update-modeline)
   (make-local-variable 'font-lock-defaults)
-  (let ((font-lock-defaults font-lock-defaults))
-    (lisp-mode-variables t t))
+  (lisp-mode-variables t t)
   ;; copied from `lisp-mode'
   (setq-local lisp-indent-function #'common-lisp-indent-function)
   (setq-local comment-start-skip
@@ -1004,6 +1026,15 @@ toggles between them."
         ;; this one seems to be broken in some other languages too
         forward-comment-function)
        (ts-major-mode-setup)))
+    (setq font-lock-defaults
+          `((lisp-cl-font-lock-keywords
+             lisp-cl-font-lock-keywords-1
+             lisp-cl-font-lock-keywords-2)
+            nil t nil nil
+            (font-lock-mark-block-function . mark-defun)
+            (font-lock-extra-managed-props . (help-echo))
+            (font-lock-fontify-syntactically-function
+             . treesit-font-lock-fontify-region)))
     (add-function :around (local 'indent-region-function)
                   #'cl-ts-mode-indent-region-wrapper)
     (add-function :around (local 'indent-line-function)

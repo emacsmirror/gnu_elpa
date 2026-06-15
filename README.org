@@ -212,10 +212,10 @@ Most of these are for ~clparse~, ~cl-ts-mode~ is much further along.
 - [ ] ~treesit-range-settings~ for the format grammar, for those who don't want
   to use ~clparse~
 - [ ] ~LOOP~ parsing hasn't been tested extensively.
-- [ ] A lot of common macros need parsers, eg. ~ITERATE~
+- [ ] A lot of common macros need parsers, eg. ~ITERATE~ and ~TRIVIA~ stuff
 - [ ] Better integration with the inferior Lisp (automatically re-caching when
   files are loaded, defuns are evalled etc.)
-- [ ] Better support for multiple buffers/packages. Right now there practically
+- [X] Better support for multiple buffers/packages. Right now there practically
   is none, ~clparse~ just commits to the current package any time it's
   activated. I'm thinking of using separate Sly/SLIME channels for each package.
 - [ ] Better interaction between ~clparse-walk~ and ~clparse-apply-type~. I
@@ -229,3 +229,12 @@ Most of these are for ~clparse~, ~cl-ts-mode~ is much further along.
   would track the expected type at each ~CL:BLOCK~ for ~CL:RETURN-FROM~ to
   determine its argument's role. Another option is of course to just skip
   non-local exits entirely and only support tail position values.
+- [ ] Any unknown symbols encountered during parsing should be sent to the
+  backend for lookup so we will have it for next redisplay. Ideally when we get
+  the response we trigger an eager refontification. Currently we simply ignore
+  unknown symbols so they tend to be left unfontified while you're typing.
+- [ ] Symbols often go "unnoticed" by the notifier function, so they end up
+  being skipped until the notifier eventually gets called with a sufficiently
+  large range to pick it up.
+- [ ] ~clparse-mode~ shouldn't require a live connection to turn on, it should
+  add the setup to ~sly/slime-connected-hook~.

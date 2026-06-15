@@ -8,7 +8,7 @@
 ;; Version: 0.0.1
 ;; Keywords:
 ;; URL:
-;; Package-Requires: ((emacs "31"))
+;; Package-Requires: ((emacs "31") cond-star)
 
 ;; This file is not part of GNU Emacs.
 
@@ -31,10 +31,10 @@
        (repo (if (file-exists-p (expand-file-name "grammars/cl/grammar.js" this-dir))
                  (directory-file-name this-dir)
                "https://codeberg.org/zshaftel/tree-sitter-cl-syntax")))
-  (setf (alist-get 'common-lisp ts-language-source-alist)
-        `(,repo :source-dir "grammars/cl/src"))
   (setf (alist-get 'cl-format ts-language-source-alist)
-        `(,repo :source-dir "grammars/format/src")))
+        `(,repo :source-dir "grammars/format/src"))
+  (setf (alist-get 'common-lisp ts-language-source-alist)
+        `(,repo :source-dir "grammars/cl/src")))
 
 ;; not ready yet
 ;; (when (boundp 'treesit-major-mode-remap-alist)
@@ -161,6 +161,8 @@ controlled by `cl-ts-mode-comment-darken-percentage', or by THEME's
 `cl-ts-mode-comment-darken-percentage' symbol property if that's
 non-nil."
   (let* ((comment-fore (face-attribute 'font-lock-comment-face :foreground nil t))
+         ;; FIXME: should we use the theme-plist prop instead? that isn't really
+         ;; a user facing api so probly not, but it feels more appropriate
          (percentage (or (and theme (get theme 'cl-ts-mode-comment-darken-percentage))
                          cl-ts-mode-comment-darken-percentage)))
     (when (stringp comment-fore)
@@ -380,8 +382,8 @@ face itself and return nil.")
 
 (defun cl-ts-mode--font-lock-rules ()
   (ts-font-lock-rules
-   ;; this is an embedded parser and we don't have range settings here.
-   ;; currently this rule will only run if triggered by `clparse-mode'.
+   ;; this rule will only run if explicitly triggered by `clparse-mode' or when
+   ;; `cl-ts-format-support-mode' is enabled
    :language 'cl-format
    :feature 'format-directive
    :override 'prepend
@@ -540,11 +542,14 @@ the output."
 (defcustom cl-ts-mode-format-indent-predicate
   (rx bos "format_group" eos)
   "A predicate to determine where indentation should occur within format
-strings. When a node matches this predicate, any text *within* it is
-indented relative to it. For format groups, indent relative to the
-opening delimiter + `cl-ts-mode-format-group-indent-offset'; if the
-predicate matches the entire format string, indent relative to the
-opening \" + `cl-ts-mode-format-string-indent-offset'."
+strings. Set this to nil to disable format string indentation entirely.
+
+When a node matches this predicate, any text *within* it is indented
+relative to it. For format groups, indent relative to the opening
+delimiter + `cl-ts-mode-format-group-indent-offset' (see
+`cl-ts-mode-format-indent-tilde-relative'); if the predicate matches the
+entire format string, indent relative to the opening \" +
+`cl-ts-mode-format-string-indent-offset'."
   :type
   '(choice (const :tag "Never indent inside format strings" nil)
            (const :tag "Any format group or the entire format string"
@@ -559,8 +564,8 @@ If non-nil, indentation is performed relative to the ~ of the starting
 directive; otherwise it's relative to the directive character itself ({,
 [, ( or <). This affects both the contents of the paired directive, and
 the indentation of the closing directive (}, ], ) or >) relative to the
-opener when the closing delimiter is the first non whitespace character
-on a line. An example of the effect on the ending directive:
+opener when the closer's ~ is the first non whitespace character on a
+line. Example (with `cl-ts-mode-format-group-indent-offset' = 1):
 
 nil:
 ~:@{~
@@ -569,13 +574,14 @@ nil:
 
 non-nil:
 ~:@{~
-    ~A~
+ ~A~
 ~}"
   :type 'boolean)
 
 (defcustom cl-ts-mode-format-group-indent-offset 1
   "Additional columns of indentation used when indenting inside paired
-format directives, relative to the opening directive. Example:
+format directives, relative to the opening directive. Example (with
+`cl-ts-mode-format-indent-tilde-relative' = nil):
 
 With value of 2:
   ~{
@@ -588,12 +594,13 @@ With a value of 0:
   :type 'integer)
 
 (defcustom cl-ts-mode-format-string-indent-offset 1
+  ;; when adjusting the example, remember the \ shifts the " right by one
   "Additional columns of indentation used when indenting relative to the
 start of the format string. Example:
 
 With value of 2:
   \"
-     ~A\"
+    ~A\"
 With value of 0:
   \"
   ~A\""
@@ -865,8 +872,20 @@ format directives is not performed."
                                        'syntax-table
                                        (string-to-syntax "_")))))))
 
+
+(defvar-keymap cl-ts-mode--mode-line-map
+  "<mode-line> <mouse-1>" #'cl-ts-mode-toggle-comment-style)
+
 (defun cl-ts-mode-update-modeline ()
-  (setq mode-name (concat "Lisp/" comment-start))
+  (setq mode-name
+        (concat "Lisp/"
+                (propertize comment-start
+                            'face 'font-lock-comment-delimiter-face
+                            'help-echo (concat "mouse-1: Switch to "
+                                               (if (string-empty-p comment-end)
+                                                   "#| block comments |#"
+                                                 ";; line comments"))
+                            'local-map cl-ts-mode--mode-line-map)))
   (force-mode-line-update))
 
 (defun cl-ts-mode-toggle-comment-style (&optional arg)
@@ -1004,6 +1023,117 @@ toggles between them."
 
 ;;;###autoload
 (derived-mode-add-parents 'cl-ts-mode '(lisp-mode))
+
+
+;;; format grammar stuff for those who don't use clparse-mode
+(defun cl-ts-mode--build-format-query (operator-alist)
+  (let ((query (list '(((interned_symbol !package ":" name: (_) @_sym)
+                        (:eq? @_sym ":format-control"))
+                       :anchor (comment) :* :anchor
+                       (string) @format)))
+        (fmt-field
+         (lambda (nth-arg)
+           (when (> nth-arg 4) (signal 'args-out-of-range (list nth-arg 0 4)))
+           (list (aref [elt1: elt2: elt3: elt4: elt5:] nth-arg)
+                 '(string) '@format))))
+    (pcase-dolist (`(,n . ,operators) operator-alist)
+      (let* ((op-query
+              (if (symbolp operators)
+                  `((interned_symbol) @_sym (:pred? ,operators @_sym))
+                `((interned_symbol name: (_) @_sym)
+                  (:match?
+                   @_sym
+                   ,(if (stringp operators)
+                        operators
+                      (rx-to-string
+                       `(seq bos
+                             (or ,@(mapcar (lambda (op)
+                                             (if (stringp op) op (symbol-name op)))
+                                           operators))
+                             eos)
+                       t)))))))
+        (push `(list elt0: ,op-query
+                     ,@(cond ((eq n t) `((string) :+ @format))
+                             ((listp n) (mapcan fmt-field n))
+                             (t (funcall fmt-field n))))
+              query)))
+    query))
+
+(defcustom cl-ts-format-support-mode-query
+  `((0     . (error warn formatter yes-or-no-p y-or-n-p break))
+    (1     . (format format-symbol))
+    (2     . (assert))
+    ((0 1) . (cerror)))
+  "A query to select where to apply format grammar in
+`cl-ts-format-support-mode'. This variable must be set through customize
+or `setopt'. The value can be a treesit query (used for
+`treesit-range-rules') or an alist of (ARG . OPERATOR-MATCH).
+
+OPERATOR-MATCH matches against the head of a list. If OPERATOR-MATCH is
+a regexp, it is matched against the name of the operator (excluding any
+\"package:\" prefix). A list of symbols or strings is roughly equivalent
+to (regexp-opt OPERATOR-MATCH). If OPERATOR-MATCH is a symbol, it is a
+unary function which is called on the interned_symbol treesit node and
+should return non-nil if that operator is matched by the rule.
+
+ARG can be an integer or list of integers between 0 and 4, specifying
+that the ARGth argument to the operator is a format string. Otherwise
+ARG can be t, meaning all string arguments to the operator are matched.
+
+If you want to simply apply the grammar to all strings you can use the
+query \"(string) @format\". Note that this will apply to pathnames, so
+#p\"~/.emacs.d/\" will be incorrectly highlighted as a function call
+format directive."
+  :type `(choice (alist :key-type
+                        (choice (const :tag "All string arguments" t)
+                                (repeat (choice :tag "Nth argument"
+                                                (const 0)
+                                                (const 1)
+                                                (const 2)
+                                                (const 3)
+                                                (const 4))))
+                        :value-type
+                        (choice (regexp :tag "Match operator names"
+                                        :value "format\\|FORMAT")
+                                (function :tag "Predicate for the treesit node")
+                                (repeat (string :tag "The name of an operator"))))
+                 (restricted-sexp :value "(string) @format" ;match all strings
+                                  :match-alternatives (treesit-query-p)))
+  :set (lambda (var val)
+         (setf (default-toplevel-value var)
+               (cond
+                 ((integerp (car-safe (car-safe val)))
+                  (ts-query-compile 'common-lisp
+                                    (cl-ts-mode--build-format-query val)))
+                 ((ts-compiled-query-p val) val)
+                 (t (ts-query-compile 'common-lisp val))))))
+
+(defvar-local cl-ts-format-support-mode--saved-state nil)
+
+;;;###autoload
+(define-minor-mode cl-ts-format-support-mode
+  "Enable embedded format string grammar.
+Do not use this mode with `clparse-mode', as the latter applies the
+format grammar automatically."
+  :lighter nil
+  :interactive (cl-ts-mode)
+  (when (local-variable-p 'cl-ts-format-support-mode--saved-state)
+    (buffer-local-restore-state cl-ts-format-support-mode--saved-state)
+    (kill-local-variable 'cl-ts-format-support-mode--saved-state))
+  (when (and cl-ts-format-support-mode (ts-ensure-installed 'cl-format))
+    (when (bound-and-true-p clparse-mode)
+      (warn (concat "`clparse-mode' and `cl-ts-format-support-mode' "
+                    "are redundant and should not be used together")))
+    (setq-local
+     cl-ts-format-support-mode--saved-state
+     (buffer-local-set-state
+      ts-range-settings
+      (append
+       ts-range-settings
+       (ts-range-rules
+        :embed 'cl-format
+        :host 'common-lisp
+        cl-ts-format-support-mode-query))))))
 
 (provide 'cl-ts-mode)
 ;;; cl-ts-mode.el ends here

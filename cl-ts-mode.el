@@ -765,40 +765,41 @@ format directives is not performed."
 ;; and ought to be in some dedicated treesit navigation/editing package. i know
 ;; of combobulate but it's still a WIP and i don't know of any commands along
 ;; these lines in it.
-(defun cl-ts-mode-convolute (n)
-  (interactive "p")
-  (let* ((lnode (cl-ts-mode-sexp-node-at-pos))
-         (inner (ts-parent-until lnode 'list))
-         (outer inner))
-    (while (progn
-             (unless outer (error "Not enough depth"))
-             (plusp n))
-      (decf n)
-      (setq outer (ts-parent-until outer 'list)))
-    (let* ((out-beg (ts-node-start outer))
-           (in-beg (ts-node-start inner))
-           (in-end (ts-node-end inner))
-           (out-end (ts-node-end outer))
-           (self-beg (copy-marker (ts-node-start lnode) t))
-           (self-end (copy-marker (ts-node-end lnode) t))
-           (pre-string (buffer-substring out-beg in-beg))
-           (post-string (buffer-substring in-end out-end)))
-      (atomic-change-group
-        (unwind-protect
-            (progn
-              (delete-region in-end out-end)
-              (delete-region out-beg in-beg)
-              (goto-char self-beg)
-              (insert pre-string)
-              (goto-char self-end)
-              (insert post-string)
-              (goto-char out-beg)
-              (indent-sexp))
-          ;; save-excursion uses a before-insertion marker, we want
-          ;; after-insertion
-          (goto-char self-beg)
-          (set-marker self-beg nil)
-          (set-marker self-end nil))))))
+(cl-eval-when ()
+  (defun cl-ts-mode-convolute (n)
+    (interactive "p")
+    (let* ((lnode (cl-ts-mode-sexp-node-at-pos))
+           (inner (ts-parent-until lnode 'list))
+           (outer inner))
+      (while (progn
+               (unless outer (error "Not enough depth"))
+               (plusp n))
+        (decf n)
+        (setq outer (ts-parent-until outer 'list)))
+      (let* ((out-beg (ts-node-start outer))
+             (in-beg (ts-node-start inner))
+             (in-end (ts-node-end inner))
+             (out-end (ts-node-end outer))
+             (self-beg (copy-marker (ts-node-start lnode) t))
+             (self-end (copy-marker (ts-node-end lnode) t))
+             (pre-string (buffer-substring out-beg in-beg))
+             (post-string (buffer-substring in-end out-end)))
+        (atomic-change-group
+          (unwind-protect
+              (progn
+                (delete-region in-end out-end)
+                (delete-region out-beg in-beg)
+                (goto-char self-beg)
+                (insert pre-string)
+                (goto-char self-end)
+                (insert post-string)
+                (goto-char out-beg)
+                (indent-sexp))
+            ;; save-excursion uses a before-insertion marker, we want
+            ;; after-insertion
+            (goto-char self-beg)
+            (set-marker self-beg nil)
+            (set-marker self-end nil)))))))
 
 (defun cl-ts-mode--extend-fl-region ()
   (defvar font-lock-beg)

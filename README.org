@@ -69,24 +69,22 @@ faces can be used to highlight paired directives based on depth. See the
 different colors of the ~~>~ and ~~}~ in the screenshot. And the face for the
 whitespace skipped by ~~<newline>~ directives (dashed underline in the
 screenshot) is very helpful. If you're horrified by the rainbow, you can simply
-customize every ~cl-ts-mode-format-*~ face to the same appearance. While the
-format fontifying logic is implemented in ~cl-ts-mode~, currently the format
-local parsers are only added by ~clparse~.
+customize every ~cl-ts-mode-format-*~ face to the same attributes.
 ** Quick start
 :PROPERTIES:
 :CUSTOM_ID: quickstart
 :END:
 The only dependencies are Sly and ~cond*~ which is on ELPA and I believe ships
-with Emacs 31+. I haven't tested this on Emacs 30 yet but it should work on 31
-(31.0.9 prerelease is out now). It's not available yet on ELPA/MELPA, so clone
-this repo, add eval something like this:
+with Emacs 31+. I don't think this is compatible with Emacs 30 but it should
+work on 31 (31.0.9 prerelease is out now). It's not available yet on ELPA/MELPA,
+so clone this repo, add eval something like this:
 
 #+begin_src elisp :tangle yes :lexical yes
   (add-to-list 'load-path "/path/to/repo")
 
   ;; optional, but a good idea
-  (byte-compile (locate-library "cl-ts-mode"))
-  (byte-compile (locate-library "clparse"))
+  (byte-compile-file (locate-library "cl-ts-mode"))
+  (byte-compile-file (locate-library "clparse"))
 
   (load "cl-ts-mode")
   (load "clparse")
@@ -106,14 +104,25 @@ For the semantic highlighting library, connect to a lisp first with ~M-x sly~,
 then ~M-x clparse-mode~, and ~M-x clparse-highlight-mode~ if you're interested
 in that.
 
+Each mode offers highlighting that makes some of the default lisp-mode font-lock
+keywords redundant. To disable those keywords in the respective modes, add this
+to your configuration:
+
+#+begin_src elisp :tangle yes :lexical yes
+  (setf (alist-get 'cl-ts-mode font-lock-ignore)
+        cl-ts-mode-font-lock-ignore-keywords)
+  (setf (alist-get 'clparse-mode font-lock-ignore)
+        clparse-font-lock-ignore-keywords)
+#+end_src
+
 ** Unique features in ~clparse-ts-mode~
 So far not a ton, because a lot of things that tree-sitter specializes in like
 indentation are done as well if not better with good old fashioned
 ~parse-partial-sexp~ used by mechanisms like ~lisp-indent-function~.
 *** ~FORMAT~ directive indentation
 There is optional (but currently enabled by default) auto-indentation of format
-directives. This is mainly to indent relative to the paired directives (~~[~,
-~~{~​, ~~(~ and ~~<~). Example:
+directives. Still experimental. This is mainly to indent relative to the paired
+directives (~~[~, ~~{~​, ~~(~ and ~~<~). Example:
 #+begin_src lisp :tangle yes
   "~<
   ~A
@@ -128,16 +137,17 @@ After ~TAB~​ing on the second line:
 The directive is indented to the column after the ~~<~, and the newline is
 converted to a ~~@<newline>~ directive so that the indentation of the output
 isn't affected. The behavior depends on a few customizable variables:
+- ~cl-ts-mode-format-indent-predicate~ :: A predicate for ~treesit-node-match-p~
+  (usually a function or regexp matching a treesit node's type) to determine
+  which nodes should have their contents indented. By default it matches the
+  four paired directives, but you can also set it to indent relative to the
+  start of the entire format string. *To disable format indentation entirely, set
+  it to nil.*
 - ~cl-ts-mode-format-indent-auto-escape-eol~ :: Controls the behavior of the
   newline directive. It can be set to nil (don't indent if there isn't already a
   ~~<newline>~), t (don't add it but indent anyway), a string specifying the
   directive to add, or a cons pair ~(LOGICAL-BLOCK . DEFAULT)~ to specify a
   different string (like ~~:@_~~) to use within ~~<​~:>~.
-- ~cl-ts-mode-format-indent-predicate~ :: A predicate for ~treesit-node-match-p~
-  (usually a function or regexp matching a treesit node's type) to determine
-  which nodes should have their contents indented. By default it matches the
-  four paired directives, but you can also set it to indent relative to the
-  start of the entire format string.
 - ~cl-ts-mode-format-indent-tilde-relative~ :: Determines which column
   indentation is calculated relative to (using the following two variables), and
   the indentation of the end of a paired directive when it begins a line. If nil
@@ -156,6 +166,13 @@ isn't affected. The behavior depends on a few customizable variables:
 - ~cl-ts-mode-format-string-indent-offset~ :: Like the above but controls
   indentation relative to the start of the string, if that's enabled by
   ~cl-ts-mode-format-indent-predicate~.
+*** ~FORMAT~ directive fontification
+This can be enabled with either ~cl-ts-format-support-mode~, which uses
+~treesit-range-settings~, or with ~clparse-mode~ which tries to do it
+intelligently. There are distinct faces for every component of format directives
+I could think of: ~~~, numeric, character, ~V~ and ~#~ parameters, the ~,~
+separator between parameters, ~:~ and ~@~ modifiers and the directive character
+itself all have specific faces. See ~M-x customize-group RET cl-ts-mode~.
 ** Some ~clparse~ implementation details
 I took a *lot* of inspiration from elisp-scope.el (which should ship with
 Emacs 31) and pushed it to its extreme. There are 9 faces for local functions,
@@ -206,29 +223,42 @@ incrementing the depth in the ~cadr~.
 
 * FIXMEs
 Most of these are for ~clparse~, ~cl-ts-mode~ is much further along.
-- [ ] SLIME support
-- [ ] *TESTS* for both grammar and emacs stuff
+- [-] SLIME support
+  - [X] add it
+  - [ ] *test it*, i'd be amazed if it actually works
+- [ ] *TESTS* for both grammar and emacs stuff. I wrote a couple grammar tests
+  for symbols, and when I run ~tree-sitter test~ it just hangs at 100% cpu
+  usage. If I wrap the symbols in a list it runs fine. That makes me think my
+  scanner is inf looping, but the strange thing is that ~cl-ts-mode~ has no
+  issues in a file which contains just the exact contents of the test. It could
+  be a tree-sitter issue, when debugging the scanner it seemed like calls to the
+  serialize and deserialize functions weren't paired.
 - [ ] Possibly support CL-INTERPOL in the grammar
-- [ ] ~treesit-range-settings~ for the format grammar, for those who don't want
+- [X] ~treesit-range-settings~ for the format grammar, for those who don't want
   to use ~clparse~
 - [ ] ~LOOP~ parsing hasn't been tested extensively.
 - [ ] A lot of common macros need parsers, eg. ~ITERATE~ and ~TRIVIA~ stuff
 - [ ] Better integration with the inferior Lisp (automatically re-caching when
   files are loaded, defuns are evalled etc.)
-- [X] Better support for multiple buffers/packages. Right now there practically
-  is none, ~clparse~ just commits to the current package any time it's
-  activated. I'm thinking of using separate Sly/SLIME channels for each package.
-- [ ] Better interaction between ~clparse-walk~ and ~clparse-apply-type~. I
-  think that ~clparse-apply-type~ should be the one to decide whether its type
-  applies based on the level of quoting of its argument. Right now this decision
-  is very clumsily made by ~clparse-walk~.
+- [ ] Better support for multiple buffers/packages. The current implementation
+  is sloppy.
+- [ ] Better interaction between ~clparse-walk~ and ~clparse-apply-type~. I'm
+  considering having ~clparse-apply-type~ decide whether its type applies based
+  on the level of quoting of its argument. Right now this decision is very
+  clumsily made by ~clparse-walk~. This is very tricky though and even though it
+  works quite well already, the lack of a comprehensive solution is driving me
+  crazy.
 - [ ] Some notion of an "expected value type", in order to correctly give ~slot~
-  in ~(slot-value object (progn 'slot))~ the correct face. elisp-scope does an
-  excellent job at this with ~elisp-scope-output-spec~. The complicating factor
-  is the prevalence of nonlocal control transfer compared to Elisp. Ideally we
-  would track the expected type at each ~CL:BLOCK~ for ~CL:RETURN-FROM~ to
-  determine its argument's role. Another option is of course to just skip
-  non-local exits entirely and only support tail position values.
+  in ~(slot-value object (progn 'slot))~ the correct face. Or, an even hairier
+  example,
+  #+begin_src lisp :tangle yes
+    (format nil (concatenate 'string "~A" s "~D") ...)
+  #+end_src
+  elisp-scope does an excellent job at this with ~elisp-scope-output-spec~. The
+  complicating factor is the prevalence of nonlocal control transfer compared to
+  Elisp. Ideally we would track the expected type at each ~CL:BLOCK~ for
+  ~CL:RETURN-FROM~ to determine its argument's role. Another option is of course
+  to just skip non-local exits entirely and only support tail position values.
 - [ ] Any unknown symbols encountered during parsing should be sent to the
   backend for lookup so we will have it for next redisplay. Ideally when we get
   the response we trigger an eager refontification. Currently we simply ignore

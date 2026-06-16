@@ -268,3 +268,11 @@ Most of these are for ~clparse~, ~cl-ts-mode~ is much further along.
   large range to pick it up.
 - [ ] ~clparse-mode~ shouldn't require a live connection to turn on, it should
   add the setup to ~sly/slime-connected-hook~.
+- [ ] Use a dummy package as a placeholder. Since we ~READ~ the symbols we end
+  up interning lots of incomplete symbol names, which can clutter the list of
+  completions. If we use a dummy package for every actual package, we can tell
+  that a symbol wasn't package qualified and then ~FIND-SYMBOL~ in the real
+  package. One challenge is that the dummy package needs to maintain the same
+  imports, exports and local nicknames as the real package. Might not be worth
+  it, we'll see how much of a problem this is.
+- [ ] there are tons of race conditions in clparse

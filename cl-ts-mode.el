@@ -5,16 +5,14 @@
 ;; Author: zach shaftel <zach@shaf.tel>
 ;; Maintainer: zach shaftel <zach@shaf.tel>
 ;; Created: May 14, 2026
-;; Version: 0.0.1
-;; Keywords:
-;; URL:
+;; Version: 0.1.0
+;; Keywords: lisp languages tree-sitter
+;; URL: https://codeberg.org/zshaftel/cl-ts-mode
 ;; Package-Requires: ((emacs "31") cond-star)
 
 ;; This file is not part of GNU Emacs.
 
 ;;; Commentary:
-
-;;  lisp-mode with tree-sitter support
 
 ;;; Code:
 
@@ -24,22 +22,16 @@
 
 (ts-declare-unavailable-functions)
 
-;; this guard is temporary, just while developing so i can test grammar changes
-;; locally before pushing commits. it's much easier to debug the grammar in a
-;; buffer than with tree-sitter-cli.
-(let* ((this-dir (file-name-directory (or (macroexp-file-name) (buffer-file-name))))
-       (repo (if (file-exists-p (expand-file-name "grammars/cl/grammar.js" this-dir))
-                 (directory-file-name this-dir)
-               "https://codeberg.org/zshaftel/tree-sitter-cl-syntax")))
-  (setf (alist-get 'cl-format ts-language-source-alist)
-        `(,repo :source-dir "grammars/format/src"))
-  (setf (alist-get 'common-lisp ts-language-source-alist)
-        `(,repo :source-dir "grammars/cl/src")))
+(setf (alist-get 'cl-format ts-language-source-alist)
+      `("https://codeberg.org/zshaftel/tree-sitter-cl-syntax"
+        :source-dir "grammars/format/src"))
+(setf (alist-get 'common-lisp ts-language-source-alist)
+      `("https://codeberg.org/zshaftel/tree-sitter-cl-syntax"
+        :source-dir "grammars/cl/src"))
 
-;; not ready yet
-;; (when (boundp 'treesit-major-mode-remap-alist)
-;;   (add-to-list 'treesit-major-mode-remap-alist
-;;                '(lisp-mode . cl-ts-mode)))
+(when (boundp 'treesit-major-mode-remap-alist)
+  (add-to-list 'treesit-major-mode-remap-alist
+               '(lisp-mode . cl-ts-mode)))
 
 (defgroup cl-ts-mode ()
   "Common Lisp mode with tree-sitter support."
@@ -169,7 +161,7 @@ non-nil."
       (require 'color)
       (let ((i 0))
         (while (< i 3)
-          (incf i)
+          (setq i (1+ i))
           (thread-last (* percentage i)
             (color-darken-name comment-fore)
             (set-face-attribute (aref cl-ts-mode--block-comment-faces i)
@@ -426,7 +418,7 @@ face itself and return nil.")
      (quasiquote "`"  @cl-ts-mode-quasiquote)
      (unquote   [","  @cl-ts-mode-comma
                  ",@" @cl-ts-mode-comma-at
-                 ",." @cl-ts-mode-comma-at]))
+                 ",." @cl-ts-mode-comma-dot]))
    :feature 'reader-macros
    :override 'prepend
    `(["#." @cl-ts-mode-read-eval

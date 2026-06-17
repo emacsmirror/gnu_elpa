@@ -85,6 +85,18 @@
                  TeX-error-description-list-local)))
     (alist-get message error-alist nil nil #'string-match-p)))
 
+(defun auctex-cont-latexmk--file-equal-p (file1 file2)
+  "Return non-nil if existing files FILE1 and FILE2 name the same file.
+Unlike `file-equal-p', return nil if either file does not exist.  This
+avoids calling `file-truename' on bogus file names from parsed TeX log
+output."
+  (and (stringp file1)
+       (stringp file2)
+       (ignore-errors
+         (and (file-exists-p file1)
+              (file-exists-p file2)
+              (file-equal-p file1 file2)))))
+
 (defun auctex-cont-latexmk-help-at-point ()
   "Display the AUCTeX help for the error at point."
   (interactive)
@@ -107,7 +119,7 @@ ERROR-P is non-nil if it is an error rather than a warning."
          (save-restriction
            (widen)
            (cond
-            ((file-equal-p
+            ((auctex-cont-latexmk--file-equal-p
               file
               (or buffer-file-name (buffer-file-name (buffer-base-buffer))))
              (when line
@@ -119,7 +131,8 @@ ERROR-P is non-nil if it is an error rather than a warning."
                        (search-forward search-string nil t)
                        (cons (point) (1+ (point)))))
                  (flymake-diag-region (current-buffer) (+ line offset)))))
-            ((file-equal-p file (TeX-master-output-file "aux"))
+            ((auctex-cont-latexmk--file-equal-p
+              file (TeX-master-output-file "aux"))
              (and auctex-cont-latexmk-report-multiple-labels
                   (string-match-p "multiply defined" message)
                   (not (eq type 'error))

@@ -36,7 +36,8 @@
            (format "%s:%s" username password) t)))
 
 (defun forgejo-token--find-existing (host-url username password token-name)
-  "Return the existing token alist for TOKEN-NAME on HOST-URL, or nil."
+  "Return the existing token alist for TOKEN-NAME on HOST-URL, or nil.
+Authenticate as USERNAME with PASSWORD."
   (let* ((url (forgejo-api--url host-url (format "users/%s/tokens" username)))
          (url-request-method "GET")
          (url-request-extra-headers
@@ -59,7 +60,8 @@
     (when buf (kill-buffer buf))))
 
 (defun forgejo-token--create (host-url username password token-name)
-  "POST a new token named TOKEN-NAME and return its sha1 string."
+  "POST a new token named TOKEN-NAME on HOST-URL and return its sha1 string.
+Authenticate as USERNAME with PASSWORD."
   (let* ((url (forgejo-api--url host-url
                                 (format "users/%s/tokens" username)))
          (url-request-method "POST")
@@ -84,9 +86,9 @@
 (defun forgejo-token--request (host-url username password token-name)
   "Create an API token on HOST-URL for USERNAME with PASSWORD.
 If TOKEN-NAME already exists, prompt to delete it first.
-Returns the token string on success."
+Return the token string on success."
   (when-let* ((existing (forgejo-token--find-existing host-url username password token-name)))
-    (unless (yes-or-no-p (format "Token '%s' already exists. Delete it?" token-name))
+    (unless (yes-or-no-p (format "Token '%s' already exists.  Delete it?" token-name))
       (user-error "Aborted"))
     (forgejo-token--delete host-url username password (alist-get 'id existing)))
   (forgejo-token--create host-url username password token-name))

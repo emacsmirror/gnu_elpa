@@ -168,16 +168,18 @@ RULE is \"owner/repo\" or (\"owner/repo\" . \"filter-query\")."
 (defvar forgejo-timeline-page-size)
 
 (defun forgejo-watch--sync-timelines (host-url host owner repo)
-  "Sync stale timelines for previously-viewed issues in HOST/OWNER/REPO.
-Fetches up to `forgejo-watch-timeline-limit' timelines sequentially."
+  "Sync stale timelines for previously-viewed issues in OWNER/REPO on HOST.
+HOST-URL is the instance.  Fetch up to `forgejo-watch-timeline-limit'
+timelines sequentially."
   (let ((numbers (forgejo-db-stale-timelines
                   host owner repo forgejo-watch-timeline-limit)))
     (when numbers
       (forgejo-watch--sync-timeline-chain host-url host owner repo numbers))))
 
 (defun forgejo-watch--sync-timeline-chain (host-url host owner repo numbers)
-  "Fetch timeline for first of NUMBERS, then chain the rest.
-Each fetch saves to DB, records sync time, then fires the next."
+  "Fetch the timeline for the first of NUMBERS, then chain the rest.
+HOST-URL, HOST, OWNER, and REPO identify the repository.  Save each
+timeline to the DB, record its sync time, then fetch the next."
   (when numbers
     (let* ((number (car numbers))
            (rest (cdr numbers))
@@ -305,7 +307,7 @@ Shows unread items from `forgejo-watch-rules'."
       (switch-to-buffer buf))))
 
 (defun forgejo-watch-list-refresh ()
-  "Fetch updates for watch rules, then re-render."
+  "Poll watch rules for new data, then re-render."
   (interactive)
   (let ((host forgejo-watch--host)
         (host-url forgejo-watch--host-url))

@@ -190,8 +190,8 @@ the current view (issue detail, PR detail, or list)."
     (forgejo-pull-refresh))))
 
 (defun forgejo--post-action-callback ()
-  "Return a callback that runs `forgejo-post-action-functions'.
-Captures the current buffer so the hook runs in the right context."
+  "Return a callback that will run `forgejo-post-action-functions'.
+The current buffer is captured so the hook has the right context."
   (let ((buf (current-buffer)))
     (lambda ()
       (when (buffer-live-p buf)

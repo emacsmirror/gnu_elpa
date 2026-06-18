@@ -119,7 +119,7 @@ PARTIAL non-nil means the API response did not include all pages."
     (:query     . "q")
     (:since     . "since"))
   "Map from filter plist keys to Forgejo API query parameter names.
-The :page key is handled separately (needs number-to-string).")
+The :page key is handled separately (needs `number-to-string').")
 
 (defun forgejo-filter-build-params (type filters sort limit)
   "Build API query params from FILTERS for the issues endpoint.
@@ -140,9 +140,9 @@ Returns an alist of (PARAM . VALUE) pairs."
 
 (defun forgejo-filter-query-watch (host rules filters)
   "Return issue/PR alists matching watch RULES with FILTERS.
-RULES is `forgejo-watch-rules'.  FILTERS is an
-additional filter plist (e.g. (:read \"no\")).  Returns alists
-enriched with `watch-owner' and `watch-repo' keys."
+HOST is the instance hostname.  RULES is `forgejo-watch-rules'.
+FILTERS is an additional filter plist (e.g. (:read \"no\")).  Return
+alists enriched with `watch-owner' and `watch-repo' keys."
   (let (result)
     (dolist (rule rules)
       (let* ((repo-key (if (stringp rule) rule (car rule)))

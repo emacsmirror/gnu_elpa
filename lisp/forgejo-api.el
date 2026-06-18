@@ -196,14 +196,14 @@ when provided."
            `(("If-Modified-Since" . ,if-modified-since)))))
 
 (defun forgejo-api--classify-response (status buffer)
-  "Classify the HTTP response in BUFFER given url-retrieve STATUS.
-Returns a plist with :kind and associated data.  Pure: does not
+  "Classify the HTTP response in BUFFER given `url-retrieve' STATUS.
+Return a plist with :kind and associated data.  Pure: does not
 call callbacks or modify global state.
 
 Possible :kind values:
   http-error   -- HTTP 4xx/5xx, includes :status :headers :message :data
   net-error    -- network/connection failure, includes :message
-  not-modified -- HTTP 304, includes :headers
+  `not-modified' -- HTTP 304, includes :headers
   success      -- HTTP 2xx, includes :headers :data"
   (with-current-buffer buffer
     (let ((http-status (forgejo-api--response-status buffer))
@@ -259,8 +259,8 @@ otherwise log a human-readable message."
 (defun forgejo-api--act-on-response (result host method endpoint
                                             callback error-callback)
   "Act on classified RESULT for METHOD ENDPOINT on HOST.
-Call CALLBACK on success/not-modified, ERROR-CALLBACK on errors.
-Updates rate-limit state when headers are present."
+Call CALLBACK on success or `not-modified', ERROR-CALLBACK on errors.
+Update rate-limit state when headers are present."
   (let ((headers (plist-get result :headers)))
     (when headers
       (forgejo-api--check-rate-limit host headers))
@@ -286,7 +286,7 @@ Updates rate-limit state when headers are present."
         method endpoint result error-callback)))))
 
 (defun forgejo-api--kill-url-buffer (buf)
-  "Kill url-retrieve buffer BUF, suppressing process query prompts."
+  "Kill `url-retrieve' buffer BUF, suppressing the process kill query."
   (when (buffer-live-p buf)
     (let ((proc (get-buffer-process buf)))
       (when proc (delete-process proc)))
@@ -296,10 +296,10 @@ Updates rate-limit state when headers are present."
 (defun forgejo-api--dispatch-response (status host method endpoint
                                               callback error-callback
                                               completed timer-cell)
-  "Handle a url-retrieve response for METHOD ENDPOINT on HOST.
-STATUS is the url-retrieve status plist.
-COMPLETED is a cons cell for once-only execution.
-TIMER-CELL is a cons cell whose car holds the timeout timer."
+  "Handle a `url-retrieve' response for METHOD ENDPOINT on HOST.
+STATUS is the `url-retrieve' status plist.  CALLBACK and ERROR-CALLBACK
+receive success and failure.  COMPLETED is a cons cell for once-only
+execution.  TIMER-CELL is a cons cell whose car holds the timeout timer."
   (unless (car completed)
     (setcar completed t)
     (let ((timer (car timer-cell)))
@@ -314,9 +314,9 @@ TIMER-CELL is a cons cell whose car holds the timeout timer."
 (defun forgejo-api--start-timeout (completed url-buf method endpoint
                                              error-callback)
   "Arm a timeout timer for an in-flight request to METHOD ENDPOINT.
-COMPLETED is the once-only gate cell.
-URL-BUF is the url-retrieve buffer to clean up on timeout.
-Returns the timer object."
+COMPLETED is the once-only gate cell.  URL-BUF is the `url-retrieve'
+buffer to clean up on timeout.  ERROR-CALLBACK receives the timeout
+error.  Return the timer object."
   (run-at-time
    forgejo-api-timeout nil
    (lambda ()
@@ -330,7 +330,8 @@ Returns the timer object."
 
 (defun forgejo-api--register-request (completed timer-cell url-buf)
   "Track an in-flight request for later cancellation.
-Prunes already-completed entries to keep the list short."
+COMPLETED, TIMER-CELL, and URL-BUF describe the request.  Prune
+already-completed entries to keep the list short."
   (setq forgejo-api--active-requests
         (cons (cons completed (cons timer-cell url-buf))
               (cl-remove-if (lambda (entry) (car (car entry)))
@@ -540,9 +541,10 @@ ARGS accepts :error-callback for failure handling."
 
 (defun forgejo-api-get-conditional (host endpoint params
                                          cache-key callback &rest args)
-  "GET with conditional headers from DB cache.
-CACHE-KEY is a list (HOST OWNER REPO ENDPOINT-NAME) for cache lookup.
-On 304, calls CALLBACK with nil data.  On 200, updates cached headers.
+  "GET ENDPOINT on HOST with conditional headers from the DB cache.
+PARAMS is the query parameter alist.  CACHE-KEY is a list of
+HOST, OWNER, REPO, and ENDPOINT-NAME for cache lookup.  On 304, call
+CALLBACK with nil data.  On 200, update the cached headers.
 ARGS are passed through to `forgejo-api-get'."
   (let* ((cached (apply #'forgejo-db-get-cache-headers cache-key))
          (etag (plist-get cached :etag))

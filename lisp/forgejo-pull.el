@@ -85,19 +85,21 @@ Keys: :state :milestone :labels :author :page")
                                (forgejo-api-default-limit)))
 
 (defun forgejo-pull--render-from-db (buf-name host-url host owner repo filters)
-  "Render cached PRs into BUF-NAME from the DB.
-HOST-URL is the full instance URL.  HOST is the hostname."
+  "Render cached PRs for OWNER/REPO into BUF-NAME from the DB.
+HOST-URL is the full instance URL.  HOST is the hostname.
+FILTERS is the active filter plist."
   (forgejo-view--render-from-db buf-name host-url host owner repo filters
                                 #'forgejo-filter-query-pulls
                                 'forgejo-pull-list-mode))
 
 (defun forgejo-pull--sync (host-url host owner repo filters buf-name
                                     &optional force)
-  "Fetch PRs from API and update DB, then re-render BUF-NAME.
-HOST-URL is the instance.  HOST is the hostname.
-Uses the issues endpoint with type=pulls for incremental sync.
-When FORCE is nil, use `since' for incremental sync.
-When FORCE is non-nil, fetch all and mark missing PRs as closed."
+  "Fetch PRs for OWNER/REPO from the API and re-render BUF-NAME.
+The DB is updated before re-rendering.  HOST-URL is the instance.
+HOST is the hostname.  FILTERS is the active filter plist.  Use the
+issues endpoint with type=pulls for incremental sync.  When FORCE is
+nil, use `since' for incremental sync.  When FORCE is non-nil, fetch
+all and mark missing PRs as closed."
   (let* ((since (unless force
                   (forgejo-db-get-sync-time host owner repo "pulls")))
          (api-filters (if since

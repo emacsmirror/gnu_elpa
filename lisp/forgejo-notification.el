@@ -159,8 +159,9 @@ infrastructure-level rate limits.")
 Remaining ones are picked up on subsequent polls.")
 
 (defun forgejo-notification--sync (host-url host &optional callback)
-  "Fetch notifications from HOST-URL, save to DB, fetch missing issues.
-CALLBACK is called with no args when done."
+  "Fetch notifications from HOST-URL for HOST and save them to the DB.
+Also fetch any missing issues.  CALLBACK is called with no args when
+done."
   (let ((since (forgejo-db-get-sync-time host "" "" "notifications"))
         (params (list '("limit" . "50") '("all" . "true"))))
     (when since
@@ -181,8 +182,9 @@ CALLBACK is called with no args when done."
        (when callback (funcall callback))))))
 
 (defun forgejo-notification--process-page (host-url host notifications)
-  "Process a page of NOTIFICATIONS: save to DB, fetch missing issues.
-Fires `forgejo-notification-hooks' for unread items in this page."
+  "Process a page of NOTIFICATIONS for HOST, saving them to the DB.
+Fetch any missing issues.  HOST-URL is the instance.  Fire
+`forgejo-notification-hooks' for unread items in this page."
   (let ((rows (cl-loop for n in notifications
                        for row = (forgejo-notification--to-db-row n)
                        when row collect row))
@@ -206,8 +208,10 @@ Fires `forgejo-notification-hooks' for unread items in this page."
 
 (defun forgejo-notification--fetch-missing (host-url host missing &optional count)
   "Fetch MISSING issues ((OWNER REPO NUMBER) ...) sequentially.
-Skips items that fail (404, private, etc.) and continues the chain.
-Pauses between batches of `forgejo-notification-fetch-batch-size'."
+HOST-URL is the instance.  HOST is the hostname.  Skip items that
+fail (404, private, etc.) and continue the chain.  Pause between
+batches of `forgejo-notification-fetch-batch-size'.  COUNT tracks how
+many have been processed."
   (when missing
     (let ((count (or count 0)))
       (if (and (> count 0)
@@ -230,7 +234,7 @@ Pauses between batches of `forgejo-notification-fetch-batch-size'."
               host-url host rest (1+ count)))))))))
 
 (defun forgejo-notification--full-sync (host-url host &optional callback)
-  "Clear notification DB for HOST and re-sync everything.
+  "Clear notification DB for HOST and re-sync everything on HOST-URL.
 CALLBACK is called with no args when done."
   (forgejo-db-clear-notifications host)
   (forgejo-notification--sync host-url host callback))

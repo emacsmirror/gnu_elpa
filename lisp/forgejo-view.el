@@ -655,9 +655,10 @@ reactions, and the header line only if it changed."
 
 (defun forgejo-view--sync-reactions (host-url host owner repo number
                                               buf-name timeline)
-  "Fetch reactions for issue NUMBER and its comments, update EWOC.
-Fires all requests in parallel.  TIMELINE is the list of timeline
-event alists (used to extract comment IDs)."
+  "Fetch reactions for issue NUMBER and its comments, then update the EWOC.
+Query OWNER/REPO on HOST using HOST-URL and refresh the buffer named
+BUF-NAME.  Fire all requests in parallel.  TIMELINE is the list of
+timeline event alists (used to extract comment IDs)."
   (let* ((comment-ids (cl-loop for event in timeline
                                when (string= "comment"
                                              (alist-get 'type event))
@@ -754,8 +755,8 @@ Updates the API, then updates pin_order in the DB."
 
 (defun forgejo-view--subscription-context ()
   "Return (HOST-URL OWNER REPO NUMBER) for the item at point.
-Resolves from the notification list (per-row ref), issue/PR list
-(entry id + buffer-local repo), or detail view (buffer-local repo +
+Resolve from the notification list (per-row ref), issue/PR list
+\(entry id + buffer-local repo), or detail view (buffer-local repo +
 `forgejo-view--data')."
   (cond
    ((derived-mode-p 'forgejo-notification-list-mode)
@@ -773,7 +774,8 @@ Resolves from the notification list (per-row ref), issue/PR list
 
 (defun forgejo-view--apply-subscription (host-url owner repo number
                                                   user subscribed)
-  "Subscribe or unsubscribe USER based on SUBSCRIBED state."
+  "Subscribe or unsubscribe USER for OWNER/REPO issue NUMBER on HOST-URL.
+When SUBSCRIBED is non-nil, unsubscribe; otherwise subscribe."
   (if subscribed
       (forgejo-api-issue-unsubscribe
        host-url owner repo number user
@@ -926,7 +928,8 @@ VERB is `add' or `remove'.  Signals `user-error' on garbage."
           raw))
 
 (defun forgejo-view--react-endpoint (owner repo number comment-id)
-  "Return the reactions endpoint for COMMENT-ID, or the issue body if 0."
+  "Return the reactions endpoint for COMMENT-ID in OWNER/REPO issue NUMBER.
+With COMMENT-ID 0, target the issue body instead."
   (if (= comment-id 0)
       (format "repos/%s/%s/issues/%d/reactions" owner repo number)
     (format "repos/%s/%s/issues/comments/%d/reactions"
@@ -957,9 +960,10 @@ FINISH is invoked once per completed request."
 (defun forgejo-view--react-prompt (host-url host owner repo number
                                             comment-id current me buf-name)
   "Prompt for reactions on COMMENT-ID and dispatch them as ME.
-Only types ME has placed in CURRENT show the remove (-) option;
-when ME is nil, only the add (+) option is offered.  Fires one
-refresh after all dispatched requests complete."
+The item is OWNER/REPO issue NUMBER on HOST (HOST-URL); refresh the
+buffer named BUF-NAME afterward.  Only types ME has placed in CURRENT
+show the remove (-) option; when ME is nil, only the add (+) option is
+offered.  Fire one refresh after all dispatched requests complete."
   (unless me
     (message "Cannot resolve current user; remove (-) options disabled"))
   (let* ((mine (forgejo-view--react-mine current me))
@@ -1005,7 +1009,9 @@ Only types you have already reacted with show the remove option."
 
 (defun forgejo-view--refresh-reactions (host-url host owner repo number
                                                  comment-id buf-name)
-  "Refetch reactions for COMMENT-ID and update the EWOC node."
+  "Refetch reactions for COMMENT-ID and update the EWOC node.
+The item is OWNER/REPO issue NUMBER on HOST (HOST-URL); update the
+buffer named BUF-NAME."
   (let ((endpoint (if (= comment-id 0)
                       (format "repos/%s/%s/issues/%d/reactions"
                               owner repo number)

@@ -89,18 +89,20 @@ Keys: :state :labels :milestone :author :query :page")
 ;;; Cache-first rendering
 
 (defun forgejo-issue--render-from-db (buf-name host-url host owner repo filters)
-  "Render cached issues into BUF-NAME from the DB.
-HOST-URL is the full instance URL.  HOST is the hostname."
+  "Render cached issues for OWNER/REPO into BUF-NAME from the DB.
+HOST-URL is the full instance URL.  HOST is the hostname.
+FILTERS is the active filter plist."
   (forgejo-view--render-from-db buf-name host-url host owner repo filters
                                 #'forgejo-filter-query-issues
                                 'forgejo-issue-list-mode))
 
 (defun forgejo-issue--sync (host-url host owner repo filters buf-name
                                      &optional force)
-  "Fetch issues from API and update DB, then re-render BUF-NAME.
-HOST-URL is the instance.  HOST is the hostname.
-When FORCE is nil, use incremental sync via the `since' parameter.
-When FORCE is non-nil, fetch all and mark missing issues as closed."
+  "Fetch issues for OWNER/REPO from the API and re-render BUF-NAME.
+The DB is updated before re-rendering.  HOST-URL is the instance.
+HOST is the hostname.  FILTERS is the active filter plist.  When FORCE
+is nil, use incremental sync via the `since' parameter.  When FORCE is
+non-nil, fetch all and mark missing issues as closed."
   (let* ((since (unless force
                   (forgejo-db-get-sync-time host owner repo "issues")))
          (api-filters (if since

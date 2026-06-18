@@ -183,8 +183,8 @@ Lightens dark colors on dark themes, darkens light colors on light themes."
     (alist-get 'login user-alist)))
 
 (defun forgejo-buffer--clean-body (body)
-  "Strip carriage returns from BODY text.
-Returns nil if BODY is :null, nil, or empty."
+  "Strip carriage-return characters from BODY text.
+Return nil if BODY is :null, nil, or empty."
   (when (and body (stringp body) (not (string-empty-p body)))
     (replace-regexp-in-string "\r" "" body)))
 
@@ -335,8 +335,9 @@ REACTIONS is a grouped alist: ((\"heart\" . (\"alice\" \"bob\")) ...)."
                   (host owner repo issue-number))
 
 (defun forgejo-buffer--update-reactions (ewoc host owner repo issue-number)
-  "Patch reaction data onto EWOC nodes from the DB.
-Walks all nodes, sets :reactions, and invalidates changed ones."
+  "Patch reaction data onto EWOC nodes for ISSUE-NUMBER from the DB.
+HOST, OWNER, and REPO identify the repository.  Walk every node,
+set its :reactions, and invalidate the changed ones."
   (let ((all-reactions (forgejo-db-get-reactions
                         host owner repo issue-number)))
     (ewoc-map
@@ -682,7 +683,8 @@ Returns a list of nodes (may be multiple for review with threads)."
                     (format "#%d %s" dep-number (or dep-title ""))))))
 
 (defun forgejo-buffer--node-metadata (event actor)
-  "Build a metadata change node (milestone, review_request, etc.) from EVENT."
+  "Build a metadata change node (milestone, review_request, etc.) from EVENT.
+ACTOR is the user who triggered the change."
   (let ((type (alist-get 'type event)))
     (pcase type
       ("review_request"
@@ -838,7 +840,7 @@ Replaces raw markdown with fontified text in place."
                  do (plist-put (nth idx nodes) :body text))))))
 
 (defun forgejo-buffer--fontify-node-body (node)
-  "Fontify NODE's :body in place, if any.  Used for incremental updates."
+  "Fontify NODE's :body in place, if any.  Used for incremental refresh."
   (when-let* ((body (forgejo-buffer--clean-body (plist-get node :body)))
               (fontified (car (forgejo-buffer--fontify-bodies (list body)))))
     (plist-put node :body fontified)))

@@ -111,8 +111,9 @@ PATH is owner/repo#NUM or owner/repo#NUM::COMMENT-ID."
 
 ;;;###autoload
 (defun forgejo-ol-export (path desc backend _channel)
-  "Export a forgejo: link.
-PATH is owner/repo#NUM or owner/repo#NUM::COMMENT-ID."
+  "Export a forgejo: link to BACKEND.
+PATH is owner/repo#NUM or owner/repo#NUM::COMMENT-ID.
+DESC is the link description."
   (let ((url (when (string-match forgejo-ol--path-regexp path)
                (let ((owner (match-string 1 path))
                      (repo (match-string 2 path))

@@ -53,7 +53,8 @@
                       timeline-alists)))))
 
 (defun forgejo-review--comments-to-events (comments review-id)
-  "Convert review COMMENTS from API to timeline event alists."
+  "Convert review COMMENTS from the API to timeline event alists.
+REVIEW-ID tags each resulting event."
   (mapcar (lambda (c)
             `((id . ,(alist-get 'id c))
               (type . "review_comment")
@@ -109,8 +110,9 @@ or nil if no comments."
 (defun forgejo-review--comments-for-id (host owner repo number review-id
 					     &optional path position original-position)
   "Return review_comment alists for REVIEW-ID from the DB.
-When PATH is non-nil, filter to that specific thread using
-POSITION and ORIGINAL-POSITION for matching."
+HOST, OWNER, REPO, and NUMBER identify the pull request.  When PATH
+is non-nil, filter to that specific thread using POSITION and
+ORIGINAL-POSITION for matching."
   (let ((rows (forgejo-db--select
                (format "SELECT %s FROM timeline_events
                         WHERE host = ? AND owner = ? AND repo = ?
@@ -131,8 +133,8 @@ POSITION and ORIGINAL-POSITION for matching."
 
 (defun forgejo-review--fetch-comments (host-url host owner repo number
 						review-id &optional callback)
-  "Fetch comments for REVIEW-ID from HOST-URL and save to DB.
-HOST is the hostname.  Calls CALLBACK when done."
+  "Fetch comments for REVIEW-ID on OWNER/REPO pull NUMBER from HOST-URL.
+HOST is the hostname.  Save them to the DB and call CALLBACK when done."
   (forgejo-api-get
    host-url
    (format "repos/%s/%s/pulls/%d/reviews/%d/comments"
@@ -146,9 +148,9 @@ HOST is the hostname.  Calls CALLBACK when done."
 
 (defun forgejo-review-sync-comments (host-url host owner repo number
 					      timeline-alists callback)
-  "Fetch review comments for all reviews in TIMELINE-ALISTS.
-HOST-URL is the instance.  HOST is the hostname.
-Calls CALLBACK when all are done."
+  "Fetch review comments for every review in TIMELINE-ALISTS.
+HOST-URL is the instance.  HOST is the hostname.  OWNER, REPO, and
+NUMBER identify the pull request.  Call CALLBACK when all are done."
   (let* ((ids (forgejo-review--ids-from-timeline timeline-alists))
          (remaining (length ids)))
     (if (zerop remaining)

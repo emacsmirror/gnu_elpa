@@ -222,15 +222,17 @@ Checks for columns added in the latest migration."
   (if value (json-encode value) "null"))
 
 (defun forgejo-db--decode-json (text)
-  "Decode JSON TEXT from storage.  Returns nil for null/empty."
+  "Decode JSON TEXT from storage.  Return nil for null/empty."
   (when (and text (not (string= text "null")) (not (string-empty-p text)))
     (json-parse-string text :object-type 'alist :array-type 'list)))
 
 ;;; Issues
 
 (defun forgejo-db--track-edit (db host owner repo number new-body)
-  "If issue body changed, append old body to previous_body history.
-Returns nil if no change or no existing row."
+  "Append issue NUMBER's old body to the previous_body history.
+DB is the SQLite connection; HOST, OWNER, and REPO identify the issue.
+NEW-BODY is the incoming body; return nil when nothing changed or no
+row exists."
   (setq owner (downcase owner) repo (downcase repo))
   (when-let* ((new-body)
               (existing (car (sqlite-select
@@ -753,7 +755,7 @@ fields like label, assignee, old_title, new_title."
       base)))
 
 (defun forgejo-db-get-issue (host owner repo number)
-  "Get a single issue alist from the DB, or nil."
+  "Get issue NUMBER for OWNER/REPO on HOST from the DB as an alist, or nil."
   (setq owner (downcase owner) repo (downcase repo))
   (when-let* ((rows (forgejo-db--select
                      (format "SELECT %s FROM issues

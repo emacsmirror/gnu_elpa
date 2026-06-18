@@ -1,6 +1,6 @@
 ;;; font-latex-test.el --- tests for font-latex  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2020-2024  Free Software Foundation, Inc.
+;; Copyright (C) 2020-2026  Free Software Foundation, Inc.
 
 ;; This file is part of AUCTeX.
 
@@ -115,6 +115,7 @@ $a$")
 
 \\section{Macros}
 Inline verbatim test:  \\verb|x|
+Inline verbatim test:  \\verb* |x|
 Inline math test:      $x$, \\(x\\)
 Marginpar test:        \\marginpar{x}
 Sedate macro test:     \\sedate
@@ -213,6 +214,9 @@ x
 
       ;; Test for inline verb:
       (search-forward "\\verb|")
+      (should (font-latex-faces-present-p 'font-latex-verbatim-face))
+      (end-of-line)
+      (search-forward "\\verb* |")
       (should (font-latex-faces-present-p 'font-latex-verbatim-face))
       (end-of-line)
 

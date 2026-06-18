@@ -149,7 +149,7 @@ Also syncs repo metadata if not yet cached."
           (match-string 3 remote-url)))
    ;; SSH with protocol: ssh://[user@]host[:port]/owner/repo[.git]
    ((string-match
-     "\\`ssh://\\(?:[^@]+@\\)?\\([^/:]+\\)[:/]\\([^/]+\\)/\\(.+?\\)\\(?:\\.git\\)?\\'" remote-url)
+     "\\`ssh://\\(?:[^@]+@\\)?\\([^/:]+\\)\\(?::[0-9]+\\)?/\\([^/]+\\)/\\(.+?\\)\\(?:\\.git\\)?\\'" remote-url)
     (list (format "https://%s" (match-string 1 remote-url))
           (match-string 2 remote-url)
           (match-string 3 remote-url)))

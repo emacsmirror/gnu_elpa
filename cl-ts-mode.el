@@ -224,7 +224,8 @@ face itself and return nil.")
                                   (unless colonp ; only the newline was skipped
                                     (skip-chars-forward "\n\t "))
                                   (add-face-text-property start (point)
-                                                          'cl-ts-mode-format-skipped-whitespace))))
+                                                          'cl-ts-mode-format-skipped-whitespace)))
+                              nil)
                              ((not paired-depth) 'cl-ts-mode-format-standalone-directive)
                              ((not (cl-ts-mode--format-use-rainbow-delimiters-p))
                               'cl-ts-mode-format-paired-directive)
@@ -984,30 +985,11 @@ toggles between them."
 
 (defconst cl-ts-mode-thing-settings
   `((common-lisp
-     ;; FIXME: (not comment) might be faster
-     (sexp ,(rx bos (or "string"
-                        "interned_symbol"
-                        "uninterned_symbol"
-                        "struct"
-                        "list"
-                        "vector"
-                        "bit_vector"
-                        "array"
-                        "quote"
-                        "sharpquote"
-                        "unquote"
-                        "quasiquote"
-                        "labelled"
-                        "reference"
-                        "read_eval"
-                        "read_conditional"
-                        "character"
-                        "complex"
-                        "rational"
-                        "float")
-                eos))
-     (comment ,(rx "_comment" eos))
-     (symbol ,(rx "_symbol" eos))
+     ;; i did some benchmarking, these simple patterns seem to give the best
+     ;; performance. i figured a \' anchor was a little faster but it's not.
+     (sexp (not "_comment"))
+     (comment "_comment")
+     (symbol "_symbol")
      ;; this is used by `treesit-major-mode-setup' to set things like
      ;; `forward-list-function', so we set it to everything "list-like"
      (list ,(rx bos (or "list" "vector" "array" "complex" "struct") eos)))))

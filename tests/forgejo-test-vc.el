@@ -7,10 +7,7 @@
 
 ;;; Code:
 
-(require 'ert)
-(require 'cl-lib)
-
-(setq forgejo-markdown-mode 'text-mode)
+(require 'forgejo-test-helper)
 (require 'forgejo-vc)
 
 ;;; Group 1: Refspec building
@@ -32,10 +29,10 @@
   (let ((result (forgejo-vc--encode-description "Hello World")))
     (should (string-prefix-p "{base64}" result))
     (should (string= (decode-coding-string
-                       (base64-decode-string
-                        (substring result (length "{base64}")))
-                       'utf-8)
-                      "Hello World"))))
+                      (base64-decode-string
+                       (substring result (length "{base64}")))
+                      'utf-8)
+                     "Hello World"))))
 
 (ert-deftest forgejo-test-vc-encode-description-unicode ()
   "UTF-8 text roundtrips through encoding."

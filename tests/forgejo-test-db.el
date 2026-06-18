@@ -7,234 +7,159 @@
 
 ;;; Code:
 
-(require 'ert)
-(require 'cl-lib)
-
-(setq forgejo-markdown-mode 'text-mode)
+(require 'forgejo-test-helper)
 (require 'forgejo)
 (require 'forgejo-db)
-
-(defvar forgejo-test-db--temp-dir nil)
-
-(defun forgejo-test-db--setup ()
-  "Create a temp directory and initialize the database."
-  (setq forgejo-test-db--temp-dir (make-temp-file "forgejo-test" t))
-  (setq forgejo-db-dir forgejo-test-db--temp-dir)
-  (setq forgejo-db nil)
-  (forgejo-db--ensure))
-
-(defun forgejo-test-db--teardown ()
-  "Close database and remove temp directory."
-  (forgejo-db--close)
-  (when (and forgejo-test-db--temp-dir
-             (file-directory-p forgejo-test-db--temp-dir))
-    (delete-directory forgejo-test-db--temp-dir t))
-  (setq forgejo-test-db--temp-dir nil))
-
-(defun forgejo-test-db--sample-issue (&optional overrides)
-  "Return a fresh sample issue alist, optionally merged with OVERRIDES."
-  (let ((base (list (cons 'id 100)
-                    (cons 'number 42)
-                    (cons 'title "Fix login bug")
-                    (cons 'state "open")
-                    (cons 'body "The login page crashes.")
-                    (cons 'user (list (cons 'login "alice")))
-                    (cons 'labels (list (list (cons 'id 1)
-                                              (cons 'name "bug")
-                                              (cons 'color "d73a4a"))))
-                    (cons 'milestone (list (cons 'title "v1.0")))
-                    (cons 'assignees (list (list (cons 'login "bob"))))
-                    (cons 'comments 3)
-                    (cons 'created_at "2026-01-01T00:00:00Z")
-                    (cons 'updated_at "2026-04-15T12:00:00Z")
-                    (cons 'closed_at nil)
-                    (cons 'pull_request nil))))
-    (dolist (pair overrides base)
-      (setf (alist-get (car pair) base) (cdr pair)))))
 
 ;;; Group 1: Schema
 
 (ert-deftest forgejo-test-db-schema-creation ()
   "Database schema creates without error."
-  (forgejo-test-db--setup)
-  (unwind-protect
-      (should (sqlitep forgejo-db))
-    (forgejo-test-db--teardown)))
+  (forgejo-test-with-temp-db
+   (should (sqlitep forgejo-db))))
 
 (ert-deftest forgejo-test-db-reopen ()
   "Re-opening the database reuses the existing file."
-  (forgejo-test-db--setup)
-  (unwind-protect
-      (let ((path (expand-file-name "forgejo.db" forgejo-db-dir)))
-        (should (file-exists-p path))
-        (forgejo-db--close)
-        (forgejo-db--ensure)
-        (should (sqlitep forgejo-db)))
-    (forgejo-test-db--teardown)))
+  (forgejo-test-with-temp-db
+   (let ((path (expand-file-name "forgejo.db" forgejo-db-dir)))
+     (should (file-exists-p path))
+     (forgejo-db--close)
+     (forgejo-db--ensure)
+     (should (sqlitep forgejo-db)))))
 
 ;;; Group 2: Issues
 
 (ert-deftest forgejo-test-db-save-and-get-issue ()
   "Save an issue and retrieve it."
-  (forgejo-test-db--setup)
-  (unwind-protect
-      (let ((issue (forgejo-test-db--sample-issue)))
-        (forgejo-db-save-issues "codeberg.org" "owner" "repo" (list issue))
-        (let* ((rows (forgejo-db-get-issues "codeberg.org" "owner" "repo"))
-               (alist (forgejo-db--row-to-issue-alist (car rows))))
-          (should (= (length rows) 1))
-          (should (= (alist-get 'number alist) 42))))
-    (forgejo-test-db--teardown)))
+  (forgejo-test-with-temp-db
+   (forgejo-db-save-issues "codeberg.org" "owner" "repo"
+                           (list (forgejo-test-issue)))
+   (let* ((rows (forgejo-db-get-issues "codeberg.org" "owner" "repo"))
+          (alist (forgejo-db--row-to-issue-alist (car rows))))
+     (should (= (length rows) 1))
+     (should (= (alist-get 'number alist) 42)))))
 
 (ert-deftest forgejo-test-db-upsert-issue ()
   "Upserting an issue with same key replaces it."
-  (forgejo-test-db--setup)
-  (unwind-protect
-      (let ((issue1 (forgejo-test-db--sample-issue))
-            (issue2 (forgejo-test-db--sample-issue
-                     '((title . "Fixed login bug") (state . "closed")))))
-        (forgejo-db-save-issues "codeberg.org" "owner" "repo" (list issue1))
-        (forgejo-db-save-issues "codeberg.org" "owner" "repo" (list issue2))
-        (let* ((rows (forgejo-db-get-issues "codeberg.org" "owner" "repo"))
-               (alist (forgejo-db--row-to-issue-alist (car rows))))
-          (should (= (length rows) 1))
-          (should (string= (alist-get 'title alist) "Fixed login bug"))))
-    (forgejo-test-db--teardown)))
+  (forgejo-test-with-temp-db
+   (forgejo-db-save-issues "codeberg.org" "owner" "repo"
+                           (list (forgejo-test-issue)))
+   (forgejo-db-save-issues
+    "codeberg.org" "owner" "repo"
+    (list (forgejo-test-issue '((title . "Fixed login bug")
+                                (state . "closed")))))
+   (let* ((rows (forgejo-db-get-issues "codeberg.org" "owner" "repo"))
+          (alist (forgejo-db--row-to-issue-alist (car rows))))
+     (should (= (length rows) 1))
+     (should (string= (alist-get 'title alist) "Fixed login bug")))))
 
 (ert-deftest forgejo-test-db-filter-by-state ()
   "Filter issues by state."
-  (forgejo-test-db--setup)
-  (unwind-protect
-      (let ((open-issue (forgejo-test-db--sample-issue))
-            (closed-issue (forgejo-test-db--sample-issue
-                           '((id . 101) (number . 43)
-                             (state . "closed")
-                             (title . "Old bug")))))
-        (forgejo-db-save-issues "codeberg.org" "owner" "repo"
-                                (list open-issue closed-issue))
-        (let ((open (forgejo-db-get-issues "codeberg.org" "owner" "repo"
-                                           '(:state "open")))
-              (closed (forgejo-db-get-issues "codeberg.org" "owner" "repo"
-                                             '(:state "closed"))))
-          (should (= (length open) 1))
-          (should (= (length closed) 1))))
-    (forgejo-test-db--teardown)))
+  (forgejo-test-with-temp-db
+   (forgejo-db-save-issues
+    "codeberg.org" "owner" "repo"
+    (list (forgejo-test-issue)
+          (forgejo-test-issue '((id . 101) (number . 43)
+                                (state . "closed")
+                                (title . "Old bug")))))
+   (let ((open (forgejo-db-get-issues "codeberg.org" "owner" "repo"
+                                      '(:state "open")))
+         (closed (forgejo-db-get-issues "codeberg.org" "owner" "repo"
+                                        '(:state "closed"))))
+     (should (= (length open) 1))
+     (should (= (length closed) 1)))))
 
 (ert-deftest forgejo-test-db-filter-by-query ()
   "Filter issues by title search."
-  (forgejo-test-db--setup)
-  (unwind-protect
-      (let ((issue1 (forgejo-test-db--sample-issue))
-            (issue2 (forgejo-test-db--sample-issue
-                     '((id . 101) (number . 43)
-                       (title . "Add dark theme")))))
-        (forgejo-db-save-issues "codeberg.org" "owner" "repo"
-                                (list issue1 issue2))
-        (let ((results (forgejo-db-get-issues "codeberg.org" "owner" "repo"
-                                              '(:query "login"))))
-          (should (= (length results) 1))))
-    (forgejo-test-db--teardown)))
+  (forgejo-test-with-temp-db
+   (forgejo-db-save-issues
+    "codeberg.org" "owner" "repo"
+    (list (forgejo-test-issue)
+          (forgejo-test-issue '((id . 101) (number . 43)
+                                (title . "Add dark theme")))))
+   (let ((results (forgejo-db-get-issues "codeberg.org" "owner" "repo"
+                                         '(:query "login"))))
+     (should (= (length results) 1)))))
 
 (ert-deftest forgejo-test-db-filter-pulls ()
   "Filter pull requests vs issues."
-  (forgejo-test-db--setup)
-  (unwind-protect
-      (let ((issue (forgejo-test-db--sample-issue))
-            (pr (forgejo-test-db--sample-issue
-                 '((id . 101) (number . 43)
-                   (title . "Feature PR")
-                   (pull_request . ((merged . :false)))))))
-        (forgejo-db-save-issues "codeberg.org" "owner" "repo"
-                                (list issue pr))
-        (let ((pulls (forgejo-db-get-issues "codeberg.org" "owner" "repo"
-                                            '(:is-pull t)))
-              (issues (forgejo-db-get-issues "codeberg.org" "owner" "repo"
-                                             '(:no-pulls t))))
-          (should (= (length pulls) 1))
-          (should (= (length issues) 1))))
-    (forgejo-test-db--teardown)))
+  (forgejo-test-with-temp-db
+   (forgejo-db-save-issues "codeberg.org" "owner" "repo"
+                           (list (forgejo-test-issue)
+                                 (forgejo-test-pr)))
+   (let ((pulls (forgejo-db-get-issues "codeberg.org" "owner" "repo"
+                                       '(:is-pull t)))
+         (issues (forgejo-db-get-issues "codeberg.org" "owner" "repo"
+                                        '(:no-pulls t))))
+     (should (= (length pulls) 1))
+     (should (= (length issues) 1)))))
 
 ;;; Group 3: Timeline
 
 (ert-deftest forgejo-test-db-save-and-get-timeline ()
   "Save timeline events and retrieve them."
-  (forgejo-test-db--setup)
-  (unwind-protect
-      (let ((events `(((id . 1) (type . "comment")
-                       (body . "Looks good") (user . ((login . "alice")))
-                       (created_at . "2026-01-02T00:00:00Z"))
-                      ((id . 2) (type . "close")
-                       (body) (user . ((login . "bob")))
-                       (created_at . "2026-01-03T00:00:00Z")))))
-        (forgejo-db-save-timeline "codeberg.org" "owner" "repo" 42 events)
-        (let* ((rows (forgejo-db-get-timeline "codeberg.org" "owner" "repo" 42))
-               (alist (forgejo-db--row-to-timeline-alist (car rows))))
-          (should (= (length rows) 2))
-          ;; Ordered by created_at ASC
-          (should (string= (alist-get 'type alist) "comment"))))
-    (forgejo-test-db--teardown)))
+  (forgejo-test-with-temp-db
+   (forgejo-db-save-timeline
+    "codeberg.org" "owner" "repo" 42
+    (list (forgejo-test-comment 1 '((body . "Looks good")))
+          (forgejo-test-comment 2 '((type . "close") (body)))))
+   (let* ((rows (forgejo-db-get-timeline "codeberg.org" "owner" "repo" 42))
+          (alist (forgejo-db--row-to-timeline-alist (car rows))))
+     (should (= (length rows) 2))
+     (should (string= (alist-get 'type alist) "comment")))))
 
 ;;; Group 4: Labels
 
 (ert-deftest forgejo-test-db-save-and-get-labels ()
   "Save labels and retrieve them."
-  (forgejo-test-db--setup)
-  (unwind-protect
-      (let ((labels `(((id . 1) (name . "bug") (color . "d73a4a")
-                       (description . "Something broken"))
-                      ((id . 2) (name . "enhancement") (color . "a2eeef")
-                       (description . "New feature")))))
-        (forgejo-db-save-labels "codeberg.org" "owner" "repo" labels)
-        (let ((rows (forgejo-db-get-labels "codeberg.org" "owner" "repo")))
-          (should (= (length rows) 2))
-          ;; Ordered by name
-          (should (string= (nth 4 (car rows)) "bug"))))
-    (forgejo-test-db--teardown)))
+  (forgejo-test-with-temp-db
+   (forgejo-db-save-labels
+    "codeberg.org" "owner" "repo"
+    (list (forgejo-test-label)
+          (forgejo-test-label '((id . 2) (name . "enhancement")
+                                (color . "a2eeef")
+                                (description . "New feature")))))
+   (let ((rows (forgejo-db-get-labels "codeberg.org" "owner" "repo")))
+     (should (= (length rows) 2))
+     (should (string= (nth 4 (car rows)) "bug")))))
 
 ;;; Group 5: Milestones
 
 (ert-deftest forgejo-test-db-save-and-get-milestones ()
   "Save milestones and retrieve them."
-  (forgejo-test-db--setup)
-  (unwind-protect
-      (let ((milestones `(((id . 1) (title . "v1.0") (state . "open")
-                           (open_issues . 5) (closed_issues . 3))
-                          ((id . 2) (title . "v2.0") (state . "open")
-                           (open_issues . 10) (closed_issues . 0)))))
-        (forgejo-db-save-milestones "codeberg.org" "owner" "repo" milestones)
-        (let ((rows (forgejo-db-get-milestones "codeberg.org" "owner" "repo")))
-          (should (= (length rows) 2))))
-    (forgejo-test-db--teardown)))
+  (forgejo-test-with-temp-db
+   (forgejo-db-save-milestones
+    "codeberg.org" "owner" "repo"
+    '(((id . 1) (title . "v1.0") (state . "open")
+       (open_issues . 5) (closed_issues . 3))
+      ((id . 2) (title . "v2.0") (state . "open")
+       (open_issues . 10) (closed_issues . 0))))
+   (let ((rows (forgejo-db-get-milestones "codeberg.org" "owner" "repo")))
+     (should (= (length rows) 2)))))
 
 ;;; Group 6: Sync state
 
 (ert-deftest forgejo-test-db-sync-state ()
   "Set and get sync timestamps."
-  (forgejo-test-db--setup)
-  (unwind-protect
-      (progn
-        (should (null (forgejo-db-get-sync-time
-                       "codeberg.org" "owner" "repo" "issues")))
-        (forgejo-db-set-sync-time
-         "codeberg.org" "owner" "repo" "issues" "2026-04-15T12:00:00Z")
-        (should (string= (forgejo-db-get-sync-time
-                          "codeberg.org" "owner" "repo" "issues")
-                         "2026-04-15T12:00:00Z")))
-    (forgejo-test-db--teardown)))
+  (forgejo-test-with-temp-db
+   (should (null (forgejo-db-get-sync-time
+                  "codeberg.org" "owner" "repo" "issues")))
+   (forgejo-db-set-sync-time
+    "codeberg.org" "owner" "repo" "issues" "2026-04-15T12:00:00Z")
+   (should (string= (forgejo-db-get-sync-time
+                     "codeberg.org" "owner" "repo" "issues")
+                    "2026-04-15T12:00:00Z"))))
 
 (ert-deftest forgejo-test-db-sync-state-update ()
   "Updating sync time replaces the old value."
-  (forgejo-test-db--setup)
-  (unwind-protect
-      (progn
-        (forgejo-db-set-sync-time
-         "codeberg.org" "owner" "repo" "issues" "2026-01-01T00:00:00Z")
-        (forgejo-db-set-sync-time
-         "codeberg.org" "owner" "repo" "issues" "2026-04-20T00:00:00Z")
-        (should (string= (forgejo-db-get-sync-time
-                          "codeberg.org" "owner" "repo" "issues")
-                         "2026-04-20T00:00:00Z")))
-    (forgejo-test-db--teardown)))
+  (forgejo-test-with-temp-db
+   (forgejo-db-set-sync-time
+    "codeberg.org" "owner" "repo" "issues" "2026-01-01T00:00:00Z")
+   (forgejo-db-set-sync-time
+    "codeberg.org" "owner" "repo" "issues" "2026-04-20T00:00:00Z")
+   (should (string= (forgejo-db-get-sync-time
+                     "codeberg.org" "owner" "repo" "issues")
+                    "2026-04-20T00:00:00Z"))))
 
 ;;; Group 7: JSON helpers
 
@@ -253,7 +178,7 @@
   (should (null (forgejo-db--decode-json "null")))
   (should (null (forgejo-db--decode-json nil))))
 
-;;; Group 8: :null handling (real API data shape)
+;;; Group 8: :null handling
 
 (ert-deftest forgejo-test-db-nullable ()
   "Convert :null and :false to nil."
@@ -265,236 +190,184 @@
 
 (ert-deftest forgejo-test-db-save-issue-with-nulls ()
   "Save an issue where API returns :null for optional fields."
-  (forgejo-test-db--setup)
-  (unwind-protect
-      (let ((issue (list (cons 'id 200)
-                         (cons 'number 10)
-                         (cons 'title "Test with nulls")
-                         (cons 'state "open")
-                         (cons 'body "body text")
-                         (cons 'user (list (cons 'login "alice")))
-                         (cons 'labels :null)
-                         (cons 'milestone :null)
-                         (cons 'assignees :null)
-                         (cons 'comments 0)
-                         (cons 'created_at "2026-01-01T00:00:00Z")
-                         (cons 'updated_at "2026-04-15T12:00:00Z")
-                         (cons 'closed_at :null)
-                         (cons 'pull_request :null))))
-        (forgejo-db-save-issues "codeberg.org" "owner" "repo" (list issue))
-        (let* ((rows (forgejo-db-get-issues "codeberg.org" "owner" "repo"))
-               (alist (forgejo-db--row-to-issue-alist (car rows))))
-          (should (= (length rows) 1))
-          (should (string= (alist-get 'title alist) "Test with nulls"))
-          (should (null (alist-get 'milestone alist)))))
-    (forgejo-test-db--teardown)))
+  (forgejo-test-with-temp-db
+   (forgejo-db-save-issues
+    "codeberg.org" "owner" "repo"
+    (list (forgejo-test-issue '((id . 200)
+                                (number . 10)
+                                (title . "Test with nulls")
+                                (body . "body text")
+                                (labels . :null)
+                                (milestone . :null)
+                                (assignees . :null)
+                                (comments . 0)
+                                (closed_at . :null)
+                                (pull_request . :null)))))
+   (let* ((rows (forgejo-db-get-issues "codeberg.org" "owner" "repo"))
+          (alist (forgejo-db--row-to-issue-alist (car rows))))
+     (should (= (length rows) 1))
+     (should (string= (alist-get 'title alist) "Test with nulls"))
+     (should (null (alist-get 'milestone alist))))))
 
 (ert-deftest forgejo-test-db-save-pr-with-nulls ()
   "Save a PR where assignees/milestone are :null but labels exist."
-  (forgejo-test-db--setup)
-  (unwind-protect
-      (let ((pr (list (cons 'id 300)
-                      (cons 'number 20)
-                      (cons 'title "Feature PR")
-                      (cons 'state "open")
-                      (cons 'body :null)
-                      (cons 'user (list (cons 'login "bob")))
-                      (cons 'labels (list (list (cons 'id 1)
-                                                (cons 'name "bug")
-                                                (cons 'color "ff0000"))))
-                      (cons 'milestone :null)
-                      (cons 'assignees :null)
-                      (cons 'comments 5)
-                      (cons 'created_at "2026-02-01T00:00:00Z")
-                      (cons 'updated_at "2026-04-10T00:00:00Z")
-                      (cons 'closed_at :null)
-                      (cons 'pull_request (list (cons 'merged :false))))))
-        (forgejo-db-save-issues "codeberg.org" "owner" "repo" (list pr))
-        (let ((rows (forgejo-db-get-issues "codeberg.org" "owner" "repo"
-                                           '(:is-pull t))))
-          (should (= (length rows) 1))))
-    (forgejo-test-db--teardown)))
+  (forgejo-test-with-temp-db
+   (forgejo-db-save-issues
+    "codeberg.org" "owner" "repo"
+    (list (forgejo-test-pr '((id . 300)
+                             (number . 20)
+                             (body . :null)
+                             (user . ((login . "bob")))
+                             (labels . (((id . 1)
+                                         (name . "bug")
+                                         (color . "ff0000"))))
+                             (milestone . :null)
+                             (assignees . :null)
+                             (comments . 5)
+                             (closed_at . :null)))))
+   (let ((rows (forgejo-db-get-issues "codeberg.org" "owner" "repo"
+                                      '(:is-pull t))))
+     (should (= (length rows) 1)))))
 
 (ert-deftest forgejo-test-db-save-timeline-with-nulls ()
   "Save timeline events with :null fields."
-  (forgejo-test-db--setup)
-  (unwind-protect
-      (let ((events (list (list (cons 'id 1)
-                                (cons 'type "comment")
-                                (cons 'body "text")
-                                (cons 'user (list (cons 'login "alice")))
-                                (cons 'created_at "2026-01-02T00:00:00Z"))
-                          (list (cons 'id 2)
-                                (cons 'type "label")
-                                (cons 'body :null)
-                                (cons 'user :null)
-                                (cons 'created_at "2026-01-03T00:00:00Z")))))
-        (forgejo-db-save-timeline "codeberg.org" "owner" "repo" 42 events)
-        (let ((rows (forgejo-db-get-timeline "codeberg.org" "owner" "repo" 42)))
-          (should (= (length rows) 2))))
-    (forgejo-test-db--teardown)))
+  (forgejo-test-with-temp-db
+   (forgejo-db-save-timeline
+    "codeberg.org" "owner" "repo" 42
+    (list (forgejo-test-comment 1 '((body . "text")
+                                    (user . ((login . "alice")))
+                                    (created_at . "2026-01-02T00:00:00Z")))
+          (forgejo-test-comment 2 '((type . "label")
+                                    (body . :null)
+                                    (user . :null)
+                                    (created_at . "2026-01-03T00:00:00Z")))))
+   (let ((rows (forgejo-db-get-timeline "codeberg.org" "owner" "repo" 42)))
+     (should (= (length rows) 2)))))
 
 ;;; Group 9: Row-to-alist conversion
 
 (ert-deftest forgejo-test-db-row-to-issue-alist ()
   "Convert a DB row back to an API-shaped alist."
-  (forgejo-test-db--setup)
-  (unwind-protect
-      (let ((issue (list (cons 'id 100)
-                         (cons 'number 42)
-                         (cons 'title "Test issue")
-                         (cons 'state "open")
-                         (cons 'body "Body text")
-                         (cons 'user (list (cons 'login "alice")))
-                         (cons 'labels (list (list (cons 'id 1)
-                                                   (cons 'name "bug")
-                                                   (cons 'color "ff0000"))))
-                         (cons 'milestone (list (cons 'title "v1.0")))
-                         (cons 'assignees (list (list (cons 'login "bob"))))
-                         (cons 'comments 3)
-                         (cons 'created_at "2026-01-01T00:00:00Z")
-                         (cons 'updated_at "2026-04-15T12:00:00Z")
-                         (cons 'closed_at nil)
-                         (cons 'pull_request nil))))
-        (forgejo-db-save-issues "codeberg.org" "owner" "repo" (list issue))
-        (let* ((rows (forgejo-db-get-issues "codeberg.org" "owner" "repo"))
-               (alist (forgejo-db--row-to-issue-alist (car rows))))
-          (should (= (alist-get 'number alist) 42))
-          (should (string= (alist-get 'title alist) "Test issue"))
-          (should (string= (alist-get 'state alist) "open"))
-          (should (string= (alist-get 'login (alist-get 'user alist)) "alice"))
-          (should (= (alist-get 'comments alist) 3))
-          (should (string= (alist-get 'updated_at alist) "2026-04-15T12:00:00Z"))))
-    (forgejo-test-db--teardown)))
+  (forgejo-test-with-temp-db
+   (forgejo-db-save-issues "codeberg.org" "owner" "repo"
+                           (list (forgejo-test-issue
+                                  '((title . "Test issue")
+                                    (body . "Body text")
+                                    (labels . (((id . 1)
+                                                (name . "bug")
+                                                (color . "ff0000"))))))))
+   (let* ((rows (forgejo-db-get-issues "codeberg.org" "owner" "repo"))
+          (alist (forgejo-db--row-to-issue-alist (car rows))))
+     (should (= (alist-get 'number alist) 42))
+     (should (string= (alist-get 'title alist) "Test issue"))
+     (should (string= (alist-get 'state alist) "open"))
+     (should (string= (alist-get 'login (alist-get 'user alist)) "alice"))
+     (should (= (alist-get 'comments alist) 3))
+     (should (string= (alist-get 'updated_at alist)
+                      "2026-04-15T12:00:00Z")))))
 
 (ert-deftest forgejo-test-db-row-to-issue-alist-with-nulls ()
   "Row-to-alist handles nil/missing fields gracefully."
-  (forgejo-test-db--setup)
-  (unwind-protect
-      (let ((issue (list (cons 'id 200)
-                         (cons 'number 10)
-                         (cons 'title "Null test")
-                         (cons 'state "open")
-                         (cons 'body :null)
-                         (cons 'user (list (cons 'login "bob")))
-                         (cons 'labels :null)
-                         (cons 'milestone :null)
-                         (cons 'assignees :null)
-                         (cons 'comments 0)
-                         (cons 'created_at "2026-01-01T00:00:00Z")
-                         (cons 'updated_at "2026-04-15T12:00:00Z")
-                         (cons 'closed_at :null)
-                         (cons 'pull_request :null))))
-        (forgejo-db-save-issues "codeberg.org" "owner" "repo" (list issue))
-        (let* ((rows (forgejo-db-get-issues "codeberg.org" "owner" "repo"))
-               (alist (forgejo-db--row-to-issue-alist (car rows))))
-          (should (= (alist-get 'number alist) 10))
-          (should (null (alist-get 'milestone alist)))
-          (should (null (alist-get 'pull_request alist)))))
-    (forgejo-test-db--teardown)))
+  (forgejo-test-with-temp-db
+   (forgejo-db-save-issues
+    "codeberg.org" "owner" "repo"
+    (list (forgejo-test-issue '((id . 200)
+                                (number . 10)
+                                (title . "Null test")
+                                (body . :null)
+                                (user . ((login . "bob")))
+                                (labels . :null)
+                                (milestone . :null)
+                                (assignees . :null)
+                                (comments . 0)
+                                (closed_at . :null)
+                                (pull_request . :null)))))
+   (let* ((rows (forgejo-db-get-issues "codeberg.org" "owner" "repo"))
+          (alist (forgejo-db--row-to-issue-alist (car rows))))
+     (should (= (alist-get 'number alist) 10))
+     (should (null (alist-get 'milestone alist)))
+     (should (null (alist-get 'pull_request alist))))))
 
 ;;; Group 10: Host lookup
 
 (ert-deftest forgejo-test-db-get-hosts-for-repo ()
   "Return distinct hosts that have cached data for a repo."
-  (forgejo-test-db--setup)
-  (unwind-protect
-      (let ((issue-a (list (cons 'id 1) (cons 'number 1)
-                           (cons 'title "A") (cons 'state "open")
-                           (cons 'user (list (cons 'login "alice")))
-                           (cons 'updated_at "2026-01-01T00:00:00Z")))
-            (issue-b (list (cons 'id 2) (cons 'number 2)
-                           (cons 'title "B") (cons 'state "open")
-                           (cons 'user (list (cons 'login "bob")))
-                           (cons 'updated_at "2026-01-02T00:00:00Z"))))
-        (forgejo-db-save-issues "codeberg.org" "owner" "repo" (list issue-a))
-        (forgejo-db-save-issues "git.myorg.com" "owner" "repo" (list issue-b))
-        (let ((hosts (forgejo-db-get-hosts-for-repo "owner" "repo")))
-          (should (= (length hosts) 2))
-          (should (member "codeberg.org" hosts))
-          (should (member "git.myorg.com" hosts)))
-        ;; Different repo returns only its host
-        (forgejo-db-save-issues "codeberg.org" "other" "project"
-                                (list (list (cons 'id 3) (cons 'number 1)
-                                            (cons 'title "C") (cons 'state "open")
-                                            (cons 'user (list (cons 'login "x")))
-                                            (cons 'updated_at "2026-01-03T00:00:00Z"))))
-        (let ((hosts (forgejo-db-get-hosts-for-repo "other" "project")))
-          (should (= (length hosts) 1))
-          (should (string= (car hosts) "codeberg.org"))))
-    (forgejo-test-db--teardown)))
+  (forgejo-test-with-temp-db
+   (forgejo-db-save-issues
+    "codeberg.org" "owner" "repo"
+    (list (forgejo-test-issue '((id . 1) (number . 1) (title . "A")))))
+   (forgejo-db-save-issues
+    "git.myorg.com" "owner" "repo"
+    (list (forgejo-test-issue '((id . 2) (number . 2)
+                                (title . "B")
+                                (user . ((login . "bob")))
+                                (updated_at . "2026-01-02T00:00:00Z")))))
+   (let ((hosts (forgejo-db-get-hosts-for-repo "owner" "repo")))
+     (should (= (length hosts) 2))
+     (should (member "codeberg.org" hosts))
+     (should (member "git.myorg.com" hosts)))
+   (forgejo-db-save-issues
+    "codeberg.org" "other" "project"
+    (list (forgejo-test-issue '((id . 3) (number . 1)
+                                (title . "C")
+                                (user . ((login . "x")))
+                                (updated_at . "2026-01-03T00:00:00Z")))))
+   (let ((hosts (forgejo-db-get-hosts-for-repo "other" "project")))
+     (should (= (length hosts) 1))
+     (should (string= (car hosts) "codeberg.org")))))
 
 ;;; Group 11: Reactions
 
 (ert-deftest forgejo-test-db-save-and-get-reactions ()
   "Save reactions and retrieve them grouped by comment-id and content."
-  (forgejo-test-db--setup)
-  (unwind-protect
-      (let ((issue-reactions
-             (list (list (cons 'content "+1")
-                         (cons 'user (list (cons 'login "alice")))
-                         (cons 'created_at "2026-01-01T00:00:00Z"))
-                   (list (cons 'content "+1")
-                         (cons 'user (list (cons 'login "bob")))
-                         (cons 'created_at "2026-01-01T01:00:00Z"))
-                   (list (cons 'content "heart")
-                         (cons 'user (list (cons 'login "alice")))
-                         (cons 'created_at "2026-01-01T02:00:00Z"))))
-            (comment-reactions
-             (list (list (cons 'content "eyes")
-                         (cons 'user (list (cons 'login "charlie")))
-                         (cons 'created_at "2026-01-02T00:00:00Z")))))
-        (forgejo-db-save-reactions "codeberg.org" "owner" "repo" 42 0
-                                   issue-reactions)
-        (forgejo-db-save-reactions "codeberg.org" "owner" "repo" 42 100
-                                   comment-reactions)
-        (let ((all (forgejo-db-get-reactions "codeberg.org" "owner" "repo" 42)))
-          ;; Two comment-ids: 0 (issue body) and 100 (comment)
-          (should (= (length all) 2))
-          (let ((issue-r (cdr (assoc 0 all)))
-                (comment-r (cdr (assoc 100 all))))
-            ;; Issue body: +1 from alice,bob and heart from alice
-            (should (equal (cdr (assoc "+1" issue-r #'string=))
-                           '("alice" "bob")))
-            (should (equal (cdr (assoc "heart" issue-r #'string=))
-                           '("alice")))
-            ;; Comment: eyes from charlie
-            (should (equal (cdr (assoc "eyes" comment-r #'string=))
-                           '("charlie"))))))
-    (forgejo-test-db--teardown)))
+  (forgejo-test-with-temp-db
+   (forgejo-db-save-reactions
+    "codeberg.org" "owner" "repo" 42 0
+    (list (forgejo-test-reaction "+1" "alice")
+          (forgejo-test-reaction "+1" "bob"
+                                 '((created_at . "2026-01-01T01:00:00Z")))
+          (forgejo-test-reaction "heart" "alice"
+                                 '((created_at . "2026-01-01T02:00:00Z")))))
+   (forgejo-db-save-reactions
+    "codeberg.org" "owner" "repo" 42 100
+    (list (forgejo-test-reaction "eyes" "charlie"
+                                 '((created_at . "2026-01-02T00:00:00Z")))))
+   (let ((all (forgejo-db-get-reactions "codeberg.org" "owner" "repo" 42)))
+     (should (= (length all) 2))
+     (let ((issue-r (cdr (assoc 0 all)))
+           (comment-r (cdr (assoc 100 all))))
+       (should (equal (cdr (assoc "+1" issue-r #'string=))
+                      '("alice" "bob")))
+       (should (equal (cdr (assoc "heart" issue-r #'string=))
+                      '("alice")))
+       (should (equal (cdr (assoc "eyes" comment-r #'string=))
+                      '("charlie")))))))
 
 (ert-deftest forgejo-test-db-save-reactions-replaces ()
   "Saving reactions replaces previous ones for the same comment-id."
-  (forgejo-test-db--setup)
-  (unwind-protect
-      (let ((old (list (list (cons 'content "+1")
-                             (cons 'user (list (cons 'login "alice")))
-                             (cons 'created_at "2026-01-01T00:00:00Z"))))
-            (new (list (list (cons 'content "heart")
-                             (cons 'user (list (cons 'login "bob")))
-                             (cons 'created_at "2026-01-02T00:00:00Z")))))
-        (forgejo-db-save-reactions "codeberg.org" "owner" "repo" 42 0 old)
-        (forgejo-db-save-reactions "codeberg.org" "owner" "repo" 42 0 new)
-        (let* ((all (forgejo-db-get-reactions "codeberg.org" "owner" "repo" 42))
-               (issue-r (cdr (assoc 0 all))))
-          ;; Old +1 should be gone, only heart remains
-          (should-not (assoc "+1" issue-r #'string=))
-          (should (equal (cdr (assoc "heart" issue-r #'string=))
-                         '("bob")))))
-    (forgejo-test-db--teardown)))
+  (forgejo-test-with-temp-db
+   (forgejo-db-save-reactions
+    "codeberg.org" "owner" "repo" 42 0
+    (list (forgejo-test-reaction "+1" "alice")))
+   (forgejo-db-save-reactions
+    "codeberg.org" "owner" "repo" 42 0
+    (list (forgejo-test-reaction "heart" "bob"
+                                 '((created_at . "2026-01-02T00:00:00Z")))))
+   (let* ((all (forgejo-db-get-reactions "codeberg.org" "owner" "repo" 42))
+          (issue-r (cdr (assoc 0 all))))
+     (should-not (assoc "+1" issue-r #'string=))
+     (should (equal (cdr (assoc "heart" issue-r #'string=))
+                    '("bob"))))))
 
 (ert-deftest forgejo-test-db-save-reactions-empty ()
   "Saving empty reactions clears existing ones."
-  (forgejo-test-db--setup)
-  (unwind-protect
-      (let ((reactions (list (list (cons 'content "+1")
-                                   (cons 'user (list (cons 'login "alice")))
-                                   (cons 'created_at "2026-01-01T00:00:00Z")))))
-        (forgejo-db-save-reactions "codeberg.org" "owner" "repo" 42 0 reactions)
-        (forgejo-db-save-reactions "codeberg.org" "owner" "repo" 42 0 nil)
-        (let ((all (forgejo-db-get-reactions "codeberg.org" "owner" "repo" 42)))
-          (should (null all))))
-    (forgejo-test-db--teardown)))
+  (forgejo-test-with-temp-db
+   (forgejo-db-save-reactions
+    "codeberg.org" "owner" "repo" 42 0
+    (list (forgejo-test-reaction "+1" "alice")))
+   (forgejo-db-save-reactions "codeberg.org" "owner" "repo" 42 0 nil)
+   (let ((all (forgejo-db-get-reactions "codeberg.org" "owner" "repo" 42)))
+     (should (null all)))))
 
 (provide 'forgejo-test-db)
 ;;; forgejo-test-db.el ends here

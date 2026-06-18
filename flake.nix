@@ -62,6 +62,7 @@
 
             buildPhase = ''
               runHook preBuild
+              unset EMACSDATA EMACSDOC EMACSLOADPATH EMACSPATH GREP_OPTIONS
               export HOME="$TMPDIR/home"
               export XDG_CACHE_HOME="$TMPDIR/cache"
               export XDG_CONFIG_HOME="$TMPDIR/config"

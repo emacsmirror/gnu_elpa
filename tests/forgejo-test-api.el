@@ -6,10 +6,7 @@
 
 ;;; Code:
 
-(require 'ert)
-(require 'cl-lib)
-
-(setq forgejo-markdown-mode 'text-mode)
+(require 'forgejo-test-helper)
 (require 'forgejo)
 (require 'forgejo-api)
 

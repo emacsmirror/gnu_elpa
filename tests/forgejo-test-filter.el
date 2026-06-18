@@ -7,10 +7,7 @@
 
 ;;; Code:
 
-(require 'ert)
-(require 'cl-lib)
-
-(setq forgejo-markdown-mode 'text-mode)
+(require 'forgejo-test-helper)
 (require 'forgejo-buffer)
 (require 'forgejo-filter)
 
@@ -68,7 +65,7 @@
 (ert-deftest forgejo-test-filter-serialize-state ()
   "Serialize state filter."
   (should (string= (forgejo-filter-serialize '(:state "open"))
-                    "state:open")))
+                   "state:open")))
 
 (ert-deftest forgejo-test-filter-serialize-multiple ()
   "Serialize multiple filters."

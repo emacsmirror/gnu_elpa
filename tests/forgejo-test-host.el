@@ -7,10 +7,7 @@
 
 ;;; Code:
 
-(require 'ert)
-(require 'cl-lib)
-
-(setq forgejo-markdown-mode 'text-mode)
+(require 'forgejo-test-helper)
 (require 'forgejo)
 
 ;;; Group 1: Host validation

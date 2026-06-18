@@ -6,12 +6,7 @@
 
 ;;; Code:
 
-(require 'ert)
-(require 'cl-lib)
-
-(defvar forgejo-markdown-mode)
-
-(setq forgejo-markdown-mode 'text-mode)
+(require 'forgejo-test-helper)
 (require 'forgejo-issue)
 
 ;;; Group 1: Entry conversion
@@ -92,29 +87,6 @@
 
 ;;; Group 4: Detail view entry
 
-(defun forgejo-test-issue--issue-alist ()
-  "Return an issue alist for detail view tests."
-  '((number . 1)
-    (title . "Test issue")
-    (state . "open")
-    (body . "")
-    (user . ((login . "alice")))
-    (created_at . "2026-01-01T00:00:00Z")
-    (updated_at . "2026-01-01T00:00:00Z")))
-
-(defun forgejo-test-issue--comment-alist (id)
-  "Return a timeline comment alist with ID."
-  `((type . "comment")
-    (id . ,id)
-    (body . ,(format "Comment %d" id))
-    (user . ((login . "commenter")))
-    (created_at . "2026-01-01T00:00:00Z")
-    (updated_at . "2026-01-01T00:00:00Z")))
-
-(defun forgejo-test-issue--timeline (&rest ids)
-  "Return timeline comment events for IDS."
-  (mapcar #'forgejo-test-issue--comment-alist ids))
-
 (ert-deftest forgejo-test-issue-view-passes-missing-comment-id-to-sync ()
   (let ((forgejo-repo--host "https://codeberg.org")
         sync-args)
@@ -163,9 +135,9 @@
         (other (get-buffer-create "*forgejo-test-issue-other*")))
     (unwind-protect
         (cl-letf (((symbol-function 'forgejo-db-get-issue)
-                   (lambda (&rest _args) (forgejo-test-issue--issue-alist)))
+                   (lambda (&rest _args) (forgejo-test-detail-issue)))
                   ((symbol-function 'forgejo-db-get-timeline)
-                   (lambda (&rest _args) (forgejo-test-issue--timeline 10 20)))
+                   (lambda (&rest _args) (forgejo-test-timeline 10 20)))
                   ((symbol-function 'forgejo-db--row-to-timeline-alist)
                    #'identity)
                   ((symbol-function 'forgejo-buffer--update-reactions)

@@ -19,6 +19,8 @@ SRCS = lisp/forgejo.el lisp/forgejo-api.el lisp/forgejo-db.el \
        lisp/forgejo-token.el lisp/forgejo-alert.el lisp/forgejo-watch.el \
        lisp/forgejo-notification.el lisp/forgejo-ol.el
 
+TEST_HELPERS = tests/forgejo-test-helper.el
+
 TESTS = tests/forgejo-test-load.el tests/forgejo-test-api.el \
         tests/forgejo-test-db.el tests/forgejo-test-host.el \
         tests/forgejo-test-buffer.el tests/forgejo-test-filter.el \
@@ -26,9 +28,12 @@ TESTS = tests/forgejo-test-load.el tests/forgejo-test-api.el \
         tests/forgejo-test-review.el tests/forgejo-test-tl.el \
         tests/forgejo-test-vc.el tests/forgejo-test-view.el
 
-BATCH = $(EMACS_CMD) -Q --batch -L lisp
+SELECTOR ?= t
+ERT_OPTS ?=
 
-.PHONY: all compile do-compile test do-test lint do-lint clean dev do-dev load test-env
+BATCH = $(EMACS_CMD) -Q --batch -L lisp -L tests
+
+.PHONY: all compile do-compile compile-tests do-compile-tests test do-test lint do-lint clean dev do-dev load test-env
 
 all: compile
 
@@ -41,13 +46,23 @@ do-compile:
 	  $(BATCH) -l $$f -f batch-byte-compile $$f || exit 1; \
 	done
 
+compile-tests:
+	@$(ENV_MAKE) do-compile-tests
+
+do-compile-tests:
+	@for f in $(TEST_HELPERS) $(TESTS); do \
+	  echo "Compiling $$f..."; \
+	  $(BATCH) -l ert -f batch-byte-compile $$f || exit 1; \
+	done
+
 test:
-	@$(ENV_MAKE) do-test
+	@$(ENV_MAKE) do-compile-tests do-test
 
 do-test:
 	@for f in $(TESTS); do \
 	  echo "Testing $$f..."; \
-	  $(BATCH) -l ert -l $$f -f ert-run-tests-batch-and-exit || exit 1; \
+	  $(BATCH) -l ert $(ERT_OPTS) -l $$f \
+	    --eval '(ert-run-tests-batch-and-exit (quote $(SELECTOR)))' || exit 1; \
 	done
 
 lint:
@@ -62,7 +77,7 @@ do-lint:
 dev:
 	@$(ENV_MAKE) do-dev
 
-do-dev: do-compile do-lint do-test
+do-dev: do-compile do-lint do-compile-tests do-test
 
 load: clean
 	@emacsclient --eval "(progn \
@@ -104,4 +119,4 @@ test-env:
 	@$(EMACS_CMD) -Q -L lisp -l forgejo-autoloads
 
 clean:
-	rm -f *.elc lisp/*.elc lisp/forgejo-autoloads.el
+	rm -f *.elc lisp/*.elc tests/*.elc lisp/forgejo-autoloads.el

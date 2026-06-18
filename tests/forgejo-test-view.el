@@ -6,13 +6,10 @@
 
 ;;; Code:
 
-(require 'ert)
-(require 'cl-lib)
+(require 'forgejo-test-helper)
 
-(defvar forgejo-markdown-mode)
 (defvar forgejo-repo--host)
 
-(setq forgejo-markdown-mode 'text-mode)
 (require 'forgejo-view)
 
 ;;; Group 1: Diff keymap
@@ -54,28 +51,6 @@
 
 ;;; Group 3: EWOC comment navigation
 
-(defun forgejo-test-view--issue-alist ()
-  "Return a minimal issue alist for detail rendering."
-  '((number . 1)
-    (title . "Issue")
-    (state . "open")
-    (body . "")
-    (user . ((login . "user")))
-    (created_at . "2026-01-01T00:00:00Z")
-    (updated_at . "2026-01-01T00:00:00Z")))
-
-(defun forgejo-test-view--comment-alist (id)
-  "Return a minimal comment timeline event for ID."
-  `((id . ,id)
-    (type . "comment")
-    (body . ,(format "Comment %d" id))
-    (user . ((login . "commenter")))
-    (created_at . "2026-01-01T00:00:00Z")))
-
-(defun forgejo-test-view--timeline (&rest ids)
-  "Return timeline comment events for IDS."
-  (mapcar #'forgejo-test-view--comment-alist ids))
-
 (ert-deftest forgejo-test-view-goto-comment-finds-ewoc-node ()
   (with-temp-buffer
     (let ((ewoc (ewoc-create
@@ -107,8 +82,8 @@
     (cl-letf (((symbol-function 'forgejo-buffer--update-reactions) #'ignore))
       (let ((buf (forgejo-view--render-detail
                   buf-name "https://codeberg.org" "owner" "repo"
-                  (forgejo-test-view--issue-alist)
-                  (forgejo-test-view--timeline 10 20)
+                  (forgejo-test-detail-issue)
+                  (forgejo-test-timeline 10 20)
                   #'fundamental-mode #'ignore #'ignore 20)))
         (unwind-protect
             (with-current-buffer buf
@@ -120,15 +95,15 @@
     (cl-letf (((symbol-function 'forgejo-buffer--update-reactions) #'ignore))
       (let ((buf (forgejo-view--render-detail
                   buf-name "https://codeberg.org" "owner" "repo"
-                  (forgejo-test-view--issue-alist)
-                  (forgejo-test-view--timeline 10 20)
+                  (forgejo-test-detail-issue)
+                  (forgejo-test-timeline 10 20)
                   #'fundamental-mode #'ignore #'ignore)))
         (unwind-protect
             (with-current-buffer
                 (forgejo-view--render-detail
                  buf-name "https://codeberg.org" "owner" "repo"
-                 (forgejo-test-view--issue-alist)
-                 (forgejo-test-view--timeline 10 20)
+                 (forgejo-test-detail-issue)
+                 (forgejo-test-timeline 10 20)
                  #'fundamental-mode #'ignore #'ignore 20)
               (should (eql 20 (plist-get (forgejo-view--node-at-point) :id))))
           (when (buffer-live-p buf) (kill-buffer buf)))))))
@@ -139,8 +114,8 @@
     (cl-letf (((symbol-function 'forgejo-buffer--update-reactions) #'ignore))
       (let ((buf (forgejo-view--render-detail
                   buf-name "https://codeberg.org" "owner" "repo"
-                  (forgejo-test-view--issue-alist)
-                  (forgejo-test-view--timeline 10 20)
+                  (forgejo-test-detail-issue)
+                  (forgejo-test-timeline 10 20)
                   #'fundamental-mode #'ignore #'ignore)))
         (unwind-protect
             (with-current-buffer buf
@@ -149,8 +124,8 @@
               (setq point-before (point))
               (forgejo-view--render-detail
                buf-name "https://codeberg.org" "owner" "repo"
-               (forgejo-test-view--issue-alist)
-               (forgejo-test-view--timeline 10 20)
+               (forgejo-test-detail-issue)
+               (forgejo-test-timeline 10 20)
                #'fundamental-mode #'ignore #'ignore)
               (should (eql point-before (point))))
           (when (buffer-live-p buf) (kill-buffer buf)))))))
@@ -180,8 +155,8 @@
     (cl-letf (((symbol-function 'forgejo-buffer--update-reactions) #'ignore))
       (let ((buf (forgejo-view--render-detail
                   buf-name "https://codeberg.org" "owner" "repo"
-                  (forgejo-test-view--issue-alist)
-                  (forgejo-test-view--timeline 10 20)
+                  (forgejo-test-detail-issue)
+                  (forgejo-test-timeline 10 20)
                   #'fundamental-mode
                   (lambda (&rest args) (setq called args))
                   #'ignore)))
@@ -200,9 +175,9 @@
         called)
     (unwind-protect
         (cl-letf (((symbol-function 'forgejo-db-get-issue)
-                   (lambda (&rest _args) (forgejo-test-view--issue-alist)))
+                   (lambda (&rest _args) (forgejo-test-detail-issue)))
                   ((symbol-function 'forgejo-db-get-timeline)
-                   (lambda (&rest _args) (forgejo-test-view--timeline 10)))
+                   (lambda (&rest _args) (forgejo-test-timeline 10)))
                   ((symbol-function 'forgejo-db--row-to-timeline-alist)
                    #'identity))
           (forgejo-view--re-render
@@ -212,8 +187,8 @@
           (should (equal called
                          (list (buffer-name buf) "https://codeberg.org"
                                "owner" "repo"
-                               (forgejo-test-view--issue-alist)
-                               (forgejo-test-view--timeline 10)
+                               (forgejo-test-detail-issue)
+                               (forgejo-test-timeline 10)
                                10))))
       (when (buffer-live-p buf) (kill-buffer buf)))))
 
@@ -222,7 +197,7 @@
         restored)
     (unwind-protect
         (cl-letf (((symbol-function 'forgejo-db-get-issue)
-                   (lambda (&rest _args) (forgejo-test-view--issue-alist)))
+                   (lambda (&rest _args) (forgejo-test-detail-issue)))
                   ((symbol-function 'forgejo-db-get-timeline)
                    (lambda (&rest _args) nil)))
           (with-current-buffer buf

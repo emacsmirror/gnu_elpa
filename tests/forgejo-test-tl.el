@@ -7,8 +7,7 @@
 
 ;;; Code:
 
-(require 'ert)
-(require 'cl-lib)
+(require 'forgejo-test-helper)
 (require 'forgejo-tl)
 
 (defun forgejo-test-tl--setup (entries)

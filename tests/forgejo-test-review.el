@@ -6,12 +6,7 @@
 
 ;;; Code:
 
-(require 'ert)
-(require 'cl-lib)
-
-(defvar forgejo-markdown-mode)
-
-(setq forgejo-markdown-mode 'text-mode)
+(require 'forgejo-test-helper)
 (require 'forgejo-review)
 
 ;;; Group 1: Diff approval

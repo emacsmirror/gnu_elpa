@@ -9,10 +9,7 @@
 
 ;;; Code:
 
-(require 'ert)
-
-(defvar forgejo-markdown-mode)
-(setq forgejo-markdown-mode 'text-mode)
+(require 'forgejo-test-helper)
 
 (defun forgejo-test-load--dir ()
   "Return the directory containing the Forgejo sources."

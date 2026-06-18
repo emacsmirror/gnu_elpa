@@ -1065,52 +1065,65 @@ then no filtering is done."
   "Function to be used as `beginning-of-defun-function'.
 See also `javaimp-beginning-of-defun-preserve-scope' for an alternative
 function."
-  (if (zerop arg)
-      t
-    (save-excursion
-      (javaimp-parse-all-scopes))
-    (let* ((opoint (point))
-           (pos opoint)
-           (defun-pred (javaimp-scope-defun-p t)))
-      ;; Handle the case when we're somewhere in defun declaration,
-      ;; like within annotations.  Search forward for defun start,
-      ;; while skipping uninteresting scopes.
-      (while pos
-        (if-let* ((scope (get-text-property pos 'javaimp-parse-scope)))
-          (if (funcall defun-pred scope)
-              (progn
-                (goto-char pos)
-                (setq pos nil))
-            (setq pos (ignore-errors (scan-lists pos 1 0))))
-          (setq pos (next-single-property-change pos 'javaimp-parse-scope))))
-      (if (and (> (point) opoint)
-               (setq pos (javaimp--beg-of-defun-decl (point)))
-               (< pos opoint))
-          ;; We've found something, and going to decl start really
-          ;; would move us back - move.  This also counts as 1 in case
-          ;; arg is positive.  When arg is negative we just move to
-          ;; the starting point from where we move forward.
-          (progn
-            (goto-char pos)
-            (when (> arg 0)
-              (decf arg)))
-        (goto-char opoint))
-      ;; Main part - find a suitable scope and move arg times
-      (setq pos (point))
-      (while (and (/= arg 0)
-                  (setq pos (funcall (if (> arg 0)
-                                         #'previous-single-property-change
-                                       #'next-single-property-change)
-                                     pos 'javaimp-parse-scope)))
-        (when-let* ((scope (get-text-property pos 'javaimp-parse-scope))
-                    (_ (funcall defun-pred scope)))
-          (goto-char (or (javaimp--beg-of-defun-decl pos) pos))
-          (if (> arg 0) (decf arg) (incf arg))))
-      (if (/= arg 0)
-          (progn
-            (goto-char (if (> arg 0) (point-min) (point-max)))
-            nil)
-        t))))
+  (when (zerop arg) (error "arg is 0"))
+  (save-excursion
+    (javaimp-parse-all-scopes))
+  (let* ((opoint (point))
+         (defun-pred (javaimp-scope-defun-p t))
+         pos)
+    ;; Handle the case when we're somewhere in defun declaration, like
+    ;; within annotations.  Search forward for defun decl-start, while
+    ;; skipping uninteresting scopes.
+    (setq pos (point))
+    (while pos
+      (if-let* ((scope (get-text-property pos 'javaimp-parse-scope)))
+          (cond ((eq (javaimp-scope-type scope) 'array-init)
+                 ;; Skip array (which is supposedly in annotation)
+                 (setq pos (ignore-errors (scan-lists pos 1 0)))
+                 (unless pos
+                   (goto-char opoint)))
+                ((funcall defun-pred scope)
+                 (if-let* ((decl-pos (javaimp--beg-of-defun-decl pos))
+                           (_ (< decl-pos opoint)))
+                     (progn
+                       (goto-char decl-pos)
+                       (when (> arg 0)
+                         ;; Moving to decl-pos counts as 1 in case of
+                         ;; positive arg.  In case of negative arg
+                         ;; this will just be the starting point for
+                         ;; moving forward.
+                         (decf arg)))
+                   (goto-char opoint))
+                 (setq pos nil))
+                (t
+                 ;; Something else, stop
+                 (goto-char opoint)
+                 (setq pos nil)))
+        (setq pos (next-single-property-change pos 'javaimp-parse-scope))))
+    ;; Main part - find a suitable scope and move arg times
+    (setq pos (point))
+    (while (and (/= arg 0)
+                (setq pos (funcall (if (> arg 0)
+                                       #'previous-single-property-change
+                                     #'next-single-property-change)
+                                   pos 'javaimp-parse-scope)))
+      (when-let* ((scope (get-text-property pos 'javaimp-parse-scope))
+                  (_ (funcall defun-pred scope))
+                  (next (or (javaimp--beg-of-defun-decl pos) pos)))
+        (if (> arg 0)
+            ;; When moving backward, any movement counts
+            (when (< next (point))
+              (decf arg))
+          ;; When moving forward, only line change counts
+          (when (> (line-number-at-pos next) (line-number-at-pos (point)))
+            (incf arg)))
+        (goto-char next)))
+    (if (/= arg 0)
+        ;; We haven't made enough movements
+        (progn
+          (goto-char (if (> arg 0) (point-min) (point-max)))
+          nil)
+      t)))
 
 (defun javaimp-beginning-of-defun-preserve-scope (arg)
   "Alternative function to be used as `beginning-of-defun-function'.
@@ -1171,8 +1184,8 @@ than BOUND.  POS should not be in arglist or similar list."
   ;; it), so we look for next property change.  However we need to
   ;; skip any array-init scopes which may occur within annotation
   ;; values, like "@Annotation({"val1"})".
-  (let ((pos (point))
-        (defun-pred (javaimp-scope-defun-p t)))
+  (let ((defun-pred (javaimp-scope-defun-p t))
+        (pos (point)))
     (while-let ((_ pos)
                 (brace-pos (next-single-property-change pos 'javaimp-parse-scope))
                 (scope (get-text-property brace-pos 'javaimp-parse-scope))
@@ -1370,7 +1383,6 @@ defun javadoc to be included in the narrowed region when using
         (add-hook 'xref-backend-functions #'javaimp-xref--backend nil t)
         (setq-local parse-sexp-ignore-comments t)
         (setq-local multibyte-syntax-as-symbol t)
-        (setq-local end-of-defun-moves-to-eol nil)
         ;; Discard parse state, if any
         (setq javaimp-parse--dirty-pos nil)
         (setq syntax-ppss-table java-mode-syntax-table)
@@ -1389,7 +1401,6 @@ defun javadoc to be included in the narrowed region when using
     (remove-hook 'xref-backend-functions #'javaimp-xref--backend t)
     (kill-local-variable 'parse-sexp-ignore-comments)
     (kill-local-variable 'multibyte-syntax-as-symbol)
-    (kill-local-variable 'end-of-defun-moves-to-eol)
     (kill-local-variable 'imenu-space-replacement)))
 
 

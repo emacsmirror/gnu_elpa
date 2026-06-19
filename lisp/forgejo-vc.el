@@ -161,12 +161,14 @@ Also syncs repo metadata if not yet cached."
           (match-string 3 remote-url)))))
 
 (defun forgejo-vc--all-forge-remotes ()
-  "Return all git remotes that parse as forge URLs.
-Each element is (HOST OWNER REPO REMOTE-NAME)."
+  "Return git remotes for hosts configured in `forgejo-hosts'.
+Remotes whose host is not configured (e.g. a GitLab or GitHub
+mirror) are ignored.  Each element is (HOST OWNER REPO REMOTE-NAME)."
   (cl-loop for remote in (forgejo-vc--remotes)
            for url = (forgejo-vc--remote-url remote)
            for parsed = (and url (forgejo-vc--parse-remote-url url))
-           when parsed collect (append parsed (list remote))))
+           when (and parsed (forgejo--host-configured-p (car parsed)))
+           collect (append parsed (list remote))))
 
 (defvar forgejo-vc--selected-remotes (make-hash-table :test 'equal)
   "Selected remote name per repo root directory.")
@@ -552,7 +554,7 @@ and mark it as manually merged after a successful push."
   "Return (HOST OWNER REPO) from git remote, or signal error."
   (if-let* ((context (forgejo-vc--repo-from-remote)))
       (list (nth 0 context) (nth 1 context) (nth 2 context))
-    (user-error "Not in a git repo with a Forgejo remote")))
+    (user-error "No git remote matching `forgejo-hosts' found")))
 
 (defun forgejo-vc-issues ()
   "List issues for the current repository."

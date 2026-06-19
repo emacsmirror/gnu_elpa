@@ -279,13 +279,17 @@ Falls back to \"https://HOSTNAME\" if not found."
         (funcall secret)
       secret)))
 
+(defun forgejo--host-configured-p (host-url)
+  "Return non-nil when HOST-URL's host is present in `forgejo-hosts'."
+  (cl-find (url-host (url-generic-parse-url host-url))
+           forgejo-hosts
+           :key (lambda (e)
+                  (url-host (url-generic-parse-url (car e))))
+           :test #'string=))
+
 (defun forgejo--validate-host (host-url)
   "Signal an error if HOST-URL is not in `forgejo-hosts'."
-  (unless (cl-find (url-host (url-generic-parse-url host-url))
-                   forgejo-hosts
-                   :key (lambda (e)
-                          (url-host (url-generic-parse-url (car e))))
-                   :test #'string=)
+  (unless (forgejo--host-configured-p host-url)
     (user-error "Host %s not configured in `forgejo-hosts'"
                 (url-host (url-generic-parse-url host-url)))))
 

@@ -194,6 +194,10 @@ Returns (HOST OWNER REPO REMOTE-NAME) or nil."
                       :key (lambda (r) (nth 3 r)) :test #'string=))
         (car all))))
 
+(defun forgejo-vc--context-host (context)
+  "Return the bare hostname for CONTEXT's host URL."
+  (url-host (url-generic-parse-url (nth 0 context))))
+
 (defun forgejo-vc--upstream-branch (branch)
   "Return the upstream remote/branch for BRANCH, or nil."
   (let ((result (string-trim
@@ -371,6 +375,21 @@ Returns the template content as a string, or nil."
                     (process-exit-status proc)
                     (buffer-name (process-buffer proc)))))))))
 
+(defun forgejo-vc--default-target ()
+  "Return the repo's default branch as \"REMOTE/BRANCH\", or nil.
+Reads the default branch from the cached repo metadata."
+  (when-let* ((context (forgejo-vc--repo-from-remote))
+              (meta (forgejo-db-get-repo (forgejo-vc--context-host context)
+                                         (nth 1 context) (nth 2 context)))
+              (branch (alist-get 'default_branch meta)))
+    (format "%s/%s" (nth 3 context) branch)))
+
+(defun forgejo-vc--target-default (branch)
+  "Return the default target for BRANCH as \"REMOTE/BRANCH\", or nil.
+Prefers the repo's default branch, then BRANCH's upstream."
+  (or (forgejo-vc--default-target)
+      (forgejo-vc--upstream-branch branch)))
+
 (defun forgejo-vc--read-target (&optional prompt)
   "Prompt for a target remote/branch.
 PROMPT is the label shown in the minibuffer (default \"Target\").
@@ -379,11 +398,9 @@ and TARGET is the branch name."
   (let* ((prompt (or prompt "Target"))
          (branch (car (vc-git-branches)))
          (all-remote-branches (forgejo-vc--remote-branches))
-         (default-target (forgejo-vc--upstream-branch branch))
+         (default-target (forgejo-vc--target-default branch))
          (choice (completing-read
-                  (if default-target
-                      (format "%s (default: %s): " prompt default-target)
-                    (format "%s (remote/branch): " prompt))
+                  (format-prompt prompt default-target)
                   all-remote-branches nil nil nil nil default-target)))
     (if (string-match "\\`\\([^/]+\\)/\\(.+\\)\\'" choice)
         (cons (match-string 1 choice) (match-string 2 choice))

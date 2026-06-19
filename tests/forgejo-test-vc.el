@@ -109,5 +109,23 @@
                 "https://gitlab.com/org/project.git")))
       (should-not (forgejo-vc--repo-from-remote)))))
 
+;;; Group 5: Target default resolution
+
+(ert-deftest forgejo-test-vc-target-default-prefers-default-branch ()
+  "Repo default branch wins over BRANCH's upstream."
+  (cl-letf (((symbol-function 'forgejo-vc--default-target)
+             (lambda () "origin/master"))
+            ((symbol-function 'forgejo-vc--upstream-branch)
+             (lambda (_branch) "guixotic/topic")))
+    (should (string= (forgejo-vc--target-default "topic") "origin/master"))))
+
+(ert-deftest forgejo-test-vc-target-default-falls-back-to-upstream ()
+  "Upstream is used when no repo default branch is known."
+  (cl-letf (((symbol-function 'forgejo-vc--default-target)
+             (lambda () nil))
+            ((symbol-function 'forgejo-vc--upstream-branch)
+             (lambda (_branch) "origin/main")))
+    (should (string= (forgejo-vc--target-default "topic") "origin/main"))))
+
 (provide 'forgejo-test-vc)
 ;;; forgejo-test-vc.el ends here

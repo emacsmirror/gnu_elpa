@@ -251,6 +251,7 @@ Empty input clears all filters."
   "Major mode for viewing a single Forgejo issue."
   :group 'forgejo
   (setq-local browse-url-browser-function #'forgejo-view-browse-url)
+  (forgejo-view--setup-help-at-point)
   (run-hook-with-args 'forgejo-buffer-setup-functions (current-buffer)))
 
 ;;; Detail view rendering

@@ -256,6 +256,7 @@ Shows cached data immediately, then syncs from the API in the background."
   "Major mode for viewing a single Forgejo pull request."
   :group 'forgejo
   (setq-local browse-url-browser-function #'forgejo-view-browse-url)
+  (forgejo-view--setup-help-at-point)
   (run-hook-with-args 'forgejo-buffer-setup-functions (current-buffer)))
 
 (defun forgejo-pull--commit-collection ()

@@ -32,6 +32,7 @@
 (require 'cl-lib)
 (require 'diff-mode)
 (require 'ewoc)
+(require 'help-at-pt)
 (require 'text-property-search)
 (require 'url-parse)
 (require 'keymap-popup)
@@ -48,6 +49,26 @@
 (defvar forgejo-repo--host)
 (defvar forgejo-repo--owner)
 (defvar forgejo-repo--name)
+
+;;; Options
+
+(defcustom forgejo-view-help-at-point t
+  "When non-nil, echo help for the element at point in detail views.
+After a short idle delay, the `help-echo' of the element under point is
+shown in the echo area: the users who reacted for a reaction, or the key
+hint for an actionable element.  Implemented with
+`help-at-pt-display-when-idle', set buffer-locally so the idle echo stays
+scoped to Forgejo detail buffers."
+  :type 'boolean
+  :group 'forgejo)
+
+(defun forgejo-view--setup-help-at-point ()
+  "Echo help for the element at point when `forgejo-view-help-at-point'.
+Sets `help-at-pt-display-when-idle' buffer-locally so the idle echo stays
+scoped to the current Forgejo detail buffer."
+  (when forgejo-view-help-at-point
+    (setq-local help-at-pt-display-when-idle t)
+    (help-at-pt-set-timer)))
 
 ;;; Shared buffer-locals
 

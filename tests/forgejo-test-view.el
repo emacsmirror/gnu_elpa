@@ -266,5 +266,25 @@
   (should (equal (forgejo-view--react-parse-selection '("+custom" "-custom"))
                  '((add . "custom") (remove . "custom")))))
 
+;;; Group 5: Help-at-point setup
+
+(ert-deftest forgejo-test-view-help-at-point-enabled ()
+  "Enables idle help echo buffer-locally when the option is on."
+  (with-temp-buffer
+    (let ((forgejo-view-help-at-point t))
+      (unwind-protect
+          (progn
+            (forgejo-view--setup-help-at-point)
+            (should (local-variable-p 'help-at-pt-display-when-idle))
+            (should (eq help-at-pt-display-when-idle t)))
+        (help-at-pt-cancel-timer)))))
+
+(ert-deftest forgejo-test-view-help-at-point-disabled ()
+  "Leaves `help-at-pt-display-when-idle' untouched when the option is off."
+  (with-temp-buffer
+    (let ((forgejo-view-help-at-point nil))
+      (forgejo-view--setup-help-at-point)
+      (should-not (local-variable-p 'help-at-pt-display-when-idle)))))
+
 (provide 'forgejo-test-view)
 ;;; forgejo-test-view.el ends here

@@ -539,7 +539,7 @@ If SUFFIX is non-nil, append it to PROP to generate the property name."
 If SUFFIX is non-nil, append it to PROP to generate the property
 name."
   (when-let* ((cases (urgrep--get-prop prop tool suffix))
-              (block (append `(,#'pcase ',value) cases)))
+              (block `(,#'pcase ',value ,@cases)))
     (eval block t)))
 
 (iter-defun urgrep--iter-tools ()

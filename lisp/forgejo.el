@@ -215,18 +215,20 @@ Resolution order:
       (forgejo--host-from-remote)
       (forgejo--host-from-hosts-list)))
 
+(defun forgejo--host-entry (hostname)
+  "Return the `forgejo-hosts' entry whose host matches HOSTNAME, or nil."
+  (cl-find hostname forgejo-hosts
+           :key (lambda (e) (url-host (url-generic-parse-url (car e))))
+           :test #'string=))
+
 (defun forgejo--host-from-remote ()
   "Try to detect host from git remotes, match against `forgejo-hosts'.
 Returns a URL string or nil."
   (when-let* ((context (ignore-errors (forgejo-vc--repo-from-remote)))
               (remote-url (nth 0 context))
-              (remote-host (url-host (url-generic-parse-url remote-url))))
-    (when-let* ((entry (cl-find remote-host forgejo-hosts
-                                :key (lambda (e)
-                                       (url-host
-                                        (url-generic-parse-url (car e))))
-                                :test #'string=)))
-      (car entry))))
+              (remote-host (url-host (url-generic-parse-url remote-url)))
+              (entry (forgejo--host-entry remote-host)))
+    (car entry)))
 
 (defun forgejo--host-from-hosts-list ()
   "Pick host from `forgejo-hosts'.
@@ -255,20 +257,14 @@ Checks DB first, then falls back to `forgejo--resolve-host'."
 (defun forgejo--host-url-for-hostname (hostname)
   "Look up full URL for HOSTNAME from `forgejo-hosts'.
 Falls back to \"https://HOSTNAME\" if not found."
-  (or (car (cl-find hostname forgejo-hosts
-                    :key (lambda (e)
-                           (url-host (url-generic-parse-url (car e))))
-                    :test #'string=))
+  (or (car (forgejo--host-entry hostname))
       (format "https://%s" hostname)))
 
 ;;; Token resolution
 
 (defun forgejo--hosts-token (host-url)
   "Look up inline token for HOST-URL in `forgejo-hosts'."
-  (cadr (cl-find (url-host (url-generic-parse-url host-url))
-                 forgejo-hosts
-                 :key (lambda (e) (url-host (url-generic-parse-url (car e))))
-                 :test #'string=)))
+  (cadr (forgejo--host-entry (url-host (url-generic-parse-url host-url)))))
 
 (defun forgejo--auth-source-token (host-url)
   "Look up the Forgejo token via `auth-source' for HOST-URL."
@@ -281,11 +277,7 @@ Falls back to \"https://HOSTNAME\" if not found."
 
 (defun forgejo--host-configured-p (host-url)
   "Return non-nil when HOST-URL's host is present in `forgejo-hosts'."
-  (cl-find (url-host (url-generic-parse-url host-url))
-           forgejo-hosts
-           :key (lambda (e)
-                  (url-host (url-generic-parse-url (car e))))
-           :test #'string=))
+  (forgejo--host-entry (url-host (url-generic-parse-url host-url))))
 
 (defun forgejo--validate-host (host-url)
   "Signal an error if HOST-URL is not in `forgejo-hosts'."

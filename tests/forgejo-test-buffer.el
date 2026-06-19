@@ -155,6 +155,17 @@
              (lambda (_emoji) nil)))
     (should (string= (forgejo-buffer--reaction-label "custom") "custom"))))
 
+(ert-deftest forgejo-test-buffer-reaction-help-echo-prefixes-label ()
+  "Help-echo names the reaction label and each user that reacted."
+  (cl-letf (((symbol-function 'forgejo-buffer--displayable-reaction-emoji-p)
+             (lambda (_emoji) t)))
+    (should (equal (forgejo-buffer--reaction-help-echo "heart" '("alice" "bob"))
+                   "❤️: alice, bob"))))
+
+(ert-deftest forgejo-test-buffer-reaction-help-echo-nil-without-users ()
+  "Help-echo is nil when no users reacted with the content."
+  (should-not (forgejo-buffer--reaction-help-echo "heart" nil)))
+
 ;;; Group 10: Reconcile
 
 (defun forgejo-test-buffer--make-ewoc (nodes)

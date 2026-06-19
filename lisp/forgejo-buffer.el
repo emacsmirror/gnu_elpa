@@ -314,6 +314,17 @@ return CONTENT unchanged."
         emoji
       content)))
 
+(defun forgejo-buffer--reaction-help-echo (content users)
+  "Return help-echo text naming who reacted with CONTENT, or nil.
+USERS is the list of usernames that reacted with CONTENT.  The text reads
+\"label: user1, user2\", prefixed with the reaction so it stays
+self-explanatory as a mouse tooltip or in the echo area via
+`display-local-help' when several reactions share a line."
+  (and users
+       (format "%s: %s"
+               (forgejo-buffer--reaction-label content)
+               (string-join users ", "))))
+
 (defun forgejo-buffer--insert-reactions (reactions)
   "Insert formatted reaction labels from REACTIONS.
 REACTIONS is a grouped alist: ((\"heart\" . (\"alice\" \"bob\")) ...)."
@@ -327,7 +338,8 @@ REACTIONS is a grouped alist: ((\"heart\" . (\"alice\" \"bob\")) ...)."
                                              (forgejo-buffer--reaction-label content)
                                              (length users))
                                      'face 'forgejo-reaction-face
-                                     'help-echo (string-join users ", "))))
+                                     'help-echo (forgejo-buffer--reaction-help-echo
+                                                 content users))))
                      reactions)
              "  "))))
 

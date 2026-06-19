@@ -41,6 +41,10 @@
                   (host endpoint &optional params json-body callback))
 (declare-function forgejo-db-get-repo "forgejo-db.el"
                   (host owner name))
+(declare-function forgejo-db-get-pr-target "forgejo-db.el"
+                  (host owner repo branch))
+(declare-function forgejo-db-set-pr-target "forgejo-db.el"
+                  (host owner repo branch target))
 (declare-function forgejo-repo-sync-metadata "forgejo-repo.el"
                   (host-url owner repo))
 
@@ -384,10 +388,24 @@ Reads the default branch from the cached repo metadata."
               (branch (alist-get 'default_branch meta)))
     (format "%s/%s" (nth 3 context) branch)))
 
+(defun forgejo-vc--remembered-target (branch)
+  "Return the remembered PR target for BRANCH, or nil."
+  (when-let* ((context (forgejo-vc--repo-from-remote)))
+    (forgejo-db-get-pr-target (forgejo-vc--context-host context)
+                              (nth 1 context) (nth 2 context) branch)))
+
+(defun forgejo-vc--remember-target (branch target)
+  "Remember TARGET as the PR target for BRANCH."
+  (when-let* ((context (forgejo-vc--repo-from-remote)))
+    (forgejo-db-set-pr-target (forgejo-vc--context-host context)
+                              (nth 1 context) (nth 2 context) branch target)))
+
 (defun forgejo-vc--target-default (branch)
   "Return the default target for BRANCH as \"REMOTE/BRANCH\", or nil.
-Prefers the repo's default branch, then BRANCH's upstream."
-  (or (forgejo-vc--default-target)
+Prefers a remembered target, then the repo's default branch, then
+BRANCH's upstream."
+  (or (forgejo-vc--remembered-target branch)
+      (forgejo-vc--default-target)
       (forgejo-vc--upstream-branch branch)))
 
 (defun forgejo-vc--read-target (&optional prompt)
@@ -461,7 +479,9 @@ With prefix arg FORCE-PUSH-P, force-push to update an existing PR."
         (forgejo-vc--git-push
          remote
          (forgejo-vc--refspec "HEAD" target topic)
-         (forgejo-vc--push-options title desc))))))
+         (forgejo-vc--push-options title desc))))
+    (forgejo-vc--remember-target (car (vc-git-branches))
+                                 (format "%s/%s" remote target))))
 
 ;;;###autoload
 (defun forgejo-vc-fetch (n)
@@ -563,7 +583,9 @@ and mark it as manually merged after a successful push."
                   (sha (forgejo-vc--head-sha)))
              (forgejo-vc--mark-merged host owner repo pr-number sha))))
         ((string-match-p "\\(?:exited\\|signal\\)" event)
-         (message "Push failed: %s" (string-trim event))))))))
+         (message "Push failed: %s" (string-trim event))))))
+    (forgejo-vc--remember-target (car (vc-git-branches))
+                                 (format "%s/%s" remote branch))))
 
 ;;; Repo-aware wrappers (use detected repo, no prompt)
 

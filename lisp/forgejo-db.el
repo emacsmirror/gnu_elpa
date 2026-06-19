@@ -143,6 +143,13 @@
        user TEXT NOT NULL,
        created_at TEXT,
        PRIMARY KEY (host, owner, repo, issue_number, comment_id, content, user))"
+    "CREATE TABLE IF NOT EXISTS pr_targets (
+       host TEXT NOT NULL,
+       owner TEXT NOT NULL,
+       repo TEXT NOT NULL,
+       branch TEXT NOT NULL,
+       target TEXT NOT NULL,
+       PRIMARY KEY (host, owner, repo, branch))"
     )
   "SQL statements to initialize the database schema.")
 
@@ -695,6 +702,24 @@ capped at LIMIT."
     ON CONFLICT (host, owner, repo, endpoint)
     DO UPDATE SET etag = excluded.etag, last_modified = excluded.last_modified"
    (list host owner repo endpoint etag last-modified)))
+
+(defun forgejo-db-get-pr-target (host owner repo branch)
+  "Return the remembered PR target for BRANCH in HOST/OWNER/REPO, or nil."
+  (setq owner (downcase owner) repo (downcase repo))
+  (caar (forgejo-db--select
+         "SELECT target FROM pr_targets
+          WHERE host = ? AND owner = ? AND repo = ? AND branch = ?"
+         (list host owner repo branch))))
+
+(defun forgejo-db-set-pr-target (host owner repo branch target)
+  "Remember TARGET as the PR target for BRANCH in HOST/OWNER/REPO."
+  (setq owner (downcase owner) repo (downcase repo))
+  (forgejo-db--execute
+   "INSERT INTO pr_targets (host, owner, repo, branch, target)
+    VALUES (?, ?, ?, ?, ?)
+    ON CONFLICT (host, owner, repo, branch)
+    DO UPDATE SET target = excluded.target"
+   (list host owner repo branch target)))
 
 ;;; Row-to-alist conversion (explicit column queries)
 

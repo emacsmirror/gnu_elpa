@@ -113,7 +113,9 @@
 
 (ert-deftest forgejo-test-vc-target-default-prefers-default-branch ()
   "Repo default branch wins over BRANCH's upstream."
-  (cl-letf (((symbol-function 'forgejo-vc--default-target)
+  (cl-letf (((symbol-function 'forgejo-vc--remembered-target)
+             (lambda (_branch) nil))
+            ((symbol-function 'forgejo-vc--default-target)
              (lambda () "origin/master"))
             ((symbol-function 'forgejo-vc--upstream-branch)
              (lambda (_branch) "guixotic/topic")))
@@ -121,11 +123,66 @@
 
 (ert-deftest forgejo-test-vc-target-default-falls-back-to-upstream ()
   "Upstream is used when no repo default branch is known."
-  (cl-letf (((symbol-function 'forgejo-vc--default-target)
+  (cl-letf (((symbol-function 'forgejo-vc--remembered-target)
+             (lambda (_branch) nil))
+            ((symbol-function 'forgejo-vc--default-target)
              (lambda () nil))
             ((symbol-function 'forgejo-vc--upstream-branch)
              (lambda (_branch) "origin/main")))
     (should (string= (forgejo-vc--target-default "topic") "origin/main"))))
+
+(ert-deftest forgejo-test-vc-target-default-prefers-remembered ()
+  "A remembered target wins over the repo default branch."
+  (cl-letf (((symbol-function 'forgejo-vc--remembered-target)
+             (lambda (_branch) "origin/devel"))
+            ((symbol-function 'forgejo-vc--default-target)
+             (lambda () "origin/master")))
+    (should (string= (forgejo-vc--target-default "topic") "origin/devel"))))
+
+;;; Group 6: Submit persists target
+
+(ert-deftest forgejo-test-vc-submit-remembers-target ()
+  "Submitting persists the chosen target for the current branch."
+  (let (remembered)
+    (cl-letf (((symbol-function 'forgejo-vc--remote-url) (lambda (_r) nil))
+              ((symbol-function 'forgejo-vc--git-push) (lambda (&rest _) nil))
+              ((symbol-function 'vc-git-branches) (lambda () '("topic")))
+              ((symbol-function 'forgejo-vc--remember-target)
+               (lambda (branch target) (setq remembered (cons branch target)))))
+      (forgejo-vc-submit "origin" "topic" "master" t)
+      (should (equal remembered '("topic" . "origin/master"))))))
+
+(ert-deftest forgejo-test-vc-submit-remembers-target-normal-path ()
+  "The non-force submit path persists the target after the push."
+  (let (remembered)
+    (cl-letf (((symbol-function 'forgejo-vc--remote-url) (lambda (_r) nil))
+              ((symbol-function 'forgejo-vc--git-push) (lambda (&rest _) nil))
+              ((symbol-function 'vc-git-branches) (lambda () '("topic")))
+              ((symbol-function 'forgejo-vc--autofill-defaults)
+               (lambda (_u) (cons "Title" "")))
+              ((symbol-function 'forgejo-vc--find-pr-template) (lambda (_r) nil))
+              ((symbol-function 'read-string) (lambda (&rest _) "PR title"))
+              ((symbol-function 'forgejo-utils-read-body) (lambda (&rest _) "body"))
+              ((symbol-function 'forgejo-vc--remember-target)
+               (lambda (branch target) (setq remembered (cons branch target)))))
+      (forgejo-vc-submit "origin" "topic" "master" nil)
+      (should (equal remembered '("topic" . "origin/master"))))))
+
+(ert-deftest forgejo-test-vc-submit-skips-remember-on-cancel ()
+  "Aborting before the push does not persist a target."
+  (let (called)
+    (cl-letf (((symbol-function 'forgejo-vc--remote-url) (lambda (_r) nil))
+              ((symbol-function 'forgejo-vc--git-push) (lambda (&rest _) nil))
+              ((symbol-function 'vc-git-branches) (lambda () '("topic")))
+              ((symbol-function 'forgejo-vc--autofill-defaults)
+               (lambda (_u) (cons "" "")))
+              ((symbol-function 'forgejo-vc--find-pr-template) (lambda (_r) nil))
+              ((symbol-function 'read-string) (lambda (&rest _) ""))
+              ((symbol-function 'forgejo-vc--remember-target)
+               (lambda (&rest _) (setq called t))))
+      (should-error (forgejo-vc-submit "origin" "topic" "master" nil)
+                    :type 'user-error)
+      (should-not called))))
 
 (provide 'forgejo-test-vc)
 ;;; forgejo-test-vc.el ends here

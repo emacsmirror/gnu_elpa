@@ -369,5 +369,29 @@
    (let ((all (forgejo-db-get-reactions "codeberg.org" "owner" "repo" 42)))
      (should (null all)))))
 
+;;; Group 12: PR targets
+
+(ert-deftest forgejo-test-db-pr-target ()
+  "Remember and retrieve a PR target for a branch."
+  (forgejo-test-with-temp-db
+   (should (null (forgejo-db-get-pr-target
+                  "codeberg.org" "owner" "repo" "topic")))
+   (forgejo-db-set-pr-target
+    "codeberg.org" "owner" "repo" "topic" "origin/master")
+   (should (string= (forgejo-db-get-pr-target
+                     "codeberg.org" "owner" "repo" "topic")
+                    "origin/master"))))
+
+(ert-deftest forgejo-test-db-pr-target-update ()
+  "Updating a PR target replaces the old value."
+  (forgejo-test-with-temp-db
+   (forgejo-db-set-pr-target
+    "codeberg.org" "owner" "repo" "topic" "origin/master")
+   (forgejo-db-set-pr-target
+    "codeberg.org" "owner" "repo" "topic" "origin/devel")
+   (should (string= (forgejo-db-get-pr-target
+                     "codeberg.org" "owner" "repo" "topic")
+                    "origin/devel"))))
+
 (provide 'forgejo-test-db)
 ;;; forgejo-test-db.el ends here

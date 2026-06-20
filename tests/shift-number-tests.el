@@ -1101,6 +1101,42 @@ With point after mark, 0 0 0 becomes 1 2 3 (standard behavior)."
       (should (equal text-expected (buffer-string)))
       (should-not (mark)))))
 
+;; Search path (`shift-number-increment-at-point-with-search', used by evil-numbers).
+
+(ert-deftest search-motion-none ()
+  "`:motion' nil leaves point at the number start on the search path."
+  (let ((text-initial "123")
+        (text-expected "|124"))
+    (with-shift-number-test text-initial
+      (shift-number-increment-at-point-with-search
+       :amount 1 :range (cons (point-min) (point-max)) :motion nil)
+      (cursor-marker)
+      (should (equal text-expected (buffer-string)))
+      (should-not (mark)))))
+
+(ert-deftest search-motion-end ()
+  "`:motion' t leaves point at the number end on the search path."
+  (let ((text-initial "123")
+        (text-expected "124|"))
+    (with-shift-number-test text-initial
+      (shift-number-increment-at-point-with-search
+       :amount 1 :range (cons (point-min) (point-max)) :motion t)
+      (cursor-marker)
+      (should (equal text-expected (buffer-string)))
+      (should-not (mark)))))
+
+(ert-deftest search-motion-mark ()
+  "`:motion' mark moves point to the end and sets mark at the start."
+  (let ((text-initial "123")
+        (text-expected "124|")
+        (mark-expected 1)) ; Start of "124".
+    (with-shift-number-test text-initial
+      (shift-number-increment-at-point-with-search
+       :amount 1 :range (cons (point-min) (point-max)) :motion 'mark)
+      (cursor-marker)
+      (should (equal text-expected (buffer-string)))
+      (should (equal mark-expected (mark))))))
+
 ;; ---------------------------------------------------------------------------
 ;; Multi-digit and Large Number Tests
 

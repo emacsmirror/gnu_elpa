@@ -399,6 +399,7 @@ Each item in MATCH-CHARS is a list of (CH-SKIP CH-NUM CH-SEP-OPTIONAL).
 
 (defun shift-number--inc-at-pt-one-form
     (match-chars
+     sep-char
      ;; Numeric & other options.
      sign-group num-group base beg end padded do-case
      ;; Callbacks.
@@ -406,6 +407,7 @@ Each item in MATCH-CHARS is a list of (CH-SKIP CH-NUM CH-SEP-OPTIONAL).
   "Perform the increment/decrement within BEG and END.
 
 For MATCH-CHARS docs see `shift-number--match-from-skip-chars'.
+SEP-CHAR is the separator characters allowed in the number (nil when unused).
 NUM-GROUP is the match group used to evaluate the number.
 SIGN-GROUP is the match group used for the sign ('-' or '+').
 
@@ -440,7 +442,6 @@ Return (OLD-BEG . OLD-END) on success, nil on failure."
       ;; Capture old bounds before any modification.
       (let* ((old-beg (match-beginning 0))
              (old-end (match-end 0))
-             (sep-char (nth 2 (nth (1- num-group) match-chars)))
              (num-str-raw (match-string num-group))
              (sign-str (match-string sign-group))
              ;; Check if sign is preceded by a decimal digit (e.g., "123-456").
@@ -548,6 +549,8 @@ Point is left at the end of the modified number."
    ;; 0[bB][01]+, e.g. 0b101 or 0B0.
    (shift-number--inc-at-pt-one-form
     `(("+-" \?) ("0" 1) ("bB" 1) ("01" + ,shift-number-separator-chars))
+    ;; Separator.
+    shift-number-separator-chars
     ;; Sign, number groups & base.
     1 4 2
     ;; Other arguments.
@@ -559,6 +562,8 @@ Point is left at the end of the modified number."
    ;; 0[oO][0-7]+, e.g. 0o42 or 0O5.
    (shift-number--inc-at-pt-one-form
     `(("+-" \?) ("0" 1) ("oO" 1) ("0-7" + ,shift-number-separator-chars))
+    ;; Separator.
+    shift-number-separator-chars
     ;; Sign, number groups & base.
     1 4 8
     ;; Other arguments.
@@ -570,6 +575,8 @@ Point is left at the end of the modified number."
    ;; 0[xX][0-9a-fA-F]+, e.g. 0xBEEF or 0Xcafe.
    (shift-number--inc-at-pt-one-form
     `(("+-" \?) ("0" 1) ("xX" 1) ("[:xdigit:]" + ,shift-number-separator-chars))
+    ;; Separator.
+    shift-number-separator-chars
     ;; Sign, number groups & base.
     1 4 16
     ;; Other arguments.
@@ -581,6 +588,8 @@ Point is left at the end of the modified number."
    ;; [0-9]+, e.g. 42 or 23.
    (shift-number--inc-at-pt-one-form
     `(("+-" \?) ("0123456789" + ,shift-number-separator-chars))
+    ;; Separator.
+    shift-number-separator-chars
     ;; Sign, number groups & base.
     1 2 10
     ;; Other arguments.
@@ -591,6 +600,8 @@ Point is left at the end of the modified number."
    ;; Find decimal literals (superscript).
    (shift-number--inc-at-pt-one-form
     `(("⁺⁻" \?) (,shift-number--chars-superscript + nil))
+    ;; Separator.
+    nil
     ;; Sign, number groups & base.
     1 2 10
     ;; Other arguments.
@@ -601,6 +612,8 @@ Point is left at the end of the modified number."
    ;; Find decimal literals (subscript).
    (shift-number--inc-at-pt-one-form
     `(("₊₋" \?) (,shift-number--chars-subscript + nil))
+    ;; Separator.
+    nil
     ;; Sign, number groups & base.
     1 2 10
     ;; Other arguments.

@@ -238,7 +238,7 @@ representation of NUMBER is smaller than WIDTH."
    ((= base 10)
     (format (format "%%0%dd" width) num))
    (t
-    "")))
+    (error "Unknown base %S (internal error)" base))))
 
 (defun shift-number--skip-chars-impl (ch-skip ch-sep-optional dir ch-num limit)
   "Wrapper for `skip-chars-forward' and `skip-chars-backward'.

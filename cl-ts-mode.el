@@ -985,9 +985,28 @@ toggles between them."
 
 (defconst cl-ts-mode-thing-settings
   `((common-lisp
+     (sexp ,(rx bos (or "symbol"
+                        "real"
+                        "complex"
+                        "vector"
+                        "array"
+                        "string"
+                        "bit_vector"
+                        "list"
+                        "character"
+                        "quote"
+                        "sharpquote"
+                        "unquote"
+                        "quasiquote"
+                        "labelled"
+                        "reference"
+                        "struct"
+                        "read_eval"
+                        "read_conditional"
+                        "pathname")
+                eos))
      ;; i did some benchmarking, these simple patterns seem to give the best
      ;; performance. i figured a \' anchor was a little faster but it's not.
-     (sexp (not "_comment"))
      (comment "_comment")
      (symbol "_symbol")
      ;; this is used by `treesit-major-mode-setup' to set things like

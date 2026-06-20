@@ -294,8 +294,7 @@ LIMIT: Point which will not be stepped past."
           (when point-next
             (goto-char point-next)
             (setq skipped (+ skipped skipped-next))
-            (setq ch-num (- ch-num skipped-next))
-            t))))
+            (setq ch-num (- ch-num skipped-next))))))
 
     skipped))
 

@@ -944,6 +944,10 @@ chain identifier."
   (cond
    ;; Skip the chain when undo is disabled in this buffer.
    ((and shift-number-redo (not (eq buffer-undo-list t)))
+    ;; The function lives in the optional `with-command-redo' package; load it
+    ;; on demand and fail with a friendly message rather than a void-function.
+    (unless (or (fboundp 'with-command-redo-fn) (require 'with-command-redo nil t))
+      (user-error "`shift-number-redo' requires the `with-command-redo' package"))
     (with-command-redo-fn
      (list :id id)
      (lambda (props)

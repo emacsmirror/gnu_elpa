@@ -719,7 +719,7 @@ Return (OLD-BOUNDS . NEW-BOUNDS) on success, nil on failure."
          (bounds-pair (shift-number--inc-with-bounds n old-pos (pos-bol) (pos-eol) 1)))
 
     (unless bounds-pair
-      (error "No number on the current line"))
+      (user-error "No number on the current line"))
 
     (let* ((old-bounds (car bounds-pair))
            (new-bounds (cdr bounds-pair))

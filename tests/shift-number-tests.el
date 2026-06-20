@@ -447,7 +447,7 @@ The minus sign is ignored, so -5 is treated as 5, decrementing gives 4, result i
     (with-shift-number-test text-initial
       (should-error-with-message
           (shift-number-up 1)
-        'error
+        'user-error
         "No number on the current line")
       (cursor-marker)
       (should (equal text-expected (buffer-string))))))
@@ -459,7 +459,7 @@ The minus sign is ignored, so -5 is treated as 5, decrementing gives 4, result i
     (with-shift-number-test text-initial
       (should-error-with-message
           (shift-number-up 1)
-        'error
+        'user-error
         "No number on the current line")
       (cursor-marker)
       (should (equal text-expected (buffer-string))))))
@@ -472,7 +472,7 @@ The minus sign is ignored, so -5 is treated as 5, decrementing gives 4, result i
       (goto-char (point-max))
       (should-error-with-message
           (shift-number-up 1)
-        'error
+        'user-error
         "No number on the current line")
       (cursor-marker)
       (should (equal text-expected (buffer-string))))))
@@ -485,7 +485,7 @@ The minus sign is ignored, so -5 is treated as 5, decrementing gives 4, result i
       (goto-char (point-max))
       (should-error-with-message
           (shift-number-down 1)
-        'error
+        'user-error
         "No number on the current line")
       (cursor-marker)
       (should (equal text-expected (buffer-string))))))
@@ -497,7 +497,7 @@ The minus sign is ignored, so -5 is treated as 5, decrementing gives 4, result i
     (with-shift-number-test text-initial
       (should-error-with-message
           (shift-number-up 1)
-        'error
+        'user-error
         "No number on the current line")
       (cursor-marker)
       (should (equal text-expected (buffer-string))))))
@@ -509,7 +509,7 @@ The minus sign is ignored, so -5 is treated as 5, decrementing gives 4, result i
     (with-shift-number-test text-initial
       (should-error-with-message
           (shift-number-down 1)
-        'error
+        'user-error
         "No number on the current line")
       (cursor-marker)
       (should (equal text-expected (buffer-string))))))
@@ -527,7 +527,7 @@ The minus sign is ignored, so -5 is treated as 5, decrementing gives 4, result i
     (with-shift-number-test text-initial
       (should-error-with-message
           (shift-number-up 1)
-        'error
+        'user-error
         "No number on the current line")
       (cursor-marker)
       (should (equal text-expected (buffer-string))))))
@@ -540,7 +540,7 @@ The minus sign is ignored, so -5 is treated as 5, decrementing gives 4, result i
       (goto-char (point-max)) ; Position cursor after trailing space.
       (should-error-with-message
           (shift-number-up 1)
-        'error
+        'user-error
         "No number on the current line")
       (cursor-marker)
       (should (equal text-expected (buffer-string))))))

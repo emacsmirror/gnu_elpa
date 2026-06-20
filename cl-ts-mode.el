@@ -911,21 +911,24 @@ format directives is not performed."
   (dolist (fmt-parser (thread-first (ts-parser-list nil 'cl-format t)
                         (cl-ts-mode--parsers-strictly-in-region start end)))
     (let ((root (ts-parser-root-node fmt-parser)))
-      (put-text-property (1+ (ts-node-start root)) (1- (ts-node-end root))
-                         'syntax-table
-                         cl-ts-mode--format-string-syntax-table)
-      (dolist (node (treesit-query-capture fmt-parser
-                                           cl-ts-mode--format-syntax-propertize-query
-                                           start end t))
-        (let* ((fn-node (ts-node-child-by-field-name node "function"))
-               (prefix-end (if fn-node
-                               (1- (ts-node-start fn-node))
-                             (1- (ts-node-end node)))))
-          (put-text-property (ts-node-start node) prefix-end
-                             'syntax-table (string-to-syntax "'"))
-          (put-text-property prefix-end (ts-node-end node)
-                             'syntax-table
-                             cl-ts-mode--format-directive-syntax-table))))))
+      ;; FIXME: we're getting called on empty parsers, need to figure out what's
+      ;; causing that
+      (when (> (1- (ts-node-end root)) (ts-node-start root))
+        (put-text-property (1+ (ts-node-start root)) (1- (ts-node-end root))
+                           'syntax-table
+                           cl-ts-mode--format-string-syntax-table)
+        (dolist (node (treesit-query-capture fmt-parser
+                                             cl-ts-mode--format-syntax-propertize-query
+                                             start end t))
+          (let* ((fn-node (ts-node-child-by-field-name node "function"))
+                 (prefix-end (if fn-node
+                                 (1- (ts-node-start fn-node))
+                               (1- (ts-node-end node)))))
+            (put-text-property (ts-node-start node) prefix-end
+                               'syntax-table (string-to-syntax "'"))
+            (put-text-property prefix-end (ts-node-end node)
+                               'syntax-table
+                               cl-ts-mode--format-directive-syntax-table)))))))
 
 (defvar-keymap cl-ts-mode--mode-line-map
   "<mode-line> <mouse-1>" #'cl-ts-mode-toggle-comment-style)

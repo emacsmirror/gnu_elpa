@@ -73,7 +73,11 @@ N specifies which line (default 1, the current line)."
   "Control cursor movement after modifying a number.
 - nil: cursor stays at beginning of number, mark unchanged.
 - t: cursor moves to end of number, mark unchanged.
-- `mark': cursor moves to end of number, mark set to beginning."
+- `mark': cursor moves to end of number, mark set to beginning.
+
+On a region these apply to the last modified number, except that for
+`mark' the mark stays at the region start (it follows a number only when
+it fell within one)."
   :type
   '(choice
     (const :tag "No motion" nil) (const :tag "Motion" t) (const :tag "Motion with mark" mark)))
@@ -814,6 +818,8 @@ Returns the final count value."
                 (incf pos-end-old delta)))
 
               ;; Track mark position when motion with mark is enabled.
+              ;; NOTE: on a region the mark stays at the region start unless it
+              ;; fell inside a number; this is documented in `shift-number-motion'.
               (when (eq shift-number-motion 'mark)
                 (cond
                  ((< pos-beg-old old-beg)) ; NOP - mark is before the number.

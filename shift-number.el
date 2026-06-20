@@ -854,6 +854,14 @@ Returns the final count value."
 When INCREMENTAL is non-nil, use progressive amounts."
   (shift-number--on-region-impl n (region-beginning) (region-end) incremental 1 1))
 
+(defun shift-number--rectangle-line-bounds (col-beg col-end)
+  "Return (BEG . END) for COL-BEG and COL-END on the current line."
+  (save-excursion
+    (move-to-column col-beg)
+    (let ((beg (point)))
+      (move-to-column col-end)
+      (cons beg (point)))))
+
 (defun shift-number--on-rectangle (n incremental dir)
   "Shift the numbers N in the current rectangle selection.
 When INCREMENTAL is non-nil, use progressive amounts across all cells.
@@ -869,19 +877,12 @@ DIR specifies the direction: 1 for forward, -1 for backward."
         ;; Collect line positions and column info.
         (apply-on-rectangle
          (lambda (col-beg col-end)
-           (let ((beg nil)
-                 (end nil))
-             (save-excursion
-               (move-to-column col-beg)
-               (setq beg (point))
-               (move-to-column col-end)
-               (setq end (point)))
-             (push (list beg end) line-info)))
+           (push (shift-number--rectangle-line-bounds col-beg col-end) line-info))
          (region-beginning) (region-end))
         ;; Process in reverse order (line-info is already reversed from push).
         (dolist (info line-info)
           (let ((beg (car info))
-                (end (cadr info)))
+                (end (cdr info)))
             (goto-char end)
             (setq count (shift-number--on-region-impl n beg end incremental dir count))
             (setq final-point (point))
@@ -890,13 +891,9 @@ DIR specifies the direction: 1 for forward, -1 for backward."
      (t
       (apply-on-rectangle
        (lambda (col-beg col-end)
-         (let ((beg nil)
-               (end nil))
-           (save-excursion
-             (move-to-column col-beg)
-             (setq beg (point))
-             (move-to-column col-end)
-             (setq end (point)))
+         (let* ((bounds (shift-number--rectangle-line-bounds col-beg col-end))
+                (beg (car bounds))
+                (end (cdr bounds)))
            ;; Move point to region start so cursor tracking works correctly.
            (goto-char beg)
            ;; Don't use save-excursion here - we want to capture final position.

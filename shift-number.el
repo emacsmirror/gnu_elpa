@@ -453,7 +453,7 @@ Return (OLD-BEG . OLD-END) on success, nil on failure."
              ;; Only check for 0-9 to allow "1e-10" scientific notation to work.
              (sign-preceded-by-digit
               (and sign-str
-                   (not (string-empty-p sign-str)) (> (match-beginning sign-group) beg)
+                   (not (string-equal sign-str "")) (> (match-beginning sign-group) beg)
                    (let ((ch-before (char-before (match-beginning sign-group))))
                      (and ch-before (>= ch-before ?0) (<= ch-before ?9)))))
              (use-sign (and shift-number-negative (not sign-preceded-by-digit)))

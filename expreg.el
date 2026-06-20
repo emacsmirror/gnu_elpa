@@ -229,6 +229,10 @@ The shape is (POS . (BEG . END)).
 This is used to restore point when canceling the expansion when
 ‘expreg-restore-point-on-quit’ is enabled.")
 
+(defvar-local expreg--mark-pushed nil
+  "Whether or not a mark has been pushed during the current
+command sequence.")
+
 (defun expreg--keyboard-quit-advice ()
   "Restores point when ‘keyboard-quit’ is called."
   (interactive)
@@ -242,6 +246,16 @@ This is used to restore point when canceling the expansion when
     (goto-char (car expreg--initial-point-and-last-range)))
   (setq expreg--initial-point-and-last-range nil))
 
+(defun expreg--update-mark (pos)
+  "If expreg has not yet set a mark during the current command
+sequence, then push one. On subsequent calls during the same
+sequence, update the existing mark."
+  (if (not expreg--mark-pushed)
+      (progn
+        (push-mark pos t t)
+        (setq-local expreg--mark-pushed t))
+    (set-mark pos)))
+
 ;;;###autoload
 (defun expreg-expand ()
   "Expand region."
@@ -254,6 +268,7 @@ This is used to restore point when canceling the expansion when
                       (cddr (car expreg--prev-regions)))))
     (setq-local expreg--next-regions nil)
     (setq-local expreg--prev-regions nil)
+    (setq-local expreg--mark-pushed nil)
     (setq-local expreg--initial-point-and-last-range (cons (point-marker) nil))
     (when expreg-restore-point-on-quit
       ;; We have to add the advice using :before. :after doesn’t work
@@ -288,7 +303,7 @@ This is used to restore point when canceling the expansion when
   ;; Expand to the next expansion.
   (when expreg--next-regions
     (let ((region (pop expreg--next-regions)))
-      (set-mark (cddr region))
+      (expreg--update-mark (cddr region))
       (goto-char (cadr region))
       (push region expreg--prev-regions)
       (unless transient-mark-mode
@@ -310,7 +325,7 @@ This is used to restore point when canceling the expansion when
              (length> expreg--prev-regions 1))
 
     (push (pop expreg--prev-regions) expreg--next-regions)
-    (set-mark (cddr (car expreg--prev-regions)))
+    (expreg--update-mark (cddr (car expreg--prev-regions)))
     (goto-char (cadr (car expreg--prev-regions))))
 
   (setcdr expreg--initial-point-and-last-range

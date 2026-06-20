@@ -759,7 +759,7 @@ additional N (first by 1*N, second by 2*N, etc.).
 DIR specifies the direction: 1 for forward, -1 for backward.
 START-COUNT specifies the initial count for incremental mode.
 Returns the final count value."
-  (let* ((pos-beg-old (mark))
+  (let* ((pos-beg-old (mark t))
          (pos-beg-new nil)
          (pos-end-old (point))
          (pos-end-new nil)
@@ -879,8 +879,8 @@ DIR specifies the direction: 1 for forward, -1 for backward."
             (goto-char end)
             (setq count (shift-number--on-region-impl n beg end incremental dir count))
             (setq final-point (point))
-            (when (mark)
-              (setq final-mark (mark)))))))
+            (when (mark t)
+              (setq final-mark (mark t)))))))
      (t
       (apply-on-rectangle
        (lambda (col-beg col-end)
@@ -898,8 +898,8 @@ DIR specifies the direction: 1 for forward, -1 for backward."
            (setq count (shift-number--on-region-impl n beg end incremental dir count))
            ;; Capture cursor/mark from last line processed.
            (setq final-point (point))
-           (when (mark)
-             (setq final-mark (mark)))))
+           (when (mark t)
+             (setq final-mark (mark t)))))
        (region-beginning) (region-end))))
     ;; Apply final cursor position.
     (when final-point
@@ -921,11 +921,11 @@ DIR specifies the direction: 1 for forward, -1 for backward."
   "Incrementally change numbers between point and mark by N.
 The first number is changed by N, the second by 2*N, etc.
 Works with rectangle selection when `rectangle-mark-mode' is active."
-  (unless (mark)
+  (unless (mark t)
     (user-error "The mark is not set"))
   (let ((dir
          (cond
-          ((and shift-number-incremental-direction-from-region (< (point) (mark)))
+          ((and shift-number-incremental-direction-from-region (< (point) (mark t)))
            -1)
           (t
            1))))
@@ -933,7 +933,9 @@ Works with rectangle selection when `rectangle-mark-mode' is active."
      ((bound-and-true-p rectangle-mark-mode)
       (shift-number--on-rectangle n t dir))
      (t
-      (shift-number--on-region-impl n (region-beginning) (region-end) t dir 1)))))
+      ;; Use point and mark directly so an inactive (but set) mark works,
+      ;; per the readme's "the region does not need to be active".
+      (shift-number--on-region-impl n (min (point) (mark t)) (max (point) (mark t)) t dir 1)))))
 
 (defun shift-number--maybe-redo (id delta-fn op-fn)
   "Apply (OP-FN (DELTA-FN prev)), optionally inside a `with-command-redo' chain.

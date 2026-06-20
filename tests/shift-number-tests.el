@@ -1047,6 +1047,22 @@ With point after mark, 0 0 0 becomes 1 2 3 (standard behavior)."
       (cursor-marker)
       (should (equal text-expected (buffer-string))))))
 
+(ert-deftest incremental-inactive-mark ()
+  "Incremental works with a set-but-inactive mark.
+Per the readme the region need not be active, but with
+`transient-mark-mode' on and `mark-even-if-inactive' nil a bare `(mark)'
+would signal `mark-inactive'."
+  (let ((text-initial "1 2 3")
+        (text-expected "2 4 6")
+        (transient-mark-mode t)
+        (mark-even-if-inactive nil))
+    (with-shift-number-test text-initial
+      (goto-char (point-min))
+      (push-mark (point) t) ; Mark set, region left inactive.
+      (goto-char (point-max))
+      (shift-number-up-incremental 1)
+      (should (equal text-expected (buffer-string))))))
+
 ;; ---------------------------------------------------------------------------
 ;; Motion Tests
 

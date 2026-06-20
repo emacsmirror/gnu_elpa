@@ -1011,7 +1011,7 @@ Optional keywords to override customization variables:
   :motion         - Override `shift-number-motion'.
 
 Return (OLD-BEG . OLD-END) on success, nil on failure.
-Point is left at the end of the modified number.
+Point and mark are left according to `shift-number-motion'.
 
 This function is only exposed for use by `evil-numbers'."
   (let ((amount nil)
@@ -1041,8 +1041,25 @@ This function is only exposed for use by `evil-numbers'."
       (error "Missing required keyword: :amount"))
     (unless range
       (error "Missing required keyword: :range"))
-    (shift-number--inc-at-pt-with-search
-     amount (car range) (cdr range) (or shift-number-pad-default 'auto) range-check-fn dir)))
+    (let ((result
+           (shift-number--inc-at-pt-with-search
+            amount
+            (car range)
+            (cdr range)
+            (or shift-number-pad-default 'auto)
+            range-check-fn
+            dir)))
+      ;; The search path leaves point at the end; honor `shift-number-motion'.
+      ;; OLD-BEG stays the number's start across the edit (edits grow from there).
+      (when result
+        (cond
+         ;; Cursor stays at the beginning.
+         ((null shift-number-motion)
+          (goto-char (car result)))
+         ;; Cursor at the end (already there), mark at the beginning.
+         ((eq shift-number-motion 'mark)
+          (set-mark (car result)))))
+      result)))
 
 (provide 'shift-number)
 ;; Local Variables:

@@ -377,12 +377,7 @@ Each item in MATCH-CHARS is a list of (CH-SKIP CH-NUM CH-SEP-OPTIONAL).
 
 (defun shift-number--translate-with-alist (alist string)
   "Translate every character in STRING using ALIST."
-  (funcall (cond
-            ((stringp string)
-             #'concat)
-            (t
-             #'identity))
-           (mapcar (lambda (c) (cdr (assq c alist))) string)))
+  (concat (mapcar (lambda (c) (or (cdr (assq c alist)) c)) string)))
 
 (defun shift-number--encode-super (x)
   "Convert string X to superscript."

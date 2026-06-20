@@ -167,16 +167,16 @@ AUC\TeX{} provides a style file \verb|expl3.el| containing this code:
 \begin{verbatim}
 (defvar LaTeX-expl3-syntax-table
   (let ((st (copy-syntax-table LaTeX-mode-syntax-table)))
-    ;; Make _ and : symbol chars
-    (modify-syntax-entry ?\_ "_" st)
-    (modify-syntax-entry ?\: "_" st)
+    ;; Make _ and : word chars
+    (modify-syntax-entry ?\_ "w" st)
+    (modify-syntax-entry ?\: "w" st)
     st))
 \end{verbatim}
 It changes the syntax for \verb|_| and \verb|:| from
-\textsl{punctuation} to \textsl{symbol}.  For public functions
-mentioned above, this results in correct fontification in regular
-\verb|.tex| files.  For private functions, \verb|font-latex.el|
-provides some code for doc\TeX{} mode to fontify them correctly.
+\textsl{punctuation} to \textsl{word}.  For public functions mentioned
+above, this results in correct fontification in regular \verb|.tex|
+files.  For private functions, \verb|font-latex.el| provides some code
+for doc\TeX{} mode to fontify them correctly.
 
 \section{Math mode}
 

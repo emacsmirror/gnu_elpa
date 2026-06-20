@@ -467,8 +467,10 @@ Return (OLD-BEG . OLD-END) on success, nil on failure."
              ;; nil, so no separator guard is needed.
              (str-prev-strip (shift-number--strip-chars str-prev sep-char))
 
+             ;; Separator-stripped digits, shared by the leading-zero check and padding.
+             (num-str-strip (shift-number--strip-chars num-str-raw sep-char))
              ;; Auto-detect leading zeros: if number starts with 0 and has more digits.
-             (has-leading-zeros (and (> (length num-str-raw) 1) (eq (aref num-str-raw 0) ?0)))
+             (has-leading-zeros (and (> (length num-str-strip) 1) (eq (aref num-str-strip 0) ?0)))
              (use-padding
               (cond
                ((eq padded 'auto)
@@ -491,7 +493,7 @@ Return (OLD-BEG . OLD-END) on success, nil on failure."
                (cond
                 (use-padding
                  ;; Width in digits, separators must not count towards padding.
-                 (length (shift-number--strip-chars num-str-raw sep-char)))
+                 (length num-str-strip))
                 (t
                  1))
                base)))
@@ -668,10 +670,6 @@ Point is left at the end of the modified number."
                (t
                 (re-search-forward shift-number--number-chars-regexp end t))))))
     result))
-
-
-;; ---------------------------------------------------------------------------
-;; Private Functions
 
 (defmacro shift-number--swap-vars (i j)
   "Swap the value of I & J."

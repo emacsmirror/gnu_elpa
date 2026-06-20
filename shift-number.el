@@ -402,7 +402,7 @@ Each item in MATCH-CHARS is a list of (CH-SKIP CH-NUM CH-SEP-OPTIONAL).
 ;; ---------------------------------------------------------------------------
 ;; Internal Implementation
 
-(defun shift-number--inc-at-pt-impl-with-match-chars
+(defun shift-number--inc-at-pt-one-form
     (match-chars
      ;; Numeric & other options.
      sign-group num-group base beg end padded do-case
@@ -538,12 +538,12 @@ Return (OLD-BEG . OLD-END) on success, nil on failure."
         ;; Return old bounds for cursor positioning.
         (cons old-beg old-end)))))
 
-(defun shift-number--inc-at-pt-impl (beg end padded range-check-fn number-xform-fn)
+(defun shift-number--inc-at-pt-any-form (beg end padded range-check-fn number-xform-fn)
   "Increment/decrement the number at point, limited by BEG and END.
 
 Keep padding when PADDED is non-nil.  Use `auto' for automatic detection.
 
-See `shift-number--inc-at-pt-impl-with-match-chars' for details on
+See `shift-number--inc-at-pt-one-form' for details on
 RANGE-CHECK-FN and NUMBER-XFORM-FN.
 
 Return (OLD-BEG . OLD-END) on success, nil on failure.
@@ -551,7 +551,7 @@ Point is left at the end of the modified number."
   (or
    ;; Find binary literals:
    ;; 0[bB][01]+, e.g. 0b101 or 0B0.
-   (shift-number--inc-at-pt-impl-with-match-chars
+   (shift-number--inc-at-pt-one-form
     `(("+-" \?) ("0" 1) ("bB" 1) ("01" + ,shift-number-separator-chars))
     ;; Sign, number groups & base.
     1 4 2
@@ -562,7 +562,7 @@ Point is left at the end of the modified number."
 
    ;; Find octal literals:
    ;; 0[oO][0-7]+, e.g. 0o42 or 0O5.
-   (shift-number--inc-at-pt-impl-with-match-chars
+   (shift-number--inc-at-pt-one-form
     `(("+-" \?) ("0" 1) ("oO" 1) ("0-7" + ,shift-number-separator-chars))
     ;; Sign, number groups & base.
     1 4 8
@@ -573,7 +573,7 @@ Point is left at the end of the modified number."
 
    ;; Find hex literals:
    ;; 0[xX][0-9a-fA-F]+, e.g. 0xBEEF or 0Xcafe.
-   (shift-number--inc-at-pt-impl-with-match-chars
+   (shift-number--inc-at-pt-one-form
     `(("+-" \?) ("0" 1) ("xX" 1) ("[:xdigit:]" + ,shift-number-separator-chars))
     ;; Sign, number groups & base.
     1 4 16
@@ -584,7 +584,7 @@ Point is left at the end of the modified number."
 
    ;; Find decimal literals:
    ;; [0-9]+, e.g. 42 or 23.
-   (shift-number--inc-at-pt-impl-with-match-chars
+   (shift-number--inc-at-pt-one-form
     `(("+-" \?) ("0123456789" + ,shift-number-separator-chars))
     ;; Sign, number groups & base.
     1 2 10
@@ -594,7 +594,7 @@ Point is left at the end of the modified number."
     #'identity #'identity)
 
    ;; Find decimal literals (superscript).
-   (shift-number--inc-at-pt-impl-with-match-chars
+   (shift-number--inc-at-pt-one-form
     `(("⁺⁻" \?) (,shift-number--chars-superscript + nil))
     ;; Sign, number groups & base.
     1 2 10
@@ -604,7 +604,7 @@ Point is left at the end of the modified number."
     #'shift-number--decode-super #'shift-number--encode-super)
 
    ;; Find decimal literals (subscript).
-   (shift-number--inc-at-pt-impl-with-match-chars
+   (shift-number--inc-at-pt-one-form
     `(("₊₋" \?) (,shift-number--chars-subscript + nil))
     ;; Sign, number groups & base.
     1 2 10
@@ -624,7 +624,7 @@ Keep padding when PADDED is non-nil.  Use `auto' for automatic detection.
 
 DIR specifies search direction: 1 for forward, -1 for backward.
 
-See `shift-number--inc-at-pt-impl-with-match-chars' for details on
+See `shift-number--inc-at-pt-one-form' for details on
 RANGE-CHECK-FN.
 
 Return (OLD-BEG . OLD-END) on success, nil on failure.
@@ -632,7 +632,7 @@ Point is left at the end of the modified number."
   (let ((result nil))
     (save-match-data
       ;; Search for any text that might be part of a number,
-      ;; if `shift-number--inc-at-pt-impl' cannot parse it - that's fine,
+      ;; if `shift-number--inc-at-pt-any-form' cannot parse it - that's fine,
       ;; keep searching until the limit.
       ;; This avoids doubling up on number parsing logic.
       ;;
@@ -641,7 +641,7 @@ Point is left at the end of the modified number."
               ;; Found item, exit the loop.
               (null
                (when (setq result
-                           (shift-number--inc-at-pt-impl
+                           (shift-number--inc-at-pt-any-form
                             ;; Clamp limits to line bounds.
                             ;; The caller may use a range that spans lines to
                             ;; allow searching and finding items across
@@ -671,7 +671,7 @@ Point is left at the end of the modified number."
          (prog1 ,j
            (setq ,j ,i))))
 
-(defun shift-number--impl (n pos limit-beg limit-end dir)
+(defun shift-number--inc-with-bounds (n pos limit-beg limit-end dir)
   "Change the number at point by N.
 If there is no number at point, search in the direction DIR
 and change the first number found.
@@ -716,7 +716,7 @@ Return (OLD-BOUNDS . NEW-BOUNDS) on success, nil on failure."
 (defun shift-number--on-line (n)
   "Adjust the number N on the current line."
   (let* ((old-pos (point))
-         (bounds-pair (shift-number--impl n old-pos (pos-bol) (pos-eol) 1)))
+         (bounds-pair (shift-number--inc-with-bounds n old-pos (pos-bol) (pos-eol) 1)))
 
     (unless bounds-pair
       (error "No number on the current line"))
@@ -775,7 +775,8 @@ Returns the final count value."
                region-beg))))
         (goto-char search-pos)
         (while (and (setq bounds-pair
-                          (shift-number--impl (* n count) search-pos region-beg region-end dir)))
+                          (shift-number--inc-with-bounds
+                           (* n count) search-pos region-beg region-end dir)))
           (let* ((old-bounds (car bounds-pair))
                  (new-bounds (cdr bounds-pair))
                  (old-beg (car old-bounds))
@@ -994,7 +995,7 @@ Required keywords:
 
 Optional keywords:
   :dir          - Search direction: 1 for forward, -1 for backward (default 1).
-  :range-check-fn - See `shift-number--inc-at-pt-impl-with-match-chars'.
+  :range-check-fn - See `shift-number--inc-at-pt-one-form'.
 
 Optional keywords to override customization variables:
   :pad-default    - Override `shift-number-pad-default'.

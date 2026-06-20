@@ -255,6 +255,7 @@ hoogle.haskell.org is used. See `hoogle-buffer-args' for customization."
              (proc (make-process :name "*hoogle-process*" :buffer proc-buffer
                                  :noquery t :connection-type 'pipe
                                  :command `(,@hoogle-base-args ,query)
+                                 :file-handler t
                                  :filter #'hoogle-buffer--filter
                                  :sentinel #'hoogle-buffer--sentinel)))
         (process-put proc 'results-buffer results-buffer)

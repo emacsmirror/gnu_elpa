@@ -161,7 +161,7 @@ we use the same buffer throughout."
 (defun consult-hoogle--source (&optional command)
   "Return an async source to search with hoogle using COMMAND."
   (let* ((command (or command hoogle-base-args))
-         (exe (or (executable-find (car command))
+         (exe (or (executable-find (car command) t)
                   (error "Executable %s not found on path" (car command))))
          (command `(,exe . ,(cdr command))))
     (consult--process-collection
@@ -170,6 +170,7 @@ we use the same buffer throughout."
             (unless (string-blank-p query)
               (cons (append command opts (list query))
                     (cdr (consult--default-regexp-compiler input 'basic t))))))
+      :file-handler t
       :transform (consult--async-transform #'consult-hoogle--format)
       :highlight t)))
 

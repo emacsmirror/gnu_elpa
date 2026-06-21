@@ -9,6 +9,12 @@ font-lock and indentation. Trust me, the font-lock helps *a lot* when writing
 intricate format strings. The indentation is more niche and can be customized or
 simply disabled, see [[#format_indentation]].
 
+A sample, showing off both indentation and font-lock:
+#+caption: I actually wrote that before I made this package 😂
+[[file:format-screenshot.png]]
+If this makes your eyes bleed, you can customize all those faces to look as
+boring as you'd like.
+
 Aside from that, the truth is tree-sitter doesn't add nearly as much to most
 Lisp languages *on its own* compared to other languages. Emacs' syntax system is
 (unsurprisingly) extremely well suited to handling Lisp code semantics (notably,

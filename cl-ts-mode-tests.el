@@ -69,6 +69,8 @@
       (delay-mode-hooks (cl-ts-mode))
       (cl-ts-format-support-mode)
       (treesit-update-ranges)
+      ;; FIXME: there are plenty more things to test, eg. string relative
+      ;; indentation, indentation of the end directive etc.
       (let ((opener-marker (copy-marker (1- (point))))
             (opener-column (save-excursion (backward-char 2) (current-column))))
         (let ((cl-ts-mode-format-group-indent-offset 1)

@@ -1,7 +1,9 @@
 #+title: cl-ts-mode
+#+options: toc:nil
 
 A tree-sitter alternative to ~lisp-mode~ which uses [[https://codeberg.org/zshaftel/tree-sitter-cl-syntax][this grammar]].
 
+#+toc: headlines 3
 * Why?
 The killer feature of this mode is the ~FORMAT~ string support. Using a
 specialized embedded grammar for format strings enables format directive
@@ -10,8 +12,10 @@ intricate format strings. The indentation is more niche and can be customized or
 simply disabled, see [[#format_indentation]].
 
 A sample, showing off both indentation and font-lock:
+
 #+caption: I actually wrote that before I made this package 😂
 [[file:format-screenshot.png]]
+
 If this makes your eyes bleed, you can customize all those faces to look as
 boring as you'd like.
 

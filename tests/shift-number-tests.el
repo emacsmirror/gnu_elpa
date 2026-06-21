@@ -1125,7 +1125,10 @@ would signal `mark-inactive'."
         (text-expected "|124"))
     (with-shift-number-test text-initial
       (shift-number-increment-at-point-with-search
-       :amount 1 :range (cons (point-min) (point-max)) :motion nil)
+       :amount 1
+       :range
+       (cons (point-min) (point-max))
+       :motion nil)
       (cursor-marker)
       (should (equal text-expected (buffer-string)))
       (should-not (mark)))))
@@ -1136,7 +1139,10 @@ would signal `mark-inactive'."
         (text-expected "124|"))
     (with-shift-number-test text-initial
       (shift-number-increment-at-point-with-search
-       :amount 1 :range (cons (point-min) (point-max)) :motion t)
+       :amount 1
+       :range
+       (cons (point-min) (point-max))
+       :motion t)
       (cursor-marker)
       (should (equal text-expected (buffer-string)))
       (should-not (mark)))))
@@ -1148,7 +1154,10 @@ would signal `mark-inactive'."
         (mark-expected 1)) ; Start of "124".
     (with-shift-number-test text-initial
       (shift-number-increment-at-point-with-search
-       :amount 1 :range (cons (point-min) (point-max)) :motion 'mark)
+       :amount 1
+       :range
+       (cons (point-min) (point-max))
+       :motion 'mark)
       (cursor-marker)
       (should (equal text-expected (buffer-string)))
       (should (equal mark-expected (mark))))))

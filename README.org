@@ -114,7 +114,7 @@ isn't affected. The behavior depends on a few customizable variables:
     "~:@{
        ~}"
   #+end_src
-  If set to non-nil, the ​~s are aligned:
+  If set to non-nil, the ~s are aligned:
   #+begin_src lisp :tangle yes
     "~:@{
      ~}"

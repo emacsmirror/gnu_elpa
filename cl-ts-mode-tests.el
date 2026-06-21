@@ -72,31 +72,31 @@
       ;; FIXME: there are plenty more things to test, eg. string relative
       ;; indentation, indentation of the end directive etc.
       (let ((opener-marker (copy-marker (1- (point))))
-            (opener-column (save-excursion (backward-char 2) (current-column))))
-        (let ((cl-ts-mode-format-group-indent-offset 1)
-              (cl-ts-mode-format-indent-predicate "\\`format_group\\'")
-              (cl-ts-mode-format-indent-auto-escape-eol "~@")
-              correct-col)
+            (opener-column (save-excursion (backward-char 2) (current-column)))
+            (cl-ts-mode-format-group-indent-offset 1)
+            (cl-ts-mode-format-indent-predicate "\\`format_group\\'")
+            (cl-ts-mode-format-indent-auto-escape-eol "~@")
+            correct-col)
+        (cl-ts-mode-tests--with-temp-changes
+          (save-excursion (call-interactively #'indent-for-tab-command))
+          (should (equal (current-indentation)
+                         (+ opener-column cl-ts-mode-format-group-indent-offset)))
+          (setq correct-col (current-indentation))
+          (goto-char opener-marker)
+          (should (looking-at-p (rx "~@" eol))))
+        (let ((cl-ts-mode-format-indent-auto-escape-eol nil)
+              (start-col (current-column)))
           (cl-ts-mode-tests--with-temp-changes
             (save-excursion (call-interactively #'indent-for-tab-command))
-            (should (equal (current-indentation)
-                           (+ opener-column cl-ts-mode-format-group-indent-offset)))
-            (setq correct-col (current-indentation))
+            (should (equal (current-indentation) start-col))))
+        (let ((cl-ts-mode-format-indent-auto-escape-eol t))
+          (cl-ts-mode-tests--with-temp-changes
+            (save-excursion (call-interactively #'indent-for-tab-command))
+            ;; make sure we still indented
+            (should (equal (current-indentation) correct-col))
             (goto-char opener-marker)
-            (should (looking-at-p (rx "~@" eol))))
-          (let ((cl-ts-mode-format-indent-auto-escape-eol nil)
-                (start-col (current-column)))
-            (cl-ts-mode-tests--with-temp-changes
-              (save-excursion (call-interactively #'indent-for-tab-command))
-              (should (equal (current-indentation) start-col))))
-          (let ((cl-ts-mode-format-indent-auto-escape-eol t))
-            (cl-ts-mode-tests--with-temp-changes
-              (save-excursion (call-interactively #'indent-for-tab-command))
-              ;; make sure we still indented
-              (should (equal (current-indentation) correct-col))
-              (goto-char opener-marker)
-              ;; but didn't auto escape
-              (should (eolp)))))))))
+            ;; but didn't auto escape
+            (should (eolp))))))))
 
 (provide 'cl-ts-mode-tests)
 ;;; cl-ts-mode-tests.el ends here

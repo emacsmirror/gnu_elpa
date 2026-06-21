@@ -12,6 +12,19 @@
 
 ;; This file is not part of GNU Emacs.
 
+;; This program is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+
+;; You should have received a copy of the GNU General Public License
+;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 ;;; Commentary:
 
 ;;; Code:
@@ -168,14 +181,29 @@ non-nil."
             (set-face-attribute (aref cl-ts-mode--block-comment-faces i)
                                 nil :foreground)))))))
 
+(defvar cl-ts-mode--enabled-fl-features ())
+
+(defun cl-ts-mode--compute-features ()
+  (defvar cl-ts-mode-font-lock-feature-list)
+  (let ((n (cond
+             ((integerp ts-font-lock-level) ts-font-lock-level)
+             ((alist-get 'cl-ts-mode ts-font-lock-level
+                         nil nil (lambda (entry mode)
+                                   (provided-mode-derived-p mode entry))))
+             (t (alist-get t ts-font-lock-level 3))))
+        (f cl-ts-mode-font-lock-feature-list)
+        (a ()))
+    (while (plusp n)
+      (setq a (append (pop f) a))
+      (decf n))
+    a))
+
 (defcustom cl-ts-mode-format-rainbow-delimiters (featurep 'rainbow-delimiters)
   "Whether paired format directives like ~[~] are highlighted based on
 nesting depth with faces from rainbow-delimiters.el. If this is non-nil
 and rainbow-delimiters is not available, a warning will be emitted and
 it will be set to nil."
   :type 'boolean)
-
-(defvar cl-ts-mode--enabled-fl-features ())
 
 (defun cl-ts-mode--format-use-rainbow-delimiters-p ()
   (and cl-ts-mode-format-rainbow-delimiters
@@ -306,43 +334,6 @@ face itself and return nil.")
          (add-face-text-property (point) nend 'font-lock-comment-face))
         ('"block_comment" (cl-ts-mode--fontify-nested-comments node 0))))))
 
-(defun cl-ts-mode--fontify-symbol (node override start end &rest _)
-  (ignore override)
-  (when (and (>= (ts-node-start node) start) (<= (ts-node-end node) end))
-    (let ((child (ts-node-child node 0))
-          (everything-else-face nil))
-      (while child
-        (pcase (ts-node-type child)
-          ((or '":" '"::")
-           (if (eq (ts-node-start node) (ts-node-start child))
-               ;; keyword
-               (setq everything-else-face 'font-lock-builtin-face)
-             (add-face-text-property (ts-node-start node)
-                                     (ts-node-start child)
-                                     'font-lock-keyword-face))
-           (add-face-text-property (ts-node-start child)
-                                   (ts-node-end child)
-                                   'font-lock-delimiter-face))
-          ('"single_escape"
-           (add-face-text-property (ts-node-start child)
-                                   (ts-node-end child)
-                                   'font-lock-escape-face))
-          ('"|"                         ;from a recursive call
-           (add-face-text-property (ts-node-start child)
-                                   (ts-node-end child)
-                                   'font-lock-constant-face))
-          ('"multiple_escape"
-           ;; multi escapes can't be nested, so there will be at most one level
-           ;; of recursion, just to highlight single escapes within the
-           ;; multi escape
-           (cl-ts-mode--fontify-symbol child override start end)))
-        (setq child (ts-node-next-sibling child)))
-      (when everything-else-face
-        (add-face-text-property (ts-node-start node)
-                                (ts-node-end node)
-                                everything-else-face
-                                t)))))
-
 (defface cl-ts-mode-0-bit '((t :inherit success))
   "Face for 0s in #b0 rationals and #*0 bit vectors.")
 
@@ -460,8 +451,6 @@ face itself and return nil.")
     result))
 
 (define-inline cl-ts-mode-sexp-node-at-pos (&optional pos)
-  ;; slight KLUDGE: `treesit-node-match-p' expects a function value, not a
-  ;; function name. makes sense tho, since `list' is a very common treesit thing
   (inline-quote (cl-ts-mode--thing-node-at-pos (symbol-function 'always) ,pos)))
 
 (define-inline cl-ts-mode-list-node-at-pos (&optional pos)
@@ -469,20 +458,6 @@ face itself and return nil.")
 
 (define-inline cl-ts-mode-symbol-node-at-pos (&optional pos)
   (inline-quote (cl-ts-mode--thing-node-at-pos 'symbol ,pos)))
-
-(defun cl-ts-mode--compute-features ()
-  (let ((n (cond
-             ((integerp ts-font-lock-level) ts-font-lock-level)
-             ((alist-get 'cl-ts-mode ts-font-lock-level
-                         nil nil (lambda (entry mode)
-                                   (provided-mode-derived-p mode entry))))
-             (t (alist-get t ts-font-lock-level 3))))
-        (f cl-ts-mode-font-lock-feature-list)
-        (a ()))
-    (while (plusp n)
-      (setq a (append (pop f) a))
-      (decf n))
-    a))
 
 ;; treesit-parsers-at and co can only find the ones added by
 ;; `treesit-range-settings'
@@ -988,7 +963,8 @@ toggles between them."
                 ;; so FIXME: block comment indentation
                 comment-continue "# "))
   (message "Enabled %s %s comments %s" comment-start arg comment-end)
-  (cl-ts-mode-update-modeline))
+  (when (derived-mode-p 'cl-ts-mode)
+    (cl-ts-mode-update-modeline)))
 
 (defvar-keymap cl-ts-mode-map
   :parent lisp-mode-map

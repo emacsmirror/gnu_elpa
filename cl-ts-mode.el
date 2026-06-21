@@ -186,7 +186,7 @@ it will be set to nil."
                             "disabling `cl-ts-mode-format-rainbow-delimiters'"))
              (setq-default cl-ts-mode-format-rainbow-delimiters nil)))))
 
-;; FIXME: should this be a defcustom? this is really just for `clparse-mode' to
+;; FIXME: should this be a defcustom? this is really just for `gaudy-cl-mode' to
 ;; hook into `cl-ts-mode--fontify-one-format-directive'.
 (defvar cl-ts-mode-fontify-format-funcall-function ;say that three times fast!
   nil
@@ -372,7 +372,7 @@ face itself and return nil.")
 
 (defun cl-ts-mode--font-lock-rules ()
   (ts-font-lock-rules
-   ;; this rule will only run if explicitly triggered by `clparse-mode' or when
+   ;; this rule will only run if explicitly triggered by `gaudy-cl-mode' or when
    ;; `cl-ts-format-support-mode' is enabled
    :language 'cl-format
    :feature 'format-directive
@@ -604,20 +604,21 @@ With value of 0:
   :type 'integer)
 
 (defun cl-ts-mode--eol-escape-string-at (parser pos)
-  (cond*
-    ((bind* (node (cl-ts-mode--format-directive-at-pos
-                   (ts-parser-root-node parser)
-                   (1- pos)))))
-    ((and node (= (ts-node-end node) pos)) nil)
-    ((stringp cl-ts-mode-format-indent-auto-escape-eol)
-     cl-ts-mode-format-indent-auto-escape-eol)
-    ((atom cl-ts-mode-format-indent-auto-escape-eol) nil)
-    ((ts-query-capture
-      parser
-      cl-ts-mode--format-pprint-logical-block-query
-      pos (1+ pos) t)
-     (car cl-ts-mode-format-indent-auto-escape-eol))
-    (t (cdr cl-ts-mode-format-indent-auto-escape-eol))))
+  (let ((node (cl-ts-mode--format-directive-at-pos
+               (ts-parser-root-node parser)
+               (1- pos))))
+    (cond
+      ((and node (= (ts-node-end node) pos)) nil) ;has to be a newline directive
+      ((stringp cl-ts-mode-format-indent-auto-escape-eol)
+       cl-ts-mode-format-indent-auto-escape-eol)
+      ((null cl-ts-mode-format-indent-auto-escape-eol) 'noindent)
+      ((atom cl-ts-mode-format-indent-auto-escape-eol) nil)
+      ((ts-query-capture
+        parser
+        cl-ts-mode--format-pprint-logical-block-query
+        pos (1+ pos) t)
+       (car cl-ts-mode-format-indent-auto-escape-eol))
+      (t (cdr cl-ts-mode-format-indent-auto-escape-eol)))))
 
 (defun cl-ts-mode--indent-format-line (parser)
   (let* ((lbeg (line-beginning-position))
@@ -663,19 +664,23 @@ With value of 0:
                     (- (current-column)
                        (- (ts-node-end ender) (ts-node-start ender))))
                    (t (goto-char (ts-node-start starter))
-                      (current-column)))))))
-        (if (= new-indent cur-indent)
+                      (current-column))))))
+             cont)
+        (if (or (= new-indent cur-indent)
+                ;; this means `cl-ts-mode-format-indent-auto-escape-eol' is nil
+                ;; and there's no directive already there
+                (eq (setq cont (cl-ts-mode--eol-escape-string-at parser lbeg))
+                    'noindent))
             'noindent
           (let* ((old-ranges (ts-parser-included-ranges parser))
                  (_ (cl-assert (length= old-ranges 1)))
                  (pbeg (caar old-ranges))
-                 (pend (copy-marker (cdar old-ranges) t))
-                 (continuation (cl-ts-mode--eol-escape-string-at parser lbeg)))
+                 (pend (copy-marker (cdar old-ranges) t)))
             (indent-line-to new-indent)
-            (when continuation
+            (when cont
               (save-excursion
                 (goto-char (1- lbeg))
-                (insert continuation)))
+                (insert cont)))
             (thread-last (prog1 (marker-position pend)
                            (set-marker pend nil))
               (cons pbeg)
@@ -717,14 +722,14 @@ With value of 0:
   (indent-region (save-excursion (backward-prefix-chars) (point))
                  (or endpos (save-excursion (forward-sexp) (point)))))
 
-(defcustom cl-ts-mode-indent-format-excluded-commands ()
+(defcustom cl-ts-mode-format-indent-excluded-commands ()
   "List of commands in which format indentation is suppressed.
 When indentation is triggered by a command in this list, indentation of
 format directives is not performed."
   :type '(repeat :default (newline-and-indent) function))
 
 (defun cl-ts-mode-indent-line-wrapper (orig)
-  (if (memq this-command cl-ts-mode-indent-format-excluded-commands)
+  (if (memq this-command cl-ts-mode-format-indent-excluded-commands)
       (funcall orig)
     (let ((lindent (cl-ts-mode-maybe-indent-format-line)))
       (if (eq lindent 'noindent)
@@ -865,9 +870,7 @@ format directives is not performed."
   (let ((tab (make-syntax-table)))
     ;; give delimiters plain symbol syntax. we use the above syntax table on
     ;; directive characters themselves, and we explicitly "'"
-    (mapc (lambda (ch)
-            (modify-syntax-entry ch "_" tab))
-          "()[]{}<>")
+    (mapc (lambda (ch) (modify-syntax-entry ch "_" tab)) "()[]{}<>")
     tab))
 
 (defun cl-ts-mode-syntax-propertize (start end)
@@ -1132,7 +1135,7 @@ is ((2 . ((string) :?)) (0 . ((list)))) the result would be
     res))
 
 
-;;; format grammar stuff, for those who don't use clparse-mode
+;;; format grammar stuff, for those who don't use gaudy-cl-mode
 (defun cl-ts-mode--build-format-query (operator-alist)
   (let ((query (list '(((interned_symbol !package ":" name: (_) @_sym)
                         (:eq? @_sym "format-control"))
@@ -1225,7 +1228,7 @@ function call format directive."
 ;;;###autoload
 (define-minor-mode cl-ts-format-support-mode
   "Enable embedded format string grammar.
-Do not use this mode with `clparse-mode', as the latter applies the
+Do not use this mode with `gaudy-cl-mode', as the latter applies the
 format grammar automatically."
   :lighter nil
   :interactive (cl-ts-mode)
@@ -1233,8 +1236,8 @@ format grammar automatically."
     (buffer-local-restore-state cl-ts-format-support-mode--saved-state)
     (kill-local-variable 'cl-ts-format-support-mode--saved-state))
   (when (and cl-ts-format-support-mode (ts-ensure-installed 'cl-format))
-    (when (bound-and-true-p clparse-mode)
-      (warn (concat "`clparse-mode' and `cl-ts-format-support-mode' "
+    (when (bound-and-true-p gaudy-cl-mode)
+      (warn (concat "`gaudy-cl-mode' and `cl-ts-format-support-mode' "
                     "are redundant and should not be used together")))
     (setq-local
      cl-ts-format-support-mode--saved-state

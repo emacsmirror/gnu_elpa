@@ -68,8 +68,9 @@
 (defface cl-ts-mode-format-standalone-directive '((t :inherit font-lock-property-use-face))
   "Face for simple format directive characters like A and S.")
 
-(defface cl-ts-mode-format-paired-directive '((t :weight extra-bold
-                                                 :inherit font-lock-regexp-grouping-construct))
+(defface cl-ts-mode-format-paired-directive
+  '((t :weight extra-bold
+       :inherit font-lock-regexp-grouping-construct))
   "Face used to highlight paired format directives: ~<~>, ~{~}, ~(~), and ~[~].
 If `cl-ts-mode-format-rainbow-delimiters' is non-nil, this face is
 merged with the rainbow delimiters face (the latter taking precedence).")
@@ -223,17 +224,21 @@ face itself and return nil.")
                                 (let ((start (point)))
                                   (unless colonp ; only the newline was skipped
                                     (skip-chars-forward "\n\t "))
-                                  (add-face-text-property start (point)
-                                                          'cl-ts-mode-format-skipped-whitespace)))
+                                  (add-face-text-property
+                                   start (point)
+                                   'cl-ts-mode-format-skipped-whitespace)))
                               nil)
                              ((not paired-depth) 'cl-ts-mode-format-standalone-directive)
                              ((not (cl-ts-mode--format-use-rainbow-delimiters-p))
                               'cl-ts-mode-format-paired-directive)
-                             (t (list (funcall rainbow-delimiters-pick-face-function
-                                               paired-depth (not mismatch-p)
-                                               (ts-node-start child))
-                                      ;; put this behind it to merge the two faces
-                                      'cl-ts-mode-format-paired-directive))))
+                             (t (if-let* ((rainbow-face
+                                           (funcall rainbow-delimiters-pick-face-function
+                                                    paired-depth (not mismatch-p)
+                                                    (ts-node-start child))))
+                                    (list rainbow-face
+                                          ;; put this behind it to merge the two faces
+                                          'cl-ts-mode-format-paired-directive)
+                                  'cl-ts-mode-format-paired-directive))))
                           ;; ~/
                           ('"interned_symbol"
                            (when cl-ts-mode-fontify-format-funcall-function
@@ -666,26 +671,38 @@ With value of 0:
                    (t (goto-char (ts-node-start starter))
                       (current-column))))))
              cont)
-        (if (or (= new-indent cur-indent)
-                ;; this means `cl-ts-mode-format-indent-auto-escape-eol' is nil
-                ;; and there's no directive already there
-                (eq (setq cont (cl-ts-mode--eol-escape-string-at parser lbeg))
-                    'noindent))
-            'noindent
-          (let* ((old-ranges (ts-parser-included-ranges parser))
-                 (_ (cl-assert (length= old-ranges 1)))
-                 (pbeg (caar old-ranges))
-                 (pend (copy-marker (cdar old-ranges) t)))
-            (indent-line-to new-indent)
-            (when cont
-              (save-excursion
-                (goto-char (1- lbeg))
-                (insert cont)))
-            (thread-last (prog1 (marker-position pend)
-                           (set-marker pend nil))
-              (cons pbeg)
-              (list)
-              (ts-parser-set-included-ranges parser))))))))
+        (prog1 (if (or (= new-indent cur-indent)
+                       ;; this means `cl-ts-mode-format-indent-auto-escape-eol' is nil
+                       ;; and there's no directive already there
+                       (eq (setq cont (cl-ts-mode--eol-escape-string-at parser lbeg))
+                           'noindent))
+                   'noindent
+                 (let* ((old-ranges (ts-parser-included-ranges parser))
+                        (_ (cl-assert (length= old-ranges 1)))
+                        (pbeg (caar old-ranges))
+                        (pend (copy-marker (cdar old-ranges) t)))
+                   (indent-line-to new-indent)
+                   (when cont
+                     (save-excursion
+                       (goto-char (1- lbeg))
+                       (insert cont)))
+                   (thread-last (prog1 (marker-position pend)
+                                  (set-marker pend nil))
+                     (cons pbeg)
+                     (list)
+                     (ts-parser-set-included-ranges parser))))
+          (back-to-indentation))))))
+
+;; i use this to bind `cl-ts-mode-format-indent-auto-escape-eol' to plain "~"
+;; when `this-command' = `newline-and-indent'.
+(defvar cl-ts-mode-format-indent-function #'cl-ts-mode--indent-format-line
+  "The function called to perform format directive indentation.
+It's called with one argument, the treesit parser for the format string,
+with point positioned on the line to be indented. If it performs no
+indentation, it should return the symbol `noindent'.
+
+`add-function' is meant to be used on this variable to control when and
+how indentation is performed.")
 
 (defun cl-ts-mode-maybe-indent-format-line (&optional parser)
   (if-let* ((_ cl-ts-mode-format-indent-predicate)
@@ -693,7 +710,7 @@ With value of 0:
                                    (point) (ts-parser-list nil 'cl-format t))))
             (_ (> (line-beginning-position)
                   (1+ (ts-node-start (ts-parser-root-node parser-at))))))
-      (cl-ts-mode--indent-format-line parser-at)
+      (funcall cl-ts-mode-format-indent-function parser)
     'noindent))
 
 (defun cl-ts-mode-indent-region-wrapper (orig beg end)
@@ -713,7 +730,8 @@ With value of 0:
                   (while (> (point) (1+ beg))
                     (save-excursion (cl-ts-mode-maybe-indent-format-line parser))
                     (beginning-of-line 0))))))
-        (move-marker end-marker nil)))))
+        (move-marker end-marker nil)
+        (syntax-ppss-flush-cache beg)))))
 
 ;; indent-sexp doesn't use indent-region, and instead tries to be smart and
 ;; skips strings.
@@ -722,19 +740,11 @@ With value of 0:
   (indent-region (save-excursion (backward-prefix-chars) (point))
                  (or endpos (save-excursion (forward-sexp) (point)))))
 
-(defcustom cl-ts-mode-format-indent-excluded-commands ()
-  "List of commands in which format indentation is suppressed.
-When indentation is triggered by a command in this list, indentation of
-format directives is not performed."
-  :type '(repeat :default (newline-and-indent) function))
-
 (defun cl-ts-mode-indent-line-wrapper (orig)
-  (if (memq this-command cl-ts-mode-format-indent-excluded-commands)
-      (funcall orig)
-    (let ((lindent (cl-ts-mode-maybe-indent-format-line)))
-      (if (eq lindent 'noindent)
-          (funcall orig)
-        lindent))))
+  (let ((lindent (cl-ts-mode-maybe-indent-format-line)))
+    (if (eq lindent 'noindent)
+        (funcall orig)
+      lindent)))
 
 (defun cl-ts-mode-up-list (arg escape-strings no-syntax-crossing)
   (cond
@@ -849,10 +859,10 @@ format directives is not performed."
 ;; and all other characters symbol syntax. the syntax table below is added to
 ;; the rest of the format string, which just gives it basic syntax (importantly,
 ;; it gives the paired directives symbol syntax so they don't interfere).
-;; lastly, we give the tilde, parameters and :@ modifiers prefix syntax. all
-;; this together means that commands like forward-sexp and down-list will treat
-;; format directives as expressions, so eg. you can move across or down into
-;; ~{~}
+;; lastly, we give the tilde, parameters and :@ modifiers a prefix syntax
+;; descriptor. all this together means that commands like forward-sexp and
+;; down-list will treat format directives as expressions, so eg. you can move
+;; across or down into ~{~}
 (defconst cl-ts-mode--format-directive-syntax-table
   (let* ((tab (make-syntax-table)))
     (modify-syntax-entry (cons 0 (max-char)) "_" tab) ;symbol syntax by default
@@ -1112,6 +1122,7 @@ This should be set before `cl-ts-mode' is activated.")
 
 (defun cl-ts-mode--arg-fields (indices)
   "Return a partial query matching specified patterns at INDICES.
+
 The result starts with an :anchor, so it must be prepended with a
 pattern that matches a node. INDICES is an alist of (INDEX . PATTERN)
 where INDEX is the index of the argument and PATTERN is a list spliced
@@ -1191,9 +1202,9 @@ to (regexp-opt OPERATOR-MATCH). If OPERATOR-MATCH is a symbol, it is a
 unary function which is called on the interned_symbol treesit node and
 should return non-nil if that operator is matched by the rule.
 
-ARG can be an integer or list of integers between 0 and 4, specifying
-that the ARGth argument to the operator is a format string. Otherwise
-ARG can be t, meaning all string arguments to the operator are matched.
+ARG can be an integer or list of integers, specifying that the ARGth
+argument to the operator is a format string. Otherwise ARG can be t,
+meaning all string arguments to the operator are matched.
 
 If you want to simply apply the grammar to all strings you can use the
 query \"(string) @format\". Note that this will end up applying to
@@ -1201,12 +1212,7 @@ pathnames, so #p\"~/.emacs.d/\" will be incorrectly highlighted as a
 function call format directive."
   :type '(choice (alist :key-type
                         (choice (const :tag "All string arguments" t)
-                                (repeat (choice :tag "Nth argument"
-                                                (const 0)
-                                                (const 1)
-                                                (const 2)
-                                                (const 3)
-                                                (const 4))))
+                                (repeat natnum))
                         :value-type
                         (choice (regexp :tag "Match operator names"
                                         :value "format\\|FORMAT")

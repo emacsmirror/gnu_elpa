@@ -59,7 +59,7 @@
 
 (ert-deftest cl-ts-format-indentation ()
   (let ((cl-ts-format-support-mode-query cl-ts-mode-tests--standard-format-query)
-        (cl-ts-mode-format-indent-excluded-commands ())
+        (cl-ts-mode-format-indent-function #'cl-ts-mode--indent-format-line)
         marker)
     (with-temp-buffer
       (insert "(format t (formatter \"~A~<\n")

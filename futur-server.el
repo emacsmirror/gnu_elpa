@@ -205,7 +205,10 @@ Does not pay attention to buffer-local values of variables."
                           (mapcar #'copy-sequence
                                   (cl--generic-dispatches generic)))))
              (when boundp
-               (setf (default-value ns) (default-value sym))))))))
+              (setf (default-value ns) (default-value sym))))))))
+    ;; `after-load-alist' is often modified via `nconc'.
+    (let ((ala (intern "after-load-alist" snapshot)))
+      (set ala (mapcar #'copy-sequence (symbol-value ala))))
     snapshot))
 
 (defun futur--obarray-revert (snapshot)
@@ -261,13 +264,18 @@ Does not pay attention to buffer-local values of variables."
                (error
                 ;; Variable watchers might run and fail because of
                 ;; currently undefined functions and variables.
-                (message "While setting %S with watchers %S, error: %S"
-                         sym (get sym 'watchers) err)
-                ;; FIXME: We never want to run watchers in this function,
-                ;; so we need a `set-default-without-watchers'.
-                (cl-letf (((get sym 'watchers) nil))
-                  (setf (default-value sym) (default-value ss)))
-                )))))))))
+                (if (null (get sym 'watchers))
+                    (message "While setting %S, error: %S" sym err)
+                  ;; (message "While setting %S with watchers %S, error: %S"
+                  ;;            sym (get sym 'watchers) err)
+                  ;; FIXME: We never want to run watchers in this function,
+                  ;; so we need a `set-default-without-watchers'.
+                  (cl-letf (((get sym 'watchers) nil))
+                    (setf (default-value sym) (default-value ss)))
+                  )))))))
+      ;; `after-load-alist' is often modified via `nconc'.
+      (let ((ala (intern "after-load-alist")))
+        (set ala (mapcar #'copy-sequence (symbol-value ala)))))))
 
 (defun futur--list-prefix-p (prefix other-list)
   (while (and (consp prefix) (consp other-list)

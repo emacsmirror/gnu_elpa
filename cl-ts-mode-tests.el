@@ -4,6 +4,21 @@
 
 ;; This file is not part of GNU Emacs.
 
+;; This program is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+
+;; You should have received a copy of the GNU General Public License
+;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+;;; Code:
+
 (require 'cl-ts-mode)
 (require 'ert)
 (eval-when-compile (require 'subr-x))
@@ -38,7 +53,7 @@
       (should (length= (treesit-parser-list nil 'cl-format t) 1))
       (let* ((root (treesit-parser-root-node
                     (car (treesit-parser-list nil 'cl-format t))))
-             (first-directive (treesit-node-child root 0)))
+             (first-directive (treesit-node-child root 0 t)))
         (should-not (treesit-node-check root 'has-error))
         (should (equal (treesit-node-type first-directive) "format_directive"))))))
 

@@ -106,17 +106,19 @@ isn't affected. The behavior depends on a few customizable variables:
   a different string (like ~~:@_~~) to use within ~~<​~:>~.
 - ~cl-ts-mode-format-indent-tilde-relative~ ::
   # FIXME wow this is horrible wording
-  Determines which column indentation is calculated relative to (using the
-  following two variables), and the indentation of the end of a paired directive
-  when it begins a line. If nil (the default), the directive characters
-  themselves are aligned, like
+  Determines which column is used as an anchor for calculating indentation
+  (using the following two variables), and the indentation of the end of a
+  paired directive when it begins a line. If nil (the default), the directive
+  characters themselves are aligned, like
   #+begin_src lisp :tangle yes
     "~:@{
+         ~A
        ~}"
   #+end_src
   If set to non-nil, the ~s are aligned:
   #+begin_src lisp :tangle yes
     "~:@{
+      ~A
      ~}"
   #+end_src
 - ~cl-ts-mode-format-group-indent-offset~ :: Number of columns added to
@@ -124,6 +126,12 @@ isn't affected. The behavior depends on a few customizable variables:
 - ~cl-ts-mode-format-string-indent-offset~ :: Like the above but controls
   indentation relative to the start of the string, if that's enabled by
   ~cl-ts-mode-format-indent-predicate~.
+- ~cl-ts-mode-format-indent-function~ :: This variable isn't customizable
+  because it's meant to be used with ~add-function~. This is the function called
+  to perform the indentation, so you can wrap it to control if, when or how the
+  indentation is performed.
+
+For more details see each variable's documentation.
 * Font lock
 There are distinct faces for every component of format directives I could think
 of: ~~~, numeric, character, ~V~ and ~#~ parameters, the ~,~ separator between

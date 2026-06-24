@@ -5,7 +5,7 @@
 ;; Author: Ariel Del Valle Lozano <arielmazatlan@gmail.com>
 ;; Maintainer: Ariel Del Valle Lozano <arielmazatlan@gmail.com>
 ;; URL: https://github.com/arielenter/php-fill.el
-;; Version: 1.1.1
+;; Version: 1.1.2
 ;; Package-Requires: ((emacs "27.1"))
 ;; Keywords: php, languages, tools, convenience
 
@@ -54,6 +54,10 @@
 ;;   	("<delete>" . php-fill-delete-forward)))
 
 ;;; News:
+;; Version 1.1.2
+
+;; - File .elpaignore corrected.
+
 ;; Version 1.1.1
 
 ;; - Major refractory.

@@ -53,9 +53,7 @@ To automatically activate ~cl-ts-mode~ wherever ~lisp-mode~ normally activates, 
 #+begin_src elisp :tangle yes :lexical yes
   (setf (alist-get 'lisp-mode major-mode-remap-alist) 'cl-ts-mode)
 #+end_src
-You can add this to the ~:init~ section of ~use-package~. Bear in mind that this
-mode is not considered stable yet, so only do this if you're willing to risk some
-jank.
+You can add this to the ~:init~ section of ~use-package~.
 
 I also recommend this snippet:
 #+begin_src elisp :tangle yes :lexical yes

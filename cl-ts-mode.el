@@ -129,6 +129,14 @@ comments are highlighted with `font-lock-comment-face'.")
   '((t :inherit cl-ts-mode-block-comment-depth-2))
   "Face used to highlight block comments nested by 3 levels.")
 
+(defface cl-ts-mode-character-escape
+  '((t :weight bold :inherit font-lock-escape-face))
+  "Face for #\\ in character literals.")
+
+(defface cl-ts-mode-character-name
+  '((t :inherit font-lock-builtin-face))
+  "Face for the names of characters in character literals.")
+
 (defface cl-ts-mode-positive-read-conditional
   '((t :weight extra-bold :inherit success))
   "Face used for #+.")
@@ -372,6 +380,15 @@ face itself and return nil.")
                (< (point) node-end)
                (forward-char)))))))
 
+(defun cl-ts-mode--fontify-character (node override start end &rest _)
+  (ignore override)
+  (when (and (>= (ts-node-start node) start) (<= (ts-node-end node) end))
+    (let ((backslash-end (ts-node-end (ts-node-child node 0))))
+      (add-face-text-property (ts-node-start node) backslash-end
+                              'cl-ts-mode-character-escape)
+      (add-face-text-property backslash-end (ts-node-end node)
+                              'cl-ts-mode-character-name))))
+
 ;; as of now this could just be a `defconst', but we might wanna make certain
 ;; rules like format-directive conditional, so let's keep it a function for
 ;; forward compatibility.
@@ -414,7 +431,12 @@ face itself and return nil.")
       (interned_symbol
        package: (symbol_tokens) :? @font-lock-keyword-face
        [":" "::"] :? @font-lock-delimiter-face)])
-   ;; these next 2 should probably be merged right?
+   ;; these next 3 should probably be merged right?
+   :feature 'character
+   :override 'prepend
+   ;; the character's name doesn't create a node so we have to use a function to
+   ;; apply the two faces
+   `((character) @cl-ts-mode--fontify-character)
    :feature 'quote
    :override 'prepend
    `((quote      "'"  @cl-ts-mode-quote)
@@ -433,7 +455,7 @@ face itself and return nil.")
   '((string comment)
     (number)
     (format-directive symbol)
-    (quote reader-macro bits)))
+    (quote reader-macro character bits)))
 
 ;; unfortunately the generic treesit implementations of some commands like
 ;; `forward-sexp' and `up-list' don't seem to play nice with this mode, so we

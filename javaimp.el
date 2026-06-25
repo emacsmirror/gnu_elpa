@@ -1110,10 +1110,7 @@ function."
       (when-let* ((scope (get-text-property pos 'javaimp-parse-scope))
                   (_ (funcall defun-pred scope))
                   (next (or (javaimp--beg-of-defun-decl pos) pos))
-                  ;; Count only movements which change line
-                  (_ (funcall (if (> arg 0) #'< #'>)
-                              (line-number-at-pos next)
-                              (line-number-at-pos (point)))))
+                  (_ (funcall (if (> arg 0) #'< #'>) next (point))))
         (goto-char next)
         (if (> arg 0) (decf arg) (incf arg))))
     (if (/= arg 0)

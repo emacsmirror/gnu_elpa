@@ -145,6 +145,18 @@
       (newline-and-indent)
       (should (= (current-column) 2)))))
 
+(ert-deftest LaTeX-comment-outer-indent ()
+  (dolist (mode '(LaTeX-mode docTeX-mode))
+    (dolist (syntactic-comments '(nil t))
+      (dolist (text '("\\begin{align}\n  a &= b\n      % comment\n\\end{align}\n"
+                      "\\begin{verbatim}\n    % literal\n\\end{verbatim}\n"))
+        (with-temp-buffer
+          (funcall mode)
+          (let ((LaTeX-syntactic-comments syntactic-comments))
+            (insert text)
+            (indent-region (point-min) (point-max)))
+          (should (equal (buffer-string) text)))))))
+
 ;; bug#48518 Test indent in nested environments
 (ert-deftest LaTeX-indent-nested-envs ()
   (should (string=

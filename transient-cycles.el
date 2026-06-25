@@ -1,12 +1,12 @@
 ;;; transient-cycles.el --- Define command variants with transient cycling  -*- lexical-binding: t -*-
 
-;; Copyright (C) 2020-2025  Free Software Foundation, Inc.
+;; Copyright (C) 2020-2026  Free Software Foundation, Inc.
 
 ;; Author: Sean Whitton <spwhitton@spwhitton.name>
 ;; Maintainer: Sean Whitton <spwhitton@spwhitton.name>
 ;; Package-Requires: ((emacs "29.1"))
-;; Version: 2.0
-;; URL: https://git.spwhitton.name/dotfiles/tree/.emacs.d/site-lisp/transient-cycles.el
+;; Version: 2.1
+;; URL: https://git.spwhitton.name/dotfiles/tree/.emacs.d/user-lisp/transient-cycles.el
 ;; Keywords: buffer, window, processes, minor-mode, convenience
 
 ;; This file is free software: you can redistribute it and/or modify
@@ -105,6 +105,10 @@
 
 ;;; News:
 
+;; Ver 2.1 2026/06/25 Sean Whitton
+;;     In `transient-cycles-shells-jump', match `shell-mode' or `eshell-mode'
+;;     exactly instead of using `derived-mode-p'.
+;;
 ;; Ver 2.0 2025/06/25 Sean Whitton
 ;;     New minor mode, `transient-cycles-shells-mode'.
 ;;     New macro `transient-cycles-define-buffer-switch'.
@@ -989,7 +993,13 @@ Some ideas behind these behaviours are as follows.
 	     (funcall transient-cycles-shell-command))))
       (dolist (buffer (buffer-list))
 	(with-current-buffer buffer
-	  (when (derived-mode-p mode)
+	  ;; We previously used `derived-mode-p' here.
+	  ;; Accepting only MODE has the advantage of excluding buffers not
+	  ;; created by us which happen to use derivatives of MODE but which
+	  ;; can't immediately be used as general purpose interactive shells.
+	  ;; If this proves too simple we could have a defcustom to switch
+	  ;; back to using `derived-mode-p' or to supply a custom predicate.
+	  (when (eq mode major-mode)
 	    (let ((in-target-p (and chdir (equal default-directory
 						 target-directory))))
 	      (push buffer

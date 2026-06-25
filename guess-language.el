@@ -118,7 +118,11 @@ current language in the mode line.  This could be text or a
 Unicode flag symbol (displayed as color emoji starting from Emacs
 28.1).  The last element is the name of the language for display
 in the mini buffer."
-  :type '(alist :key-type symbol :value-type list))
+  :type '(alist :key-type symbol
+                :value-type (list string
+                                  (choice string (const nil))
+                                  string
+                                  string)))
 
 (defcustom guess-language-idle-delay 0.2
   "If non-nil, idle delay in seconds before guessing the language of the current paragraph."

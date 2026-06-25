@@ -8,7 +8,7 @@
 ;; Version: 0.1.0
 ;; Keywords: lisp, languages, tree-sitter
 ;; URL: https://codeberg.org/zshaftel/cl-ts-mode
-;; Package-Requires: ((emacs "30.2") cond-star (compat "31.0.0.1"))
+;; Package-Requires: ((emacs "30.2") cond-star (compat "31"))
 
 ;; This file is not part of GNU Emacs.
 
@@ -1014,9 +1014,7 @@ toggles between them."
 
 ;;;###autoload
 (defconst cl-ts-mode-font-lock-ignore-keywords
-  `(font-lock-negation-char-face   ;this should also be removed from
-                                   ;`lisp-mode', unless you want it for ppcre
-    ;; keyword and uninterned symbol highlighting, done by the `symbol' treesit
+  `(;; keyword and uninterned symbol highlighting, done by the `symbol' treesit
     ;; feature
     "#:a"
     (pred ,(lambda (kw)

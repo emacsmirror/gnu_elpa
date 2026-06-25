@@ -1072,33 +1072,33 @@ function."
          (defun-pred (javaimp-scope-defun-p t))
          pos)
     ;; Handle the case when we're somewhere in defun declaration, like
-    ;; within annotations.  Search forward for defun decl-start, while
+    ;; within annotations.  Search forward for defun open brace, while
     ;; skipping uninteresting scopes.
     (setq pos (point))
     (while pos
       (if-let* ((scope (get-text-property pos 'javaimp-parse-scope)))
           (cond ((eq (javaimp-scope-type scope) 'array-init)
-                 ;; Skip array (which is supposedly in annotation)
-                 (setq pos (ignore-errors (scan-lists pos 1 0)))
-                 (unless pos
-                   (goto-char opoint)))
+                 ;; Skip array initializer, which is supposedly in
+                 ;; annotation
+                 (setq pos (ignore-errors (scan-lists pos 1 0))))
                 ((funcall defun-pred scope)
-                 (if-let* ((decl-pos (javaimp--beg-of-defun-decl pos))
-                           (_ (< decl-pos opoint)))
-                     (progn
-                       (goto-char decl-pos)
-                       (when (> arg 0)
-                         ;; Moving to decl-pos counts as 1 in case of
-                         ;; positive arg.  In case of negative arg
-                         ;; this will just be the starting point for
-                         ;; moving forward.
-                         (decf arg)))
-                   (goto-char opoint))
+                 (when-let* ((decl-pos (javaimp--beg-of-defun-decl pos)))
+                   (cond ((and (> arg 0)
+                               (< decl-pos opoint))
+                          ;; We were inside the defun declaration,
+                          ;; move to its beginning (this counts as 1).
+                          (goto-char decl-pos)
+                          (decf arg))
+                         ((and (< arg 0)
+                               (<= decl-pos opoint))
+                          ;; We were anywhere inside the defun
+                          ;; declaration, move past the open brace
+                          ;; without touching arg, so that below we
+                          ;; search for the following beginning of
+                          ;; defun.
+                          (goto-char (1+ pos)))))
                  (setq pos nil))
-                (t
-                 ;; Something else, stop
-                 (goto-char opoint)
-                 (setq pos nil)))
+                (t (setq pos nil)))
         (setq pos (next-single-property-change pos 'javaimp-parse-scope))))
     ;; Main part - find a suitable scope and move arg times
     (setq pos (point))
@@ -1109,15 +1109,13 @@ function."
                                    pos 'javaimp-parse-scope)))
       (when-let* ((scope (get-text-property pos 'javaimp-parse-scope))
                   (_ (funcall defun-pred scope))
-                  (next (or (javaimp--beg-of-defun-decl pos) pos)))
-        (if (> arg 0)
-            ;; When moving backward, any movement counts
-            (when (< next (point))
-              (decf arg))
-          ;; When moving forward, only line change counts
-          (when (> (line-number-at-pos next) (line-number-at-pos (point)))
-            (incf arg)))
-        (goto-char next)))
+                  (next (or (javaimp--beg-of-defun-decl pos) pos))
+                  ;; Count only movements which change line
+                  (_ (funcall (if (> arg 0) #'< #'>)
+                              (line-number-at-pos next)
+                              (line-number-at-pos (point)))))
+        (goto-char next)
+        (if (> arg 0) (decf arg) (incf arg))))
     (if (/= arg 0)
         ;; We haven't made enough movements
         (progn

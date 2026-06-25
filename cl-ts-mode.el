@@ -47,14 +47,14 @@
 (add-to-list 'ts-language-source-alist
              '(common-lisp
                "https://codeberg.org/zshaftel/tree-sitter-cl-syntax"
-               :commit "193e65c3fb4ee14aa9b8ab2dd99a05afc7fa3834"
+               :commit "13ed8fe10e336a55f88b714ddd5a5c21f382232e"
                :source-dir "grammars/cl/src")
              t)
 
 (add-to-list 'ts-language-source-alist
              '(cl-format
                "https://codeberg.org/zshaftel/tree-sitter-cl-syntax"
-               :commit "193e65c3fb4ee14aa9b8ab2dd99a05afc7fa3834"
+               :commit "13ed8fe10e336a55f88b714ddd5a5c21f382232e"
                :source-dir "grammars/format/src")
              t)
 
@@ -857,9 +857,6 @@ triggers FORMAT string indentation."
 
 (defconst cl-ts-mode--format-string-syntax-table
   (let ((tab (make-syntax-table)))
-    ;; give delimiters plain symbol syntax. we use the above syntax table on
-    ;; directive characters themselves, and we explicitly give everything from ~
-    ;; up to the directive "'" syntax.
     (mapc (lambda (ch) (modify-syntax-entry ch "_" tab)) "()[]{}<>")
     tab))
 
@@ -1010,7 +1007,11 @@ toggles between them."
      (symbol "_symbol")
      ;; this is used by `treesit-major-mode-setup' to set things like
      ;; `forward-list-function', so we set it to everything "list-like"
-     (list ,(rx bos (or "list" "vector" "array" "complex" "struct") eos)))))
+     (list ,(rx bos (or "list" "vector" "array" "complex" "struct") eos)))
+    (cl-format
+     (directive "_directive")
+     (modifier "[@:]")
+     (parameter ,(rx bos (or "#" "V" "char_parameter" "numeric_parameter") eos)))))
 
 ;;;###autoload
 (defconst cl-ts-mode-font-lock-ignore-keywords

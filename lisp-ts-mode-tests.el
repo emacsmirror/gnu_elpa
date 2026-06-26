@@ -1,4 +1,4 @@
-;;; cl-ts-mode-tests.el --- tests for cl-ts-mode -*- lexical-binding: t; -*-
+;;; lisp-ts-mode-tests.el --- tests for lisp-ts-mode -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2026 zach shaftel
 
@@ -19,36 +19,36 @@
 
 ;;; Code:
 
-(require 'cl-ts-mode)
+(require 'lisp-ts-mode)
 (require 'ert)
 (eval-when-compile (require 'subr-x))
 
-(ert-deftest cl-ts-mode-activation ()
+(ert-deftest lisp-ts-mode-activation ()
   (let* ((major-mode-remap-alist
-          `((lisp-mode . cl-ts-mode) ,@major-mode-remap-alist))
+          `((lisp-mode . lisp-ts-mode) ,@major-mode-remap-alist))
          (auto-mode-alist
           `(("\\.lisp\\'" . lisp-mode) ,@auto-mode-alist)))
     (with-temp-buffer
       (delay-mode-hooks
         (set-visited-file-name (expand-file-name "dummy.lisp" temporary-file-directory) t))
       (set-buffer-modified-p nil)
-      (should (equal major-mode 'cl-ts-mode))
+      (should (equal major-mode 'lisp-ts-mode))
       (should-not (null treesit-primary-parser))
       (should (equal (treesit-parser-language treesit-primary-parser) 'common-lisp))))
   (when (boundp 'treesit-major-mode-remap-alist)
-    (should (equal (alist-get 'lisp-mode treesit-major-mode-remap-alist) 'cl-ts-mode))))
+    (should (equal (alist-get 'lisp-mode treesit-major-mode-remap-alist) 'lisp-ts-mode))))
 
-(defconst cl-ts-mode-tests--standard-format-query
-  (thread-last (custom--standard-value 'cl-ts-format-support-mode-query)
-    (cl-ts-mode--build-format-query)
+(defconst lisp-ts-mode-tests--standard-format-query
+  (thread-last (custom--standard-value 'lisp-ts-format-support-mode-query)
+    (lisp-ts-mode--build-format-query)
     (treesit-query-compile 'common-lisp)))
 
-(ert-deftest cl-ts-format-parser-embedding ()
-  (let ((cl-ts-format-support-mode-query cl-ts-mode-tests--standard-format-query))
+(ert-deftest lisp-ts-format-parser-embedding ()
+  (let ((lisp-ts-format-support-mode-query lisp-ts-mode-tests--standard-format-query))
     (with-temp-buffer
       (insert "(format t (formatter \"~A ~S\"))")
-      (delay-mode-hooks (cl-ts-mode))
-      (cl-ts-format-support-mode)
+      (delay-mode-hooks (lisp-ts-mode))
+      (lisp-ts-format-support-mode)
       (treesit-update-ranges (point-min) (point-max))
       (should (length= (treesit-parser-list nil 'cl-format t) 1))
       (let* ((root (treesit-parser-root-node
@@ -57,7 +57,7 @@
         (should-not (treesit-node-check root 'has-error))
         (should (equal (treesit-node-type first-directive) "format_directive"))))))
 
-(defmacro cl-ts-mode-tests--with-temp-changes (&rest body)
+(defmacro lisp-ts-mode-tests--with-temp-changes (&rest body)
   (declare (indent 0))
   (let ((s (make-symbol "change-group")))
     `(let ((undo-outer-limit nil)
@@ -72,40 +72,40 @@
          (cancel-change-group ,s)
          (treesit-update-ranges)))))
 
-(ert-deftest cl-ts-format-indentation ()
-  (let ((cl-ts-format-support-mode-query cl-ts-mode-tests--standard-format-query)
-        (cl-ts-mode-format-indent-function #'cl-ts-mode--indent-format-line)
+(ert-deftest lisp-ts-format-indentation ()
+  (let ((lisp-ts-format-support-mode-query lisp-ts-mode-tests--standard-format-query)
+        (lisp-ts-mode-format-indent-function #'lisp-ts-mode--indent-format-line)
         marker)
     (with-temp-buffer
       (insert "(format t (formatter \"~A~<\n")
       (setq marker (point-marker))
       (insert "~S\n~:>\"))")
       (goto-char marker)
-      (delay-mode-hooks (cl-ts-mode))
-      (cl-ts-format-support-mode)
+      (delay-mode-hooks (lisp-ts-mode))
+      (lisp-ts-format-support-mode)
       (treesit-update-ranges)
       ;; FIXME: there are plenty more things to test, eg. string relative
       ;; indentation, indentation of the end directive etc.
       (let ((opener-marker (copy-marker (1- (point))))
             (opener-column (save-excursion (backward-char 2) (current-column)))
-            (cl-ts-mode-format-group-indent-offset 1)
-            (cl-ts-mode-format-indent-predicate "\\`format_group\\'")
-            (cl-ts-mode-format-indent-auto-escape-eol "~@")
+            (lisp-ts-mode-format-group-indent-offset 1)
+            (lisp-ts-mode-format-indent-predicate "\\`format_group\\'")
+            (lisp-ts-mode-format-indent-auto-escape-eol "~@")
             correct-col)
-        (cl-ts-mode-tests--with-temp-changes
+        (lisp-ts-mode-tests--with-temp-changes
           (save-excursion (call-interactively #'indent-for-tab-command))
           (should (equal (current-indentation)
-                         (+ opener-column cl-ts-mode-format-group-indent-offset)))
+                         (+ opener-column lisp-ts-mode-format-group-indent-offset)))
           (setq correct-col (current-indentation))
           (goto-char opener-marker)
           (should (looking-at-p (rx "~@" eol))))
-        (let ((cl-ts-mode-format-indent-auto-escape-eol nil)
+        (let ((lisp-ts-mode-format-indent-auto-escape-eol nil)
               (start-col (current-column)))
-          (cl-ts-mode-tests--with-temp-changes
+          (lisp-ts-mode-tests--with-temp-changes
             (save-excursion (call-interactively #'indent-for-tab-command))
             (should (equal (current-indentation) start-col))))
-        (let ((cl-ts-mode-format-indent-auto-escape-eol t))
-          (cl-ts-mode-tests--with-temp-changes
+        (let ((lisp-ts-mode-format-indent-auto-escape-eol t))
+          (lisp-ts-mode-tests--with-temp-changes
             (save-excursion (call-interactively #'indent-for-tab-command))
             ;; make sure we still indented
             (should (equal (current-indentation) correct-col))
@@ -113,5 +113,5 @@
             ;; but didn't auto escape
             (should (eolp))))))))
 
-(provide 'cl-ts-mode-tests)
-;;; cl-ts-mode-tests.el ends here
+(provide 'lisp-ts-mode-tests)
+;;; lisp-ts-mode-tests.el ends here

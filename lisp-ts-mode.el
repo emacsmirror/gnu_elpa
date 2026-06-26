@@ -10,8 +10,6 @@
 ;; URL: https://codeberg.org/zshaftel/lisp-ts-mode
 ;; Package-Requires: ((emacs "30.2") cond-star (compat "31"))
 
-;; This file is not part of GNU Emacs.
-
 ;; This program is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation, either version 3 of the License, or

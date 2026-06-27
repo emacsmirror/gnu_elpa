@@ -97,8 +97,8 @@
   ;; a "parallel" history to that of the upstream.
   :manual-sync t)
  (beacon		:url "https://github.com/Malabarba/beacon")
- (beardbolt		:url "https://github.com/joaotavora/beardbolt"
-  :readme "README.md")
+ ;; (beardbolt		:url "https://github.com/joaotavora/beardbolt"
+ ;;  :readme "README.md")
  (beframe		:url "https://github.com/protesilaos/beframe"
   :doc "README.org"
   :readme "README.md"
@@ -195,7 +195,6 @@
   :news "changelog.org"
   :readme "readme.org")
  (context-coloring	:url "https://github.com/jacksonrayhamilton/context-coloring.git"
-  ;; FIXME: https://github.com/jacksonrayhamilton/context-coloring/issues/9
   )
  (corfu			:url "https://github.com/minad/corfu"
   :doc "README.org"
@@ -535,6 +534,7 @@
   :doc "README.org"
   :news "CHANGELOG.org"
   :ignored-files ("COPYING" "doclicense.texi"))
+ (lisp-ts-mode		:url "https://codeberg.org/zshaftel/lisp-ts-mode")
  (listen		:url "https://github.com/alphapapa/listen.el"
   :release-branch "stable"
   :doc "README.org")
@@ -652,8 +652,6 @@
   :news "CHANGELOG.org"
   :ignored-files ("LICENSE"))
  (org-notify		:url "https://github.com/p-m/org-notify"
-  ;; FIXME: Upstream diverged; https://github.com/p-m/org-notify/issues/9
-  ;; :merge t
   )
  (org-real		:url "https://codeberg.org/strawburster/org-real"
   :ignored-files ("LICENSE"))

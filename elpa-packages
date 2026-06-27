@@ -779,7 +779,7 @@
  (scroll-restore	:url nil)
  (sed-mode		:url nil)
  (sendai-theme		:url "https://git.sr.ht/~jimporter/sendai-theme"
-  :readme "README.md")
+  )
  (seq			:url nil)
  (setup			:url "https://codeberg.org/pkal/setup.el")
  (shelisp		:url nil)

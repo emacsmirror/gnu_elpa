@@ -1052,26 +1052,36 @@ asked."
   (beep))
 
 (defun greader-dict-info ()
-  "Print some information about current dictionary."
+  "Print information about the current dictionary.
+Reports the dictionary type, file, entry count broken down by native
+vs. merged entries (when merged entries are present), active filter
+count, and current language."
   (interactive)
-  (let ((message
-	 (concat "Current dictionary is "
-		 (symbol-name (greader-dict--file-type))
-		 " in file " greader-dict-filename " it has "
-		 (number-to-string (hash-table-count
-				    greader-dictionary))
-		 " entries" (if greader-dict-filters-mode (progn
-							      (concat
-							       ", and "
-							       (number-to-string
-								(hash-table-count
-								 greader-filters))
-							       "
-filters."))
-			      ".")
-		 " Active language is \""
-		 greader-dict-local-language "\".")))
-    (message "%s" message)))
+  (let ((merged-count 0)
+	(total-count 0))
+    (maphash (lambda (k _v)
+	       (setq total-count (1+ total-count))
+	       (when (greader-dict--merged-p k)
+		 (setq merged-count (1+ merged-count))))
+	     greader-dictionary)
+    (let* ((native-count (- total-count merged-count))
+	   (entry-detail
+	    (if (> merged-count 0)
+		(format "%d entries (%d native, %d merged)"
+			total-count native-count merged-count)
+	      (format "%d entries" total-count)))
+	   (filter-detail
+	    (if greader-dict-filters-mode
+		(format ", and %d filters."
+			(hash-table-count greader-filters))
+	      "."))
+	   (msg (format "Current dictionary is %s in file %s; it has %s%s Active language is \"%s\"."
+			(symbol-name (greader-dict--file-type))
+			greader-dict-filename
+			entry-detail
+			filter-detail
+			greader-dict-local-language)))
+      (message "%s" msg))))
 
 (defun greader-dict--get-matches (type &optional decorate)
   "Return a list with keys classified as TYPE.

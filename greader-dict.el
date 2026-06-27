@@ -179,7 +179,9 @@
 
 (defvar-local  greader-dictionary nil)
 
-(defvar greader-dict--timer nil)
+(defvar greader-dict--bulk-loading nil
+  "Non-nil suppresses immediate file write inside `greader-dict-add'.
+Bound to t during bulk loads from file to avoid N writes for N entries.")
 (defvar greader-dict--item-type-alist '((match
 					 . "%*")
 					(filter
@@ -530,17 +532,13 @@ as a word definition."
 
 ;; This function adds to the `greader-dictionary' variable the
 ;; key/value pair that you pass as arguments.
-(defcustom greader-dict-save-after-time 30
-  "Amount of idleness to wait before saving dictionary data.
-A value of 0 indicates saving immediately."
-  :type 'number)
 (defun greader-dict-add (word replacement &optional merge)
-  "Add the WORD REPLACEMent pair to `greader-dictionary'.
+  "Add the WORD REPLACEMENT pair to `greader-dictionary'.
 If you want to add a partial replacement, you should
-add `\*'to the end of the WORD string parameter.
-If MERGE is non-nil, then add the pair as merged."
-  ;; We prevent an infinite loop if disallowing that key and values
-  ;; are the same.
+add `\*' to the end of the WORD string parameter.
+If MERGE is non-nil, mark the pair as merged; merged entries are
+never written to the main dictionary file."
+  ;; We prevent an infinite loop by disallowing key and value being the same.
   (unless replacement
     (setq replacement ""))
   (when (string-equal-ignore-case word replacement)
@@ -549,37 +547,19 @@ If MERGE is non-nil, then add the pair as merged."
     (setq word (greader-dict--merge word)))
   (puthash word replacement greader-dictionary)
   (setq greader-dict--saved-flag nil)
-  (cond
-   ((> greader-dict-save-after-time 0)
-    (when (timerp greader-dict--timer)
-      (cancel-timer greader-dict--timer))
-    (run-with-idle-timer greader-dict-save-after-time nil
-			 #'greader-dict-write-file))
-   ((= greader-dict-save-after-time 0)
-    (unless greader-dict--saved-flag
-      (greader-dict-write-file)))
-   (t
-    (setq greader-dict--saved-flag t)
-    nil)))
+  ;; Save immediately unless we are in a bulk load (where the caller
+  ;; is responsible for writing once at the end) or adding a merged
+  ;; entry (which must never be persisted to the main file).
+  (unless (or merge greader-dict--bulk-loading)
+    (greader-dict-write-file)))
 
 ;; This function removes the association indicated by the key argument.
 (defun greader-dict-remove (key)
-  "Remove the association specified by KEY from the variable
-`greader-dictionary'."
+  "Remove the association specified by KEY from `greader-dictionary'.
+The change is saved to disk immediately."
   (remhash key greader-dictionary)
   (setq greader-dict--saved-flag nil)
-  (cond
-   ((> greader-dict-save-after-time 0)
-    (when (timerp greader-dict--timer)
-      (cancel-timer greader-dict--timer))
-    (run-with-idle-timer greader-dict-save-after-time nil
-			 #'greader-dict-write-file))
-   ((= greader-dict-save-after-time 0)
-    (unless greader-dict--saved-flag
-      (greader-dict-write-file)))
-   (t
-    (setq greader-dict--saved-flag t)
-    nil)))
+  (greader-dict-write-file))
 
 (defun greader-dict-item-type (key)
   "Return the type of KEY.
@@ -716,10 +696,10 @@ If merge is non-nil, then merge only the definitions."
       (with-greader-dict-temp-buffer
 	(insert-file-contents filename)
 	(when-let* ((lines (string-lines (buffer-string) t)))
-	  (dolist (line lines)
-	    (setq line (split-string line "=" ))
-	    (setf (car line) (car (split-string (car line) "\"" t)))
-	    (let ((greader-dict-save-after-time -1))
+	  (let ((greader-dict--bulk-loading t))
+	    (dolist (line lines)
+	      (setq line (split-string line "=" ))
+	      (setf (car line) (car (split-string (car line) "\"" t)))
 	      (greader-dict-add (car line) (car (cdr line)) merge)))
 	  (greader-dict--filter-init)
 	  (setq greader-dict--saved-flag t)))))
@@ -727,11 +707,9 @@ If merge is non-nil, then merge only the definitions."
 
 ;; Command for saving interactively dictionary data.
 (defun greader-dict-save ()
-  "Save dictionary data.
-You should use this command when you want to save your dictionary and
-`greader-dict-save-after-time' is set to a negative number.
-Otherwise, data saving is done automatically when you add a definition
-to the dictionary."
+  "Save dictionary data to disk.
+Dictionary entries are saved automatically on every addition or
+removal, so this command is only needed in exceptional cases."
   (interactive)
   (let ((greader-dict--saved-flag nil))
     (greader-dict-write-file)))

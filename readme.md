@@ -464,7 +464,6 @@ Some of the customizable variables are:
 *   `greader-move-default-minutes`: Default number of minutes used by `greader-move-by-minutes-backward` and `greader-move-by-minutes-forward`. Default `1`.
 *   `greader-backward-acoustic-feedback`: If `t`, plays a brief beep when the cursor returns to the previous reading position after backward navigation. Default `nil`.
 *   `greader-backward-seconds`: Number of seconds to wait at the previous sentence before automatically returning to the reading position. Default `5`.
-*   `greader-dict-save-after-time`: Idle time in seconds before the dictionary is saved automatically. Default `30`. (Requires `greader-dict-mode`.)
 *   `greader-dict-merge-save`: Controls persistence of merge configurations. `t` saves automatically, `ask` prompts each time (the default), `nil` never saves. (Requires `greader-dict-mode`.)
 *   `greader-dict-merge-file`: Path of the file used to persist merge configurations. Default: `.merges` in the dictionary directory.
 

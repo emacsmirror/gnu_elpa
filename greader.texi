@@ -1087,10 +1087,6 @@ backward navigation. Default @code{nil}.
 previous sentence before automatically returning to the reading
 position. Default @code{5}.
 @item
-@code{greader-dict-save-after-time}: Idle time in seconds before the
-dictionary is saved automatically. Default @code{30}. (Requires
-@code{greader-dict-mode}.)
-@item
 @code{greader-dict-merge-save}: Controls persistence of merge
 configurations.  @code{t} saves automatically, @code{ask} prompts each
 time (the default), @code{nil} never saves.  (Requires

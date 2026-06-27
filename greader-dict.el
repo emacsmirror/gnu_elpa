@@ -1017,7 +1017,11 @@ asked."
 						  (current-buffer)))
       (unless greader-reading-mode
 	(let ((dict-mode-state greader-dict-mode))
-	  (greader-dict-mode 1)
+	  ;; Only activate dict-mode if it is not already on.
+	  ;; Re-activating an already-active mode recreates the hash
+	  ;; table, wiping all in-memory entries (merged + unsaved).
+	  (unless dict-mode-state
+	    (greader-dict-mode 1))
 	  (greader-dict--auto-select-file)
 	  (greader-dict-read-from-dict-file t)
 	  (unless dict-mode-state

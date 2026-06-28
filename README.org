@@ -9,8 +9,8 @@
 #+html: <a href="https://www.gnu.org/software/emacs/"><img alt="GNU Emacs" src="https://github.com/minad/corfu/blob/screenshots/emacs.svg?raw=true"/></a>
 #+html: <a href="https://elpa.gnu.org/packages/jinx.html"><img alt="GNU ELPA" src="https://elpa.gnu.org/packages/jinx.svg"/></a>
 #+html: <a href="https://elpa.gnu.org/devel/jinx.html"><img alt="GNU-devel ELPA" src="https://elpa.gnu.org/devel/jinx.svg"/></a>
-#+html: <a href="https://melpa.org/#/jinx"><img alt="MELPA" src="https://melpa.org/packages/jinx-badge.svg"/></a>
-#+html: <a href="https://stable.melpa.org/#/jinx"><img alt="MELPA Stable" src="https://stable.melpa.org/packages/jinx-badge.svg"/></a>
+#+html: <a href="https://releases.melpa.org/#/jinx"><img alt="MELPA Releases" src="https://releases.melpa.org/packages/jinx-badge.svg"/></a>
+#+html: <a href="https://snapshots.melpa.org/#/jinx"><img alt="MELPA Snapshots" src="https://snapshots.melpa.org/packages/jinx-badge.svg"/></a>
 
 Jinx is a fast just-in-time spell-checker for Emacs. Jinx highlights misspelled
 words in the text of the visible portion of the buffer. For efficiency, Jinx
@@ -42,7 +42,7 @@ these modes composite words in =camelCase= and =PascalCase= are accepted.
 
 * Installation
 
-Jinx can be installed from [[https://elpa.gnu.org/packages/jinx.html][ELPA]] or [[https://melpa.org/#/jinx][MELPA]] directly with =package-install=.
+Jinx can be installed from [[https://elpa.gnu.org/packages/jinx.html][ELPA]] or [[https://releases.melpa.org/#/jinx][MELPA]] directly with =package-install=.
 
 Your Emacs must be compiled with dynamic module support. Furthermore a C
 compiler must be available on your system (=gcc= or =clang=). Jinx requires

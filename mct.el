@@ -5,7 +5,7 @@
 ;; Author: Protesilaos <info@protesilaos.com>
 ;; Maintainer: Protesilaos <info@protesilaos.com>
 ;; URL: https://github.com/protesilaos/mct
-;; Version: 1.1.0
+;; Version: 1.1.1
 ;; Package-Requires: ((emacs "29.4"))
 
 ;; This file is NOT part of GNU Emacs.

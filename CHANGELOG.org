@@ -12,6 +12,25 @@ the manual: <https://protesilaos.com/emacs/fontaine>.
 
 #+toc: headlines 1 insert TOC here, with one headline level
 
+* Version 3.1.0 on 2026-06-29
+:PROPERTIES:
+:CUSTOM_ID: h:aeb70e62-ffe6-41c7-9c50-82176ac9e6a8
+:END:
+
+This is a small release that includes internal refinements as well as
+two user-facing changes:
+
+1. The user option ~fontaine-presets~ accepts an optional
+   =:line-spacing= entry, which corresponds to the ~line-spacing~
+   variable. As of Emacs version 31, ~line-spacing~ can be bound to a
+   cons cell to set the space above and below. Fontaine now handles
+   this as intended.
+
+2. By default, changing the font size has the effect of resizing the
+   frame. This is because of the original value of the variable
+   ~frame-inhibit-implied-resize~. Fontaine is now designed to always
+   inhibit frame resizing, regardless of ~frame-inhibit-implied-resize~.
+
 * Version 3.0.0 on 2025-02-20
 :PROPERTIES:
 :CUSTOM_ID: h:a8cd979f-851f-4e97-ae90-96022b4cfe7a

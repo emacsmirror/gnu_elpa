@@ -345,24 +345,22 @@ to ROOT."
                   (define-key m bc--mode-line-key l)
                   m))))
 
-(defvar-local bc--cached-project-root nil
+(defvar-local bc--cached-project nil
   ;; This is a fairly "dumb" cache, but hopefully good enough for most
   ;; cases.  A better smarter cache that could realize when certain
   ;; project things happened would live in project.el which has much
   ;; more project-smarts, but that's apparently very hard, so do it
-  ;; here (github#18)
-  "Cache the expensive `project-root' call.")
+  ;; here (github#18, github#55)
+  "Cache the expensive `project-current' call.")
 
 (defun bc--project-crumbs-1 (bfn)
   "Helper for `breadcrumb-project-crumbs'.
 Given BFN, the `buffer-file-name', produce a list of
 propertized crumbs."
   (cl-loop
-   with project = (project-current)
-   with root = (if project (or bc--cached-project-root
-                               (setq bc--cached-project-root
-                                     (project-root project)))
-                 default-directory)
+   with project = (or bc--cached-project (setq bc--cached-project
+                                               (project-current)))
+   with root = (if project (project-root project) default-directory)
    with pname = (if project (project-name project)
                   (file-name-nondirectory (directory-file-name root)))
    with relname = (file-relative-name (or bfn default-directory)
@@ -456,26 +454,51 @@ propertized crumbs."
 ;;
 
 ;;;###autoload
-(defcustom breadcrumb-opinionated-mlf
+(setq breadcrumb-opinionated-mlf
   '("%e"
     mode-line-modified
+    (:eval (bc--ml-terminator t))
+    (:eval (bc--ml-terminator))
     (:eval (bc-project-crumbs))
-    " "
-    (:propertize " " face default)
-    " "
+    (:eval (bc--ml-terminator t))
+    (:eval (bc--ml-terminator))
     (:eval (bc-imenu-crumbs))
-    " "
+    (:eval (bc--ml-terminator t))
     mode-line-format-right-align
+    (:eval (bc--ml-terminator))
     (vc-mode vc-mode)
     "  "
     mode-line-modes
     mode-line-misc-info
     " %p%   %l:%c"
-    (:eval (format-time-string "  %H:%M")))
-  "A `mode-line-format' with breadcrumb project and imenu crumbs.
-Replaces `mode-line-buffer-identification' with the output of
-`breadcrumb-project-crumbs' and `breadcrumb-imenu-crumbs'."
-  :type '(repeat sexp))
+    (:eval (format-time-string "  %H:%M"))))
+;;   "A `mode-line-format' with breadcrumb project and imenu crumbs.
+;; Replaces `mode-line-buffer-identification' with the output of
+;; `breadcrumb-project-crumbs' and `breadcrumb-imenu-crumbs'."
+;;   :type '(repeat sexp))
+
+
+(defun bc--ml-terminator (&optional end)
+  (let* ((selp (mode-line-window-selected-p))
+         (spec
+          (if selp 
+              `(:background
+                ,(face-attribute 'mode-line-buffer-id :foreground)
+                :foreground
+                ,(face-attribute 'mode-line :background))
+            `(:background
+              ,(face-attribute 'default :background)
+              :foreground
+              ,(face-attribute 'mode-line-inactive :background)))))
+
+    (propertize (if end " " "") 'face
+                `(:inherit default  ,@spec))
+    
+    ;; (propertize (if end " " " ") 'face
+    ;;             `(:inherit default  ,@spec))
+    ))
+
+
 
 (defcustom bc-opinionated-diminished-modes
   '(yas-minor-mode eldoc-mode company-mode whitespace-mode
@@ -518,7 +541,12 @@ it with `breadcrumb-opinionated-mlf'."
 
 (advice-add 'mode--line-format-right-align :filter-return
             (lambda (r)
-              (if bc-opinionated-mode (propertize r 'face 'default) r))
+              (if bc-opinionated-mode
+                  (propertize r 'face
+                              (if (mode-line-window-selected-p)
+                                  `(:inherit default :background ,(face-attribute 'mode-line-buffer-id :foreground))
+                                `(:inherit default :background ,(face-attribute 'default :background))))
+                r))
             '((name . bc-opinionated-mlf)))
 
 (provide 'breadcrumb)

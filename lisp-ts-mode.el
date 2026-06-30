@@ -620,8 +620,13 @@ With value of 2:
     ~A\"
 With value of 0:
   \"
-  ~A\""
-  :type 'integer)
+  ~A\"
+
+You can set this to the value of `most-negative-fixnum' to always indent
+non-nested directives to the start of the line."
+  :type `(choice (const :tag "Always flush to the leftmost column"
+                        ,most-negative-fixnum)
+                 (integer :tag "Offset from string quote")))
 
 (defun lisp-ts-mode--eol-escape-string-at (parser pos)
   (let ((node (lisp-ts-mode--format-directive-at-pos

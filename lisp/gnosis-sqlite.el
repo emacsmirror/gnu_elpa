@@ -222,6 +222,42 @@ Replaces `-' with `_' and `table:col' with `table.col'."
 
 ;;; S-expression compiler: expressions
 
+(defun gnosis-sqlite--quoted-value-p (value)
+  "Return non-nil when VALUE is a quoted form."
+  (and (listp value) (eq (car value) 'quote)))
+
+(defun gnosis-sqlite--bound-value (value)
+  "Return VALUE without its quote wrapper, when present."
+  (if (gnosis-sqlite--quoted-value-p value)
+      (cadr value)
+    value))
+
+(defun gnosis-sqlite--placeholder-list (values)
+  "Return one comma-separated SQL placeholder per item in VALUES."
+  (mapconcat (lambda (_) "?") values ", "))
+
+(defun gnosis-sqlite--bound-expr (col op value &optional raw)
+  "Compile COL OP VALUE as a bound SQL expression.
+Encode VALUE unless RAW is non-nil."
+  (let ((bound (gnosis-sqlite--bound-value value)))
+    (cons (format "%s %s ?" (gnosis-sqlite--ident col) op)
+          (list (if raw bound (gnosis-sqlite--encode-param bound))))))
+
+(defun gnosis-sqlite--compile-equality (col value)
+  "Compile equality between COL and VALUE."
+  (if (and (symbolp value) (not (gnosis-sqlite--quoted-value-p value)))
+      (cons (format "%s = %s"
+                    (gnosis-sqlite--ident col)
+                    (gnosis-sqlite--ident value))
+            nil)
+    (gnosis-sqlite--bound-expr col "=" value)))
+
+(defun gnosis-sqlite--compile-joined-exprs (exprs separator)
+  "Compile EXPRS and join them with SEPARATOR."
+  (let ((parts (mapcar #'gnosis-sqlite--compile-expr exprs)))
+    (cons (mapconcat (lambda (p) (format "(%s)" (car p))) parts separator)
+          (apply #'append (mapcar #'cdr parts)))))
+
 (defun gnosis-sqlite--compile-expr (expr)
   "Compile S-expression EXPR into (SQL-STRING . PARAMS-LIST).
 
@@ -240,50 +276,27 @@ Supported patterns:
     (`(= ,(and (pred numberp) a) ,(and (pred numberp) b))
      (cons (format "%s = %s" a b) nil))
     ;; Column = value
-    (`(= ,(and (pred symbolp) col) ,val)
-     (if (and (listp val) (eq (car val) 'quote))
-         (cons (format "%s = ?" (gnosis-sqlite--ident col))
-               (list (gnosis-sqlite--encode-param (cadr val))))
-       (if (symbolp val)
-           (cons (format "%s = %s"
-                         (gnosis-sqlite--ident col)
-                         (gnosis-sqlite--ident val))
-                 nil)
-         (cons (format "%s = ?" (gnosis-sqlite--ident col))
-               (list (gnosis-sqlite--encode-param val))))))
+    (`(= ,(and (pred symbolp) col) ,value)
+     (gnosis-sqlite--compile-equality col value))
     ;; AND / OR
     (`(and . ,exprs)
-     (let ((parts (mapcar #'gnosis-sqlite--compile-expr exprs)))
-       (cons (mapconcat (lambda (p) (format "(%s)" (car p))) parts " AND ")
-             (apply #'append (mapcar #'cdr parts)))))
+     (gnosis-sqlite--compile-joined-exprs exprs " AND "))
     (`(or . ,exprs)
-     (let ((parts (mapcar #'gnosis-sqlite--compile-expr exprs)))
-       (cons (mapconcat (lambda (p) (format "(%s)" (car p))) parts " OR ")
-             (apply #'append (mapcar #'cdr parts)))))
+     (gnosis-sqlite--compile-joined-exprs exprs " OR "))
     ;; LIKE
-    (`(like ,(and (pred symbolp) col) ,val)
-     (if (and (listp val) (eq (car val) 'quote))
-         (cons (format "%s LIKE ?" (gnosis-sqlite--ident col))
-               (list (cadr val)))
-       (cons (format "%s LIKE ?" (gnosis-sqlite--ident col))
-             (list val))))
+    (`(like ,(and (pred symbolp) col) ,value)
+     (gnosis-sqlite--bound-expr col "LIKE" value t))
     ;; IN with vector
     (`(in ,(and (pred symbolp) col) ,(and (pred vectorp) vec))
-     (let* ((elts (append vec nil))
-            (placeholders (mapconcat (lambda (_) "?") elts ", ")))
-       (cons (format "%s IN (%s)" (gnosis-sqlite--ident col) placeholders)
+     (let ((elts (append vec nil)))
+       (cons (format "%s IN (%s)"
+                     (gnosis-sqlite--ident col)
+                     (gnosis-sqlite--placeholder-list elts))
              (mapcar #'gnosis-sqlite--encode-param elts))))
     ;; Comparison operators: > < >= <=
-    (`(,(and (pred symbolp) op) ,(and (pred symbolp) col) ,val)
+    (`(,(and (pred symbolp) op) ,(and (pred symbolp) col) ,value)
      (when (memq op '(> < >= <=))
-       (if (numberp val)
-           (cons (format "%s %s ?" (gnosis-sqlite--ident col) op)
-                 (list val))
-         (if (and (listp val) (eq (car val) 'quote))
-             (cons (format "%s %s ?" (gnosis-sqlite--ident col) op)
-                   (list (gnosis-sqlite--encode-param (cadr val))))
-           (cons (format "%s %s ?" (gnosis-sqlite--ident col) op)
-                 (list (gnosis-sqlite--encode-param val)))))))
+       (gnosis-sqlite--bound-expr col op value)))
     ;; NOT
     (`(not ,inner)
      (let ((compiled (gnosis-sqlite--compile-expr inner)))

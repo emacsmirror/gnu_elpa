@@ -416,6 +416,51 @@ Batches inserts in groups of `gnosis-anki--tag-batch-size'."
 			    batch-params)
             (setq offset end)))))))
 
+(defun gnosis-anki--item-tags (item extra-tag)
+  "Return ITEM tags with EXTRA-TAG appended when needed."
+  (let ((tags (plist-get item :tags)))
+    (if (and extra-tag (not (member extra-tag tags)))
+        (append tags (list extra-tag))
+      tags)))
+
+(defun gnosis-anki--bulk-insert-params
+    (items ids gnosis-val amnesia-val today extra-tag suspend)
+  "Prepare grouped bulk-insert params for ITEMS and IDS.
+GNOSIS-VAL, AMNESIA-VAL, TODAY, EXTRA-TAG, and SUSPEND are the
+same values passed to `gnosis-anki--bulk-insert-chunk'.  Returns a
+plist with params for themata, review, review-log, extras, and tags."
+  (let ((suspend-val (if suspend 1 0)))
+    (cl-loop for item in items
+             for id in ids
+             for type = (plist-get item :type)
+             for keimenon = (plist-get item :keimenon)
+             for hypothesis = (plist-get item :hypothesis)
+             for answer = (plist-get item :answer)
+             for parathema = (plist-get item :parathema)
+             for guid = (plist-get item :guid)
+             for tags = (gnosis-anki--item-tags item extra-tag)
+             append (list id (prin1-to-string type)
+                          (prin1-to-string keimenon)
+                          (prin1-to-string hypothesis)
+                          (prin1-to-string answer)
+                          guid)
+             into themata-params
+             append (list id gnosis-val amnesia-val)
+             into review-params
+             append (list id today today 0 0 0 0 suspend-val 0)
+             into review-log-params
+             append (list id (prin1-to-string parathema)
+                          (prin1-to-string ""))
+             into extras-params
+             append (cl-loop for tag in tags
+                             append (list id (prin1-to-string tag)))
+             into tag-params
+             finally return (list :themata themata-params
+                                  :review review-params
+                                  :review-log review-log-params
+                                  :extras extras-params
+                                  :tags tag-params))))
+
 (defun gnosis-anki--bulk-insert-chunk
     (db items ids gnosis-val amnesia-val today
 	&optional extra-tag suspend)
@@ -425,73 +470,33 @@ IDS is a list of integer IDs, one per item.
 GNOSIS-VAL, AMNESIA-VAL, TODAY are pre-computed constants.
 EXTRA-TAG, when non-nil, is appended to each item's tags.
 SUSPEND, when non-nil, imports themata as suspended."
-  (let ((themata-params nil)
-        (review-params nil)
-        (review-log-params nil)
-        (extras-params nil)
-        (tag-params nil)
-        (suspend-val (if suspend 1 0)))
-    ;; Build param lists
-    (cl-loop for item in items
-             for id in ids
-             do (let ((type (plist-get item :type))
-                      (keimenon (plist-get item :keimenon))
-                      (hypothesis (plist-get item :hypothesis))
-                      (answer (plist-get item :answer))
-                      (parathema (plist-get item :parathema))
-                      (guid (plist-get item :guid))
-                      (tags (let ((tl (plist-get item :tags)))
-                              (if (and extra-tag (not (member extra-tag tl)))
-                                  (append tl (list extra-tag))
-                                tl))))
-                  ;; themata: id, type, keimenon, hypothesis,
-                  ;; answer, source_guid
-                  ;; Strings are prin1-encoded (emacsql compat)
-                  (setq themata-params
-                        (nconc themata-params
-                               (list id (prin1-to-string type)
-                                     (prin1-to-string keimenon)
-                                     (prin1-to-string hypothesis)
-                                     (prin1-to-string answer)
-                                     guid)))
-                  ;; review: id, gnosis-val, amnesia-val
-                  (setq review-params
-                        (nconc review-params
-                               (list id gnosis-val amnesia-val)))
-                  ;; review_log: id, date, date, 0, 0, 0, 0, suspend, 0
-                  (setq review-log-params
-                        (nconc review-log-params
-                               (list id today today 0 0 0 0 suspend-val 0)))
-                  ;; extras: id, parathema, review-image
-                  (setq extras-params
-                        (nconc extras-params
-                               (list id (prin1-to-string parathema)
-                                     (prin1-to-string ""))))
-                  ;; thema_tag: id, tag (variable per item)
-                  (dolist (tag tags)
-                    (setq tag-params
-                          (nconc tag-params
-                                 (list id (prin1-to-string tag)))))))
+  (let* ((params (gnosis-anki--bulk-insert-params
+                  items ids gnosis-val amnesia-val today extra-tag suspend))
+         (themata-params (plist-get params :themata))
+         (review-params (plist-get params :review))
+         (review-log-params (plist-get params :review-log))
+         (extras-params (plist-get params :extras))
+         (tag-params (plist-get params :tags)))
     (gnosis-sqlite-with-transaction db
       (sqlite-execute db
-		      (concat "INSERT INTO themata (id, type, keimenon, hypothesis, answer, source_guid) VALUES "
-			      (mapconcat (lambda (_) "(?,?,?,?,?,?)") items ", "))
-		      themata-params)
+                      (concat "INSERT INTO themata (id, type, keimenon, hypothesis, answer, source_guid) VALUES "
+                              (mapconcat (lambda (_) "(?,?,?,?,?,?)") items ", "))
+                      themata-params)
       ;; INSERT INTO review (3 cols)
       (sqlite-execute db
-		      (concat "INSERT INTO review VALUES "
-			      (mapconcat (lambda (_) "(?,?,?)") items ", "))
-		      review-params)
+                      (concat "INSERT INTO review VALUES "
+                              (mapconcat (lambda (_) "(?,?,?)") items ", "))
+                      review-params)
       ;; INSERT INTO review_log (9 cols)
       (sqlite-execute db
-		      (concat "INSERT INTO review_log VALUES "
-			      (mapconcat (lambda (_) "(?,?,?,?,?,?,?,?,?)") items ", "))
-		      review-log-params)
+                      (concat "INSERT INTO review_log VALUES "
+                              (mapconcat (lambda (_) "(?,?,?,?,?,?,?,?,?)") items ", "))
+                      review-log-params)
       ;; INSERT INTO extras (3 cols)
       (sqlite-execute db
-		      (concat "INSERT INTO extras VALUES "
-			      (mapconcat (lambda (_) "(?,?,?)") items ", "))
-		      extras-params)
+                      (concat "INSERT INTO extras VALUES "
+                              (mapconcat (lambda (_) "(?,?,?)") items ", "))
+                      extras-params)
       (gnosis-anki--insert-tags db tag-params))))
 
 (defun gnosis-anki--build-model-info-from-col (anki-db model-info)

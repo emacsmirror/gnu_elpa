@@ -172,6 +172,33 @@ DATE format must be given as (year month day)."
 		  (time-to-days given-date))))
     (if (>= diff 0) diff (error "`DATE2' must be higher than `DATE'"))))
 
+(defun gnosis-algorithm--anagnosis-trigger-p (success c-successes c-failures anagnosis)
+  "Return non-nil when SUCCESS reaches ANAGNOSIS.
+C-SUCCESSES and C-FAILURES select the current streak count."
+  (= (% (max 1 (if success c-successes c-failures)) anagnosis) 0))
+
+(defun gnosis-algorithm--next-synolon (success g-synolon g-plus g-minus)
+  "Return the next G-SYNOLON using SUCCESS, G-PLUS, and G-MINUS."
+  (if success
+      (min (+ g-synolon g-plus) gnosis-algorithm-synolon-max)
+    (max 1.3 (- g-synolon g-minus))))
+
+(defun gnosis-algorithm--next-plus (g-plus success anagnosis-p epignosis c-failures lethe)
+  "Return the next G-PLUS.
+SUCCESS, ANAGNOSIS-P, EPIGNOSIS, C-FAILURES, and LETHE determine rule effects."
+  (let ((neo-plus (if (and success anagnosis-p)
+                      (+ g-plus epignosis)
+                    g-plus)))
+    (if (and lethe (not success) (>= c-failures lethe))
+        (max 0.1 (- neo-plus epignosis))
+      neo-plus)))
+
+(defun gnosis-algorithm--next-minus (g-minus success anagnosis-p agnoia)
+  "Return the next G-MINUS from SUCCESS, ANAGNOSIS-P, and AGNOIA."
+  (if (and (not success) anagnosis-p)
+      (+ g-minus agnoia)
+    g-minus))
+
 (cl-defun gnosis-algorithm-next-gnosis
     (&key gnosis success epignosis agnoia anagnosis
           c-successes c-failures lethe)
@@ -203,29 +230,51 @@ When C-FAILURES reach ANAGOSNIS, increase gnosis-minus by AGNOIA."
   (cl-assert (integerp anagnosis) nil
              "anagnosis must be an integer.")
   (let* ((g-plus (nth 0 gnosis))
-	 (g-minus (nth 1 gnosis))
-	 (g-synolon (nth 2 gnosis))
-	 (anagnosis-p (= (% (max 1 (if success
-				       c-successes
-				     c-failures))
-			    anagnosis)
-			 0))
-	 ;; Update synolon
-	 (neo-synolon (if success
-			  (min (+ g-synolon g-plus) gnosis-algorithm-synolon-max)
-			(max 1.3 (- g-synolon g-minus))))
-	 ;; Anagnosis event: adjust plus or minus
-	 (neo-plus (if (and success anagnosis-p)
-		       (+ g-plus epignosis)
-		     g-plus))
-	 (neo-minus (if (and (not success) anagnosis-p)
-			(+ g-minus agnoia)
-		      g-minus))
-	 ;; Lethe event: reduce plus to slow future interval growth
-	 (neo-plus (if (and lethe (not success) (>= c-failures lethe))
-		       (max 0.1 (- neo-plus epignosis))
-		     neo-plus)))
+         (g-minus (nth 1 gnosis))
+         (g-synolon (nth 2 gnosis))
+         (anagnosis-p (gnosis-algorithm--anagnosis-trigger-p
+                       success c-successes c-failures anagnosis))
+         (neo-synolon (gnosis-algorithm--next-synolon
+                       success g-synolon g-plus g-minus))
+         (neo-plus (gnosis-algorithm--next-plus
+                    g-plus success anagnosis-p epignosis c-failures lethe))
+         (neo-minus (gnosis-algorithm--next-minus
+                     g-minus success anagnosis-p agnoia)))
     (gnosis-algorithm-round-items (list neo-plus neo-minus neo-synolon))))
+
+(defun gnosis-algorithm--proto-review-p (successful-reviews proto)
+  "Return non-nil when SUCCESSFUL-REVIEWS is still in PROTO phase."
+  (< successful-reviews (length proto)))
+
+(defun gnosis-algorithm--normalize-last-interval (last-interval success)
+  "Return LAST-INTERVAL normalized for SUCCESS."
+  (if (and (<= last-interval 0) success) 1 last-interval))
+
+(defun gnosis-algorithm--mature-failure-interval (last-interval gnosis-synolon amnesia)
+  "Return capped failure interval from LAST-INTERVAL.
+GNOSIS-SYNOLON and AMNESIA determine the success and failure caps."
+  (let ((success-interval (* gnosis-synolon last-interval))
+        (failure-interval (* amnesia last-interval)))
+    (max (min success-interval failure-interval 7) 0)))
+
+(defun gnosis-algorithm--next-interval-days
+    (last-interval gnosis-synolon success successful-reviews amnesia proto c-fails lethe)
+  "Return interval days before fuzzing and date conversion.
+LAST-INTERVAL, GNOSIS-SYNOLON, SUCCESS, SUCCESSFUL-REVIEWS,
+AMNESIA, PROTO, C-FAILS, and LETHE determine the scheduling rule."
+  (cond ((and (gnosis-algorithm--proto-review-p successful-reviews proto)
+              success)
+         (nth successful-reviews proto))
+        ((and (gnosis-algorithm--proto-review-p successful-reviews proto)
+              (not success))
+         0)
+        ((and (>= c-fails lethe) (not success))
+         0)
+        (success
+         (* gnosis-synolon last-interval))
+        (t
+         (gnosis-algorithm--mature-failure-interval
+          last-interval gnosis-synolon amnesia))))
 
 (cl-defun gnosis-algorithm-next-interval
     (&key last-interval gnosis-synolon success
@@ -260,27 +309,12 @@ LETHE: Upon having C-FAILS >= lethe, set next interval to 0."
              "Value of amnesia must be a float <= 1")
   (cl-assert (and (integerp lethe) (>= lethe 1)) nil
              "Value of lethe must be an integer >= 1")
-  ;; If last-interval is 0, use 1 instead, only for successful reviews.
-  (let* ((last-interval (if (and (<= last-interval 0) success)
-			    1 last-interval))
-	 (amnesia (- 1 amnesia)) ;; inverse amnesia
-	 (interval (cond ((and (< successful-reviews (length proto))
-			       success)
-			  (nth successful-reviews proto))
-			 ;; Proto phase failure: reset to 0.
-			 ((and (< successful-reviews (length proto))
-			       (not success))
-			  0)
-			 ;; Lethe event, reset interval.
-			 ((and (>= c-fails lethe)
-			       (not success))
-			  0)
-			 (t (let* ((success-interval (* gnosis-synolon last-interval))
-				   (failure-interval (* amnesia last-interval)))
-			      (if success success-interval
-				;; Cap failure interval at 7 days to prevent
-				;; overly lenient reschedules for mature cards.
-			        (max (min success-interval failure-interval 7) 0)))))))
+  (let* ((last-interval (gnosis-algorithm--normalize-last-interval
+                         last-interval success))
+         (amnesia (- 1 amnesia))
+         (interval (gnosis-algorithm--next-interval-days
+                    last-interval gnosis-synolon success successful-reviews
+                    amnesia proto c-fails lethe)))
     (gnosis-algorithm-date
      (round (gnosis-algorithm-fuzz-interval interval)))))
 

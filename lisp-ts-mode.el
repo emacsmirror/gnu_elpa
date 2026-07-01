@@ -736,28 +736,6 @@ how indentation is performed.")
       (funcall lisp-ts-mode-format-indent-function parser-at)
     'noindent))
 
-(defun lisp-ts-mode-indent-region-wrapper (orig beg end)
-  "Used in `lisp-ts-mode' as :around advice on `indent-region-function'."
-  (if (null lisp-ts-mode-format-indent-predicate)
-      (funcall orig beg end)
-    (let ((end-marker (copy-marker end t)))
-      (unwind-protect
-          (prog1 (funcall orig beg end)
-            (redisplay)                 ;trigger parser range update
-            (when-let* ((parser-ranges
-                         (thread-first (ts-parser-list nil 'cl-format t)
-                           (lisp-ts-mode--parsers-in-region beg end-marker)
-                           (nreverse))))
-              (save-excursion
-                (pcase-dolist (`(,beg ,end ,parser) parser-ranges)
-                  (goto-char beg)
-                  (while (< (point) (1- end))
-                    (save-excursion
-                      (lisp-ts-mode-maybe-indent-format-line parser))
-                    (beginning-of-line 2))))))
-        (move-marker end-marker nil)
-        (syntax-ppss-flush-cache beg)))))
-
 ;; indent-sexp doesn't use indent-region, and instead tries to be smart and
 ;; skips strings.
 (defun lisp-ts-mode-indent-sexp (&optional endpos)
@@ -1049,6 +1027,13 @@ This should be set before `lisp-ts-mode' is activated.")
   "Common Lisp major mode with tree-sitter support."
   :after-hook (lisp-ts-mode-update-modeline)
   (lisp-mode-variables t t)
+  ;; `lisp-indent-region' is more or less a version of
+  ;; `indent-region-line-by-line' that avoids exponential complexity by keeping
+  ;; a running ppss. that's nice, but it messes with our format indentation
+  ;; stuff by bypassing `indent-line-function'. so TODO: a version of
+  ;; `lisp-indent-region' that works with format stuff, but until then, we'll
+  ;; stick with the generic brute force method.
+  (kill-local-variable 'indent-region-function)
   ;; copied most of this from `lisp-mode'
   (setq-local lisp-indent-function #'common-lisp-indent-function)
   (setq-local comment-start-skip
@@ -1080,8 +1065,6 @@ This should be set before `lisp-ts-mode' is activated.")
             (font-lock-extra-managed-props . (help-echo))
             (font-lock-fontify-syntactically-function
              . ts-font-lock-fontify-region)))
-    (add-function :around (local 'indent-region-function)
-                  #'lisp-ts-mode-indent-region-wrapper)
     (add-function :around (local 'indent-line-function)
                   #'lisp-ts-mode-indent-line-wrapper)
     (setq-local up-list-function #'lisp-ts-mode-up-list)

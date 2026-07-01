@@ -727,6 +727,13 @@ must flush these before the next themata view."
   (clrhash gnosis-dashboard--entry-cache)
   (setq gnosis-dashboard--rendered-text nil))
 
+(defun gnosis-dashboard--apply-tag-renames (pairs)
+  "Apply tag rename PAIRS and refresh the tag dashboard."
+  (gnosis--tag-rename-batch pairs)
+  (gnosis-dashboard--invalidate-tag-caches)
+  (remove-overlays nil nil 'gnosis-mark t)
+  (gnosis-dashboard-output-tags))
+
 (defun gnosis-dashboard-rename-tag ()
   "Rename TAG to NEW-TAG."
   (interactive)
@@ -770,10 +777,7 @@ applies via `gnosis--tag-rename-batch'."
 			      (if (> merges 0)
 				  (format " (%d will merge into existing)" merges)
 				"")))
-	(gnosis--tag-rename-batch pairs)
-	(gnosis-dashboard--invalidate-tag-caches)
-	(remove-overlays nil nil 'gnosis-mark t)
-	(gnosis-dashboard-output-tags)))))
+	(gnosis-dashboard--apply-tag-renames pairs)))))
 
 (defun gnosis-dashboard-merge-case-duplicates ()
   "Merge tags that differ only by case.
@@ -808,10 +812,7 @@ to the canonical form via `gnosis--tag-rename-batch'."
       (when (y-or-n-p (format "Merge %d tag(s) into %d canonical form(s)?"
 			      (length pairs)
 			      (length (seq-uniq (mapcar #'cdr pairs)))))
-	(gnosis--tag-rename-batch pairs)
-	(gnosis-dashboard--invalidate-tag-caches)
-	(remove-overlays nil nil 'gnosis-mark t)
-	(gnosis-dashboard-output-tags)))))
+	(gnosis-dashboard--apply-tag-renames pairs)))))
 
 (defun gnosis-dashboard-delete-tag (&optional tag)
   "Delete TAG or marked tags from all themata."

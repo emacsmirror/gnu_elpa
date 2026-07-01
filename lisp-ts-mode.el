@@ -116,8 +116,8 @@ merged with the rainbow delimiters face (the latter taking precedence).")
   "Face placed over all whitespace ignored by the ~<newline> format directive.")
 
 (defface lisp-ts-mode-block-comment-depth-1 '((t :inherit font-lock-comment-face))
-  "Face used to highlight block comments nested by 1 level. Top level block
-comments are highlighted with `font-lock-comment-face'.")
+  "Face used to highlight block comments nested by 1 level.
+Top level block comments are highlighted with `font-lock-comment-face'.")
 
 (defface lisp-ts-mode-block-comment-depth-2
   '((t :inherit lisp-ts-mode-block-comment-depth-1))
@@ -200,30 +200,32 @@ non-nil."
                          lisp-ts-mode-comment-darken-percentage)))
     (when (stringp comment-fore)
       (require 'color)
-      (let ((i 0))
-        (while (< i 3)
-          (incf i)                      ;skip `font-lock-comment-face'
-          (thread-last (* percentage i)
-            (color-darken-name comment-fore)
-            (set-face-attribute (aref lisp-ts-mode--block-comment-faces i)
-                                nil :foreground)))))))
+      (dotimes (i 3)
+        (thread-last (* percentage (1+ i))
+          (color-darken-name comment-fore)
+          (set-face-attribute (aref lisp-ts-mode--block-comment-faces (1+ i))
+                              nil :foreground))))))
 
 (defcustom lisp-ts-mode-format-rainbow-delimiters (featurep 'rainbow-delimiters)
-  "Whether paired format directives like ~[~] are highlighted based on
-nesting depth with faces from rainbow-delimiters.el. If this is non-nil
-and rainbow-delimiters is not available, a warning will be emitted and
-it will be set to nil."
+  "Whether rainbow-delimiters.el faces are used in format string fontification.
+When non-nil, `rainbow-delimiters-pick-face-function' is called to
+select a face to apply to paired directive characters based on nesting
+depth. If this is non-nil and rainbow-delimiters is not available, a
+warning will be emitted and it will be set to nil."
   :type 'boolean)
 
 (defun lisp-ts-mode--format-use-rainbow-delimiters-p ()
+  "Return non-nil if rainbow-delimiters faces should be use for format directives.
+This depends on the value of `lisp-ts-mode-format-rainbow-delimiters'.
+If rainbow delimiters isn't available, set it to nil and emit a warning."
   (and lisp-ts-mode-format-rainbow-delimiters
        (or (boundp 'rainbow-delimiters-pick-face-function)
            (require 'rainbow-delimiters nil t)
-           (prog1 nil
-             (lwarn 'lisp-ts-mode :warning
-                    (concat "rainbow-delimiters.el is not available, "
-                            "disabling `lisp-ts-mode-format-rainbow-delimiters'"))
-             (setq-default lisp-ts-mode-format-rainbow-delimiters nil)))))
+           (ignore
+            (lwarn 'lisp-ts-mode :warning
+                   (concat "rainbow-delimiters.el is not available, "
+                           "disabling `lisp-ts-mode-format-rainbow-delimiters'"))
+            (setq-default lisp-ts-mode-format-rainbow-delimiters nil)))))
 
 ;; FIXME: should this be a defcustom? this is really just for `gaudy-cl-mode' to
 ;; hook into `lisp-ts-mode--fontify-one-format-directive'.
@@ -234,27 +236,32 @@ It can either return a face which will be added to the node, or add the
 face itself and return nil.")
 
 (defun lisp-ts-mode--fontify-one-format-directive (node &optional paired-depth mismatch-p)
+  "Fontify the format_directive treesit NODE.
+
+PAIRED-DEPTH is the current nesting depth of paired directives
+containing NODE. MISMATCH-P is non-nil if NODE is a paired directive
+without a corresponding opener/closer."
   (defvar rainbow-delimiters-pick-face-function)
   (let ((child (ts-node-child node 0))
         (colonp nil)
         (atp nil))
     (while child
       (when-let* ((face (pcase (ts-node-type child)
-                          ('"~" 'lisp-ts-mode-format-tilde)
+                          ("~" 'lisp-ts-mode-format-tilde)
                           ;; "v" is aliased to "V" in the grammar
-                          ('"V" 'lisp-ts-mode-format-arg-parameter)
-                          ('"#" 'lisp-ts-mode-format-remaining-parameter)
-                          ('"char_parameter" 'lisp-ts-mode-format-char-parameter)
-                          ('"numeric_parameter" 'lisp-ts-mode-format-numeric-parameter)
-                          ('"," 'lisp-ts-mode-format-comma)
-                          ('"@"
+                          ("V" 'lisp-ts-mode-format-arg-parameter)
+                          ("#" 'lisp-ts-mode-format-remaining-parameter)
+                          ("char_parameter" 'lisp-ts-mode-format-char-parameter)
+                          ("numeric_parameter" 'lisp-ts-mode-format-numeric-parameter)
+                          ("," 'lisp-ts-mode-format-comma)
+                          ("@"
                            (setq atp t)
                            'lisp-ts-mode-format-at)
-                          ('":"
+                          (":"
                            (setq colonp t)
                            'lisp-ts-mode-format-colon)
-                          ('"directive_character"
-                           (cond
+                          ("directive_character"
+                           (cond*
                              ((eq (char-after (ts-node-start child)) ?\n)
                               (save-excursion
                                 (goto-char (ts-node-start child))
@@ -270,24 +277,28 @@ face itself and return nil.")
                               'lisp-ts-mode-format-standalone-directive)
                              ((not (lisp-ts-mode--format-use-rainbow-delimiters-p))
                               'lisp-ts-mode-format-paired-directive)
-                             (t (if-let* ((rainbow-face
-                                           (funcall rainbow-delimiters-pick-face-function
-                                                    paired-depth (not mismatch-p)
-                                                    (ts-node-start child))))
-                                    (list rainbow-face
-                                          ;; put this behind it to merge the two faces
-                                          'lisp-ts-mode-format-paired-directive)
-                                  'lisp-ts-mode-format-paired-directive))))
+                             ((bind-and* (rainbow-face
+                                          (funcall rainbow-delimiters-pick-face-function
+                                                   paired-depth (not mismatch-p)
+                                                   (ts-node-start child))))
+                              (list rainbow-face
+                                    ;; put this behind it to merge the two faces
+                                    'lisp-ts-mode-format-paired-directive))
+                             (t 'lisp-ts-mode-format-paired-directive)))
                           ;; ~/
-                          ('"interned_symbol"
+                          ("interned_symbol"
                            (when lisp-ts-mode-fontify-format-funcall-function
                              (funcall lisp-ts-mode-fontify-format-funcall-function child))))))
-        (add-face-text-property (ts-node-start child)
-                                (ts-node-end child)
-                                face))
+        (add-face-text-property (ts-node-start child) (ts-node-end child) face))
       (setq child (ts-node-next-sibling child)))))
 
 (defun lisp-ts-mode--fontify-format-directives (node depth &optional stop)
+  "Fontify the format_directive nodes starting with NODE.
+
+Fontification is applied to NODE itself and its next siblings. DEPTH is
+the nesting depth of paired directives containing NODE. STOP is a
+sibling of NODE where iteration will terminate. If STOP is nil, all of
+its siblings will be fontified."
   ;; "~&~<~;~{~^~}~:>"
   ;; should have a tree like (simplified):
   ;; (format_string
@@ -302,8 +313,8 @@ face itself and return nil.")
   ;;     end: (format_directive `~:>`)))
   (while (not (equal node stop))
     (pcase (ts-node-type node)
-      ('"format_directive" (lisp-ts-mode--fontify-one-format-directive node))
-      ('"format_group"
+      ("format_directive" (lisp-ts-mode--fontify-one-format-directive node))
+      ("format_group"
        (let ((start (ts-node-child-by-field-name node "start"))
              (end (ts-node-child-by-field-name node "end")))
          (lisp-ts-mode--fontify-one-format-directive start (1+ depth))
@@ -313,12 +324,18 @@ face itself and return nil.")
     (setq node (ts-node-next-sibling node))))
 
 (defun lisp-ts-mode--fontify-format-string (node override start end &rest _)
+  "Fontify the format_string treesit NODE.
+See `treesit-font-lock-settings' for the meaning of the remaining
+arguments."
   (ignore override)
   (and (>= (ts-node-start node) start)
        (<= (ts-node-end node) end)
        (lisp-ts-mode--fontify-format-directives (ts-node-child node 1) 0)))
 
 (defun lisp-ts-mode--fontify-nested-comments (node depth)
+  "Fontify the block comment treesit NODE and its children.
+DEPTH is the current depth of comment nesting; 0 if NODE is the top
+level comment."
   (let ((child (ts-node-child node 0)))
     (while child
       (let ((type (ts-node-type child)))
@@ -333,20 +350,25 @@ face itself and return nil.")
     (add-face-text-property (ts-node-start node)
                             (ts-node-end node)
                             (aref lisp-ts-mode--block-comment-faces (min depth 3))
+                            ;; append to put it behind
+                            ;; `font-lock-comment-delimiter-face'
                             t)))
 
 (defun lisp-ts-mode--fontify-comment (node override start end &rest _)
+  "Fontify the block_comment or line_comment treesit NODE.
+See `treesit-font-lock-settings' for the meaning of the remaining
+arguments."
   (ignore override)
   (let ((nbeg (ts-node-start node))
         (nend (ts-node-end node)))
     (when (and (>= nbeg start) (<= nend end))
       (pcase (ts-node-type node)
-        ('"line_comment"
+        ("line_comment"
          (goto-char nbeg)
          (add-face-text-property (prog1 (point) (skip-chars-forward ";" nend))
                                  (point) 'font-lock-comment-delimiter-face)
          (add-face-text-property (point) nend 'font-lock-comment-face))
-        ('"block_comment" (lisp-ts-mode--fontify-nested-comments node 0))))))
+        ("block_comment" (lisp-ts-mode--fontify-nested-comments node 0))))))
 
 (defface lisp-ts-mode-0-bit '((t :inherit success))
   "Face for 0s in #b0 rationals and #*0 bit vectors.")
@@ -355,6 +377,11 @@ face itself and return nil.")
   "Face for 1s in #b1 rationals and #*1 bit vectors.")
 
 (defun lisp-ts-mode--fontify-bits (node override start end &rest _)
+  "Fontify 0s and 1s in the rational or bit_vector treesit NODE.
+See `treesit-font-lock-settings' for the meaning of the remaining
+arguments. The faces `lisp-ts-mode-0-bit' and `lisp-ts-mode-1-bit' are
+applied to 0s and 1s respectively. For rationals, the faces are only
+applied if the number uses the read syntax #b1 or #2r10."
   (ignore override)
   (when (and (>= (ts-node-start node) start) (<= (ts-node-end node) end))
     (let* ((node-type (ts-node-type node))
@@ -381,6 +408,11 @@ face itself and return nil.")
                (forward-char)))))))
 
 (defun lisp-ts-mode--fontify-character (node override start end &rest _)
+  "Fontify character treesit NODE.
+See `treesit-font-lock-settings' for the meaning of the remaining
+arguments. The #\\ is given the face `lisp-ts-mode-character-escape',
+and the character's name is given the face
+`lisp-ts-mode-character-name'."
   (ignore override)
   (when (and (>= (ts-node-start node) start) (<= (ts-node-end node) end))
     (let ((backslash-end (ts-node-end (ts-node-child node 0))))
@@ -393,6 +425,7 @@ face itself and return nil.")
 ;; rules like format-directive conditional, so let's keep it a function for
 ;; forward compatibility.
 (defun lisp-ts-mode--font-lock-rules ()
+  "Return font-lock rules used for `treesit-font-lock-settings' in `lisp-ts-mode'."
   (ts-font-lock-rules
    ;; this rule will only run if explicitly triggered by `gaudy-cl-mode' or when
    ;; `lisp-ts-format-support-mode' is enabled
@@ -455,7 +488,8 @@ face itself and return nil.")
   '((string comment)
     (number)
     (format-directive symbol)
-    (quote reader-macro character bits)))
+    (quote reader-macro character bits))
+  "`lisp-ts-mode' settings for `treesit-font-lock-feature-list'.")
 
 ;; unfortunately the generic treesit implementations of some commands like
 ;; `forward-sexp' and `up-list' don't seem to play nice with this mode, so we
@@ -465,6 +499,10 @@ face itself and return nil.")
 ;; we need this instead of `treesit-thing-at' to catch nodes directly preceding
 ;; POS
 (defun lisp-ts-mode--thing-node-at-pos (thing &optional pos not-before)
+  "Return the node at POS that matches the predicate THING.
+See `treesit-thing-settings' for what forms THING can take. POS defaults
+to `point'. This function will also consider nodes directly preceding
+POS (meaning the node ends *at* POS), unless NOT-BEFORE is non-nil."
   (let* ((root (ts-parser-root-node ts-primary-parser))
          (pos (or pos (point)))
          (node root)
@@ -488,11 +526,16 @@ face itself and return nil.")
         (ts-parent-until last-at-pos thing t))))
 
 (define-inline lisp-ts-mode--sexp-node-at-pos (&optional pos not-before)
+  "Return the sexp treesit node at POS.
+NOT-BEFORE is the same as in `lisp-ts-mode--thing-node-at-pos'. The
+definition of `sexp' is based on its entry in
+`lisp-ts-mode-thing-settings'."
   (inline-quote (lisp-ts-mode--thing-node-at-pos 'sexp ,pos ,not-before)))
 
 ;; treesit-parsers-at and co can only find the ones with overlays added by
 ;; `treesit-range-settings', which `gaudy-cl-mode' has to bypass
 (defun lisp-ts-mode--find-parser-at (pos parser-list)
+  "Find the first treesit parser in PARSER-LIST whose range contains POS."
   (car (any (lambda (parser)
               (any (lambda (range)
                      (<= (car range) pos (cdr range)))
@@ -500,7 +543,7 @@ face itself and return nil.")
             parser-list)))
 
 (defun lisp-ts-mode--parsers-in-region (parser-list beg end)
-  "Filter PARSER-LIST to those within the range BEG..END.
+  "Filter PARSER-LIST to those intersecting with the range BEG..END.
 The value is a list of lists of the form (LOW HIGH PARSER), where LOW
 and HIGH are the boundaries of PARSER's range that intersect with the
 range BEG..END. There may be multiple entries for PARSER if it has more
@@ -516,6 +559,7 @@ by LOW."
     (sort intersection :key #'car :in-place t)))
 
 (defun lisp-ts-mode--parsers-strictly-in-region (parser-list beg end)
+  "Filter PARSER-LIST to those whose ranges fall strictly between BEG and END."
   (let* ((filtered ()))
     (dolist (parser parser-list)
       (when (all (lambda (range)
@@ -525,6 +569,9 @@ by LOW."
     (nreverse filtered)))
 
 (defun lisp-ts-mode--format-directive-at-pos (node pos)
+  "Find the format_directive descendent of NODE at POS.
+This will only consider descendants of NODE, not NODE itself, because
+NODE is expected to be the parser's root node."
   (let ((child (ts-node-first-child-for-pos node pos)))
     (pcase child
       ('nil nil)
@@ -533,13 +580,12 @@ by LOW."
        (lisp-ts-mode--format-directive-at-pos child pos)))))
 
 (defcustom lisp-ts-mode-format-indent-auto-escape-eol "~@"
-  "Whether a ~<newline> directive is automatically inserted when indenting
-format strings.
+  "Whether a ~<newline> directive is inserted when indenting format strings.
 
 If non-nil, when indenting a format directive after a plain newline, a
-string is added to the end of the preceding line escaping the newline so
-that the directive can be indented without affecting the whitespace of
-the output."
+string is automatically added to the end of the preceding line escaping
+the newline so that the directive can be indented without affecting the
+whitespace of the output."
   :type
   '(choice (const :tag "Don't indent if the newline isn't escaped" nil)
            (const :tag "Always indent regardless of whether it's escaped" t)
@@ -549,17 +595,10 @@ the output."
                          :default "~:@_~")
                  (string :tag "String used anywhere else" :default "~@"))))
 
-(defconst lisp-ts-mode--format-pprint-logical-block-query
-  (when (fboundp 'ts-query-compile)
-    (ts-query-compile 'cl-format
-                      '((format_group
-                         end: (format_directive ":" ((directive_character) @cap
-                                                     (:eq? @cap ">"))))))))
-
 (defcustom lisp-ts-mode-format-indent-predicate
   (rx bos "format_group" eos)
-  "A predicate to determine where indentation should occur within format
-strings. Set this to nil to disable format string indentation entirely.
+  "A predicate to determine where indentation should occur within format strings.
+Set this to nil to disable format string indentation entirely.
 
 When a node matches this predicate, any text *within* it is indented
 relative to it. For format groups, indent relative to the opening
@@ -575,14 +614,14 @@ entire format string, indent relative to the opening \" +
                          :default "\\`format_group\\'")))
 
 (defcustom lisp-ts-mode-format-indent-tilde-relative nil
-  "Determines which column is used as a basis for format string
-indentation. If non-nil, indentation is performed relative to the ~ of
-the starting directive; otherwise it's relative to the directive
-character itself ({, [, ( or <). This affects both the contents of the
-paired directive, and the indentation of the closing directive (}, ], )
-or >) relative to the opener when the closer's ~ is the first non
-whitespace character on a line. Example (with
-`lisp-ts-mode-format-group-indent-offset' = 1):
+  "Determines which column is used as a basis for format string indentation.
+
+If non-nil, indentation is performed relative to the ~ of the starting
+directive; otherwise it's relative to the directive character itself ({,
+[, ( or <). This affects both the contents of the paired directive, and
+the indentation of the closing directive (}, ], ) or >) relative to the
+opener when the closer's ~ is the first non whitespace character on a
+line. Example (with `lisp-ts-mode-format-group-indent-offset' = 1):
 
 nil:
 ~:@{~
@@ -596,9 +635,9 @@ non-nil:
   :type 'boolean)
 
 (defcustom lisp-ts-mode-format-group-indent-offset 1
-  "Additional columns of indentation used when indenting inside paired
-format directives, relative to the opening directive. Example (with
-`lisp-ts-mode-format-indent-tilde-relative' = nil):
+  "Additional columns of indentation when indenting inside paired directives.
+This is calculated relative to the opening directive (~<, ~(, ~[ or ~{).
+Example (with `lisp-ts-mode-format-indent-tilde-relative' = nil):
 
 With value of 2:
   ~{
@@ -612,8 +651,9 @@ With a value of 0:
 
 (defcustom lisp-ts-mode-format-string-indent-offset 1
   ;; when adjusting the example, remember the \ shifts the " right by one
-  "Additional columns of indentation used when indenting relative to the
-start of the format string. Example:
+  "Additional columns of indentation relative to the start of the format string.
+This is only used if string-relative indentation is enabled by the value
+of `lisp-ts-mode-format-indent-predicate'. Example:
 
 With value of 2:
   \"
@@ -628,7 +668,24 @@ non-nested directives to the start of the line."
                         ,most-negative-fixnum)
                  (integer :tag "Offset from string quote")))
 
+(defconst lisp-ts-mode--format-pprint-logical-block-query
+  (when (fboundp 'ts-query-compile)
+    (ts-query-compile 'cl-format
+                      '((format_group
+                         end: (format_directive ":" ((directive_character) @cap
+                                                     (:eq? @cap ">")))))))
+  "A treesit query matching ~<~:> format_group nodes.")
+
 (defun lisp-ts-mode--eol-escape-string-at (parser pos)
+  "Return the appropriate string to place at the end of the line preceding POS.
+PARSER is a `cl-format' treesit parser who range contains POS. If a
+~<newline> directive is already present, or if
+`lisp-ts-mode-format-indent-auto-escape-eol' is t, return nil. If there
+is no ~<newline> directive present and
+`lisp-ts-mode-format-indent-auto-escape-eol' is nil, return the symbol
+`noindent'. Otherwise the returned string depends on the value of
+`lisp-ts-mode-format-indent-auto-escape-eol' and whether POS is
+positioned inside a logical-block format directive (~<~:>)."
   (let ((node (lisp-ts-mode--format-directive-at-pos
                (ts-parser-root-node parser)
                (1- pos))))
@@ -648,6 +705,12 @@ non-nested directives to the start of the line."
       (t (cdr lisp-ts-mode-format-indent-auto-escape-eol)))))
 
 (defun lisp-ts-mode--indent-format-line (parser)
+  "Indent the current line, which should start within the range of PARSER.
+PARSER is a `cl-format' treesit parser. If there is nothing to indent,
+return the symbol `noindent'. If the line is indented or was already
+indented, call `back-to-indentation' before returning, but if
+indentation is disabled here due to the value of
+`lisp-ts-mode-format-indent-predicate', `point' will not move."
   (let* ((lbeg (line-beginning-position))
          (root (ts-parser-root-node parser))
          (nearest-node (ts-node-descendant-for-range root lbeg lbeg))
@@ -728,6 +791,10 @@ indentation, it should return the symbol `noindent'.
 how indentation is performed.")
 
 (defun lisp-ts-mode-maybe-indent-format-line (&optional parser)
+  "Possibly indent the current line if it's within a format string.
+If no indentation is performed, return the symbol `noindent'. PARSER is
+a `cl-format' treesit parser; if not supplied or nil, one is searched
+for at point with `lisp-ts-mode--find-parser-at'."
   (if-let* ((_ lisp-ts-mode-format-indent-predicate)
             (parser-at (or parser (thread-last (ts-parser-list nil 'cl-format t)
                                     (lisp-ts-mode--find-parser-at (point)))))
@@ -742,10 +809,12 @@ how indentation is performed.")
   "A version of `indent-sexp' that forwards to `indent-region'.
 
 `indent-sexp' is remapped to this command in `lisp-ts-mode' so that it
-triggers FORMAT string indentation."
+triggers FORMAT string indentation. ENDPOS, if supplied, is the position
+where indentation stops, defaulting to the end of the sexp."
   (interactive)
-  (indent-region (save-excursion (backward-prefix-chars) (point))
-                 (or endpos (save-excursion (forward-sexp) (point)))))
+  (let ((inhibit-message t))           ;indent-region is loud, indent-sexp isn't
+    (indent-region (save-excursion (backward-prefix-chars) (point))
+                   (or endpos (save-excursion (forward-sexp) (point))))))
 
 (defun lisp-ts-mode-indent-line-wrapper (orig)
   "Used in `lisp-ts-mode' as `:around' advice on `indent-line-function'."
@@ -781,6 +850,10 @@ triggers FORMAT string indentation."
                       (ts-node-end node)))))))
 
 (defun lisp-ts-mode--extend-fl-region ()
+  "Added to `font-lock-extend-region-functions' in `lisp-ts-mode'.
+
+Prevents the font-lock region from starting or ending in the middle of
+an expression."
   (defvar font-lock-beg)
   (defvar font-lock-end)
   (let* ((beg-sexp (lisp-ts-mode--sexp-node-at-pos font-lock-beg t))
@@ -811,11 +884,14 @@ triggers FORMAT string indentation."
                       '(([",@" ",." "#+" "#." "#-" "#:" "#C" "#P"] @prefix)
                         ;; FIXME vectors with explicit length
                         ([(bit_vector) (array)] @array)
-                        ((multiple_escape) @escape)))))
+                        ((multiple_escape) @escape))))
+  "A query to match Lisp nodes needed by `lisp-ts-mode-syntax-propertize'.")
 
 (defconst lisp-ts-mode--format-syntax-propertize-query
   (when (fboundp 'ts-query-compile)
-    (ts-query-compile 'cl-format '((format_directive) @directive))))
+    (ts-query-compile 'cl-format '((format_directive) @directive)))
+  "A query to match all format directive nodes.
+Used by `lisp-ts-mode-syntax-propertize'.")
 
 ;; this is neat but some users may not vibe with it. this syntax table is placed
 ;; on just the format directive characters. it gives the 4 paired directives the
@@ -832,7 +908,7 @@ triggers FORMAT string indentation."
 (defconst lisp-ts-mode--format-directive-syntax-table
   (let* ((tab (make-syntax-table)))
     (modify-syntax-entry (cons 0 (max-char)) "_" tab) ;symbol syntax by default
-    (modify-syntax-entry ?/ "$" tab)    ;paired delimiter
+    (modify-syntax-entry ?/ "$" tab)                  ;paired delimiter
     (dolist (leftright '("<>" "()" "[]" "{}"))
       (modify-syntax-entry (aref leftright 0)
                            (concat "(" (substring leftright 1))
@@ -840,14 +916,25 @@ triggers FORMAT string indentation."
       (modify-syntax-entry (aref leftright 1)
                            (concat ")" (substring leftright 0 1))
                            tab))
-    tab))
+    tab)
+  "Syntax table added via `lisp-ts-mode-syntax-propertize'.
+This is applied to format directive characters, like the \"_\" in
+\"~:@_\". In that directive, the \"~:@\" is given prefix syntax.")
 
 (defconst lisp-ts-mode--format-string-syntax-table
   (let ((tab (make-syntax-table)))
     (mapc (lambda (ch) (modify-syntax-entry ch "_" tab)) "()[]{}<>")
-    tab))
+    tab)
+  "Syntax table applied to non-directive parts of format strings by
+`lisp-ts-mode-syntax-propertize'.")
 
 (defun lisp-ts-mode-syntax-propertize (start end)
+  "Used as `syntax-propertize-function' in `lisp-ts-mode'.
+START and END are the boundaries of the region to operate on. In Lisp
+code, add prefix syntax to reader macros like #S, #+ etc. In format
+strings, add parenthesis syntax to ~<~>, ~[~], ~(~) and ~{~} directives,
+and prefix syntax on all characters from the ~ up to the directive
+character."
   (pcase-dolist (`(,cap . ,node)
                  (ts-query-capture ts-primary-parser
                                    lisp-ts-mode--syntax-propertize-query
@@ -910,6 +997,7 @@ triggers FORMAT string indentation."
   "<mode-line> <mouse-1>" #'lisp-ts-mode-toggle-comment-style)
 
 (defun lisp-ts-mode-update-modeline ()
+  "Update the `lisp-ts-mode' mode name based on the current comment style."
   (setq mode-name
         (concat "Lisp/"
                 (propertize comment-start
@@ -923,10 +1011,13 @@ triggers FORMAT string indentation."
 
 (defun lisp-ts-mode-toggle-comment-style (&optional arg)
   "Toggle between #| block |# and ;; line comments for comment commands.
-
-With a positive prefix-arg, enable block comments; with a negative
+With a positive prefix arg, enable block comments; with a negative
 prefix arg, enable line comments; zero or unsupplied prefix argument
-toggles between them."
+toggles between them.
+
+When called from Lisp, ARG can be the symbol `block' to enable block
+comments, the symbol `line' to enable line comments, or nil to toggle
+between them."
   (interactive (cond
                  ((null current-prefix-arg) '(nil))
                  ;; same as c-toggle-comment-style
@@ -957,6 +1048,7 @@ toggles between them."
 
 (defvar-keymap lisp-ts-mode-map
   :parent lisp-mode-map
+  :doc "Keymap for `lisp-ts-mode'."
   "<remap> <indent-sexp>" #'lisp-ts-mode-indent-sexp
   ;; KLUDGE: would prefer C-c C-k to match the key bindings for
   ;; `c[-ts-mode]-toggle-comment-style' but sly (and probably slime) binds
@@ -998,7 +1090,8 @@ toggles between them."
     (cl-format
      (directive "_directive")
      (modifier "[@:]")
-     (parameter ,(rx bos (or "#" "V" "char_parameter" "numeric_parameter") eos)))))
+     (parameter ,(rx bos (or "#" "V" "char_parameter" "numeric_parameter") eos))))
+  "Used as the value of `treesit-thing-settings' in `lisp-ts-mode'.")
 
 ;;;###autoload
 (defconst lisp-ts-mode-font-lock-ignore-keywords
@@ -1006,14 +1099,15 @@ toggles between them."
     ;; feature
     "#:a"
     (pred ,(lambda (kw)
-             (and (closurep (car-safe kw))
+             (and (functionp (car-safe kw))
                   (ignore-errors
                     (with-temp-buffer
                       (set-syntax-table lisp-mode-syntax-table)
                       (insert ":keyword")
                       (goto-char (point-min))
                       (funcall (car kw) (point-max))))))))
-  "A recommended list of predicates to use in `font-lock-ignore'. Example usage:
+  "A recommended list of predicates to use in `font-lock-ignore'.
+Example usage:
 
   (use-package lisp-ts-mode
     :config
@@ -1096,18 +1190,26 @@ is ((2 . ((string) :?)) (0 . ((list)))) the result would be
   (:anchor (comment) :* :anchor (list)
    :anchor (comment) :* :anchor (_)
    :anchor (comment) :* :anchor (string) :?)"
-  (let ((res ())
-        (n (caar indices)))
-    (while (progn
-             (and res (setq res `(:anchor (comment) :* :anchor ,@res)))
-             (>= n 0))
-      (if (eq (caar indices) n)
-          (setq res (append (cdr (pop indices)) res))
-        (push '(_) res))
-      (decf n))
-    res))
+  (when indices
+    (let ((res ())
+          (n (caar indices)))
+      (while (progn
+               (and res (setq res `(:anchor (comment) :* :anchor ,@res)))
+               (>= n 0))
+        (if (eq (caar indices) n)
+            (setq res (append (cdr (pop indices)) res))
+          (push '(_) res))
+        (decf n))
+      res)))
 
 (defun lisp-ts-mode--build-format-query (operator-alist)
+  "Construct a treesit sexp query from OPERATOR-ALIST.
+
+The format of OPERATOR-ALIST is described in the documentation of
+`lisp-ts-format-support-mode-query'. In addition to the query described
+there, the value also always contains an additional query which matches
+  :format-control \"~(format string~)\"
+to match format strings in initializer lists for simple-conditions."
   (let ((query (list '(((interned_symbol !package ":" name: (_) @_sym)
                         (:eq? @_sym "format-control"))
                        :anchor (comment) :* :anchor
@@ -1131,15 +1233,15 @@ is ((2 . ((string) :?)) (0 . ((list)))) the result would be
                        @_sym
                        ,(if (stringp operators)
                             operators
-                          (rx-to-string
-                           `(seq bos
-                                 (or ,@(mapcar (lambda (op)
-                                                 (if (stringp op) op (symbol-name op)))
-                                               operators))
-                                 eos)
-                           t))))))))
+                          (concat
+                           "\\`"
+                           (regexp-opt
+                            (mapcar (lambda (op)
+                                      (if (stringp op) op (symbol-name op)))
+                                    operators))
+                           "\\'"))))))))
         (push `(list :anchor (comment) :* :anchor ,op-query
-                     ,@(cond ((eq n t) `((string) :+ @format))
+                     ,@(cond ((eq n t) `((string) @format))
                              ((listp n) (apply fmt-field n))
                              (t (funcall fmt-field n))))
               query)))
@@ -1150,10 +1252,10 @@ is ((2 . ((string) :?)) (0 . ((list)))) the result would be
     (1     . ("format" "format-symbol"))
     (2     . ("assert"))
     ((0 1) . ("cerror")))
-  "A query to select where to apply format grammar in
-`lisp-ts-format-support-mode'. This variable must be set through the
-customize interface or `setopt'. The value can be a treesit query (used
-for `treesit-range-rules') or an alist of (ARG . OPERATOR-MATCH).
+  "A query used to apply format grammar in  `lisp-ts-format-support-mode'.
+This variable must be set through the customize interface or `setopt'.
+The value can be a treesit query (used for `treesit-range-rules') or an
+alist of (ARG . OPERATOR-MATCH).
 
 OPERATOR-MATCH matches against the head of a list. If OPERATOR-MATCH is
 a regexp, it is matched against the name of the operator (excluding any
@@ -1227,6 +1329,12 @@ format grammar automatically."
            lisp-ts-format-support-mode-query))))
        (syntax-ppss-flush-cache (point-min))
        (font-lock-flush))))
+
+;; declare doesn't work in `define-minor-mode'
+(function-put 'lisp-ts-format-support-mode 'completion-predicate
+              (lambda (_cmd buf)
+                (with-current-buffer buf
+                  (not (bound-and-true-p gaudy-cl-mode)))))
 
 ;; Local Variables:
 ;; read-symbol-shorthands: (("ts-" . "treesit-"))

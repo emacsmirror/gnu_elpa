@@ -380,7 +380,7 @@ images using `org-format-latex'."
             ;; Convert overlays to text properties so they
             ;; survive buffer-string
             (dolist (ov (overlays-in (point-min) (point-max)))
-              (when-let ((display (overlay-get ov 'display)))
+              (when-let* ((display (overlay-get ov 'display)))
                 (put-text-property (overlay-start ov) (overlay-end ov)
                                    'display display)
                 (delete-overlay ov))))

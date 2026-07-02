@@ -3172,10 +3172,15 @@ Return list with result and prompt."
                 (list "subset" :tools '("read_file" "task"))))
          (ellama-tools-available
           (list (llm-make-tool :name "task" :function #'ignore)
+                (llm-make-tool :name "task_from_template"
+                               :function #'ignore)
                 (llm-make-tool :name "read_file" :function #'ignore)
                 (llm-make-tool :name "grep" :function #'ignore))))
     (should-not
      (member "task"
+             (mapcar #'llm-tool-name (ellama-tools--for-role "all"))))
+    (should-not
+     (member "task_from_template"
              (mapcar #'llm-tool-name (ellama-tools--for-role "all"))))
     (should (equal
              (mapcar #'llm-tool-name (ellama-tools--for-role "subset"))
@@ -4115,7 +4120,7 @@ END_ELLAMA_AGENT_STATE"))
       (should (equal (plist-get (car history) :args)
                      '("file.el" "content"))))))
 
-(ert-deftest test-ellama-tools-task-tool-role-fallback-and-report-priority ()
+(ert-deftest test-ellama-tools-task-tool-report-priority ()
   (ellama-test--ensure-local-ellama-tools)
   (let ((ellama--current-session-id "parent-1")
         (ellama-tools-subagent-default-max-steps 7)
@@ -4157,7 +4162,7 @@ END_ELLAMA_AGENT_STATE"))
                    (lambda (&rest _args) nil)))
           (should (null (ellama-tools-task-tool (lambda (_res) nil)
                                                 "Do work"
-                                                "unknown-role")))
+                                                "general")))
           (should (eq resolved-provider 'provider))
           (should (equal resolved-provider-role "general"))
           (should (equal resolved-tools-role "general"))
@@ -4195,7 +4200,97 @@ END_ELLAMA_AGENT_STATE"))
       (when (buffer-live-p worker-buffer)
         (kill-buffer worker-buffer)))))
 
-(ert-deftest test-ellama-tools-task-tool-template-renders-arguments ()
+(ert-deftest test-ellama-tools-task-tool-rejects-unknown-role ()
+  (ellama-test--ensure-local-ellama-tools)
+  (let ((ellama-tools-subagent-roles
+         '(("general" :system "General." :tools nil)
+           ("explorer" :system "Explore." :tools nil)))
+        callback-msg
+        started)
+    (cl-letf (((symbol-function 'ellama-new-session)
+               (lambda (&rest _args)
+                 (setq started t))))
+      (should
+       (null
+        (ellama-tools-task-tool
+         (lambda (msg) (setq callback-msg msg))
+         "Do work"
+         "unknown-role")))
+      (should-not started)
+      (should (string-match-p "Task validation failed" callback-msg))
+      (should (string-match-p "Unknown role: unknown-role" callback-msg))
+      (should (string-match-p
+               "Available roles: general, explorer"
+               callback-msg)))))
+
+(ert-deftest test-ellama-tools-task-tool-rejects-empty-description ()
+  (ellama-test--ensure-local-ellama-tools)
+  (let ((ellama-tools-subagent-roles
+         '(("general" :system "General." :tools nil)))
+        callback-msg
+        started)
+    (cl-letf (((symbol-function 'ellama-new-session)
+               (lambda (&rest _args)
+                 (setq started t))))
+      (should
+       (null
+        (ellama-tools-task-tool
+         (lambda (msg) (setq callback-msg msg))
+         ""
+         "general")))
+      (should-not started)
+      (should (string-match-p "Task validation failed" callback-msg))
+      (should (string-match-p
+               "description must be a non-empty string"
+               callback-msg))
+      (should (string-match-p
+               "\"description\": \"\\.\\.\\.\""
+               callback-msg)))))
+
+(ert-deftest test-ellama-tools-task-tool-schemas-are-disjoint-and-required ()
+  (ellama-test--ensure-local-ellama-tools)
+  (let* ((task
+          (seq-find
+           (lambda (tool)
+             (string= (llm-tool-name tool) "task"))
+           ellama-tools-available))
+         (template-task
+          (seq-find
+           (lambda (tool)
+             (string= (llm-tool-name tool) "task_from_template"))
+           ellama-tools-available))
+         (task-args (llm-tool-args task))
+         (template-args (llm-tool-args template-task)))
+    (should task)
+    (should template-task)
+    (should (equal (mapcar (lambda (arg) (plist-get arg :name))
+                           task-args)
+                   '("description" "role")))
+    (should (equal (mapcar (lambda (arg) (plist-get arg :name))
+                           template-args)
+                   '("template" "template_base" "arguments" "role")))
+    (should-not (seq-some (lambda (arg) (plist-get arg :optional))
+                          task-args))
+    (should-not (seq-some (lambda (arg) (plist-get arg :optional))
+                          template-args))))
+
+(ert-deftest test-ellama-tools-task-tool-keeps-template-lisp-compatibility ()
+  (ellama-test--ensure-local-ellama-tools)
+  (let (call)
+    (cl-letf (((symbol-function 'ellama-tools-task-from-template-tool)
+               (lambda (&rest args)
+                 (setq call args)
+                 nil)))
+      (should
+       (null
+        (ellama-tools-task-tool
+         'callback nil "explorer" "reviewer.md" "/skills" '(:topic "API"))))
+      (should
+       (equal call
+              '(callback "reviewer.md" "/skills" (:topic "API")
+                         "explorer"))))))
+
+(ert-deftest test-ellama-tools-task-from-template-renders-arguments ()
   (ellama-test--ensure-local-ellama-tools)
   (let* ((root (make-temp-file "ellama-task-template-" t))
          (templates (expand-file-name "templates" root))
@@ -4236,13 +4331,12 @@ END_ELLAMA_AGENT_STATE"))
                      (lambda (&rest _args) nil)))
             (should
              (null
-              (ellama-tools-task-tool
+              (ellama-tools-task-from-template-tool
                (lambda (msg) (setq callback-msg msg))
-               nil
-               "explorer"
                "templates/researcher.md"
                root
-               arguments)))
+               arguments
+               "explorer")))
             (should (equal new-session-prompt
                            "Goal: Map the area\nTopic: Safety\n"))
             (should (equal stream-prompt new-session-prompt))
@@ -4251,7 +4345,7 @@ END_ELLAMA_AGENT_STATE"))
         (kill-buffer worker-buffer))
       (delete-directory root t))))
 
-(ert-deftest test-ellama-tools-task-tool-template-validation-hints ()
+(ert-deftest test-ellama-tools-task-from-template-validation-hints ()
   (ellama-test--ensure-local-ellama-tools)
   (let* ((root (make-temp-file "ellama-task-template-" t))
          (arguments (make-hash-table :test #'equal))
@@ -4270,13 +4364,12 @@ END_ELLAMA_AGENT_STATE"))
                        (setq started t))))
             (should
              (null
-              (ellama-tools-task-tool
+              (ellama-tools-task-from-template-tool
                (lambda (msg) (setq callback-msg msg))
-               nil
-               "explorer"
                "researcher.md"
                root
-               arguments)))
+               arguments
+               "explorer")))
             (should-not started)
             (should (string-match-p
                      "Task template validation failed"
@@ -4286,10 +4379,13 @@ END_ELLAMA_AGENT_STATE"))
             (should (string-match-p "- topic" callback-msg))
             (should (string-match-p
                      "\"subtopic_name\": \"\\.\\.\\.\""
+                     callback-msg))
+            (should (string-match-p
+                     "Retry the task_from_template call"
                      callback-msg))))
       (delete-directory root t))))
 
-(ert-deftest test-ellama-tools-task-tool-template-rejects-traversal ()
+(ert-deftest test-ellama-tools-task-from-template-rejects-traversal ()
   (ellama-test--ensure-local-ellama-tools)
   (let* ((root (make-temp-file "ellama-task-template-" t))
          (base (expand-file-name "base" root))
@@ -4309,13 +4405,12 @@ END_ELLAMA_AGENT_STATE"))
                        (setq started t))))
             (should
              (null
-              (ellama-tools-task-tool
+              (ellama-tools-task-from-template-tool
                (lambda (msg) (setq callback-msg msg))
-               nil
-               "explorer"
                "../outside.md"
                base
-               arguments)))
+               arguments
+               "explorer")))
             (should-not started)
             (should (string-match-p
                      "Template path escapes base directory"

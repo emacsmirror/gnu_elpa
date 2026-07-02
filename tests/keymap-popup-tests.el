@@ -1,5 +1,11 @@
 ;;; keymap-popup-tests.el --- Tests -*- lexical-binding: t; -*-
 
+;;; Commentary:
+
+;; ERT tests for keymap-popup.  Run via `make test'.
+
+;;; Code:
+
 (require 'ert)
 (load (expand-file-name
        "../keymap-popup.el"

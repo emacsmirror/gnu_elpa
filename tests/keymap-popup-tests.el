@@ -1078,6 +1078,9 @@
   (let ((map (make-sparse-keymap)))
     (should-error (keymap-popup map) :type 'user-error)))
 
+(ert-deftest keymap-popup-test-dismiss-is-command ()
+  (should (commandp #'keymap-popup-dismiss)))
+
 (ert-deftest keymap-popup-test-on-exit-tears-down-for-suffix ()
   "On-exit tears down when a suffix (non-exit-key) caused the exit."
   (let ((buf (get-buffer-create "*keymap-popup-test-exit*")))

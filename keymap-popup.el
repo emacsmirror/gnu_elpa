@@ -1247,6 +1247,7 @@ so the wrapper carries no inapt logic of its own."
 (defun keymap-popup-dismiss ()
   "Dismiss the active popup, if any.
 Deactivates the transient map and removes the popup display."
+  (interactive)
   (when-let* ((buf (get-buffer keymap-popup--buffer-name))
               (map (buffer-local-value 'keymap-popup--wrapper-map buf)))
     (internal-pop-keymap map 'overriding-terminal-local-map)

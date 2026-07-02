@@ -58,9 +58,9 @@ Common values:
 Each backend function receives a single buffer argument.
 :show displays the buffer, :fit refits after content changes,
 :hide removes the display and cleans up."
-  :type '(choice (const :tag "Side window" keymap-popup-backend-side-window)
-                 (const :tag "Child frame" keymap-popup-backend-child-frame)
-                 function)
+  :type '(choice (function-item :tag "Side window" keymap-popup-backend-side-window)
+                 (function-item :tag "Child frame" keymap-popup-backend-child-frame)
+                 (function :tag "Custom backend"))
   :group 'keymap-popup)
 
 (defcustom keymap-popup-child-frame-parameters

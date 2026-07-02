@@ -1159,6 +1159,14 @@ prefix-mode state so `\\[universal-argument]' is not consumed."
                       (keymap-popup--push-submenu buf target)))))
           submenu-pairs))
 
+(defun keymap-popup--call-real-binding (keymap key-str)
+  "Call KEY-STR's live binding in KEYMAP if it is a command.
+Return the binding, which may be nil or the inapt stub."
+  (let ((cmd (keymap-lookup keymap key-str)))
+    (when (commandp cmd)
+      (call-interactively cmd))
+    cmd))
+
 (defun keymap-popup--switch-overrides (keymap switch-keys buf)
   "Return alist of switch key overrides for KEYMAP's SWITCH-KEYS in BUF.
 Wraps the toggle command with prefix-mode consumption.  When the
@@ -1169,9 +1177,7 @@ prefix-mode is preserved."
   (mapcar (lambda (key-str)
             (cons key-str
                   (lambda () (interactive)
-                    (let ((cmd (keymap-lookup keymap key-str)))
-                      (when (commandp cmd)
-                        (call-interactively cmd))
+                    (let ((cmd (keymap-popup--call-real-binding keymap key-str)))
                       (unless (or (null cmd)
                                   (eq cmd #'keymap-popup--inapt-stub))
                         (when (buffer-local-value 'keymap-popup--prefix-mode buf)
@@ -1187,9 +1193,7 @@ Each command executes and refreshes the popup in place."
   (mapcar (lambda (key-str)
             (cons key-str
                   (lambda () (interactive)
-                    (let ((cmd (keymap-lookup keymap key-str)))
-                      (when (commandp cmd)
-                        (call-interactively cmd)))
+                    (keymap-popup--call-real-binding keymap key-str)
                     (keymap-popup--refresh buf))))
           stay-open-keys))
 

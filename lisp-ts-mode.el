@@ -704,6 +704,32 @@ positioned inside a logical-block format directive (~<~:>)."
        (car lisp-ts-mode-format-indent-auto-escape-eol))
       (t (cdr lisp-ts-mode-format-indent-auto-escape-eol)))))
 
+(defun lisp-ts-mode--calc-format-indent (parent)
+  "Calculate the the current line's indentation.
+Point must be within a format string, and PARENT is a format_group or
+format_string node which contains point. Return the column to indent to."
+  (let* ((starter (ts-node-child-by-field-name parent "start"))
+         (ender (ts-node-child-by-field-name parent "end")))
+    (cond*
+      ((null starter)
+       ;; whole string
+       (goto-char (ts-node-start parent))
+       (+ (current-column) lisp-ts-mode-format-string-indent-offset))
+      (t (back-to-indentation))         ;non exit clause
+      ((/= (ts-node-start ender) (point))
+       ;; not indenting the closing directive so indent relative to
+       ;; the opener
+       (goto-char (if lisp-ts-mode-format-indent-tilde-relative
+                      (ts-node-start starter)
+                    (1- (ts-node-end starter))))
+       (+ (current-column) lisp-ts-mode-format-group-indent-offset))
+      ((not lisp-ts-mode-format-indent-tilde-relative)
+       (goto-char (ts-node-end starter))
+       (- (current-column)
+          (- (ts-node-end ender) (ts-node-start ender))))
+      (t (goto-char (ts-node-start starter))
+         (current-column)))))
+
 (defun lisp-ts-mode--indent-format-line (parser)
   "Indent the current line, which should start within the range of PARSER.
 PARSER is a `cl-format' treesit parser. If there is nothing to indent,
@@ -729,32 +755,9 @@ indentation is disabled here due to the value of
                              lbeg
                              (ts-node-end parent))))
         'noindent
-      (let* ((starter (ts-node-child-by-field-name parent "start"))
-             (ender (ts-node-child-by-field-name parent "end"))
-             (cur-indent (current-indentation))
-             (new-indent
-              (save-excursion
-                (max
-                 0
-                 (cond*
-                   ((null starter)
-                    ;; whole string
-                    (goto-char (ts-node-start parent))
-                    (+ (current-column) lisp-ts-mode-format-string-indent-offset))
-                   (t (back-to-indentation)) ;non exit clause
-                   ((/= (ts-node-start ender) (point))
-                    ;; not indenting the closing directive so indent relative to
-                    ;; the opener
-                    (goto-char (if lisp-ts-mode-format-indent-tilde-relative
-                                   (ts-node-start starter)
-                                 (1- (ts-node-end starter))))
-                    (+ (current-column) lisp-ts-mode-format-group-indent-offset))
-                   ((not lisp-ts-mode-format-indent-tilde-relative)
-                    (goto-char (ts-node-end starter))
-                    (- (current-column)
-                       (- (ts-node-end ender) (ts-node-start ender))))
-                   (t (goto-char (ts-node-start starter))
-                      (current-column))))))
+      (let* ((cur-indent (current-indentation))
+             (new-indent (save-excursion
+                           (max 0 (lisp-ts-mode--calc-format-indent parent))))
              cont)
         (prog1 (if (or (= new-indent cur-indent)
                        ;; this means `lisp-ts-mode-format-indent-auto-escape-eol'

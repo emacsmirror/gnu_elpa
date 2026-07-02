@@ -1112,11 +1112,7 @@ Returns plist (:switches KEYS :submenus PAIRS :stay-open KEYS)."
                   keymap-popup--active-exit-key exit-key
                   keymap-popup--prefix-mode nil)
       (keymap-popup--refresh buf)
-      (let ((wrapper (keymap-popup--build-wrapper-map child-keymap descs buf exit-key)))
-        (setq-local keymap-popup--wrapper-map wrapper)
-        (set-transient-map wrapper
-                           (keymap-popup--make-keep-pred buf)
-                           (keymap-popup--make-on-exit buf))))))
+      (keymap-popup--activate-transient-map buf child-keymap descs exit-key))))
 
 (defun keymap-popup--prefix-argument ()
   "Toggle prefix argument mode in the active popup.

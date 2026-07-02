@@ -223,33 +223,23 @@ for key-based entries, or (DESCRIPTION &rest PROPS) for annotated ones."
 Returns a list of rows, each row a list of (NAME . FLAT-ENTRIES) chunks.
 `:group' starts a new group within the current row.
 `:row' starts a new row."
-  (keymap-popup--split-groups-1 bindings nil nil nil nil))
-
-(defun keymap-popup--split-groups-1 (rest name entries groups rows)
-  "Recursive helper for `keymap-popup--split-groups'.
-REST is remaining bindings, NAME is current group name, ENTRIES
-is accumulated entries (reversed), GROUPS is current row's groups
-\(reversed), ROWS is accumulated rows (reversed)."
-  (let ((flush-group (if entries
-                         (cons (cons name (reverse entries)) groups)
-                       groups)))
-    (cond
-     ((null rest)
-      (reverse (if flush-group
-                   (cons (reverse flush-group) rows)
-                 rows)))
-     ((eq (car rest) :row)
-      (keymap-popup--split-groups-1
-       (cdr rest) nil nil nil
-       (if flush-group (cons (reverse flush-group) rows) rows)))
-     ((eq (car rest) :group)
-      (keymap-popup--split-groups-1
-       (cddr rest) (cadr rest) nil flush-group rows))
-     (t
-      (keymap-popup--split-groups-1
-       (cddr rest) name
-       (cons (cons (car rest) (cadr rest)) entries)
-       groups rows)))))
+  (named-let split ((rest bindings) (name nil) (entries nil)
+                    (groups nil) (rows nil))
+    (let ((flushed (if entries
+                       (cons (cons name (reverse entries)) groups)
+                     groups)))
+      (cond
+       ((null rest)
+        (reverse (if flushed (cons (reverse flushed) rows) rows)))
+       ((eq (car rest) :row)
+        (split (cdr rest) nil nil nil
+               (if flushed (cons (reverse flushed) rows) rows)))
+       ((eq (car rest) :group)
+        (split (cddr rest) (cadr rest) nil flushed rows))
+       (t
+        (split (cddr rest) name
+               (cons (cons (car rest) (cadr rest)) entries)
+               groups rows))))))
 
 (defun keymap-popup--parse-group-name (raw)
   "Parse RAW group name into (NAME . PROPS).

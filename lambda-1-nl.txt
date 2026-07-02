@@ -1,0 +1,4 @@
+     (vermenigvuldig-met-zeven 3)
+      \______________________/ ^
+                   |           |
+                 functie  argument

@@ -1,0 +1,4 @@
+     ((lambda (getal) (* 7 getal)) 3)
+      \_________________________/  ^
+                    |              |
+           anonieme functie     argument

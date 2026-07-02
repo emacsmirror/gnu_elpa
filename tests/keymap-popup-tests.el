@@ -416,32 +416,6 @@
     (should (equal (plist-get (keymap-popup--find-entry-by-key descs "v") :type) 'switch))
     (should (null (keymap-popup--find-entry-by-key descs "z")))))
 
-(ert-deftest keymap-popup-test-infix-p ()
-  (let ((descs (list (list (list :name nil
-                                 :entries (list (list :key "c" :type 'suffix :command 'ignore)
-                                                (list :key "v" :type 'switch :variable 'x)))))))
-    (should-not (keymap-popup--infix-p descs "c"))
-    (should (keymap-popup--infix-p descs "v"))
-    (should-not (keymap-popup--infix-p descs "z"))))
-
-(ert-deftest keymap-popup-test-keymap-target ()
-  (let ((descs (list (list (list :name nil
-                                 :entries (list (list :key "c" :type 'suffix :command 'ignore)
-                                                (list :key "a" :type 'keymap
-                                                      :target 'my-sub)))))))
-    (should (eq (keymap-popup--keymap-target descs "a") 'my-sub))
-    (should (null (keymap-popup--keymap-target descs "c")))))
-
-(ert-deftest keymap-popup-test-stay-open-p ()
-  (let ((descs (list (list (list :name nil
-                                 :entries (list (list :key "c" :type 'suffix :command 'ignore)
-                                                (list :key "g" :type 'suffix :command 'ignore
-                                                      :stay-open t)
-                                                (list :key "v" :type 'switch :variable 'x)))))))
-    (should-not (keymap-popup--stay-open-p descs "c"))
-    (should (keymap-popup--stay-open-p descs "g"))
-    (should (keymap-popup--stay-open-p descs "v"))))
-
 (ert-deftest keymap-popup-test-keep-popup-p ()
   (let ((descs (list (list (list :name nil
                                  :entries (list (list :key "c" :type 'suffix :command 'ignore)

@@ -850,31 +850,16 @@ Returns the entry plist, or nil."
                                              when (equal (plist-get entry :key) key-str)
                                              return entry))))
 
-(defun keymap-popup--infix-p (descriptions key-str)
-  "Return non-nil if KEY-STR maps to a switch entry in DESCRIPTIONS."
-  (and-let* ((entry (keymap-popup--find-entry-by-key descriptions key-str)))
-    (eq (plist-get entry :type) 'switch)))
-
-(defun keymap-popup--keymap-target (descriptions key-str)
-  "Return the target map symbol if KEY-STR is a :keymap entry in DESCRIPTIONS."
-  (and-let* ((entry (keymap-popup--find-entry-by-key descriptions key-str))
-             (_ (eq (plist-get entry :type) 'keymap)))
-    (plist-get entry :target)))
-
-(defun keymap-popup--stay-open-p (descriptions key-str)
-  "Return non-nil if KEY-STR should keep the popup open in DESCRIPTIONS.
-True for switches and suffixes with :stay-open."
-  (and-let* ((entry (keymap-popup--find-entry-by-key descriptions key-str)))
-    (or (eq (plist-get entry :type) 'switch)
-        (plist-get entry :stay-open))))
-
 (defun keymap-popup--keep-popup-p (descriptions key-str)
   "Return non-nil if KEY-STR should keep the popup open in DESCRIPTIONS.
-True for switches, stay-open suffixes, and :keymap entries.
-Inapt-key handling is folded into the keep-pred via `this-command'."
-  (or (keymap-popup--infix-p descriptions key-str)
-      (keymap-popup--stay-open-p descriptions key-str)
-      (keymap-popup--keymap-target descriptions key-str)))
+True for switches, stay-open suffixes, and :keymap entries with a
+target.  Inapt-key handling is folded into the keep-pred via
+`this-command'."
+  (and-let* ((entry (keymap-popup--find-entry-by-key descriptions key-str)))
+    (or (eq (plist-get entry :type) 'switch)
+        (plist-get entry :stay-open)
+        (and (eq (plist-get entry :type) 'keymap)
+             (plist-get entry :target)))))
 
 (defun keymap-popup--refresh-buffer (buf descriptions &optional prefix-mode)
   "Re-render popup BUF with DESCRIPTIONS, refit via backend.

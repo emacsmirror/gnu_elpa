@@ -849,6 +849,26 @@
               (should-not (buffer-local-value 'keymap-popup--prefix-mode buf)))))
       (kill-buffer buf))))
 
+(ert-deftest keymap-popup-test-stay-open-override-dispatch ()
+  "Stay-open override calls the real binding and refreshes in place."
+  (let ((count 0)
+        (map (make-sparse-keymap))
+        (buf (get-buffer-create keymap-popup--buffer-name))
+        (descs '(((:name nil :entries ((:key "g" :description "Go"
+                                             :type suffix :stay-open t)))))))
+    (keymap-set map "g" (lambda () (interactive) (setq count (1+ count))))
+    (unwind-protect
+        (progn
+          (with-current-buffer buf
+            (setq-local keymap-popup--active-descriptions descs
+                        keymap-popup--source-buffer buf))
+          (let* ((overrides (keymap-popup--stay-open-overrides map '("g") buf))
+                 (override (cdr (assoc "g" overrides))))
+            (call-interactively override)
+            (should (= count 1))
+            (should (buffer-live-p buf))))
+      (kill-buffer buf))))
+
 (ert-deftest keymap-popup-test-classify-submenus ()
   "Keymap entries are classified as submenus."
   (let* ((descs (list (list (list :name nil

@@ -731,14 +731,10 @@ rendered with the inapt face."
 			    result)
                   result))))))
 
-(defun keymap-popup--string-width-visible (str)
-  "Return the visible width of STR, ignoring text properties."
-  (string-width (substring-no-properties str)))
-
 (defun keymap-popup--column-width (col)
   "Return the max visible width of lines in COL."
   (cl-loop for line in col
-           maximize (keymap-popup--string-width-visible line)))
+           maximize (string-width line)))
 
 (defun keymap-popup--join-columns (columns separator col-widths)
   "Join COLUMNS side by side with SEPARATOR between them.

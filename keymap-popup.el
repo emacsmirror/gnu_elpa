@@ -1163,9 +1163,10 @@ subsequent digit and `negative-argument' keys refine the prefix."
       (universal-argument--mode))))
 
 (defun keymap-popup--core-overrides (exit-key)
-  "Return alist of core overrides for EXIT-KEY and prefix toggle."
-  (list (cons exit-key
-              (lambda () (interactive)))
+  "Return alist of core overrides for EXIT-KEY and prefix toggle.
+The exit key is bound to `ignore'; the keep-pred exits on the key
+itself, so the binding only needs to exist and do nothing."
+  (list (cons exit-key #'ignore)
         (cons "C-u" #'keymap-popup--prefix-argument)))
 
 (defun keymap-popup--inapt-stub ()

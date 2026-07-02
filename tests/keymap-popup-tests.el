@@ -866,6 +866,34 @@
          (classified (keymap-popup--classify-entries descs)))
     (should (equal (plist-get classified :stay-open) '("g")))))
 
+(ert-deftest keymap-popup-test-push-submenu-state ()
+  "Pushing a sub-menu stacks parent state and activates the child's wrapper."
+  (eval '(keymap-popup-define keymap-popup--test-push-child
+           "Child." "c" ("Child cmd" ignore))
+        t)
+  (let ((buf (get-buffer-create keymap-popup--buffer-name))
+        (parent-map (make-sparse-keymap))
+        (received nil))
+    (unwind-protect
+        (progn
+          (with-current-buffer buf
+            (setq-local keymap-popup--source-buffer buf
+                        keymap-popup--active-keymap parent-map
+                        keymap-popup--active-descriptions '(((:name nil :entries nil)))
+                        keymap-popup--active-docstring nil
+                        keymap-popup--active-exit-key "q"
+                        keymap-popup--stack nil))
+          (cl-letf (((symbol-function 'set-transient-map)
+                     (lambda (map &rest _) (setq received map))))
+            (keymap-popup--push-submenu buf keymap-popup--test-push-child))
+          (with-current-buffer buf
+            (should (= (length keymap-popup--stack) 1))
+            (should (eq (plist-get (car keymap-popup--stack) :keymap) parent-map))
+            (should (eq keymap-popup--active-keymap keymap-popup--test-push-child))
+            (should keymap-popup--wrapper-map)
+            (should (eq received keymap-popup--wrapper-map))))
+      (kill-buffer buf))))
+
 ;;; Add/remove entry tests
 
 (ert-deftest keymap-popup-test-add-entry ()

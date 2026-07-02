@@ -112,11 +112,21 @@ Return SENTENCE, eventually modified by the functions."
   "Scroll the window so that the current point is visible.
 This function is intended to be used in `greader-before-read-hook'.
 When the reading buffer is not displayed in any window (e.g. the user
-has switched to another buffer), do nothing."
-  (when-let* ((win (get-buffer-window (current-buffer))))
-    (unless (pos-visible-in-window-p (point) win)
+has switched to another buffer), do nothing.
+
+When reading continues in the background (user has switched to another
+buffer and then returned), the window may have restored its saved
+window-point to the position before the switch, even though the
+buffer-point has advanced.  `set-window-point' synchronises the two
+before checking visibility, ensuring `recenter' scrolls to the actual
+reading position rather than the stale saved one."
+  (let ((buf-point (point)))
+    (when-let* ((win (get-buffer-window (current-buffer))))
       (with-selected-window win
-        (recenter)))))
+        (unless (= (window-point win) buf-point)
+          (set-window-point win buf-point))
+        (unless (pos-visible-in-window-p buf-point win)
+          (recenter))))))
 
 (add-hook 'greader-before-read-hook #'greader-ensure-point-visible)
 

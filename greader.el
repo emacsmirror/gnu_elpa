@@ -119,7 +119,15 @@ buffer and then returned), the window may have restored its saved
 window-point to the position before the switch, even though the
 buffer-point has advanced.  `set-window-point' synchronises the two
 before checking visibility, ensuring `recenter' scrolls to the actual
-reading position rather than the stale saved one."
+reading position rather than the stale saved one.
+
+Timing note: synchronisation happens at the start of the next
+sentence (when `greader-before-read-hook' fires), not immediately
+when the user returns to the reading buffer.  If the user switches
+back mid-sentence they will see the stale position until that
+sentence ends.  Immediate sync on buffer switch would require an
+additional `buffer-list-update-hook' and is not currently
+implemented."
   (let ((buf-point (point)))
     (when-let* ((win (get-buffer-window (current-buffer))))
       (with-selected-window win

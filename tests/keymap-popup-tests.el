@@ -76,6 +76,11 @@
     (should (= (length (cadr rows)) 1))
     (should (equal (plist-get (caar (cdr rows)) :name) "C"))))
 
+(ert-deftest keymap-popup-test-split-groups-trailing-row ()
+  "A trailing :row with nothing after it yields no empty row."
+  (should (= 1 (length (keymap-popup--split-groups
+                        '("a" ("A" ignore) :row))))))
+
 (ert-deftest keymap-popup-test-parse-keymap-entry ()
   (let ((result (keymap-popup--parse-entry "a" '("Metadata" :keymap my-sub-map))))
     (should (equal (plist-get result :type) 'keymap))

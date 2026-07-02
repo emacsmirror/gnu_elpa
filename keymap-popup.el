@@ -37,6 +37,7 @@
 
 (require 'cl-lib)
 (require 'seq)
+(require 'subr-x)
 
 (defgroup keymap-popup nil
   "Described keymaps with popup help."

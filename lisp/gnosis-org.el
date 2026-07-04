@@ -104,30 +104,6 @@ Returns (title tags id).  ID will be nil if no file-level ID exists."
   "Combine INHERITED-TAGS and HEADLINE-TAGS, removing duplicates."
   (delete-dups (append (or inherited-tags '()) (or headline-tags '()))))
 
-(defun gnosis-org--headline-title-path (headline parent-title)
-  "Return HEADLINE title path under PARENT-TITLE."
-  (let ((title (gnosis-org-adjust-title
-                (string-trim (org-element-property :raw-value headline)))))
-    (if parent-title
-        (concat parent-title ":" title)
-      title)))
-
-(defun gnosis-org--headline-entry-context
-    (headline parent-id parent-title tags)
-  "Return entry context for HEADLINE under PARENT-ID and PARENT-TITLE.
-TAGS are the inherited and headline-local tags for HEADLINE.
-The returned value is (ENTRY CHILD-PARENT-ID CHILD-PARENT-TITLE CHILD-TAGS)."
-  (and-let* ((id (org-element-property :ID headline)))
-    (let ((title (gnosis-org--headline-title-path headline parent-title)))
-      (list (list :id id
-                  :title title
-                  :tags tags
-                  :master (or parent-id 0)
-                  :level (org-element-property :level headline))
-            id
-            title
-            tags))))
-
 (defun gnosis-org--parse-headlines-recursive
     (element parent-id parent-title parent-tags)
   "Recursively parse headlines from ELEMENT.
@@ -135,23 +111,40 @@ ELEMENT can be the parsed-data (org-data) or a headline element.
 PARENT-ID is the ID of nearest ancestor with ID (or 0).
 PARENT-TITLE is the hierarchical title path (only from ancestors with IDs).
 PARENT-TAGS are the inherited tags from ancestors."
-  (apply #'append
-         (org-element-map (org-element-contents element) 'headline
-           (lambda (headline)
-             (let* ((tags (gnosis-org--combine-tags
-                           parent-tags
-                           (org-element-property :tags headline)))
-                    (context (gnosis-org--headline-entry-context
-                              headline parent-id parent-title tags)))
-               (if context
-                   (pcase-let ((`(,entry ,child-id ,child-title ,child-tags)
-                                context))
-                     (cons entry
-                           (gnosis-org--parse-headlines-recursive
-                            headline child-id child-title child-tags)))
-                 (gnosis-org--parse-headlines-recursive
-                  headline parent-id parent-title tags))))
-           nil nil 'headline)))
+  (let (results)
+    (org-element-map (org-element-contents element) 'headline
+      (lambda (headline)
+        (let* ((current-id (org-element-property :ID headline))
+               (title (org-element-property :raw-value headline))
+               (level (org-element-property :level headline))
+               (headline-tags (org-element-property :tags headline))
+               (combined-tags (gnosis-org--combine-tags
+                               parent-tags headline-tags)))
+          (if current-id
+              (let* ((clean-title (gnosis-org-adjust-title
+                                   (string-trim title)))
+                     (full-title (if parent-title
+                                     (concat parent-title ":" clean-title)
+                                   clean-title))
+                     (entry (list :id current-id
+                                  :title full-title
+                                  :tags combined-tags
+                                  :master (or parent-id 0)
+                                  :level level))
+                     (children (gnosis-org--parse-headlines-recursive
+				headline
+				current-id
+				full-title
+				combined-tags)))
+                (setq results (append results (cons entry children))))
+            (let ((children (gnosis-org--parse-headlines-recursive
+                             headline
+                             parent-id
+                             parent-title
+                             combined-tags)))
+              (setq results (append results children))))))
+      nil nil 'headline)
+    results))
 
 (defun gnosis-org-buffer-data (&optional data)
   "Parse DATA in current buffer for topics & headlines.

@@ -548,9 +548,9 @@ outline2plist(emacs_env *env, DocState *state, fz_outline *node)
 {
 	emacs_value outline_plist = EMACS_NIL;
 	if (!node)
-		{
-			return outline_plist;
-		}
+	{
+		return outline_plist;
+	}
 
 	while (node)
 	{
@@ -570,8 +570,10 @@ outline2plist(emacs_env *env, DocState *state, fz_outline *node)
 		/* Build the base plist: (:title TITLE :page PAGE) */
 		emacs_value node_title
 		    = env->make_string(env, node->title, strlen(node->title));
-		fz_location page_location = fz_resolve_link(state->ctx, state->doc, node->uri, &node->x, &node->y);
-		int page_num = fz_page_number_from_location(state->ctx, state->doc, page_location);
+		fz_location page_location = fz_resolve_link(
+		    state->ctx, state->doc, node->uri, &node->x, &node->y);
+		int page_num = fz_page_number_from_location(
+		    state->ctx, state->doc, page_location);
 		emacs_value node_page = env->make_integer(env, page_num);
 		emacs_value base_args[]
 		    = { env->intern(env, ":title"), node_title,
@@ -582,7 +584,8 @@ outline2plist(emacs_env *env, DocState *state, fz_outline *node)
 		/* If there are children, recurse and append as :children key */
 		if (node->down)
 		{
-			emacs_value children = outline2plist(env, state ,node->down);
+			emacs_value children
+			    = outline2plist(env, state, node->down);
 			emacs_value child_pair_args[]
 			    = { env->intern(env, ":children"), children };
 			emacs_value children_pair = env->funcall(

@@ -77,9 +77,6 @@ cannot be retrieved."
   :type '(choice (const :tag "Default" nil)
                  (function :tag "Custom function")))
 
-;; FIXME: we don't properly handle the optional arguments to
-;; \externaldocument, i.e., prefixes for labels.
-
 (defun auctex-label-numbers-label-to-number-helper (label aux-file)
   "Get the number of LABEL from the AUX-FILE.
 Check the cache first, and update it if AUX-FILE has changed.  Return
@@ -134,16 +131,25 @@ in an external document, prefix the string with \"X\"."
             (while (and (null found)
                         (re-search-forward auctex-label-numbers--external-document-regexp
                                            nil t))
-              (let* ((prefix (match-string 1))
-                     (tex-filename (concat (match-string 2) ".tex"))
-                     (tex-buffer (find-file-noselect tex-filename))
-                     (aux-filename
-                      (with-current-buffer tex-buffer
-                        (hack-local-variables)
-                        (TeX-master-output-file "aux"))))
-                (when aux-filename
-                  (let ((full-label (concat (or prefix "") label)))
-                    (setq found (auctex-label-numbers-label-to-number-helper full-label aux-filename))))))
+              ;; xr imports label FOO from the external document as
+              ;; PREFIXFOO, so a prefixed \externaldocument can only
+              ;; define labels starting with PREFIX, and the external
+              ;; aux file must be consulted with the prefix stripped.
+              (let ((prefix (match-string 1))
+                    (external (match-string 2)))
+                (when (or (null prefix) (string-prefix-p prefix label))
+                  (let* ((tex-filename (concat external ".tex"))
+                         (tex-buffer (find-file-noselect tex-filename))
+                         (aux-filename
+                          (with-current-buffer tex-buffer
+                            (hack-local-variables)
+                            (TeX-master-output-file "aux")))
+                         (bare-label (if prefix
+                                         (substring label (length prefix))
+                                       label)))
+                    (when aux-filename
+                      (setq found (auctex-label-numbers-label-to-number-helper
+                                   bare-label aux-filename)))))))
             (when found
               (concat "X" found)))))))))
 

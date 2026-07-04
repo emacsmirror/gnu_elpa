@@ -115,7 +115,7 @@
                 -f batch-byte-compile ${elispFileArgs}
               (cd lisp && emacs --batch \
                 --eval "(loaddefs-generate \".\" \"gnosis-autoloads.el\")")
-              make doc ENV=
+              env GNOSIS_ENV_WRAPPED=1 make doc
               runHook postBuild
             '';
 
@@ -166,7 +166,7 @@
                 export XDG_STATE_HOME="$TMPDIR/state"
                 mkdir -p "$HOME" "$XDG_CACHE_HOME" "$XDG_CONFIG_HOME" \
                   "$XDG_DATA_HOME" "$XDG_STATE_HOME"
-                make EMACS=emacs ENV= ${target}
+                env GNOSIS_ENV_WRAPPED=1 make EMACS=emacs ${target}
                 runHook postBuild
               '';
 
@@ -189,7 +189,7 @@
                   pkgs.texinfo
                 ];
                 text = ''
-                  exec make EMACS=emacs ENV= ${target} "$@"
+                  exec env GNOSIS_ENV_WRAPPED=1 make EMACS=emacs ${target} "$@"
                 '';
               }
             }/bin/gnosis-${name}";

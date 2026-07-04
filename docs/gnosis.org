@@ -183,14 +183,17 @@ guix install emacs-gnosis
 ** Developing with Nix
 
 For development, the repository includes a =flake.nix= that packages the
-local checkout and provides a complete development shell:
+local checkout and provides a complete development shell.  When =nix= is
+on =PATH=, the =doc=, =compile=, and =test= make targets automatically
+re-enter through the dev shell, so they run against the flake's isolated
+dependencies from any environment:
 
 #+begin_src sh
+# Byte-compile (warnings as errors) and run all tests:
+make test
+
 # Development shell with all dependencies:
 nix develop
-
-# Run all tests from the flake shell:
-nix develop -c make test
 
 # Build the package from the working tree:
 nix build
@@ -201,6 +204,10 @@ nix run .#test
 # Validate package build and tests:
 nix flake check
 #+end_src
+
+Without =nix= the targets run directly against the Emacs on =PATH=;
+=GNOSIS_ENV_WRAPPED=1 make test= forces direct execution when the
+dependencies are already available.
 
 ** Basic Configuration
 

@@ -30,12 +30,18 @@
 ;; tests.
 
 ;;; Code:
+(require 'cl-lib)
 (require 'ert)
-(require 'gnosis)
 
 (let ((lisp-dir (expand-file-name "../lisp"
                   (file-name-directory (or load-file-name default-directory)))))
   (add-to-list 'load-path lisp-dir))
+
+(require 'gnosis-algorithm)
+
+(ert-deftest gnosis-test-algorithm-loads-without-db ()
+  "Algorithm tests do not load database code."
+  (should-not (featurep 'gnosis-db)))
 
 (ert-deftest gnosis-test-algorithm-next-interval-proto ()
   "Test next interval for proto values."
@@ -216,6 +222,67 @@
 						 :lethe 4)
 		 (gnosis-algorithm-date)))))
 
+(defun gnosis-test--approx= (a b &optional tolerance)
+  "Return non-nil when A and B are within TOLERANCE (default 0.001).
+The interval calculator does float arithmetic, so exact `=' would be
+fragile for values like (* 1.3 3)."
+  (< (abs (- a b)) (or tolerance 0.001)))
+
+(ert-deftest gnosis-test-algorithm-next-interval-pure ()
+  "Pure interval calculator returns exact values (no DB, no RNG, no clock)."
+  ;; Proto phase success: returns the nth proto step.
+  (should (= (gnosis-algorithm--next-interval 0 1.3 t 0 0.5 '(1 2 3) 0 3) 1))
+  (should (= (gnosis-algorithm--next-interval 0 1.3 t 1 0.5 '(1 2 3) 0 3) 2))
+  (should (= (gnosis-algorithm--next-interval 0 1.3 t 2 0.5 '(1 2 3) 0 3) 3))
+  (should (= (gnosis-algorithm--next-interval 0 1.3 t 3 0.5 '(1 2 3 70) 0 3) 70))
+  ;; Post-proto success: synolon * last-interval (0 treated as 1).
+  (should (gnosis-test--approx=
+           (gnosis-algorithm--next-interval 0 2.0 t 4 0.5 '(1 2 3 70) 0 3) 2.0))
+  (should (gnosis-test--approx=
+           (gnosis-algorithm--next-interval 0 3.0 t 5 0.5 '(1 2 3 70) 0 3) 3.0))
+  (should (gnosis-test--approx=
+           (gnosis-algorithm--next-interval 10 2.0 t 5 0.5 '(1 2 3) 500 4) 20.0))
+  (should (gnosis-test--approx=
+           (gnosis-algorithm--next-interval 3 1.3 t 5 0.5 '(1 2 3) 300 4) 3.9))
+  ;; Proto phase failure: reset to 0.
+  (should (= (gnosis-algorithm--next-interval 0 1.3 nil 0 0.5 '(1 2 3) 3 3) 0))
+  (should (= (gnosis-algorithm--next-interval 10 20.0 nil 2 0.5 '(1 2 3) 3 4) 0))
+  ;; Lethe event (post-proto): reset to 0.
+  (should (= (gnosis-algorithm--next-interval 10 20.0 nil 5 0.5 '(1 2 3) 5 4) 0))
+  ;; Failure intervals: min(success, failure, 7), amnesia inverted.
+  (should (gnosis-test--approx=
+           (gnosis-algorithm--next-interval 10 1.3 nil 3 0.5 '(1 2 3) 3 4) 5.0))
+  (should (gnosis-test--approx=
+           (gnosis-algorithm--next-interval 3 1.3 nil 3 0.5 '(1 2 3) 3 4) 1.5))
+  (should (gnosis-test--approx=
+           (gnosis-algorithm--next-interval 2 1.3 nil 3 0.5 '(1 2 3) 3 4) 1.0))
+  (should (gnosis-test--approx=
+           (gnosis-algorithm--next-interval 10 1.3 nil 3 0.7 '(1 2 3) 3 4) 3.0))
+  (should (gnosis-test--approx=
+           (gnosis-algorithm--next-interval 10 1.3 nil 3 0.8 '(1 2 3) 3 4) 2.0))
+  (should (gnosis-test--approx=
+           (gnosis-algorithm--next-interval 10 1.3 nil 3 1.0 '(1 2 3) 3 4) 0)))
+
+(ert-deftest gnosis-test-algorithm-apply-fuzz-passthrough ()
+  "Intervals at or below 2 and zero fuzz pass through unchanged."
+  (let ((gnosis-algorithm-interval-fuzz 0.5))
+    (should (= (gnosis-algorithm--apply-fuzz 0) 0))
+    (should (= (gnosis-algorithm--apply-fuzz 1) 1))
+    (should (= (gnosis-algorithm--apply-fuzz 2) 2)))
+  (let ((gnosis-algorithm-interval-fuzz 0))
+    (should (= (gnosis-algorithm--apply-fuzz 100) 100))))
+
+(ert-deftest gnosis-test-algorithm-apply-fuzz-bounded ()
+  "Fuzzed interval stays within +/-fuzz of the original (interval > 2)."
+  (let ((gnosis-algorithm-interval-fuzz 0.1)
+        (interval 100)
+        (lo (* 100 (- 1 0.1)))
+        (hi (* 100 (+ 1 0.1))))
+    (dolist (fuzzed (cl-loop repeat 200
+                             collect (gnosis-algorithm--apply-fuzz interval)))
+      (should (<= lo fuzzed))
+      (should (<= fuzzed hi)))))
+
 (ert-deftest gnosis-test-algorithm-next-gnosis-synolon ()
   "Test algorithm for gnosis synolon (totalis)."
   (should (equal (gnosis-algorithm-next-gnosis
@@ -315,76 +382,6 @@
 		  :c-successes 0
 		  :c-failures 3)
 		 '(0.45 0.3 3.2))))
-
-(ert-deftest gnosis-test-get-custom-tag-amnesia ()
-  "Test recovery of tag amnesia values."
-  (let ((test-values '((:tag "tag1" (:proto (0 1 3) :epignosis 0.5 :agnoia 0.3 :amnesia 0.3 :lethe 3))
-		       (:tag "tag2" (:proto (1 2) :epignosis 0.5 :agnoia 0.3 :amnesia 0.5 :lethe 4))
-		       (:tag "tag3" (:proto (2 4 10) :epignosis 0.5 :agnoia 0.5 :amnesia 0.9 :lethe 2)))))
-    (should (equal (gnosis-get-custom-tag-values nil :amnesia '("tag1") test-values) (list 0.3)))
-    (should (equal (gnosis-get-thema-tag-amnesia nil '("tag1") test-values) 0.3))
-    (should (equal (gnosis-get-thema-tag-amnesia nil '("tag1" "tag2") test-values) 0.5))
-    (should (equal (gnosis-get-thema-tag-amnesia nil '("tag1" "tag2" "tag3") test-values) 0.9))
-    (should (equal (gnosis-get-thema-tag-amnesia nil '("tag2" "tag1") test-values) 0.5))))
-
-(ert-deftest gnosis-test-get-proto ()
-  (let ((test-values '((:tag "tag1" (:epignosis 0.5))
-		       (:tag "tag2" (:proto (2 2 2) :epignosis 0.5))
-		       (:tag "tag3" (:proto (1 1 1 1) :epignosis 0.5)))))
-    ;; tag1 has no proto, falls back to algorithm default
-    (should (equal (gnosis-get-thema-proto nil '("tag1") test-values) gnosis-algorithm-proto))
-    (should (equal (gnosis-get-thema-proto nil '("tag1" "tag2") test-values) '(2 2 2)))
-    (should (equal (gnosis-get-thema-proto nil '("tag1" "tag2" "tag3") test-values) '(2 2 2 1)))))
-
-(ert-deftest gnosis-test-get-thema-amnesia ()
-  (let ((test-values '((:tag "tag1" (:proto (10 1) :epignosis 0.5))
-		       (:tag "tag2" (:proto (2 2 2) :epignosis 0.5 :amnesia 0.2))
-		       (:tag "tag3" (:proto (1 1 1 1) :epignosis 0.5 :amnesia 0.6)))))
-    ;; tag1 has no amnesia, falls back to algorithm default
-    (should (equal (gnosis-get-thema-amnesia nil '("tag1") test-values) gnosis-algorithm-amnesia-value))
-    (should (equal (gnosis-get-thema-amnesia nil '("tag1" "tag2") test-values) 0.2))
-    (should (equal (gnosis-get-thema-amnesia nil '("tag1" "tag3") test-values) 0.6))
-    (should (equal (gnosis-get-thema-amnesia nil '("tag2" "tag3") test-values) 0.6))))
-
-(ert-deftest gnosis-test-get-thema-epginosis ()
-  (let ((test-values '((:tag "tag1" (:proto (10 1) :amnesia 0.5))
-		       (:tag "tag2" (:proto (2 2 2) :epignosis 0.6 :amnesia 0.2))
-		       (:tag "tag3" (:proto (1 1 1 1) :epignosis 0.7 :amnesia 0.4)))))
-    ;; tag1 has no epignosis, falls back to algorithm default
-    (should (equal (gnosis-get-thema-epignosis nil '("tag1") test-values) gnosis-algorithm-epignosis-value))
-    (should (equal (gnosis-get-thema-epignosis nil '("tag1" "tag2") test-values) 0.6))
-    (should (equal (gnosis-get-thema-epignosis nil '("tag2" "tag3") test-values) 0.7))))
-
-(ert-deftest gnosis-test-get-thema-agnoia ()
-  (let ((test-values '((:tag "tag1" (:proto (10 1) :epignosis 0.4 :amnesia 0.5))
-		       (:tag "tag2" (:proto (2 2 2) :epignosis 0.6 :amnesia 0.2 :agnoia 0.4))
-		       (:tag "tag3" (:proto (1 1 1 1) :epignosis 0.7 :amnesia 0.4 :agnoia 0.5)))))
-    ;; tag1 has no agnoia, falls back to algorithm default
-    (should (equal (gnosis-get-thema-agnoia nil '("tag1") test-values) gnosis-algorithm-agnoia-value))
-    (should (equal (gnosis-get-thema-agnoia nil '("tag1" "tag2") test-values) 0.4))
-    (should (equal (gnosis-get-thema-agnoia nil '("tag1" "tag2" "tag3") test-values) 0.5))))
-
-(ert-deftest gnosis-test-get-thema-anagnosis ()
-  (let ((test-values '((:tag "tag1" (:proto (10 1)))
-		       (:tag "tag2" (:proto (2 2 2) :amnesia 0.2 :agnoia 0.4 :anagnosis 2))
-		       (:tag "tag3" (:proto (1 1 1 1) :amnesia 0.3)))))
-    ;; tag1 has no anagnosis, falls back to algorithm default
-    (should (equal (gnosis-get-thema-anagnosis nil '("tag1") test-values) gnosis-algorithm-anagnosis-value))
-    (should (equal (gnosis-get-thema-anagnosis nil '("tag1" "tag2") test-values) 2))
-    (should (equal (gnosis-get-thema-anagnosis nil '("tag2") test-values) 2))))
-
-(ert-deftest gnosis-test-get-thema-lethe ()
-  (let ((test-values '((:tag "tag1" (:proto (10 1) :lethe nil))
-		       (:tag "tag2" (:proto (2 2 2) :lethe 2))
-		       (:tag "tag3" (:proto (1 1 1 1) :amnesia 0.3 :lethe 1)))))
-    ;; tag1 has :lethe nil (filtered out), falls back to algorithm default
-    (should (equal (gnosis-get-thema-lethe nil '("tag1") test-values) gnosis-algorithm-lethe-value))
-    (should (equal (gnosis-get-thema-lethe nil '("tag2") test-values) 2))
-    ;; min of tag3=1, tag2=2
-    (should (equal (gnosis-get-thema-lethe nil '("tag3" "tag2") test-values) 1))
-    ;; tag1 lethe nil filtered, only tag2=2
-    (should (equal (gnosis-get-thema-lethe nil '("tag1" "tag2") test-values) 2))))
-
 
 (ert-deftest gnosis-test-algorithm-synolon-cap ()
   "Test that gnosis-synolon is capped at `gnosis-algorithm-synolon-max'."
@@ -824,6 +821,48 @@ keep max(computed, existing-next-rev)."
     (should-error (gnosis-algorithm-date)))
   (let ((gnosis-algorithm-day-start-hour 24))
     (should-error (gnosis-algorithm-date))))
+
+(ert-deftest gnosis-test-algorithm-valid-param-p ()
+  "Algorithm parameter bounds predicate (`gnosis-algorithm--valid-param-p')."
+  ;; amnesia: half-open (0, 1] -- 0 rejected, 1 allowed; nil is NOT valid.
+  (should (gnosis-algorithm--valid-param-p :amnesia 0.5))
+  (should (gnosis-algorithm--valid-param-p :amnesia 1.0))
+  (should-not (gnosis-algorithm--valid-param-p :amnesia nil))
+  (should-not (gnosis-algorithm--valid-param-p :amnesia 0))
+  (should-not (gnosis-algorithm--valid-param-p :amnesia -0.1))
+  (should-not (gnosis-algorithm--valid-param-p :amnesia 1.5))
+  (should-not (gnosis-algorithm--valid-param-p :amnesia "x"))
+  ;; lethe: integer >= 1; nil is NOT valid.
+  (should (gnosis-algorithm--valid-param-p :lethe 1))
+  (should (gnosis-algorithm--valid-param-p :lethe 3))
+  (should-not (gnosis-algorithm--valid-param-p :lethe nil))
+  (should-not (gnosis-algorithm--valid-param-p :lethe 0))
+  (should-not (gnosis-algorithm--valid-param-p :lethe -2))
+  (should-not (gnosis-algorithm--valid-param-p :lethe 1.5))
+  ;; Unknown parameter is rejected, not silently accepted.
+  (should-not (gnosis-algorithm--valid-param-p :bogus 0.5)))
+
+(ert-deftest gnosis-test-algorithm-next-interval-amnesia-bounds ()
+  "Out-of-bounds amnesia signals `user-error', not a failed assertion.
+nil must also be rejected -- `next-interval' dereferences amnesia,
+so it cannot mean \"use the default\" here."
+  (dolist (amnesia '(0 -0.5 1.5 nil))
+    (should-error
+     (gnosis-algorithm-next-interval :last-interval 5 :gnosis-synolon 1.3
+				     :success nil :successful-reviews 3
+				     :amnesia amnesia :proto '(1 2 3)
+				     :c-fails 1 :lethe 3)
+     :type 'user-error)))
+
+(ert-deftest gnosis-test-algorithm-next-interval-lethe-bounds ()
+  "Out-of-bounds lethe signals `user-error'."
+  (dolist (lethe '(0 -1 1.5))
+    (should-error
+     (gnosis-algorithm-next-interval :last-interval 5 :gnosis-synolon 1.3
+				     :success t :successful-reviews 3
+				     :amnesia 0.5 :proto '(1 2 3)
+				     :c-fails 0 :lethe lethe)
+     :type 'user-error)))
 
 (provide 'gnosis-test-algorithm)
 

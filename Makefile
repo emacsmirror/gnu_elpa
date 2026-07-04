@@ -9,6 +9,7 @@ INFO := docs/gnosis.info
 LISP_DIR := lisp
 TEST_FILES := tests/gnosis-test-sqlite.el \
 	tests/gnosis-test-algorithm.el \
+	tests/gnosis-test-custom-values.el \
 	tests/gnosis-test-export-import.el \
 	tests/gnosis-test-dashboard.el \
 	tests/gnosis-test-cloze.el \

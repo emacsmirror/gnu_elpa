@@ -12,6 +12,7 @@
 ;;; Code:
 
 (require 'ert)
+(require 'cl-lib)
 (require 'org)
 (require 'gnosis)
 (require 'gnosis-nodes)
@@ -40,6 +41,11 @@
   (let ((path (expand-file-name name dir)))
     (with-temp-file path (insert content))
     path))
+
+(defun gnosis-test-nodes--insert-node (id file)
+  "Insert minimal node row ID for FILE."
+  (gnosis--insert-into 'nodes
+    `([,id ,(file-name-nondirectory file) ,id 0 "nil" "0" "hash"])))
 
 ;;; ---- Group 1: Journal file sync ----
 
@@ -179,6 +185,84 @@ Content with [[id:other-node][a link]].
           (should (null (gnosis-nodes-select '* 'journal nil)))
           (should (null (gnosis-nodes-select '* 'node-tag nil)))))
     (gnosis-test-nodes--teardown-dirs)))
+
+;;; ---- Group 3: File deletion ----
+
+(ert-deftest gnosis-test-nodes-delete-file-explicit-file ()
+  "Explicit FILE deletes that file, not the current buffer's file."
+  (gnosis-test-with-db
+    (let* ((target (gnosis-test-nodes--create-file
+                    gnosis-nodes-dir "target.org" "#+title: Target\n"))
+           (current (gnosis-test-nodes--create-file
+                     gnosis-nodes-dir "current.org" "#+title: Current\n"))
+           (current-file-buffer (find-file-noselect current)))
+      (unwind-protect
+          (progn
+            (gnosis-test-nodes--insert-node "target-id" target)
+            (gnosis-test-nodes--insert-node "current-id" current)
+            (cl-letf (((symbol-function 'y-or-n-p)
+                       (lambda (_prompt) t)))
+              (with-current-buffer current-file-buffer
+                (gnosis-nodes-delete-file target)))
+            (should-not (file-exists-p target))
+            (should (file-exists-p current))
+            (should (buffer-live-p current-file-buffer))
+            (should-not (gnosis-nodes-select
+                         'id 'nodes `(= id "target-id") t))
+            (should (equal '("current-id")
+                           (gnosis-nodes-select
+                            'id 'nodes `(= id "current-id") t))))
+        (when (buffer-live-p current-file-buffer)
+          (kill-buffer current-file-buffer))))))
+
+(ert-deftest gnosis-test-nodes-delete-file-current-buffer-file ()
+  "No-arg deletion deletes the current buffer's visited file."
+  (gnosis-test-with-db
+    (let* ((file (gnosis-test-nodes--create-file
+                  gnosis-nodes-dir "current.org" "#+title: Current\n"))
+           (buffer (find-file-noselect file)))
+      (unwind-protect
+          (progn
+            (gnosis-test-nodes--insert-node "current-id" file)
+            (cl-letf (((symbol-function 'y-or-n-p)
+                       (lambda (_prompt) t)))
+              (with-current-buffer buffer
+                (gnosis-nodes-delete-file)))
+            (should-not (file-exists-p file))
+            (should-not (buffer-live-p buffer))
+            (should-not (gnosis-nodes-select
+                         'id 'nodes `(= id "current-id") t)))
+        (when (buffer-live-p buffer)
+          (kill-buffer buffer))))))
+
+(ert-deftest gnosis-test-nodes-delete-file-rejects-non-node-file ()
+  "Reject FILE outside node and journal directories without prompting."
+  (gnosis-test-nodes--setup-dirs)
+  (let ((other-dir (make-temp-file "gnosis-test-other-" t))
+        prompted)
+    (unwind-protect
+        (let* ((gnosis-nodes-dir gnosis-test-nodes--temp-dir)
+               (gnosis-journal-dir (expand-file-name "journal"
+                                                     gnosis-test-nodes--temp-dir))
+               (file (gnosis-test-nodes--create-file
+                      other-dir "outside.org" "#+title: Outside\n")))
+          (cl-letf (((symbol-function 'y-or-n-p)
+                     (lambda (_prompt) (setq prompted t) t)))
+            (should-error (gnosis-nodes-delete-file file) :type 'user-error))
+          (should (file-exists-p file))
+          (should-not prompted))
+      (when (file-directory-p other-dir)
+        (delete-directory other-dir t))
+      (gnosis-test-nodes--teardown-dirs))))
+
+(ert-deftest gnosis-test-nodes-delete-file-nil-buffer ()
+  "No-arg deletion rejects buffers that are not visiting files."
+  (let (prompted)
+    (cl-letf (((symbol-function 'y-or-n-p)
+               (lambda (_prompt) (setq prompted t) t)))
+      (with-temp-buffer
+        (should-error (gnosis-nodes-delete-file) :type 'user-error)))
+    (should-not prompted)))
 
 (provide 'gnosis-test-nodes)
 

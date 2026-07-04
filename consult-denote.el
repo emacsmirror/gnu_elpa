@@ -339,7 +339,19 @@ FILE has the same meaning as in `denote-org-outline-prompt'."
            :history consult-denote-buffer-history
            :action ,#'dired
            :state ,#'consult--file-state
-           :items ,denote-silo-directories)))
+           :items ,denote-silo-directories))
+
+  (defun consult-denote-find-in-silo (silo)
+    "Like `consult-denote-find' but in a SILO (using `denote-silo' package)."
+    (interactive (list (denote-silo-directory-prompt)))
+    (denote-silo-with-silo silo
+      (call-interactively #'consult-denote-find)))
+
+  (defun consult-denote-grep-in-silo (silo)
+    "Like `consult-denote-grep' but in a SILO (using `denote-silo' package)."
+    (interactive (list (denote-silo-directory-prompt)))
+    (denote-silo-with-silo silo
+      (call-interactively #'consult-denote-grep))))
 
 (declare-function denote-org-outline-prompt "denote-org" (&optional file))
 (declare-function denote-silo-directory-prompt "denote-silo" ())

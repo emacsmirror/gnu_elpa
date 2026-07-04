@@ -2,7 +2,7 @@
 .PHONY: all doc test load clean
 
 EMACS = emacs
-GUIX_SHELL ?= guix shell -D -f guix.scm --pure --
+ENV ?=
 ORG := docs/gnosis.org
 TEXI := docs/gnosis.texi
 INFO := docs/gnosis.info
@@ -26,7 +26,7 @@ TEST_FILES := tests/gnosis-test-sqlite.el \
 all: doc
 
 doc:	$(ORG)
-	$(GUIX_SHELL) $(EMACS) --batch \
+	$(ENV) $(EMACS) --batch \
 	-Q \
 	--load org \
 	--eval "(with-current-buffer (find-file \"$(ORG)\") (org-texinfo-export-to-info))" \
@@ -35,9 +35,9 @@ doc:	$(ORG)
 
 test:
 	rm -f $(LISP_DIR)/*.elc
-	@for f in $(TEST_FILES); do \
+	@set -e; for f in $(TEST_FILES); do \
 		echo "Running $$f..."; \
-		$(GUIX_SHELL) $(EMACS) --batch \
+		$(ENV) $(EMACS) --batch \
 		-q \
 		--eval "(add-to-list 'load-path \"$(shell pwd)/$(LISP_DIR)\")" \
 		--load $$f; \
@@ -77,7 +77,7 @@ load:
 	               gnosis-dashboard-nodes-filter-menu \
 	               gnosis-import-diff-menu)) \
 	    (when (fboundp sym) (fmakunbound sym))))" > /dev/null
-	@for f in $(EL_FILES); do \
+	@set -e; for f in $(EL_FILES); do \
 		emacsclient -e "(load-file \"$(shell pwd)/$(LISP_DIR)/$$f\")" > /dev/null; \
 	done
 	@emacsclient -e "(dolist (buf (buffer-list)) \

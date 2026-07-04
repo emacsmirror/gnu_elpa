@@ -180,37 +180,27 @@ Gnosis is available from the official Guix channel:
 guix install emacs-gnosis
 #+end_src
 
-For development, the repository includes a =guix.scm= that mirrors the
-upstream recipe but builds from the local checkout:
+** Developing with Nix
+
+For development, the repository includes a =flake.nix= that packages the
+local checkout and provides a complete development shell:
 
 #+begin_src sh
 # Development shell with all dependencies:
-guix shell -D -f guix.scm
+nix develop
 
-# One-shot install from the working tree:
-guix package -f guix.scm
+# Run all tests from the flake shell:
+nix develop -c make test
+
+# Build the package from the working tree:
+nix build
+
+# Run the flake test app:
+nix run .#test
+
+# Validate package build and tests:
+nix flake check
 #+end_src
-
-To use gnosis from a Guix Home configuration, load the package
-definition and reference it from your services:
-
-#+begin_src scheme
-(use-modules (gnu home)
-             (gnu home services)
-             (gnu home services guix)
-             (gnu services)
-             (guix channels)
-             (guix gexp))
-
-(define emacs-gnosis-git
-  (load "/path/to/gnosis/guix.scm"))
-
-(home-environment
- (packages (list emacs-gnosis-git)))
-#+end_src
-
-Re-run =guix home reconfigure= after pulling new commits and the
-package will be rebuilt from the updated checkout.
 
 ** Basic Configuration
 

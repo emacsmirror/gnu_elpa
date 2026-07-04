@@ -45,13 +45,14 @@
   :link '(url-link :tag "Denote homepage" "https://protesilaos.com/emacs/denote")
   :link '(url-link :tag "Denote Silo homepage" "https://protesilaos.com/emacs/denote-silo"))
 
-(defcustom denote-silo-directories (list denote-directory)
+(defcustom denote-silo-directories (denote-directories)
   "List of file paths pointing to Denote silos.
-Each file path points to a directory, which takes the same value
-as the variable `denote-directory'."
+Each file path is a directory, which takes the same value as the
+variable `denote-directory'."
   :group 'denote-silo
   :link '(info-link "(denote) Maintain separate directories for notes")
-  :type '(repeat directory))
+  :type '(repeat directory)
+  :package-version '(denote-silo . "0.4.0")))
 
 (defvar denote-silo-directory-history nil
   "Minibuffer history for `denote-silo-directory-prompt'.")

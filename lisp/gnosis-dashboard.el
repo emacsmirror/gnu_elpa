@@ -351,6 +351,22 @@ With prefix arg, prompt for count.  Default 0 (never reviewed)."
    (t
     (gnosis-dashboard))))
 
+;; `keymap-popup-define' expands launcher functions that reference the
+;; keymap variable before its `defvar-keymap' form; declare the maps so
+;; the byte compiler knows them.
+(defvar gnosis-dashboard-common-map)
+(defvar gnosis-dashboard-themata-mode-map)
+(defvar gnosis-dashboard-tags-mode-map)
+(defvar gnosis-dashboard-nodes-map)
+(defvar gnosis-dashboard-themata-map)
+(defvar gnosis-dashboard-import-export-map)
+(defvar gnosis-dashboard-maintenance-map)
+(defvar gnosis-dashboard-mode-map)
+(defvar gnosis-dashboard-nodes-sort-map)
+(defvar gnosis-dashboard-nodes-search-map)
+(defvar gnosis-dashboard-nodes-filter-map)
+(defvar gnosis-dashboard-nodes-mode-map)
+
 (keymap-popup-define gnosis-dashboard-common-map
   :parent tabulated-list-mode-map
   :group "Common"

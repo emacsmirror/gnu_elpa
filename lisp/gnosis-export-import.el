@@ -768,6 +768,10 @@ DATA plist."
          id status data))
       (display-buffer buf))))
 
+;; Declared for the byte compiler: `keymap-popup-define' references the
+;; variable in generated functions before its `defvar-keymap' form.
+(defvar gnosis-import-diff-mode-map)
+
 (keymap-popup-define gnosis-import-diff-mode-map
   "Import Review"
   :description "Import Review"

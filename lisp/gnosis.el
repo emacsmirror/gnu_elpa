@@ -620,7 +620,7 @@ Otherwise, update via `gnosis-update-thema'."
   (gnosis-add-thema--dispatch id type keimenon hypothesis
 			      answer parathema tags suspend links))
 
-(defun gnosis-add-thema--double (id type keimenon hypothesis
+(defun gnosis-add-thema--double (id _type keimenon hypothesis
 				    answer parathema tags suspend links)
   "Add a double thema (two basic themata with reversed Q/A)."
   (gnosis-add-thema--assert-common keimenon tags suspend links)

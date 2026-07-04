@@ -739,10 +739,10 @@ should be recursively called using SUCCESS and THEMA."
   (gnosis-toggle-suspend-themata (list thema))
   (gnosis-review-actions success thema result))
 
-(defun gnosis-review-action--override (success thema result)
+(defun gnosis-review-action--override (success thema _result)
   "Override current review result for SUCCESS.
-RESULT is the current algorithm result; will be recomputed with
-the flipped SUCCESS value.
+The algorithm result is recomputed with the flipped SUCCESS
+value, so the passed one is ignored.
 
 This function should be used with `gnosis-review-actions', which will
 be called with new SUCCESS value plus THEMA."
@@ -822,6 +822,10 @@ answers highlighted."
 	  (t (gnosis-monkeytype keimenon answer)))))
 
 ;;; Entry points
+
+;; Declared for the byte compiler: `keymap-popup-define' references the
+;; variable in generated functions before its `defvar-keymap' form.
+(defvar gnosis-review-map)
 
 (keymap-popup-define gnosis-review-map
   "Review"

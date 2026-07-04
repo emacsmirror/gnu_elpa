@@ -77,11 +77,12 @@ Each entry is a list of (:tag NAME PARAMETERS) where:
       (unless (or (null agnoia) (numberp agnoia))
         (user-error "Agnoia should be a number"))
       (unless (or (null amnesia)
-                  (and (numberp amnesia)
-                       (<= amnesia 1) (>= amnesia 0)))
-        (user-error "Amnesia should be a number between 0 and 1"))
-      (unless (or (null lethe) (and (integerp lethe) (> lethe 0)))
-        (user-error "Lethe should be an integer greater than 0")))))
+                  (gnosis-algorithm--valid-param-p :amnesia amnesia))
+        (user-error "Amnesia should be a number in (0, 1]"))
+      (unless (or (null lethe)
+                  (gnosis-algorithm--valid-param-p :lethe lethe))
+        (user-error "Lethe should be an integer greater than 0"))))
+  t)
 
 (defvar gnosis--custom-values-ht nil
   "Hash table cache mapping tag strings to their custom value plists.
@@ -194,13 +195,19 @@ or #\\='min).  Returns nil when no tags define KEYWORD."
 
 Looks up tag values (aggregated with AGGREGATOR), falling back to
 DEFAULT-VAR.
-When VALIDATE-P is non-nil, signals error if value >= 1."
+When VALIDATE-P is non-nil, validates the resolved value:
+- For :amnesia, uses `gnosis-algorithm--valid-param-p' (bound (0,1]).
+- For other keywords, signals an error if value >= 1."
   (let* ((tag-val (gnosis--get-tag-value
                    id keyword aggregator
                    custom-tags custom-values))
          (val (or tag-val default-var)))
-    (when (and validate-p (>= val 1))
-      (user-error "%s value must be lower than 1" keyword))
+    (when validate-p
+      (if (eq keyword :amnesia)
+          (unless (gnosis-algorithm--valid-param-p keyword val)
+            (user-error "Amnesia must be a number in (0, 1]; got %s" val))
+        (when (>= val 1)
+          (user-error "%s value must be lower than 1" keyword))))
     val))
 
 ;; Named wrappers -- tag variants (used in tests)

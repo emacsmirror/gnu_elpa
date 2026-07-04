@@ -203,18 +203,22 @@ instead of re-reading from disk (avoids re-decrypting .gpg files)."
 
 ;;;###autoload
 (defun gnosis-nodes-delete-file (&optional file)
-  "Delete FILE.
-Delete file contents in database & file."
+  "Delete FILE from disk and remove its database rows.
+When FILE is nil, delete the current buffer's visited file."
   (interactive)
-  (let ((file (or file (file-name-nondirectory (buffer-file-name)))))
-    (if (or (file-in-directory-p (buffer-file-name) gnosis-nodes-dir)
-	    (file-in-directory-p (buffer-file-name) (gnosis-journal--dir)))
-	(progn
-	  (when (y-or-n-p (format "Delete file: %s?" file))
-	    (gnosis-nodes--delete-file file)
-	    (delete-file (buffer-file-name))
-	    (kill-buffer (buffer-name))))
-      (error "%s is not a gnosis node file" file))))
+  (let ((file (expand-file-name
+	       (or file
+		   (buffer-file-name)
+		   (user-error "Current buffer is not visiting a file")))))
+    (if (or (file-in-directory-p file gnosis-nodes-dir)
+	    (file-in-directory-p file (gnosis-journal--dir)))
+	(when (y-or-n-p (format "Delete file: %s?" file))
+	  (gnosis-nodes--delete-file file)
+	  (delete-file file)
+	  (let ((buffer (get-file-buffer file)))
+	    (when buffer
+	      (kill-buffer buffer))))
+      (user-error "%s is not a gnosis node file" file))))
 
 ;;; Find/create operations
 

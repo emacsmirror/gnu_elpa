@@ -132,6 +132,7 @@ When called from Lisp, SILO is a file system path to a directory that
 conforms with `denote-silo-path-is-silo-p'."
   (interactive (list (denote-silo-directory-prompt)))
   (denote-silo-with-silo silo
+    (denote-directories--make-paths (list silo))
     (dired silo)))
 
 ;;;###autoload
@@ -143,6 +144,7 @@ When called from Lisp, SILO is a file system path to a directory that
 conforms with `denote-silo-path-is-silo-p'."
   (interactive (list (denote-silo-directory-prompt)))
   (denote-silo-with-silo silo
+    (denote-directories--make-paths (list silo))
     (cd silo)))
 
 (provide 'denote-silo)

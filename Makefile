@@ -1,5 +1,5 @@
 .POSIX:
-.PHONY: all doc test load clean
+.PHONY: all doc compile test load clean
 
 EMACS = emacs
 ENV ?=
@@ -33,7 +33,18 @@ doc:	$(ORG)
 	--kill
 
 
-test:
+# docstrings-wide is excluded: keymap-popup-define generates launcher
+# docstrings wider than 80 columns.
+compile:
+	rm -f $(LISP_DIR)/*.elc
+	$(ENV) $(EMACS) --batch \
+	-q \
+	--eval "(setq byte-compile-error-on-warn t)" \
+	--eval "(setq byte-compile-warnings '(not docstrings-wide))" \
+	-L $(LISP_DIR) \
+	-f batch-byte-compile $(LISP_DIR)/*.el
+
+test: compile
 	rm -f $(LISP_DIR)/*.elc
 	@set -e; for f in $(TEST_FILES); do \
 		echo "Running $$f..."; \
@@ -77,7 +88,7 @@ load:
 	               gnosis-dashboard-nodes-filter-menu \
 	               gnosis-import-diff-menu)) \
 	    (when (fboundp sym) (fmakunbound sym))))" > /dev/null
-	@set -e; for f in $(EL_FILES); do \
+	@for f in $(EL_FILES); do \
 		emacsclient -e "(load-file \"$(shell pwd)/$(LISP_DIR)/$$f\")" > /dev/null; \
 	done
 	@emacsclient -e "(dolist (buf (buffer-list)) \

@@ -1,8 +1,19 @@
 .POSIX:
-.PHONY: all doc compile test load clean
+.PHONY: all doc do-doc compile do-compile test do-test load clean
 
-EMACS = emacs
-ENV ?=
+NIX := $(shell command -v nix 2>/dev/null)
+
+# Public targets re-enter make through the nix dev shell so builds and
+# tests run against the flake's isolated dependencies; do-* targets do
+# the real work and expect Emacs plus deps on PATH.
+ENV_MAKE = $(MAKE) --no-print-directory
+ifeq ($(GNOSIS_ENV_WRAPPED),)
+ifneq ($(NIX),)
+ENV_MAKE = nix develop --no-write-lock-file path:$(CURDIR) --command env GNOSIS_ENV_WRAPPED=1 $(MAKE) --no-print-directory
+endif
+endif
+
+EMACS ?= emacs
 ORG := docs/gnosis.org
 TEXI := docs/gnosis.texi
 INFO := docs/gnosis.info
@@ -25,30 +36,38 @@ TEST_FILES := tests/gnosis-test-sqlite.el \
 
 all: doc
 
-doc:	$(ORG)
-	$(ENV) $(EMACS) --batch \
+doc:
+	@$(ENV_MAKE) do-doc
+
+do-doc: $(ORG)
+	$(EMACS) --batch \
 	-Q \
 	--load org \
 	--eval "(with-current-buffer (find-file \"$(ORG)\") (org-texinfo-export-to-info))" \
 	--kill
 
+compile:
+	@$(ENV_MAKE) do-compile
 
 # docstrings-wide is excluded: keymap-popup-define generates launcher
 # docstrings wider than 80 columns.
-compile:
+do-compile:
 	rm -f $(LISP_DIR)/*.elc
-	$(ENV) $(EMACS) --batch \
+	$(EMACS) --batch \
 	-q \
 	--eval "(setq byte-compile-error-on-warn t)" \
 	--eval "(setq byte-compile-warnings '(not docstrings-wide))" \
 	-L $(LISP_DIR) \
 	-f batch-byte-compile $(LISP_DIR)/*.el
 
-test: compile
+test:
+	@$(ENV_MAKE) do-compile do-test
+
+do-test:
 	rm -f $(LISP_DIR)/*.elc
 	@set -e; for f in $(TEST_FILES); do \
 		echo "Running $$f..."; \
-		$(ENV) $(EMACS) --batch \
+		$(EMACS) --batch \
 		-q \
 		--eval "(add-to-list 'load-path \"$(shell pwd)/$(LISP_DIR)\")" \
 		--load $$f; \

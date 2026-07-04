@@ -77,12 +77,13 @@ variable `denote-directory'."
   "Return non-nil if PATH is among `denote-silo-directories'."
   (member path denote-silo-directories))
 
-(defmacro denote-silo-with-silo (silo &rest args)
-  "Run ARGS with SILO bound, if SILO satisfies `denote-silo-path-is-silo-p'."
+(defmacro denote-silo-with-silo (silo &rest body)
+  "Run BODY if SILO satisfies `denote-silo-path-is-silo-p'.
+`let' bind SILO to the variable `denote-directory'."
   (declare (indent defun))
   `(if (denote-silo-path-is-silo-p ,silo)
-       (progn
-         ,@args)
+       (let ((denote-directory ,silo))
+         ,@body)
      (user-error "`%s' is not among the `denote-silo-directories'" ,silo)))
 
 ;;;###autoload
@@ -94,8 +95,7 @@ When called from Lisp, SILO is a file system path to a directory that
 conforms with `denote-silo-path-is-silo-p'."
   (interactive (list (denote-silo-directory-prompt)))
   (denote-silo-with-silo silo
-    (let ((denote-directory silo))
-      (call-interactively #'denote))))
+    (call-interactively #'denote)))
 
 ;;;###autoload
 (defun denote-silo-open-or-create (silo)
@@ -106,8 +106,7 @@ When called from Lisp, SILO is a file system path to a directory that
 conforms with `denote-silo-path-is-silo-p'."
   (interactive (list (denote-silo-directory-prompt)))
   (denote-silo-with-silo silo
-    (let ((denote-directory silo))
-      (call-interactively #'denote-open-or-create))))
+    (call-interactively #'denote-open-or-create)))
 
 ;;;###autoload
 (defun denote-silo-select-silo-then-command (silo command)
@@ -122,8 +121,7 @@ conforms with `denote-silo-path-is-silo-p'."
     (denote-silo-directory-prompt)
     (denote-command-prompt)))
   (denote-silo-with-silo silo
-    (let ((denote-directory silo))
-      (call-interactively command))))
+    (call-interactively command)))
 
 ;;;###autoload
 (defun denote-silo-dired (silo)

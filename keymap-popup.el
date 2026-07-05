@@ -395,16 +395,25 @@ MAP-NAME is used to derive generated command names.  Entries with
                          (plist-get entry :if)
                          (plist-get entry :inapt-if)))))
 
-(defun keymap-popup--build-entry-form (entry)
-  "Build a `list' form for a single ENTRY."
+(defun keymap-popup--build-entry-form (entry &optional map-name)
+  "Build a `list' form for a single ENTRY.
+When MAP-NAME is non-nil, switch and keymap entries also store the
+generated toggle/enter command as :command, so every entry is
+command-addressable (annotate entries have no generated commands,
+so their builders pass no MAP-NAME)."
   (let* ((type (plist-get entry :type))
+         (generated (and map-name
+                         `(:command #',(keymap-popup--entry-command
+                                        map-name entry))))
          (type-props (pcase-exhaustive type
                        ('suffix (let ((cmd (plist-get entry :command)))
                                   `(:command ,(if (symbolp cmd) `#',cmd cmd)
                                              ,@(and (plist-get entry :stay-open)
                                                     '(:stay-open t)))))
-                       ('keymap `(:target ,(plist-get entry :target)))
-                       ('switch `(:variable ',(plist-get entry :variable)))))
+                       ('keymap `(:target ,(plist-get entry :target)
+                                          ,@generated))
+                       ('switch `(:variable ',(plist-get entry :variable)
+                                            ,@generated))))
          (if-pred (plist-get entry :if))
          (inapt-if (plist-get entry :inapt-if)))
     `(list :key ,(plist-get entry :key)
@@ -416,22 +425,29 @@ MAP-NAME is used to derive generated command names.  Entries with
            ,@(and-let* ((c-u (plist-get entry :c-u)))
                (list :c-u c-u)))))
 
-(defun keymap-popup--build-group-form (group)
-  "Build a `list' form for one GROUP plist."
+(defun keymap-popup--build-group-form (group &optional map-name)
+  "Build a `list' form for one GROUP plist.
+MAP-NAME is passed to `keymap-popup--build-entry-form'."
   (let ((if-pred (plist-get group :if))
         (inapt-if (plist-get group :inapt-if)))
     `(list :name ,(plist-get group :name)
-           :entries (list ,@(mapcar #'keymap-popup--build-entry-form
+           :entries (list ,@(mapcar (lambda (entry)
+                                      (keymap-popup--build-entry-form
+                                       entry map-name))
                                     (plist-get group :entries)))
            ,@(and if-pred (list :if if-pred))
            ,@(and inapt-if (list :inapt-if inapt-if)))))
 
-(defun keymap-popup--build-descriptions-form (rows)
+(defun keymap-popup--build-descriptions-form (rows &optional map-name)
   "Build a `list' form that constructs descriptions at load time.
 ROWS is a list of rows, each row a list of groups.  Uses `list'
-calls so lambdas in :if/:inapt-if/:description get compiled."
+calls so lambdas in :if/:inapt-if/:description get compiled.
+MAP-NAME is passed down to the entry forms."
   `(list ,@(mapcar (lambda (row)
-                     `(list ,@(mapcar #'keymap-popup--build-group-form row)))
+                     `(list ,@(mapcar (lambda (group)
+                                        (keymap-popup--build-group-form
+                                         group map-name))
+                                      row)))
                    rows)))
 
 (defun keymap-popup--build-switch-forms (map-name entries)
@@ -553,7 +569,7 @@ pairs."
          ,@keymap-pairs
          ,popup-key #',launcher)
        ,(keymap-popup--build-attach-form
-         name (keymap-popup--build-descriptions-form rows)
+         name (keymap-popup--build-descriptions-form rows name)
          exit-key description persistent))))
 
 ;;;###autoload

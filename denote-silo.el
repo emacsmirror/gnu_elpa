@@ -92,6 +92,21 @@ Do so by reading the .dir-locals.el file in DIRECTORY."
                     (_ (stringp denote-directory-entry))
                     (_ (file-equal-p (expand-file-name denote-directory-entry path) path))))))))
 
+(defun denote-silo-maybe-make (directory)
+  "Add local binding for DIRECTORY to the variable `denote-directory'.
+Create the .dir-local.el if necessary.  If DIRECTORY already has a
+binding for the variable `denote-directory' then do nothing."
+  (when-let* ((path (file-name-as-directory (expand-file-name directory)))
+              (dir-locals (expand-file-name ".dir-locals.el" path))
+              (default-directory directory))
+    (unless (denote-silo--is-silo-p path)
+      (save-window-excursion
+        (add-dir-local-variable nil 'denote-directory default-directory)
+        (when-let* ((buffer (get-file-buffer dir-locals)))
+          (save-buffer buffer)
+          (kill-buffer buffer)))
+      (message "Made `%s' a Denote silo by writing to `%s'" path dir-locals))))
+
 (defmacro denote-silo-with-silo (silo &rest body)
   "Run BODY if SILO satisfies `denote-silo-path-is-silo-p'.
 `let' bind SILO to the variable `denote-directory'."

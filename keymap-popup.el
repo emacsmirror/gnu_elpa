@@ -922,16 +922,29 @@ Resolves the docstring for mode-line display."
         (keymap-popup--refresh-buffer buf descs prefix)))))
 
 (defun keymap-popup--resolve-key (entry keymap)
-  "Resolve ENTRY's :command to a key in KEYMAP.
-Returns entry with :key filled in, or nil if unbound."
-  (if (plist-get entry :key) entry
-    (and-let* ((cmd (plist-get entry :command))
-               (keys (where-is-internal cmd keymap t)))
-      (plist-put (copy-sequence entry) :key (key-description keys)))))
+  "Return ENTRY with :key reflecting KEYMAP's current bindings.
+An entry keeps its stored :key while that key still dispatches to
+the entry's :command.  When the command has been rebound,
+`where-is-internal' supplies the current key; when it finds no
+binding, the stored key is kept (this covers inapt entries, whose
+`menu-item' filter reroutes the binding to the stub).  Entries
+with no stored :key (annotated) resolve via `where-is-internal'
+and are dropped when unbound.  Resolution searches only KEYMAP and
+its parents, never the global map."
+  (let ((cmd (plist-get entry :command))
+        (stored (plist-get entry :key)))
+    (cond
+     ((null cmd) entry)
+     ((and stored (eq (keymap-lookup keymap stored) cmd)) entry)
+     (t (let ((keys (where-is-internal cmd (list keymap) t)))
+          (cond
+           (keys (plist-put (copy-sequence entry) :key
+                            (key-description keys)))
+           (stored entry)))))))
 
 (defun keymap-popup--resolve-descriptions (rows keymap)
-  "Resolve command symbols to keys in ROWS using KEYMAP.
-Drops entries whose command has no binding."
+  "Resolve entry keys in ROWS against KEYMAP's current bindings.
+Drops annotated entries whose command has no binding."
   (keymap-popup--map-groups
    rows
    (lambda (group)

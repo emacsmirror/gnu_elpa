@@ -134,6 +134,20 @@
                    '((defvar keymap-popup--test-child-map)
                      (defvar keymap-popup--test-parent-map))))))
 
+(ert-deftest keymap-popup-test-macro-expands-to-attach-meta ()
+  "Both macros attach metadata via one attach-meta call, no raw setf."
+  (dolist (form '((keymap-popup-define keymap-popup--test-attach-form-map
+                    :persistent t
+                    "r" ("Refresh" ignore))
+                  (keymap-popup-annotate keymap-popup--test-attach-form-map
+                    :exit-key "x"
+                    forward-char "Forward")))
+    (let ((forms (cdr (macroexpand-1 form))))
+      (should (= 1 (seq-count
+                    (lambda (f) (eq (car-safe f) 'keymap-popup--attach-meta))
+                    forms)))
+      (should-not (seq-some (lambda (f) (eq (car-safe f) 'setf)) forms)))))
+
 (ert-deftest keymap-popup-test-macro-creates-keymap ()
   (eval '(keymap-popup-define keymap-popup--test-map-1
            "Test keymap."

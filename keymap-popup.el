@@ -481,16 +481,15 @@ calls so lambdas in :if/:inapt-if/:description get compiled."
                                       (symbolp target))
                             collect target)))))
 
-(defun keymap-popup--build-meta-forms (map-name exit-key description persistent)
-  "Build trailing `setf' forms for MAP-NAME's popup metadata.
-Each of EXIT-KEY, DESCRIPTION, PERSISTENT is included only when non-nil."
-  (append
-   (and exit-key
-        `((setf (keymap-popup--meta ,map-name 'exit-key) ,exit-key)))
-   (and description
-        `((setf (keymap-popup--meta ,map-name 'description) ,description)))
-   (and persistent
-        `((setf (keymap-popup--meta ,map-name 'persistent) 'yes)))))
+(defun keymap-popup--build-attach-form (map-name rows-form exit-key
+                                                 description persistent)
+  "Build the `keymap-popup--attach-meta' call form for MAP-NAME.
+ROWS-FORM constructs the descriptions at load time.  Each of
+EXIT-KEY, DESCRIPTION, PERSISTENT is passed only when non-nil."
+  `(keymap-popup--attach-meta ,map-name ,rows-form
+                              ,@(and exit-key `(:exit-key ,exit-key))
+                              ,@(and description `(:description ,description))
+                              ,@(and persistent '(:persistent t))))
 
 ;;; Macro
 
@@ -553,9 +552,9 @@ pairs."
          ,@(and parent (list :parent parent))
          ,@keymap-pairs
          ,popup-key #',launcher)
-       (setf (keymap-popup--meta ,name 'descriptions)
-             ,(keymap-popup--build-descriptions-form rows))
-       ,@(keymap-popup--build-meta-forms name exit-key description persistent))))
+       ,(keymap-popup--build-attach-form
+         name (keymap-popup--build-descriptions-form rows)
+         exit-key description persistent))))
 
 ;;;###autoload
 (defmacro keymap-popup-annotate (keymap &rest body)
@@ -581,16 +580,16 @@ time, so the popup always reflects the user's current bindings."
                (launcher (and popup-key (symbolp keymap)
                               (keymap-popup--launcher-name keymap))))
     `(progn
-       (setf (keymap-popup--meta ,keymap 'descriptions)
-             ,(keymap-popup--build-descriptions-form rows))
+       ,(keymap-popup--build-attach-form
+         keymap (keymap-popup--build-descriptions-form rows)
+         exit-key description persistent)
        ,@(cond
           (launcher
            `(,(keymap-popup--build-launcher-form keymap launcher)
              (keymap-set ,keymap ,popup-key #',launcher)))
           (popup-key
            `((keymap-set ,keymap ,popup-key
-                         (lambda () (interactive) (keymap-popup ,keymap))))))
-       ,@(keymap-popup--build-meta-forms keymap exit-key description persistent))))
+                         (lambda () (interactive) (keymap-popup ,keymap)))))))))
 
 ;;; Public API
 

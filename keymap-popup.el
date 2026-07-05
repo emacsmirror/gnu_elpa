@@ -175,6 +175,22 @@ fallback when :exit-key is omitted."
 (gv-define-setter keymap-popup--meta (val keymap prop)
   `(define-key ,keymap (vector 'keymap-popup ,prop) ,val))
 
+(defun keymap-popup--attach-meta (keymap rows &rest opts)
+  "Attach popup descriptions ROWS and metadata OPTS to KEYMAP.
+OPTS is a plist accepting :exit-key, :description, and
+:persistent; other keys are ignored.  Only non-nil values are
+stored.  :persistent is stored as the symbol `yes' because
+metadata lives in `define-key' bindings, where t means \"default
+binding\".  Returns KEYMAP."
+  (setf (keymap-popup--meta keymap 'descriptions) rows)
+  (when-let* ((exit-key (plist-get opts :exit-key)))
+    (setf (keymap-popup--meta keymap 'exit-key) exit-key))
+  (when-let* ((description (plist-get opts :description)))
+    (setf (keymap-popup--meta keymap 'description) description))
+  (when (plist-get opts :persistent)
+    (setf (keymap-popup--meta keymap 'persistent) 'yes))
+  keymap)
+
 ;;; Parsers
 
 (defun keymap-popup--extract-props (plist)

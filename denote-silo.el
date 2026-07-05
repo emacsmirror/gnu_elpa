@@ -77,6 +77,21 @@ variable `denote-directory'."
   "Return non-nil if PATH is among `denote-silo-directories'."
   (member path denote-silo-directories))
 
+(defun denote-silo--is-silo-p (directory)
+  "Return non-nil if DIRECTORY has local binding for variable `denote-directory'.
+Do so by reading the .dir-locals.el file in DIRECTORY."
+  (let* ((path (file-name-as-directory (expand-file-name directory)))
+         (dir-locals (expand-file-name ".dir-locals.el" path)))
+    (when (file-exists-p dir-locals)
+      (with-temp-buffer
+        (insert-file-contents dir-locals)
+        (and-let* ((content (read (current-buffer)))
+                    (_ (listp content))
+                    (all-modes-entry (assoc nil content))
+                    (denote-directory-entry (alist-get 'denote-directory all-modes-entry))
+                    (_ (stringp denote-directory-entry))
+                    (_ (file-equal-p (expand-file-name denote-directory-entry path) path))))))))
+
 (defmacro denote-silo-with-silo (silo &rest body)
   "Run BODY if SILO satisfies `denote-silo-path-is-silo-p'.
 `let' bind SILO to the variable `denote-directory'."

@@ -7,9 +7,7 @@
 ;;; Code:
 
 (require 'ert)
-(load (expand-file-name
-       "../keymap-popup.el"
-       (file-name-directory (or load-file-name buffer-file-name))))
+(require 'keymap-popup)
 
 ;;; Parser tests
 

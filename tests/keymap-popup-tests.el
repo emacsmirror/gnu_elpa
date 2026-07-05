@@ -898,8 +898,10 @@
         (should (functionp (keymap-lookup map "C-u")))
       (kill-buffer buf))))
 
-(ert-deftest keymap-popup-test-switch-override-skips-prefix-when-inapt ()
-  "Switch override preserves prefix-mode when the binding resolves to the inapt stub."
+(ert-deftest keymap-popup-test-switch-override-refuses-when-inapt ()
+  "Switch override refuses an inapt press, preserving prefix-mode.
+Inaptness is read from the popup's active descriptions at keypress
+time; the switch variable must not toggle while inapt."
   (defvar keymap-popup--test-sw-flag t)
   (eval '(keymap-popup-define keymap-popup--test-sw-inapt
            "v" ("Verbose" :switch keymap-popup--test-sw-inapt-var
@@ -918,12 +920,14 @@
                  (keymap-popup--test-sw-flag t))
             (let ((prefix-arg '(4)))
               (call-interactively override)
-              ;; Inapt: prefix-mode should NOT be cleared.
+              ;; Inapt: refused, var untouched, prefix-mode NOT cleared.
+              (should-not keymap-popup--test-sw-inapt-var)
               (should (buffer-local-value 'keymap-popup--prefix-mode buf)))
-            ;; Flip predicate off: prefix-mode is now consumed.
+            ;; Flip predicate off: toggle runs, prefix-mode is consumed.
             (let ((keymap-popup--test-sw-flag nil)
                   (prefix-arg '(4)))
               (call-interactively override)
+              (should keymap-popup--test-sw-inapt-var)
               (should-not (buffer-local-value 'keymap-popup--prefix-mode buf)))))
       (kill-buffer buf))))
 
@@ -945,6 +949,209 @@
             (call-interactively override)
             (should (= count 1))
             (should (buffer-live-p buf))))
+      (kill-buffer buf))))
+
+(ert-deftest keymap-popup-test-inapt-key-p-entry-level ()
+  (let ((buf (get-buffer-create keymap-popup--buffer-name))
+        (flag t))
+    (unwind-protect
+        (progn
+          (with-current-buffer buf
+            (setq-local keymap-popup--active-descriptions
+                        `(((:name nil :entries ((:key "x" :type suffix
+                                                      :inapt-if ,(lambda () flag))))))))
+          (should (keymap-popup--inapt-key-p buf "x"))
+          (setq flag nil)
+          (should-not (keymap-popup--inapt-key-p buf "x"))
+          (should-not (keymap-popup--inapt-key-p buf "unknown")))
+      (kill-buffer buf))))
+
+(ert-deftest keymap-popup-test-inapt-key-p-group-level ()
+  "A group's :inapt-if applies to its entries; group preds are unmerged."
+  (let ((buf (get-buffer-create keymap-popup--buffer-name)))
+    (unwind-protect
+        (progn
+          (with-current-buffer buf
+            (setq-local keymap-popup--active-descriptions
+                        `(((:name "Bulk" :inapt-if ,(lambda () t)
+                                  :entries ((:key "x" :type suffix)))))))
+          (should (keymap-popup--inapt-key-p buf "x")))
+      (kill-buffer buf))))
+
+(ert-deftest keymap-popup-test-inapt-key-p-dead-buffer ()
+  "A dead popup buffer reports no inapt keys.
+Pins the apt-path ordering: the keep-pred tears the popup down
+before the guard override runs, which must fall through to the
+real binding."
+  (let ((buf (get-buffer-create keymap-popup--buffer-name)))
+    (kill-buffer buf)
+    (should-not (keymap-popup--inapt-key-p buf "x"))))
+
+(ert-deftest keymap-popup-test-refuse-inapt-preserves-prefix-mode ()
+  (let ((buf (get-buffer-create keymap-popup--buffer-name)))
+    (unwind-protect
+        (progn
+          (with-current-buffer buf
+            (setq-local keymap-popup--prefix-mode t))
+          (let ((prefix-arg nil))
+            (keymap-popup--refuse-inapt buf)
+            (should (equal prefix-arg '(4))))
+          (with-current-buffer buf
+            (setq-local keymap-popup--prefix-mode nil))
+          (let ((prefix-arg nil))
+            (keymap-popup--refuse-inapt buf)
+            (should-not prefix-arg)))
+      (kill-buffer buf))))
+
+(ert-deftest keymap-popup-test-classify-inapt-guards ()
+  "Only plain suffixes with an entry or group :inapt-if become guards."
+  (let* ((pred (lambda () t))
+         (descs `(((:name nil
+                          :entries ((:key "a" :type suffix :inapt-if ,pred)
+                                    (:key "g" :type suffix :stay-open t :inapt-if ,pred)
+                                    (:key "v" :type switch :variable x :inapt-if ,pred)
+                                    (:key "c" :type suffix)))
+                   (:name "Bulk" :inapt-if ,pred
+                          :entries ((:key "b" :type suffix))))))
+         (classified (keymap-popup--classify-entries descs)))
+    (should (equal (plist-get classified :inapt-guards) '("a" "b")))))
+
+(ert-deftest keymap-popup-test-inapt-guard-refuses ()
+  (let* ((count 0)
+         (map (make-sparse-keymap))
+         (buf (get-buffer-create keymap-popup--buffer-name)))
+    (keymap-set map "x" (lambda () (interactive) (setq count (1+ count))))
+    (unwind-protect
+        (progn
+          (with-current-buffer buf
+            (setq-local keymap-popup--active-descriptions
+                        `(((:name nil :entries ((:key "x" :type suffix
+                                                      :inapt-if ,(lambda () t))))))))
+          (let* ((overrides (keymap-popup--inapt-guard-overrides map '("x") buf))
+                 (override (cdr (assoc "x" overrides))))
+            (call-interactively override)
+            (should (= count 0))))
+      (kill-buffer buf))))
+
+(ert-deftest keymap-popup-test-inapt-guard-apt-calls-real-binding ()
+  (let* ((count 0)
+         (map (make-sparse-keymap))
+         (buf (get-buffer-create keymap-popup--buffer-name)))
+    (keymap-set map "x" (lambda () (interactive) (setq count (1+ count))))
+    (unwind-protect
+        (progn
+          (with-current-buffer buf
+            (setq-local keymap-popup--active-descriptions
+                        `(((:name nil :entries ((:key "x" :type suffix
+                                                      :inapt-if ,(lambda () nil))))))))
+          (let* ((overrides (keymap-popup--inapt-guard-overrides map '("x") buf))
+                 (override (cdr (assoc "x" overrides))))
+            (call-interactively override)
+            (should (= count 1))))
+      (kill-buffer buf))))
+
+(ert-deftest keymap-popup-test-inapt-guard-runs-after-popup-close ()
+  "The guard dispatches the real binding when the popup is already dead."
+  (let* ((count 0)
+         (map (make-sparse-keymap))
+         (buf (get-buffer-create keymap-popup--buffer-name)))
+    (keymap-set map "x" (lambda () (interactive) (setq count (1+ count))))
+    (let* ((overrides (keymap-popup--inapt-guard-overrides map '("x") buf))
+           (override (cdr (assoc "x" overrides))))
+      (kill-buffer buf)
+      (call-interactively override)
+      (should (= count 1)))))
+
+(ert-deftest keymap-popup-test-keep-pred-keeps-popup-open-on-inapt-key ()
+  (let ((buf (get-buffer-create keymap-popup--buffer-name))
+        (flag t))
+    (unwind-protect
+        (progn
+          (with-current-buffer buf
+            (setq-local keymap-popup--active-exit-key "q"
+                        keymap-popup--reentering nil
+                        keymap-popup--persistent nil
+                        keymap-popup--active-descriptions
+                        `(((:name nil :entries ((:key "x" :type suffix
+                                                      :inapt-if ,(lambda () flag))))))))
+          (let ((keep-pred (keymap-popup--make-keep-pred buf))
+                (this-command 'keymap-popup--test-dummy-cmd))
+            (cl-letf (((symbol-function 'this-command-keys-vector)
+                       (lambda () [?x])))
+              (should (funcall keep-pred))
+              (setq flag nil)
+              (should-not (funcall keep-pred)))))
+      (kill-buffer buf))))
+
+(ert-deftest keymap-popup-test-submenu-override-refuses-when-inapt ()
+  "An inapt submenu key is refused instead of pushed."
+  (let ((buf (get-buffer-create keymap-popup--buffer-name))
+        (pushed nil)
+        (flag t))
+    (unwind-protect
+        (progn
+          (with-current-buffer buf
+            (setq-local keymap-popup--active-descriptions
+                        `(((:name nil :entries ((:key "s" :type keymap :target sub
+                                                      :inapt-if ,(lambda () flag))))))))
+          (cl-letf (((symbol-function 'keymap-popup--push-submenu)
+                     (lambda (_buf target) (setq pushed target))))
+            (let* ((overrides (keymap-popup--submenu-overrides '(("s" . sub)) buf))
+                   (override (cdr (assoc "s" overrides))))
+              (call-interactively override)
+              (should-not pushed)
+              (setq flag nil)
+              (call-interactively override)
+              (should (eq pushed 'sub)))))
+      (kill-buffer buf))))
+
+(ert-deftest keymap-popup-test-stay-open-override-refuses-when-inapt ()
+  (let* ((count 0)
+         (map (make-sparse-keymap))
+         (buf (get-buffer-create keymap-popup--buffer-name)))
+    (keymap-set map "g" (lambda () (interactive) (setq count (1+ count))))
+    (unwind-protect
+        (progn
+          (with-current-buffer buf
+            (setq-local keymap-popup--source-buffer buf
+                        keymap-popup--active-descriptions
+                        `(((:name nil :entries ((:key "g" :type suffix :stay-open t
+                                                      :inapt-if ,(lambda () t))))))))
+          (let* ((overrides (keymap-popup--stay-open-overrides map '("g") buf))
+                 (override (cdr (assoc "g" overrides))))
+            (call-interactively override)
+            (should (= count 0))
+            (should (buffer-live-p buf))))
+      (kill-buffer buf))))
+
+(ert-deftest keymap-popup-test-annotate-inapt-enforced-in-wrapper ()
+  "Annotate-path popups gain :inapt-if dispatch enforcement.
+The annotate macro never wraps bindings, so enforcement can only
+come from the wrapper."
+  (setq keymap-popup--test-annotate-map (make-sparse-keymap))
+  (keymap-set keymap-popup--test-annotate-map "a" #'forward-char)
+  (eval '(keymap-popup-annotate keymap-popup--test-annotate-map
+           :group "Move"
+           forward-char ("Forward" :inapt-if (lambda () t)))
+        t)
+  (let* ((descs (keymap-popup--resolve-descriptions
+                 (keymap-popup--collect-descriptions keymap-popup--test-annotate-map)
+                 keymap-popup--test-annotate-map))
+         (buf (get-buffer-create keymap-popup--buffer-name)))
+    (unwind-protect
+        (progn
+          (with-current-buffer buf
+            (setq-local keymap-popup--active-descriptions descs))
+          (let* ((wrapper (keymap-popup--build-wrapper-map
+                           keymap-popup--test-annotate-map descs buf "q"))
+                 (binding (keymap-lookup wrapper "a")))
+            (should (functionp binding))
+            (should-not (eq binding #'forward-char))
+            (with-temp-buffer
+              (insert "ab")
+              (goto-char (point-min))
+              (call-interactively binding)
+              (should (= (point) (point-min))))))
       (kill-buffer buf))))
 
 (ert-deftest keymap-popup-test-classify-submenus ()

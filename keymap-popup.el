@@ -887,12 +887,28 @@ Returns the entry plist, or nil."
   "Return non-nil if KEY-STR should keep the popup open in DESCRIPTIONS.
 True for switches, stay-open suffixes, and :keymap entries with a
 target.  Inapt-key handling is folded into the keep-pred via
-`this-command'."
+`keymap-popup--inapt-key-p'."
   (and-let* ((entry (keymap-popup--find-entry-by-key descriptions key-str)))
     (or (eq (plist-get entry :type) 'switch)
         (plist-get entry :stay-open)
         (and (eq (plist-get entry :type) 'keymap)
              (plist-get entry :target)))))
+
+(defun keymap-popup--inapt-key-p (buf key-str)
+  "Return non-nil when KEY-STR is currently inapt in BUF's popup.
+Checks both the entry's own :inapt-if and its containing group's;
+group predicates are not merged into the descriptions tree.
+Returns nil when BUF is dead (the popup already closed)."
+  (and (buffer-live-p buf)
+       (cl-loop
+        for row in (buffer-local-value 'keymap-popup--active-descriptions buf)
+        thereis (cl-loop
+                 for group in row
+                 thereis (cl-loop
+                          for entry in (plist-get group :entries)
+                          when (equal (plist-get entry :key) key-str)
+                          return (or (keymap-popup--inapt-active-p entry)
+                                     (keymap-popup--inapt-active-p group)))))))
 
 (defun keymap-popup--refresh-buffer (buf descriptions &optional prefix-mode)
   "Re-render popup BUF with DESCRIPTIONS, refit via backend.
@@ -1074,7 +1090,7 @@ Reads state from BUF.  Consumes the reentering flag on read."
 					describe-key describe-key-briefly)))
             ((equal key-str exit-key) nil)
             ((eq this-command 'keyboard-quit) nil)
-            ((eq this-command 'keymap-popup--inapt-stub) t)
+            ((keymap-popup--inapt-key-p buf key-str) t)
             ((buffer-local-value 'keymap-popup--persistent buf))
             (t (and-let* ((descs (buffer-local-value
                                   'keymap-popup--active-descriptions buf)))
@@ -1118,15 +1134,20 @@ its parent group plist; non-nil return values are collected."
 
 (defun keymap-popup--classify-entries (descriptions)
   "Walk DESCRIPTIONS once, classify entries by type and properties.
-Returns plist (:switches KEYS :submenus PAIRS :stay-open KEYS)."
+Returns plist (:switches KEYS :submenus PAIRS :stay-open KEYS
+:inapt-guards KEYS).  :inapt-guards lists plain suffix keys whose
+entry or group carries an :inapt-if predicate; presence-based only,
+the predicate itself is evaluated at keypress time."
   (let ((entries (keymap-popup--collect-entries
                   descriptions
-                  (lambda (entry _group)
+                  (lambda (entry group)
                     (and-let* ((key (plist-get entry :key)))
                       (list :key key
                             :type (plist-get entry :type)
                             :target (plist-get entry :target)
-                            :stay-open (plist-get entry :stay-open)))))))
+                            :stay-open (plist-get entry :stay-open)
+                            :inapt (or (plist-get entry :inapt-if)
+                                       (plist-get group :inapt-if))))))))
     (cl-loop for e in entries
              for type = (plist-get e :type)
              for key = (plist-get e :key)
@@ -1134,9 +1155,13 @@ Returns plist (:switches KEYS :submenus PAIRS :stay-open KEYS)."
              when (eq type 'keymap) collect (cons key (plist-get e :target)) into submenus
              when (and (eq type 'suffix) (plist-get e :stay-open))
              collect key into stay-open
+             when (and (eq type 'suffix) (not (plist-get e :stay-open))
+                       (plist-get e :inapt))
+             collect key into inapt-guards
              finally return (list :switches switches
                                   :submenus submenus
-                                  :stay-open stay-open))))
+                                  :stay-open stay-open
+                                  :inapt-guards inapt-guards))))
 
 (defun keymap-popup--push-submenu (buf child-keymap)
   "Push current popup state in BUF and activate CHILD-KEYMAP's transient map."
@@ -1196,58 +1221,93 @@ prefix-mode state so `\\[universal-argument]' is not consumed."
               ((buffer-local-value 'keymap-popup--prefix-mode buf)))
     (setq prefix-arg '(4))))
 
+(defun keymap-popup--refuse-inapt (buf)
+  "Refuse an inapt key press for the popup in BUF.
+Preserves BUF's prefix-mode so \\[universal-argument] is not
+consumed; the popup only ever stores (4) (see
+`keymap-popup--prefix-argument'), so re-setting that value is
+preservation, not approximation."
+  (message "Command unavailable")
+  (when (and (buffer-live-p buf)
+             (buffer-local-value 'keymap-popup--prefix-mode buf))
+    (setq prefix-arg '(4))))
+
 (defun keymap-popup--submenu-overrides (submenu-pairs buf)
-  "Return alist of submenu key overrides from SUBMENU-PAIRS for BUF."
+  "Return alist of submenu key overrides from SUBMENU-PAIRS for BUF.
+An inapt submenu key is refused instead of pushed."
   (mapcar (lambda (pair)
             (cons (car pair)
-                  (let ((target (cdr pair)))
+                  (let ((key-str (car pair))
+                        (target (cdr pair)))
                     (lambda () (interactive)
-                      (keymap-popup--push-submenu buf target)))))
+                      (if (keymap-popup--inapt-key-p buf key-str)
+                          (keymap-popup--refuse-inapt buf)
+                        (keymap-popup--push-submenu buf target))))))
           submenu-pairs))
 
 (defun keymap-popup--call-real-binding (keymap key-str)
   "Call KEY-STR's live binding in KEYMAP if it is a command.
-Return the binding, which may be nil or the inapt stub."
+Sets `this-command' to the binding so `repeat' and `last-command'
+see the real command rather than the wrapper closure.  Return the
+binding, which may be nil."
   (let ((cmd (keymap-lookup keymap key-str)))
     (when (commandp cmd)
+      (setq this-command cmd)
       (call-interactively cmd))
     cmd))
 
 (defun keymap-popup--switch-overrides (keymap switch-keys buf)
   "Return alist of switch key overrides for KEYMAP's SWITCH-KEYS in BUF.
 Wraps the toggle command with prefix-mode consumption.  When the
-underlying binding is currently unbound (because an `:if' predicate
-is false) or resolves to `keymap-popup--inapt-stub' (because an
-`:inapt-if' predicate is active), the toggle is refused and the
-prefix-mode is preserved."
+key is currently inapt the toggle is refused; when the underlying
+binding is unbound (because an `:if' predicate is false) the toggle
+is skipped.  Both cases preserve the prefix-mode."
   (mapcar (lambda (key-str)
             (cons key-str
                   (lambda () (interactive)
-                    (let ((cmd (keymap-popup--call-real-binding keymap key-str)))
-                      (unless (or (null cmd)
-                                  (eq cmd #'keymap-popup--inapt-stub))
+                    (if (keymap-popup--inapt-key-p buf key-str)
+                        (keymap-popup--refuse-inapt buf)
+                      (when (keymap-popup--call-real-binding keymap key-str)
                         (when (buffer-local-value 'keymap-popup--prefix-mode buf)
                           (with-current-buffer buf
                             (setq-local keymap-popup--prefix-mode nil))
-                          (setq prefix-arg nil)))
-                      (keymap-popup--refresh buf)))))
+                          (setq prefix-arg nil))))
+                    (keymap-popup--refresh buf))))
           switch-keys))
 
 (defun keymap-popup--stay-open-overrides (keymap stay-open-keys buf)
   "Return alist of stay-open suffix overrides for KEYMAP's STAY-OPEN-KEYS in BUF.
-Each command executes and refreshes the popup in place."
+Each command executes and refreshes the popup in place.  An inapt
+key is refused instead of executed."
   (mapcar (lambda (key-str)
             (cons key-str
                   (lambda () (interactive)
-                    (keymap-popup--call-real-binding keymap key-str)
+                    (if (keymap-popup--inapt-key-p buf key-str)
+                        (keymap-popup--refuse-inapt buf)
+                      (keymap-popup--call-real-binding keymap key-str))
                     (keymap-popup--refresh buf))))
           stay-open-keys))
 
+(defun keymap-popup--inapt-guard-overrides (keymap guard-keys buf)
+  "Return alist of overrides for suffix GUARD-KEYS carrying :inapt-if.
+Refuse when the key is currently inapt; otherwise dispatch KEYMAP's
+real binding.  On the apt path the keep-pred has already closed the
+popup before this runs, so `keymap-popup--inapt-key-p' returning nil
+for the dead BUF falls through to the real binding."
+  (mapcar (lambda (key-str)
+            (cons key-str
+                  (lambda () (interactive)
+                    (if (keymap-popup--inapt-key-p buf key-str)
+                        (keymap-popup--refuse-inapt buf)
+                      (keymap-popup--call-real-binding keymap key-str)))))
+          guard-keys))
+
 (defun keymap-popup--build-wrapper-map (keymap descriptions buf exit-key)
   "Build wrapper keymap over KEYMAP with DESCRIPTIONS for BUF.
-EXIT-KEY and switch/submenu/stay-open handlers layer over KEYMAP.
-Predicate enforcement lives on KEYMAP itself via `menu-item' :filter,
-so the wrapper carries no inapt logic of its own."
+EXIT-KEY and switch/submenu/stay-open/inapt-guard handlers layer
+over KEYMAP.  `:if' enforcement lives on KEYMAP itself via
+`menu-item' :filter; `:inapt-if' is enforced here at keypress time
+by the overrides reading the popup's active descriptions."
   (let* ((map (make-sparse-keymap))
          (classified (keymap-popup--classify-entries descriptions))
          (overrides (append (keymap-popup--core-overrides exit-key)
@@ -1256,7 +1316,9 @@ so the wrapper carries no inapt logic of its own."
                             (keymap-popup--submenu-overrides
                              (plist-get classified :submenus) buf)
                             (keymap-popup--stay-open-overrides
-                             keymap (plist-get classified :stay-open) buf))))
+                             keymap (plist-get classified :stay-open) buf)
+                            (keymap-popup--inapt-guard-overrides
+                             keymap (plist-get classified :inapt-guards) buf))))
     (set-keymap-parent map keymap)
     (pcase-dolist (`(,key . ,cmd) overrides)
       (keymap-set map key cmd))

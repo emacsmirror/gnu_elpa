@@ -314,6 +314,23 @@
         t)
   (should (functionp (keymap-lookup keymap-popup--test-map-defkey "h"))))
 
+(ert-deftest keymap-popup-test-macro-popup-key-resolved-at-load ()
+  "The default popup key is read at load time, not expansion time."
+  (let ((expansion (macroexpand-1
+                    '(keymap-popup-define keymap-popup--test-map-loadkey
+                       "c" ("Comment" ignore)))))
+    (let ((keymap-popup-default-popup-key "!"))
+      (eval expansion t))
+    (should (functionp (keymap-lookup keymap-popup--test-map-loadkey "!")))
+    (should (null (keymap-lookup keymap-popup--test-map-loadkey "h")))))
+
+(ert-deftest keymap-popup-test-macro-no-exit-key-stores-no-metadata ()
+  "Without :exit-key, no exit-key metadata is stored; display falls back."
+  (eval '(keymap-popup-define keymap-popup--test-map-noexit
+           "c" ("Comment" ignore))
+        t)
+  (should-not (keymap-popup--meta keymap-popup--test-map-noexit 'exit-key)))
+
 (ert-deftest keymap-popup-test-macro-custom-popup-key ()
   (eval '(keymap-popup-define keymap-popup--test-map-custkey
            :popup-key "?"

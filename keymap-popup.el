@@ -122,17 +122,18 @@ Can also be set per-keymap via the `:persistent' keyword in
 
 (defcustom keymap-popup-default-popup-key "h"
   "Default key to open the popup in keymaps defined with `keymap-popup-define'.
-Applied automatically by `keymap-popup-define' when :popup-key is
-not specified.  Not applied by `keymap-popup-annotate' (must be
-given explicitly)."
+Applied by `keymap-popup-define' when :popup-key is not specified.
+Read when the definition is loaded, so customize it before loading
+packages that define popups.  Not applied by `keymap-popup-annotate'
+\(must be given explicitly)."
   :type 'key
   :group 'keymap-popup)
 
 (defcustom keymap-popup-default-exit-key "q"
   "Default key to dismiss the popup.
-Applied automatically by `keymap-popup-define' when :exit-key is
-not specified.  For `keymap-popup-annotate', used as runtime
-fallback when :exit-key is omitted."
+Used as the fallback when the popup is shown and the keymap stores
+no explicit :exit-key, for both `keymap-popup-define' and
+`keymap-popup-annotate'."
   :type 'key
   :group 'keymap-popup)
 
@@ -546,8 +547,6 @@ pairs."
   (pcase-let* ((`(,docstring ,popup-key ,exit-key ,parent ,description
                              ,persistent ,bindings)
                 (keymap-popup--extract-macro-opts body))
-               (popup-key (or popup-key keymap-popup-default-popup-key))
-               (exit-key (or exit-key keymap-popup-default-exit-key))
                (rows (keymap-popup--parse-bindings bindings))
                (all-entries (keymap-popup--flatten-with-groups rows))
                (switch-entries (cl-loop for entry in all-entries
@@ -566,8 +565,11 @@ pairs."
        (defvar-keymap ,name
          ,@(and docstring (list :doc docstring))
          ,@(and parent (list :parent parent))
-         ,@keymap-pairs
-         ,popup-key #',launcher)
+         ,@keymap-pairs)
+       ;; Bound outside `defvar-keymap' so the default key is read at
+       ;; load time, not baked in when the macro is byte-compiled.
+       (keymap-set ,name ,(or popup-key 'keymap-popup-default-popup-key)
+                   #',launcher)
        ,(keymap-popup--build-attach-form
          name (keymap-popup--build-descriptions-form rows name)
          exit-key description persistent))))

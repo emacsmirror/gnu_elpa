@@ -1544,6 +1544,52 @@ entry independently)."
     (should (equal (keymap-popup--meta map 'descriptions) '(rows)))
     (should-not (keymap-popup--meta map 'popup-key))))
 
+(ert-deftest keymap-popup-test-attach-parses-keyed-bindings ()
+  "Runtime attach parses annotate-shaped bindings into description rows."
+  (let ((map (make-sparse-keymap)))
+    (keymap-set map "a" #'ignore)
+    (should (eq (keymap-popup-attach map '("a" ("Ignore" ignore))) map))
+    (let* ((rows (keymap-popup--meta map 'descriptions))
+           (entry (car (plist-get (caar rows) :entries))))
+      (should (equal (plist-get entry :key) "a"))
+      (should (equal (plist-get entry :description) "Ignore"))
+      (should (eq (plist-get entry :command) 'ignore)))))
+
+(ert-deftest keymap-popup-test-attach-stores-opts ()
+  (let ((map (make-sparse-keymap)))
+    (keymap-popup-attach map '("a" ("Ignore" ignore))
+                         :exit-key "x" :description "Doc" :persistent t)
+    (should (equal (keymap-popup--meta map 'exit-key) "x"))
+    (should (equal (keymap-popup--meta map 'description) "Doc"))
+    (should (eq (keymap-popup--meta map 'persistent) 'yes))))
+
+(ert-deftest keymap-popup-test-attach-runtime-built-menu ()
+  "Entries computed from data render and resolve against the live keymap."
+  (let* ((map (make-sparse-keymap))
+         (items '(("1" . next-line) ("2" . previous-line)))
+         (bindings (cl-loop for (key . cmd) in items
+                            append (list key (list (symbol-name cmd) cmd)))))
+    (cl-loop for (key . cmd) in items do (keymap-set map key cmd))
+    (keymap-popup-attach map (append '(:group "Nav") bindings))
+    (let* ((resolved (keymap-popup--resolve-descriptions
+                      (keymap-popup--collect-descriptions map) map))
+           (group (caar resolved))
+           (keys (mapcar (lambda (e) (plist-get e :key))
+                         (plist-get group :entries))))
+      (should (equal (plist-get group :name) "Nav"))
+      (should (equal keys '("1" "2"))))))
+
+(ert-deftest keymap-popup-test-attach-annotated-symbols-resolve ()
+  "Command-symbol bindings get keys from `where-is-internal' at resolve time."
+  (let ((map (make-sparse-keymap)))
+    (keymap-set map "n" #'next-line)
+    (keymap-popup-attach map '(next-line "Next"))
+    (let* ((resolved (keymap-popup--resolve-descriptions
+                      (keymap-popup--collect-descriptions map) map))
+           (entry (car (plist-get (caar resolved) :entries))))
+      (should (equal (plist-get entry :key) "n"))
+      (should (equal (plist-get entry :description) "Next")))))
+
 (ert-deftest keymap-popup-test-no-descriptions-error ()
   (let ((map (make-sparse-keymap)))
     (should-error (keymap-popup map) :type 'user-error)))

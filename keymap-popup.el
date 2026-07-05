@@ -590,6 +590,24 @@ time, so the popup always reflects the user's current bindings."
 
 ;;; Public API
 
+;;;###autoload
+(defun keymap-popup-attach (keymap bindings &rest opts)
+  "Attach popup descriptions for BINDINGS to KEYMAP at runtime.
+BINDINGS is an evaluated list shaped like `keymap-popup-annotate'
+BODY: KEY (DESCRIPTION COMMAND . PROPS) or COMMAND-SYMBOL
+DESCRIPTION pairs, optionally grouped with :group.  Commands and
+predicates are actual objects, not forms.  OPTS is a plist
+accepting :exit-key, :description, and :persistent.  Returns
+KEYMAP.
+
+Unlike the macros, this attaches descriptions computed from data,
+so it suits anonymous keymaps and menus built from runtime lists.
+It does not bind keys or define commands; keyed entries should
+already be bound in KEYMAP."
+  (apply #'keymap-popup--attach-meta keymap
+         (keymap-popup--parse-bindings bindings)
+         opts))
+
 (defun keymap-popup--map-groups (rows fn)
   "Apply FN to each group in ROWS, returning the transformed rows.
 FN receives a group plist and returns a new group plist."
@@ -838,7 +856,7 @@ are preserved as-is.  Groups and rows that end up empty are removed."
                     (plist-put (copy-sequence g) :entries es)))
                 (keep-row (r)
                   (seq-keep #'keep-group r)))
-      (seq-keep #'keep-row descriptions))))
+	       (seq-keep #'keep-row descriptions))))
 
 (defun keymap-popup--collect-descriptions (keymap)
   "Collect descriptions from KEYMAP and all its parent keymaps.

@@ -401,6 +401,42 @@ Entries are =COMMAND-SYMBOL DESCRIPTION= (the key comes from the
 user's binding).  String-key entries are allowed too -- that's how
 sub-menus attach to an annotated keymap.
 
+** Attaching descriptions built from data
+
+Both macros take bindings written literally in source.  When the
+menu itself is computed at runtime -- an anonymous keymap, entries
+generated from a list -- use the function =keymap-popup-attach=:
+
+#+begin_src emacs-lisp
+(defun my-project-popup ()
+  "Pick a recent project from a popup."
+  (interactive)
+  (let* ((projects (seq-take (project-known-project-roots) 9))
+         (map (make-sparse-keymap))
+         (bindings
+          (cl-loop for root in projects
+                   for key from ?1
+                   for cmd = (let ((r root))
+                               (lambda () (interactive)
+                                 (project-switch-project r)))
+                   do (keymap-set map (char-to-string key) cmd)
+                   append (list (char-to-string key)
+                                (list (abbreviate-file-name root) cmd)))))
+    (keymap-popup (keymap-popup-attach
+                   map (append '(:group "Projects") bindings)))))
+#+end_src
+
+Signature:
+
+- =(keymap-popup-attach KEYMAP BINDINGS &rest OPTS)=
+
+BINDINGS is an evaluated list in the same shape as
+=keymap-popup-annotate='s body; commands and predicates are actual
+objects rather than forms.  OPTS accepts =:exit-key=,
+=:description=, and =:persistent=.  Unlike the macros, no keys are
+bound and no commands are defined -- keyed entries should already
+be bound in KEYMAP.  Returns KEYMAP.
+
 * Customization
 :PROPERTIES:
 :CUSTOM_ID: customization

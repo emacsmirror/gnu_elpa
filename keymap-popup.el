@@ -633,8 +633,8 @@ entry is removed first -- matching the replacement semantics of
      scrubbed
      (lambda (group)
        (if (equal (plist-get group :name) target)
-           (list :name (plist-get group :name)
-                 :entries (append (plist-get group :entries) (list entry)))
+           (plist-put (copy-sequence group) :entries
+                      (append (plist-get group :entries) (list entry)))
          group)))))
 
 (defun keymap-popup--remove-key-from-rows (rows key)
@@ -642,10 +642,10 @@ entry is removed first -- matching the replacement semantics of
   (keymap-popup--map-groups
    rows
    (lambda (group)
-     (list :name (plist-get group :name)
-           :entries (cl-remove-if
-                     (lambda (e) (equal (plist-get e :key) key))
-                     (plist-get group :entries))))))
+     (plist-put (copy-sequence group) :entries
+                (cl-remove-if
+                 (lambda (e) (equal (plist-get e :key) key))
+                 (plist-get group :entries))))))
 
 ;;;###autoload
 (defun keymap-popup-add-entry (keymap key description command &optional group)

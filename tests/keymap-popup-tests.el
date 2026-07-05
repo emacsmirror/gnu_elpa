@@ -1039,6 +1039,24 @@
     (should (string-match-p "Comment" output))
     (should-not (string-match-p "Reply" output))))
 
+(ert-deftest keymap-popup-test-add-remove-preserve-group-props ()
+  "Group :if survives `keymap-popup-add-entry' and `keymap-popup-remove-entry'."
+  (eval '(keymap-popup-define keymap-popup--test-group-props
+           :group ("Actions" :if (lambda () t))
+           "c" ("Comment" ignore)
+           "r" ("Reply" ignore))
+        t)
+  (keymap-popup-add-entry keymap-popup--test-group-props
+                          "z" "New" #'forward-char "Actions")
+  (keymap-popup-remove-entry keymap-popup--test-group-props "r")
+  (let* ((descs (keymap-popup--meta keymap-popup--test-group-props
+                                    'descriptions))
+         (group (caar descs)))
+    (should (functionp (plist-get group :if)))
+    (should (equal (mapcar (lambda (e) (plist-get e :key))
+                           (plist-get group :entries))
+                   '("c" "z")))))
+
 ;;; Annotate tests
 
 (defvar keymap-popup--test-annotate-map

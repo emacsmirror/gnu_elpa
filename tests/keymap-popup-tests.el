@@ -1107,6 +1107,32 @@
   (let ((map (make-sparse-keymap)))
     (should (null (keymap-popup--meta map 'descriptions)))))
 
+(ert-deftest keymap-popup-test-attach-meta-stores-all ()
+  (let* ((map (make-sparse-keymap))
+         (result (keymap-popup--attach-meta map '(rows)
+                                            :exit-key "x"
+                                            :description "Doc"
+                                            :persistent t)))
+    (should (eq result map))
+    (should (equal (keymap-popup--meta map 'descriptions) '(rows)))
+    (should (equal (keymap-popup--meta map 'exit-key) "x"))
+    (should (equal (keymap-popup--meta map 'description) "Doc"))
+    (should (eq (keymap-popup--meta map 'persistent) 'yes))))
+
+(ert-deftest keymap-popup-test-attach-meta-omits-nil-opts ()
+  (let ((map (make-sparse-keymap)))
+    (keymap-popup--attach-meta map '(rows))
+    (should (equal (keymap-popup--meta map 'descriptions) '(rows)))
+    (should-not (keymap-popup--meta map 'exit-key))
+    (should-not (keymap-popup--meta map 'description))
+    (should-not (keymap-popup--meta map 'persistent))))
+
+(ert-deftest keymap-popup-test-attach-meta-ignores-unknown-opts ()
+  (let ((map (make-sparse-keymap)))
+    (keymap-popup--attach-meta map '(rows) :popup-key "?")
+    (should (equal (keymap-popup--meta map 'descriptions) '(rows)))
+    (should-not (keymap-popup--meta map 'popup-key))))
+
 (ert-deftest keymap-popup-test-no-descriptions-error ()
   (let ((map (make-sparse-keymap)))
     (should-error (keymap-popup map) :type 'user-error)))

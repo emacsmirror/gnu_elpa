@@ -2,7 +2,7 @@
 #+author: Daniel Mendler
 #+language: en
 
-* Development
+* Version 2.4 (2026-07-05)
 
 - Support non-numeric calendar coordinates.
 

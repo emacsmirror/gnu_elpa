@@ -108,11 +108,13 @@ binding for the variable `denote-directory' then do nothing."
       (message "Made `%s' a Denote silo by writing to `%s'" path dir-locals))))
 
 (defmacro denote-silo-with-silo (silo &rest body)
-`let' bind SILO to the variable `denote-directory'."
   "Run BODY if SILO satisfies `denote-silo-path-is-known-p'.
+`let' bind SILO to the variable `denote-directory' and make SILO have a
+directory-local binding for that variable if necessary."
   (declare (indent defun))
   `(if (denote-silo-path-is-known-p ,silo)
        (let ((denote-directory ,silo))
+         (denote-silo-maybe-make ,silo)
          ,@body)
      (user-error "`%s' is not among the `denote-silo-directories'" ,silo)))
 

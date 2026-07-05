@@ -106,6 +106,12 @@ Argument LIST is a `buffer-undo-list' compatible list."
   (declare (important-return-value nil))
   (remove-hook 'post-command-hook #'with-command-redo--post-command-hook t))
 
+(defun with-command-redo--chain-clear ()
+  "Tear down the active chain: remove the hook and drop the buffer-local state."
+  (declare (important-return-value nil))
+  (with-command-redo--hooks-remove)
+  (kill-local-variable 'with-command-redo--alist))
+
 
 ;; ---------------------------------------------------------------------------
 ;; Hooks
@@ -127,16 +133,14 @@ break the chain if it returns non-nil."
      (eq
       (with-command-redo--buffer-undo-skip-barrier buffer-undo-list)
       (alist-get 'buffer-undo-list-post with-command-redo--alist)))
-    (with-command-redo--hooks-remove)
-    (kill-local-variable 'with-command-redo--alist))
+    (with-command-redo--chain-clear))
 
    ;; A non-modifying external command ran while chain is active.
    (t
     (let ((on-other-command (alist-get 'on-other-command with-command-redo--alist)))
       (when (or (null on-other-command)
                 (funcall on-other-command (alist-get 'fn-cache with-command-redo--alist)))
-        (with-command-redo--hooks-remove)
-        (kill-local-variable 'with-command-redo--alist))))))
+        (with-command-redo--chain-clear))))))
 
 
 ;; ---------------------------------------------------------------------------
@@ -297,6 +301,17 @@ Return value: forwarded from FN."
   (declare (important-return-value t))
   (and (local-variable-p 'with-command-redo--alist)
        (eq id (alist-get 'chain-id with-command-redo--alist))))
+
+;;;###autoload
+(defun with-command-redo-break (id)
+  "End the active command-redo chain with ID in the current buffer.
+Does nothing if no such chain is active.  A subsequent `with-command-redo-fn'
+then starts a fresh chain instead of continuing (and rolling back) this one; a
+command that begins a new chain calls this when it may run while its own
+previous chain is still active (invoked back-to-back), so each run stands alone."
+  (declare (important-return-value nil))
+  (when (with-command-redo-active-p id)
+    (with-command-redo--chain-clear)))
 
 (provide 'with-command-redo)
 ;; Local Variables:

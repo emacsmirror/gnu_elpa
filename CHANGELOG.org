@@ -2,7 +2,7 @@
 #+author: Daniel Mendler
 #+language: en
 
-* Development
+* Version 1.14 (2026-07-05)
 
 - =tempel--templates=: Return templates in order of hooks.
 

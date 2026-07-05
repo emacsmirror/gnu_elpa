@@ -1084,6 +1084,92 @@
                      :command 'some-nonexistent-command-xyz)))
     (should-not (keymap-popup--resolve-key entry keymap-popup--test-annotate-map))))
 
+(ert-deftest keymap-popup-test-resolve-key-keeps-current-stored-key ()
+  "A stored key that still dispatches to its command is kept as-is."
+  (let ((map (make-sparse-keymap))
+        (entry (list :key "n" :description "Next" :type 'suffix
+                     :command 'next-line)))
+    (keymap-set map "n" #'next-line)
+    (should (eq (keymap-popup--resolve-key entry map) entry))))
+
+(ert-deftest keymap-popup-test-resolve-key-follows-rebinding ()
+  "A rebound command resolves to its current key, not the stored one."
+  (let ((map (make-sparse-keymap))
+        (entry (list :key "n" :description "Next" :type 'suffix
+                     :command 'next-line)))
+    (keymap-set map "j" #'next-line)
+    (should (equal (plist-get (keymap-popup--resolve-key entry map) :key)
+                   "j"))))
+
+(ert-deftest keymap-popup-test-resolve-key-stored-key-fallback ()
+  "A stored key survives when the command has no binding in the map."
+  (let ((map (make-sparse-keymap))
+        (entry (list :key "n" :description "Next" :type 'suffix
+                     :command 'next-line)))
+    (should (equal (plist-get (keymap-popup--resolve-key entry map) :key)
+                   "n"))))
+
+(ert-deftest keymap-popup-test-resolve-key-ignores-global-map ()
+  "Resolution never falls back to global bindings (C-n is global next-line)."
+  (let ((map (make-sparse-keymap))
+        (entry (list :key nil :description "Next" :type 'suffix
+                     :command 'next-line)))
+    (should-not (keymap-popup--resolve-key entry map))))
+
+(ert-deftest keymap-popup-test-resolve-key-keeps-stored-key-when-inapt ()
+  "An inapt entry keeps its stored key.
+The menu-item filter reroutes the binding to the stub, so
+`where-is-internal' cannot find the command; the stored key must
+survive so the entry still renders (dimmed)."
+  (let* ((map (make-sparse-keymap))
+         (wrapped (eval (keymap-popup--wrap-binding-form
+                         '(function next-line) nil (lambda () t))
+                        t))
+         (entry (list :key "n" :description "Next" :type 'suffix
+                      :command 'next-line :inapt-if (lambda () t))))
+    (keymap-set map "n" wrapped)
+    (should (equal (plist-get (keymap-popup--resolve-key entry map) :key)
+                   "n"))))
+
+(ert-deftest keymap-popup-test-resolve-key-no-command-entry-kept ()
+  "Entries without :command (e.g. pre-groundwork metadata) pass through."
+  (let ((map (make-sparse-keymap))
+        (entry (list :key "s" :description "Sub" :type 'keymap
+                     :target (make-sparse-keymap))))
+    (should (eq (keymap-popup--resolve-key entry map) entry))))
+
+(ert-deftest keymap-popup-test-define-rebound-key-updates-popup ()
+  "Rebinding a command after keymap-popup-define updates the shown key."
+  (eval '(keymap-popup-define keymap-popup--test-rebind-map
+           :group "Nav"
+           "n" ("Next" next-line))
+        t)
+  (keymap-unset keymap-popup--test-rebind-map "n" t)
+  (keymap-set keymap-popup--test-rebind-map "j" #'next-line)
+  (let* ((resolved (keymap-popup--resolve-descriptions
+                    (keymap-popup--collect-descriptions
+                     keymap-popup--test-rebind-map)
+                    keymap-popup--test-rebind-map))
+         (entry (car (plist-get (caar resolved) :entries))))
+    (should (equal (plist-get entry :key) "j"))))
+
+(ert-deftest keymap-popup-test-define-rebound-switch-updates-popup ()
+  "Rebinding a generated toggle command updates the shown key."
+  (eval '(keymap-popup-define keymap-popup--test-rebind-sw-map
+           :group "Toggles"
+           "v" ("Verbose" :switch keymap-popup--test-rebind-sw-var))
+        t)
+  (keymap-unset keymap-popup--test-rebind-sw-map "v" t)
+  (keymap-set keymap-popup--test-rebind-sw-map "V"
+              (keymap-popup--toggle-name 'keymap-popup--test-rebind-sw-map
+                                         'keymap-popup--test-rebind-sw-var))
+  (let* ((resolved (keymap-popup--resolve-descriptions
+                    (keymap-popup--collect-descriptions
+                     keymap-popup--test-rebind-sw-map)
+                    keymap-popup--test-rebind-sw-map))
+         (entry (car (plist-get (caar resolved) :entries))))
+    (should (equal (plist-get entry :key) "V"))))
+
 (ert-deftest keymap-popup-test-resolve-descriptions ()
   (let* ((rows (list (list (list :name "Test"
                                  :entries (list (list :key nil :description "Forward"

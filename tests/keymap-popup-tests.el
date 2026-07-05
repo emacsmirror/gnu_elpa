@@ -506,9 +506,9 @@
     (should (keymap-popup--keep-popup-p descs "a"))
     ;; stay-open suffixes refresh in place, kept open
     (should (keymap-popup--keep-popup-p descs "g"))
-    ;; Inapt-key handling lives in the keep-pred via `this-command'
-    ;; (see `keymap-popup--make-keep-pred'), not in keep-popup-p.
-    ;; C-u is detected via `this-command' too.
+    ;; Inapt-key handling lives in the keep-pred via
+    ;; `keymap-popup--inapt-key-p', not in keep-popup-p.
+    ;; C-u is detected via `this-command'.
     (should-not (keymap-popup--keep-popup-p descs "C-u"))))
 
 ;;; C-u rendering tests
@@ -805,13 +805,14 @@
         t)
   (should (eq (keymap-lookup keymap-popup--test-if-pass "x") #'ignore)))
 
-(ert-deftest keymap-popup-test-inapt-filter-routes-to-stub ()
-  "An active :inapt-if predicate reroutes dispatch to `keymap-popup--inapt-stub'."
+(ert-deftest keymap-popup-test-inapt-keymap-binding-stays-real ()
+  "An active :inapt-if leaves the keymap binding untouched.
+Enforcement lives in the popup wrapper; the keymap stays honest for
+`where-is' and `describe-key'."
   (eval '(keymap-popup-define keymap-popup--test-inapt-route
            "x" ("X" ignore :inapt-if (lambda () t)))
         t)
-  (should (eq (keymap-lookup keymap-popup--test-inapt-route "x")
-              #'keymap-popup--inapt-stub)))
+  (should (eq (keymap-lookup keymap-popup--test-inapt-route "x") #'ignore)))
 
 (ert-deftest keymap-popup-test-inapt-filter-passes-when-pred-nil ()
   "An inactive :inapt-if predicate exposes the underlying command."
@@ -821,7 +822,8 @@
   (should (eq (keymap-lookup keymap-popup--test-inapt-pass "x") #'ignore)))
 
 (ert-deftest keymap-popup-test-dynamic-inapt-toggle ()
-  "Toggling a buffer-local that backs :inapt-if changes dispatch per press."
+  "Keymap dispatch is constant regardless of the :inapt-if value.
+Enforcement moved to the wrapper; the binding never changes."
   (defvar keymap-popup--test-dyn-flag nil)
   (eval '(keymap-popup-define keymap-popup--test-dyn-map
            "x" ("X" ignore
@@ -830,8 +832,7 @@
   (let ((keymap-popup--test-dyn-flag nil))
     (should (eq (keymap-lookup keymap-popup--test-dyn-map "x") #'ignore)))
   (let ((keymap-popup--test-dyn-flag t))
-    (should (eq (keymap-lookup keymap-popup--test-dyn-map "x")
-                #'keymap-popup--inapt-stub))))
+    (should (eq (keymap-lookup keymap-popup--test-dyn-map "x") #'ignore))))
 
 (ert-deftest keymap-popup-test-group-if-blocks-dispatch ()
   "Group :if applies to each entry's keymap binding."
@@ -841,14 +842,13 @@
         t)
   (should-not (keymap-lookup keymap-popup--test-grp-if "a")))
 
-(ert-deftest keymap-popup-test-group-inapt-routes-to-stub ()
-  "Group :inapt-if reroutes each entry's dispatch to the inapt stub."
+(ert-deftest keymap-popup-test-group-inapt-keymap-binding-stays-real ()
+  "Group :inapt-if leaves each entry's keymap binding untouched."
   (eval '(keymap-popup-define keymap-popup--test-grp-inapt
            :group ("Off" :inapt-if (lambda () t))
            "a" ("A" ignore))
         t)
-  (should (eq (keymap-lookup keymap-popup--test-grp-inapt "a")
-              #'keymap-popup--inapt-stub)))
+  (should (eq (keymap-lookup keymap-popup--test-grp-inapt "a") #'ignore)))
 
 (ert-deftest keymap-popup-test-if-and-inapt-combine ()
   ":if takes precedence over :inapt-if when both are present."
@@ -1358,17 +1358,17 @@ come from the wrapper."
                      :command 'next-line)))
     (should-not (keymap-popup--resolve-key entry map))))
 
-(ert-deftest keymap-popup-test-resolve-key-keeps-stored-key-when-inapt ()
-  "An inapt entry keeps its stored key.
-The menu-item filter reroutes the binding to the stub, so
-`where-is-internal' cannot find the command; the stored key must
-survive so the entry still renders (dimmed)."
+(ert-deftest keymap-popup-test-resolve-key-keeps-stored-key-when-if-hidden ()
+  "An entry hidden by an :if filter keeps its stored key.
+The filter makes the key act unbound, so `where-is-internal' cannot
+find the command; the stored key must survive (render hides the
+entry independently)."
   (let* ((map (make-sparse-keymap))
          (wrapped (eval (keymap-popup--wrap-binding-form
-                         '(function next-line) nil (lambda () t))
+                         '(function next-line) (lambda () nil))
                         t))
          (entry (list :key "n" :description "Next" :type 'suffix
-                      :command 'next-line :inapt-if (lambda () t))))
+                      :command 'next-line :if (lambda () nil))))
     (keymap-set map "n" wrapped)
     (should (equal (plist-get (keymap-popup--resolve-key entry map) :key)
                    "n"))))

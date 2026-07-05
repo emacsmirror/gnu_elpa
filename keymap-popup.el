@@ -352,49 +352,28 @@ Always a symbol; the corresponding `defun' is emitted by
   "Return a `menu-item' :filter exposing the binding only when PRED is non-nil."
   (lambda (b) (and (funcall pred) b)))
 
-(defun keymap-popup--make-inapt-filter (pred)
-  "Return a `menu-item' :filter that swaps the binding for the inapt stub.
-PRED non-nil reroutes dispatch to `keymap-popup--inapt-stub'."
-  (lambda (b) (if (funcall pred) #'keymap-popup--inapt-stub b)))
-
-(defun keymap-popup--make-combined-filter (if-pred inapt-pred)
-  "Return a `menu-item' :filter that AND-combines IF-PRED and INAPT-PRED.
-IF-PRED nil unbinds the key; INAPT-PRED non-nil reroutes to the inapt stub."
-  (lambda (b)
-    (cond ((not (funcall if-pred)) nil)
-          ((funcall inapt-pred) #'keymap-popup--inapt-stub)
-          (t b))))
-
-(defun keymap-popup--wrap-binding-form (cmd-form if-pred inapt-pred)
-  "Wrap CMD-FORM with a `menu-item' :filter when IF-PRED or INAPT-PRED is set.
-IF-PRED and INAPT-PRED are forms that evaluate to zero-arg predicates.
-A nil :if filter result makes the key act as unbound; an active :inapt-if
-reroutes dispatch to `keymap-popup--inapt-stub'.  Filter closures are built by
-helpers in this file so they remain lexical regardless of the caller."
-  (cond
-   ((and if-pred inapt-pred)
-    `(list 'menu-item "" ,cmd-form :filter
-           (keymap-popup--make-combined-filter ,if-pred ,inapt-pred)))
-   (if-pred
-    `(list 'menu-item "" ,cmd-form :filter
-           (keymap-popup--make-if-filter ,if-pred)))
-   (inapt-pred
-    `(list 'menu-item "" ,cmd-form :filter
-           (keymap-popup--make-inapt-filter ,inapt-pred)))
-   (t cmd-form)))
+(defun keymap-popup--wrap-binding-form (cmd-form if-pred)
+  "Wrap CMD-FORM with a `menu-item' :filter when IF-PRED is set.
+IF-PRED is a form that evaluates to a zero-arg predicate; a nil
+filter result makes the key act as unbound.  `:inapt-if' is not a
+keymap concern -- it is enforced by the popup wrapper at keypress
+time.  The filter closure is built by a helper in this file so it
+remains lexical regardless of the caller."
+  (if if-pred
+      `(list 'menu-item "" ,cmd-form :filter
+             (keymap-popup--make-if-filter ,if-pred))
+    cmd-form))
 
 (defun keymap-popup--build-keymap-pairs (map-name entries)
   "Build flat key/command list for `defvar-keymap' from ENTRIES.
 MAP-NAME is used to derive generated command names.  Entries with
-:if or :inapt-if expand to a `menu-item' form with :filter."
+:if expand to a `menu-item' form with :filter."
   (cl-loop for entry in entries
            for cmd = (keymap-popup--entry-command map-name entry)
            for cmd-form = (if (symbolp cmd) `#',cmd cmd)
            append (list (plist-get entry :key)
                         (keymap-popup--wrap-binding-form
-                         cmd-form
-                         (plist-get entry :if)
-                         (plist-get entry :inapt-if)))))
+                         cmd-form (plist-get entry :if)))))
 
 (defun keymap-popup--build-entry-form (entry &optional map-name)
   "Build a `list' form for a single ENTRY.
@@ -944,11 +923,11 @@ Resolves the docstring for mode-line display."
 An entry keeps its stored :key while that key still dispatches to
 the entry's :command.  When the command has been rebound,
 `where-is-internal' supplies the current key; when it finds no
-binding, the stored key is kept (this covers inapt entries, whose
-`menu-item' filter reroutes the binding to the stub).  Entries
-with no stored :key (annotated) resolve via `where-is-internal'
-and are dropped when unbound.  Resolution searches only KEYMAP and
-its parents, never the global map."
+binding, the stored key is kept (this covers lambda commands and
+entries hidden by an `:if' filter).  Entries with no stored :key
+\(annotated) resolve via `where-is-internal' and are dropped when
+unbound.  Resolution searches only KEYMAP and its parents, never
+the global map."
   (let ((cmd (plist-get entry :command))
         (stored (plist-get entry :key)))
     (cond
@@ -1207,20 +1186,6 @@ itself, so the binding only needs to exist and do nothing."
   (list (cons exit-key #'ignore)
         (cons "C-u" #'keymap-popup--prefix-argument)))
 
-(defun keymap-popup--inapt-stub ()
-  "Refuse an inapt key press.
-Bound dynamically by the menu-item :filter on entries whose
-`:inapt-if' predicate is currently non-nil.  Preserves the popup's
-prefix-mode state so `\\[universal-argument]' is not consumed."
-  (interactive)
-  (message "Command unavailable")
-  ;; The popup's prefix-mode only ever stores `(4)' (see
-  ;; `keymap-popup--prefix-argument'), so re-setting that value is
-  ;; preservation, not approximation.
-  (when-let* ((buf (get-buffer keymap-popup--buffer-name))
-              ((buffer-local-value 'keymap-popup--prefix-mode buf)))
-    (setq prefix-arg '(4))))
-
 (defun keymap-popup--refuse-inapt (buf)
   "Refuse an inapt key press for the popup in BUF.
 Preserves BUF's prefix-mode so \\[universal-argument] is not
@@ -1387,8 +1352,9 @@ EXIT-KEY is bound in the wrapper to dismiss the popup."
 (defun keymap-popup (keymap)
   "Show popup help for described KEYMAP.
 Activates KEYMAP as a transient map.  Switch keys execute and re-render
-without closing.  Inapt keys signal `Command unavailable' via
-`keymap-popup--inapt-stub'.  Sub-menu keys push a navigation stack.
+without closing.  Inapt keys are refused with \"Command unavailable\"
+and keep the popup open; outside a popup, `:inapt-if' does not block
+dispatch.  Sub-menu keys push a navigation stack.
 \\[universal-argument] toggles prefix mode."
   (or (keymap-popup--meta keymap 'descriptions)
       (user-error "No descriptions in keymap"))

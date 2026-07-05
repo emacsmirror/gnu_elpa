@@ -834,6 +834,28 @@ Enforcement moved to the wrapper; the binding never changes."
   (let ((keymap-popup--test-dyn-flag t))
     (should (eq (keymap-lookup keymap-popup--test-dyn-map "x") #'ignore))))
 
+(ert-deftest keymap-popup-test-direct-dispatch-ignores-inapt ()
+  "Outside a popup, an inapt key dispatches its real command."
+  (let ((count 0))
+    (eval `(keymap-popup-define keymap-popup--test-direct-inapt
+             "x" ("X" ,(lambda () (interactive) (setq count (1+ count)))
+                  :inapt-if (lambda () t)))
+          t)
+    (let ((binding (keymap-lookup keymap-popup--test-direct-inapt "x")))
+      (should (commandp binding))
+      (call-interactively binding)
+      (should (= count 1)))))
+
+(ert-deftest keymap-popup-test-where-is-finds-inapt-command ()
+  "`where-is-internal' finds a command whose entry is inapt."
+  (eval '(keymap-popup-define keymap-popup--test-whereis-inapt
+           "n" ("Next" next-line :inapt-if (lambda () t)))
+        t)
+  (should (equal (key-description
+                  (where-is-internal
+                   #'next-line (list keymap-popup--test-whereis-inapt) t))
+                 "n")))
+
 (ert-deftest keymap-popup-test-group-if-blocks-dispatch ()
   "Group :if applies to each entry's keymap binding."
   (eval '(keymap-popup-define keymap-popup--test-grp-if

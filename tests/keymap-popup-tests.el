@@ -148,6 +148,53 @@
                     forms)))
       (should-not (seq-some (lambda (f) (eq (car-safe f) 'setf)) forms)))))
 
+(ert-deftest keymap-popup-test-define-switch-entry-stores-command ()
+  "Define stores the generated toggle command on switch entries."
+  (eval '(keymap-popup-define keymap-popup--test-entry-cmd-map
+           :group "Toggles"
+           "v" ("Verbose" :switch keymap-popup--test-entry-cmd-verbose))
+        t)
+  (let* ((descs (keymap-popup--meta keymap-popup--test-entry-cmd-map
+                                    'descriptions))
+         (entry (car (plist-get (caar descs) :entries))))
+    (should (eq (plist-get entry :command)
+                (keymap-popup--toggle-name
+                 'keymap-popup--test-entry-cmd-map
+                 'keymap-popup--test-entry-cmd-verbose)))
+    (should (eq (plist-get entry :variable)
+                'keymap-popup--test-entry-cmd-verbose))))
+
+(ert-deftest keymap-popup-test-define-keymap-entry-stores-command ()
+  "Define stores the generated enter command on keymap entries."
+  (defvar keymap-popup--test-entry-cmd-sub (make-sparse-keymap))
+  (eval '(keymap-popup-define keymap-popup--test-entry-cmd-root
+           :group "Menus"
+           "s" ("Sub" :keymap keymap-popup--test-entry-cmd-sub))
+        t)
+  (let* ((descs (keymap-popup--meta keymap-popup--test-entry-cmd-root
+                                    'descriptions))
+         (entry (car (plist-get (caar descs) :entries))))
+    (should (eq (plist-get entry :command)
+                (keymap-popup--enter-name
+                 'keymap-popup--test-entry-cmd-root
+                 'keymap-popup--test-entry-cmd-sub)))
+    (should (eq (plist-get entry :target)
+                keymap-popup--test-entry-cmd-sub))))
+
+(ert-deftest keymap-popup-test-annotate-entries-lack-generated-command ()
+  "Annotate emits no generated commands, so entries carry none."
+  (defvar keymap-popup--test-entry-cmd-sub (make-sparse-keymap))
+  (setq keymap-popup--test-annotate-map (make-sparse-keymap))
+  (eval '(keymap-popup-annotate keymap-popup--test-annotate-map
+           :group "Menus"
+           "s" ("Sub" :keymap keymap-popup--test-entry-cmd-sub))
+        t)
+  (let* ((descs (keymap-popup--meta keymap-popup--test-annotate-map
+                                    'descriptions))
+         (entry (car (plist-get (caar descs) :entries))))
+    (should (eq (plist-get entry :type) 'keymap))
+    (should-not (plist-get entry :command))))
+
 (ert-deftest keymap-popup-test-macro-creates-keymap ()
   (eval '(keymap-popup-define keymap-popup--test-map-1
            "Test keymap."

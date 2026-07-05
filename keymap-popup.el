@@ -457,10 +457,10 @@ MAP-NAME is passed down to the entry forms."
             (let* ((var (plist-get e :variable))
                    (toggle (keymap-popup--toggle-name map-name var)))
               `((defvar-local ,var nil
-                  ,(format "Buffer-local switch state toggled by `%s'."
+                  ,(format "Buffer-local switch state.\nToggled by `%s'."
                            toggle))
                 (defun ,toggle ()
-                  ,(format "Toggle `%s' in the current buffer." var)
+                  ,(format "Toggle the buffer-local switch.\nSets `%s' in the current buffer." var)
                   (interactive)
                   (setq ,var (not ,var))
                   (message "%s: %s" ',var (if ,var "on" "off"))))))

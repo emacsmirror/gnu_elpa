@@ -304,11 +304,10 @@ Return value: forwarded from FN."
 
 ;;;###autoload
 (defun with-command-redo-break (id)
-  "End the active command-redo chain with ID in the current buffer.
-Does nothing if no such chain is active.  A subsequent `with-command-redo-fn'
-then starts a fresh chain instead of continuing (and rolling back) this one; a
-command that begins a new chain calls this when it may run while its own
-previous chain is still active (invoked back-to-back), so each run stands alone."
+  "End the active command-redo chain with ID in the current buffer, if any.
+A subsequent `with-command-redo-fn' then starts a fresh chain instead of
+continuing (and rolling back) this one - useful when a command that begins a
+chain may run while its own previous chain is still active (back-to-back)."
   (declare (important-return-value nil))
   (when (with-command-redo-active-p id)
     (with-command-redo--chain-clear)))

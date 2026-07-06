@@ -549,6 +549,28 @@
     (should (equal (nreverse chat-calls)
                    '(("Ask me" t (:ephemeral t)))))))
 
+(ert-deftest test-ellama-transient-plan-and-act-buffer-then-kill ()
+  (let ((buffer (generate-new-buffer "*ellama-blueprint-agent-test*"))
+        call
+        killed-buffer)
+    (unwind-protect
+        (progn
+          (with-current-buffer buffer
+            (insert "Implement the blueprint")
+            (cl-letf (((symbol-function 'ellama-plan-and-act)
+                       (lambda (prompt create-session &rest rest)
+                         (setq call (list prompt create-session rest))))
+                      ((symbol-function 'ellama-kill-current-buffer)
+                       (lambda ()
+                         (setq killed-buffer (current-buffer))
+                         (kill-buffer (current-buffer)))))
+              (ellama-transient-plan-and-act-buffer-then-kill)))
+          (should (equal call '("Implement the blueprint" t nil)))
+          (should (eq killed-buffer buffer))
+          (should-not (buffer-live-p buffer)))
+      (when (buffer-live-p buffer)
+        (kill-buffer buffer)))))
+
 (ert-deftest test-ellama-transient-add-image-uses-ephemeral-flag ()
   (let (calls)
     (cl-letf (((symbol-function 'ellama-context-add-image)

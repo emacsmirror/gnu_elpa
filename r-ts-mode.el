@@ -7,13 +7,13 @@
 ;;; Code:
 
 (require 'treesit)
+(require 'r-ts-roxygen)
 (declare-function r-ts-mode-parent-mode 'r-ts-mode)
 
 
 ;;;; =========================================================================
 ;;;; Groups, Custom Variables, General Variables
 ;;;; =========================================================================
-
 (defgroup r-ts-mode nil
   "R support for Emacs using tree-sitter."
   :group 'languages
@@ -24,49 +24,10 @@
   :type 'boolean
   :group 'r-ts-mode)
 
-(defcustom r-ts-mode-r-program "R"
-  "Program name or path for invoking R."
-  :type '(choice string file)
-  :group 'r-ts-mode)
-
 (defcustom r-ts-mode-indent-level 2
   "Number of spaces per indentation level."
   :type 'integer
   :group 'r-ts-mode)
-
-(defcustom r-ts-mode-create-treesitter-dir t
-  "When non-nil, automatically create `~/.emacs.d/tree-sitter/' if missing.
-When nil, signal an error if the target directory does not exist."
-  :type 'boolean
-  :group 'r-ts-mode)
-
-(defcustom r-ts-mode-roxygen-tags-param
-  '("author" "aliases" "concept" "details"
-    "example" "examples" "examplesIf"
-    "format" "keywords"
-    "method" "exportMethod"
-    "name" "note" "param"
-    "include" "references" "return" "returns"
-    "seealso" "source" "docType"
-    "title" "TODO" "usage" "import"
-    "exportClass" "exportPattern"
-    "exportS3Method" "S3method"
-    "inherit" "inheritParams" "inheritSection"
-    "importFrom" "importClassesFrom"
-    "importMethodsFrom" "useDynLib"
-    "rawNamespace"
-    "rdname" "section" "slot" "description"
-    "md" "eval" "evalNamespace" "family")
-  "Roxygen tags that require a parameter.
-Used to decide highlighting and tag completion."
-  :group 'r-ts-mode
-  :type '(repeat string))
-
-(defcustom r-ts-mode-roxygen-tags-noparam '("export" "noRd")
-  "Roxygen tags that can be used without a parameter.
-Used to decide highlighting and tag completion."
-  :group 'r-ts-mode
-  :type '(repeat string))
 
 (defvar r-ts-mode--debug nil
   "When non-nil, enable verbose debugging messages.  For development use.")
@@ -78,14 +39,6 @@ Used to decide highlighting and tag completion."
 ;;;; =========================================================================
 ;;;; Constants and Syntax Table
 ;;;; =========================================================================
-
-(defconst r-ts-mode-roxygen--initial-regex "^[ \t]*#+'"
-  "Regexp matching the start of a roxygen comment line.")
-
-(defconst r-ts-mode-roxygen--param-name-regexp
-  "\\(?:\\(?:\\sw\\|\\s_\\)+,?\\)+"
-  "Regexp matching a parameter name, including symbols and commas.")
-
 (defvar r-ts-mode-syntax-table
   (let ((table (make-syntax-table prog-mode-syntax-table)))
     ;; Comments
@@ -122,7 +75,6 @@ Used to decide highlighting and tag completion."
 ;;;; =========================================================================
 ;;;; Faces
 ;;;; =========================================================================
-
 (defgroup r-ts-mode-faces nil
   "Faces for `r-ts-mode' syntax highlighting."
   :prefix "r-ts-mode-face-"
@@ -275,110 +227,8 @@ Used to decide highlighting and tag completion."
 
 
 ;;;; =========================================================================
-;;;; Grammar / Binary Preparation — Pure Helpers
-;;;; =========================================================================
-
-(defun r-ts-mode--build-r-find-package-command (r-program)
-  "Return the shell command that prints the path of the 'treesitter.r' R package.
-R-PROGRAM is the executable name or path.  Pure function — no side effects."
-  (if (string-match-p "\\.exe\\'" r-program)
-      (format "%s --no-echo -q -e print(find.package('treesitter.r'))" r-program)
-    (format "%s --no-echo -q -e 'print(find.package(\"treesitter.r\"))'" r-program)))
-
-(defun r-ts-mode--parse-r-find-package-output (output)
-  "Extract a file path from R's printed OUTPUT string.
-OUTPUT is expected to contain a quoted path, e.g. [1] \"/some/path\".
-Returns the path string, or signals an error if OUTPUT starts with \"Error\".
-Pure function — no side effects."
-  (when (string-match-p "\\`Error" output)
-    (error "R signalled an error: %s" output))
-  (if (string-match "\"\\([^\"]+\\)\"" output)
-      (match-string 1 output)
-    (error "Could not parse R output: %s" output)))
-
-(defun r-ts-mode--find-treesitter-r-package-path ()
-  "Run R to find the installed path of the 'treesitter.r' package.
-Returns the path string.  Signals an error on failure."
-  (let* ((cmd (r-ts-mode--build-r-find-package-command r-ts-mode-r-program))
-         (output (progn
-                   (shell-command cmd)
-                   (with-current-buffer "*Shell Command Output*"
-                     (buffer-substring-no-properties (point-min) (point-max))))))
-    (kill-buffer "*Shell Command Output*")
-    (r-ts-mode--parse-r-find-package-output output)))
-
-;;; Path construction — pure, easily unit-tested
-
-(defun r-ts-mode--binary-path-unix (package-path)
-  "Return the expected .so path for PACKAGE-PATH on Unix.  Pure."
-  (format "%s/libs/treesitter.r.so" package-path))
-
-(defun r-ts-mode--binary-path-win (package-path)
-  "Return candidate .dll paths for PACKAGE-PATH on Windows as a list.  Pure."
-  (let ((base (format "%s/libs/" package-path)))
-    (list (format "%streesitter.r.dll" base)
-          (format "%sx64/treesitter.r.dll" base))))
-
-;;; Path validation — touches the filesystem, separated from construction
-
-(defun r-ts-mode--validate-path-exists (path)
-  "Return PATH if it exists on disk, otherwise signal an error."
-  (if (file-exists-p path)
-      path
-    (error "File not found: %s" path)))
-
-(defun r-ts-mode--resolve-binary-path-unix (package-path)
-  "Return the validated .so path under PACKAGE-PATH, or signal an error."
-  (r-ts-mode--validate-path-exists
-   (r-ts-mode--binary-path-unix package-path)))
-
-(defun r-ts-mode--resolve-binary-path-win (package-path)
-  "Return the first existing .dll path under PACKAGE-PATH, or signal an error."
-  (let ((found (seq-find #'file-exists-p
-                         (r-ts-mode--binary-path-win package-path))))
-    (or found
-        (error "treesitter.r.dll not found under %s.  Please report this issue."
-               package-path))))
-
-(defun r-ts-mode--resolve-binary-path (package-path)
-  "Return the validated grammar binary path under PACKAGE-PATH for this OS."
-  (if (eq system-type 'windows-nt)
-      (r-ts-mode--resolve-binary-path-win package-path)
-    (r-ts-mode--resolve-binary-path-unix package-path)))
-
-;;; Directory preparation
-
-(defun r-ts-mode--ensure-directory (path)
-  "Ensure that PATH exists as a directory.
-If missing, create it when `r-ts-mode-create-treesitter-dir' is non-nil,
-otherwise signal an error."
-  (let ((expanded (expand-file-name path)))
-    (unless (file-exists-p expanded)
-      (if r-ts-mode-create-treesitter-dir
-          (make-directory expanded t)
-        (error "Directory not found: %s" expanded)))))
-
-;;;###autoload
-(defun r-ts-mode-prepare-binaries-from-r-library (&optional package-path emacs-ts-path)
-  "Copy the tree-sitter R grammar from the 'treesitter.r' R package to Emacs.
-Searches for the package in PACKAGE-PATH (or auto-detects via R) and copies
-the compiled binary to EMACS-TS-PATH (default: ~/.emacs.d/tree-sitter/)."
-  (interactive)
-  (let* ((binary-ext (if (eq system-type 'windows-nt) "dll" "so"))
-         (ts-path (file-name-as-directory
-                   (or emacs-ts-path "~/.emacs.d/tree-sitter/")))
-         (pkg-path (or package-path (r-ts-mode--find-treesitter-r-package-path)))
-         (binary-path (r-ts-mode--resolve-binary-path pkg-path)))
-    (r-ts-mode--ensure-directory ts-path)
-    (copy-file binary-path
-               (format "%slibtree-sitter-r.%s" ts-path binary-ext)
-               t)))
-
-
-;;;; =========================================================================
 ;;;; Tree-sitter Node Utilities — Pure Predicates and Accessors
 ;;;; =========================================================================
-
 (defun r-ts-mode--node-is-fun-def-p (node)
   "Return non-nil if the last child of NODE is a `function_definition'."
   (treesit-node-match-p (treesit-node-child node -1) "function_definition"))
@@ -403,8 +253,7 @@ Returns nil if NODE is not a `binary_operator'."
   (when (treesit-node-match-p node "binary_operator")
     (treesit-node-text (treesit-node-child node -3) t)))
 
-;;; Public aliases with the names expected by treesit settings
-
+;; Public aliases with the names expected by treesit settings
 (defalias 'r-ts-mode--is-fun-def   #'r-ts-mode--node-is-fun-def-p
   "Predicate: is NODE a function definition assignment?  See `r-ts-mode--node-is-fun-def-p'.")
 
@@ -427,7 +276,6 @@ Expected by `treesit-simple-imenu-settings' for non-function objects."
 ;;;; =========================================================================
 ;;;; Node Navigation Utilities
 ;;;; =========================================================================
-
 (defun r-ts-mode--node-ancestor-matching (node type)
   "Walk up the tree from NODE, returning the first ancestor matching TYPE.
 Returns nil if the `program' root is reached without a match.
@@ -476,7 +324,6 @@ Returns nil if point is not inside an `arguments' or `argument' node."
 ;;;; =========================================================================
 ;;;; Tree-sitter Font-lock Settings
 ;;;; =========================================================================
-
 (defvar r-ts-mode--operators
   '("?" ":=" "=" "<-" "<<-" "->" "->>"
     "~" "|>" "||" "|" "&&" "&"
@@ -606,69 +453,8 @@ Returns nil if point is not inside an `arguments' or `argument' node."
 
 
 ;;;; =========================================================================
-;;;; Roxygen Minor Mode
-;;;; =========================================================================
-
-(defun r-ts-mode-roxygen--build-keywords ()
-  "Return a font-lock keyword list for roxygen comments.
-Pure function — reads only `defcustom' values, produces no side effects."
-  `(;; Highlight entire roxygen lines
-    (,(concat r-ts-mode-roxygen--initial-regex ".*")
-     (0 'font-lock-doc-face prepend))
-    ;; Tags that take a parameter
-    (,(concat r-ts-mode-roxygen--initial-regex " *\\([@\\]"
-              (regexp-opt r-ts-mode-roxygen-tags-param t)
-              "\\)\\>")
-     (1 'font-lock-keyword-face prepend))
-    ;; @param / @importFrom / etc. — highlight the argument name too
-    (,(concat r-ts-mode-roxygen--initial-regex " *\\(@"
-              (regexp-opt '("param" "importFrom" "importClassesFrom"
-                            "importMethodsFrom" "describeIn")
-                          'words)
-              "\\)\\(?:[ \t]+\\(" r-ts-mode-roxygen--param-name-regexp "\\)\\)")
-     (1 'font-lock-keyword-face prepend)
-     (3 'font-lock-variable-name-face prepend))
-    ;; Tags that take no parameter
-    (,(concat "[@\\]" (regexp-opt r-ts-mode-roxygen-tags-noparam t) "\\>")
-     (0 'font-lock-variable-name-face prepend))
-    ;; Bold the #' prefix itself
-    (,(concat r-ts-mode-roxygen--initial-regex)
-     (0 'bold prepend))))
-
-(defvar-local r-ts-mode-roxygen--active-keywords nil
-  "Font-lock keywords currently installed by `r-ts-mode-roxygen-mode'.")
-
-(defun r-ts-mode-roxygen--enable ()
-  "Install roxygen font-lock keywords and completion in the current buffer."
-  (setq r-ts-mode-roxygen--active-keywords
-        (r-ts-mode-roxygen--build-keywords))
-  (font-lock-add-keywords nil r-ts-mode-roxygen--active-keywords)
-  (add-hook 'completion-at-point-functions
-            #'r-ts-mode-roxygen-complete-tag nil t))
-
-(defun r-ts-mode-roxygen--disable ()
-  "Remove roxygen font-lock keywords and completion from the current buffer."
-  (when r-ts-mode-roxygen--active-keywords
-    (font-lock-remove-keywords nil r-ts-mode-roxygen--active-keywords)
-    (setq r-ts-mode-roxygen--active-keywords nil))
-  (remove-hook 'completion-at-point-functions
-               #'r-ts-mode-roxygen-complete-tag t))
-
-;;;###autoload
-(define-minor-mode r-ts-mode-roxygen-mode
-  "Minor mode for roxygen documentation in R buffers."
-  :init-value nil
-  (if r-ts-mode-roxygen-mode
-      (r-ts-mode-roxygen--enable)
-    (r-ts-mode-roxygen--disable))
-  (when font-lock-mode
-    (font-lock-flush)))
-
-
-;;;; =========================================================================
 ;;;; Indentation, Navigation, Imenu Settings
 ;;;; =========================================================================
-
 (defvar r-ts-mode--indent-rules
   `((r
      ((node-is "}") parent-bol 0)

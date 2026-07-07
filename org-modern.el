@@ -89,7 +89,8 @@ star.  Set to nil to disable.  This feature is automatically disabled if
           (character :tag "Replacement character for leading stars")
           (const :tag "Do not hide stars" nil)
           (const :tag "Hide all stars" t)
-          (const :tag "Hide leading stars" leading)))
+          (const :tag "Hide and collapse leading stars" leading)
+          (character :tag "Replace leading stars by space" ?\s)))
 
 (defcustom org-modern-timestamp t
   "Prettify time stamps, e.g. <2022-03-01>.

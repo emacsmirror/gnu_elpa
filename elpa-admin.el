@@ -1072,8 +1072,8 @@ Core folders are recursively searched, excluded files are ignored."
     ;; Get rid of leading zeros since ELPA's version numbers don't allow them.
     (replace-regexp-in-string "\\(\\`\\|[^0-9]\\)0+\\([0-9]\\)" "\\1\\2"
                               ;; Remove trailing newline or anything untoward.
-                              (replace-regexp-in-string "[^.0-9]+" ""
-                                                        verdate))))
+                              ;;(replace-regexp-in-string "[^.0-9]+" "" verdate)
+                              verdate)))
 
 (defun elpaa--make-new-devel-vers (vers datecount)
   (pcase-let*
@@ -1090,7 +1090,7 @@ Core folders are recursively searched, excluded files are ignored."
                 (format-time-string
                  (if (not (string-match "\\`[0-9]*\n\\'" count))
                      ;; Old style format.
-                  "%Y%m%d.%H%M%S" (concat "%Y%m%d." (substring count 0 -1)))
+                     "%Y%m%d.%H%M%S" (concat "%Y%m%d." (substring count 0 -1)))
                  time 0))))
     ;; FIXME: Before using this new DATE.COUNT scheme, we need to
     ;; arrange the code so that we don't uselessly
@@ -1103,8 +1103,8 @@ Core folders are recursively searched, excluded files are ignored."
     ;; Get rid of leading zeros since ELPA's version numbers don't allow them.
     (replace-regexp-in-string "\\(\\`\\|[^0-9]\\)0+\\([0-9]\\)" "\\1\\2"
                               ;; Remove trailing newline or anything untoward.
-                              (replace-regexp-in-string "[^.0-9]+" ""
-                                                        verdate))))
+                              ;;(replace-regexp-in-string "[^.0-9]+" "" verdate)
+                              verdate)))
 
 (defun elpaa--get-package-spec (pkg &optional pkg-specs noerror)
   "Retrieve the property list for PKG from `elpaa--specs-file'.

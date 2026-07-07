@@ -455,7 +455,7 @@ the font.")
   "Prettify headline tags."
   (save-excursion
     (let* ((default-face (get-text-property (match-beginning 1) 'face))
-           (colon-props `(display #(":" 0 1 (face org-hide)) face ,default-face))
+           (colon-props `(display " " face ,default-face))
            (beg (match-beginning 2))
            (end (match-end 2))
            colon-beg colon-end)

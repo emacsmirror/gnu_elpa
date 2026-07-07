@@ -596,7 +596,7 @@ whole buffer; otherwise, for the line at point."
                                            face (:inherit org-table :inverse-video t))))
            ((and org-modern-table-horizontal separator)
             (put-text-property a b 'display `(space :width (,org-modern-table-vertical))))
-           (t (put-text-property a b 'face 'org-hide)))))
+           (t (put-text-property a b 'display " ")))))
       (goto-char beg)
       (when separator
         (when (numberp org-modern-table-horizontal)

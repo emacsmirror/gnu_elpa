@@ -1081,8 +1081,8 @@ Consult. Give them a try and find out which interaction model fits best for you.
 
 - The builtin completion UI, which pops up the =*Completions*= buffer.
 - The builtin =icomplete-vertical-mode=.
-- [[https://git.sr.ht/~protesilaos/mct][mct by Protesilaos Stavrou]]: Minibuffer and Completions in Tandem, which builds
-  on the default completion UI.
+- [[https://github.com/protesilaos/mct][Mct]] by Protesilaos: Minibuffer and Completions in Tandem, which builds on the
+  default completion UI.
 
 Note that all packages are independent and can be exchanged with alternative
 components, since there exist no hard dependencies. Furthermore it is possible

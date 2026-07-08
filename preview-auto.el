@@ -365,21 +365,27 @@ ORIG-FUN is the original function, and ARGS are its arguments."
         message-log-max)
     (apply orig-fun args)))
 
-(defun preview-auto--region-wrapper (beg end)
-  "Preview region between BEG and END, possibly inhibiting messages."
+;;;###autoload
+(defun preview-auto-preview-region (beg end)
+  "Preview TeX snippets between BEG and END using preview-auto settings.
+Temporarily widens and inhibits messages to avoid cluttering the echo area."
+  (interactive "r")
   (preview-auto--debug-log "Previewing region %d,  %d" beg end)
-  (let ((TeX-suppress-compilation-message t)
-        (save-silently t))
-    (advice-add 'write-region :around #'preview-auto--silent-write-region)
-    (prog1
-        ;; If we are working in a file buffer that is not a tex file,
-        ;; then we want preview-region to operate in "non-file" mode,
-        ;; where it passes "<none>" to TeX-region-create.
-        (if (eq TeX-master t)
-            (preview-region beg end)
-          (let ((buffer-file-name nil))
-            (preview-region beg end)))
-      (advice-remove 'write-region #'preview-auto--silent-write-region))))
+  (save-restriction
+    (widen)
+    (let ((TeX-suppress-compilation-message t)
+          (save-silently t))
+      (advice-add 'write-region :around #'preview-auto--silent-write-region)
+      (unwind-protect
+          ;; If we are working in a file buffer that is not a tex file,
+          ;; then we want preview-region to operate in "non-file" mode,
+          ;; where it passes "<none>" to TeX-region-create.
+          (if (eq TeX-master t)
+              (preview-region beg end)
+            (let ((buffer-file-name nil))
+              (preview-region beg end)))
+        (advice-remove 'write-region
+                       #'preview-auto--silent-write-region)))))
 
 (defun preview-auto--update-editing-region ()
   "Update preview of environment being edited."
@@ -411,7 +417,7 @@ ORIG-FUN is the original function, and ARGS are its arguments."
                          (string-match
                           "[\n\r]" (buffer-substring-no-properties begin end)))
                   (preview-auto--debug-log "Previewing editing region")
-                  (preview-auto--region-wrapper begin end))))))))))
+                  (preview-auto-preview-region begin end))))))))))
 
 (defun preview-auto--base-range ()
   "Return the base range for previewing.
@@ -473,7 +479,7 @@ group."
                        (when (and region-above region-below)
                          "(closer)")))
               (prog1 t
-                (preview-auto--region-wrapper (car region) (cdr region)))))))
+                (preview-auto-preview-region (car region) (cdr region)))))))
        (t
         (setq preview-auto--keepalive nil))))))
 

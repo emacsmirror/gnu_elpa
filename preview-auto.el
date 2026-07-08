@@ -3,7 +3,7 @@
 ;; Copyright (C) 2024  Free Software Foundation, Inc.
 
 ;; Author: Paul D. Nelson <nelson.paul.david@gmail.com>
-;; Version: 0.4.2
+;; Version: 0.5.0
 ;; URL: https://github.com/ultronozm/preview-auto.el
 ;; Package-Requires: ((emacs "29.3") (auctex "14.0.5"))
 ;; Keywords: tex, convenience
@@ -587,6 +587,10 @@ group."
 
 (defvar preview-auto-mode)
 
+;; TODO: Detect and recreate a repeating timer that remains in
+;; `timer-list' after Emacs has marked it triggered.  In that state,
+;; the timer is overdue but no longer fires, so users currently have
+;; to restart `preview-auto-mode'.
 (defun preview-auto--timer-function ()
   "Function called by the preview timer to update LaTeX previews."
   (and preview-auto-mode

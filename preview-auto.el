@@ -40,6 +40,7 @@
 ;;; Code:
 
 (eval-when-compile (require 'cl-lib))
+(require 'seq)
 (require 'latex)
 (require 'preview)
 
@@ -60,6 +61,18 @@ For this to have any effect, it must be set before
 (defcustom preview-auto-chars-below 6000
   "Controls how many characters below point to preview."
   :type 'integer)
+
+(defcustom preview-auto-bounds-function nil
+  "Function returning bounds where automatic previewing is allowed.
+When non-nil, this function is called with no arguments before each
+preview scan.  It should return nil, a cons cell (BEG . END), or a list
+of such cons cells.  Only intersections of these bounds with the normal
+point-centered scan range are considered for previewing.
+
+This option is intended for modes that embed TeX fragments in a larger
+buffer, such as prompt or comment regions."
+  :type '(choice (const :tag "No bounds" nil)
+                 function))
 
 (defvar preview-auto--timer nil)
 
@@ -387,17 +400,22 @@ Temporarily widens and inhibits messages to avoid cluttering the echo area."
         (advice-remove 'write-region
                        #'preview-auto--silent-write-region)))))
 
-(defun preview-auto--update-editing-region ()
-  "Update preview of environment being edited."
+(defun preview-auto--update-editing-region (&optional bound-begin bound-end)
+  "Update preview of environment being edited.
+When BOUND-BEGIN and BOUND-END are non-nil, preview only when the
+environment begins at or after BOUND-BEGIN, and search for its end before
+BOUND-END."
   (when (texmathp)
     (let ((why (car texmathp-why))
           (begin (cdr texmathp-why)))
-      (when (preview-auto--allow-at begin)
+      (when (and (or (null bound-begin) (<= bound-begin begin))
+                 (preview-auto--allow-at begin))
         (unless (member why '("$" "$$" "\\(" "\\["))
           (setq why (format "\\begin{%s}" why)))
         (let ((limit (save-excursion
                        (goto-char begin)
-                       (preview-auto--truncated-bound (point-max)))))
+                       (preview-auto--truncated-bound
+                        (or bound-end (point-max))))))
           (when (> limit (point))
             (when-let*
                 ((end-string (cadr (assoc why preview-auto--rules)))
@@ -418,6 +436,41 @@ Temporarily widens and inhibits messages to avoid cluttering the echo area."
                           "[\n\r]" (buffer-substring-no-properties begin end)))
                   (preview-auto--debug-log "Previewing editing region")
                   (preview-auto-preview-region begin end))))))))))
+
+(defun preview-auto--normalize-bounds (bounds)
+  "Return BOUNDS as a list of normalized buffer ranges.
+BOUNDS may be nil, a cons cell (BEG . END), or a list of such cons
+cells.  Empty ranges are discarded."
+  (let ((ranges (cond
+                 ((null bounds) nil)
+                 ((and (consp bounds)
+                       (not (consp (car bounds))))
+                  (list bounds))
+                 ((listp bounds) bounds)
+                 (t
+                  (error "Invalid preview-auto bounds: %S" bounds)))))
+    (delq
+     nil
+     (mapcar
+      (lambda (range)
+        (unless (and (consp range)
+                     (integer-or-marker-p (car range))
+                     (integer-or-marker-p (cdr range)))
+          (error "Invalid preview-auto range: %S" range))
+        (let ((beg (max (point-min)
+                        (car range)))
+              (end (min (point-max)
+                        (cdr range))))
+          (when (< beg end)
+            (cons beg end))))
+      ranges))))
+
+(defun preview-auto--intersect-ranges (range-a range-b)
+  "Return the intersection of RANGE-A and RANGE-B, or nil."
+  (let ((beg (max (car range-a) (car range-b)))
+        (end (min (cdr range-a) (cdr range-b))))
+    (when (< beg end)
+      (cons beg end))))
 
 (defun preview-auto--base-range ()
   "Return the base range for previewing.
@@ -444,6 +497,54 @@ the beginning and end of the document."
                     (+ (point) preview-auto-chars-below))))
     (cons pmin pmax)))
 
+(defun preview-auto--base-ranges ()
+  "Return the base ranges for previewing.
+This applies `preview-auto-bounds-function' to `preview-auto--base-range'
+when that function is non-nil."
+  (let ((base-range (preview-auto--base-range)))
+    (if preview-auto-bounds-function
+        (delq
+         nil
+         (mapcar
+          (lambda (range)
+            (preview-auto--intersect-ranges base-range range))
+          (preview-auto--normalize-bounds
+           (funcall preview-auto-bounds-function))))
+      (list base-range))))
+
+(defun preview-auto--range-containing-point (ranges)
+  "Return the member of RANGES that contains point, or nil."
+  (seq-find
+   (lambda (range)
+     (< (car range) (point) (cdr range)))
+   ranges))
+
+(defun preview-auto--last-valid-region-in-ranges (ranges)
+  "Return the valid region before point closest to point in RANGES."
+  (let (best)
+    (dolist (range ranges best)
+      (let ((end (min (cdr range) (point))))
+        (when (<= (car range) end)
+          (when-let* ((region (preview-auto--last-valid-region
+                               (car range) end)))
+            (when (or (null best)
+                      (< (- (point) (cdr region))
+                         (- (point) (cdr best))))
+              (setq best region))))))))
+
+(defun preview-auto--first-valid-region-in-ranges (ranges)
+  "Return the valid region after point closest to point in RANGES."
+  (let (best)
+    (dolist (range ranges best)
+      (let ((beg (max (car range) (point))))
+        (when (<= beg (cdr range))
+          (when-let* ((region (preview-auto--first-valid-region
+                               beg (cdr range))))
+            (when (or (null best)
+                      (< (- (car region) (point))
+                         (- (car best) (point))))
+              (setq best region))))))))
+
 (defun preview-auto--preview-something ()
   "Run `preview-region' on an appropriate region.
 Identify top level math environments near the window.  Find a contiguous
@@ -455,17 +556,18 @@ group."
     (setq preview-auto--rules (preview-auto--generate-rules))
     (setq preview-auto--begin-re
           (regexp-opt (mapcar #'car preview-auto--rules) t))
-    (pcase-let ((`(,pmin . ,pmax) (preview-auto--base-range)))
+    (let ((ranges (preview-auto--base-ranges)))
       (setq preview-auto--keepalive t)
       (cond
        ((and
-         (< pmin (point) pmax)
          preview-protect-point
-         (preview-auto--update-editing-region)))
-       ((let ((region-above (preview-auto--last-valid-region
-                             pmin (min pmax (point))))
-              (region-below (preview-auto--first-valid-region
-                             (max pmin (point)) pmax)))
+         (when-let* ((point-range (preview-auto--range-containing-point ranges)))
+           (preview-auto--update-editing-region (car point-range)
+                                                (cdr point-range)))))
+       ((let ((region-above (preview-auto--last-valid-region-in-ranges
+                             ranges))
+              (region-below (preview-auto--first-valid-region-in-ranges
+                             ranges)))
           (when (or region-above region-below)
             (let* ((should-preview-above
                     (or (not region-below)

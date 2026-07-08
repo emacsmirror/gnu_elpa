@@ -110,6 +110,17 @@ It also works in buffers running other major modes.  (For example, I use it to p
 #+end_src
 The default behavior is that in programming modes, only the comments are searched for latex code.  You can customize this via the defcustom =preview-auto-check-function=.
 
+You can further restrict automatic previewing to selected parts of a buffer by setting =preview-auto-bounds-function= buffer-locally.  The function should return either a single cons cell =(BEG . END)= or a list of such cons cells.  Only the portions of the normal point-centered scan range that intersect those regions will be previewed.
+
+#+begin_src elisp
+(setq-local preview-auto-bounds-function
+            (lambda ()
+              ;; For example, return prompt or comment regions here.
+              (list (cons (point-min) (point-max)))))
+#+end_src
+
+Packages that already know a specific region has become stale can call =preview-auto-preview-region= to refresh TeX snippets in that region using the same non-file-buffer handling and quiet output behavior as =preview-auto-mode=.
+
 ** VC revision files (vc.el)
 When you visit a revision or version backup created by =vc.el= (e.g., via =C-x v ~=), Emacs uses file names like =paper.tex.~REV~=.  AUCTeX decides whether a buffer's file already has a TeX extension using =TeX-file-extensions=, and =preview-latex= (hence =preview-auto=) relies on that when computing the master file via =TeX-master-file=.  The default list does not match =tex.~REV~=, so AUCTeX treats these files as extension-less and appends =.tex=, producing wrong master/aux names and breaking previews.  Add the following to recognize VC revision files as TeX sources:
 #+begin_src elisp

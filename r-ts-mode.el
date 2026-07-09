@@ -1,8 +1,28 @@
-;;; r-ts-mode.el --- R major mode using tree-sitter -*- lexical-binding: t; -*-
+;;; r-ts-mode.el --- Emacs Speaks R  -*- lexical-binding: t -*-
+;; Copyright (C) 2025  Manuel Teodoro Tenango
+
+;; Author: Manuel Teodoro <ttm@teoten.me>
+;; URL: https://codeberg.org/R-for-emacs/r-ts-mode
+;; Version: 1.0.0
+;; Package-Requires: ((emacs "29.1"))
+;; Created: 2025-09-05
+
+;; License
+;; R-TS-MODE is free software; you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or (at
+;; your option) any later version.
+;;
+;; R-TS-MODE is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with R-TS-MODE. If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
-;; A major mode for editing R code using Emacs' built-in tree-sitter support.
-;; Optionally inherits from ESS for R process interaction.
+;; Major mode for editing R code using treesitter.
 
 ;;; Code:
 

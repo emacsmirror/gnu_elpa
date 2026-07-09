@@ -77,13 +77,30 @@ Pure function — reads only `defcustom' values, produces no side effects."
 (defvar-local r-ts-mode-roxygen--active-keywords nil
   "Font-lock keywords currently installed by `r-ts-mode-roxygen-mode'.")
 
+;; Does not work with ESS active
+(defun r-ts-roxygen-complete-tag ()
+  "Auto completion for Roxygen tags."
+  (let* ((boundaries (bounds-of-thing-at-point 'symbol))
+         (beg (car boundaries))
+         (end (cdr boundaries)))
+    (when (and boundaries
+               (save-excursion
+                 (goto-char beg)
+                 (eq (following-char) ?@)))
+      (list (1+ beg)
+            end
+            (append r-ts-mode-roxygen-tags-param
+                    r-ts-mode-roxygen-tags-noparam)
+            :exclusive 'no))))
+
 (defun r-ts-mode-roxygen--enable ()
   "Install roxygen font-lock keywords and completion in the current buffer."
   (setq r-ts-mode-roxygen--active-keywords
         (r-ts-mode-roxygen--build-keywords))
   (font-lock-add-keywords nil r-ts-mode-roxygen--active-keywords)
   (add-hook 'completion-at-point-functions
-            #'r-ts-mode-roxygen-complete-tag nil t))
+            #'r-ts-roxygen-complete-tag nil t)
+  )
 
 (defun r-ts-mode-roxygen--disable ()
   "Remove roxygen font-lock keywords and completion from the current buffer."
@@ -91,7 +108,8 @@ Pure function — reads only `defcustom' values, produces no side effects."
     (font-lock-remove-keywords nil r-ts-mode-roxygen--active-keywords)
     (setq r-ts-mode-roxygen--active-keywords nil))
   (remove-hook 'completion-at-point-functions
-               #'r-ts-mode-roxygen-complete-tag t))
+               #'r-ts-roxygen-complete-tag t)
+  )
 
 
 ;;;; =========================================================================

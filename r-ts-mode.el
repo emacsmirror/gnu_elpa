@@ -294,6 +294,8 @@ TYPE must not be \"program\" itself."
                                (treesit-node-next-sibling node))
                               "function_definition"))))
 
+(defalias 'r-ts-mode--inside-fun-def? #'r-ts-mode--inside-fun-def-p)
+
 (defun r-ts-mode--argument-function-name ()
   "Return the function name when point is inside a call's argument list.
 Returns nil if point is not inside an `arguments' or `argument' node."

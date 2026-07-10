@@ -1622,7 +1622,7 @@ UPPER stropping version."
 
 ;;;###autoload
 (define-derived-mode a68-mode prog-mode "Algol68"
-  "Major mode for editing Alogl68 files."
+  "Major mode for editing Algol68 files."
   ;; First determine the stropping regime
   (setq-local a68--stropping-regime
               (a68--figure-out-stropping-regime))

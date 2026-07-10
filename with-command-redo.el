@@ -6,7 +6,7 @@
 ;; Author: Campbell Barton <ideasman42@gmail.com>
 
 ;; URL: https://codeberg.org/ideasman42/emacs-with-command-redo
-;; Version: 0.1
+;; Version: 0.2
 ;; Package-Requires: ((emacs "29.1"))
 
 ;;; Commentary:

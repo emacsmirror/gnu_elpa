@@ -3,7 +3,7 @@
 Change Log
 ##########
 
-- Unreleased
+- Version 0.2 (2026-07-10)
 
   Add ``with-command-redo-break`` to end an active redo-chain.
 

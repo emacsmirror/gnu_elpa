@@ -5,7 +5,7 @@ EMACS = emacs
 BATCH = $(EMACS) -Q --batch -L .
 VERSION = 1.0.0
 
-COMPILE = r-ts-roxygen.elc r-ts-mode.elc
+COMPILE = r-ts-roxygen.elc r-ts-mode.elc r-ts-setup.elc
 TESTS = r-ts-mode-tests.elc
 
 .SUFFIXES: .el .elc
@@ -42,8 +42,7 @@ test: $(COMPILE) $(TESTS)
 
 lint:
 	$(BATCH) --eval '(setq byte-compile-error-on-warn t)' \
-	         -f batch-byte-compile r-ts-roxygen.el r-ts-mode.el
-	rm -f $(COMPILE)
+	         -f batch-byte-compile r-ts-roxygen.el r-ts-mode.el r-ts-setup.el
 
 clean:
 	rm -f $(COMPILE) $(TESTS)

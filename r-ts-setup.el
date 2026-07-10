@@ -54,7 +54,7 @@ When nil, signal an error if the target directory does not exist."
 ;;;; Grammar / Binary Preparation — Pure Helpers
 ;;;; =========================================================================
 (defun r-ts-mode--build-r-find-package-command (r-program)
-  "Return the shell command that prints the path of the 'treesitter.r' R package.
+  "Return the shell command that prints the path of the \='treesitter.r\=' R package.
 R-PROGRAM is the executable name or path.  Pure function — no side effects."
   (if (string-match-p "\\.exe\\'" r-program)
       (format "%s --no-echo -q -e print(find.package('treesitter.r'))" r-program)
@@ -72,7 +72,7 @@ Pure function — no side effects."
     (error "Could not parse R output: %s" output)))
 
 (defun r-ts-mode--find-treesitter-r-package-path ()
-  "Run R to find the installed path of the 'treesitter.r' package.
+  "Run R to find the installed path of the \='treesitter.r\=' package.
 Returns the path string.  Signals an error on failure."
   (let* ((cmd (r-ts-mode--build-r-find-package-command r-ts-mode-r-program))
          (output (progn
@@ -135,7 +135,7 @@ otherwise signal an error."
 ;;;; =========================================================================
 ;;;###autoload
 (defun r-ts-mode-prepare-binaries-from-r-library (&optional package-path emacs-ts-path)
-  "Copy the tree-sitter R grammar from the 'treesitter.r' R package to Emacs.
+  "Copy the tree-sitter R grammar from the \='treesitter.r\=' R package to Emacs.
 Searches for the package in PACKAGE-PATH (or auto-detects via R) and copies
 the compiled binary to EMACS-TS-PATH (default: ~/.emacs.d/tree-sitter/)."
   (interactive)

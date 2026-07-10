@@ -39,7 +39,7 @@
   :group 'languages
   :version "30.1")
 
-(defcustom r-ts-mode-inherit-ess t
+(defcustom r-ts-mode-inherit-ess nil
   "When non-nil, inherit from `ess-r-mode' for R process interaction."
   :type 'boolean
   :group 'r-ts-mode)

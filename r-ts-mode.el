@@ -53,7 +53,8 @@
   "When non-nil, enable verbose debugging messages.  For development use.")
 
 (defvar r-ts-mode-font-lock-keywords nil
-  "Replacement for ESS variable `ess-R-font-lock-keywords' to silence ESS fontification.")
+  "Replacement for ESS variable `ess-R-font-lock-keywords' to silence
+  ESS fontification.")
 
 
 ;;;; =========================================================================
@@ -201,6 +202,7 @@
 (defvar ess-r--syntax-propertize-function)
 (defvar ess-r-ac-sources)
 (defvar ess-r-company-backends)
+(defvar ess-mode-map)
 
 (if r-ts-mode-inherit-ess
     (if (not (fboundp 'ess-r-mode))
@@ -275,10 +277,12 @@ Returns nil if NODE is not a `binary_operator'."
 
 ;; Public aliases with the names expected by treesit settings
 (defalias 'r-ts-mode--is-fun-def   #'r-ts-mode--node-is-fun-def-p
-  "Predicate: is NODE a function definition assignment?  See `r-ts-mode--node-is-fun-def-p'.")
+  "Predicate: is NODE a function definition assignment?  See
+  `r-ts-mode--node-is-fun-def-p'.")
 
 (defalias 'r-ts-mode--is-simple-object #'r-ts-mode--node-is-simple-object-p
-  "Predicate: is NODE a simple (non-function) assignment?  See `r-ts-mode--node-is-simple-object-p'.")
+  "Predicate: is NODE a simple (non-function) assignment?  See
+  `r-ts-mode--node-is-simple-object-p'.")
 
 (defun r-ts-mode--defun-name (node)
   "Return the name of the function defined at NODE, or nil.
@@ -329,7 +333,8 @@ Returns nil if point is not inside an `arguments' or `argument' node."
        (treesit-node-child-by-field-name call-node "function") t))))
 
 (defun r-ts-mode--buffer-function-positions (buffer-or-name)
-  "Return an alist of (name . position) for all function definitions in BUFFER-OR-NAME."
+  "Return an alist of (name . position) for all function definitions
+in BUFFER-OR-NAME."
   (with-current-buffer buffer-or-name
     (let* ((query (treesit-query-compile 'r '((function_definition name: "function" @val))))
            (ranges (mapcar #'car (treesit-query-range 'r query))))
@@ -494,7 +499,8 @@ Returns nil if point is not inside an `arguments' or `argument' node."
   "Imenu configuration for `r-ts-mode'.")
 
 (defun r-ts-mode--walk-to-definition (backwards)
-  "Move point to the next (or previous, when BACKWARDS is non-nil) object definition."
+  "Move point to the next (or previous, when BACKWARDS is non-nil)
+object definition."
   (treesit-search-forward-goto
    (treesit-node-at (point))
    #'r-ts-mode--node-is-simple-object-p

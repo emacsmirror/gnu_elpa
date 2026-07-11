@@ -2,7 +2,7 @@
 
 ;; Copyright (C) 2026 Maximilian Cook
 
-;; Author: Maximilian Cook <maximiliancook@fclr.net>
+;; Author: Maximilian Cook <maximilian@fclr.net>
 ;; Created: 05 Mar 2026
 ;; Version: 0.1.0
 ;; Keywords: data

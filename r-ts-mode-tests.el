@@ -1,4 +1,11 @@
 ;;; r-ts-mode-tests.el --- ERT tests for r-ts-mode  -*- lexical-binding: t; -*-
+;; Copyright (C) 2025  Manuel Teodoro Tenango
+
+;; Author: Manuel Teodoro <ttm@teoten.me>
+;; URL: https://codeberg.org/R-for-emacs/r-ts-mode
+;; Assisted-by: Sonet:4.6
+;; Package-Requires: ((emacs "29.1"))
+;; Created: 2026-07-10
 
 ;;; Commentary:
 ;; Unit tests for r-ts-mode.el using Emacs' built-in ERT framework.

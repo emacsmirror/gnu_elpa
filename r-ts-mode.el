@@ -3,7 +3,7 @@
 
 ;; Author: Manuel Teodoro <ttm@teoten.me>
 ;; URL: https://codeberg.org/R-for-emacs/r-ts-mode
-;; Version: 1.0.0
+;; Assisted-by: Sonet:4.6
 ;; Package-Requires: ((emacs "29.1"))
 ;; Created: 2025-09-05
 
@@ -453,12 +453,12 @@ in BUFFER-OR-NAME."
       lhs: (identifier) @r-ts-mode-face-type
       operator: "<-"
       rhs: (call function: (identifier) @fn-name
-		 (:match "\\(?:R6Class\\|new_class\\)" @fn-name)))
+                 (:match "\\(?:R6Class\\|new_class\\)" @fn-name)))
      (binary_operator
       lhs: (identifier) @r-ts-mode-face-type
       operator: "="
       rhs: (call function: (identifier) @fn-name
-		 (:match "\\(?:R6Class\\|new_class\\)" @fn-name)))
+                 (:match "\\(?:R6Class\\|new_class\\)" @fn-name)))
      ;; S4
      (call function:
            (identifier) @fn-name

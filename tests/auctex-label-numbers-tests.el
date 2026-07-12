@@ -103,5 +103,16 @@
                 auctex-label-numbers-label-display)))
       TeX-fold-macro-spec-list))))
 
+(ert-deftest test-auctex-label-numbers--external-documents ()
+  "Test collection of \\externaldocument declarations."
+  (with-temp-buffer
+    (insert "\\externaldocument[A-]{alpha}\n"
+            "\\externaldocument{beta}\n"
+            "\\externalcitedocument[C-]{gamma}\n")
+    (should (equal (auctex-label-numbers--external-documents)
+                   '((1 "A-" "alpha")
+                     (2 nil "beta")
+                     (3 "C-" "gamma"))))))
+
 (provide 'auctex-label-numbers-tests)
 ;;; auctex-label-numbers-tests.el ends here

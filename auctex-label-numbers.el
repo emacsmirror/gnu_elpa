@@ -108,6 +108,24 @@ to find the corresponding aux files."
   "Regexp for \\externaldocument commands.
 Optional prefix is (match-string 1), filename is (match-string 2).")
 
+(defun auctex-label-numbers--external-documents ()
+  "Return the \\externaldocument declarations of the current buffer.
+The result is a list of (ORDINAL PREFIX FILENAME) lists, in buffer
+order, where ORDINAL counts declarations starting from 1 and PREFIX is
+nil for unprefixed declarations."
+  (save-excursion
+    (save-restriction
+      (widen)
+      (goto-char (point-min))
+      (let ((ordinal 0)
+            declarations)
+        (while (re-search-forward
+                auctex-label-numbers--external-document-regexp nil t)
+          (setq ordinal (1+ ordinal))
+          (push (list ordinal (match-string 1) (match-string 2))
+                declarations))
+        (nreverse declarations)))))
+
 (defun auctex-label-numbers-label-to-number (label)
   "Get number of LABEL for current tex buffer.
 If the buffer does not point to a file, or if the corresponding aux file
@@ -120,38 +138,36 @@ in an external document, prefix the string with \"X\"."
      ;; Check main aux file
      (when-let* ((aux-file (TeX-master-output-file "aux")))
        (auctex-label-numbers-label-to-number-helper label aux-file))
-     ;; Search external documents
+     ;; Search external documents.  xr imports label FOO from the
+     ;; external document as PREFIXFOO, so a prefixed \externaldocument
+     ;; can only define labels starting with PREFIX, and the external
+     ;; aux file must be consulted with the prefix stripped.  When
+     ;; several declarations define the same label, the last one wins,
+     ;; because that is the order in which xr reads the aux files; we
+     ;; therefore probe the declarations in reverse.
      (and
       auctex-label-numbers-search-external-documents
-      (save-excursion
-        (save-restriction
-          (widen)
-          (goto-char (point-min))
-          (let (found)
-            (while (and (null found)
-                        (re-search-forward auctex-label-numbers--external-document-regexp
-                                           nil t))
-              ;; xr imports label FOO from the external document as
-              ;; PREFIXFOO, so a prefixed \externaldocument can only
-              ;; define labels starting with PREFIX, and the external
-              ;; aux file must be consulted with the prefix stripped.
-              (let ((prefix (match-string 1))
-                    (external (match-string 2)))
-                (when (or (null prefix) (string-prefix-p prefix label))
-                  (let* ((tex-filename (concat external ".tex"))
-                         (tex-buffer (find-file-noselect tex-filename))
-                         (aux-filename
-                          (with-current-buffer tex-buffer
-                            (hack-local-variables)
-                            (TeX-master-output-file "aux")))
-                         (bare-label (if prefix
-                                         (substring label (length prefix))
-                                       label)))
-                    (when aux-filename
-                      (setq found (auctex-label-numbers-label-to-number-helper
-                                   bare-label aux-filename)))))))
-            (when found
-              (concat "X" found)))))))))
+      (let ((declarations (reverse (auctex-label-numbers--external-documents)))
+            found)
+        (while (and (null found) declarations)
+          (let* ((declaration (pop declarations))
+                 (prefix (nth 1 declaration))
+                 (external (nth 2 declaration)))
+            (when (or (null prefix) (string-prefix-p prefix label))
+              (let* ((tex-filename (concat external ".tex"))
+                     (tex-buffer (find-file-noselect tex-filename))
+                     (aux-filename
+                      (with-current-buffer tex-buffer
+                        (hack-local-variables)
+                        (TeX-master-output-file "aux")))
+                     (bare-label (if prefix
+                                     (substring label (length prefix))
+                                   label)))
+                (when-let* ((_ aux-filename)
+                            (number (auctex-label-numbers-label-to-number-helper
+                                     bare-label aux-filename)))
+                  (setq found (concat "X" number)))))))
+        found)))))
 
 (defun auctex-label-numbers-preview-preprocessor (str)
   "Preprocess STR for preview by adding tags to labels.

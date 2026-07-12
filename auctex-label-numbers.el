@@ -108,6 +108,39 @@ to find the corresponding aux files."
   "Regexp for \\externaldocument commands.
 Optional prefix is (match-string 1), filename is (match-string 2).")
 
+(defun auctex-label-numbers--ordinal-letters (ordinal)
+  "Return spreadsheet-style letters for ORDINAL: 1=A, ..., 26=Z, 27=AA."
+  (let ((result ""))
+    (while (> ordinal 0)
+      (setq ordinal (1- ordinal))
+      (setq result (concat (char-to-string (+ ?A (% ordinal 26))) result))
+      (setq ordinal (/ ordinal 26)))
+    result))
+
+(defun auctex-label-numbers-external-prefix-letter (ordinal _prefix _filename)
+  "Return letters A, B, ..., Z, AA, ... according to ORDINAL."
+  (auctex-label-numbers--ordinal-letters ordinal))
+
+(defun auctex-label-numbers-external-prefix-x (_ordinal _prefix _filename)
+  "Return the constant display prefix \"X\"."
+  "X")
+
+(defcustom auctex-label-numbers-external-prefix-function
+  #'auctex-label-numbers-external-prefix-letter
+  "Function computing the display prefix for external label numbers.
+Called with three arguments describing the \\externaldocument
+declaration through which a label was resolved: ORDINAL, the 1-based
+position of the declaration among those in the current document; PREFIX,
+the label prefix from the declaration's optional argument, or nil if
+there is none; and FILENAME, the declared file name.  The returned
+string is prepended to the label number in the folded display."
+  :type '(choice
+          (function-item :tag "Letters by declaration order (A, B, ...)"
+                         auctex-label-numbers-external-prefix-letter)
+          (function-item :tag "Constant \"X\""
+                         auctex-label-numbers-external-prefix-x)
+          (function :tag "Custom function")))
+
 (defun auctex-label-numbers--external-documents ()
   "Return the \\externaldocument declarations of the current buffer.
 The result is a list of (ORDINAL PREFIX FILENAME) lists, in buffer
@@ -131,7 +164,8 @@ nil for unprefixed declarations."
 If the buffer does not point to a file, or if the corresponding aux file
 does not exist, or if the label cannot be found, then return nil.
 Otherwise, return the label number as a string.  If the label is found
-in an external document, prefix the string with \"X\"."
+in an external document, prefix the string using
+`auctex-label-numbers-external-prefix-function'."
   (if auctex-label-numbers-label-to-number-function
       (funcall auctex-label-numbers-label-to-number-function label)
     (or
@@ -151,6 +185,7 @@ in an external document, prefix the string with \"X\"."
             found)
         (while (and (null found) declarations)
           (let* ((declaration (pop declarations))
+                 (ordinal (nth 0 declaration))
                  (prefix (nth 1 declaration))
                  (external (nth 2 declaration)))
             (when (or (null prefix) (string-prefix-p prefix label))
@@ -166,7 +201,11 @@ in an external document, prefix the string with \"X\"."
                 (when-let* ((_ aux-filename)
                             (number (auctex-label-numbers-label-to-number-helper
                                      bare-label aux-filename)))
-                  (setq found (concat "X" number)))))))
+                  (setq found
+                        (concat
+                         (funcall auctex-label-numbers-external-prefix-function
+                                  ordinal prefix external)
+                         number)))))))
         found)))))
 
 (defun auctex-label-numbers-preview-preprocessor (str)

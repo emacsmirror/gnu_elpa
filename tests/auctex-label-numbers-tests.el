@@ -114,5 +114,19 @@
                      (2 nil "beta")
                      (3 "C-" "gamma"))))))
 
+(ert-deftest test-auctex-label-numbers-external-prefix-letter ()
+  "Test spreadsheet-style external-document prefixes."
+  (dolist (case '((1 "A")
+                  (26 "Z")
+                  (27 "AA")
+                  (52 "AZ")
+                  (53 "BA")
+                  (702 "ZZ")
+                  (703 "AAA")))
+    (pcase-let ((`(,ordinal ,expected) case))
+      (should
+       (equal (auctex-label-numbers-external-prefix-letter ordinal nil nil)
+              expected)))))
+
 (provide 'auctex-label-numbers-tests)
 ;;; auctex-label-numbers-tests.el ends here

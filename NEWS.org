@@ -1,3 +1,15 @@
+* Version 1.30.0
+- Split the subagent task tool into two separate contracts. The ~task~ tool
+  handles free-form delegation, while ~task_from_template~ handles
+  template-based delegation. Both now have proper required schemas and
+  validation checks instead of accepting anything silently. The direct Lisp
+  template interface still works as before. Updated the docs and added
+  regression tests.
+- Added a plan-and-act action to the blueprint-mode transient menu. Starting it
+  kicks off the plan-and-act agent loop from the current blueprint buffer and
+  then closes the buffer. Included regression tests to verify the buffer
+  contents get forwarded to ~ellama-plan-and-act~ and that the source buffer is
+  killed once the loop starts.
 * Version 1.29.0
 
 - Added ~ellama-setup-agentic-coding~ to configure long-running coding-agent

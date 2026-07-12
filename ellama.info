@@ -963,13 +963,13 @@ File: ellama.info,  Node: Task Templates Blueprints and Skills,  Next: Agent and
 4.1.10 Task Templates Blueprints and Skills
 -------------------------------------------
 
-   • ‘ellama-tools-task-template-dirs’: Directories where the ‘task’
-     tool searches for prompt templates when no ‘template_base’ is
-     supplied.  Relative template names are resolved below these
-     directories.
+   • ‘ellama-tools-task-template-dirs’: Directories where direct
+     ‘ellama-tools-task-from-template-tool’ calls search for prompt
+     templates when no ‘template_base’ is supplied.  Relative template
+     names are resolved below these directories.
    • ‘ellama-tools-task-template-allow-absolute-paths’: Allow absolute
-     file names in the ‘task’ tool ‘template’ argument.  Disabled by
-     default.  Relative template names are still supported.
+     file names in the ‘task_from_template’ tool ‘template’ argument.
+     Disabled by default.  Relative template names are still supported.
    • ‘ellama-blueprint-global-dir’: Global directory for storing
      blueprint files.
    • ‘ellama-blueprint-local-dir’: Local directory name for
@@ -1283,12 +1283,16 @@ File: ellama.info,  Node: Task Tool Subagents,  Next: Plan-and-Act Agent Loop,  
 4.6 Task Tool Subagents
 =======================
 
-The ‘task’ tool delegates work to an asynchronous sub-agent.  The parent
-model gets control back immediately, and the sub-agent reports the final
-result by calling the injected ‘report_result’ tool.  If the sub-agent
-finishes a turn without reporting a result, Ellama sends
-‘ellama-tools-subagent-continue-prompt’ until the task is complete or
-‘ellama-tools-subagent-default-max-steps’ is reached.
+Ellama provides two tools for delegating work to an asynchronous
+sub-agent.  Use ‘task’ with a free-form prompt and ‘task_from_template’
+with a prompt template.  Keeping these call shapes separate makes both
+arguments and validation errors easier for local models to follow.
+
+Both tools return control to the parent model immediately.  The
+sub-agent reports its final result by calling the injected
+‘report_result’ tool.  If it finishes a turn without reporting a result,
+Ellama sends ‘ellama-tools-subagent-continue-prompt’ until the task is
+complete or ‘ellama-tools-subagent-default-max-steps’ is reached.
 
 Each sub-agent runs in its own Ellama session.  When
 ‘ellama-display-session-buffer-on-generation’ is non-nil, Ellama
@@ -1315,7 +1319,15 @@ session automatically, and continues the loop after compaction finishes
 or is skipped.  Any successful sub-agent response resets the consecutive
 error counter.
 
-The tool accepts either a free-form ‘description’ or a prompt template:
+The ‘task’ tool requires a non-empty ‘description’ and a configured
+‘role’:
+
+     {
+       "description": "Inspect the parser and report possible edge cases.",
+       "role": "explorer"
+     }
+
+Use ‘task_from_template’ when a skill provides a reusable prompt:
 
      {
        "template": "templates/researcher.md",
@@ -1329,15 +1341,20 @@ The tool accepts either a free-form ‘description’ or a prompt template:
 
 Prompt templates are plain text files with placeholders like
 ‘{main_topic}’.  The ‘arguments’ object must provide values whose keys
-match the placeholder names.  If validation fails, the tool returns an
-error with hints listing missing and unused keys and an example object
-to retry.
+match the placeholder names.  All four ‘task_from_template’ arguments
+are required.  Skills that use this tool should include the exact call
+shape and use their own directory as ‘template_base’.  If validation
+fails, the tool returns an error with the missing and unused keys and an
+example object to retry.
+
+Skills written for the older combined ‘task’ interface should change the
+tool name to ‘task_from_template’.  Their template arguments stay the
+same.
 
 Template resolution is intentionally scoped:
 
-   • relative ‘template’ paths are resolved under ‘template_base’ when
-     supplied
-   • otherwise relative paths are searched under
+   • relative ‘template’ paths are resolved under ‘template_base’
+   • direct Lisp calls can omit ‘template_base’ and search
      ‘ellama-tools-task-template-dirs’
    • path traversal outside the selected base directory is rejected
    • absolute template paths are rejected unless
@@ -2926,44 +2943,44 @@ Node: DLP and Irreversible Actions38103
 Node: Transient Menus Community Prompts and Diagnostics39218
 Node: Tool Access and Sandboxing40648
 Node: Task Templates Blueprints and Skills43720
-Node: Agent and Subagent Loops45052
-Node: Session Provider Keys46348
-Node: Session Compaction48234
-Node: Image Input50528
-Node: Audio Input52843
-Node: macOS microphone permission55511
-Node: Task Tool Subagents57672
-Node: Plan-and-Act Agent Loop60846
-Node: Edit Tool Shell Hooks63427
-Node: DLP for Tool Input/Output65720
-Node: SRT Filesystem Policy for Tools81289
-Node: Context Management86960
-Node: Transient Menus for Context Management88028
-Node: Managing the Context90102
-Node: Considerations90877
-Node: Minor modes91204
-Node: ellama-context-header-line-mode91716
-Node: ellama-context-header-line-global-mode92334
-Node: ellama-context-mode-line-mode92738
-Node: ellama-context-mode-line-global-mode93317
-Node: ellama-session-header-line-mode93711
-Node: ellama-session-mode-line-mode94215
-Node: Using Blueprints94642
-Node: Key Components95038
-Node: Creating and Managing95397
-Node: Blueprint Files96035
-Node: Variables96454
-Node: Keymap and Mode96790
-Node: Transient Menus97314
-Node: Running Blueprints Programmatically97828
-Node: MCP Integration98382
-Node: Agent Skills99560
-Node: Directory Structure99959
-Node: Creating a Skill100939
-Node: How It Works101329
-Node: Acknowledgments101735
-Node: Contributions102421
-Node: GNU Free Documentation License102946
+Node: Agent and Subagent Loops45099
+Node: Session Provider Keys46395
+Node: Session Compaction48281
+Node: Image Input50575
+Node: Audio Input52890
+Node: macOS microphone permission55558
+Node: Task Tool Subagents57719
+Node: Plan-and-Act Agent Loop61625
+Node: Edit Tool Shell Hooks64206
+Node: DLP for Tool Input/Output66499
+Node: SRT Filesystem Policy for Tools82068
+Node: Context Management87739
+Node: Transient Menus for Context Management88807
+Node: Managing the Context90881
+Node: Considerations91656
+Node: Minor modes91983
+Node: ellama-context-header-line-mode92495
+Node: ellama-context-header-line-global-mode93113
+Node: ellama-context-mode-line-mode93517
+Node: ellama-context-mode-line-global-mode94096
+Node: ellama-session-header-line-mode94490
+Node: ellama-session-mode-line-mode94994
+Node: Using Blueprints95421
+Node: Key Components95817
+Node: Creating and Managing96176
+Node: Blueprint Files96814
+Node: Variables97233
+Node: Keymap and Mode97569
+Node: Transient Menus98093
+Node: Running Blueprints Programmatically98607
+Node: MCP Integration99161
+Node: Agent Skills100339
+Node: Directory Structure100738
+Node: Creating a Skill101718
+Node: How It Works102108
+Node: Acknowledgments102514
+Node: Contributions103200
+Node: GNU Free Documentation License103725
 
 End Tag Table
 

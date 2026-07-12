@@ -988,7 +988,8 @@ ARGS used for transient arguments."
 (transient-define-prefix ellama-transient-blueprint-mode-menu ()
   ["Blueprint Commands"
    ["Chat"
-    ("c" "Send to chat" ellama-send-buffer-to-new-chat-then-kill)]
+    ("c" "Send to chat" ellama-send-buffer-to-new-chat-then-kill)
+    ("a" "Plan and act" ellama-transient-plan-and-act-buffer-then-kill)]
    ["System Message"
     ("s" "Set system and chat" ellama-blueprint-chat-with-system-kill-buffer)
     ("S" "Set system and quit" ellama-blueprint-set-system-kill-buffer)]
@@ -999,6 +1000,14 @@ ARGS used for transient arguments."
    ["Quit"
     ("k" "Kill" ellama-kill-current-buffer)
     ("q" "Quit" transient-quit-one)]])
+
+(transient-define-suffix ellama-transient-plan-and-act-buffer-then-kill ()
+  "Start a plan-and-act agent loop from current buffer and kill it."
+  (interactive)
+  (ellama-plan-and-act
+   (buffer-substring-no-properties (point-min) (point-max))
+   t)
+  (ellama-kill-current-buffer))
 
 ;;;###autoload (autoload 'ellama-transient-tools-menu "ellama-transient" nil t)
 (transient-define-prefix ellama-transient-tools-menu ()

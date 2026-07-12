@@ -321,14 +321,14 @@ Values below 2 are treated as 2 so the first call is never considered a loop."
 (defcustom ellama-tools-task-template-dirs
   (list (locate-user-emacs-file "ellama/task-templates"))
   "Directories used to resolve relative task template names.
-The `task' tool can render a template before spawning a sub-agent.  When
-`template_base' is omitted in the tool call, relative template names are
-searched in these directories."
+The `task_from_template' tool renders a template before spawning a sub-agent.
+When `template_base' is omitted in a direct Lisp call, relative template names
+are searched in these directories."
   :type '(repeat directory)
   :group 'ellama)
 
 (defcustom ellama-tools-task-template-allow-absolute-paths nil
-  "Allow `task' template names to be absolute file names.
+  "Allow `task_from_template' template names to be absolute file names.
 When nil, absolute template names are rejected.  Relative template names are
 always resolved under either the tool call's `template_base' argument or
 `ellama-tools-task-template-dirs'."
@@ -416,15 +416,18 @@ BEGIN_ELLAMA_AGENT_STATE block. When all items are complete, call
   :type '(alist :key-type string :value-type plist)
   :group 'ellama)
 
+(defun ellama-tools--subagent-task-tool-p (tool)
+  "Return non-nil when TOOL can spawn a sub-agent."
+  (member (llm-tool-name tool) '("task" "task_from_template")))
+
 (defun ellama-tools--for-role (role)
   "Resolve tools allowed for ROLE."
   (let* ((cfg (cdr (assoc role ellama-tools-subagent-roles)))
          (tools (plist-get cfg :tools)))
     (cond
      ((eq tools :all)
-      (cl-remove-if
-       (lambda (tool) (string= (llm-tool-name tool) "task"))
-       ellama-tools-available))
+      (cl-remove-if #'ellama-tools--subagent-task-tool-p
+                    ellama-tools-available))
      ((listp tools)
       (cl-remove-if-not
        (lambda (tool) (member (llm-tool-name tool) tools))
@@ -3852,7 +3855,7 @@ SUPPLIED, MISSING and UNUSED are lists of argument names."
       "\n\nUnused arguments:\n"
       (ellama-tools--task-template-bullet-list unused)
       "\n\nThese were ignored. Use only the required argument names above."))
-   "\n\nRetry the task call using this shape:\n"
+   "\n\nRetry the task_from_template call using this shape:\n"
    (ellama-tools--task-template-example
     template template-base role required)))
 
@@ -4922,117 +4925,179 @@ and restarts the loop."
            session (plist-put extra :consecutive-error-count new-count))
           (ellama-tools--continue-subagent-after-error session))))))
 
+(defun ellama-tools--task-role (role)
+  "Return ROLE when it names a configured sub-agent role.
+Signal an actionable error for an unknown role."
+  (if (assoc role ellama-tools-subagent-roles)
+      role
+    (error
+     (concat
+      "Task validation failed. No subagent was started.\n\n"
+      "Unknown role: %s\n"
+      "Available roles: %s\n\n"
+      "Retry with one of the available role values.")
+     role
+     (mapconcat #'car ellama-tools-subagent-roles ", "))))
+
+(defun ellama-tools--task-free-form-description (description role)
+  "Return validated free-form task DESCRIPTION.
+ROLE is included in the retry example."
+  (if (and (stringp description)
+           (not (string-empty-p description)))
+      description
+    (error
+     (concat
+      "Task validation failed. No subagent was started.\n\n"
+      "The description must be a non-empty string.\n\n"
+      "Retry the task call using this shape:\n"
+      "{\n  \"description\": \"...\",\n  \"role\": %S\n}")
+     role)))
+
+(defun ellama-tools--start-task (callback description role-key)
+  "Start a sub-agent for DESCRIPTION and call CALLBACK with its result.
+ROLE-KEY must name a configured entry in `ellama-tools-subagent-roles'."
+  (let* ((parent-id ellama--current-session-id)
+
+         (provider (ellama-tools--provider-for-role role-key))
+         (role-cfg   (cdr (assoc role-key ellama-tools-subagent-roles)))
+         (system-msg (plist-get role-cfg :system))
+         (subagent-system
+          (ellama-tools--subagent-system-message system-msg))
+
+         (steps-limit ellama-tools-subagent-default-max-steps)
+
+         ;; ---- create ephemeral worker session ----
+         (worker (ellama-new-session provider description t))
+         (worker-buffer (ellama-get-session-buffer
+                         (ellama-session-id worker)))
+         (worker-point (ellama-tools--insert-subagent-prompt
+                        worker-buffer description))
+
+         ;; ---- resolve tools for role ----
+         (role-tools (ellama-tools--for-role role-key))
+         (subagent-tools
+          (ellama-tools--wrap-subagent-tools role-tools worker))
+
+         ;; ---- dynamic report_result tool ----
+         (report-tool
+          (apply #'llm-make-tool
+                 (ellama-tools--make-report-result-tool
+                  callback worker)))
+
+         ;; IMPORTANT: report tool must be first (termination tool priority)
+         (all-tools (cons report-tool subagent-tools)))
+
+    ;; ============================================================
+    ;; Initialize session state (single source of truth)
+    ;; ============================================================
+
+    (ellama-tools--set-session-extra
+     worker
+     (ellama-tools--session-extra-with
+      worker
+      :parent-session parent-id
+      :role role-key
+      :tools all-tools
+      :result-callback callback
+      :task-completed nil
+      :step-count 0
+      :consecutive-error-count 0
+      :max-steps steps-limit
+      :tool-loop-state (ellama-tools--subagent-loop-state)
+      :system subagent-system))
+
+    ;; ============================================================
+    ;; Start the agent loop
+    ;; ============================================================
+
+    (ellama-stream
+     description
+     :buffer worker-buffer
+     :point worker-point
+     :session worker
+     :on-error (ellama-tools--make-subagent-error-callback worker)
+     :on-done (ellama-tools--make-subagent-loop-handler
+               worker worker-buffer subagent-system)
+     :tools all-tools
+     :system subagent-system)
+
+    ;; ============================================================
+    ;; Immediate response to parent LLM (async contract)
+    ;; ============================================================
+
+    (message "Subtask started (session %s, role %s). Waiting for result via callback."
+             (ellama-session-id worker)
+             role-key)
+    nil))
+
 (defun ellama-tools-task-tool
-    (callback &optional description role template template-base arguments)
-  "Delegate DESCRIPTION or rendered TEMPLATE to a sub-agent asynchronously.
+    (callback description role &optional template template-base arguments)
+  "Delegate free-form DESCRIPTION to a ROLE sub-agent asynchronously.
+CALLBACK is called once with the result string.
 
-CALLBACK   – function called once with the result string.
-ROLE       – role key from `ellama-tools-subagent-roles'.
-TEMPLATE   – optional template name or relative path.
-TEMPLATE-BASE – optional base directory for relative TEMPLATE.
-ARGUMENTS  – object with template substitution values."
-  (let ((role-key (if (assoc role ellama-tools-subagent-roles)
-                      role
-                    "general")))
+TEMPLATE, TEMPLATE-BASE and ARGUMENTS preserve compatibility for direct Lisp
+callers.  Models only see the strict DESCRIPTION and ROLE tool schema."
+  (if template
+      (ellama-tools-task-from-template-tool
+       callback template template-base arguments role)
     (condition-case err
-        (let* ((description
-                (ellama-tools--task-description
-                 description template template-base role-key arguments))
-               (parent-id ellama--current-session-id)
-
-               (provider (ellama-tools--provider-for-role role-key))
-               (role-cfg   (cdr (assoc role-key ellama-tools-subagent-roles)))
-               (system-msg (plist-get role-cfg :system))
-               (subagent-system
-                (ellama-tools--subagent-system-message system-msg))
-
-               (steps-limit ellama-tools-subagent-default-max-steps)
-
-               ;; ---- create ephemeral worker session ----
-               (worker (ellama-new-session provider description t))
-               (worker-buffer (ellama-get-session-buffer
-                               (ellama-session-id worker)))
-               (worker-point (ellama-tools--insert-subagent-prompt
-                              worker-buffer description))
-
-               ;; ---- resolve tools for role ----
-               (role-tools (ellama-tools--for-role role-key))
-               (subagent-tools
-                (ellama-tools--wrap-subagent-tools role-tools worker))
-
-               ;; ---- dynamic report_result tool ----
-               (report-tool
-                (apply #'llm-make-tool
-                       (ellama-tools--make-report-result-tool
-                        callback worker)))
-
-               ;; IMPORTANT: report tool must be first (termination tool priority)
-               (all-tools (cons report-tool subagent-tools)))
-
-          ;; ============================================================
-          ;; Initialize session state (single source of truth)
-          ;; ============================================================
-
-          (ellama-tools--set-session-extra
-           worker
-           (ellama-tools--session-extra-with
-            worker
-            :parent-session parent-id
-            :role role-key
-            :tools all-tools
-            :result-callback callback
-            :task-completed nil
-            :step-count 0
-            :consecutive-error-count 0
-            :max-steps steps-limit
-            :tool-loop-state (ellama-tools--subagent-loop-state)
-            :system subagent-system))
-
-          ;; ============================================================
-          ;; Start the agent loop
-          ;; ============================================================
-
-          (ellama-stream
-           description
-           :buffer worker-buffer
-           :point worker-point
-           :session worker
-           :on-error (ellama-tools--make-subagent-error-callback worker)
-           :on-done (ellama-tools--make-subagent-loop-handler
-                     worker worker-buffer subagent-system)
-           :tools all-tools
-           :system subagent-system)
-
-          ;; ============================================================
-          ;; Immediate response to parent LLM (async contract)
-          ;; ============================================================
-
-          (message "Subtask started (session %s, role %s). Waiting for result via callback."
-                   (ellama-session-id worker)
-                   role-key)
-          nil)
+        (let ((role-key (ellama-tools--task-role role)))
+          (ellama-tools--start-task
+           callback
+           (ellama-tools--task-free-form-description description role-key)
+           role-key))
       (error
        (funcall callback (error-message-string err))
        nil))))
+
+(defun ellama-tools-task-from-template-tool
+    (callback template template-base arguments role)
+  "Delegate a rendered TEMPLATE to a ROLE sub-agent asynchronously.
+TEMPLATE-BASE resolves the relative TEMPLATE.  ARGUMENTS is an object whose
+keys must match the template placeholders.  CALLBACK is called once with the
+result string."
+  (condition-case err
+      (let* ((role-key (ellama-tools--task-role role))
+             (description
+              (ellama-tools--task-description
+               nil template template-base role-key arguments)))
+        (ellama-tools--start-task callback description role-key))
+    (error
+     (funcall callback (error-message-string err))
+     nil)))
 
 (ellama-tools-define-tool
  `(:function ellama-tools-task-tool
              :name "task"
              :async t
-             :description "Delegate a task to a sub-agent.
-Use either a free-form description or a template with arguments.  When using
-a template, pass arguments as an object whose keys exactly match template
-placeholders.  If validation fails, retry using the returned hint."
+             :description "Delegate a free-form task to a sub-agent.
+Pass a self-contained description and one of the listed roles.  Use
+task_from_template instead when a skill specifies a prompt template."
              :args ((:name "description" :type string
-                           :description "Free-form task prompt. Optional when template is provided.")
+                           :description "Self-contained task prompt for the sub-agent.")
                     (:name "role" :type string
-                           :enum ,(seq--into-vector (mapcar #'car ellama-tools-subagent-roles)))
-                    (:name "template" :type string
+                           :description "Configured sub-agent role."
+                           :enum ,(seq--into-vector
+                                   (mapcar #'car ellama-tools-subagent-roles))))))
+
+(ellama-tools-define-tool
+ `(:function ellama-tools-task-from-template-tool
+             :name "task_from_template"
+             :async t
+             :description "Delegate a task rendered from a prompt template.
+Use this only when instructions specify a template and its arguments.  Keys in
+arguments must exactly match the template placeholders.  If validation fails,
+retry using the returned call shape."
+             :args ((:name "template" :type string
                            :description "Template name or relative path.")
                     (:name "template_base" :type string
                            :description "Base directory for resolving a relative template path.")
                     (:name "arguments" :type object
-                           :description "Template substitution values keyed by placeholder name."))))
+                           :description "Template values keyed by placeholder name.")
+                    (:name "role" :type string
+                           :description "Configured sub-agent role."
+                           :enum ,(seq--into-vector
+                                   (mapcar #'car ellama-tools-subagent-roles))))))
 
 (provide 'ellama-tools)
 ;;; ellama-tools.el ends here

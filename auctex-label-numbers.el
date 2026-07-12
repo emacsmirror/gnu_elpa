@@ -104,7 +104,7 @@ to find the corresponding aux files."
                  (const :tag "Don't search external documents" nil)))
 
 (defconst auctex-label-numbers--external-document-regexp
-  "\\\\external\\(?:cite\\)?document\\(?:\\[\\([^]]+\\)\\]\\)?{\\([^}]+\\)}"
+  "\\\\external\\(?:cite\\)?document\\(?:\\[\\([^]]*\\)\\]\\)?\\(?:\\[nocite\\]\\)?{\\([^}]+\\)}"
   "Regexp for \\externaldocument commands.
 Optional prefix is (match-string 1), filename is (match-string 2).")
 

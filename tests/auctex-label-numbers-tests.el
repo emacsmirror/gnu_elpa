@@ -61,11 +61,15 @@
   (should (equal (match-string 1 "\\externaldocument[ch1:]{chapter1-file}") "ch1:"))
   (should (equal (match-string 2 "\\externaldocument[ch1:]{chapter1-file}") "chapter1-file"))
 
+  ;; Test the nocite option with an empty prefix
+  (should (string-match auctex-label-numbers--external-document-regexp
+                        "\\externaldocument[][nocite]{nocitefile}"))
+  (should (equal (match-string 1 "\\externaldocument[][nocite]{nocitefile}") ""))
+  (should (equal (match-string 2 "\\externaldocument[][nocite]{nocitefile}") "nocitefile"))
+
   ;; Test that it doesn't match invalid syntax
   (should-not (string-match auctex-label-numbers--external-document-regexp
                             "\\externaldocument{missingbracket"))
-  (should-not (string-match auctex-label-numbers--external-document-regexp
-                            "\\externaldocument[]{empty}")) ; Empty optional argument
   (should-not (string-match auctex-label-numbers--external-document-regexp
                             "\\externaldocument[prefix]nobraces")))
 

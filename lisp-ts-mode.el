@@ -542,22 +542,6 @@ definition of `sexp' is based on its entry in
                    (ts-parser-included-ranges parser)))
             parser-list)))
 
-(defun lisp-ts-mode--parsers-in-region (parser-list beg end)
-  "Filter PARSER-LIST to those intersecting with the range BEG..END.
-The value is a list of lists of the form (LOW HIGH PARSER), where LOW
-and HIGH are the boundaries of PARSER's range that intersect with the
-range BEG..END. There may be multiple entries for PARSER if it has more
-than one included range. The returned list is sorted in ascending order
-by LOW."
-  (let* ((intersection ()))
-    (dolist (parser parser-list)
-      (pcase-dolist (`(,lo . ,hi) (ts-parser-included-ranges parser))
-        (let ((range-lo (max lo beg))
-              (range-hi (min end hi)))
-          (when (< range-lo range-hi)
-            (push (list range-lo range-hi parser) intersection)))))
-    (sort intersection :key #'car :in-place t)))
-
 (defun lisp-ts-mode--parsers-strictly-in-region (parser-list beg end)
   "Filter PARSER-LIST to those whose ranges fall strictly between BEG and END."
   (let* ((filtered ()))
@@ -730,6 +714,43 @@ format_string node which contains point. Return the column to indent to."
       (t (goto-char (ts-node-start starter))
          (current-column)))))
 
+;; NOTE: these 2 are also used by `gaudy-cl-mode'
+(defun lisp-ts-mode--parser-ranges (parser)
+  "Return an object that saves PARSER's ranges in order to restore them later.
+The value is a pair (PARSER . RANGE-MARKERS) where PARSER is the same as
+the argument and RANGE-MARKERS are the `treesit-parser-included-ranges'
+of PARSER with the boundaries as markers instead of integers. Call
+`lisp-ts-mode--restore-parser-ranges' to reset PARSER's ranges to the
+current positions of the markers."
+  (cons parser (mapcar (lambda (r)
+                         (cons (copy-marker (car r) t)
+                               (copy-marker (cdr r) t)))
+                       (ts-parser-included-ranges parser))))
+
+(defun lisp-ts-mode--restore-parser-ranges (prange &optional kill-markers)
+  "Update the ranges for the parser state PRANGE.
+PRANGE is an object returned by `lisp-ts-mode--parser-ranges'. Update
+the parser's included ranges to the current positions of the markers in
+PRANGE. If KILL-MARKERS is non-nil, set the markers to point nowhere.
+This is intended to only be used with parsers containing a single range,
+because it doesn't verify that the new ranges don't overlap."
+  (let ((p (car prange))
+        (newranges ()))
+    (pcase-dolist (`(,lo . ,hi) (cdr prange))
+      (when (> hi lo)
+        ;; (pulse-momentary-highlight-region lo hi)
+        ;; (sit-for 0.5)
+        (push (cons (marker-position lo)
+                    (marker-position hi))
+              newranges))
+      (when kill-markers
+        (set-marker lo nil)
+        (set-marker hi nil)))
+    (ts-parser-set-included-ranges
+     p (or (nreverse newranges)
+           ;; range of nil means the whole buffer, so give it an empty range
+           '((1 . 1))))))
+
 (defun lisp-ts-mode--indent-format-line (parser)
   "Indent the current line, which should start within the range of PARSER.
 PARSER is a `cl-format' treesit parser. If there is nothing to indent,
@@ -765,20 +786,15 @@ indentation is disabled here due to the value of
                        (eq (setq cont (lisp-ts-mode--eol-escape-string-at parser lbeg))
                            'noindent))
                    'noindent
-                 (let* ((old-ranges (ts-parser-included-ranges parser))
-                        (_ (cl-assert (length= old-ranges 1)))
-                        (pbeg (caar old-ranges))
-                        (pend (copy-marker (cdar old-ranges) t)))
-                   (indent-line-to new-indent)
-                   (when cont
-                     (save-excursion
-                       (goto-char (1- lbeg))
-                       (insert cont)))
-                   (thread-last (prog1 (marker-position pend)
-                                  (set-marker pend nil))
-                     (cons pbeg)
-                     (list)
-                     (ts-parser-set-included-ranges parser)))
+                 (let ((saved-ranges (lisp-ts-mode--parser-ranges parser)))
+                   (unwind-protect
+                       (progn
+                         (indent-line-to new-indent)
+                         (when cont
+                           (save-excursion
+                             (goto-char (1- lbeg))
+                             (insert cont))))
+                     (lisp-ts-mode--restore-parser-ranges saved-ranges t)))
                  nil)
           (back-to-indentation))))))
 

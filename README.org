@@ -69,3 +69,24 @@ Full usage -- special bindings, sub-menus, annotating keymaps like
 =dired-mode-map=, display backends, customization -- lives in the
 [[file:docs/keymap-popup.org][user manual]], also available as an Info
 manual (=make doc=).
+
+** Development
+
+The repository flake pins Nixpkgs and provides Emacs, GNU Make,
+Texinfo, and package-lint.  Public Make targets enter the development
+shell automatically when Nix is available:
+
+#+begin_src sh
+make dev
+make doc
+#+end_src
+
+Enter the same environment manually with =nix develop=.  Run the
+sandboxed package build, tests, lint checks, and manual build with:
+
+#+begin_src sh
+nix flake check
+#+end_src
+
+Set =USE_NIX=0= to run a Make target directly in the current
+environment.

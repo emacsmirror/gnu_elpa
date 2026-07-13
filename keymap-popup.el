@@ -288,7 +288,7 @@ Each row is a list of group plists with :name and :entries."
           (keymap-popup--split-groups bindings)))
 
 (defun keymap-popup--if-allows-p (plist)
-  "Return non-nil when PLIST has no :if, or its :if predicate returns non-nil."
+  "Return non-nil when PLIST has no :if or its :if predicate is non-nil."
   (let ((pred (plist-get plist :if)))
     (or (null pred) (funcall pred))))
 

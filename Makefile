@@ -1,53 +1,59 @@
 .POSIX:
 
-ifndef EMACS_CMD
-GUIX := $(shell command -v guix 2>/dev/null)
-ifdef GUIX
-GUIX_SHELL := guix shell --pure -D -f guix.scm emacs-next --
-EMACS_CMD := $(GUIX_SHELL) emacs
-else
-GUIX_SHELL :=
-EMACS_CMD := emacs
+NIX := $(shell command -v nix 2>/dev/null)
+USE_NIX ?= 1
+
+ENV_MAKE = $(MAKE) --no-print-directory
+ifeq ($(USE_NIX),1)
+ifeq ($(IN_NIX_SHELL),)
+ifneq ($(NIX),)
+ENV_MAKE = nix develop path:. --command $(MAKE) --no-print-directory USE_NIX=0
+endif
 endif
 endif
 
-GUIX_WRAP = $(if $(GUIX_SHELL),$(GUIX_SHELL) $(MAKE) --no-print-directory EMACS_CMD=emacs,$(MAKE) --no-print-directory)
+EMACS_CMD ?= emacs
+EMACS_OPTS ?= -Q --batch
 
 SRCS = keymap-popup.el
 TESTS = tests/keymap-popup-tests.el
-BATCH = $(EMACS_CMD) -Q --batch
+BATCH = $(EMACS_CMD) $(EMACS_OPTS)
 
 ORG = docs/keymap-popup.org
 TEXI = docs/keymap-popup.texi
 INFO = docs/keymap-popup.info
 
-.PHONY: all compile do-compile test do-test lint do-lint doc do-doc clean dev load
+.PHONY: all compile do-compile test do-test lint do-lint doc do-doc clean dev do-dev load
 
 all: compile
 
 compile:
-	@$(GUIX_WRAP) do-compile
+	@$(ENV_MAKE) do-compile
 
 do-compile:
 	@echo "Compiling $(SRCS)..."
 	@$(BATCH) -f batch-byte-compile $(SRCS)
 
 test:
-	@$(GUIX_WRAP) do-test
+	@$(ENV_MAKE) do-test
 
 do-test:
 	@echo "Testing $(TESTS)..."
 	@$(BATCH) -l ert -l $(SRCS) -l $(TESTS) -f ert-run-tests-batch-and-exit
 
 lint:
-	@$(GUIX_WRAP) do-lint
+	@$(ENV_MAKE) do-lint
 
 do-lint:
 	@echo "Running checkdoc..."
 	@$(BATCH) --eval '(checkdoc-file "$(SRCS)")'
+	@echo "Running package-lint..."
+	@$(BATCH) --eval '(package-initialize)' \
+	  --eval '(require (quote package-lint))' \
+	  -f package-lint-batch-and-exit $(SRCS)
 
 doc:
-	@$(GUIX_WRAP) do-doc
+	@$(ENV_MAKE) do-doc
 
 do-doc: $(INFO)
 
@@ -57,7 +63,10 @@ $(INFO): $(ORG)
 	  --eval "(with-current-buffer (find-file \"$(ORG)\") (org-texinfo-export-to-info))" \
 	  --kill
 
-dev: compile lint test
+dev:
+	@$(ENV_MAKE) do-dev
+
+do-dev: do-compile do-lint do-test
 
 load:
 	@emacsclient --eval "(progn \

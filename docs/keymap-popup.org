@@ -113,6 +113,7 @@ KEY (DESC :keymap MAP [PROP VALUE...])    ; sub-menu
 - =COMMAND= -- command symbol or a =(lambda () (interactive) ...)=.
 - =PROP= -- one of =:if=, =:inapt-if=, =:stay-open=, =:c-u= (see
   [[#special-bindings][Special bindings]]).
+  =:stay-open= is a boolean flag and may omit its =t= value.
 
 ** Groups and rows
 
@@ -283,8 +284,8 @@ the popup open -- no need to add =:stay-open t=.
 #+begin_src emacs-lisp
 (keymap-popup-define my-mark-map
   :group "Mark"
-  "m" ("Mark" dired-mark :stay-open t)
-  "u" ("Unmark" dired-unmark :stay-open t)
+  "m" ("Mark" dired-mark :stay-open)
+  "u" ("Unmark" dired-unmark :stay-open)
   "U" ("Unmark all" dired-unmark-all-marks))
 #+end_src
 
@@ -433,9 +434,11 @@ Signature:
 BINDINGS is an evaluated list in the same shape as
 =keymap-popup-annotate='s body; commands and predicates are actual
 objects rather than forms.  OPTS accepts =:exit-key=,
-=:description=, and =:persistent=.  Unlike the macros, no keys are
-bound and no commands are defined -- keyed entries should already
-be bound in KEYMAP.  Returns KEYMAP.
+=:description=, and =:persistent=.  Reattaching replaces prior
+descriptions and options, so omitted options return to their
+defaults.  Unlike the macros, no keys are bound and no commands are
+defined -- keyed entries should already be bound in KEYMAP.  Returns
+KEYMAP.
 
 * Customization
 :PROPERTIES:
@@ -498,4 +501,3 @@ emacs --batch -l ert -l keymap-popup.el \
               -l tests/keymap-popup-tests.el \
               -f ert-run-tests-batch-and-exit
 #+end_src
-

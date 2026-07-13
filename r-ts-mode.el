@@ -27,7 +27,6 @@
 ;;; Code:
 
 (require 'treesit)
-(require 'r-ts-roxygen)
 (declare-function r-ts-mode-parent-mode 'r-ts-mode)
 
 
@@ -559,9 +558,8 @@ object definition."
   ;; Imenu
   (setq-local treesit-simple-imenu-settings r-ts-mode--imenu-settings)
 
-  ;; Finalise tree-sitter setup, then enable roxygen highlighting
-  (treesit-major-mode-setup)
-  (r-ts-mode-roxygen-mode 1))
+  ;; Finalise tree-sitter setup
+  (treesit-major-mode-setup))
 
 ;;;###autoload
 (defalias 'R-ts-mode #'r-ts-mode

@@ -100,7 +100,7 @@ Pure function — reads only `defcustom' values, produces no side effects."
      (0 'bold prepend))))
 
 (defvar-local r-ts-mode-roxygen--active-keywords nil
-  "Font-lock keywords currently installed by `r-ts-mode-roxygen-mode'.")
+  "Font-lock keywords currently installed by `r-ts-roxygen-mode'.")
 
 ;; Does not work with ESS active
 (defun r-ts-roxygen-complete-tag ()
@@ -124,8 +124,7 @@ Pure function — reads only `defcustom' values, produces no side effects."
         (r-ts-mode-roxygen--build-keywords))
   (font-lock-add-keywords nil r-ts-mode-roxygen--active-keywords)
   (add-hook 'completion-at-point-functions
-            #'r-ts-roxygen-complete-tag nil t)
-  )
+            #'r-ts-roxygen-complete-tag nil t))
 
 (defun r-ts-mode-roxygen--disable ()
   "Remove roxygen font-lock keywords and completion from the current buffer."
@@ -133,8 +132,7 @@ Pure function — reads only `defcustom' values, produces no side effects."
     (font-lock-remove-keywords nil r-ts-mode-roxygen--active-keywords)
     (setq r-ts-mode-roxygen--active-keywords nil))
   (remove-hook 'completion-at-point-functions
-               #'r-ts-roxygen-complete-tag t)
-  )
+               #'r-ts-roxygen-complete-tag t))
 
 
 ;;;; =========================================================================
@@ -142,10 +140,10 @@ Pure function — reads only `defcustom' values, produces no side effects."
 ;;;; =========================================================================
 
 ;;;###autoload
-(define-minor-mode r-ts-mode-roxygen-mode
+(define-minor-mode r-ts-roxygen-mode
   "Minor mode for roxygen documentation in R buffers."
   :init-value nil
-  (if r-ts-mode-roxygen-mode
+  (if r-ts-roxygen-mode
       (r-ts-mode-roxygen--enable)
     (r-ts-mode-roxygen--disable))
   (when font-lock-mode

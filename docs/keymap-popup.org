@@ -96,8 +96,9 @@ popup.  =q= or =C-g= dismisses it.
 
 Only =MAP-NAME= and the bindings are required; every keyword above
 is optional and may appear in any order.  =keymap-popup-annotate=
-takes the same keywords but does /not/ apply defaults for
-=:popup-key= or =:exit-key= -- it never binds keys unless asked.
+accepts the display keywords above except =:parent=, but does /not/
+apply defaults for =:popup-key= or =:exit-key= -- it never binds keys
+unless asked.
 
 A binding takes one of three forms:
 
@@ -114,6 +115,10 @@ KEY (DESC :keymap MAP [PROP VALUE...])    ; sub-menu
 - =PROP= -- one of =:if=, =:inapt-if=, =:stay-open=, =:c-u= (see
   [[#special-bindings][Special bindings]]).
   =:stay-open= is a boolean flag and may omit its =t= value.
+
+Declarations are checked when the macro expands.  Invalid keys, malformed
+entries, missing switch variables or sub-menu targets, duplicate or unknown
+properties, and unsupported options report the offending entry directly.
 
 ** Groups and rows
 
@@ -227,6 +232,8 @@ By default the popup dismisses after a suffix command runs.
 #+end_src
 
 Per-keymap setting wins over the global one.
+Use =:persistent nil= on a definition or annotation to disable a non-nil
+global default for that keymap.
 
 ** Dismissing programmatically
 
@@ -433,12 +440,13 @@ Signature:
 
 BINDINGS is an evaluated list in the same shape as
 =keymap-popup-annotate='s body; commands and predicates are actual
-objects rather than forms.  OPTS accepts =:exit-key=,
-=:description=, and =:persistent=.  Reattaching replaces prior
-descriptions and options, so omitted options return to their
-defaults.  Unlike the macros, no keys are bound and no commands are
-defined -- keyed entries should already be bound in KEYMAP.  Returns
-KEYMAP.
+objects rather than forms.  Function symbols may precede their definitions;
+they must be callable when the popup uses them.  OPTS accepts =:exit-key=,
+=:description=, and =:persistent=.  Reattaching replaces prior descriptions
+and options, so omitted options return to their defaults.  Unlike the macros,
+no keys are bound and no commands are defined -- keyed entries should already
+be bound in KEYMAP.  Runtime values and options are validated before metadata
+is attached.  Returns KEYMAP.
 
 * Customization
 :PROPERTIES:

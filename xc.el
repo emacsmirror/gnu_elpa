@@ -1,12 +1,12 @@
 ;;; xc.el --- Emacs interface for xc  -*- lexical-binding: t; -*-
 
-;; Copyright © 2025 Ryan Prior <rprior@protonmail.com>
+;; Copyright © 2026 Ryan Prior <rprior@protonmail.com>
 ;; Author: Ryan Prior
 ;; URL: https://codeberg.org/ryanprior/xc.el
-;; Package-Version: 20251208.1
-;; Package-Requires: ((emacs "25.1"))
+;; Package-Version: 20260713.1
+;; Package-Requires: ((emacs "28.1"))
 ;; Keywords: processes docs
-;; Version: 1.8
+;; Version: 1.9
 
 ;; This file is not part of GNU Emacs.
 
@@ -29,7 +29,6 @@
 ;;; Commentary:
 ;; An Emacs interface to the xc task-runner, <https://xcfile.dev/>
 ;; Use `xc' to launch a task defined in your README
-;; Use `xc-treemacs-init' to enable Treemacs integration.
 
 ;; The common use case for `xc' is to run build, test, deploy type commands
 ;; that are documented in your README. Putting the documented steps on
@@ -38,10 +37,6 @@
 ;; Markdown and org-mode READMEs.
 
 ;;; Code:
-
-(require 'treemacs-treelib nil t) ;; Depend on treemacs only if available
-(declare-function 'treemacs-define-entry-node-type "treemacs-treelib.el")
-(declare-function 'treemacs-define-leaf-node-type "treemacs-treelib.el")
 
 (defgroup xc nil
   "An Emacs interface for xc."
@@ -65,7 +60,7 @@ Either `org' or `md', or nil for default."
   :type 'string)
 
 (defun xc--executable ()
-  "Return non-nil when xc executable is found, or shows a warning."
+  "Return non-nil when xc executable is found, or show a warning."
   (if-let* ((name (or xc-executable "xc"))
             (exec (executable-find name)))
       exec
@@ -116,56 +111,6 @@ If FILE is provided, look for tasks in that file specifically."
                             (and xc-type (concat " -type " xc-type)))
                     (async-shell-command output-buffer))
       (pop-to-buffer output-buffer))))
-
-(defun xc-treemacs-RET-task-action (&optional _)
-  "Run the task associated with the Treemacs button at point."
-  (let* ((btn (treemacs-current-button))
-         (btn-path (treemacs-button-get btn :path))
-         (default-directory (nth 0 btn-path))
-         (task-name (treemacs-button-get btn :key)))
-    (xc task-name)))
-
-(defun xc-treemacs-DBLCLICK-task-action (&optional _)
-  "Run the task associated with the Treemacs button at point."
-  (xc-treemacs-RET-task-action))
-
-(defun xc--treemacs-get-tasks (&optional _)
-  "Get available tasks for the Treemacs project at point."
-  (let* ((btn (treemacs-current-button))
-         (btn-path (treemacs-button-get btn :path))
-         (default-directory (nth 0 btn-path)))
-    (xc--tasks)))
-
-(defun xc--treemacs-tasks-p (&optional _)
-  "Non-nil if the Treemacs project at point has xc tasks; nil otherwise."
-  (let* ((btn (treemacs-current-button))
-         (btn-path (treemacs-button-get btn :path))
-         (default-directory btn-path))
-    (xc--tasks)))
-
-(when (featurep 'treemacs-treelib)
-  (treemacs-define-entry-node-type xc-tasks
-    :key 'xc-tasks
-    :label "[XC TASKS]"
-    :open-icon (treemacs-get-icon-value 'list)
-    :closed-icon (treemacs-get-icon-value 'list)
-    :children (xc--treemacs-get-tasks)
-    :child-type 'xc-task-node)
-  (treemacs-define-leaf-node-type xc-task-node
-    :icon "• "
-    :label (propertize item 'face 'font-lock-string-face)
-    :key item
-    :ret-action #'xc-treemacs-RET-task-action
-    :double-click-action #'xc-treemacs-DBLCLICK-task-action))
-
-;;;###autoload
-(defun xc-treemacs-init ()
-  "Initialize xc-Treemacs integration."
-  (interactive)
-  (treemacs-enable-project-extension
-   :extension 'xc-tasks
-   :position 'top
-   :predicate #'xc--treemacs-tasks-p))
 
 (provide 'xc)
 

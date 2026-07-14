@@ -41,7 +41,7 @@ If you would like to help me get this into GNU Elpa, feel free to bug me.
 
   ;; If you use Treemacs, initialize the integration:
   (with-eval-after-load 'treemacs
-    (xc-treemacs-init))
+    (require 'xc-treemacs))
 #+end_src
 
 *** Customization options

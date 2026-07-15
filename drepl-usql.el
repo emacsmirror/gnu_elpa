@@ -44,6 +44,9 @@
 (defvar drepl-usql--connection-history nil
   "History list of database connections.")
 
+(defvar-local drepl-usql--connection nil
+  "The current usql connection URL.")
+
 (defcustom drepl-usql-program
   (expand-file-name "drepl-usql" drepl-usql--directory)
   "Name of the drepl-usql executable."
@@ -73,11 +76,12 @@ Make sure to run \\[drepl-usql-build] after setting this option."
 ;;;###autoload (autoload 'drepl-usql "drepl-usql" nil t)
 (drepl--define drepl-usql :display-name "usql")
 
-(cl-defmethod drepl--command ((_ drepl-usql))
+(cl-defmethod drepl--command ((repl drepl-usql))
   (if-let* ((prog (executable-find drepl-usql-program)))
-      (list prog (read-from-minibuffer "Connect to database: "
-                                       nil nil nil
-                                       'drepl-usql--connection-history))
+      (list prog (with-memoization drepl-usql--connection
+                   (read-from-minibuffer "Connect to database: "
+                                         nil nil nil
+                                         'drepl-usql--connection-history)))
     (lwarn 'drepl-usql :error "\
 `%s' not found.
 Use %s to build it.
@@ -91,6 +95,24 @@ Note that this requires a Go compiler."
   ;; This at least ensures TAB completion works.
   (setq-local indent-line-function #'ignore)
   (when (fboundp 'sql-indent-enable) (sql-indent-enable)))
+
+(defun drepl-usql--password-function (_prompt)
+  (let* ((url (url-generic-parse-url drepl-usql--connection))
+         (auth (car (auth-source-search
+                     :max 1 :create t
+                     :user (url-user url)
+                     :host (url-host url)
+                     :port (when (url-portspec url)
+                             (number-to-string (url-portspec url))))))
+         (proc (get-buffer-process (current-buffer))))
+    (when-let* ((savefn (plist-get auth :save-function)))
+      ;; We can't directly know if password worked, so check if
+      ;; process still alive after a little while and then offer to
+      ;; save the password.
+      (run-with-timer
+       1 nil (lambda ()
+               (when (process-live-p proc) (funcall savefn)))))
+    (auth-info-password auth)))
 
 (cl-defmethod drepl--eval ((repl drepl-usql) code)
   "Send an eval request to REPL with CODE as argument."
@@ -109,6 +131,7 @@ Note that this requires a Go compiler."
   (cl-call-next-method repl)
   (push '("5151" . comint-mime-osc-handler) ansi-osc-handlers)
   (add-hook 'comint-indirect-setup-hook #'drepl-usql--comint-indirect-setup nil t)
+  (setq-local comint-password-function #'drepl-usql--password-function)
   (drepl--adapt-comint-to-mode ".sql"))
 
 (provide 'drepl-usql)

@@ -10,7 +10,7 @@ This package provides slang-ts-mode, a major mode for editing [[https://shader-s
 
 The package is not on any repository yet. If you use Emacs 30+ then you can use package.el.
 
-#+BEGIN_SRC=elisp
+#+BEGIN_SRC lisp
 (use-package slang-ts-mode
   :vc (:url "https://codeberg.org/hikari/slang-ts-mode")
   :mode "\\.slang\\'")
@@ -18,7 +18,7 @@ The package is not on any repository yet. If you use Emacs 30+ then you can use 
 
 Else, if you use straight.el or Elpaca,
 
-#+BEGIN_SRC=elisp
+#+BEGIN_SRC lisp
 ;; For straight.el
 (use-package slang-ts-mode
   :straight (:host codeberg :repo "hikari/slang-ts-mode" :branch "main")
@@ -31,13 +31,12 @@ Else, if you use straight.el or Elpaca,
 
 You can set the `slang-ts-indent-offset` variable (default 4) to change the indentation.
 
-* Changelog
+** Changelog
 
-** 0.1
+*** 0.1
 
 Initial release.
 
-
-* License
+** License
 
 GPLv2

@@ -1,18 +1,16 @@
-TITLE: slang-ts-mode
-
-PROPERTY: LOGGING nil
+* slang-ts-mode
 
 This package provides slang-ts-mode, a major mode for editing [[https://shader-slang.org][Slang]] code powered by tree-sitter.
 
-* Screenshots
+** Screenshots
 
-** Light Mode
+*** Light Mode
 [[./assets/light.png]]
 
-** Dark Mode
+*** Dark Mode
 [[./assets/dark.png]]
 
-* Installation
+** Installation
 
 The package is not on any repository yet. If you use Emacs 30+ then you can use package.el.
 
@@ -33,7 +31,7 @@ Else, if you use straight.el or Elpaca,
 ;; For Elpaca replace straight with ensure
 #+END_SRC
 
-* Customization
+** Customization
 
 You can set the `slang-ts-indent-offset` variable (default 4) to change the indentation.
 

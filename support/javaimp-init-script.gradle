@@ -10,22 +10,20 @@ allprojects {
                 println("${project.parent.path};${project.parent.version}")
             }
             println("file=${project.buildFile}")
-            println("build-dir=${project.buildDir}")
+            println("build-dir=${project.layout.buildDirectory}")
 
             String finalName = ""
             String sourceDirs = ""
             String depJars = ""
             if (project.pluginManager.hasPlugin("java")) {
-                // "archives" configuration and "sourceSets" property
-                // are defined by Java plugin
-
+                // See org.gradle.api.plugins.JavaPlugin, org.gradle.api.plugins.WarPlugin
+                String artifactType = project.pluginManager.hasPlugin("war") ? "war" : "jar"
                 finalName = project.configurations.getByName("archives").artifacts.stream()
-                    .filter {
-                        it.type.equals("jar") || it.type.equals("war")
-                    }
+                    .filter { it.type.equals(artifactType) }
                     .map { it.file.path }
                     .findFirst()
                     .orElse("")
+                // sourceSets defined by org.gradle.api.plugins.JavaPluginExtension
                 sourceDirs = project.sourceSets.stream()
                     .flatMap {
                         it.allJava.srcDirs.stream()

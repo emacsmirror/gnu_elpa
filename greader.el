@@ -110,13 +110,9 @@ Return SENTENCE, eventually modified by the functions."
 
 (defun greader-ensure-point-visible ()
   "Scroll the window so that the current point is visible.
-This function is intended to be used in `greader-before-read-hook'.
-When the reading buffer is not displayed in any window (e.g. the user
-has switched to another buffer), do nothing."
-  (when-let* ((win (get-buffer-window (current-buffer))))
-    (unless (pos-visible-in-window-p (point) win)
-      (with-selected-window win
-        (recenter)))))
+This function is intended to be used in `greader-before-read-hook'."
+  (unless (pos-visible-in-window-p)
+    (recenter)))
 
 (add-hook 'greader-before-read-hook #'greader-ensure-point-visible)
 
@@ -526,20 +522,12 @@ available backends."
     (error "Status must be a symbol!")))
 
 (defun greader-action (process event)
-  "Sentinel for greader processes using PROCESS and EVENT.
-Runs in the reading buffer (`greader--current-buffer') regardless of
-which buffer is currently selected, so that buffer-local variables
-such as `greader-backend-action' are always resolved correctly even
-when the user has switched to another buffer during reading."
+  "Sentinel for greader processes using PROCESS and EVENT."
   (if greader-debug
       (progn
 	(greader-debug "greader-action entered.\n")
 	(greader-debug (format "event: %S\n" event))))
-  (if (and greader--current-buffer
-	   (buffer-live-p greader--current-buffer))
-      (with-current-buffer greader--current-buffer
-	(funcall greader-backend-action process event))
-    (funcall greader-backend-action process event)))
+  (funcall greader-backend-action process event))
 
 (defun greader-tts-stop ()
   "Stop reading of current buffer."

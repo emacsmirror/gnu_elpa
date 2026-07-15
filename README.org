@@ -2,13 +2,9 @@
 
 This package provides slang-ts-mode, a major mode for editing [[https://shader-slang.org][Slang]] code powered by tree-sitter.
 
-** Screenshots
+** Screenshot
 
-*** Light Mode
 [[./assets/light.png]]
-
-*** Dark Mode
-[[./assets/dark.png]]
 
 ** Installation
 

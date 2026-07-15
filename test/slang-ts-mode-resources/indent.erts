@@ -1,0 +1,194 @@
+Code:
+  (lambda ()
+    (slang-ts-mode)
+    (setq-local indent-tabs-mode nil)
+    (setq-local slang-ts-indent-offset 2)
+    (indent-region (point-min) (point-max)))
+
+Name: Chunk Indent
+
+=-=
+var a = 1;
+    var b = 2;
+=-=
+var a = 1;
+var b = 2;
+=-=-=
+
+Name: Function Indent
+
+=-=
+void test() {
+       int a = 1;
+           int b = 3;
+}
+=-=
+void test() {
+  int a = 1;
+  int b = 3;
+}
+=-=-=
+
+Name: Struct Indent
+
+=-=
+struct VertexOutput
+{
+              float3 color;
+                  float4 v_position : SV_Position;
+};
+=-=
+struct VertexOutput
+{
+  float3 color;
+  float4 v_position : SV_Position;
+};
+=-=-=
+
+Name: Class Indent
+
+=-=
+class Vertex
+{
+        float3 meow;
+        float4 nya;
+};
+=-=
+class Vertex
+{
+  float3 meow;
+  float4 nya;
+};
+=-=-=
+
+Name: For Indent
+
+=-=
+for (int j = 0; j < 10; j++)
+{
+    if (someCondition) {
+  break outer;
+    }
+}
+=-=
+for (int j = 0; j < 10; j++)
+{
+  if (someCondition) {
+    break outer;
+  }
+}
+=-=-=
+
+Name: Function Call Indent
+
+=-=
+f(123,
+4324,
+T)
+=-=
+f(123,
+  4324,
+  T)
+=-=-=
+
+Name: Function Call Indent 2
+
+=-=
+float2[](
+        float2(0.0, -0.5),
+    float2(0.5, 0.5),
+       float2(-0.5, 0.5));
+=-=
+float2[](
+  float2(0.0, -0.5),
+  float2(0.5, 0.5),
+  float2(-0.5, 0.5));
+=-=-=
+
+Name: Function Definition Indent
+
+=-=
+VertexOutput vert_main(
+    uint vid :SV_VertexID,
+         uint vdk
+)
+=-=
+VertexOutput vert_main(
+  uint vid :SV_VertexID,
+  uint vdk
+)
+=-=-=
+
+Name: Interface Indent
+
+=-=
+dyn interface IFoo
+{
+      int myMethod(float arg);
+}
+=-=
+dyn interface IFoo
+{
+  int myMethod(float arg);
+}
+=-=-=
+
+Name: Extension Indent
+
+=-=
+extension MyObject : IBar, IBar2
+{
+        float bar() { return 1.0f; }
+    float bar2() { return 2.0f; }
+};
+=-=
+extension MyObject : IBar, IBar2
+{
+  float bar() { return 1.0f; }
+  float bar2() { return 2.0f; }
+};
+=-=-=
+
+Name: Switch Indent
+
+=-=
+switch(someValue)
+{
+      case 0:
+    case 1:
+     doBasicThing();
+        break;
+}
+=-=
+switch(someValue)
+{
+  case 0:
+  case 1:
+    doBasicThing();
+    break;
+}
+=-=-=
+
+Name: Definition Indent
+
+=-=
+cbuffer positions[3] =
+      float2[](float2(0.0, -0.5), float2(0.5, 0.5), float2(-0.5, 0.5));
+=-=
+cbuffer positions[3] =
+  float2[](float2(0.0, -0.5), float2(0.5, 0.5), float2(-0.5, 0.5));
+=-=-=
+
+Name: Where Indent
+
+=-=
+void myFunc<T>(T val)
+    where T : Foo,
+T : Bar
+{}
+=-=
+void myFunc<T>(T val)
+  where T : Foo,
+    T : Bar
+{}
+=-=-=

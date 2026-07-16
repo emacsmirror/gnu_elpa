@@ -281,13 +281,6 @@ all values are in pixels relative to the origin.  See
      (- (frame-pixel-width corfu-popupinfo--frame) border)
      (- (frame-pixel-height corfu-popupinfo--frame) border))))
 
-(defun corfu-popupinfo--frame-geometry (frame)
-  "Return position and size geometric attributes of FRAME.
-The geometry represents the position and size in pixels
-in the form of (X Y WIDTH HEIGHT)."
-  (pcase-let ((`(,x . ,y) (frame-position frame)))
-    (list x y (frame-pixel-width frame) (frame-pixel-height frame))))
-
 (defun corfu-popupinfo--fits-p (size area)
   "Check if SIZE fits into the AREA.
 SIZE is in the form (WIDTH . HEIGHT).
@@ -307,9 +300,14 @@ area and vertical area."
       ((lh (default-line-height))
        (`(,pw . ,ph) ps)
        (border (if (display-graphic-p corfu--frame) corfu-border-width 0))
-       (`(,_pfx ,_pfy ,pfw ,pfh)
-        (corfu-popupinfo--frame-geometry (frame-parent corfu--frame)))
-       (`(,cfx ,cfy ,cfw ,cfh) (corfu-popupinfo--frame-geometry corfu--frame))
+       (parent (frame-parent corfu--frame))
+       (pfw (frame-pixel-width parent))
+       (pfh (frame-pixel-height parent))
+       (`(,cfx ,cfy ,cfw ,cfh) (frame-parameter corfu--frame 'corfu--geometry))
+       (cfw (+ cfw (* 2 border)
+               (frame-parameter corfu--frame 'left-fringe)
+               (frame-parameter corfu--frame 'right-fringe)))
+       (cfh (+ cfh (* 2 border)))
        ;; Candidates popup below input
        (below (>= cfy (+ lh (cadr (window-inside-pixel-edges))
                          (window-tab-line-height)
@@ -363,7 +361,7 @@ form (X Y WIDTH HEIGHT DIR)."
     (let* ((cand-changed
             (not (and (corfu-popupinfo--visible-p)
                       (equal-including-properties candidate corfu-popupinfo--candidate))))
-           (new-coords (frame-edges corfu--frame 'inner-edges))
+           (new-coords (frame-parameter corfu--frame 'corfu--geometry))
            (coords-changed (not (equal new-coords corfu-popupinfo--coordinates))))
       (when cand-changed
         (if-let* ((content (funcall corfu-popupinfo--function candidate)))

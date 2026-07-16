@@ -155,11 +155,9 @@ It is recommended to avoid changing these parameters.")
 (defvar corfu-popupinfo--candidate nil
   "Completion candidate for the info popup.")
 
-(defvar corfu-popupinfo--coordinates nil
-  "Coordinates of the candidate popup.
-The coordinates list has the form (LEFT TOP RIGHT BOTTOM) where
-all values are in pixels relative to the origin.  See
-`frame-edges' for details.")
+(defvar corfu-popupinfo--geometry nil
+  "Geometry of the candidate popup.
+The list has the form (LEFT TOP WIDTH HIEGHT) with the values in pixels.")
 
 (defvar corfu-popupinfo--lock-dir nil
   "Locked position direction of the info popup.")
@@ -171,7 +169,7 @@ all values are in pixels relative to the origin.  See
   (mapcar
    (lambda (k) (cons k (symbol-value k)))
    '(corfu-popupinfo--candidate
-     corfu-popupinfo--coordinates
+     corfu-popupinfo--geometry
      corfu-popupinfo--lock-dir
      corfu-popupinfo--toggle
      corfu-popupinfo--function))
@@ -365,8 +363,8 @@ form (X Y WIDTH HEIGHT DIR)."
     (let* ((cand-changed
             (not (and (corfu-popupinfo--visible-p)
                       (equal-including-properties candidate corfu-popupinfo--candidate))))
-           (new-coords (frame-parameter corfu--frame 'corfu--geometry))
-           (coords-changed (not (equal new-coords corfu-popupinfo--coordinates))))
+           (new-geo (frame-parameter corfu--frame 'corfu--geometry))
+           (geo-changed (not (equal new-geo corfu-popupinfo--geometry))))
       (when cand-changed
         (if-let* ((content (funcall corfu-popupinfo--function candidate)))
             (with-current-buffer (corfu--make-buffer corfu-popupinfo--buffer)
@@ -381,8 +379,8 @@ form (X Y WIDTH HEIGHT DIR)."
               (when-let* ((m (memq 'corfu-default (alist-get 'default face-remapping-alist))))
                 (setcar m 'corfu-popupinfo)))
           (corfu-popupinfo--hide)
-          (setq cand-changed nil coords-changed nil)))
-      (when (or cand-changed coords-changed)
+          (setq cand-changed nil geo-changed nil)))
+      (when (or cand-changed geo-changed)
         (pcase-let* ((`(,area-x ,area-y ,area-w ,area-h ,area-d)
                       (corfu-popupinfo--area (if cand-changed
                                                  (corfu-popupinfo--compute-size)
@@ -395,7 +393,7 @@ form (X Y WIDTH HEIGHT DIR)."
                 corfu-popupinfo--toggle t
                 corfu-popupinfo--lock-dir area-d
                 corfu-popupinfo--candidate candidate
-                corfu-popupinfo--coordinates new-coords)
+                corfu-popupinfo--geometry new-geo)
           ;; XXX HACK: Force margin update. For some reason, the call to
           ;; `set-window-buffer' in `corfu--make-frame' is not effective the
           ;; first time. Why does Emacs have all these quirks?

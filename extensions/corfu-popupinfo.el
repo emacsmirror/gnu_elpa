@@ -222,6 +222,8 @@ all values are in pixels relative to the origin.  See
                       (jit-lock-fontify-now beg (point)))
                     (let ((res (buffer-substring beg (point))))
                       (and (not (string-blank-p res)) res)))))))
+        (when (and (bound-and-true-p hl-line-mode) (fboundp 'hl-line-highlight))
+          (hl-line-highlight))
         (when (and buffer (not (memq buffer old-buffers)))
           (kill-buffer buffer))))))
 
@@ -239,6 +241,8 @@ all values are in pixels relative to the origin.  See
                                (print-length (* corfu-popupinfo-max-width
                                                 corfu-popupinfo-max-height)))
                        (funcall fun candidate)))))
+    (when (and (bound-and-true-p hl-line-mode) (fboundp 'hl-line-highlight))
+      (hl-line-highlight))
     (with-current-buffer (or (car-safe res) res)
       (setq res (string-trim
                  (replace-regexp-in-string
@@ -380,10 +384,9 @@ form (X Y WIDTH HEIGHT DIR)."
           (setq cand-changed nil coords-changed nil)))
       (when (or cand-changed coords-changed)
         (pcase-let* ((`(,area-x ,area-y ,area-w ,area-h ,area-d)
-                      (corfu-popupinfo--area
-                       (if cand-changed
-                           (corfu-popupinfo--compute-size)
-                         (corfu-popupinfo--last-size))))
+                      (corfu-popupinfo--area (if cand-changed
+                                                 (corfu-popupinfo--compute-size)
+                                               (corfu-popupinfo--last-size))))
                      (old-frame corfu-popupinfo--frame))
           (setq corfu-popupinfo--frame
                 (with-current-buffer corfu-popupinfo--buffer

@@ -499,7 +499,9 @@ not be displayed until this command is called again, even if
       (cancel-timer corfu-popupinfo--timer)
       (setq corfu-popupinfo--timer nil))
     (if (and (>= corfu--index 0) (corfu-popupinfo--visible-p corfu--frame))
-        (let ((cand (nth corfu--index corfu--candidates)))
+        (let* ((cand (nth corfu--index corfu--candidates))
+               (cand-changed (not (equal-including-properties
+                                   cand corfu-popupinfo--candidate))))
           (if-let* ((delay (if (consp corfu-popupinfo-delay)
                                (funcall (if (eq corfu-popupinfo--toggle 'init) #'car #'cdr)
                                         corfu-popupinfo-delay)
@@ -508,13 +510,14 @@ not be displayed until this command is called again, even if
               (progn
                 (when (and (corfu-popupinfo--visible-p) (> delay 0))
                   (cond
-                   (corfu-popupinfo-hide
+                   ((and corfu-popupinfo-hide cand-changed)
                     (corfu-popupinfo--hide))
                    (corfu-popupinfo--candidate
                     (corfu-popupinfo--show corfu-popupinfo--candidate))))
-                (setq corfu-popupinfo--timer
-                      (run-at-time delay nil #'corfu-popupinfo--show cand)))
-            (unless (equal-including-properties cand corfu-popupinfo--candidate)
+                (when cand-changed
+                  (setq corfu-popupinfo--timer
+                        (run-at-time delay nil #'corfu-popupinfo--show cand))))
+            (unless cand-changed
               (corfu-popupinfo--hide))))
       (corfu-popupinfo--hide))))
 

@@ -510,9 +510,11 @@ FRAME is the existing frame."
   (make-frame-visible frame)
   ;; Unparent child frame if EXWM is used, otherwise EXWM buffers are drawn on
   ;; top of the Corfu child frame.
-  (when (and (bound-and-true-p exwm--connection)
-             (display-graphic-p frame) (frame-parent frame))
+  (when-let* (((bound-and-true-p exwm--connection))
+              ((display-graphic-p frame))
+              (parent (frame-parent frame)))
     (redisplay t)
+    (set-frame-parameter frame 'delete-before parent)
     (set-frame-parameter frame 'parent-frame nil))
   frame)
 

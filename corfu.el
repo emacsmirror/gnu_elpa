@@ -514,8 +514,8 @@ FRAME is the existing frame."
               ((display-graphic-p frame))
               (parent (frame-parent frame)))
     (redisplay t)
-    (set-frame-parameter frame 'delete-before parent)
-    (set-frame-parameter frame 'parent-frame nil))
+    (modify-frame-parameters frame `((delete-before . ,parent)
+                                     (parent-frame . nil))))
   frame)
 
 (defun corfu--hide-frame-deferred (frame)

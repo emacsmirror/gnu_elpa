@@ -276,6 +276,8 @@
   :ignored-files ("COPYING" "doclicense.texi"))
  ;; FIXME: Depends on dired-hacks (dired-subtree, more specifically).
  ;;(dired-sidebar	:url "https://github.com/jojojames/dired-sidebar")
+ ;; FIXME: Waiting for copyright paperwork.
+ ;;(disk			:url "https://git.sr.ht/~rosell/disk.el")
  (disk-usage		:url "https://gitlab.com/ambrevar/emacs-disk-usage")
  (dismal		:url nil)
  (disproject		:url "https://github.com/aurtzy/disproject"
@@ -371,6 +373,7 @@
  (ess			:url "https://github.com/emacs-ess/ESS"
   :lisp-dir "lisp"
   :doc "doc/ess.texi")
+ (evil-collection	:url "https://github.com/emacs-evil/evil-collection")
  (excorporate		:url nil)
  (expand-region		:url "https://github.com/magnars/expand-region.el")
  (expreg                :url "https://github.com/casouri/expreg.git")
@@ -979,6 +982,8 @@
   :readme "readme.rst")
  (wpuzzle		:url nil)
  (wrap-search		:url "https://dataswamp.org/~incal/wrap-search.git")
+ ;; Waiting for copyright paperwork.
+ ;;(xc			:url "https://codeberg.org/ryanprior/xc.el")
  (xclip			:url nil)
  (xeft                  :url "https://git.sr.ht/~casouri/xeft"
   :ignored-files ("*.gif"))

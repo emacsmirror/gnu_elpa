@@ -30,7 +30,7 @@
 ;;;; Groups, Custom Variables, General Variables
 ;;;; =========================================================================
 (defgroup r-ts-roxygen nil
-  "R's roxygen support for r-ts-mode."
+  "R's roxygen support for `r-ts-mode'."
   :group 'r-ts-mode
   :version "30.1")
 

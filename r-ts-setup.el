@@ -34,7 +34,7 @@
 ;;;; =========================================================================
 
 (defgroup r-ts-setup nil
-  "R's roxygen support for r-ts-mode."
+  "R's roxygen support for `r-ts-mode'."
   :group 'r-ts-mode
   :version "30.1")
 

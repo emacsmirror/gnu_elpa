@@ -34,6 +34,8 @@ You can also install it with [[https://github.com/radian-software/straight.el][s
    :branch "main"))
 #+end_src
 
+Or simply download the file =r-ts-mode.el= and load it.
+
 * Usage
 ** R source code
 After installing the package and making sure the R tree-sitter grammar is available, open an =.R= file and enable =r-ts-mode=:

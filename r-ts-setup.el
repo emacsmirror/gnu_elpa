@@ -1,10 +1,10 @@
-;;; r-ts-setup.el --- R major mode using tree-sitter -*- lexical-binding: t; -*-
+;;; r-ts-setup.el --- Emacs tree-sitter setup from R package -*- lexical-binding: t; -*-
 ;; Copyright (C) 2026  Manuel Teodoro Tenango
 
 ;; Author: Manuel Teodoro <ttm@teoten.me>
 ;; URL: https://codeberg.org/R-for-emacs/r-ts-mode
 ;; Assisted-by: Sonet:4.6
-;; Package-Requires: ((emacs "29.1"))
+;; Package-Requires: ((emacs "30.1"))
 ;; Created: June, 2026
 
 ;; License

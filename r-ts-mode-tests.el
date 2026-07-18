@@ -4,7 +4,7 @@
 ;; Author: Manuel Teodoro <ttm@teoten.me>
 ;; URL: https://codeberg.org/R-for-emacs/r-ts-mode
 ;; Assisted-by: Sonet:4.6
-;; Package-Requires: ((emacs "29.1"))
+;; Package-Requires: ((emacs "30.1"))
 ;; Created: 2026-07-10
 
 ;;; Commentary:

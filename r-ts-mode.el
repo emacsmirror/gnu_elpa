@@ -1,10 +1,10 @@
-;;; r-ts-mode.el --- Emacs Speaks R  -*- lexical-binding: t -*-
+;;; r-ts-mode.el --- R treesitter mode  -*- lexical-binding: t -*-
 ;; Copyright (C) 2025  Manuel Teodoro Tenango
 
 ;; Author: Manuel Teodoro <ttm@teoten.me>
 ;; URL: https://codeberg.org/R-for-emacs/r-ts-mode
 ;; Assisted-by: Sonet:4.6
-;; Package-Requires: ((emacs "29.1"))
+;; Package-Requires: ((emacs "30.1"))
 ;; Created: 2025-09-05
 
 ;; License

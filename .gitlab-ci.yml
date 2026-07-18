@@ -1,0 +1,92 @@
+stages:
+  - build
+  - lint
+  - test
+
+variables:
+  EMACS: emacs -Q -batch -L .
+
+default:
+  before_script:
+    - emacs --version
+
+.eldev:
+  variables: {}
+  before_script:
+    - curl -fsSL
+        https://raw.github.com/emacs-eldev/eldev/master/bin/eldev > eldev
+    - chmod a+x eldev
+
+.build:
+  stage: build
+  needs: []
+  script:
+    # - $EMACS -l bytecomp --eval '(setq byte-compile-error-on-warn t)'
+    #     -f batch-byte-compile *.el
+    - $EMACS -l bytecomp -f batch-byte-compile *.el
+
+.lint:
+  extends: .eldev
+  stage: lint
+  needs: []
+  script:
+    - ./eldev lint all elisp
+
+.test:
+  stage: test
+  script:
+    - $EMACS -l bytecomp -f batch-byte-compile *.el test/*.el
+    - $EMACS -L test -l tramp  -l tramp-tests
+        --eval '(ert-run-tests-batch-and-exit (quote (not (tag :unstable))))'
+
+build-28:
+  image: "silex/emacs:28-ci"
+  extends: .build
+
+build-29:
+  image: "silex/emacs:29-ci"
+  extends: .build
+
+build-30:
+  image: "silex/emacs:30-ci"
+  extends: .build
+
+build-master:
+  image: "silex/emacs:master-ci"
+  extends: .build
+
+lint-28:
+  image: "silex/emacs:28-ci"
+  extends: .lint
+
+lint-29:
+  image: "silex/emacs:29-ci"
+  extends: .lint
+
+lint-30:
+  image: "silex/emacs:30-ci"
+  extends: .lint
+
+lint-master:
+  image: "silex/emacs:master-ci"
+  extends: .lint
+
+test-28:
+  image: "silex/emacs:28-ci"
+  extends: .test
+  needs: ["build-28"]
+
+test-29:
+  image: "silex/emacs:29-ci"
+  extends: .test
+  needs: ["build-29"]
+
+test-30:
+  image: "silex/emacs:30-ci"
+  extends: .test
+  needs: ["build-30"]
+
+test-master:
+  image: "silex/emacs:master-ci"
+  extends: .test
+  needs: ["build-master"]

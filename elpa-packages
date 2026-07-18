@@ -373,7 +373,6 @@
  (ess			:url "https://github.com/emacs-ess/ESS"
   :lisp-dir "lisp"
   :doc "doc/ess.texi")
- (evil-collection	:url "https://github.com/emacs-evil/evil-collection")
  (excorporate		:url nil)
  (expand-region		:url "https://github.com/magnars/expand-region.el")
  (expreg                :url "https://github.com/casouri/expreg.git")

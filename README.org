@@ -66,10 +66,10 @@ Set the variable ~r-ts-mode-inherit-ess~ to true and start using treesitter with
 ** Roxygen
 Roxygen support is provided through =r-ts-roxygen-mode=. It provides syntax highlighting and CAPF for Roxygen tags.
 
-From version 1.1.0, =r-ts-roxygen-mode= is not autoloaded by default. The module is provided as part of the package but it has to be loaded explicitly.
+From version 1.1.0, =r-ts-roxygen-mode= is not automatically loaded by default. The module is provided as part of the package, but it has to be loaded explicitly.
 
 #+begin_src emacs-lisp
-;; Loading Roxygen support after r-ts-mode
+;; Load Roxygen support after r-ts-mode
 (with-eval-after-load
     'r-ts-mode
   (require 'r-ts-roxygen)
@@ -88,3 +88,15 @@ As mentioned in the [[* Dependencies][Dependencies]] section, there are 3 main k
 #+end_src
 
 * Original code and R for Emacs
+** ESR
+=r-ts-mode= started following the logic of ESS in which a major mode not only sets the rules for the language, but also defines interaction with the R console, CAPF, xref, linters and more. Soon I came to realize that this is not the right model and decided to change it. At first, everything was kept in ESR, but the code related to tree sitter was segregated into a different module. However, the major mode was still receiving too much responsibility and the name, =r-ts-mode= was not exactly just a tree sitter major mode for R. Therefore, I took the decision to separate it completely into its own package that specializes Emacs for editing R code, while the rest of the functionality should be delegated to ESR via minor mode(s).
+
+The idea of having it as a separated package was in my head almost since the creation of ESR, mainly because I wanted to have an =r-ts-mode= that could be easily shared and used without the rest of ESR, something that ESS has never offered. Having it as part of ESR would force the users who only want to benefit from the tree sitter parser, to install a complete package that they might not need. Additionally to that, I received a few comments about trying to make =r-ts-mode= part of core Emacs, something that cannot be possible as long as it was part of ESR.
+
+*** Main changes
+The philosophy following the separation from ESR is that only the file =r-ts-mode.el= is necessary for the major mode. And it deals with tree sitter related functionality only. Therefore, functionality for Roxygen documentation and for setting up the grammar from the R library have been moved to separated modules, none of which is automatically loaded. See more details in the [[* Usage][Usage]] section.
+
+Aside of that, regular maintenance has been given: some refactoring into a more functional programming approach, inclusion of the first file for unit test, and other preparation to be submitted to MELPA and ELPA.
+
+** R for Emacs
+[[https://codeberg.org/R-for-emacs/][R-for-emacs]] is a new Codeberg Organization to act as a collection of packages and information for the use of R in Emacs. Currently it contains only 3 packages, but the plan is to grow it into a full ecosystem, not only of packages and functionality, but also resources and information specific to the use of R on Emacs.

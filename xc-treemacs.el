@@ -1,12 +1,13 @@
 ;;; xc-treemacs.el --- Treemacs interface for xc  -*- lexical-binding: t; -*-
 
-;; Copyright © 2026 Ryan Prior <rprior@protonmail.com>
-;; Author: Ryan Prior
+;; Copyright © 2026  Free Software Foundation, Inc.
+
+;; Author: Ryan Prior <rprior@protonmail.com>
 ;; URL: https://codeberg.org/ryanprior/xc.el
-;; Package-Version: 20260713.1
-;; Package-Requires: ((emacs "25.1")(xc "1.9")(treemacs "3.2"))
+;; Package-Version: 20260717.1
+;; Package-Requires: ((emacs "25.1")(xc "1.10")(treemacs "3.2"))
 ;; Keywords: processes docs
-;; Version: 1.9
+;; Version: 1.10
 
 ;; This file is not part of GNU Emacs.
 
@@ -37,8 +38,13 @@
 
 ;;; Code:
 
-(require 'treemacs-treelib)
+(require 'treemacs-treelib nil t)
+(require 'treemacs-core-utils nil t)
 (require 'xc)
+
+(declare-function treemacs-current-button "treemacs-core-utils")
+(declare-function treemacs-button-get "treemacs-core-utils")
+(declare-function treemacs-enable-project-extension "treemacs-treelib")
 
 (defun xc-treemacs-RET-task-action (&optional _)
   "Run the task associated with the Treemacs button at point."
@@ -66,25 +72,25 @@
          (default-directory btn-path))
     (xc--tasks)))
 
-(treemacs-define-entry-node-type xc-tasks
-  :key 'xc-tasks
-  :label "[XC TASKS]"
-  :open-icon (treemacs-get-icon-value 'list)
-  :closed-icon (treemacs-get-icon-value 'list)
-  :children (xc-treemacs--get-tasks)
-  :child-type 'xc-task-node)
-
-(treemacs-define-leaf-node-type xc-task-node
-  :icon "• "
-  :label (propertize item 'face 'font-lock-string-face)
-  :key item
-  :ret-action #'xc-treemacs-RET-task-action
-  :double-click-action #'xc-treemacs-DBLCLICK-task-action)
-
-(treemacs-enable-project-extension
- :extension 'xc-tasks
- :position 'top
- :predicate #'xc-treemacs--tasks-p)
+(xc--if-macro-fboundp treemacs-define-entry-node-type
+    (progn
+      (treemacs-define-entry-node-type xc-tasks
+        :key 'xc-tasks
+        :label "[XC TASKS]"
+        :open-icon (treemacs-get-icon-value 'list)
+        :closed-icon (treemacs-get-icon-value 'list)
+        :children (xc-treemacs--get-tasks)
+        :child-type 'xc-task-node)
+      (treemacs-define-leaf-node-type xc-task-node
+        :icon "• "
+        :label (propertize item 'face 'font-lock-string-face)
+        :key item
+        :ret-action #'xc-treemacs-RET-task-action
+        :double-click-action #'xc-treemacs-DBLCLICK-task-action)
+      (treemacs-enable-project-extension
+       :extension 'xc-tasks
+       :position 'top
+       :predicate #'xc-treemacs--tasks-p)))
 
 (provide 'xc-treemacs)
 

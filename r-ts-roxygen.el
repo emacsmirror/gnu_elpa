@@ -3,6 +3,7 @@
 
 ;; Author: Manuel Teodoro <ttm@teoten.me>
 ;; URL: https://codeberg.org/R-for-emacs/r-ts-mode
+;; Version: 1.1.1
 ;; Assisted-by: Sonet:4.6
 ;; Package-Requires: ((emacs "30.1"))
 ;; Created: June, 2026
@@ -34,7 +35,7 @@
   :group 'r-ts-mode
   :version "30.1")
 
-(defcustom r-ts-mode-roxygen-tags-param
+(defcustom r-ts-roxygen-tags-param
   '("author" "aliases" "concept" "details"
     "example" "examples" "examplesIf"
     "format" "keywords"
@@ -56,16 +57,16 @@ Used to decide highlighting and tag completion."
   :group 'r-ts-roxygen
   :type '(repeat string))
 
-(defcustom r-ts-mode-roxygen-tags-noparam '("export" "noRd")
+(defcustom r-ts-roxygen-tags-noparam '("export" "noRd")
   "Roxygen tags that can be used without a parameter.
 Used to decide highlighting and tag completion."
   :group 'r-ts-roxygen
   :type '(repeat string))
 
-(defconst r-ts-mode-roxygen--initial-regex "^[ \t]*#+'"
+(defconst r-ts-roxygen--initial-regex "^[ \t]*#+'"
   "Regexp matching the start of a roxygen comment line.")
 
-(defconst r-ts-mode-roxygen--param-name-regexp
+(defconst r-ts-roxygen--param-name-regexp
   "\\(?:\\(?:\\sw\\|\\s_\\)+,?\\)+"
   "Regexp matching a parameter name, including symbols and commas.")
 
@@ -73,33 +74,33 @@ Used to decide highlighting and tag completion."
 ;;;; =========================================================================
 ;;;; Roxygen Supportive Functions
 ;;;; =========================================================================
-(defun r-ts-mode-roxygen--build-keywords ()
+(defun r-ts-roxygen--build-keywords ()
   "Return a font-lock keyword list for roxygen comments.
 Pure function — reads only `defcustom' values, produces no side effects."
   `(;; Highlight entire roxygen lines
-    (,(concat r-ts-mode-roxygen--initial-regex ".*")
+    (,(concat r-ts-roxygen--initial-regex ".*")
      (0 'font-lock-doc-face prepend))
     ;; Tags that take a parameter
-    (,(concat r-ts-mode-roxygen--initial-regex " *\\([@\\]"
-              (regexp-opt r-ts-mode-roxygen-tags-param t)
+    (,(concat r-ts-roxygen--initial-regex " *\\([@\\]"
+              (regexp-opt r-ts-roxygen-tags-param t)
               "\\)\\>")
      (1 'font-lock-keyword-face prepend))
     ;; @param / @importFrom / etc. — highlight the argument name too
-    (,(concat r-ts-mode-roxygen--initial-regex " *\\(@"
+    (,(concat r-ts-roxygen--initial-regex " *\\(@"
               (regexp-opt '("param" "importFrom" "importClassesFrom"
                             "importMethodsFrom" "describeIn")
                           'words)
-              "\\)\\(?:[ \t]+\\(" r-ts-mode-roxygen--param-name-regexp "\\)\\)")
+              "\\)\\(?:[ \t]+\\(" r-ts-roxygen--param-name-regexp "\\)\\)")
      (1 'font-lock-keyword-face prepend)
      (3 'font-lock-variable-name-face prepend))
     ;; Tags that take no parameter
-    (,(concat "[@\\]" (regexp-opt r-ts-mode-roxygen-tags-noparam t) "\\>")
+    (,(concat "[@\\]" (regexp-opt r-ts-roxygen-tags-noparam t) "\\>")
      (0 'font-lock-variable-name-face prepend))
     ;; Bold the #' prefix itself
-    (,(concat r-ts-mode-roxygen--initial-regex)
+    (,(concat r-ts-roxygen--initial-regex)
      (0 'bold prepend))))
 
-(defvar-local r-ts-mode-roxygen--active-keywords nil
+(defvar-local r-ts-roxygen--active-keywords nil
   "Font-lock keywords currently installed by `r-ts-roxygen-mode'.")
 
 ;; Does not work with ESS active
@@ -114,23 +115,23 @@ Pure function — reads only `defcustom' values, produces no side effects."
                  (eq (following-char) ?@)))
       (list (1+ beg)
             end
-            (append r-ts-mode-roxygen-tags-param
-                    r-ts-mode-roxygen-tags-noparam)
+            (append r-ts-roxygen-tags-param
+                    r-ts-roxygen-tags-noparam)
             :exclusive 'no))))
 
-(defun r-ts-mode-roxygen--enable ()
+(defun r-ts-roxygen--enable ()
   "Install roxygen font-lock keywords and completion in the current buffer."
-  (setq r-ts-mode-roxygen--active-keywords
-        (r-ts-mode-roxygen--build-keywords))
-  (font-lock-add-keywords nil r-ts-mode-roxygen--active-keywords)
+  (setq r-ts-roxygen--active-keywords
+        (r-ts-roxygen--build-keywords))
+  (font-lock-add-keywords nil r-ts-roxygen--active-keywords)
   (add-hook 'completion-at-point-functions
             #'r-ts-roxygen-complete-tag nil t))
 
-(defun r-ts-mode-roxygen--disable ()
+(defun r-ts-roxygen--disable ()
   "Remove roxygen font-lock keywords and completion from the current buffer."
-  (when r-ts-mode-roxygen--active-keywords
-    (font-lock-remove-keywords nil r-ts-mode-roxygen--active-keywords)
-    (setq r-ts-mode-roxygen--active-keywords nil))
+  (when r-ts-roxygen--active-keywords
+    (font-lock-remove-keywords nil r-ts-roxygen--active-keywords)
+    (setq r-ts-roxygen--active-keywords nil))
   (remove-hook 'completion-at-point-functions
                #'r-ts-roxygen-complete-tag t))
 
@@ -144,8 +145,8 @@ Pure function — reads only `defcustom' values, produces no side effects."
   "Minor mode for roxygen documentation in R buffers."
   :init-value nil
   (if r-ts-roxygen-mode
-      (r-ts-mode-roxygen--enable)
-    (r-ts-mode-roxygen--disable))
+      (r-ts-roxygen--enable)
+    (r-ts-roxygen--disable))
   (when font-lock-mode
     (font-lock-flush)))
 

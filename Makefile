@@ -4,7 +4,7 @@
 
 EMACS   = emacs
 BATCH   = $(EMACS) -Q --batch -L .
-VERSION = 1.1.0
+VERSION = 1.1.1
 
 ## Files to byte-compile
 EL      = r-ts-roxygen.el r-ts-mode.el r-ts-setup.el
@@ -48,8 +48,7 @@ test: $(COMPILE) $(TESTS)
 
 ## ── Lint ───
 lint:
-	$(BATCH) --eval '(setq byte-compile-error-on-warn t)' \
-	         -f batch-byte-compile $(EL)
+	$(BATCH) --eval "(progn (add-to-list 'load-path \"~/.emacs.d/straight/build/package-lint/\") (require 'package-lint))" -l $(EL) -f package-lint-batch-and-exit $(EL)
 
 ## ── Package ──
 package: r-ts-mode-$(VERSION).tar

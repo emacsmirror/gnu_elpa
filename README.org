@@ -1,5 +1,5 @@
 * R Tree Sitter Mode for Emacs
-Version 1.1.0
+Version 1.1.1
 
 The code for this package has been extracted from the original [[https://codeberg.org/teoten/esr][ESR]] repository, which has been migrated to a new location under the Codeberg organization [[https://codeberg.org/R-for-emacs][R for Emacs]], created to promote Emacs packages for R. Read more at the end of this readme.
 
@@ -68,7 +68,7 @@ Set the variable ~r-ts-mode-inherit-ess~ to true and start using treesitter with
 ** Roxygen
 Roxygen support is provided through =r-ts-roxygen-mode=. It provides syntax highlighting and CAPF for Roxygen tags.
 
-From version 1.1.0, =r-ts-roxygen-mode= is not automatically loaded by default. The module is provided as part of the package, but it has to be loaded explicitly.
+From version 1.1.1, =r-ts-roxygen-mode= is not automatically loaded by default. The module is provided as part of the package, but it has to be loaded explicitly.
 
 #+begin_src emacs-lisp
 ;; Load Roxygen support after r-ts-mode

@@ -276,13 +276,6 @@ The list has the form (LEFT TOP WIDTH HIEGHT) with the values in pixels.")
                       (min (max (cdr size) lh) max-height))))))
         (cons (+ margin max-width) max-height))))
 
-(defun corfu-popupinfo--last-size ()
-  "Return last popup size as pair."
-  (let ((border (if (display-graphic-p corfu--frame) (* 2 corfu-border-width) 0)))
-    (cons
-     (- (frame-pixel-width corfu-popupinfo--frame) border)
-     (- (frame-pixel-height corfu-popupinfo--frame) border))))
-
 (defun corfu-popupinfo--fits-p (size area)
   "Check if SIZE fits into the AREA.
 SIZE is in the form (WIDTH . HEIGHT).
@@ -382,9 +375,12 @@ form (X Y WIDTH HEIGHT DIR)."
           (setq cand-changed nil geo-changed nil)))
       (when (or cand-changed geo-changed)
         (pcase-let* ((`(,area-x ,area-y ,area-w ,area-h ,area-d)
-                      (corfu-popupinfo--area (if cand-changed
-                                                 (corfu-popupinfo--compute-size)
-                                               (corfu-popupinfo--last-size))))
+                      (corfu-popupinfo--area
+                       (if cand-changed
+                           (corfu-popupinfo--compute-size)
+                         (let ((last (frame-parameter corfu-popupinfo--frame
+                                                      'corfu--geometry)))
+                           (cons (nth 2 last) (nth 3 last))))))
                      (old-frame corfu-popupinfo--frame))
           (setq corfu-popupinfo--frame
                 (with-current-buffer corfu-popupinfo--buffer

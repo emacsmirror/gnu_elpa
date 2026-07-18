@@ -374,14 +374,13 @@ form (X Y WIDTH HEIGHT DIR)."
           (corfu-popupinfo--hide)
           (setq cand-changed nil geo-changed nil)))
       (when (or cand-changed geo-changed)
-        (pcase-let* ((`(,area-x ,area-y ,area-w ,area-h ,area-d)
+        (pcase-let* ((old-frame corfu-popupinfo--frame)
+                     (`(,area-x ,area-y ,area-w ,area-h ,area-d)
                       (corfu-popupinfo--area
                        (if cand-changed
                            (corfu-popupinfo--compute-size)
-                         (let ((last (frame-parameter corfu-popupinfo--frame
-                                                      'corfu--geometry)))
-                           (cons (nth 2 last) (nth 3 last))))))
-                     (old-frame corfu-popupinfo--frame))
+                         (let ((old (frame-parameter old-frame 'corfu--geometry)))
+                           (cons (nth 2 old) (nth 3 old)))))))
           (setq corfu-popupinfo--frame
                 (with-current-buffer corfu-popupinfo--buffer
                   (corfu--make-frame corfu-popupinfo--frame

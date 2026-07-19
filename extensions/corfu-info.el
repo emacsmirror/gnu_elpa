@@ -70,7 +70,6 @@ Make the buffer persistent with NAME if non-nil."
 (defun corfu-info-documentation (&optional arg)
   "Show documentation of current candidate.
 If called with a prefix ARG, the buffer is persistent."
-  (declare (completion ignore))
   (interactive "P")
   ;; Company support, taken from `company.el', see `company-show-doc-buffer'.
   (when (< corfu--index 0)
@@ -91,7 +90,6 @@ If called with a prefix ARG, the buffer is persistent."
 (defun corfu-info-location (&optional arg)
   "Show location of current candidate.
 If called with a prefix ARG, the buffer is persistent."
-  (declare (completion ignore))
   (interactive "P")
   ;; Company support, taken from `company.el', see `company-show-location'.
   (when (< corfu--index 0)

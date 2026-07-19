@@ -1416,9 +1416,7 @@ local `completion-at-point-functions'."
 ;; Do not show Corfu commands with M-X
 (dolist (sym '( corfu-next corfu-previous corfu-first corfu-last corfu-quit corfu-reset
                 corfu-complete corfu-insert corfu-scroll-up corfu-scroll-down corfu-expand
-                corfu-send corfu-insert-separator corfu-prompt-beginning corfu-prompt-end
-                corfu-info-location corfu-info-documentation ;; autoloads in corfu-info.el
-                corfu-quick-jump corfu-quick-insert corfu-quick-complete)) ;; autoloads in corfu-quick.el
+                corfu-send corfu-insert-separator corfu-prompt-beginning corfu-prompt-end))
   (put sym 'completion-predicate #'ignore))
 
 (defun corfu--capf-wrapper-advice (orig fun which)

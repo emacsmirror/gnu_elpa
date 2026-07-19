@@ -115,6 +115,7 @@ TWO is non-nil if two keys should be displayed."
 ;;;###autoload
 (defun corfu-quick-jump ()
   "Jump to candidate using quick keys."
+  (declare (completion ignore))
   (interactive)
   (when (fboundp 'corfu-echo--cancel)
     (corfu-echo--cancel))
@@ -127,6 +128,7 @@ TWO is non-nil if two keys should be displayed."
 ;;;###autoload
 (defun corfu-quick-insert ()
   "Insert candidate using quick keys."
+  (declare (completion ignore))
   (interactive)
   (when (corfu-quick-jump)
     (corfu-insert)))
@@ -134,6 +136,7 @@ TWO is non-nil if two keys should be displayed."
 ;;;###autoload
 (defun corfu-quick-complete ()
   "Complete candidate using quick keys."
+  (declare (completion ignore))
   (interactive)
   (when (corfu-quick-jump)
     (corfu-complete)))

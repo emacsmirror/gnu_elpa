@@ -4,10 +4,10 @@
 
 ;; Author: Ryan Prior <rprior@protonmail.com>
 ;; URL: https://codeberg.org/ryanprior/xc.el
-;; Package-Version: 20260717.1
+;; Package-Version: 20260719.1
 ;; Package-Requires: ((emacs "28.1")(compat "29"))
 ;; Keywords: processes docs
-;; Version: 1.10
+;; Version: 1.11
 
 ;; This file is not part of GNU Emacs.
 
@@ -154,6 +154,7 @@ If FILE is provided, look for tasks in that file specifically."
                                 ,task))))
       (xc--set-process-sentinel proc-buffer)
       (pop-to-buffer proc-buffer)
+      (setq-local term-scroll-to-bottom-on-output 'this)
       (term-char-mode))))
 
 (provide 'xc)

@@ -348,12 +348,16 @@ It is recommended to avoid changing these parameters.")
     (indicate-empty-lines . nil)
     (indicate-buffer-boundaries . nil)
     (buffer-read-only . t)
-    (pixel-scroll-precision-mode . nil))
+    (pixel-scroll-precision-mode . nil)
+    (x-pointer-shape . 2))
   "Default child frame buffer parameters.
 It is recommended to avoid changing these parameters.")
 
 (defvar corfu--mouse-ignore-map
-  (let ((map (define-keymap "<touchscreen-begin>" #'ignore)))
+  (let ((map (define-keymap
+               "<touchscreen-begin>" #'ignore
+               "<right-fringe> <t>" #'ignore
+               "<left-fringe> <t>" #'ignore)))
     (dotimes (i 7)
       (dolist (k '(mouse down-mouse drag-mouse double-mouse triple-mouse))
         (keymap-set map (format "<%s-%s>" k (1+ i)) #'ignore)))

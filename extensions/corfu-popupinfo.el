@@ -122,7 +122,7 @@ documentation from the backend is usually expensive."
   :group 'corfu)
 
 (defvar-keymap corfu-popupinfo-map
-  :doc "Additional keymap activated in popupinfo mode."
+  :doc "Additional keymap activated by `corfu-popupinfo-mode'."
   "M-t" #'corfu-popupinfo-toggle
   "<remap> <corfu-info-documentation>" #'corfu-popupinfo-documentation
   "<remap> <corfu-info-location>" #'corfu-popupinfo-location

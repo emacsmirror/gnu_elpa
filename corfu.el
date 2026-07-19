@@ -136,7 +136,7 @@ separator: Only stay alive if there is no match and
   "Width of the right margin in units of the character width."
   :type 'float)
 
-(defcustom corfu-bar-width 0.2
+(defcustom corfu-bar-width 0.25
   "Width of the bar in units of the character width."
   :type 'float)
 

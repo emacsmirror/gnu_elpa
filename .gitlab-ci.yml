@@ -3,41 +3,36 @@ stages:
   - lint
   - test
 
-variables:
-  EMACS: emacs -Q -batch -L .
-
 default:
   before_script:
-    - emacs --version
-
-.eldev:
-  variables: {}
-  before_script:
-    - curl -fsSL
-        https://raw.github.com/emacs-eldev/eldev/master/bin/eldev > eldev
-    - chmod a+x eldev
+    - make autoloads
 
 .build:
   stage: build
   needs: []
   script:
-    # - $EMACS -l bytecomp --eval '(setq byte-compile-error-on-warn t)'
-    #     -f batch-byte-compile *.el
-    - $EMACS -l bytecomp -f batch-byte-compile *.el
+    - emacs -Q -batch -L . -l bytecomp
+        --eval '(setq byte-compile-error-on-warn t)'
+        -f batch-byte-compile *.el
 
 .lint:
-  extends: .eldev
   stage: lint
   needs: []
+  before_script:
+    - curl -fsSL
+        https://raw.github.com/emacs-eldev/eldev/master/bin/eldev > eldev
+    - chmod a+x eldev
   script:
     - ./eldev lint all elisp
 
 .test:
   stage: test
+  needs: []
   script:
-    - $EMACS -l bytecomp -f batch-byte-compile *.el test/*.el
-    - $EMACS -L test -l tramp  -l tramp-tests
-        --eval '(ert-run-tests-batch-and-exit (quote (not (tag :unstable))))'
+    - emacs -Q -batch -L . -l bytecomp
+        -f batch-byte-compile *.el
+    - make test TESTS=tramp-tests
+
 
 build-28:
   image: "silex/emacs:28-ci"
@@ -74,19 +69,19 @@ lint-master:
 test-28:
   image: "silex/emacs:28-ci"
   extends: .test
-  needs: ["build-28"]
 
 test-29:
   image: "silex/emacs:29-ci"
   extends: .test
-  needs: ["build-29"]
 
 test-30:
   image: "silex/emacs:30-ci"
   extends: .test
-  needs: ["build-30"]
 
 test-master:
   image: "silex/emacs:master-ci"
   extends: .test
-  needs: ["build-master"]
+
+# Local Variables:
+# add-log-current-defun-header-regexp: "^\\([-_.[:alnum:]]+\\)[ \t]*:"
+# End:

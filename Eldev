@@ -1,0 +1,5 @@
+;;; -*- mode: emacs-lisp; lexical-binding: t -*-
+
+(setq eldev-project-main-file "tramp.el"
+      eldev-standard-excludes
+      `(:or ,eldev-standard-excludes "./tramp-loaddefs.el"))

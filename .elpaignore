@@ -2,4 +2,6 @@
 .elpaignore
 .git
 .gitignore
+.gitlab-ci.yml
+Eldev
 README-GIT

@@ -5,7 +5,7 @@
 ;; Author: zach shaftel <zach@shaf.tel>
 ;; Maintainer: zach shaftel <zach@shaf.tel>
 ;; Created: May 14, 2026
-;; Version: 0.2.1
+;; Version: 0.3.0
 ;; Keywords: lisp, languages, tree-sitter
 ;; URL: https://codeberg.org/zshaftel/lisp-ts-mode
 ;; Package-Requires: ((emacs "30.2") cond-star (compat "31"))
@@ -40,7 +40,27 @@
   (require 'cond-star)
   (require 'cl-lib))
 
-(ts-declare-unavailable-functions)
+;; not in emacs 30
+;; (ts-declare-unavailable-functions)
+
+(declare-function ts-node-child "treesit.c")
+(declare-function ts-node-type "treesit.c")
+(declare-function ts-node-start "treesit.c")
+(declare-function ts-node-end "treesit.c")
+(declare-function ts-node-next-sibling "treesit.c")
+(declare-function ts-node-child-by-field-name "treesit.c")
+(declare-function ts-parser-root-node "treesit.c")
+(declare-function ts-node-first-child-for-pos "treesit.c")
+(declare-function ts-parser-included-ranges "treesit.c")
+(declare-function ts-query-compile "treesit.c")
+(declare-function ts-query-capture "treesit.c")
+(declare-function ts-parser-set-included-ranges "treesit.c")
+(declare-function ts-node-descendant-for-range "treesit.c")
+(declare-function ts-parser-list "treesit.c")
+(declare-function ts-parser-create "treesit.c")
+(declare-function ts-query-p "treesit.c")
+(declare-function ts-compiled-query-p "treesit.c")
+(defvar ts-thing-settings)
 
 (add-to-list 'ts-language-source-alist
              '(common-lisp

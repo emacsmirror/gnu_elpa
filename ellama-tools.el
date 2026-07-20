@@ -1292,16 +1292,109 @@ Return plist with keys `:action' and optional `:message'."
             (list :action 'warn :message warn-message)
           (list :action 'allow))))))
 
-(defun ellama-tools--dlp-confirm-warn (tool-name message &optional subject)
+(defun ellama-tools--dlp-call-details (tool-plist call-args)
+  "Return named printable details for TOOL-PLIST called with CALL-ARGS."
+  (let* ((async (plist-get tool-plist :async))
+         (values (if (and async call-args (functionp (car call-args)))
+                     (cdr call-args)
+                   call-args))
+         (specs (plist-get tool-plist :args))
+         (index 0)
+         details)
+    (while values
+      (let* ((value (car values))
+             (spec (car specs))
+             (raw-name (or (plist-get spec :name)
+                           (format "arg%d" (1+ index))))
+             (arg-name (if (symbolp raw-name)
+                           (symbol-name raw-name)
+                         raw-name)))
+        (unless (functionp value)
+          (push (cons arg-name
+                      (let ((print-circle t)
+                            (print-length nil)
+                            (print-level nil))
+                        (prin1-to-string value)))
+                details)))
+      (setq values (cdr values))
+      (setq specs (cdr specs))
+      (setq index (1+ index)))
+    (nreverse details)))
+
+(defun ellama-tools--dlp-truncate-call-detail (text)
+  "Return TEXT shortened in the middle for a confirmation prompt."
+  (let* ((text (replace-regexp-in-string "[\n\r\t]+" " " text))
+         (limit (max 1 ellama-tools-argument-max-length))
+         (length (length text)))
+    (cond
+     ((<= length limit)
+      text)
+     ((<= limit 3)
+      (substring text 0 limit))
+     (t
+      (let* ((available (- limit 3))
+             (left (/ available 2))
+             (right (- available left)))
+        (concat (substring text 0 left)
+                "..."
+                (substring text (- length right))))))))
+
+(defun ellama-tools--dlp-call-summary (call-details)
+  "Return a compact prompt summary of CALL-DETAILS."
+  (if call-details
+      (mapconcat
+       (lambda (detail)
+         (format "%s=%s"
+                 (car detail)
+                 (ellama-tools--dlp-truncate-call-detail (cdr detail))))
+       call-details
+       ", ")
+    "no arguments"))
+
+(defun ellama-tools--dlp-view-input-warning
+    (tool-name message call-details &optional title)
+  "Display input warning details for TOOL-NAME with MESSAGE.
+CALL-DETAILS contains named printable arguments.  TITLE customizes the heading."
+  (let ((buf (get-buffer-create "*Ellama Security Confirmation*")))
+    (with-current-buffer buf
+      (let ((inhibit-read-only t))
+        (erase-buffer)
+        (insert (propertize (or title "Ellama DLP Input Warning")
+                            'face '(:weight bold :height 1.2)))
+        (insert "\n\n")
+        (insert (format "Tool: %s\n" tool-name))
+        (insert (format "Warning: %s\n\n" (or message "DLP warning")))
+        (insert "Arguments:\n")
+        (if call-details
+            (dolist (detail call-details)
+              (insert (format "  %s: %s\n" (car detail) (cdr detail))))
+          (insert "  (none)\n"))
+        (goto-char (point-min))
+        (view-mode 1)))
+    (display-buffer buf)))
+
+(defun ellama-tools--dlp-confirm-warn
+    (tool-name message &optional subject call-details)
   "Ask explicit confirmation for DLP `warn' on TOOL-NAME with MESSAGE.
-SUBJECT describe what is being allowed."
-  (eq (read-char-choice
-       (format "%s. Proceed with %s %s? (y/n): "
-               (or message "DLP warning")
-               (or subject "tool")
-               tool-name)
-       '(?y ?n))
-      ?y))
+SUBJECT describes what is being allowed.
+CALL-DETAILS contains named printable arguments for prompt and view output."
+  (save-window-excursion
+    (catch 'done
+      (while t
+        (pcase (read-char-choice
+                (format "%s. Proceed with %s %s(%s)? (y/n/v): "
+                        (or message "DLP warning")
+                        (or subject "tool")
+                        tool-name
+                        (ellama-tools--dlp-call-summary call-details))
+                '(?y ?n ?v))
+          (?y
+           (throw 'done t))
+          (?v
+           (ellama-tools--dlp-view-input-warning
+            tool-name message call-details))
+          (_
+           (throw 'done nil)))))))
 
 (defun ellama-tools--dlp-blocked-noninteractive-message (tool-name message)
   "Return noninteractive block message for TOOL-NAME with MESSAGE."
@@ -1312,32 +1405,61 @@ SUBJECT describe what is being allowed."
    (or message "DLP blocked irreversible input")
    tool-name))
 
-(defun ellama-tools--dlp-confirm-warn-strong (tool-name message)
+(defun ellama-tools--dlp-confirm-warn-strong
+    (tool-name message &optional call-details)
   "Ask typed confirmation for irreversible warning on TOOL-NAME.
-MESSAGE is a user-facing warning text."
+MESSAGE is a user-facing warning text.
+CALL-DETAILS contains named printable arguments for prompt and view output."
   (if (not ellama-tools-irreversible-require-typed-confirm)
-      (ellama-tools--dlp-confirm-warn tool-name message "irreversible action")
-    (let ((typed (read-string
+      (ellama-tools--dlp-confirm-warn
+       tool-name message "irreversible action" call-details)
+    (save-window-excursion
+      (catch 'done
+        (while t
+          (let ((typed
+                 (read-string
                   (format
                    (concat
-                    "%s. Type \"%s\" to proceed with irreversible action "
-                    "for tool %s: ")
+                    "%s. Type \"%s\" to proceed, \"v\" to view details, "
+                    "or anything else to deny. Irreversible call: %s(%s): ")
                    (or message "DLP warn-strong input")
                    ellama-tools-irreversible-typed-confirm-phrase
-                   tool-name))))
-      (string= typed ellama-tools-irreversible-typed-confirm-phrase))))
+                   tool-name
+                   (ellama-tools--dlp-call-summary call-details)))))
+            (cond
+             ((string= typed ellama-tools-irreversible-typed-confirm-phrase)
+              (throw 'done t))
+             ((string= (downcase typed) "v")
+              (ellama-tools--dlp-view-input-warning
+               tool-name message call-details
+               "Ellama Irreversible Action Confirmation"))
+             (t
+              (throw 'done nil)))))))))
 
-(defun ellama-tools--dlp-confirm-audit-sink-failure (tool-name message)
-  "Ask explicit confirmation for audit sink failure on TOOL-NAME with MESSAGE."
-  (eq (read-char-choice
-       (format
-        (concat
-         "%s. Audit sink write failed for irreversible action on tool %s. "
-         "Proceed without durable audit logging? (y/n): ")
-        (or message "DLP blocked irreversible input")
-        tool-name)
-       '(?y ?n))
-      ?y))
+(defun ellama-tools--dlp-confirm-audit-sink-failure
+    (tool-name message &optional call-details)
+  "Ask confirmation for audit sink failure on TOOL-NAME with MESSAGE.
+CALL-DETAILS contains named printable arguments for prompt and view output."
+  (save-window-excursion
+    (catch 'done
+      (while t
+        (pcase (read-char-choice
+                (format
+                 (concat
+                  "%s. Audit sink write failed. Proceed without durable "
+                  "logging for irreversible call %s(%s)? (y/n/v): ")
+                 (or message "DLP blocked irreversible input")
+                 tool-name
+                 (ellama-tools--dlp-call-summary call-details))
+                '(?y ?n ?v))
+          (?y
+           (throw 'done t))
+          (?v
+           (ellama-tools--dlp-view-input-warning
+            tool-name message call-details
+            "Ellama Irreversible Action Audit Warning"))
+          (_
+           (throw 'done nil)))))))
 
 (defun ellama-tools--dlp-highlight-findings (start text findings)
   "Highlight FINDINGS in TEXT inserted at START."
@@ -1474,7 +1596,9 @@ return nil."
                             (format "DLP blocked input for tool %s"
                                     tool-name)))
                      (if (not (ellama-tools--dlp-confirm-audit-sink-failure
-                               tool-name message))
+                               tool-name message
+                               (ellama-tools--dlp-call-details
+                                tool-plist args)))
                          (ellama-tools--dlp-return-message
                           async args
                           (format "DLP blocked input for tool %s"
@@ -1489,7 +1613,9 @@ return nil."
                   (or message
                       (format "DLP blocked input for tool %s" tool-name)))))
               ('warn
-               (if (not (ellama-tools--dlp-confirm-warn tool-name message))
+               (if (not (ellama-tools--dlp-confirm-warn
+                         tool-name message nil
+                         (ellama-tools--dlp-call-details tool-plist args)))
                    (ellama-tools--dlp-return-message
                     async args
                     (format "DLP warning denied tool execution for %s"
@@ -1506,7 +1632,8 @@ return nil."
                     (ellama-tools--dlp-blocked-noninteractive-message
                      tool-name message))
                  (if (not (ellama-tools--dlp-confirm-warn-strong
-                           tool-name message))
+                           tool-name message
+                           (ellama-tools--dlp-call-details tool-plist args)))
                      (ellama-tools--dlp-return-message
                       async args
                       (format "DLP warning denied tool execution for %s"

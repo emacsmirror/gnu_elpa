@@ -1,3 +1,10 @@
+* Version 1.31.0
+
+- Show irreversible action confirmation details. Named tool arguments are now
+  included in security confirmation prompts, and a full-detail view flow has
+  been added for DLP and irreversible actions. The flow preserves context even
+  when audit logging fails, and regression tests cover prompt contents as well
+  as the view interaction.
 * Version 1.30.0
 - Split the subagent task tool into two separate contracts. The ~task~ tool
   handles free-form delegation, while ~task_from_template~ handles

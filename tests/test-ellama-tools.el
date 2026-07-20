@@ -4444,6 +4444,7 @@ END_ELLAMA_AGENT_STATE"))
         (ellama-tools-confirm-allowed (make-hash-table))
         (ellama-tools-allow-all t)
         (ellama-tools-allowed nil)
+        prompt
         tool-called)
     (let* ((tool-plist `(:function ,(lambda (_arg)
                                       (setq tool-called t)
@@ -4453,11 +4454,15 @@ END_ELLAMA_AGENT_STATE"))
            (wrapped (ellama-tools-wrap-with-confirm tool-plist))
            (wrapped-func (plist-get wrapped :function)))
       (cl-letf (((symbol-function 'read-string)
-                 (lambda (_prompt &rest _args)
+                 (lambda (text &rest _args)
+                   (setq prompt text)
                    "no")))
         (should (string-match-p
                  "DLP warning denied tool execution"
                  (funcall wrapped-func "DROP TABLE users"))))
+      (should (string-match-p
+               (regexp-quote "mcp_tool(arg=\"DROP TABLE users\")")
+               prompt))
       (should-not tool-called)
       (cl-letf (((symbol-function 'read-string)
                  (lambda (_prompt &rest _args)
@@ -4465,6 +4470,34 @@ END_ELLAMA_AGENT_STATE"))
         (should (equal (funcall wrapped-func "DROP TABLE users")
                        "ok")))
       (should tool-called))))
+
+(ert-deftest test-ellama-tools-dlp-irreversible-confirm-can-view-details ()
+  (ellama-test--ensure-local-ellama-tools)
+  (let ((ellama-tools-irreversible-require-typed-confirm t)
+        (answers (list "v" ellama-tools-irreversible-typed-confirm-phrase))
+        viewed)
+    (unwind-protect
+        (cl-letf (((symbol-function 'read-string)
+                   (lambda (_prompt &rest _args)
+                     (pop answers)))
+                  ((symbol-function 'display-buffer)
+                   (lambda (buffer &rest _args)
+                     (setq viewed
+                           (with-current-buffer buffer
+                             (buffer-string))))))
+          (should
+           (ellama-tools--dlp-confirm-warn-strong
+            "shell_command"
+            "Irreversible action detected"
+            '(("cmd" . "\"rm -rf /tmp/obsolete-build\"")))))
+      (when (get-buffer "*Ellama Security Confirmation*")
+        (kill-buffer "*Ellama Security Confirmation*")))
+    (should-not answers)
+    (should (string-match-p "Ellama Irreversible Action Confirmation" viewed))
+    (should (string-match-p "Tool: shell_command" viewed))
+    (should (string-match-p
+             (regexp-quote "cmd: \"rm -rf /tmp/obsolete-build\"")
+             viewed))))
 
 (ert-deftest
     test-ellama-tools-wrap-with-confirm-dlp-warn-strong-noninteractive-block ()
@@ -4669,6 +4702,7 @@ END_ELLAMA_AGENT_STATE"))
         (ellama-tools-confirm-allowed (make-hash-table))
         (ellama-tools-allow-all t)
         (ellama-tools-allowed nil)
+        prompt
         tool-called)
     (let* ((tool-plist `(:function ,(lambda (_arg)
                                       (setq tool-called t)
@@ -4682,9 +4716,14 @@ END_ELLAMA_AGENT_STATE"))
                  (lambda (_event)
                    (error "Disk full")))
                 ((symbol-function 'read-char-choice)
-                 (lambda (_prompt _choices) ?y)))
+                 (lambda (text _choices)
+                   (setq prompt text)
+                   ?y)))
         (should (equal (funcall wrapped-func "DROP TABLE users") "ok"))
-        (should tool-called)))))
+        (should tool-called)
+        (should (string-match-p
+                 (regexp-quote "query(arg=\"DROP TABLE users\")")
+                 prompt))))))
 
 (ert-deftest
     test-ellama-tools-wrap-with-confirm-audit-sink-failure-noninteractive-block ()

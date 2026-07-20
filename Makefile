@@ -43,7 +43,7 @@ $(TESTS): $(COMPILE)
 
 ## ── Test ───
 test: $(COMPILE) $(TESTS)
-	$(BATCH) -l r-ts-roxygen.elc -l r-ts-mode.elc \
+	$(BATCH) -l r-ts-mode.elc \
 	         -l r-ts-mode-tests.elc -f ert-run-tests-batch-and-exit
 
 ## ── Lint ───

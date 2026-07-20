@@ -238,15 +238,13 @@ to silence ESS fontification.")
           (add-hook 'completion-at-point-functions #'ess-filename-completion   nil 'local)
           (add-hook 'xref-backend-functions #'ess-r-xref-backend nil 'local)
           (add-hook 'project-find-functions  #'ess-r-project       nil 'local))))
-  (progn
-    (defalias 'r-ts-mode-parent-mode-map #'prog-mode-map
-      "Alias to `prog-mode-map' when not inheriting from ESS.")
-    (define-derived-mode r-ts-mode-parent-mode prog-mode "R-ts Parent"
-      "Parent mode for `r-ts-mode' when ESS is not used."
-       :group 'r-ts
-      (set-syntax-table r-ts-mode-syntax-table)
-      (setq-local comment-start "#")
-      (setq-local comment-end ""))))
+  (define-derived-mode r-ts-mode-parent-mode prog-mode "R-ts Parent"
+    "Parent mode for `r-ts-mode' when ESS is not used."
+    :group 'r-ts
+    :keymap prog-mode-map
+    (set-syntax-table r-ts-mode-syntax-table)
+    (setq-local comment-start "#")
+    (setq-local comment-end "")))
 
 
 ;;;; =========================================================================

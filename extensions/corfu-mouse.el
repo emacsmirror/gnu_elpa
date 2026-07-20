@@ -50,7 +50,7 @@
 
 ;;;###autoload
 (define-minor-mode corfu-mouse-mode
-  "Mouse support."
+  "Mouse support, scrolling and clickable candidates."
   :global t :group 'corfu)
 
 (defun corfu-mouse-complete ()

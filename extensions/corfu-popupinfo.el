@@ -484,7 +484,7 @@ not be displayed until this command is called again, even if
 
 ;;;###autoload
 (define-minor-mode corfu-popupinfo-mode
-  "Corfu info popup minor mode."
+  "Show candidate documentation in a popup."
   :global t :group 'corfu)
 
 (cl-defmethod corfu--exhibit :after (&context (corfu-popupinfo-mode (eql t)))

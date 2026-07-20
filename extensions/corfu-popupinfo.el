@@ -305,7 +305,8 @@ area and vertical area."
        (cfh (+ cfh (* 2 border)))
        ;; Candidates popup below input
        (below (>= cfy (+ lh (cadr (window-inside-pixel-edges))
-                         (window-tab-line-height)
+                         (static-if (< emacs-major-version 31)
+                             (window-tab-line-height) 0)
                          (or (cdr (posn-x-y (posn-at-point (point)))) 0))))
        ;; Popups aligned at top
        (top-aligned (or below (< ph cfh)))

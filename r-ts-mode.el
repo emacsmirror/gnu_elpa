@@ -3,7 +3,7 @@
 
 ;; Author: Manuel Teodoro <ttm@teoten.me>
 ;; URL: https://codeberg.org/R-for-emacs/r-ts-mode
-;; Version: 1.1.1
+;; Version: 1.1.2
 ;; Assisted-by: Sonet:4.6
 ;; Package-Requires: ((emacs "30.1"))
 ;; Created: 2025-09-05
@@ -34,20 +34,21 @@
 ;;;; =========================================================================
 ;;;; Groups, Custom Variables, General Variables
 ;;;; =========================================================================
-(defgroup r-ts-mode nil
+(defgroup r-ts nil
   "R support for Emacs using tree-sitter."
   :group 'languages
+  :prefix "r-ts-"
   :version "30.1")
 
 (defcustom r-ts-mode-inherit-ess nil
   "When non-nil, inherit from `ess-r-mode' for R process interaction."
   :type 'boolean
-  :group 'r-ts-mode)
+   :group 'r-ts)
 
 (defcustom r-ts-mode-indent-level 2
   "Number of spaces per indentation level."
   :type 'integer
-  :group 'r-ts-mode)
+   :group 'r-ts)
 
 (defvar r-ts-mode--debug nil
   "When non-nil, enable verbose debugging messages.  For development use.")
@@ -99,82 +100,82 @@ to silence ESS fontification.")
 (defgroup r-ts-mode-faces nil
   "Faces for `r-ts-mode' syntax highlighting."
   :prefix "r-ts-mode-face-"
-  :group 'r-ts-mode)
+   :group 'r-ts)
 
 (defface r-ts-mode-face-string
   '((default (:inherit font-lock-string-face)))
   "Face for R string literals."
-  :group 'r-ts-mode-faces)
+   :group 'r-ts-faces)
 
 (defface r-ts-mode-face-escape
   '((default (:inherit font-lock-escape-face)))
   "Face for escape sequences inside strings."
-  :group 'r-ts-mode-faces)
+   :group 'r-ts-faces)
 
 (defface r-ts-mode-face-comment
   '((default (:inherit font-lock-comment-face)))
   "Face for R comments."
-  :group 'r-ts-mode-faces)
+   :group 'r-ts-faces)
 
 (defface r-ts-mode-face-bracket
   '((default (:inherit font-lock-bracket-face)))
   "Face for brackets and parentheses."
-  :group 'r-ts-mode-faces)
+   :group 'r-ts-faces)
 
 (defface r-ts-mode-face-delimiter
   '((default (:inherit font-lock-delimiter-face)))
   "Face for delimiters such as commas."
-  :group 'r-ts-mode-faces)
+   :group 'r-ts-faces)
 
 (defface r-ts-mode-face-function
   '((default (:inherit font-lock-function-name-face)))
   "Face for function definition names."
-  :group 'r-ts-mode-faces)
+   :group 'r-ts-faces)
 
 (defface r-ts-mode-face-function-call
   '((default (:inherit font-lock-function-call-face)))
   "Face for function call identifiers."
-  :group 'r-ts-mode-faces)
+   :group 'r-ts-faces)
 
 (defface r-ts-mode-face-type
   '((default (:inherit font-lock-type-face)))
   "Face for type names (S3, S4, R6, S7)."
-  :group 'r-ts-mode-faces)
+   :group 'r-ts-faces)
 
 (defface r-ts-mode-face-variable
   '((default (:inherit font-lock-variable-use-face)))
   "Face for variable names."
-  :group 'r-ts-mode-faces)
+   :group 'r-ts-faces)
 
 (defface r-ts-mode-face-keyword
   '((default (:inherit font-lock-keyword-face)))
   "Face for language keywords."
-  :group 'r-ts-mode-faces)
+   :group 'r-ts-faces)
 
 (defface r-ts-mode-face-constant
   '((default (:inherit font-lock-constant-face)))
   "Face for built-in constants (NULL, NA, Inf, NaN, …)."
-  :group 'r-ts-mode-faces)
+   :group 'r-ts-faces)
 
 (defface r-ts-mode-face-operator
   '((default (:inherit font-lock-operator-face)))
   "Face for operators."
-  :group 'r-ts-mode-faces)
+   :group 'r-ts-faces)
 
 (defface r-ts-mode-face-number
   '((default (:inherit font-lock-number-face)))
   "Face for numeric literals."
-  :group 'r-ts-mode-faces)
+   :group 'r-ts-faces)
 
 (defface r-ts-mode-face-boolean
   '((default (:inherit font-lock-constant-face)))
   "Face for boolean literals (TRUE, FALSE)."
-  :group 'r-ts-mode-faces)
+   :group 'r-ts-faces)
 
 (defface r-ts-mode-face-warning
   '((default (:inherit font-lock-warning-face)))
   "Face for syntax errors reported by the tree-sitter parser."
-  :group 'r-ts-mode-faces)
+   :group 'r-ts-faces)
 
 
 ;;;; =========================================================================
@@ -219,7 +220,7 @@ to silence ESS fontification.")
           "Keymap for `r-ts-mode-parent-mode' when inheriting from ESS.")
 
         (define-derived-mode r-ts-mode-parent-mode ess-mode "" ""
-          :group 'r-ts-mode
+           :group 'r-ts
           :keymap r-ts-mode-parent-mode-map
           (set-syntax-table ess-r-mode-syntax-table)
           (ess-setq-vars-local ess-r-customize-alist)
@@ -238,11 +239,11 @@ to silence ESS fontification.")
           (add-hook 'xref-backend-functions #'ess-r-xref-backend nil 'local)
           (add-hook 'project-find-functions  #'ess-r-project       nil 'local))))
   (progn
-    (defalias 'r-ts-mode-parent-mode-map 'prog-mode-map
+    (defalias 'r-ts-mode-parent-mode-map #'prog-mode-map
       "Alias to `prog-mode-map' when not inheriting from ESS.")
     (define-derived-mode r-ts-mode-parent-mode prog-mode "R-ts Parent"
       "Parent mode for `r-ts-mode' when ESS is not used."
-      :group 'r-ts-mode
+       :group 'r-ts
       (set-syntax-table r-ts-mode-syntax-table)
       (setq-local comment-start "#")
       (setq-local comment-end ""))))
@@ -524,7 +525,7 @@ object definition."
 ;;;###autoload
 (define-derived-mode r-ts-mode r-ts-mode-parent-mode "R"
   "Major mode for editing R code, powered by tree-sitter."
-  :group 'r-ts-mode
+   :group 'r-ts
 
   (unless (treesit-ready-p 'r)
     (error "Tree-sitter grammar for R is not available"))

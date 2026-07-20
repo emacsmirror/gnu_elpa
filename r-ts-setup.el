@@ -3,7 +3,7 @@
 
 ;; Author: Manuel Teodoro <ttm@teoten.me>
 ;; URL: https://codeberg.org/R-for-emacs/r-ts-mode
-;; Version: 1.1.1
+;; Version: 1.1.2
 ;; Assisted-by: Sonet:4.6
 ;; Package-Requires: ((emacs "30.1"))
 ;; Created: June, 2026
@@ -45,8 +45,8 @@
   :group 'r-ts-setup)
 
 (defcustom r-ts-setup-create-treesitter-dir t
-  "When non-nil, automatically create `~/<user-emacs-directory>/tree-sitter/' if missing.
-When nil, signal an error if the target directory does not exist."
+  "When non-nil, automatically create `~/<user-emacs-directory>/tree-sitter/' if
+missing. When nil, signal an error if the target directory does not exist."
   :type 'boolean
   :group 'r-ts-setup)
 
@@ -136,9 +136,10 @@ otherwise signal an error."
 ;;;; =========================================================================
 ;;;###autoload
 (defun r-ts-setup-prepare-binaries-from-r-library (&optional package-path emacs-ts-path)
-  "Copy the tree-sitter R grammar from the \='treesitter.r\=' R package to Emacs.
-Searches for the package in PACKAGE-PATH (or auto-detects via R) and copies
-the compiled binary to EMACS-TS-PATH (default: ~/<user-emacs-directory>/tree-sitter/)."
+  "Copy the tree-sitter R grammar from the \='treesitter.r\=' R package to
+Emacs. Searches for the package in PACKAGE-PATH (or auto-detects via R) and
+copies the compiled binary to EMACS-TS-PATH (default:
+~/<user-emacs-directory>/tree-sitter/)."
   (interactive)
   (let* ((binary-ext (if (eq system-type 'windows-nt) "dll" "so"))
          (ts-path (file-name-as-directory
@@ -146,7 +147,7 @@ the compiled binary to EMACS-TS-PATH (default: ~/<user-emacs-directory>/tree-sit
                        (file-name-as-directory (concat user-emacs-directory "tree-sitter")))))
          (pkg-path (or package-path (r-ts-setup--find-treesitter-r-package-path)))
          (binary-path (r-ts-setup--resolve-binary-path pkg-path)))
-    (r-ts-setup-ensure-directory ts-path)
+    (r-ts-setup--ensure-directory ts-path)
     (copy-file binary-path
                (format "%slibtree-sitter-r.%s" ts-path binary-ext)
                t)))

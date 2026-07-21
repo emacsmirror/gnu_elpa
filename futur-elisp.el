@@ -294,7 +294,7 @@ A server kind is a symbol.")
              (progn
                (process-put proc 'futur--ready t)
                (funcall continuation proc))
-           (error "unexpected boot message from futur-server: %S" answer)))))))
+           (error "Unexpected boot message from futur-server: %S" answer)))))))
 
 (define-error 'futur-unreadable-answer "Unreadable answer from server")
 
@@ -471,7 +471,7 @@ This makes it safe to use even when FUNC or ARGS are untrustworthy.
 But DO NOT TRUST the returned result: even if FUNC and ARGS happen to
 be well-behaved, they could be compromised by previous calls
 to `futur-elisp-sandbox--funcall'."
-  (futur-elisp--get-process 'futur-server #'futur-elisp-sandbox--launch
+  (futur-elisp--get-process 'futur-sandbox #'futur-elisp-sandbox--launch
                             (lambda (proc)
                               (futur-elisp--funcall-1 proc func args))))
 

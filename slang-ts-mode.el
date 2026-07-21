@@ -90,7 +90,10 @@
     "some" "associatedtype" "var" "let" "is" "as" "extension" "property"
     "namespace" "where" "switch" "case" "for" "enum" "if" "else" "while"
     "do" "break" "continue" "const" "default" "in" "out" "inout" "export"
-    "groupshared")
+    "groupshared" "noperspective" "nointerpolation" "point" "precise"
+    "register" "row_major" "column_major" "sample" "shared" "snorm"
+    "triangle" "triangleadj" "uniform" "unorm" "linear" "typedef" "union"
+    "inline")
   "Slang keywords for tree-sitter font-locking.")
 
 (defvar slang-ts-mode--font-lock-settings
@@ -122,7 +125,8 @@
 
    :language 'slang
    :feature 'variable
-   '((declaration declarator: (init_declarator declarator: (identifier) @font-lock-variable-name-face))
+   '((declaration declarator: (identifier) @font-lock-variable-name-face)
+     (declaration declarator: (init_declarator declarator: (identifier) @font-lock-variable-name-face))
      (array_declarator declarator: (identifier) @font-lock-variable-name-face))
 
    :language 'slang
@@ -157,7 +161,11 @@
 
    :language 'slang
    :feature 'function-call
-   '((call_expression function: (identifier) @font-lock-function-call-face)))
+   '((call_expression function: (identifier) @font-lock-function-call-face))
+
+   :language 'slang
+   :feature 'namespace
+   '((qualified_identifier scope: (namespace_identifier) @font-lock-constant-face)))
   "Tree-sitter font-lock settings for `slang-ts-mode`.")
 
 (defvar slang-ts-mode--indent-rules
@@ -220,7 +228,7 @@
               '(( comment)
                 ( keyword string)
                 (attribute
-                 type variable constant builtin)
+                 type variable constant builtin namespace)
                 ( bracket number function operator subscript function-call)))
 
   (setq-local treesit-simple-indent-rules slang-ts-mode--indent-rules)

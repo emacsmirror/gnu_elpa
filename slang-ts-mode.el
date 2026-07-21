@@ -93,7 +93,7 @@
     "groupshared" "noperspective" "nointerpolation" "point" "precise"
     "register" "row_major" "column_major" "sample" "shared" "snorm"
     "triangle" "triangleadj" "uniform" "unorm" "linear" "typedef" "union"
-    "inline")
+    "inline" "implementing")
   "Slang keywords for tree-sitter font-locking.")
 
 (defvar slang-ts-mode--font-lock-settings

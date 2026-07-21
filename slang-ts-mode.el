@@ -2,11 +2,11 @@
 
 ;; Copyright (C) 2026 Hikari
 
-;; Author           : Hikari <aneris@disroot.org>
-;; URL              : https://codeberg.org/hikari/slang-ts-mode
-;; Version          : 0.1
-;; Package-Requires : ((emacs "30"))
-;; Keywords   : slang languages tree-sitter
+;; Author: Hikari <aneris@disroot.org>
+;; URL: https://codeberg.org/hikari/slang-ts-mode
+;; Version: 0.1
+;; Package-Requires: ((emacs "30"))
+;; Keywords: slang languages tree-sitter
 
 ;; This file is not part of GNU Emacs.
 
@@ -25,11 +25,11 @@
 
 ;;; Commentary:
 
-;; This package provides a tree-sitter mode for the Slang shader language.
+;; This package provides a tree-sitter mode for the Slang shader
+;; language, see https://shader-slang.org.
+;;
 ;; To use the package, using use-package simply:
-;; (use-package slang-ts-mode
-;;   :ensure t
-;;   :mode "\\.slang\\'")
+;; (use-package slang-ts-mode :ensure t)
 
 ;;; Code:
 
@@ -56,10 +56,9 @@
 
 (defcustom slang-ts-indent-offset 4
   "Number of spaces for each indentation step in `slang-ts-mode'."
-  :version "32.1"
-  :type 'integer
-  :safe 'integerp
-  :group 'slang)
+  :package-version '(slang-ts-mode . "0.1")
+  :type 'natnum
+  :safe #'natnump)
 
 ;;; Syntax Table (mostly derived from C)
 (defvar slang-ts-mode--syntax-table
@@ -87,7 +86,11 @@
 
 ;;; Private
 (defvar slang-ts-mode--keywords
-  '("struct" "class" "return" "static" "import" "module" "interface" "dyn" "some" "associatedtype" "var" "let" "is" "as" "extension" "property" "namespace" "where" "switch" "case" "for" "enum" "if" "else" "while" "do" "break" "continue" "const" "default" "in" "out" "inout" "export" "groupshared")
+  '("struct" "class" "return" "static" "import" "module" "interface" "dyn"
+    "some" "associatedtype" "var" "let" "is" "as" "extension" "property"
+    "namespace" "where" "switch" "case" "for" "enum" "if" "else" "while"
+    "do" "break" "continue" "const" "default" "in" "out" "inout" "export"
+    "groupshared")
   "Slang keywords for tree-sitter font-locking.")
 
 (defvar slang-ts-mode--font-lock-settings
@@ -181,6 +184,7 @@
   "Tree-sitter indent rules for `slang-ts-mode`.")
 
 (defun slang-ts-mode--defun-name (node)
+  "Return the name text of the treesit NODE."
   (pcase (treesit-node-type node)
     ("module_declaration"
      (treesit-node-text
@@ -199,7 +203,6 @@
 ;;;###autoload
 (define-derived-mode slang-ts-mode prog-mode "Slang"
   "Major mode for editing Slang, powered by tree-sitter."
-  :group 'slang
   :syntax-table slang-ts-mode--syntax-table
 
   (when (and (treesit-ensure-installed 'slang)
@@ -238,6 +241,9 @@
               (regexp-opt '("function_definition" "struct_specifier" "class_specifier" "module_declaration")))
 
   (treesit-major-mode-setup))
+
+;;;###autoload
+(add-to-list 'auto-mode-alist '("\\.slang\\'" . slang-ts-mode))
 
 (provide 'slang-ts-mode)
 

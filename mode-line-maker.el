@@ -4,7 +4,7 @@
 
 ;; Maintainer: Nicolas P. Rougier <Nicolas.Rougier@inria.fr>
 ;; URL: https://github.com/rougier/mode-line-maker
-;; Version: 0.2.1
+;; Version: 0.2.2
 ;; Package-Requires: ((emacs "29.1"))
 ;; Keywords: convenience, mode-line, header-line
 
@@ -145,7 +145,7 @@ on the DIRECTION ('left or 'right)."
          (direction (or direction 'right)))
 
     (cond ;; string is small enough
-     ((length< string) (1+ size))
+     ((length< string (1+ size))
      string)
 
     ;; ellipsis is already too big
@@ -163,7 +163,7 @@ on the DIRECTION ('left or 'right)."
              (substring string (- (length ellipsis) size))))
 
     ;; Unknown case
-    (t string)))
+    (t string))))
 
 (defun mode-line-maker--align-to (direction what &optional char-size pixel-size)
   "This methods return a display space specification to align text.

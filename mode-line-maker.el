@@ -1,10 +1,10 @@
 ;;; mode-line-maker.el --- Mode-line helper tools -*- lexical-binding: t -*-
 
-;; Copyright (C) 2025 Free Software Foundation, Inc.
+;; Copyright (C) 2025-2026 Free Software Foundation, Inc.
 
 ;; Maintainer: Nicolas P. Rougier <Nicolas.Rougier@inria.fr>
 ;; URL: https://github.com/rougier/mode-line-maker
-;; Version: 0.1
+;; Version: 0.2
 ;; Package-Requires: ((emacs "29.1"))
 ;; Keywords: convenience, mode-line, header-line
 
@@ -32,7 +32,7 @@
 ;; too much information to display).
 ;;
 ;; These features come with a price in rendering speed because
-;; everything is computed dynamically.  From early benchmarks, you can
+;; everything is computed dynamically. From early benchmarks, you can
 ;; expect a significant slowdown (between x2 and x3).  Things can get
 ;; worse if you use pixel-wise alignment because of the
 ;; string-pixel-width call.
@@ -41,13 +41,16 @@
 ;; the 'nano-line-make--padding function to get the relevant
 ;; prefix/suffix to be prepended/appended to your mode-line.
 
-;; Usage:
+;;; Usage:
 ;;
 ;; (setq mode-line-format (mode-line-maker '("%b") '("%3c:%3l")))
 
 ;;; NEWS:
 ;;
-;; Version  0.1
+;;; Version  0.2
+;; - Minor fixes following Philip Kaludercic code review
+;;
+;;; Version  0.1
 ;; - First version
 
 ;;; Code:
@@ -142,11 +145,11 @@ on the DIRECTION ('left or 'right)."
          (direction (or direction 'right)))
 
     (cond ;; string is small enough
-          ((<= (length string) size)
+          ((length< string) (1+ size))
            string)
 
           ;; ellipsis is already too big
-          ((> (length ellipsis) size)
+          ((length>  ellipsis size)
            (substring ellipsis 0 size))
 
           ;; Truncate on right
@@ -174,39 +177,20 @@ account only for graphics display."
          (pixel-size (if (display-graphic-p)
                          (or pixel-size 0)
                        0)))
-    (cond ((eq 'left direction)
-           (cond ((eq what 'window) (if fringes-outside-margins
-                                        `(space :align-to (+ left-fringe
-                                                             (,pixel-size)
-                                                             ,char-size))
-                                      `(space :align-to (+ left-margin
-                                                           (,pixel-size)
-                                                           ,char-size))))
-                 ((eq what 'fringe) `(space :align-to (+ left-fringe
-                                                         (,pixel-size)
-                                                         ,char-size)))
-                 ((eq what 'margin) `(space :align-to (+ left-margin
-                                                         (,pixel-size)
-                                                         ,char-size)))
-                 (t                 `(space :align-to (+ left
-                                                         (,pixel-size)
-                                                         ,char-size)))))
-          ((eq 'right direction)
-           (cond ((eq what 'window) `(space :align-to (+ scroll-bar
-                                                         (1.0 . scroll-bar)
-                                                         (,pixel-size)
-                                                         ,char-size)))
-                 ((eq what 'fringe) `(space :align-to (+ right-fringe
-                                                         (1.0 . right-fringe)
-                                                         (,pixel-size)
-                                                         ,char-size)))
-                 ((eq what 'margin) `(space :align-to (+ right-margin
-                                                         (1.0 . right-margin)
-                                                         (,pixel-size)
-                                                         ,char-size)))
-                 (t                 `(space :align-to (+ right
-                                                         (,pixel-size)
-                                                         ,char-size))))))))
+    `(space :align-to (+ ,@(cond ((eq 'left direction)
+				  (cond ((eq what 'window) (if fringes-outside-margins
+							       `(left-fringe)
+							     `(left-margin)))
+					((eq what 'fringe) `(left-fringe))
+					((eq what 'margin) `(left-margin))
+					(t                 `(left))))
+				 ((eq 'right direction)
+				  (cond ((eq what 'window) `(scroll-bar (1.0 . scroll-bar)))
+					((eq what 'fringe) `(right-fringe (1.0 . right-fringe)))
+					((eq what 'margin) `(right-margin (1.0 . right-margin)))
+					(t                 `(right)))))
+			 (,pixel-size) ,char-size))))
+
   
 (defun mode-line-maker--padding-to (&optional left right face)
   "Return the left and right padding for alignment.
@@ -234,16 +218,16 @@ for the prefix and the suffix."
                   'display (mode-line-maker--align-to 'left 'window))
       (propertize " "
                   'display (mode-line-maker--align-to 'left
-                                                (car left)
-                                                (cadr left)
-                                                (cddr left))
+                                                      (car left)
+                                                      (cadr left)
+                                                      (cddr left))
                   'face face))
      (concat
       (propertize " "
                   'display (mode-line-maker--align-to 'right
-                                                (car right)
-                                                (cadr right)
-                                                (cddr right)))
+                                                      (car right)
+                                                      (cadr right)
+                                                      (cddr right)))
       (propertize " "
                   'display (mode-line-maker--align-to 'right 'window)
                   'face face)))))
@@ -288,31 +272,31 @@ specified whether pixel perfect alignment should be computed (slower)."
                                      (eq alignment-left 'fringe))
                                  (+ margin-left fringe-left))
                                 ((eq alignment-left 'margin)
-                                 (+ margin-left))
+                                 margin-left)
                                 (t 0))
                           (cond ((eq alignment-right 'window)
                                  (+ margin-right fringe-right scroll-bar-width))
                                 ((eq alignment-right 'fringe)
                                  (+ margin-right fringe-right))
-                                ((eq alignment-right 'fringe)
-                                 (+ margin-right))
+                                ((eq alignment-right 'margin)
+                                 margin-right)
                                 (t 0)))
                      (+ (cond ((or (eq alignment-left 'window)
                                    (eq alignment-left 'margin))
                                  (+ margin-left fringe-left))
                                 ((eq alignment-left 'fringe)
-                                 (+ fringe-left))
+                                 fringe-left)
                                 (t 0))
                           (cond ((eq alignment-right 'window)
                                  (+ margin-right fringe-right scroll-bar-width))
                                 ((eq alignment-right 'margin)
                                  (+ margin-right fringe-right))
                                 ((eq alignment-right 'fringe)
-                                 (+ fringe-right))
+                                 fringe-right)
                                 (t 0))))))
 
          ;; Add extra pixel space (converted to char) to the available width
-         (width (+ width (floor (/ extra (frame-char-width)))))
+         (width (+ width (floor extra (frame-char-width))))
 
          ;; Space needed vs space available
          (delta (- width (+ right-width 1 left-width))))
@@ -384,7 +368,7 @@ specified whether pixel perfect alignment should be computed (slower)."
 LEFT and RIGHT parts must be list of mode-line constructs.  The
 optional ALIGNMENT can be specified to replace the default
 'mode-line-maker-alignment'.  PIXELWISE specified whether pixel
-perfect alignment should be computed (slower)."
+perfect alignment should be computed (slower, graphic only)."
   
   `(:eval (mode-line-maker--make ',left ',right ',alignment ,pixelwise)))
 

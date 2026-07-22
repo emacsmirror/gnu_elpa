@@ -57,12 +57,12 @@
 
 (defface mode-line-maker-padding-face
   `((t (:foreground ,(face-foreground 'default nil 'default)
-        :background ,(face-background 'default nil 'default)
-        :box nil
-        :overline nil
-        :underline nil
-        :inverse-video nil
-        :strike-through nil)))
+                    :background ,(face-background 'default nil 'default)
+                    :box nil
+                    :overline nil
+                    :underline nil
+                    :inverse-video nil
+                    :strike-through nil)))
   "Face for mode-line padding.")
 
 (defcustom mode-line-maker-alignment '(window . window)
@@ -145,26 +145,26 @@ on the DIRECTION ('left or 'right)."
          (direction (or direction 'right)))
 
     (cond ;; string is small enough
-          ((length< string) (1+ size))
-           string)
+     ((length< string) (1+ size))
+     string)
 
-          ;; ellipsis is already too big
-          ((length>  ellipsis size)
-           (substring ellipsis 0 size))
+    ;; ellipsis is already too big
+    ((length>  ellipsis size)
+     (substring ellipsis 0 size))
 
-          ;; Truncate on right
-          ((eq direction 'right)
-           (concat (substring string 0 (- size (length ellipsis)))
-                   ellipsis))
+    ;; Truncate on right
+    ((eq direction 'right)
+     (concat (substring string 0 (- size (length ellipsis)))
+             ellipsis))
 
-          ;; Truncate on left
-          ((eq direction 'left)
-           (concat ellipsis
-                   (substring string (- (length ellipsis) size))))
+    ;; Truncate on left
+    ((eq direction 'left)
+     (concat ellipsis
+             (substring string (- (length ellipsis) size))))
 
-          ;; Unknown case
-          (t string))))
-  
+    ;; Unknown case
+    (t string))))
+
 (defun mode-line-maker--align-to (direction what &optional char-size pixel-size)
   "This methods return a display space specification to align text.
 
@@ -191,7 +191,7 @@ account only for graphics display."
 					(t                 `(right)))))
 			 (,pixel-size) ,char-size))))
 
-  
+
 (defun mode-line-maker--padding-to (&optional left right face)
   "Return the left and right padding for alignment.
 
@@ -262,7 +262,7 @@ specified whether pixel perfect alignment should be computed (slower)."
          (fringes-outside (nth 2 fringes))
 
          (scroll-bar-width (or scroll-bar-width (frame-scroll-bar-width)))
-    
+         
          ;; This does not take margins nor fringes into account
          (width (window-width))
 
@@ -283,17 +283,17 @@ specified whether pixel perfect alignment should be computed (slower)."
                                 (t 0)))
                      (+ (cond ((or (eq alignment-left 'window)
                                    (eq alignment-left 'margin))
-                                 (+ margin-left fringe-left))
-                                ((eq alignment-left 'fringe)
-                                 fringe-left)
-                                (t 0))
-                          (cond ((eq alignment-right 'window)
-                                 (+ margin-right fringe-right scroll-bar-width))
-                                ((eq alignment-right 'margin)
-                                 (+ margin-right fringe-right))
-                                ((eq alignment-right 'fringe)
-                                 fringe-right)
-                                (t 0))))))
+                               (+ margin-left fringe-left))
+                              ((eq alignment-left 'fringe)
+                               fringe-left)
+                              (t 0))
+                        (cond ((eq alignment-right 'window)
+                               (+ margin-right fringe-right scroll-bar-width))
+                              ((eq alignment-right 'margin)
+                               (+ margin-right fringe-right))
+                              ((eq alignment-right 'fringe)
+                               fringe-right)
+                              (t 0))))))
 
          ;; Add extra pixel space (converted to char) to the available width
          (width (+ width (floor extra (frame-char-width))))
@@ -305,47 +305,47 @@ specified whether pixel perfect alignment should be computed (slower)."
       (cond
        
        ;; Truncate left part
-         ((eq rule 'left)
-          ;; mode-line is big enough
-          ;; -> 2 is minimum truncated size for left part
-          ;; -> 1 is for a space between left and right parts
-          (if (<= (+ (length right) 2 1) width)
-              (let ((w (- width right-width 1)))
-                (setq left (mode-line-maker--truncate-string left w nil 'right)))
-            ;; mode-line is not big enough, right part needs to be truncated
-            (let ((w (- width 2 1)))
-              (setq left (mode-line-maker--truncate-string left 2 nil 'right)
-                    right (mode-line-maker--truncate-string right w nil 'left)))))
-         
-         ;; Truncate right part
-         ((eq rule 'right)
-          ;; mode-line is big enough
-          ;; -> 2 is minimum truncated size for right part
-          ;; -> 1 is for a space between left and right parts
-          (if (<= (+ (length left) 2 1) width)
-              (let ((w (- width left-width 1)))
-                (setq right (mode-line-maker--truncate-string right w nil 'left)))
-            ;; mode-line is not big enough, left part needs to be truncated
-            (let ((w (- width 2 1)))
-              (setq left (mode-line-maker--truncate-string left w nil 'right)
-                    right (mode-line-maker--truncate-string right 2 nil 'left)))))
-         
-         ;; Truncate both parts (where necessary)
-         ;;  2 x (first letter + ellipsis) and one space between = 5 chars minimum
-         ((and (eq rule 'both) (>= width 5))
-          (if (< left-width right-width)
-              (let* ((lw (min (/ (1- width) 2) left-width))
-                     (rw (- (1- width) lw)))
-                (setq left (mode-line-maker--truncate-string left lw nil 'right)
-                      right (mode-line-maker--truncate-string right rw nil 'left)))
-            (let* ((rw (min (/ (1- width) 2) right-width))
-                   (lw (- (1- width) rw)))
+       ((eq rule 'left)
+        ;; mode-line is big enough
+        ;; -> 2 is minimum truncated size for left part
+        ;; -> 1 is for a space between left and right parts
+        (if (<= (+ (length right) 2 1) width)
+            (let ((w (- width right-width 1)))
+              (setq left (mode-line-maker--truncate-string left w nil 'right)))
+          ;; mode-line is not big enough, right part needs to be truncated
+          (let ((w (- width 2 1)))
+            (setq left (mode-line-maker--truncate-string left 2 nil 'right)
+                  right (mode-line-maker--truncate-string right w nil 'left)))))
+       
+       ;; Truncate right part
+       ((eq rule 'right)
+        ;; mode-line is big enough
+        ;; -> 2 is minimum truncated size for right part
+        ;; -> 1 is for a space between left and right parts
+        (if (<= (+ (length left) 2 1) width)
+            (let ((w (- width left-width 1)))
+              (setq right (mode-line-maker--truncate-string right w nil 'left)))
+          ;; mode-line is not big enough, left part needs to be truncated
+          (let ((w (- width 2 1)))
+            (setq left (mode-line-maker--truncate-string left w nil 'right)
+                  right (mode-line-maker--truncate-string right 2 nil 'left)))))
+       
+       ;; Truncate both parts (where necessary)
+       ;;  2 x (first letter + ellipsis) and one space between = 5 chars minimum
+       ((and (eq rule 'both) (>= width 5))
+        (if (< left-width right-width)
+            (let* ((lw (min (/ (1- width) 2) left-width))
+                   (rw (- (1- width) lw)))
               (setq left (mode-line-maker--truncate-string left lw nil 'right)
-                    right (mode-line-maker--truncate-string right rw nil 'left)))))
+                    right (mode-line-maker--truncate-string right rw nil 'left)))
+          (let* ((rw (min (/ (1- width) 2) right-width))
+                 (lw (- (1- width) rw)))
+            (setq left (mode-line-maker--truncate-string left lw nil 'right)
+                  right (mode-line-maker--truncate-string right rw nil 'left)))))
 
-         ;; We cannot build the mode-line (too constrained)
-         ;; -> return a string made of "!"
-         (t (make-string width ?!))))
+       ;; We cannot build the mode-line (too constrained)
+       ;; -> return a string made of "!"
+       (t (make-string width ?!))))
 
     (let* ((padding (mode-line-maker--padding-to (car alignment) (cdr alignment)))
            (pixel-size (if (and pixelwise (display-graphic-p))

@@ -543,7 +543,9 @@ irrelevant.
 
 When called from Lisp LOCUS is a cons cell with two buffer positions.
 
-Set a permanent highlight with `pulsar-highlight-permanently'."
+Set a permanent highlight with `pulsar-highlight-permanently'.
+
+Also see `pulsar-highlight-permanently-remove-all'."
   (interactive
    (list
     (cond
@@ -556,6 +558,14 @@ Set a permanent highlight with `pulsar-highlight-permanently'."
   (if-let* ((overlays (pulsar--permanent-p locus)))
       (dolist (overlay overlays) (delete-overlay overlay))
     (user-error "No Pulsar permanent highlights found")))
+
+(defun pulsar-highlight-permanently-remove-all ()
+  "Remove all permanent highlights from the current buffer.
+Same as calling `pulsar-highlight-permanently-remove' with a prefix argument."
+  (declare (interactive-only t))
+  (interactive)
+  (let ((current-prefix-arg t))
+    (call-interactively #'pulsar-highlight-permanently-remove)))
 
 ;;;###autoload
 (defun pulsar-highlight-permanently-dwim (locus)

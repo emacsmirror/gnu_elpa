@@ -265,6 +265,12 @@ static highlights from the active region or current line. This command
 operates on the entire buffer when it is called with a universal
 prefix argument (=C-u= by default).
 
+#+findex: pulsar-highlight-permanently-remove-all
+The command ~pulsar-highlight-permanently-remove-all~ removes all
+permanent highlights from the current buffer. It is the same calling
+the above command with a prefix argument. [ Ths command is part of
+{{{development-version}}}. ]
+
 #+findex: pulsar-highlight-permanently-dwim
 The command ~pulsar-highlight-permanently-dwim~ adds a permanent
 static highlight if there is none or removes it if there is one. It

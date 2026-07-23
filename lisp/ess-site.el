@@ -57,7 +57,7 @@
 (require 'essd-els) ;; ess-remote
 (require 'ess-sas-d)
 (require 'ess-bugs-d)
-(require 'ess-jags-d)
+;; (require 'ess-jags-d) ; -> in ./obsolete/ since 2026-03-23
 (require 'ess-toolbar)
 
 (provide 'ess-site)

@@ -5,7 +5,7 @@
 ;; Author: rahguzar <rahguzar@mailbox.org>
 ;; Maintainer: rahguzar <rahguzar@mailbox.org>
 ;; Created: May 20, 2023
-;; Version: 0.2.4
+;; Version: 0.3.0
 ;; Keywords: convenience files tools unix
 ;; Homepage: https://codeberg.org/rahguzar/filechooser
 ;; Package-Requires: ((emacs "28.1") (compat "29.1"))

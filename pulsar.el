@@ -5,7 +5,7 @@
 ;; Author: Protesilaos <info@protesilaos.com>
 ;; Maintainer: Protesilaos <info@protesilaos.com>
 ;; URL: https://github.com/protesilaos/pulsar
-;; Version: 1.4.0
+;; Version: 1.4.1
 ;; Package-Requires: ((emacs "28.1"))
 ;; Keywords: convenience, pulse, highlight
 

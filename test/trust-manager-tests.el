@@ -194,6 +194,65 @@
       (trust-manager-mode -1)
       (ignore-errors (delete-directory d t)))))
 
+(ert-deftest trust-manager-tests--read-symbol-shorthands-untrusted ()
+  (let* ((d (make-temp-file "trust-mgr-test" t))
+         (f (expand-file-name "foo.el" d)))
+    (unwind-protect
+        (let* ((project-find-functions
+                `(,(lambda (_) (trust-manager-tests--project d))))
+               (trusted-content nil)
+               (trust-manager-trust-alist nil)
+               (user-init-file nil)
+               (trust-manager--trust-query-function (lambda (_) nil))
+               (trust-manager-secure-additional-features '(file-local-variables))
+               (enable-local-variables t)
+               (inhibit-message t))
+          (with-temp-file f
+            (insert ";; -*- lexical-binding: t; -*-\n\n"
+                    ";; Local Variables\:\n"
+                    ";; read-symbol-shorthands: ((\"vc-cvs-registered\" . \"load\"))\n"
+                    ";; End\:\n"))
+          (trust-manager-mode)
+          (let ((buf (find-file-noselect f)))
+            (unwind-protect
+                (with-current-buffer buf
+                  (should-not (trusted-content-p))
+                  (should-not read-symbol-shorthands)
+                  ;; With the shorthand active this would be `eq' to `load'.
+                  (should-not (eq (intern "vc-cvs-registered") 'load)))
+              (kill-buffer buf))))
+      (trust-manager-mode -1)
+      (ignore-errors (delete-directory d t)))))
+
+(ert-deftest trust-manager-tests--read-symbol-shorthands-trusted ()
+  "Trusted files still get `read-symbol-shorthands' applied."
+  (let* ((d (make-temp-file "trust-mgr-test" t))
+         (f (expand-file-name "foo.el" d)))
+    (unwind-protect
+        (let* ((project-find-functions
+                `(,(lambda (_) (trust-manager-tests--project d))))
+               (trusted-content (list (abbreviate-file-name
+                                       (file-name-as-directory d))))
+               (trust-manager-trust-alist nil)
+               (user-init-file nil)
+               (trust-manager-secure-additional-features '(file-local-variables))
+               (enable-local-variables t)
+               (inhibit-message t))
+          (with-temp-file f
+            (insert ";; -*- lexical-binding: t; -*-\n\n"
+                    ";; Local Variables\:\n"
+                    ";; read-symbol-shorthands: ((\"foo-\" . \"bar-\"))\n"
+                    ";; End\:\n"))
+          (trust-manager-mode)
+          (let ((buf (find-file-noselect f)))
+            (unwind-protect
+                (with-current-buffer buf
+                  (should (trusted-content-p))
+                  (should (equal read-symbol-shorthands '(("foo-" . "bar-")))))
+              (kill-buffer buf))))
+      (trust-manager-mode -1)
+      (ignore-errors (delete-directory d t)))))
+
 (ert-deftest trust-manager-tests--safe-local-variable-directories-trusted ()
   (let* ((d (make-temp-file "trust-mgr-test" t))
          (d/ (file-name-as-directory d)))

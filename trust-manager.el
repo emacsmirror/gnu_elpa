@@ -84,7 +84,11 @@
 ;; `trust-manager-mode' should hook into.  By default, this option is
 ;; set to integrate trust into Emacs's file-local variables feature,
 ;; such that file-specified modes and variable values are ignored in
-;; untrusted buffers.
+;; untrusted buffers.  This includes `read-symbol-shorthands', which
+;; Emacs normally honors even when other file-local variables are
+;; disabled, and which an untrusted file could otherwise exploit to run
+;; arbitrary code as soon as you visit it.
+;; See https://yhetil.org/emacs/jwv4ihscare.fsf-monnier+emacs@gnu.org/
 
 ;;; Code:
 
@@ -451,11 +455,22 @@ With a numeric prefix argument N, untrust the N files following point."
 Call FUN (the original `normal-mode' function) with
 `enable-local-variables' set according to `trusted-content-p'.
 
+In untrusted buffers, also remove `read-symbol-shorthands' from
+`permanently-enabled-local-variables', to mitigate the arbitrary code
+execution vulnerability demonstrated here:
+https://yhetil.org/emacs/jwv4ihscare.fsf-monnier+emacs@gnu.org/
+
 Argument RESPECT-E-L-V non-nil tells `normal-mode' to respect
 `enable-local-variables'; if the buffer is untrusted, unconditionally
 override RESPECT-E-L-V with non-nil."
   (let* ((trust (trusted-content-p))
-         (enable-local-variables (and trust enable-local-variables)))
+         (enable-local-variables (and trust enable-local-variables))
+         (permanently-enabled-local-variables
+          (if trust permanently-enabled-local-variables
+            ;; TODO: Consider validating/sanitizing untrusted symbol
+            ;; shorthands, instead of disabling them altogether as we
+            ;; do here.
+            (remq 'read-symbol-shorthands permanently-enabled-local-variables))))
     (funcall fun (or (not trust) respect-e-l-v))))
 
 (defun trust-manager--trust-scratch-buffer ()

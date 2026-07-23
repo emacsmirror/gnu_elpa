@@ -570,7 +570,10 @@ Same as calling `pulsar-highlight-permanently-remove' with a prefix argument."
 ;;;###autoload
 (defun pulsar-highlight-permanently-dwim (locus)
   "Do-What-I-Mean with a permanent highlighting of the current LOCUS.
-When there is a highlight, remove it, else add it.
+When there is a highlight, remove it, else add it.  To remove all
+permanent highlights in the current buffer, invoke the command
+`pulsar-highlight-permanently-remove' with a prefix argument or call
+`pulsar-highlight-permanently-remove-all'.
 
 If the region is active, LOCUS corresponds to its boundaries.  If there
 is no region, then LOCUS corresponds to the boundaries of the current

@@ -71,8 +71,11 @@
                                              &rest args)
   (apply #'cl-call-next-method pos off width
          (cl-loop
+          with extend = (if (display-graphic-p)
+                            #(" " 0 1 (display (space :align-to right)))
+                          #(" " 0 1 (display (space :align-to (- right 1)))))
           for line in lines
-          for padded = (concat line #(" " 0 1 (display (space :align-to right))))
+          for padded = (concat line extend)
           do (put-text-property 0 (length padded) 'mouse-face 'corfu-mouse padded)
           collect padded)
          args)

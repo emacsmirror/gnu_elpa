@@ -282,8 +282,9 @@ MUSTMATCH and DIR are as in `read-file-name'.  DEFAULT is the default filename."
         (lambda () (use-local-map (make-composed-keymap filechooser-mininuffer-map
                                                    (current-local-map)))
           (when dir (setq default-directory dir)))
-      (read-file-name
-       prompt dir default mustmatch nil #'filechooser--filters-predicate))))
+      (let ((use-file-dialog nil))
+        (read-file-name
+         prompt dir default mustmatch nil #'filechooser--filters-predicate)))))
 
 (defun filechooser--handle-exisiting-file (filename &optional dir filters)
   "Handle an existing FILENAME according to `filechooser-save-existing-files'.

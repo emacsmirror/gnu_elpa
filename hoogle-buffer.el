@@ -4,7 +4,7 @@
 
 ;; Created: February 06, 2024
 ;; License: GPL-3.0-or-later
-;; Version: 0.7.0
+;; Version: 0.8.0
 ;; Keywords: docs languages
 ;; Homepage: https://codeberg.org/rahguzar/consult-hoogle
 ;; Package-Requires: ((emacs "28.1"))

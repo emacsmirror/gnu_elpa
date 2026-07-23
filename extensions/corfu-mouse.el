@@ -27,8 +27,9 @@
 ;;; Commentary:
 
 ;; This package is a Corfu extension, which adds mouse support if enabled
-;; via `corfu-mouse-mode'.  Known limitations: The mode does not work in
-;; the terminal right now and on Windows.  Improvements welcome!
+;; via `corfu-mouse-mode'.  Known limitations: The mode does not work on
+;; Windows.  On the terminal `xterm-mouse-mode' needs to be enabled, but
+;; clicking is still not working.  Improvements welcome!
 
 ;;; Code:
 

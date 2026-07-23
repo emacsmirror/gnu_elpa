@@ -70,6 +70,7 @@
 (cl-defmethod corfu--popup-show :around (pos off width lines
                                              &context (corfu-mouse-mode (eql t))
                                              &rest args)
+  (setq-local mwheel-coalesce-scroll-events t)
   (apply #'cl-call-next-method pos off width
          (cl-loop
           with extend = (if (display-graphic-p)
@@ -83,6 +84,11 @@
               padded)
           collect padded)
          args))
+
+(cl-defmethod corfu--teardown :before (buf &context (corfu-mouse-mode (eql t)))
+  (when (buffer-live-p buf)
+    (with-current-buffer buf
+      (kill-local-variable 'mwheel-coalesce-scroll-events))))
 
 (provide 'corfu-mouse)
 ;;; corfu-mouse.el ends here

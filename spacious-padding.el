@@ -315,6 +315,44 @@ is non-nil, do not return a fallback value: just nil."
     (spacious-padding--get-box-width :custom-button-width))
    (t (error "`%s' is not relevant to `spacious-padding-mode'" face))))
 
+;; NOTE 2026-07-23: Without this I was getting "unspecified-bg" and
+;; "unspecified-fg" when (i) running Emacs as a daemon, (ii)
+;; connecting via emacsclient, and (iii) checking the Messages.
+(defun spacious-padding--face-attribute (face attribute &optional frame inherit)
+  "Wrapper for `face-attribute' to also do the right thing in a TTY.
+FACE, ATTRIBUTE, FRAME, and INHERIT have the same meaning as in
+`face-attribute'."
+  (cond
+   ((when-let* ((value (face-attribute face attribute frame inherit))
+                (_ (not (member value '("unspecified-bg" "unspecified-fg")))))
+      value))
+   ((when-let* ((_ (eq attribute :background))
+                (background (frame-parameter nil 'background-color))
+                (_ (not (string= background "unspecified-bg"))))
+      background))
+   ((when-let* ((_ (eq attribute :foreground))
+                (foreground (frame-parameter nil 'foreground-color))
+                (_ (not (string= foreground "unspecified-fg"))))
+      foreground))
+   ((eq (frame-parameter nil 'background-mode) 'light)
+    (if (eq attribute :foreground)
+        "black"
+      "white"))
+   ((eq (frame-parameter nil 'background-mode) 'dark)
+    (if (eq attribute :foreground)
+        "white"
+      "black"))))
+
+(defun spacious-padding--face-background (face &optional frame inherit)
+  "Wrapper for `face-background'.
+FACE, FRAME, and INHERIT as the same as in `face-background'."
+  (spacious-padding--face-attribute face :background frame inherit))
+
+(defun spacious-padding--face-foreground (face &optional frame inherit)
+  "Wrapper for `face-foreground'.
+FACE, FRAME, and INHERIT as the same as in `face-foreground'."
+  (spacious-padding--face-attribute face :foreground frame inherit))
+
 (defun spacious-padding--get-face-line-color (face fallback subtle-key)
   "Get {over,under}line foreground.
 Use SUBTLE-KEY to check `spacious-padding-subtle-frame-lines', falling
@@ -322,8 +360,8 @@ back to FACE, then FALLBACK."
   (let ((subtle-value (plist-get spacious-padding-subtle-frame-lines subtle-key)))
     (cond
      ((stringp subtle-value) subtle-value)
-     ((facep subtle-value) (face-foreground subtle-value nil face))
-     (t (face-foreground face nil fallback)))))
+     ((facep subtle-value) (spacious-padding--face-foreground subtle-value nil face))
+     (t (spacious-padding--face-foreground face nil fallback)))))
 
 (defun spacious-padding-set-face-box-padding (face fallback &optional subtle-key)
   "Return face attributes for FACE with FALLBACK face background.
@@ -331,8 +369,8 @@ With optional SUBTLE-KEY, read its value from the
 `spacious-padding-subtle-frame-lines' and apply it to FACE as an
 overline."
   (when (facep face)
-    (let* ((original-bg (or (face-background face nil fallback) 'unspecified))
-           (subtle-bg (face-background 'default))
+    (let* ((original-bg (or (spacious-padding--face-background face nil fallback) 'unspecified))
+           (subtle-bg (spacious-padding--face-background 'default))
            (subtlep (and subtle-key spacious-padding-subtle-frame-lines))
            (bg (if subtlep subtle-bg original-bg))
            (face-width (spacious-padding--get-face-width face)))
@@ -343,7 +381,7 @@ overline."
                  (list :underline
                        (list
                         :color (or (spacious-padding--get-face-line-color face fallback subtle-key)
-                                   (face-foreground 'default))
+                                   (spacious-padding--face-foreground 'default))
                         :position t))
                (list :overline (or (spacious-padding--get-face-line-color face fallback subtle-key) t)))))
         ,@(unless (eq face-width 0)
@@ -372,8 +410,8 @@ overline."
 Ignore any arguments.  This is useful to add the function to abnormal
 hooks that pass one or more arguments to it, such as
 `after-make-frame-functions'."
-  (let ((bg-main (face-background 'default))
-        (fg-main (face-foreground 'default))
+  (let ((bg-main (spacious-padding--face-background 'default))
+        (fg-main (spacious-padding--face-foreground 'default))
         custom--inhibit-theme-enable)
     (custom-theme-set-faces
      'spacious-padding

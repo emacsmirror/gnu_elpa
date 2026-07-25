@@ -1894,7 +1894,8 @@ implementation."
       (mapcar #'expand-file-name files))))
 
 ;;;###autoload
-(add-to-list 'project-vc-backend-markers-alist '(JJ . ".jj"))
+(with-eval-after-load 'project
+  (add-to-list 'project-vc-backend-markers-alist '(JJ . ".jj")))
 
 (provide 'vc-jj)
 ;;; vc-jj.el ends here

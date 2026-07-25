@@ -1,4 +1,4 @@
-;; Copyright (C) 2010-2014, 2016-2017, 2023 Free Software Foundation, Inc
+;; Copyright (C) 2010-2014, 2016-2017, 2023, 2026 Free Software Foundation, Inc
 
 ;; Author: Rocky Bernstein <rocky@gnu.org>
 
@@ -19,13 +19,13 @@
   "The realgud interface to the Python debugger, trepan-trepan-xpy"
   :group 'realgud
   :group 'python
-  :version "25.1")
+  :version "27.1")
 
-(declare-function trepan-xpy-query-cmdline  'realgud--trepan-xpy-core)
+(declare-function trepan-xpy-query-cmdline 'realgud--trepan-xpy-core)
 (declare-function trepan-xpy-parse-cmd-args 'realgud--trepan-xpy-core)
-(declare-function realgud:run-debugger    'realgud:run)
-(declare-function realgud:run-process     'realgud:core)
-(declare-function realgud:flatten         'realgud-utils)
+(declare-function realgud:run-debugger 'realgud:run)
+(declare-function realgud:run-process 'realgud:core)
+(declare-function realgud:flatten 'realgud-utils)
 
 ;; -------------------------------------------------------------------
 ;; User-definable variables
@@ -63,12 +63,13 @@ marginal icons is reset. See `loc-changes-clear-buffer' to clear
 fringe and marginal icons.
 "
   (interactive)
-  (realgud:run-debugger "trepan-xpy"
-			'trepan-xpy-query-cmdline
-			'trepan-xpy-parse-cmd-args
-			'realgud:trepan-xpy-minibuffer-history
-			opt-cmd-line no-reset)
-  )
+  (realgud:run-debugger
+   "trepan-xpy"
+   'trepan-xpy-query-cmdline
+   'trepan-xpy-parse-cmd-args
+   'realgud:trepan-xpy-minibuffer-history
+   opt-cmd-line
+   no-reset))
 
 ;;;###autoload
 (defalias 'trepan-xpy 'realgud:trepan-xpy)
@@ -81,19 +82,22 @@ Therefore we invoke python rather than the debugger initially.
 "
   (interactive)
   (let* ((initial-debugger python-shell-interpreter)
-	 (actual-debugger "trepan-xpy")
-	 (cmd-str (trepan-xpy-query-cmdline initial-debugger))
-	 (cmd-args (split-string-and-unquote cmd-str))
-	 ;; XXX: python gets registered as the interpreter rather than
-	 ;; a debugger, and the debugger position (nth 1) is missing:
-	 ;; the script-args takes its place.
-	 (parsed-args (trepan-xpy-parse-cmd-args cmd-args))
-	 (script-args (nth 1 parsed-args))
-	 (script-name (car script-args))
-	 (parsed-cmd-args
-	  (cl-remove-if 'nil (realgud:flatten parsed-args))))
-    (realgud:run-process actual-debugger script-name parsed-cmd-args
-			 'realgud:trepan-xpy-deferred-minibuffer-history)))
+         (actual-debugger "trepan-xpy")
+         (cmd-str (trepan-xpy-query-cmdline initial-debugger))
+         (cmd-args (split-string-and-unquote cmd-str))
+         ;; XXX: python gets registered as the interpreter rather than
+         ;; a debugger, and the debugger position (nth 1) is missing:
+         ;; the script-args takes its place.
+         (parsed-args (trepan-xpy-parse-cmd-args cmd-args))
+         (script-args (nth 1 parsed-args))
+         (script-name (car script-args))
+         (parsed-cmd-args
+          (cl-remove-if #'nil (realgud:flatten parsed-args))))
+    (realgud:run-process
+     actual-debugger
+     script-name
+     parsed-cmd-args
+     'realgud:trepan-xpy-deferred-minibuffer-history)))
 
 (realgud-deferred-invoke-setup "trepan-xpy")
 

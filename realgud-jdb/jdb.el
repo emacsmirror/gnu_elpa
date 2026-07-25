@@ -1,4 +1,4 @@
-;; Copyright (C) 2014-2019 Free Software Foundation, Inc
+;; Copyright (C) 2014-2019, 2026 Free Software Foundation, Inc
 
 ;; Author: Rocky Bernstein <rocky@gnu.org>
 
@@ -15,23 +15,22 @@
 (require 'realgud)
 (require-relative-list '("core" "track-mode") "realgud-jdb-")
 
-(declare-function realgud:jdb-query-cmdline  'realgud--jdb-core)
+(declare-function realgud:jdb-query-cmdline 'realgud--jdb-core)
 (declare-function realgud--jdb-parse-cmd-args 'realgud--jdb-core)
-(declare-function realgud:run-process        'realgud--core)
-(declare-function realgud:flatten            'realgud-utils)
+(declare-function realgud:run-process 'realgud--core)
+(declare-function realgud:flatten 'realgud-utils)
 
 (defvar realgud--jdb-file-remap nil
-  "A buffer-local hash table to map a Java file reported by jdb into a file seen in the filesystem."
-)
+  "A buffer-local hash table to map a Java file reported by jdb into a file seen in the filesystem.")
 
 
 ;; This is needed, or at least the docstring part of it is needed to
-;; get the customization menu to work in Emacs 25.
+;; get the customization menu to work in Emacs 27.
 (defgroup realgud--jdb nil
   "The realgud interface to the Java's jdb debugger"
   :group 'java
   :group 'realgud
-  :version "25.1")
+  :version "27.1")
 
 ;; -------------------------------------------------------------------
 ;; User-definable variables
@@ -70,38 +69,40 @@ fringe and marginal icons."
   (setq gud-jdb-classpath-string (or (getenv "CLASSPATH") "."))
   (if gud-jdb-classpath-string
       (setq gud-jdb-classpath
-	    (gud-jdb-parse-classpath-string gud-jdb-classpath-string)))
+            (gud-jdb-parse-classpath-string
+             gud-jdb-classpath-string)))
 
   (setq gud-jdb-class-source-alist
-	(gud-jdb-build-class-source-alist
-	 (setq gud-jdb-source-files
-	       (gud-jdb-build-source-files-list gud-jdb-directories
-						"\\.java$"))))
+        (gud-jdb-build-class-source-alist
+         (setq gud-jdb-source-files
+               (gud-jdb-build-source-files-list
+                gud-jdb-directories "\\.java$"))))
   (fset 'gud-jdb-find-source 'gud-jdb-find-source-file)
 
 
   ;; reset for future invocations
   (setq gud-jdb-classpath-string nil)
 
-  (let* (
-	 (cmd-str (or opt-cmd-line (realgud--jdb-query-cmdline "jdb")))
-	 (cmd-args (split-string-and-unquote cmd-str))
-	 (parsed-args (realgud--jdb-parse-cmd-args cmd-args))
-	 (script-args (caddr parsed-args))
-	 (script-name (car script-args))
-	 (parsed-cmd-args
-	  (cl-remove-if 'nil (realgud:flatten parsed-args)))
-	 (cmd-buf (realgud:run-process "jdb" script-name parsed-cmd-args
-			 'realgud--jdb-track-mode-hook no-reset))
-	 )
+  (let* ((cmd-str
+          (or opt-cmd-line (realgud--jdb-query-cmdline "jdb")))
+         (cmd-args (split-string-and-unquote cmd-str))
+         (parsed-args (realgud--jdb-parse-cmd-args cmd-args))
+         (script-args (caddr parsed-args))
+         (script-name (car script-args))
+         (parsed-cmd-args
+          (cl-remove-if #'nil (realgud:flatten parsed-args)))
+         (cmd-buf
+          (realgud:run-process
+           "jdb"
+           script-name
+           parsed-cmd-args
+           'realgud--jdb-track-mode-hook
+           no-reset)))
     (if cmd-buf
-	(with-current-buffer cmd-buf
-	  (set (make-local-variable 'realgud--jdb-file-remap)
-	       (make-hash-table :test 'equal))
-	  )
-      )
-    )
-  )
+        (with-current-buffer cmd-buf
+          (set
+           (make-local-variable 'realgud--jdb-file-remap)
+           (make-hash-table :test 'equal))))))
 
 ;;;###autoload
 (defalias 'jdb 'realgud--jdb)

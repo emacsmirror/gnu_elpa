@@ -589,7 +589,7 @@ Otherwise, they are quietly skipped."
                                    infer-dirs-from))
                   (dolist (name sublist)
                     (when (file-name-absolute-p name)
-                      (puthash (file-name-directory name)
+                      (puthash (file-name-directory (expand-file-name name))
                                t
                                truename-cache--dedupped-dirs)))))
               (cl-loop

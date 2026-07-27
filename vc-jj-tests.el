@@ -87,6 +87,7 @@ Jujutsu commands are executed with a fixed username and email; augment
 timestamps and random number seed (and thereby change ids) is needed."
   (declare (indent 1) (debug (symbolp body)))
   `(ert-with-temp-directory ,name
+     (skip-unless (executable-find vc-jj-program))
      (let ((default-directory ,name)
            (process-environment
             (append (list vc-jj-test--environment-email
@@ -113,6 +114,7 @@ timestamps and random number seed (and thereby change ids) is needed."
 
 (ert-deftest vc-jj-test-jj-version ()
   "Test that we can parse jj's version info."
+  (skip-unless (executable-find vc-jj-program))
   (version< "0.0.1" (vc-jj--program-version)))
 
 ;;;; State-querying tests

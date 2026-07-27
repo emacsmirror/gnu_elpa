@@ -146,6 +146,11 @@ The function also account for the value of the user option
 `denote-allow-multi-word-keywords'."
   (should (equal (denote-sluggify-keywords '("one !@# --- one" "   two" "__  three  __")) '("oneone" "two" "three"))))
 
+(ert-deftest dt-denote-slug-remove-accents ()
+  "Test that `denote-slug-remove-accents' removed diacretics."
+  (should (string= (denote-slug-remove-accents "ê") "e"))
+  (should (string= (denote-slug-remove-accents "ñ") "n")))
+
 (ert-deftest dt-denote--file-empty-p ()
   "Test that `denote--file-empty-p' returns non-nil on empty file."
   (let ((file (make-temp-file "denote-test")))

@@ -2450,6 +2450,8 @@ You have been warned.
 :CUSTOM_ID: h:d1e4eb5b-e7f2-4a3b-9243-e1c653817a4a
 :END:
 
+[ Also see: [[#h:65a6a2ec-02b9-4c9e-995f-19dfe0611e20][Custom sluggification to remove diacterics or accented characters]]. ]
+
 A common use-case for Denote is to rename files such as videos
 downloaded from the Internet. Sometimes, those files have Unicode
 characters that (i) not all fonts support and (ii) create all sorts of
@@ -2482,7 +2484,52 @@ use the following in their Emacs configuration ([[#h:d375c6d2-92c7-425f-9d9d-219
                              (denote-slug-keep-only-ascii str))))
 
 (defcustom denote-file-name-slug-functions
-  '((title . my-denote-sluggify-title)
+  '((identifier . identity) ; keep the original
+    (title . my-denote-sluggify-title)
+    (signature . my-denote-sluggify-signature)
+    (keyword . my-denote-sluggify-keyword)))
+#+end_src
+
+*** Custom sluggification to remove diacterics or accented characters
+:PROPERTIES:
+:CUSTOM_ID: h:65a6a2ec-02b9-4c9e-995f-19dfe0611e20
+:END:
+
+[ Also see: [[#h:d1e4eb5b-e7f2-4a3b-9243-e1c653817a4a][Custom sluggification to remove non-ASCII characters]]. ]
+
+For languages with diacretics, like =ê= and =ñ=, users may want to
+instruct Denote to remove the diacretical marks from the underlying
+characters. This way, the file names will be uniform and easier to
+search through, instead of checking if, say, =être= is written thus or
+as =etre=.
+
+This is only for the sluggification of file name components ([[#h:d375c6d2-92c7-425f-9d9d-219ff47ed2a3][User-defined sluggification of file name components]]).
+Any front matter will retain the diacretics.
+
+#+begin_src emacs-lisp
+;; These are the same as the default Denote sluggification functions,
+;; except they remove all diacretics from the underlying characters
+;; (e.g.  ê becomes e while ñ becomes n).
+(defun my-denote-sluggify-title (str)
+  (downcase
+   (denote-slug-hyphenate
+    (replace-regexp-in-string "[][{}!@#$%^&*()+'\"?,.\|;:~`‘’“”/=]*" ""
+                              (denote-slug-remove-accents str)))))
+
+(defun my-denote-sluggify-signature (str)
+  (downcase
+   (denote-slug-put-equals
+    (replace-regexp-in-string "[][{}!@#$%^&*()+'\"?,.\|;:~`‘’“”/-]*" ""
+                              (denote-slug-remove-accents str)))))
+
+(defun my-denote-sluggify-keyword (str)
+  (downcase
+   (replace-regexp-in-string "[][{}!@#$%^&*()+'\"?,.\|;:~`‘’“”/_ =-]*" ""
+                             (denote-slug-remove-accents str))))
+
+(defcustom denote-file-name-slug-functions
+  '((identifier . identity) ; keep the original
+    (title . my-denote-sluggify-title)
     (signature . my-denote-sluggify-signature)
     (keyword . my-denote-sluggify-keyword)))
 #+end_src
@@ -7165,8 +7212,8 @@ Denote is meant to be a collective effort.  Every bit of help matters.
   Purslane, Alfredo Borrás, Alp Eren Kose, André Bering, Ashton
   Wiersdorf, Bhargav Kulkarni, Benjamin Kästner, Claudio Migliorelli,
   Claudiu Tănăselia, Colin McLear, Cosmin-Octavian C, Damien Cassou,
-  Elias Storms, Federico Stilman, Florian, Frédéric Willem Frank
-  Ehmsen, Glenna D., Guo Yong, Hanspeter Gisler Harold Ollivier,
+  Davi Ramos, Elias Storms, Federico Stilman, Florian, Frédéric Willem
+  Frank Ehmsen, Glenna D., Guo Yong, Hanspeter Gisler Harold Ollivier,
   IceAsteroid, Jack Baty, Jay Rajput, Jean-Charles Bagneris, Jeff
   Valk, Jens Östlund, Jeremy Friesen, Jonathan Sahar, Johan Bolmsjö,
   Jonas Großekathöfer, Jousimies, Juanjo Presa, Julian Hoch, Kai von
@@ -7180,10 +7227,10 @@ Denote is meant to be a collective effort.  Every bit of help matters.
   Mealing, Wilf, Yi Liu, Ypot, 82Kang, atanasj, azegas, babusri,
   bdillahu, coherentstate, doolio, duli, drcxd, elge70, elliottw,
   fingerknight, GuutBoy, hpgisler, hyperfocus1337,johkneisl,
-  jtpavlock, juh, leafarbelm, mentalisttraceur, mjkalyan, oatmealm,
-  potchie-maker, Pratik-Mishra-4979, pRot0ta1p, rbenit68, relict007,
-  sarcom-sar, sienic, skissue, sundar bp, wuzhihao, yetanotherfossman,
-  zadca123
+  jtpavlock, juh, leafarbelm, mentalisttraceur, mjkalyan, o-rxw,
+  oatmealm, potchie-maker, Pratik-Mishra-4979, pRot0ta1p, rbenit68,
+  relict007, sarcom-sar, sienic, skissue, sundar bp, wuzhihao,
+  yetanotherfossman, zadca123
 
 Special thanks to Peter Povinec who helped refine the file-naming
 scheme, which is the cornerstone of this project.

@@ -507,7 +507,7 @@
  (json-mode		:url nil)
  (jsonrpc		:core "lisp/jsonrpc.el")
  (jumpc			:url nil)
- (keymap-popup		:url "https://codeberg.org/thanosapollo/emacs-keymap-popup"
+ (keymap-popup		:url "https://git.thanosapollo.org/emacs-keymap-popup"
   :doc "docs/keymap-popup.org")
  (kind-icon		:url "https://github.com/jdtsmith/kind-icon")
  (kiwix			:url "https://repo.or.cz/kiwix.el.git"
@@ -598,7 +598,7 @@
   :readme "README.md"
   :news "CHANGELOG.org"
   :ignored-files ("COPYING" "doclicense.texi"))
- (mpdired	:url "https://ledu-giraud.fr/mpdired.git")
+ (mpdired		:url "https://ledu-giraud.fr/mpdired.git")
  (multi-mode		:url nil)
  (multishell		:url "https://github.com/kenmanheimer/EmacsMultishell")
  (muse			:url "https://github.com/alexott/muse" ;FIXME: Not nearly in-sync
@@ -736,8 +736,7 @@
  (pyim-basedict		:url "https://github.com/tumashu/pyim-basedict.git")
  (python		:core "lisp/progmodes/python.el")
  (qrencode		:url "https://github.com/ruediger/qrencode-el"
- ;; Waiting for confirmation from maintainer.
- :ignored-files ("LICENSE.md"))
+  :ignored-files ("LICENSE.md"))
  (quarter-plane		:url nil)
  (queue			:url nil) ;"http://www.dr-qubit.org/git/predictive.git"
  ;; (rails-routes	:url "https://github.com/otavioschwanck/emacs-rails-routes")

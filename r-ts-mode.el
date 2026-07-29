@@ -561,10 +561,5 @@ object definition."
   ;; Finalise tree-sitter setup
   (treesit-major-mode-setup))
 
-;;;###autoload
-(defalias 'R-ts-mode #'r-ts-mode
-  "Alias for `r-ts-mode' matching the capitalisation convention for R files.")
-
-
 (provide 'r-ts-mode)
 ;;; r-ts-mode.el ends here

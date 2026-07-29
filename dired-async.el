@@ -244,10 +244,10 @@ cases if `dired-async-skip-fast' is non-nil."
               (progn
                 (push old quick-list)
                 (setq total-size (+ total-size (nth 7 attrs))))
-            (push old async-list)))))
-    (when (> total-size dired-async-small-file-max)
-      (setq async-list (append quick-list async-list)
-            quick-list nil))
+            (push old async-list))))
+      (when (> total-size dired-async-small-file-max)
+        (setq async-list (append quick-list async-list)
+              quick-list nil)))
     (when async-list
       (dired-async-create-files
        file-creator operation (nreverse async-list)

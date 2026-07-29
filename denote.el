@@ -5933,6 +5933,7 @@ alist, such as `denote-backlinks-display-buffer-action'."
          (dirs (denote-directories)))
     (unless xref-alist
       (error "No results to display"))
+    (setq denote-query--last-files (delete-dups (mapcar #'car xref-alist)))
     ;; Update group of each item in xref-alist
     (dolist (x xref-alist)
       (let* ((file-xref (car x)))
@@ -5961,6 +5962,7 @@ alist, such as `denote-backlinks-display-buffer-action'."
 
 DISPLAY-BUFFER-ACTION is a `display-buffer' action and concomitant
 alist, such as `denote-backlinks-display-buffer-action'."
+  (setq denote-query--last-query identifier)
   (if-let* ((xref-alist (denote-retrieve-xref-alist-for-backlinks identifier)))
       (denote--display-buffer-from-xref-alist xref-alist buffer-name display-buffer-action)
     (error "No matches for identifier `%s'" identifier)))

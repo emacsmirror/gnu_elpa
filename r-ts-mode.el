@@ -28,7 +28,7 @@
 ;;; Code:
 
 (require 'treesit)
-(declare-function r-ts-mode-parent-mode 'r-ts-mode)
+(declare-function r-ts-mode-parent-mode "r-ts-mode.el")
 
 
 ;;;; =========================================================================
@@ -184,19 +184,19 @@ to silence ESS fontification.")
 
 ;; ESS declarations — kept here so the byte-compiler is happy,
 ;; but ESS-specific logic is intentionally left untouched for now.
-(declare-function ess-r-mode                'r-ts-mode)
-(declare-function ess-mode                  'r-ts-mode)
-(declare-function ess-setq-vars-local       'r-ts-mode)
-(declare-function ess-set-style             'r-ts-mode)
-(declare-function ess--setup-eldoc          'r-ts-mode)
-(declare-function ess--setup-auto-complete  'r-ts-mode)
-(declare-function ess--setup-company        'r-ts-mode)
-(declare-function ess-r-eldoc-function      'r-ts-mode)
-(declare-function ess-filename-completion   'r-ts-mode)
-(declare-function ess-r-project             'r-ts-mode)
-(declare-function ess-r-xref-backend        'r-ts-mode)
-(declare-function ess-r-package-completion  'r-ts-mode)
-(declare-function ess-r-object-completion   'r-ts-mode)
+(declare-function ess-r-mode                "ext:ess-r-mode.el")
+(declare-function ess-mode                  "ext:ess-r-mode.el")
+(declare-function ess-setq-vars-local       "ext:ess-r-mode.el")
+(declare-function ess-set-style             "ext:ess-r-mode.el")
+(declare-function ess--setup-eldoc          "ext:ess-r-mode.el")
+(declare-function ess--setup-auto-complete  "ext:ess-r-mode.el")
+(declare-function ess--setup-company        "ext:ess-r-mode.el")
+(declare-function ess-r-eldoc-function      "ext:ess-r-mode.el")
+(declare-function ess-filename-completion   "ext:ess-r-mode.el")
+(declare-function ess-r-project             "ext:ess-r-mode.el")
+(declare-function ess-r-xref-backend        "ext:ess-r-mode.el")
+(declare-function ess-r-package-completion  "ext:ess-r-mode.el")
+(declare-function ess-r-object-completion   "ext:ess-r-mode.el")
 (defvar ess-r-mode-syntax-table)
 (defvar ess-r-customize-alist)
 (defvar ess-font-lock-keywords)

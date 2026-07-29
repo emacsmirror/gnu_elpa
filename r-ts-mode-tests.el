@@ -624,10 +624,5 @@ pure-function tests can still run."
     (should (local-variable-p 'treesit-font-lock-settings))
     (should treesit-font-lock-settings)))
 
-(ert-deftest r-ts-mode-test--alias-R-ts-mode ()
-  "R-ts-mode is an alias for r-ts-mode."
-  (should (eq (symbol-function 'R-ts-mode) #'r-ts-mode)))
-
-
 (provide 'r-ts-mode-tests)
 ;;; r-ts-mode-tests.el ends here

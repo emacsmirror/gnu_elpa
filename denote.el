@@ -6039,7 +6039,7 @@ generally, any command that relies on the `denote-make-links-buffer'."
        (list (denote-query-prompt :focus)))
    denote-query-mode)
   (denote--user-error-if-not-major-mode 'denote-query-mode)
-  (denote-make-links-buffer query denote-query--last-files nil '(display-buffer-same-window))
+  (denote-make-links-buffer query denote-query--last-files (buffer-name) '(display-buffer-same-window))
   (message "Searching `%s' in files: `%S'" query denote-query--last-files))
 
 (defun denote-query--filter-files (regexp include-p)

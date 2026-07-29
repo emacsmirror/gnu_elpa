@@ -5545,12 +5545,12 @@ the active region specially, is up to it."
 
 (defun denote-link--collect-identifiers (regexp)
   "Return collection of identifiers in buffer matching REGEXP."
-  (let (matches)
+  (let ((matches nil))
     (save-excursion
       (goto-char (point-min))
       (while (re-search-forward regexp nil t)
         (push (match-string-no-properties 1) matches)))
-    matches))
+    (seq-uniq matches)))
 
 (make-obsolete 'denote-link--expand-identifiers nil "4.1.0")
 

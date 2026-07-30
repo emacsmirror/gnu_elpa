@@ -652,8 +652,9 @@ compile.
 @strong{Auto-compilation on save:} Once enabled, saving any dictionary
 source file whose directory is in @code{greader-compile-dictsource}
 automatically runs @code{espeak --compile=XX} for the corresponding
-language. If the eSpeak-NG data directory is not writable by your user,
-you will be prompted for your administrator password.
+language. If the eSpeak-NG data directory, or any existing dictionary
+file in it for that language, is not writable by your user, you will
+be prompted for your administrator password.
 
 @multitable @columnfractions 0.33 0.33 0.33
 @headitem

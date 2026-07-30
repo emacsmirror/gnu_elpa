@@ -250,7 +250,7 @@ Paths must end with a slash. The variable is a list, so you can specify multiple
 
 **Enable:** `M-x greader-compile-mode`
 
-**Auto-compilation on save:** Once enabled, saving any dictionary source file whose directory is in `greader-compile-dictsource` automatically runs `espeak --compile=XX` for the corresponding language. If the eSpeak-NG data directory is not writable by your user, you will be prompted for your administrator password.
+**Auto-compilation on save:** Once enabled, saving any dictionary source file whose directory is in `greader-compile-dictsource` automatically runs `espeak --compile=XX` for the corresponding language. If the eSpeak-NG data directory, or any existing dictionary file in it for that language, is not writable by your user, you will be prompted for your administrator password.
 
 | Keybinding | Command | Description |
 |---|---|---|

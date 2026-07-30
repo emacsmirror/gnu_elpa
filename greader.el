@@ -1139,6 +1139,30 @@ administrator."
     (remove-hook 'after-save-hook #'greader-check-visited-file)))
 
 (defvar greader-compile-history nil)
+(defun greader-compile--espeak-data-dir ()
+  "Return the espeak-ng data directory path, or nil if it cannot be determined.
+The path is read from the output of `espeak --version'."
+  (with-temp-buffer
+    (call-process "espeak" nil t nil "--version")
+    (goto-char (point-min))
+    (when (re-search-forward "Data at: \\(/[^ \t\n]+\\)" nil t)
+      (match-string 1))))
+
+(defun greader-compile--needs-sudo-p (lang)
+  "Return non-nil if compiling LANG's dictionary requires sudo.
+This is the case when the espeak-ng data directory cannot be
+determined, when it is not user-writable, or when some file already
+there whose name starts with \"LANG_\" is not user-writable (the
+data directory itself can end up user-owned while the dictionary
+files inside, installed by the system package manager, remain owned
+by root)."
+  (let ((dir (greader-compile--espeak-data-dir)))
+    (or (not dir)
+	(not (file-writable-p dir))
+	(let ((default-directory (file-name-as-directory dir)))
+	  (seq-some (lambda (f) (not (file-writable-p f)))
+		    (file-expand-wildcards (concat lang "_*")))))))
+
 (defun greader-compile (&optional lang)
   "Compile espeak voice for a given LANG.
 when called interactively, compile the
@@ -1173,20 +1197,12 @@ function is specifically designed to be executed by a hook."
     (error "Cannot determine language to compile"))
 
   (let
-      (data-is-writable
-       (command
+      ((command
 	(append '("espeak")
 		(list (concat greader-compile-command lang))
 		greader-compile-extra-parameters)))
 
-    (with-temp-buffer
-      (call-process "espeak" nil t t "--version")
-      (goto-char (point-min))
-      (search-forward "/")
-      (setq data-is-writable (file-writable-p (thing-at-point
-					       'filename))))
-
-    (when (not data-is-writable)
+    (when (greader-compile--needs-sudo-p lang)
       (setq command (append '("sudo") command)))
 
     (make-process

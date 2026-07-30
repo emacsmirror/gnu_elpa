@@ -7,7 +7,7 @@
 ;; Maintainer: Michael Albinus <michael.albinus@gmx.de>
 ;; Keywords: comm, processes
 ;; Package: tramp
-;; Version: 2.8.2
+;; Version: 2.8.2.1
 ;; Package-Requires: ((emacs "28.1"))
 ;; Package-Type: multi
 ;; URL: https://www.gnu.org/software/tramp/
@@ -2235,15 +2235,17 @@ without a visible progress reporter."
   `(if (or noninteractive inhibit-message)
        (progn ,@body)
      (tramp-message ,vec ,level "%s..." ,message)
-     (let ((cookie "failed")
-           (tm
-            ;; We start a pulsing progress reporter after 3 seconds.
-            ;; Start only when there is no other progress reporter
-            ;; running, and when there is a minimum level.
-	    (when-let* ((pr (and (null tramp-inhibit-progress-reporter)
-				 (<= ,level (min tramp-verbose 3))
-				 (make-progress-reporter ,message))))
-	      (run-at-time 3 0.1 #'tramp-progress-reporter-update pr))))
+     (let* ((cookie "failed")
+            ;; We create a pulsing progress reporter when there is no
+            ;; other progress reporter running, and when there is a
+            ;; minimum level.
+            (pr (and (null tramp-inhibit-progress-reporter)
+		     (<= ,level (min tramp-verbose 3))
+		     (make-progress-reporter ,message)))
+            ;; We start it after 3 seconds.
+            (tm
+	     (when pr
+	       (run-at-time 3 0.1 #'tramp-progress-reporter-update pr))))
        (unwind-protect
            ;; Execute the body.
            (prog1
@@ -2252,8 +2254,14 @@ without a visible progress reporter."
 		      (or tramp-inhibit-progress-reporter tm)))
 		 ,@body)
 	     (setq cookie "done"))
-         ;; Stop progress reporter.
-         (if tm (cancel-timer tm))
+	 ;; Stop progress reporter.  We suppress the message in the
+	 ;; message buffer and echo area; proper handling is performed
+	 ;; by `tramp-message'.
+	 (when (and tm pr)
+	   (cancel-timer tm)
+	   (let ((inhibit-message t)
+		 message-log-max)
+	     (progress-reporter-done pr)))
          (tramp-message ,vec ,level "%s...%s" ,message cookie)))))
 
 (defmacro with-tramp-timeout (list &rest body)
@@ -3734,14 +3742,15 @@ BODY is the backend specific code."
 		 ;; This variable exists since Emacs 30.1.
 		 (not (bound-and-true-p
 		       remote-file-name-inhibit-delete-by-moving-to-trash)))))
-       (if (and delete-by-moving-to-trash ,trash)
-	   ;; Move non-empty dir to trash only if recursive deletion was
-	   ;; requested.
-	   (if (not (or ,recursive (directory-empty-p ,directory)))
-	       (tramp-error
-		v 'file-error "Directory is not empty, not moving to trash")
-	     (move-file-to-trash ,directory))
-	 ,@body)
+       (tramp-barf-if-file-missing v ,directory
+	 (if (and delete-by-moving-to-trash ,trash)
+	     ;; Move non-empty dir to trash only if recursive deletion was
+	     ;; requested.
+	     (if (not (or ,recursive (directory-empty-p ,directory)))
+		 (tramp-error
+		  v 'file-error "Directory is not empty, not moving to trash")
+	       (move-file-to-trash ,directory))
+	   ,@body))
        (tramp-flush-directory-properties v localname))))
 
 (defmacro tramp-skeleton-delete-file (filename &optional trash &rest body)
@@ -3754,9 +3763,10 @@ BODY is the backend specific code."
 		 ;; This variable exists since Emacs 30.1.
 		 (not (bound-and-true-p
 		       remote-file-name-inhibit-delete-by-moving-to-trash)))))
-       (if (and delete-by-moving-to-trash ,trash)
-	   (move-file-to-trash ,filename)
-	 ,@body)
+       (ignore-errors
+	 (if (and delete-by-moving-to-trash ,trash)
+	     (move-file-to-trash ,filename)
+	   ,@body))
        (tramp-flush-file-properties v localname))))
 
 (defmacro tramp-skeleton-directory-files
@@ -7226,6 +7236,7 @@ might have improper values."
 	  (mapcar #'car tramp-connection-local-default-system-variables))))
     `(let* ((default-directory tramp-compat-temporary-file-directory)
 	    (temporary-file-directory tramp-compat-temporary-file-directory)
+	    (process-environment (copy-sequence process-environment))
             ,@bindings)
        (setenv "TERM" tramp-terminal-type)
        (setenv "PROMPT_COMMAND")

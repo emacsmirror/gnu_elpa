@@ -5,7 +5,7 @@
 ;; Author: zach shaftel <zach@shaf.tel>
 ;; Maintainer: zach shaftel <zach@shaf.tel>
 ;; Created: May 14, 2026
-;; Version: 0.3.0
+;; Version: 0.3.1
 ;; Keywords: lisp, languages, tree-sitter
 ;; URL: https://codeberg.org/zshaftel/lisp-ts-mode
 ;; Package-Requires: ((emacs "30.2") cond-star (compat "31"))
@@ -625,18 +625,30 @@ directive; otherwise it's relative to the directive character itself ({,
 [, ( or <). This affects both the contents of the paired directive, and
 the indentation of the closing directive (}, ], ) or >) relative to the
 opener when the closer's ~ is the first non whitespace character on a
-line. Example (with `lisp-ts-mode-format-group-indent-offset' = 1):
+line. As a special case, if the value is the symbol `end', the closing
+directive is indented relative to the opening ~, but the contents are
+indented relative to the opening directive character. Example (with
+`lisp-ts-mode-format-group-indent-offset' = 1):
 
 nil:
 ~:@{~
     ~A~
   ~}
 
+\\+`end':
+~:@{~
+    ~A~
+~}
+
 non-nil:
 ~:@{~
  ~A~
-~}"
-  :type 'boolean)
+~}
+"
+  :type
+  '(choice (const :tag "Indent relative to the ~" t)
+           (const :tag "Indent relative to the directive" nil)
+           (const :tag "End relative to ~, otherwise to the directive" end)))
 
 (defcustom lisp-ts-mode-format-group-indent-offset 1
   "Additional columns of indentation when indenting inside paired directives.
@@ -723,9 +735,9 @@ format_string node which contains point. Return the column to indent to."
       ((/= (ts-node-start ender) (point))
        ;; not indenting the closing directive so indent relative to
        ;; the opener
-       (goto-char (if lisp-ts-mode-format-indent-tilde-relative
-                      (ts-node-start starter)
-                    (1- (ts-node-end starter))))
+       (goto-char (if (memq lisp-ts-mode-format-indent-tilde-relative '(nil end))
+                      (1- (ts-node-end starter))
+                    (ts-node-start starter)))
        (+ (current-column) lisp-ts-mode-format-group-indent-offset))
       ((not lisp-ts-mode-format-indent-tilde-relative)
        (goto-char (ts-node-end starter))

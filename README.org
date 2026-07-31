@@ -106,14 +106,21 @@ isn't affected. The behavior depends on a few customizable variables:
   paired directive when it begins a line. If nil (the default), the directive
   characters themselves are aligned, like
   #+begin_src lisp :tangle yes
-    "~:@{
-         ~A
+    "~:@{~
+         ~A~
        ~}"
   #+end_src
-  If set to non-nil, the ~s are aligned:
+  If set to non-nil:
   #+begin_src lisp :tangle yes
-    "~:@{
-      ~A
+    "~:@{~
+      ~A~
+     ~}"
+  #+end_src
+  If the value is the symbol ~end~, non-nil behavior applies to the end
+  directive, but nil behavior applies to the contents:
+  #+begin_src lisp :tangle yes
+    "~:@{~
+         ~A~
      ~}"
   #+end_src
 - ~lisp-ts-mode-format-group-indent-offset~ :: Number of columns added to

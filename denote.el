@@ -3674,8 +3674,18 @@ here for clarity."
         ((eq prefer-type :string)
          (if date (format-time-string "%F %T" date) ""))))
 
+(defun denote--date-parse-string (date)
+  "Convert DATE to Denote's preferred string format if a recognized pattern.
+Otherwise, return DATE unchanged.  Currently supports Unix timestamps."
+  (cond ((string-match "[0-9]\\{10\\}" date) ; seconds since epoch
+         (let ((secs (string-to-number (match-string 0 date))))
+           (format-time-string "%Y-%m-%d %H:%M:%S" (seconds-to-time secs))))
+        (t date)))
+
 (defun denote-date-prompt (&optional initial-date prompt-text)
   "Prompt for date, expecting YYYY-MM-DD or that plus HH:MM.
+Unix timestamp format is also supported.
+
 Use Org's more advanced date selection utility if the user option
 `denote-date-prompt-use-org-read-date' is non-nil.
 
@@ -3696,10 +3706,11 @@ a value that can be parsed by `decode-time' or nil."
           (when (string-equal "00" org-time-seconds)
             (setq time (time-add time (string-to-number cur-time-seconds))))
           (format-time-string "%Y-%m-%d %H:%M:%S" time))
-      (read-string
-       (or prompt-text "DATE and TIME for note (e.g. 2022-06-16 14:30): ")
-       (denote--date-convert initial-date :string)
-       'denote-date-history))))
+      (denote--date-parse-string
+       (read-string
+        (or prompt-text "DATE and TIME for note (e.g. 2022-06-16 14:30): ")
+        (denote--date-convert initial-date :string)
+        'denote-date-history)))))
 
 (make-obsolete
  'denote-prompt-for-date-return-id

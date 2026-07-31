@@ -276,11 +276,16 @@ A server kind is a symbol.")
   (futur-new (lambda (futur)
                (futur-elisp--set-destination proc futur))))
 
-(defun futur-elisp--get-process (kind launcher &optional continuation)
-  (unless continuation (setq continuation #'identity))
-  (let ((ready (seq-find (lambda (proc) (process-get proc 'futur--ready))
-                         (alist-get kind futur-elisp--servers))))
-    (if ready (funcall continuation ready)
+(defun futur-elisp--get-process (kind launcher initial-context continuation)
+  (let* ((ready (seq-filter (lambda (proc) (process-get proc 'futur--ready))
+                            (alist-get kind futur-elisp--servers)))
+         (favorite (seq-find (lambda (proc)
+                               (member (if (consp initial-context)
+                                           (car initial-context)
+                                         initial-context)
+                                       (process-get proc 'futur--contexts)))
+                             ready)))
+    (if ready (funcall continuation (or favorite (car ready)))
       ;; Let's start a new subprocess.
       ;; If our caller gets aborted before the subprocess is ready,
       ;; we don't want to abort the subprocess' startup since we'll just
@@ -336,8 +341,9 @@ A server kind is a symbol.")
      ((boundp 'kill-emacs-on-sigint) (interrupt-process proc)) ;Emacs-31
      (t (signal-process proc 'USR1)))))
 
-(defun futur-elisp--funcall-1 (proc func args)
+(defun futur-elisp--funcall-1 (proc initial-context func args)
   (cl-assert (process-get proc 'futur--ready))
+  (cl-pushnew initial-context (process-get proc 'futur--contexts))
   (futur-catch-abort
    ;; Upon abortion, tell the subprocess to interrupt the current job,
    ;; but without aborting the protocol so we stay in sync and the
@@ -353,11 +359,16 @@ A server kind is a symbol.")
            (process-get proc 'futur--rid)))
         (_ (with-temp-buffer
              ;; (trace-values :funcall rid func args)
+             (declare-function futur-reset-context "futur-server" (name target))
              (process-put proc 'futur--ready nil)
              (process-put proc 'futur--last-time (float-time))
              (futur-elisp--print-readably
               `(,(process-get proc 'futur--sid-sym) ,rid
-                ,func ,@args))
+                . ,(if (consp initial-context)
+                       `(,(lambda ()
+                            (apply #'futur-reset-context initial-context)
+                            (apply func args)))
+                     `(,func ,@args))))
              (cl-assert (eobp))
              (insert "\n")
              (let ((coding-system-for-write 'emacs-internal))
@@ -393,7 +404,7 @@ A server kind is a symbol.")
         ;; (futur--funcall #'futur--client-resync proc)
         (error "[Futur] error: %S" read-answer))))))
 
-(defun futur-elisp--funcall (func &rest args)
+(defun futur-elisp-funcall (initial-context func &rest args)
   "Call FUNC with arguments ARGS like `funcall' but in a subprocess.
 This thus runs concurrently with the main process.
 FUNC, ARGS, as well as the return value have to be printable `read'ably,
@@ -401,11 +412,16 @@ which means that they cannot contain values like markers, overlays,
 processes, buffers, ...
 Because it runs in a subprocess, FUNC cannot interact with the user,
 nor can it access the main process' buffers.
-There is no guarantee about the state of the Emacs subprocess in which FUNC
-is called."
-  (futur-elisp--get-process 'futur-server #'futur-elisp--launch
-                            (lambda (proc)
-                              (futur-elisp--funcall-1 proc func args))))
+INITIAL-CONTEXT describes the desired state of the Emacs subprocess and is
+used to prefer a subprocess that already used that same context,
+to try and reduce startup time.  It can be:
+- a plain symbol, in which case there is no guarantee about the state
+  of the Emacs subprocess in which FUNC is called.
+- a list of arguments that are passed to `futur-reset-context' before
+  calling FUNC."
+  (futur-elisp--get-process
+   'futur-server #'futur-elisp--launch initial-context
+   (lambda (proc) (futur-elisp--funcall-1 proc initial-context func args))))
 
 ;;;; Running in a sandbox
 
@@ -462,7 +478,7 @@ Contrary to /tmp, this directory is readable by the sandboxed processes."
                       (append futur-elisp-sandbox--ro-dirs
                               (list (futur-elisp-sandbox-temp-dir))))))))
 
-(defun futur-elisp-sandbox--funcall (func &rest args)
+(defun futur-elisp-sandbox-funcall (initial-context func &rest args)
   "Like `futur-elisp--funcall' but runs in a sandbox.
 Sandbox here means that FUNC cannot write to any file nor make network
 connections and if it spawns subprocesses those same restrictions apply
@@ -471,9 +487,9 @@ This makes it safe to use even when FUNC or ARGS are untrustworthy.
 But DO NOT TRUST the returned result: even if FUNC and ARGS happen to
 be well-behaved, they could be compromised by previous calls
 to `futur-elisp-sandbox--funcall'."
-  (futur-elisp--get-process 'futur-sandbox #'futur-elisp-sandbox--launch
-                            (lambda (proc)
-                              (futur-elisp--funcall-1 proc func args))))
+  (futur-elisp--get-process
+   'futur-sandbox #'futur-elisp-sandbox--launch initial-context
+   (lambda (proc) (futur-elisp--funcall-1 proc initial-context func args))))
 
 (defun futur-elisp--kill-subprocesses ()
   (interactive)

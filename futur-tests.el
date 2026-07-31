@@ -214,18 +214,19 @@
     (should (<= 0.3 (funcall run 10 4) 0.5))))
 
 (ert-deftest futur-server ()
-  (let* ((futur (futur-elisp--get-process 'futur-server #'futur-elisp--launch))
+  (let* ((futur (futur-elisp--get-process
+                 'futur-server #'futur-elisp--launch nil #'identity))
          (proc (futur-blocking-wait-to-get-result futur)))
     (should (process-get proc 'futur--ready))
     (should (null (process-get proc 'futur--destination)))))
 
 (defun futur--tests-elisp-funcall (elisp-funcall)
   ;; Test the very simplest use case.
-  (let ((fut (funcall elisp-funcall #'+ 5 7)))
+  (let ((fut (funcall elisp-funcall nil #'+ 5 7)))
     (should (equal 12 (futur-blocking-wait-to-get-result fut))))
 
   ;; Test error propagation.
-  (let ((fut (funcall elisp-funcall #'car 7))
+  (let ((fut (funcall elisp-funcall nil #'car 7))
         (normal-error (condition-case err2 (car 7) (error err2))))
     ;; Allow extra debug info tacked to the end of the error descriptor.
     (should (equal (take (length normal-error)
@@ -235,7 +236,7 @@
                    normal-error)))
 
   ;; A slightly more realistic test.
-  (let ((fut (funcall elisp-funcall #'documentation 'car)))
+  (let ((fut (funcall elisp-funcall nil #'documentation 'car)))
     (should (equal (futur-blocking-wait-to-get-result fut)
                    (documentation 'car))))
 
@@ -245,12 +246,13 @@
                 (dotimes (i 1024)
                   (push i chars))
                 (apply #'string (nreverse chars))))
-         (fut (funcall elisp-funcall #'identity str)))
+         (fut (funcall elisp-funcall nil #'identity str)))
     (should (equal (futur-blocking-wait-to-get-result fut)
                    str)))
 
   ;; Test `futur-reset-context'.
   (let* ((f (lambda (context)
+              (declare-function futur-reset-context (name target))
               (futur-reset-context
                'futur-test-mini context)
               (let ((fun (symbol-function 'diff-mode)))
@@ -258,9 +260,9 @@
                 (if (subrp fun) 'subr fun))))
          (fut
           (futur-let*
-              ((da1 <- (funcall elisp-funcall f ()))
-               (da2 <- (funcall elisp-funcall f '((require diff-mode))))
-               (da3 <- (funcall elisp-funcall f ())))
+              ((da1 <- (funcall elisp-funcall nil f ()))
+               (da2 <- (funcall elisp-funcall nil f '((require diff-mode))))
+               (da3 <- (funcall elisp-funcall nil f ())))
             (list da1 da2 da3)))
          (vals (futur-blocking-wait-to-get-result fut)))
     (should (autoloadp (nth 0 vals)))
@@ -276,12 +278,12 @@
   ;; when that subprocess will be ready again to handle a new request,
   ;; and when start another `futur-elisp-funcall' we have no guarantee that
   ;; it will reuse the same process anyway.
-  (if (eq elisp-funcall #'futur-elisp-sandbox--funcall)
+  (if (eq elisp-funcall #'futur-elisp-sandbox-funcall)
       (message "Skipping interruption test, known to fail in sandboxes")
     (defvar futur--last-result)
     (let ((inhibit-interaction nil)
           ;; (start (float-time))
-          (fut1 (funcall elisp-funcall
+          (fut1 (funcall elisp-funcall nil
                          (lambda ()
                            (setq futur--last-result
                                  (condition-case err (sleep-for 1)
@@ -291,7 +293,7 @@
       ;; (message "Aborted after %.2f" (- (float-time) start))
       (sit-for 0.1)
       ;; (message "Starting second step after %.2f" (- (float-time) start))
-      (let ((fut2 (funcall elisp-funcall
+      (let ((fut2 (funcall elisp-funcall nil
                            (lambda ()
                              ;; (message "Running FUT2 in %S" (emacs-pid))
                              (bound-and-true-p futur--last-result)))))
@@ -300,11 +302,11 @@
   )
 
 (ert-deftest futur-elisp-funcall ()
-  (futur--tests-elisp-funcall #'futur-elisp--funcall))
+  (futur--tests-elisp-funcall #'futur-elisp-funcall))
 
 
 (ert-deftest futur-elisp-sandbox-funcall ()
-  (futur--tests-elisp-funcall #'futur-elisp-sandbox--funcall))
+  (futur--tests-elisp-funcall #'futur-elisp-sandbox-funcall))
 
 (ert-deftest futur-fe ()
   (let* ((fe (futur-fe))

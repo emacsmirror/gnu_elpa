@@ -5,7 +5,7 @@
 ;; Author: zach shaftel <zach@shaf.tel>
 ;; Maintainer: zach shaftel <zach@shaf.tel>
 ;; Created: May 14, 2026
-;; Version: 0.3.1
+;; Version: 0.3.2
 ;; Keywords: lisp, languages, tree-sitter
 ;; URL: https://codeberg.org/zshaftel/lisp-ts-mode
 ;; Package-Requires: ((emacs "30.2") cond-star (compat "31"))

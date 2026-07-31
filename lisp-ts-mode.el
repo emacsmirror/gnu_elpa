@@ -597,7 +597,13 @@ whitespace of the output."
            (cons :tag "Choose based on context"
                  (string :tag "String used inside a ~<~:> directive"
                          :default "~:@_~")
-                 (string :tag "String used anywhere else" :default "~@"))))
+                 (string :tag "String used anywhere else" :default "~@")))
+  :safe (lambda (v)
+          (or (symbolp v)
+              (stringp v)
+              (and (consp v)
+                   (stringp (car v))
+                   (stringp (cdr v))))))
 
 (defcustom lisp-ts-mode-format-indent-predicate
   (rx bos "format_group" eos)
@@ -615,7 +621,8 @@ entire format string, indent relative to the opening \" +
                         "\\`format_\\(?:group\\|string\\)\\'")
                  (function :tag "A function to match nodes")
                  (regexp :tag "A regexp matching the node's type"
-                         :default "\\`format_group\\'")))
+                         :default "\\`format_group\\'"))
+  :safe #'stringp)
 
 (defcustom lisp-ts-mode-format-indent-tilde-relative nil
   "Determines which column is used as a basis for format string indentation.
@@ -648,7 +655,8 @@ non-nil:
   :type
   '(choice (const :tag "Indent relative to the ~" t)
            (const :tag "Indent relative to the directive" nil)
-           (const :tag "End relative to ~, otherwise to the directive" end)))
+           (const :tag "End relative to ~, otherwise to the directive" end))
+  :safe #'symbolp)
 
 (defcustom lisp-ts-mode-format-group-indent-offset 1
   "Additional columns of indentation when indenting inside paired directives.
@@ -663,7 +671,8 @@ With a value of 0:
   ~{
    ~A
   ~}"
-  :type 'integer)
+  :type 'integer
+  :safe #'integerp)
 
 (defcustom lisp-ts-mode-format-string-indent-offset 1
   ;; when adjusting the example, remember the \ shifts the " right by one
@@ -682,7 +691,8 @@ You can set this to the value of `most-negative-fixnum' to always indent
 non-nested directives to the start of the line."
   :type `(choice (const :tag "Always flush to the leftmost column"
                         ,most-negative-fixnum)
-                 (integer :tag "Offset from string quote")))
+                 (integer :tag "Offset from string quote"))
+  :safe #'integerp)
 
 (defconst lisp-ts-mode--format-pprint-logical-block-query
   (when (fboundp 'ts-query-compile)

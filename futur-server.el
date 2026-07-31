@@ -294,7 +294,7 @@ NAME is the name chosen for that state.
 TARGET is the description of the context.  It should be a list
 of elements that can be:
 - A file name (string) that should be `load'ed.
-- A feature (symbol) that should be `require'd.
+- A list (require FEATURE) to require that feature.
 - A list (funcall FUNC . ARGS) that should be called.
 The elements are processed in order, starting from the state at startup.
 NAME is used only for the purpose of overwriting a previous state from

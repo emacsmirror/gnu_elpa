@@ -75,7 +75,8 @@
                         ;; some later file will re-try loading this file.
                         (with-demoted-errors "%S"
                           (load file 'noerror 'nomessage))))))
-     (futur-elisp-sandbox--funcall
+     (futur-elisp-sandbox-funcall
+      'elisp-macroexpand
       (lambda ()
         (declare-function futur-reset-context "futur-server")
         ;; FIXME: If `futur-reset-context' is sufficiently fast, we could
@@ -124,14 +125,12 @@ current buffer state and calls REPORT-FN when done."
            ;; *scratch* buffers.
            (inhibit-lcw (derived-mode-p 'lisp-interaction-mode))
            (proc-futur
-            (futur-elisp-sandbox--funcall
+            (futur-elisp-sandbox-funcall
+             `(flymake ((funcall package-activate-all)
+                        (require elisp-mode)
+                        (require bytecomp)
+                        (require byte-opt)))
              (lambda ()
-               (declare-function futur-reset-context "futur-server")
-               (futur-reset-context 'flymake
-                                    `((funcall package-activate-all)
-                                      (require elisp-mode)
-                                      (require bytecomp)
-                                      (require byte-opt)))
                (when inhibit-lcw
                  (setq bytecomp--inhibit-lexical-cookie-warning t))
                (setq load-path (append loadpath load-path))
@@ -399,14 +398,12 @@ place in a clean environment."
             ;; even if we trusted the `.el'!  :-(
             ;; Also it would take extra work since the sandbox can't
             ;; directly write the `.elc' file.
-            (futur-elisp--funcall
+            (futur-elisp-funcall
+             `(byte-compile ((funcall package-activate-all)
+                             (require elisp-mode)
+                             (require bytecomp)
+                             (require byte-opt)))
              (lambda ()
-               (declare-function futur-reset-context "futur-server")
-               (futur-reset-context 'flymake
-                                    `((funcall package-activate-all)
-                                      (require elisp-mode)
-                                      (require bytecomp)
-                                      (require byte-opt)))
                (setq load-path loadpath)
                (with-current-buffer (get-buffer-create byte-compile-log-buffer)
                  (let ((inhibit-read-only t))

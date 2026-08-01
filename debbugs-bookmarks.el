@@ -32,6 +32,9 @@
 
 ;;; Code:
 
+(require 'seq)
+(eval-when-compile (require 'subr-x))
+
 (declare-function bookmark-make-record-default
                   "bookmark" (&optional no-file no-context posn))
 (declare-function bookmark-prop-get "bookmark" (bookmark prop))

@@ -137,6 +137,8 @@
 ;; Buffer-local variables.
 (defvar debbugs-gnu-local-query)
 (defvar debbugs-gnu-local-filter)
+(defvar debbugs-gnu-local-suppress)
+(defvar debbugs-gnu-local-message)
 
 (defvaralias 'debbugs-org-use-threads 'debbugs-gnu-use-threads)
 (defalias 'debbugs-org-show-last-result #'debbugs-gnu-show-last-result)
@@ -340,29 +342,30 @@ the corresponding buffer (e.g. by closing Emacs)."
 
 \\{debbugs-org-mode-map}"
   :lighter " Debbugs" :keymap debbugs-org-mode-map
-  (setq-local
-   debbugs-gnu-local-query debbugs-gnu-current-query
-   debbugs-gnu-local-filter debbugs-gnu-current-filter
+  ;; `setq-local' accepts an arbitrary number of variables settings
+  ;; since Emacs 27.1.
+  (setq-local debbugs-gnu-local-query debbugs-gnu-current-query)
+  (setq-local debbugs-gnu-local-filter debbugs-gnu-current-filter)
    ;; Needed for bookmarks only.
-   debbugs-gnu-local-suppress debbugs-gnu-current-suppress
-   debbugs-gnu-local-message debbugs-gnu-current-message
-   ;; FIXME: Does not show any effect.
-   org-priority-faces debbugs-org-priority-faces
-   gnus-posting-styles
-   `((".*"
-      (eval
-       (when (buffer-live-p gnus-article-copy)
-	 (with-current-buffer gnus-article-copy
-	   (setq-local
-            message-prune-recipient-rules
-	    '((".*@debbugs.*" "emacs-pretest-bug")
-	      (".*@debbugs.*" "bug-gnu-emacs")
-	      ("[0-9]+@debbugs.*" "submit@debbugs.gnu.org")
-	      ("[0-9]+@debbugs.*" "quiet@debbugs.gnu.org")))
-	   ;; `gnus-posting-styles' is eval'ed after
-	   ;; `message-simplify-subject'.  So we cannot use m-s-s.
-	   (setq subject ,debbugs-gnu-subject))))))
-   bookmark-make-record-function #'debbugs-gnu-bookmark-make-record)
+  (setq-local debbugs-gnu-local-suppress debbugs-gnu-current-suppress)
+  (setq-local debbugs-gnu-local-message debbugs-gnu-current-message)
+  ;; FIXME: Does not show any effect.
+  (setq-local org-priority-faces debbugs-org-priority-faces)
+  (setq-local gnus-posting-styles
+              `((".*"
+                 (eval
+                  (when (buffer-live-p gnus-article-copy)
+	            (with-current-buffer gnus-article-copy
+	              (setq-local
+                       message-prune-recipient-rules
+	               '((".*@debbugs.*" "emacs-pretest-bug")
+	                 (".*@debbugs.*" "bug-gnu-emacs")
+	                 ("[0-9]+@debbugs.*" "submit@debbugs.gnu.org")
+	                 ("[0-9]+@debbugs.*" "quiet@debbugs.gnu.org")))
+	              ;; `gnus-posting-styles' is eval'ed after
+	              ;; `message-simplify-subject'.  So we cannot use m-s-s.
+	              (setq subject ,debbugs-gnu-subject)))))))
+  (setq-local bookmark-make-record-function #'debbugs-gnu-bookmark-make-record)
   (debbugs-org-regenerate-status))
 
 ;;;###autoload

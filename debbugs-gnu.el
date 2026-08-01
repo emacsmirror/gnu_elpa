@@ -249,6 +249,7 @@
 (defvar debbugs-gnu-local-query)
 (defvar debbugs-gnu-local-filter)
 (defvar debbugs-gnu-local-suppress)
+(defvar debbugs-gnu-local-message)
 (defvar debbugs-gnu-local-print-function)
 (defvar debbugs-gnu-sort-state)
 (defvar debbugs-gnu-limit)
@@ -1377,16 +1378,18 @@ In order to retrieve the actual bug status after it has been
 modified on the debbugs server, consider typing \\`C-u g'.
 
 \\{debbugs-gnu-mode-map}"
-  (setq-local
-   debbugs-gnu-sort-state 'number
-   debbugs-gnu-limit nil
-   debbugs-gnu-local-query debbugs-gnu-current-query
-   debbugs-gnu-local-filter debbugs-gnu-current-filter
-   debbugs-gnu-local-suppress debbugs-gnu-current-suppress
-   debbugs-gnu-local-message debbugs-gnu-current-message
-   debbugs-gnu-local-print-function debbugs-gnu-current-print-function
-   bookmark-make-record-function #'debbugs-gnu-bookmark-make-record
-   tabulated-list-entries nil)
+  ;; `setq-local' accepts an arbitrary number of variables settings
+  ;; since Emacs 27.1.
+  (setq-local debbugs-gnu-sort-state 'number)
+  (setq-local debbugs-gnu-limit nil)
+  (setq-local debbugs-gnu-local-query debbugs-gnu-current-query)
+  (setq-local debbugs-gnu-local-filter debbugs-gnu-current-filter)
+  (setq-local debbugs-gnu-local-suppress debbugs-gnu-current-suppress)
+  (setq-local debbugs-gnu-local-message debbugs-gnu-current-message)
+  (setq-local debbugs-gnu-local-print-function
+              debbugs-gnu-current-print-function)
+  (setq-local bookmark-make-record-function #'debbugs-gnu-bookmark-make-record)
+  (setq-local tabulated-list-entries nil)
   (setq tabulated-list-format
         `[("Id" ,debbugs-gnu-width-id debbugs-gnu-sort-id)
 	  ("State" ,debbugs-gnu-width-state debbugs-gnu-sort-state)
@@ -1893,10 +1896,11 @@ MERGED is the list of bugs merged with this one."
 	  ;; the same face.
 	  (while (< rmail-current-message rmail-total-messages)
 	    (rmail-show-message (1+ rmail-current-message))))))
-    (setq-local
-     debbugs-gnu-bug-number id
-     debbugs-gnu-subject
-     (format "Re: bug#%d: %s" id (alist-get 'subject status)))
+    ;; `setq-local' accepts an arbitrary number of variables settings
+    ;; since Emacs 27.1.
+    (setq-local debbugs-gnu-bug-number id)
+    (setq-local debbugs-gnu-subject
+                (format "Re: bug#%d: %s" id (alist-get 'subject status)))
     (rmail-summary)
     (define-key rmail-summary-mode-map "C" #'debbugs-gnu-send-control-message)
     (define-key rmail-summary-mode-map "E" #'debbugs-gnu-make-control-message)
@@ -1920,10 +1924,11 @@ MERGED is the list of bugs merged with this one."
    (cons (current-buffer)
 	 (current-window-configuration)))
   (with-current-buffer (window-buffer (selected-window))
-    (setq-local
-     debbugs-gnu-bug-number id
-     debbugs-gnu-subject
-     (format "Re: bug#%d: %s" id (alist-get 'subject status)))
+  ;; `setq-local' accepts an arbitrary number of variables settings
+  ;; since Emacs 27.1.
+    (setq-local debbugs-gnu-bug-number id)
+    (setq-local debbugs-gnu-subject
+                (format "Re: bug#%d: %s" id (alist-get 'subject status)))
     (debbugs-gnu-summary-mode 1)))
 
 (defcustom debbugs-gnu-summary-keep-subject

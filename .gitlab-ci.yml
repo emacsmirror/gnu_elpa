@@ -1,0 +1,102 @@
+stages:
+  - build
+  - lint
+  - test
+
+.build:
+  stage: build
+  needs: []
+  script:
+    - make clean
+    - emacs -Q -batch -L . -L test -l bytecomp
+        --eval '(setq byte-compile-error-on-warn t)'
+        -f batch-byte-compile *.el test/*.el
+
+.lint:
+  stage: lint
+  needs: []
+  script:
+    - $HOME/.local/bin/eldev lint all elisp
+
+.test:
+  stage: test
+  needs: []
+  script:
+    - make clean
+    - make check
+
+build-26:
+  image: "silex/emacs:26-ci-eldev"
+  extends: .build
+
+build-27:
+  image: "silex/emacs:27-ci-eldev"
+  extends: .build
+
+build-28:
+  image: "silex/emacs:28-ci-eldev"
+  extends: .build
+
+build-29:
+  image: "silex/emacs:29-ci-eldev"
+  extends: .build
+
+build-30:
+  image: "silex/emacs:30-ci-eldev"
+  extends: .build
+
+build-master:
+  image: "silex/emacs:master-ci-eldev"
+  extends: .build
+
+lint-26:
+  image: "silex/emacs:26-ci-eldev"
+  extends: .lint
+
+lint-27:
+  image: "silex/emacs:27-ci-eldev"
+  extends: .lint
+
+lint-28:
+  image: "silex/emacs:28-ci-eldev"
+  extends: .lint
+
+lint-29:
+  image: "silex/emacs:29-ci-eldev"
+  extends: .lint
+
+lint-30:
+  image: "silex/emacs:30-ci-eldev"
+  extends: .lint
+
+lint-master:
+  image: "silex/emacs:master-ci-eldev"
+  extends: .lint
+
+test-26:
+  image: "silex/emacs:26-ci-eldev"
+  extends: .test
+
+test-27:
+  image: "silex/emacs:27-ci-eldev"
+  extends: .test
+
+test-28:
+  image: "silex/emacs:28-ci-eldev"
+  extends: .test
+
+test-29:
+  image: "silex/emacs:29-ci-eldev"
+  extends: .test
+
+test-30:
+  image: "silex/emacs:30-ci-eldev"
+  extends: .test
+
+test-master:
+  image: "silex/emacs:master-ci-eldev"
+  extends: .test
+
+# Local Variables:
+# add-log-current-defun-header-regexp: "^\\([-_.[:alnum:]]+\\)[ \t]*:"
+# End:

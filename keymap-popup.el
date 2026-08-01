@@ -3,10 +3,10 @@
 ;; Copyright (C) 2026  Free Software Foundation, Inc.
 
 ;; Author: Thanos Apollo <public@thanosapollo.org>
-;; Version: 0.4.0
+;; Version: 0.4.1
 ;; Package-Requires: ((emacs "29.1"))
 ;; Keywords: convenience
-;; URL: https://codeberg.org/thanosapollo/emacs-keymap-popup
+;; URL: https://git.thanosapollo.org/emacs-keymap-popup
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by

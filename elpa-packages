@@ -402,7 +402,7 @@
   :doc "README.org"
   :news "CHANGELOG.org"
   :ignored-files ("COPYING" "doclicense.texi"))
- (forgejo		:url "https://codeberg.org/thanosapollo/emacs-forgejo"
+ (forgejo		:url nil ;; "https://git.thanosapollo.org/emacs-forgejo"
   :lisp-dir "lisp")
  (frame-tabs		:url nil)
  (frog-menu		:url "https://github.com/clemera/frog-menu")
@@ -419,7 +419,7 @@
  (gnome-c-style		:url "https://github.com/ueno/gnome-c-style.git")
  (gnome-dark-style      :url "https://github.com/dimagid/gnome-dark-style")
  (gnorb               	:url nil) ;; Was "https://github.com/girzel/gnorb"
- (gnosis		:url "https://git.thanosapollo.org/gnosis"
+ (gnosis		:url "https://git.thanosapollo.org/emacs-gnosis"
   :lisp-dir "lisp"
   :doc "docs/gnosis.org")
  (gnu-elpa		:url nil)
@@ -643,7 +643,7 @@
  (org-edna		:url "bzr::https://bzr.savannah.gnu.org/git/org-edna-el"
   ;; The Bzr<->Git bridge wasn't working well enough last time I tried.
   :manual-sync t)
- (org-gnosis		:url "https://git.thanosapollo.org/org-gnosis"
+ (org-gnosis		:url nil ;; "https://git.thanosapollo.org/org-gnosis"
   :doc "doc/org-gnosis.org")
  (org-jami-bot		:url "https://gitlab.com/hperrey/org-jami-bot"
   :ignored-files ("LICENSE"))

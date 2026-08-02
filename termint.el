@@ -787,15 +787,33 @@ Calls `%S' with REPL-NAME and optional SESSION."
            map)
          ,(format "Keymap for %s REPL commands." repl-name)))))
 
+(defvar termint--tmp-files nil
+  "Temporary files created by termint that are pending deletion.")
+
+(defun termint--delete-tmp-file (file)
+  "Delete FILE and remove it from termint's pending temporary files."
+  (setq termint--tmp-files (delete file termint--tmp-files))
+  (ignore-errors (delete-file file)))
+
+(defun termint--delete-tmp-files ()
+  "Delete temporary files created by termint when Emacs exits."
+  (dolist (file termint--tmp-files)
+    (ignore-errors (delete-file file)))
+  (setq termint--tmp-files nil))
+
 (defun termint--make-tmp-file (str &optional keep-file)
   "Create a temporary file with STR.
-Delete the temp file afterwards unless KEEP-FILE is non-nil."
+Delete the temp file after an idle delay unless KEEP-FILE is non-nil.
+All temporary files are deleted when Emacs exits."
   ;; disable output to message buffer and minibuffer.
   (let ((inhibit-message t)
         (message-log-max nil)
         file)
     (setq file (make-temp-file "" nil "_termint" str))
-    (unless keep-file (run-with-idle-timer 5 nil #'delete-file file))
+    (push file termint--tmp-files)
+    (add-hook 'kill-emacs-hook #'termint--delete-tmp-files)
+    (unless keep-file
+      (run-with-idle-timer 5 nil #'termint--delete-tmp-file file))
     file))
 
 (defvar termint-python-source-syntax-template

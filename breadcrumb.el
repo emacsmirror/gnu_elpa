@@ -457,48 +457,17 @@ propertized crumbs."
 (setq breadcrumb-opinionated-mlf
   '("%e"
     mode-line-modified
-    (:eval (bc--ml-terminator t))
-    (:eval (bc--ml-terminator))
     (:eval (bc-project-crumbs))
-    (:eval (bc--ml-terminator t))
-    (:eval (bc--ml-terminator))
+    " "
+    (:propertize " " face default)
     (:eval (bc-imenu-crumbs))
-    (:eval (bc--ml-terminator t))
     mode-line-format-right-align
-    (:eval (bc--ml-terminator))
     (vc-mode vc-mode)
     "  "
     mode-line-modes
     mode-line-misc-info
     " %p%   %l:%c"
     (:eval (format-time-string "  %H:%M"))))
-;;   "A `mode-line-format' with breadcrumb project and imenu crumbs.
-;; Replaces `mode-line-buffer-identification' with the output of
-;; `breadcrumb-project-crumbs' and `breadcrumb-imenu-crumbs'."
-;;   :type '(repeat sexp))
-
-
-(defun bc--ml-terminator (&optional end)
-  (let* ((selp (mode-line-window-selected-p))
-         (spec
-          (if selp 
-              `(:background
-                ,(face-attribute 'mode-line-buffer-id :foreground)
-                :foreground
-                ,(face-attribute 'mode-line :background))
-            `(:background
-              ,(face-attribute 'default :background)
-              :foreground
-              ,(face-attribute 'mode-line-inactive :background)))))
-
-    (propertize (if end " " "") 'face
-                `(:inherit default  ,@spec))
-    
-    ;; (propertize (if end " " " ") 'face
-    ;;             `(:inherit default  ,@spec))
-    ))
-
-
 
 (defcustom bc-opinionated-diminished-modes
   '(yas-minor-mode eldoc-mode company-mode whitespace-mode
@@ -541,12 +510,7 @@ it with `breadcrumb-opinionated-mlf'."
 
 (advice-add 'mode--line-format-right-align :filter-return
             (lambda (r)
-              (if bc-opinionated-mode
-                  (propertize r 'face
-                              (if (mode-line-window-selected-p)
-                                  `(:inherit default :background ,(face-attribute 'mode-line-buffer-id :foreground))
-                                `(:inherit default :background ,(face-attribute 'default :background))))
-                r))
+              (if bc-opinionated-mode (propertize r 'face 'default) r))
             '((name . bc-opinionated-mlf)))
 
 (provide 'breadcrumb)

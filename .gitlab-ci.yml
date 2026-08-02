@@ -16,7 +16,14 @@ stages:
   stage: lint
   needs: []
   script:
-    - $HOME/.local/bin/eldev lint all elisp
+    - $HOME/.local/bin/eldev lint all elisp >lint.log 2>&1
+  artifacts:
+    name: lint.log
+    public: true
+    expire_in: 1 week
+    when: always
+    paths:
+      - lint.log
 
 .test:
   stage: test

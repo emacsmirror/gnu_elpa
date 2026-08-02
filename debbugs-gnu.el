@@ -3079,10 +3079,10 @@ If SELECTIVELY, query the user before applying the patch."
   (interactive)
   (unless debbugs-cache-data
     (error "No data to cache"))
-  (unless (file-exists-p "~/.emacs.d/debbugs-cache")
-    (make-directory "~/.emacs.d/debbugs-cache" t))
+  (unless (file-exists-p (locate-user-emacs-file "debbugs-cache"))
+    (make-directory (locate-user-emacs-file "debbugs-cache") t))
   (let ((coding-system-for-write 'utf-8))
-    (with-temp-file "~/.emacs.d/debbugs-cache/list"
+    (with-temp-file (locate-user-emacs-file "debbugs-cache/list")
       (prin1 debbugs-cache-data (current-buffer)))))
 
 (provide 'debbugs-gnu)

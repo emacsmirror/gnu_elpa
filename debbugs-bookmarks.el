@@ -136,7 +136,7 @@ such buffers."
 
 ;;;###autoload
 (defun debbugs-gnu-bookmark-jump (bmk)
-  "Provide the `bookmark-jump' behavior for a Debbugs buffer.
+  "Provide the `bookmark-jump' behavior of bookmark BMK for a Debbugs buffer.
 This implements the `handler' function interface for the record
 type returned by `debbugs-gnu-bookmark-make-record'."
   (let* ((debbugs-gnu-current-filter

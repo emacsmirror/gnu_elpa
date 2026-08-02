@@ -188,7 +188,7 @@ Don't set this globally, it shall be let-bound.")
   "The used function from url-util.el.")
 
 (defun debbugs-url-display-message-or-percentage (&rest args)
-  "Update progress reporter."
+  "Update progress reporter acc ARGS."
   (ignore-errors
     (when (and debbugs-show-progress debbugs-progress-reporter)
       ;; The fingerprint of `url-display-percentage' is FMT PERC &REST

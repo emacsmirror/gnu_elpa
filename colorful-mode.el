@@ -206,13 +206,10 @@ The conversion is controlled by `colorful-short-hex-conversions'.  If
 `colorful-short-hex-conversions' is set to nil, then just return HEX."
   (if (and colorful-short-hex-conversions
            (length> hex 7))
-      (let ((r (substring hex 1 5))
-            (g (substring hex 5 9))
-            (b (substring hex 9 13)))
-        (format "#%02x%02x%02x"
-                (/ (string-to-number r 16) 256)
-                (/ (string-to-number g 16) 256)
-                (/ (string-to-number b 16) 256)))
+      (apply #'format "#%02x%02x%02x"
+             (mapcar
+              (lambda (s) (/ (string-to-number s 16) 256))
+              (seq-split (substring hex 1) 4)))
     hex))
 
 (defun colorful--hsl-to-hex (h s l)
@@ -271,8 +268,8 @@ L C and H must be strings."
 (defun colorful--find-overlay (&optional beg)
   "Return colorful overlay if found at current point.
 BEG is the position to check for the overlay."
-  (any (lambda (ov) (overlay-get ov 'colorful--overlay))
-       (overlays-at (or beg (point)))))
+  (car (any (lambda (ov) (overlay-get ov 'colorful--overlay))
+            (overlays-at (or beg (point))))))
 
 
 ;;;; User Interactive Functions

@@ -1060,6 +1060,52 @@ Enforcement moved to the wrapper; the binding never changes."
         (should (functionp (keymap-lookup map "C-u")))
       (kill-buffer buf))))
 
+(defvar keymap-popup--test-wrapper-entry-if-flag nil)
+
+(ert-deftest keymap-popup-test-wrapper-tracks-entry-if ()
+  "A wrapper submenu follows its entry's live :if predicate."
+  (eval '(keymap-popup-define keymap-popup--test-wrapper-entry-if-child
+           "c" ("Child" ignore))
+        t)
+  (eval '(keymap-popup-define keymap-popup--test-wrapper-entry-if
+           "s" ("Submenu" :keymap keymap-popup--test-wrapper-entry-if-child
+                :if (lambda () keymap-popup--test-wrapper-entry-if-flag)))
+        t)
+  (let* ((keymap-popup--test-wrapper-entry-if-flag t)
+         (descs (keymap-popup--meta keymap-popup--test-wrapper-entry-if
+                                    'descriptions))
+         (buf (get-buffer-create "*keymap-popup-test*"))
+         (wrapper (keymap-popup--build-wrapper-map
+                   keymap-popup--test-wrapper-entry-if descs buf "q")))
+    (unwind-protect
+        (progn
+          (should (commandp (keymap-lookup wrapper "s")))
+          (let ((keymap-popup--test-wrapper-entry-if-flag nil))
+            (should-not (keymap-lookup wrapper "s"))))
+      (kill-buffer buf))))
+
+(defvar keymap-popup--test-wrapper-group-if-flag nil)
+
+(ert-deftest keymap-popup-test-wrapper-tracks-group-if ()
+  "A wrapper switch follows its group's live :if predicate."
+  (eval '(keymap-popup-define keymap-popup--test-wrapper-group-if
+           :group ("Options"
+                   :if (lambda () keymap-popup--test-wrapper-group-if-flag))
+           "v" ("Verbose" :switch keymap-popup--test-wrapper-group-if-value))
+        t)
+  (let* ((keymap-popup--test-wrapper-group-if-flag t)
+         (descs (keymap-popup--meta keymap-popup--test-wrapper-group-if
+                                    'descriptions))
+         (buf (get-buffer-create "*keymap-popup-test*"))
+         (wrapper (keymap-popup--build-wrapper-map
+                   keymap-popup--test-wrapper-group-if descs buf "q")))
+    (unwind-protect
+        (progn
+          (should (commandp (keymap-lookup wrapper "v")))
+          (let ((keymap-popup--test-wrapper-group-if-flag nil))
+            (should-not (keymap-lookup wrapper "v"))))
+      (kill-buffer buf))))
+
 (ert-deftest keymap-popup-test-switch-override-refuses-when-inapt ()
   "Switch override refuses an inapt press, preserving prefix-mode.
 Inaptness is read from the popup's active descriptions at keypress

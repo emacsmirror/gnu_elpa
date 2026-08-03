@@ -262,6 +262,11 @@ Predicate quick reference:
 - =:if=       -- /hide/ the entry (or group) when the predicate returns nil.
 - =:inapt-if= -- /grey out/ the entry and block its key when the predicate returns non-nil.
 
+Predicates may be evaluated repeatedly.  =:if= runs during ordinary
+keymap lookup as well as popup rendering; =:inapt-if= runs while
+rendering and handling popup keys.  Keep both cheap and free of side
+effects.
+
 ** Sub-menus with =:keymap=
 
 #+begin_src emacs-lisp

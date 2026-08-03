@@ -554,6 +554,13 @@ retain their declared command."
   "Return a `menu-item' :filter exposing the binding only when PRED is non-nil."
   (lambda (b) (and (funcall pred) b)))
 
+(defun keymap-popup--filter-binding (binding pred)
+  "Return BINDING filtered by PRED, or BINDING when PRED is nil."
+  (if pred
+      (list 'menu-item "" binding :filter
+            (keymap-popup--make-if-filter pred))
+    binding))
+
 (defun keymap-popup--wrap-binding-form (cmd-form if-pred)
   "Wrap CMD-FORM with a `menu-item' :filter when IF-PRED is set.
 IF-PRED is a form that evaluates to a zero-arg predicate; a nil
@@ -562,8 +569,7 @@ keymap concern -- it is enforced by the popup wrapper at keypress
 time.  The filter closure is built by a helper in this file so it
 remains lexical regardless of the caller."
   (if if-pred
-      `(list 'menu-item "" ,cmd-form :filter
-             (keymap-popup--make-if-filter ,if-pred))
+      `(keymap-popup--filter-binding ,cmd-form ,if-pred)
     cmd-form))
 
 (defun keymap-popup--build-keymap-pairs (map-name entries)
@@ -1641,10 +1647,14 @@ binding, which may be nil."
   "Return KEYMAP override for ENTRY in GROUP and BUF, or nil."
   (and-let* ((key (plist-get entry :key))
              ((keymap-popup--entry-needs-override-p entry group)))
-    (cons key
-          (lambda ()
-            (interactive)
-            (keymap-popup--dispatch-entry keymap entry buf)))))
+    (let ((pred (keymap-popup--combine-preds
+                 (plist-get group :if) (plist-get entry :if))))
+      (cons key
+            (keymap-popup--filter-binding
+             (lambda ()
+               (interactive)
+               (keymap-popup--dispatch-entry keymap entry buf))
+             pred)))))
 
 (defun keymap-popup--description-overrides (keymap descriptions buf)
   "Return popup entry overrides for KEYMAP, DESCRIPTIONS, and BUF."
@@ -1660,9 +1670,9 @@ binding, which may be nil."
 
 (defun keymap-popup--build-wrapper-map (keymap descriptions buf exit-key)
   "Build wrapper keymap over KEYMAP with DESCRIPTIONS for BUF.
-EXIT-KEY and entry handlers layer over KEYMAP.  `:if' enforcement
-lives on KEYMAP itself via `menu-item' :filter; `:inapt-if' is
-enforced here at keypress time."
+EXIT-KEY and entry handlers layer over KEYMAP.  Shadowing entry
+handlers preserve KEYMAP's `:if' filters; `:inapt-if' is enforced
+here at keypress time."
   (let* ((map (make-sparse-keymap))
          (overrides (append
                      (keymap-popup--description-overrides

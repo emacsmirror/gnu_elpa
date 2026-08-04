@@ -180,8 +180,27 @@ comments, including color names, which can be annoying."
 
 (defvar colorful--conversion-choices
   '(("Hexadecimal color format" . hex)
-    ("Color name" . color-name))
-  "Alist with all supported conversions formats.")
+    ("Color name" . color-name)
+    ("CSS RGB" . css-rgb))
+  "Alist of all supported conversions formats.")
+
+(defvar colorful--conversion-functions
+  `((hex . ,(lambda (color kind)
+              (colorful--short-hex
+               (if (eq kind 'color-name)
+                   (colorful--name-to-hex color)
+                 color))))
+    (color-name . ,(lambda (color _kind)
+                     (colorful--hex-to-name color)))
+    (css-rgb . ,(lambda (color _kind)
+                  (seq-let (r g b)
+                      (mapcar (lambda (x) (round (* x 255)))
+                              (color-name-to-rgb color))
+                    (format "rgb(%d, %d, %d)" r g b)))))
+  "Alist of functions for colors convetion by kind.
+Each function in this alist is called with 2 arguments:
+COLOR - the color string (in hex/name format) to convert.
+KIND - the kind of color (a symbol) of the original color.")
 
 
 ;;;; Internal Functions
@@ -334,12 +353,13 @@ BEG is the position to check for the overlay."
   "Convert color at point to another format and copy it to the kill ring."
   (interactive)
   (if-let* ((colorful-ov (colorful--find-overlay)) ; Find colorful overlay tag at point/cursor.
+            (color (overlay-get colorful-ov 'colorful--color))
             ;; Start prompt for color change and get new color.
             (result (car (colorful--prompt-converter colorful-ov "Copy '%s' as: ")))
             ;; Propertize text for message.
             (color (propertize result 'face `(:foreground
-                                              ,(readable-foreground-color result)
-                                              :background ,result))))
+                                              ,(readable-foreground-color color)
+                                              :background ,color))))
       ;; Copy color and notify to user it's done
       (progn (kill-new color)
              (message "`%s' copied." color))
@@ -385,22 +405,16 @@ BEG is the position to check for the overlay."
 (defun colorful--converter (ov choice kind)
   "Convert color from OV to other format.
 Return a list which contains the new color and the positions to replace.
-KIND (a symbol) is the kind of color.
-CHOICE is used for get kind of color."
+KIND (a symbol) is the kind of color in the overlay.
+CHOICE is used to get kind of color from the user."
   (let* ((beg (overlay-start ov)) ; Find positions.
          (end (overlay-end ov))
          (color-value (overlay-get ov 'colorful--color)))
-    (pcase choice ; Check and convert color to any of the options:
-      ('hex ; color to HEX
-       (list
-        (colorful--short-hex
-         (if (eq kind 'color-name)
-             (colorful--name-to-hex color-value)
-           color-value))
-        beg end))
-      ('color-name ; color to NAME
-       (if-let* ((color (colorful--hex-to-name color-value)))
-           (list color beg end))))))
+    (when-let* ((result
+                 (funcall
+                  (alist-get choice colorful--conversion-functions)
+                  color-value kind)))
+      (list result beg end))))
 
 (defun colorful--colorize-match (color beg end kind face map)
   "Overlay match with a face from BEG to END.

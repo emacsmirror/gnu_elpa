@@ -94,11 +94,13 @@ popup.  =q= or =C-g= dismisses it.
   BINDING...)
 #+end_src
 
-Only =MAP-NAME= and the bindings are required; every keyword above
-is optional and may appear in any order.  =keymap-popup-annotate=
+Only =MAP-NAME= and the bindings are required.  Leading options are
+optional and may appear in any order before the first binding.
+=keymap-popup-annotate=
 accepts the display keywords above except =:parent=, but does /not/
 apply defaults for =:popup-key= or =:exit-key= -- it never binds keys
-unless asked.
+unless asked.  A popup key may not replace an ordinary existing binding;
+such a collision signals an error.
 
 A binding takes one of three forms:
 
@@ -112,6 +114,8 @@ KEY (DESC :keymap MAP [PROP VALUE...])    ; sub-menu
 - =DESC= -- string or zero-arg function (called at render time in the
   user's buffer, so it sees buffer-local state).
 - =COMMAND= -- command symbol or a =(lambda () (interactive) ...)=.
+- =MAP= -- keymap variable symbol.  It may be defined after its parent;
+  its value is resolved when the sub-menu opens.
 - =PROP= -- one of =:if=, =:inapt-if=, =:stay-open=, =:c-u= (see
   [[#special-bindings][Special bindings]]).
   =:stay-open= is a boolean flag and may omit its =t= value.
@@ -188,7 +192,8 @@ Signatures:
 
 Both mutate the keymap and its descriptions in place.  Re-adding a
 key replaces the prior entry (in whatever group it was in),
-matching =keymap-set='s semantics.
+matching =keymap-set='s semantics.  Both require existing popup
+metadata; removing the last entry clears that metadata.
 
 * Showing the popup
 :PROPERTIES:
@@ -282,8 +287,8 @@ unlimited; the exit key pops one level.
        :if (lambda () yeetube--show-settings)))
 #+end_src
 
-The variable is auto-declared via =defvar= + =make-variable-buffer-local=;
-each buffer gets its own value on first set.  Switches always keep
+The variable is auto-declared with =defvar-local=; each buffer gets its
+own value.  Switches always keep
 the popup open -- no need to add =:stay-open t=.
 
 ** Stay-open commands with =:stay-open=
@@ -446,7 +451,8 @@ they must be callable when the popup uses them.  OPTS accepts =:exit-key=,
 and options, so omitted options return to their defaults.  Unlike the macros,
 no keys are bound and no commands are defined -- keyed entries should already
 be bound in KEYMAP.  Runtime values and options are validated before metadata
-is attached.  Returns KEYMAP.
+is attached.  =:switch= entries require =keymap-popup-define= and are rejected
+by this runtime API.  Returns KEYMAP.
 
 * Customization
 :PROPERTIES:

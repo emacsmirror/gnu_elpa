@@ -1685,10 +1685,11 @@ removes the popup display."
       (keymap-popup--hide-session buf)
       (kill-buffer buf))))
 
-(defun keymap-popup--make-session (keymap)
-  "Derive a popup session for KEYMAP and the current buffer."
+(defun keymap-popup--make-session (keymap &optional active)
+  "Derive a popup session for KEYMAP and the current buffer.
+Use ACTIVE instead of deriving the initial navigation state when non-nil."
   (list :source (current-buffer)
-        :active (keymap-popup--state-for-keymap keymap)
+        :active (or active (keymap-popup--state-for-keymap keymap))
         :stack nil
         :prefix-mode nil
         :reentering nil
@@ -1741,21 +1742,22 @@ without closing.  Inapt keys are refused with \"Command unavailable\"
 and keep the popup open; outside a popup, `:inapt-if' does not block
 dispatch.  Sub-menu keys push a navigation stack.
 \\[universal-argument] toggles prefix mode."
-  (or (keymap-popup--descriptions-present-p
-       (keymap-popup--collect-descriptions keymap))
-      (user-error "No descriptions in keymap"))
-  (when (get-buffer keymap-popup--buffer-name)
-    (keymap-popup-dismiss))
-  (let ((session (keymap-popup--make-session keymap))
-        (buf (keymap-popup--prepare-buffer)))
-    (keymap-popup--init-session buf session)
-    (keymap-popup--refresh buf)
-    (funcall (plist-get (plist-get session :backend) :show) buf)
-    (keymap-popup--activate-transient-map buf)
-    (add-hook 'minibuffer-setup-hook #'keymap-popup--suspend)
-    (add-hook 'minibuffer-exit-hook #'keymap-popup--resume)
-    (when (plist-get session :persistent)
-      (keymap-popup--install-persistent-hook buf))))
+  (let ((active (keymap-popup--state-for-keymap keymap)))
+    (or (keymap-popup--descriptions-present-p
+         (plist-get active :descriptions))
+        (user-error "No descriptions in keymap"))
+    (when (get-buffer keymap-popup--buffer-name)
+      (keymap-popup-dismiss))
+    (let ((session (keymap-popup--make-session keymap active))
+          (buf (keymap-popup--prepare-buffer)))
+      (keymap-popup--init-session buf session)
+      (keymap-popup--refresh buf)
+      (funcall (plist-get (plist-get session :backend) :show) buf)
+      (keymap-popup--activate-transient-map buf)
+      (add-hook 'minibuffer-setup-hook #'keymap-popup--suspend)
+      (add-hook 'minibuffer-exit-hook #'keymap-popup--resume)
+      (when (plist-get session :persistent)
+        (keymap-popup--install-persistent-hook buf)))))
 
 (provide 'keymap-popup)
 ;;; keymap-popup.el ends here

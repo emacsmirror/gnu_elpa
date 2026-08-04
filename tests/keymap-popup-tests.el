@@ -2025,6 +2025,28 @@ entry independently)."
           (should-not (keymap-popup--session-get buf :stack)))
       (kill-buffer buf))))
 
+(ert-deftest keymap-popup-test-unresolved-menu-preserves-active-session ()
+  (let ((invalid (make-sparse-keymap))
+        (active-map (make-sparse-keymap))
+        (descriptions '(((:name nil :entries
+                                ((:key "x" :description "X" :type suffix)))))))
+    (keymap-popup-attach invalid
+                         '(keymap-popup--test-unbound-command "Missing"))
+    (when (get-buffer keymap-popup--buffer-name)
+      (kill-buffer keymap-popup--buffer-name))
+    (should-error (keymap-popup invalid) :type 'user-error)
+    (should-not (get-buffer keymap-popup--buffer-name))
+    (let ((buf (get-buffer-create keymap-popup--buffer-name)))
+      (unwind-protect
+          (progn
+            (keymap-popup-test--session buf descriptions :keymap active-map)
+            (let ((session (with-current-buffer buf keymap-popup--session)))
+              (should-error (keymap-popup invalid) :type 'user-error)
+              (should (eq (get-buffer keymap-popup--buffer-name) buf))
+              (should (eq (with-current-buffer buf keymap-popup--session)
+                          session))))
+        (kill-buffer buf)))))
+
 (ert-deftest keymap-popup-test-remove-last-entry-clears-descriptions ()
   (eval '(keymap-popup-define keymap-popup--test-remove-last
            "x" ("X" ignore))

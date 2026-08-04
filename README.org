@@ -1,6 +1,8 @@
 * R Tree Sitter Mode for Emacs
 Version 1.1.2
 
+[[https://melpa.org/#/r-ts-mode][file:https://melpa.org/packages/r-ts-mode-badge.svg]]
+
 The code for this package has been extracted from the original [[https://codeberg.org/teoten/esr][ESR]] repository, which has been migrated to a new location under the Codeberg organization [[https://codeberg.org/R-for-emacs][R for Emacs]], created to promote Emacs packages for R. Read more at the end of this readme.
 
 * Dependencies
@@ -15,12 +17,7 @@ Then you need to add the language grammar for R. The options are:
 For the last option you need to load the module ~r-ts-setup~. See more details in the [[* Usage][Usage]] section.
 
 * Installation
-The current version can be used by cloning the repository and including it in path. Then you can load it.
-
-#+begin_src emacs-lisp
-(add-to-list 'load-path "/path/r-ts-mode/")
-(require 'r-ts-mode)
-#+end_src
+From version 1.1.2 ~r-ts-mode~ is available on MELPA.
 
 You can also install it with [[https://github.com/radian-software/straight.el][straight.el]] to have the latest updates easily.
 
@@ -32,6 +29,13 @@ You can also install it with [[https://github.com/radian-software/straight.el][s
    :type git
    :repo "R-for-emacs/r-ts-mode"
    :branch "main"))
+#+END_SRC
+
+You can also clone the repository or download a specific version, and include the content it in ~load-path~.
+
+#+begin_src emacs-lisp
+(add-to-list 'load-path "/path/r-ts-mode/")
+(require 'r-ts-mode)
 #+end_src
 
 Or simply download the file =r-ts-mode.el= and load it.

@@ -492,21 +492,32 @@ Replaces `mode-line-buffer-identification' with the output of
     (push (cons mode (cadr cell)) bc--saved-lighters)
     (setcar (cdr cell) "")))
 
+(defcustom bc-fancy-stub-chars (cons ?\ue0b6 ?\ue0b4)
+  "Cons (OPENING . CLOSING) of characters bracketing fancy mode-line stubs."
+  :type '(choice (cons :tag "Rounded" (const ?\ue0b6) (const ?\ue0b4))
+                 (cons :tag "Angled" (const ?\ue0b2) (const ?\ue0b0))
+                 (cons :tag "Slant" (const ?\ue0ba) (const ?\ue0b8))
+                 (cons :tag "Backslant" (const ?\ue0be) (const ?\ue0bc))
+                 (cons :tag "Custom" character character)))
+
 (defvar bc--fancy-stub-cache (make-hash-table :test 'equal)
-  "Cache of `bc--fancy-stub' results, keyed by (OPENING . SELECTED).
+  "Cache of `bc--fancy-stub' results, keyed by (CHAR . SELECTED).
 Each value is (BG . STRING), recomputed when BG no longer matches.")
 
 (defun bc--fancy-stub (opening)
-  (let* ((selected (mode-line-window-selected-p))
-         (key (cons opening selected))
-         (bg (face-attribute (if selected 'mode-line 'mode-line-inactive) :background))
-         (cached (gethash key bc--fancy-stub-cache)))
-    (if (and cached (equal (car cached) bg))
-        (cdr cached)
-      (let ((str (propertize (if opening "" "") 'face
-                              `(:inherit default :foreground ,bg))))
-        (puthash key (cons bg str) bc--fancy-stub-cache)
-        str))))
+  (let ((char (if opening (car bc-fancy-stub-chars) (cdr bc-fancy-stub-chars))))
+    (if (not (char-displayable-p char))
+        ""
+      (let* ((selected (mode-line-window-selected-p))
+             (key (cons char selected))
+             (bg (face-attribute (if selected 'mode-line 'mode-line-inactive) :background))
+             (cached (gethash key bc--fancy-stub-cache)))
+        (if (and cached (equal (car cached) bg))
+            (cdr cached)
+          (let ((str (propertize (string char) 'face
+                                  `(:inherit default :foreground ,bg))))
+            (puthash key (cons bg str) bc--fancy-stub-cache)
+            str))))))
 
 (cl-defun bc--fancy-imenu-crumbs ()
   (let ((retval (breadcrumb-imenu-crumbs)))

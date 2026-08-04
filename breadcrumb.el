@@ -454,11 +454,10 @@ propertized crumbs."
 ;;
 
 ;;;###autoload
-(setq breadcrumb-opinionated-mlf
+(defcustom breadcrumb-opinionated-mlf
   '("%e"
     mode-line-modified
     (:eval (bc-project-crumbs))
-    " "
     (:propertize " " face default)
     (:eval (bc-imenu-crumbs))
     mode-line-format-right-align
@@ -467,7 +466,11 @@ propertized crumbs."
     mode-line-modes
     mode-line-misc-info
     " %p%   %l:%c"
-    (:eval (format-time-string "  %H:%M"))))
+    (:eval (format-time-string "  %H:%M")))
+  "A `mode-line-format' with breadcrumb project and imenu crumbs.
+Replaces `mode-line-buffer-identification' with the output of
+`breadcrumb-project-crumbs' and `breadcrumb-imenu-crumbs'."
+  :type '(repeat sexp))
 
 (defcustom bc-opinionated-diminished-modes
   '(yas-minor-mode eldoc-mode company-mode whitespace-mode

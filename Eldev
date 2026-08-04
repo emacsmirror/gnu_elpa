@@ -1,6 +1,11 @@
 ;;; -*- mode: emacs-lisp; lexical-binding: t -*-
 
+(require 'checkdoc)
 (setq eldev-standard-excludes
       `(:or ,eldev-standard-excludes "debbugs-autoloads.el")
-      ;; Suppress debbugs-bookmarks.el.
-      checkdoc-proper-noun-regexp (rx unmatchable))
+      ;; Suppress false positive "emacs" in debbugs-bookmarks.el.
+      checkdoc-proper-noun-list (delete "emacs" checkdoc-proper-noun-list)
+      checkdoc-proper-noun-regexp
+      (concat "\\_<"
+	      (regexp-opt checkdoc-proper-noun-list t)
+	      "\\(\\_>\\|[.!?][ \t\n\"]\\)"))

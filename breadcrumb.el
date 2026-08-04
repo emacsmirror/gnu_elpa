@@ -462,6 +462,7 @@ propertized crumbs."
     (:eval (bc--fancy-stub nil))
     (:propertize " " face default)
     (:eval (bc--fancy-imenu-crumbs))
+    (:propertize " " face default)
     mode-line-format-right-align
     (:eval (bc--fancy-stub t))
     (vc-mode vc-mode)
@@ -521,7 +522,7 @@ Each value is (BG . STRING), recomputed when BG no longer matches.")
 
 (cl-defun bc--fancy-imenu-crumbs ()
   (let ((retval (breadcrumb-imenu-crumbs)))
-    (when retval
+    (when (cl-plusp (length retval))
       (concat (bc--fancy-stub t) retval (bc--fancy-stub nil)))))
 
 ;;;###autoload

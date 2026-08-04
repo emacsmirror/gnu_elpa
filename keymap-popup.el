@@ -665,13 +665,49 @@ MAP-NAME is passed down to the entry forms."
      (interactive)
      (keymap-popup ,map-name)))
 
+(defun keymap-popup--raw-local-event-binding (keymap event)
+  "Return EVENT's raw local binding in KEYMAP.
+Do not follow parents or evaluate `menu-item' filters."
+  (catch 'binding
+    (map-keymap-internal
+     (lambda (map-event binding)
+       (when (or (equal map-event event)
+                 (and (consp map-event)
+                      (integerp event)
+                      (integerp (car map-event))
+                      (integerp (cdr map-event))
+                      (<= (car map-event) event (cdr map-event))))
+         (throw 'binding binding)))
+     keymap)
+    nil))
+
+(defun keymap-popup--raw-local-binding (keymap key)
+  "Return KEY's raw local binding in KEYMAP.
+Do not follow KEYMAP's parent or evaluate `menu-item' filters."
+  (let ((events (append (key-parse key) nil))
+        (map keymap))
+    (catch 'missing
+      (while (cdr events)
+        (let ((prefix (keymap-popup--raw-local-event-binding
+                       map (pop events))))
+          (unless (keymapp prefix)
+            (throw 'missing nil))
+          (setq map prefix)))
+      (keymap-popup--raw-local-event-binding map (car events)))))
+
+(defun keymap-popup--raw-binding (keymap key)
+  "Return KEY's raw binding in KEYMAP or one of its parents."
+  (or (keymap-popup--raw-local-binding keymap key)
+      (and-let* ((parent (keymap-parent keymap)))
+        (keymap-popup--raw-binding parent key))))
+
 (defun keymap-popup--bind-launcher (keymap key command)
   "Bind popup launcher COMMAND to KEY in KEYMAP.
 Signal an error instead of replacing an existing binding."
-  (let* ((local-map (copy-keymap keymap))
-         (_ (set-keymap-parent local-map nil))
-         (local (keymap-lookup local-map key))
-         (existing (keymap-lookup keymap key)))
+  (let* ((local (keymap-popup--raw-local-binding keymap key))
+         (existing (or local
+                       (and-let* ((parent (keymap-parent keymap)))
+                         (keymap-popup--raw-binding parent key)))))
     (when (and existing
                (not (or (eq existing command)
                         (and (null local)

@@ -800,7 +800,11 @@ PROPERTIES may supply active-state and session values used by a test."
            "c" ("Comment" ignore))
         t)
   (should (eq (keymap-lookup keymap-popup--test-child "c") #'ignore))
-  (should (eq (keymap-lookup keymap-popup--test-child "g") #'ignore)))
+  (should (eq (keymap-lookup keymap-popup--test-child "g") #'ignore))
+  (should (eq (keymap-lookup keymap-popup--test-child "h")
+              #'keymap-popup--test-child-popup))
+  (should (eq (keymap-lookup keymap-popup--test-parent "h")
+              #'keymap-popup--test-parent-popup)))
 
 (ert-deftest keymap-popup-test-parent-descriptions-merged ()
   (eval '(keymap-popup-define keymap-popup--test-parent2
@@ -2056,6 +2060,37 @@ entry independently)."
          t)
    :type 'error)
   (should (eq (keymap-lookup keymap-popup--test-annotate-collision "c")
+              #'forward-char)))
+
+(ert-deftest keymap-popup-test-define-refuses-filtered-popup-key-collision ()
+  (setq keymap-popup--test-filtered-collision-enabled nil)
+  (should-error
+   (eval '(keymap-popup-define keymap-popup--test-filtered-collision
+            "h" ("Forward" forward-char
+                 :if (lambda () keymap-popup--test-filtered-collision-enabled)))
+         t)
+   :type 'error)
+  (setq keymap-popup--test-filtered-collision-enabled t)
+  (should (eq (keymap-lookup keymap-popup--test-filtered-collision "h")
+              #'forward-char)))
+
+(ert-deftest keymap-popup-test-annotate-refuses-filtered-popup-key-collision ()
+  (setq keymap-popup--test-filtered-annotate-enabled nil)
+  (setq keymap-popup--test-filtered-annotate-map (make-sparse-keymap))
+  (keymap-set
+   keymap-popup--test-filtered-annotate-map "?"
+   `(menu-item "" forward-char :filter
+               ,(lambda (_)
+                  (and keymap-popup--test-filtered-annotate-enabled
+                       #'forward-char))))
+  (should-error
+   (eval '(keymap-popup-annotate keymap-popup--test-filtered-annotate-map
+            :popup-key "?"
+            forward-char "Forward")
+         t)
+   :type 'error)
+  (setq keymap-popup--test-filtered-annotate-enabled t)
+  (should (eq (keymap-lookup keymap-popup--test-filtered-annotate-map "?")
               #'forward-char)))
 
 (ert-deftest keymap-popup-test-define-submenu-forward-reference ()

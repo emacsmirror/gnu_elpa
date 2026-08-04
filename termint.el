@@ -160,6 +160,12 @@ ipython REPL).  This variable should be modified before calling
    ((numberp (car session)) (floor (log (car session) 4)))
    (t nil)))
 
+(defun termint--repl-buffer-name (repl-name session)
+  "Return the buffer name for REPL-NAME with raw prefix arg SESSION."
+  (if-let* ((suffix (termint--get-session-suffix session)))
+      (format "*%s*<%d>" repl-name suffix)
+    (format "*%s*" repl-name)))
+
 (defun termint-find-binary
     (search-root binary-name &optional fallback-binary directory)
   "Find BINARY-NAME upward from DIRECTORY inside SEARCH-ROOT.
@@ -217,13 +223,7 @@ buffer name."
         (repl-shell (if (functionp repl-cmd)
                         (funcall repl-cmd)
                       repl-cmd)))
-    (pcase-exhaustive termint-backend
-      ('eat (termint--start-eat-backend repl-buffer-name repl-shell session))
-      ('ghostel
-       (termint--start-ghostel-backend repl-buffer-name repl-shell session))
-      ('vterm (termint--start-vterm-backend repl-buffer-name repl-shell session))
-      ('term
-       (termint--start-term-backend repl-buffer-name repl-shell session)))))
+    (termint--backend-start termint-backend repl-buffer-name repl-shell session)))
 
 (defun termint--rearrange-session-on-buffer-exit ()
   "Renumber sibling REPL sessions.
@@ -249,7 +249,14 @@ without a number is considered as session 0."
                        (rename-buffer (format "*%s*" repl-name))
                      (rename-buffer (format "*%s*<%d>" repl-name idx))))))))
 
-(defun termint--start-term-backend (repl-buffer-name repl-shell session)
+(cl-defgeneric termint--backend-start (backend repl-buffer-name repl-shell session)
+  "Start REPL-SHELL in REPL-BUFFER-NAME with numeric SESSION using BACKEND.
+BACKEND is a symbol naming a terminal emulator backend; methods
+dispatch on it with an `eql' specializer.  Third-party packages can
+support additional backends by defining methods on this generic and on
+`termint--backend-send-string'.")
+
+(cl-defmethod termint--backend-start ((_backend (eql 'term)) repl-buffer-name repl-shell session)
   "Start REPL-SHELL in REPL-BUFFER-NAME with numeric SESSION with term backend."
   (require 'term)
   (setq session (termint--get-session-suffix session))
@@ -270,7 +277,7 @@ without a number is considered as session 0."
           (termint-mode 1))
         (pop-to-buffer term-buffer)))))
 
-(defun termint--start-eat-backend (repl-buffer-name repl-shell session)
+(cl-defmethod termint--backend-start ((_backend (eql 'eat)) repl-buffer-name repl-shell session)
   "Start REPL-SHELL in REPL-BUFFER-NAME with numeric SESSION with eat backend."
   (require 'eat)
   (setq session (termint--get-session-suffix session))
@@ -281,7 +288,7 @@ without a number is considered as session 0."
       (termint-mode 1))
     buffer))
 
-(defun termint--start-vterm-backend (repl-buffer-name repl-shell session)
+(cl-defmethod termint--backend-start ((_backend (eql 'vterm)) repl-buffer-name repl-shell session)
   "Start REPL-SHELL in REPL-BUFFER-NAME with numeric SESSION using vterm."
   (require 'vterm)
   (setq session (termint--get-session-suffix session))
@@ -292,7 +299,7 @@ without a number is considered as session 0."
       (termint-mode 1))
     buffer))
 
-(defun termint--start-ghostel-backend (repl-buffer-name repl-shell session)
+(cl-defmethod termint--backend-start ((_backend (eql 'ghostel)) repl-buffer-name repl-shell session)
   "Start REPL-SHELL in REPL-BUFFER-NAME with numeric SESSION using ghostel."
   (require 'ghostel)
   (let* ((session (termint--get-session-suffix session))
@@ -330,31 +337,39 @@ without a number is considered as session 0."
 
 
 
-(defun termint--send-string
-    (string
-     repl-name
-     session
-     start-pattern
-     end-pattern
-     bracketed-paste-p
-     str-process-func
-     send-delayed-final-ret)
-  "Send STRING to a REPL.
-The target REPL buffer is specified by REPL-NAME and SESSION.
-Additional parameters—START-PATTERN, END-PATTERN, BRACKETED-PASTE-P,
-STR-PROCESS-FUNC, and SEND-DELAYED-FINAL-RET—are variables associated
-with REPL-NAME, initialized during each `termint-define' call."
-  (setq session (termint--get-session-suffix session))
+(cl-defstruct (termint--schema (:constructor termint--schema-create))
+  "Internal description of a REPL schema defined via `termint-define'.
+NAME is the repl name string.  The remaining slots hold the symbols of
+the generated `termint-NAME-*' variables (not their values), so that
+runtime mutation of those variables keeps working."
+  name cmd start-pattern end-pattern bracketed-paste-p
+  str-process-func source-syntax show-source-command-hint
+  send-delayed-final-ret)
+
+(defvar termint--schemas (make-hash-table :test #'equal)
+  "Registry mapping repl names to `termint--schema' objects.")
+
+(cl-defgeneric termint--backend-send-string (backend repl-buffer-name str)
+  "Send STR to the process behind REPL-BUFFER-NAME using BACKEND.
+BACKEND is a symbol naming a terminal emulator backend; methods
+dispatch on it with an `eql' specializer.")
+
+(defun termint--send-string (string schema session)
+  "Send STRING to the REPL described by SCHEMA.
+SCHEMA is a `termint--schema' object and SESSION selects the target
+REPL session.  The sending behavior is controlled by the variables
+referenced by SCHEMA, initialized during each `termint-define' call."
   (let* ((repl-buffer-name
-          (if session
-              (format "*%s*<%d>" repl-name session)
-            (format "*%s*" repl-name)))
-         (send-string
-          (pcase termint-backend
-            ('eat #'termint--send-string-eat-backend)
-            ('ghostel #'termint--send-string-ghostel-backend)
-            ('vterm #'termint--send-string-vterm-backend)
-            ('term #'termint--send-string-term-backend)))
+          (termint--repl-buffer-name (termint--schema-name schema) session))
+         (backend termint-backend)
+         (start-pattern (symbol-value (termint--schema-start-pattern schema)))
+         (end-pattern (symbol-value (termint--schema-end-pattern schema)))
+         (bracketed-paste-p
+          (symbol-value (termint--schema-bracketed-paste-p schema)))
+         (str-process-func
+          (symbol-value (termint--schema-str-process-func schema)))
+         (send-delayed-final-ret
+          (symbol-value (termint--schema-send-delayed-final-ret schema)))
          (multi-lines-p (string-match-p "\n" string))
          (bracketed-paste-start "\e[200~")
          (bracketed-paste-end "\e[201~")
@@ -373,11 +388,12 @@ with REPL-NAME, initialized during each `termint-define' call."
                       (and bracketed-paste-p bracketed-paste-end)
                       end-pattern)
             (concat start-pattern string end-pattern))))
-    (funcall send-string repl-buffer-name final-string)
+    (termint--backend-send-string backend repl-buffer-name final-string)
     (when send-delayed-final-ret
       (run-with-timer 0.3 nil
                       (lambda ()
-                        (funcall send-string repl-buffer-name "\r"))))))
+                        (termint--backend-send-string
+                         backend repl-buffer-name "\r"))))))
 
 (defun termint--show-source-command-hint (repl-name session original-content source-command)
   "Display the hint of SOURCE-COMMAND.
@@ -386,9 +402,7 @@ hint of the SOURCE-COMMAND is the first non-empty line of
 ORIGINAL-CONTENT.  The hint will be displayed as overlay in the end of
 line of that matches SOURCE-COMMAND."
   (when-let*
-      ((repl-buffer-name (if session
-                             (format "*%s*<%d>" repl-name session)
-                           (format "*%s*" repl-name)))
+      ((repl-buffer-name (termint--repl-buffer-name repl-name session))
        (first-non-empty-line (lambda (string)
                                (seq-find (lambda (line) (not (string-empty-p (string-trim line))))
                                          (split-string string "\n"))))
@@ -410,12 +424,12 @@ line of that matches SOURCE-COMMAND."
                                                 original-content)
                                         'face 'termint-source-command-hint-face))))))))))
 
-(defun termint--send-string-term-backend (repl-buffer-name str)
+(cl-defmethod termint--backend-send-string ((_backend (eql 'term)) repl-buffer-name str)
   "Send STR to the process behind REPL-BUFFER-NAME with term backend."
   (with-current-buffer repl-buffer-name
     (term-send-raw-string str)))
 
-(defun termint--send-string-eat-backend (repl-buffer-name str)
+(cl-defmethod termint--backend-send-string ((_backend (eql 'eat)) repl-buffer-name str)
   "Send STR to the process behind REPL-BUFFER-NAME with eat backend."
   (with-current-buffer repl-buffer-name
     (when-let* ((eat-window (get-buffer-window)))
@@ -425,12 +439,12 @@ line of that matches SOURCE-COMMAND."
       (eat--synchronize-scroll (list eat-window)))
     (eat--send-string nil str)))
 
-(defun termint--send-string-vterm-backend (repl-buffer-name str)
+(cl-defmethod termint--backend-send-string ((_backend (eql 'vterm)) repl-buffer-name str)
   "Send STR to the process behind REPL-BUFFER-NAME with vterm backend."
   (with-current-buffer repl-buffer-name
     (vterm-send-string str)))
 
-(defun termint--send-string-ghostel-backend (repl-buffer-name str)
+(cl-defmethod termint--backend-send-string ((_backend (eql 'ghostel)) repl-buffer-name str)
   "Send STR to the process behind REPL-BUFFER-NAME with ghostel backend."
   (with-current-buffer repl-buffer-name
     (ghostel-send-string str)))
@@ -461,32 +475,28 @@ line of that matches SOURCE-COMMAND."
       nil)))
 
 (defun termint--dispatch-region-and-send
-    (dispatcher repl-name session source-syntax)
+    (dispatcher schema session source-syntax)
   "Get region via DISPATCHER, optionally transform for sourcing, and send.
 DISPATCHER is a function returning a (BEG . END) cons cell for the
-code region.  REPL-NAME is the repl name.  SESSION is the number for
-the target REPL session.  If SOURCE-SYNTAX is non-nil, transform the
-region's text using SOURCE-SYNTAX via `termint--create-source-command'
-before sending."
+code region.  SCHEMA is the `termint--schema' object of the target
+REPL.  SESSION is the number for the target REPL session.  If
+SOURCE-SYNTAX is non-nil, transform the region's text using
+SOURCE-SYNTAX via `termint--create-source-command' before sending."
   (if-let*
       ((region (funcall dispatcher))
        (beg (car region))
        (end (cdr region))
-       (send-string-func (intern (concat "termint-" repl-name "-send-string")))
        (string (buffer-substring-no-properties beg end)))
       (progn
         (when source-syntax
           (setq string (termint--create-source-command string source-syntax)))
-        (funcall send-string-func string session))
+        (termint--send-string string schema session))
     (message "Invalid region from dispatcher - nothing sent to REPL")))
 
 (defun termint--hide-window (repl-name session)
   "Hide the REPL window.
 The target REPL buffer is specified by REPL-NAME and SESSION."
-  (setq session (termint--get-session-suffix session))
-  (when-let* ((buffer-name
-               (if session (format "*%s*<%d>" repl-name session)
-                 (format "*%s*" repl-name)))
+  (when-let* ((buffer-name (termint--repl-buffer-name repl-name session))
               (buf (get-buffer buffer-name))
               (buffer-window (get-buffer-window buf)))
     (delete-window buffer-window)))
@@ -655,6 +665,19 @@ enabled.  The default value is nil."
        (defvar ,send-delayed-final-ret-name ,send-delayed-final-ret
          ,(format "Whether to send the final return with a slight delay for the %s REPL." repl-name))
 
+       (puthash ,repl-name
+                (termint--schema-create
+                 :name ,repl-name
+                 :cmd ',repl-cmd-name
+                 :start-pattern ',start-pattern-name
+                 :end-pattern ',end-pattern-name
+                 :bracketed-paste-p ',bracketed-paste-p-name
+                 :str-process-func ',str-process-func-name
+                 :source-syntax ',source-syntax-name
+                 :show-source-command-hint ',show-source-command-hint-name
+                 :send-delayed-final-ret ',send-delayed-final-ret-name)
+                termint--schemas)
+
        (defun ,start-func-name (&optional session)
          ,(format
            "Create a %s REPL buffer.
@@ -695,14 +718,8 @@ If a numeric prefix SESSION is provided, send the string to the
 process with that number."
            repl-name)
          (interactive "sinput your command: \nP")
-         (termint--send-string string
-                               ,repl-name
-                               session
-                               ,start-pattern-name
-                               ,end-pattern-name
-                               ,bracketed-paste-p-name
-                               ,str-process-func-name
-                               ,send-delayed-final-ret-name))
+         (termint--send-string
+          string (gethash ,repl-name termint--schemas) session))
 
        ,@(cl-loop for entry in region-definitions append
                   (list
@@ -714,7 +731,8 @@ with that number."
                         (plist-get entry :name) repl-name (plist-get entry :name))
                       (interactive "P")
                       (termint--dispatch-region-and-send
-                       #',(plist-get entry :dispatcher) ,repl-name session nil))
+                       #',(plist-get entry :dispatcher)
+                       (gethash ,repl-name termint--schemas) session nil))
                    `(defun ,(plist-get entry :source) (&optional session)
                       ,(format
                         "Source the current %s to %s.
@@ -723,7 +741,8 @@ with that number."
                         (plist-get entry :name) repl-name (plist-get entry :name))
                       (interactive "P")
                       (termint--dispatch-region-and-send
-                       #',(plist-get entry :dispatcher) ,repl-name
+                       #',(plist-get entry :dispatcher)
+                       (gethash ,repl-name termint--schemas)
                        session ,source-syntax-name))))
 
        (when (require 'evil nil t)

@@ -178,11 +178,11 @@ comments, including color names, which can be annoying."
 (defvar-local colorful--highlight nil
   "Internal variable used for check when the highlighting must be done.")
 
-(defvar colorful--conversion-choices
+(defvar colorful--conversion-choices-prompt
   '(("Hexadecimal color format" . hex)
     ("Color name" . color-name)
     ("CSS RGB" . css-rgb))
-  "Alist of all supported conversions formats.")
+  "Alist of supported conversions formats for prompt.")
 
 (defvar colorful--conversion-functions
   `((hex . ,(lambda (color kind)
@@ -197,7 +197,7 @@ comments, including color names, which can be annoying."
                       (mapcar (lambda (x) (round (* x 255)))
                               (color-name-to-rgb color))
                     (format "rgb(%d, %d, %d)" r g b)))))
-  "Alist of functions for colors convetion by kind.
+  "Alist of functions for colors conversion by kind.
 Each function in this alist is called with 2 arguments:
 COLOR - the color string (in hex/name format) to convert.
 KIND - the kind of color (a symbol) of the original color.")
@@ -233,15 +233,15 @@ The conversion is controlled by `colorful-short-hex-conversions'.  If
 
 (defun colorful--hsl-to-hex (h s l)
   "Return CSS H S L as hexadecimal format."
-  (if-let* ((h (cond
-                ((string-suffix-p "grad" h)
-                 (/ (string-to-number h) 400.0))
-                ((string-suffix-p "rad" h)
-                 (/ (string-to-number h) (* 2 float-pi)))
-                (t (/ (string-to-number h) 360.0))))
-            (s (/ (string-to-number s) 100.0))
-            (l (/ (string-to-number l) 100.0)))
-      (apply #'color-rgb-to-hex (color-hsl-to-rgb h s l))))
+  (when-let* ((h (cond
+                  ((string-suffix-p "grad" h)
+                   (/ (string-to-number h) 400.0))
+                  ((string-suffix-p "rad" h)
+                   (/ (string-to-number h) (* 2 float-pi)))
+                  (t (/ (string-to-number h) 360.0))))
+              (s (/ (string-to-number s) 100.0))
+              (l (/ (string-to-number l) 100.0)))
+    (apply #'color-rgb-to-hex (color-hsl-to-rgb h s l))))
 
 (defun colorful--oklab-to-hex (l a b)
   "Convert OKLab color (L, A, B) to HEX format.
@@ -297,17 +297,17 @@ BEG is the position to check for the overlay."
   "Convert color at point or colors in region to another format."
   (interactive
    (progn (barf-if-buffer-read-only)
-          (if (use-region-p)
-              (list (region-beginning) (region-end)))))
+          (when (use-region-p)
+            (list (region-beginning) (region-end)))))
 
   ;; 1# Case: replace all the colors in an active region.
   (if (and beg end)
       (let* (;; Start prompt.
              (choice (alist-get
                       (completing-read "Change colors in region: "
-                                       colorful--conversion-choices
+                                       colorful--conversion-choices-prompt
                                        nil t nil nil)
-                      colorful--conversion-choices
+                      colorful--conversion-choices-prompt
                       nil nil 'equal))
              ;; Define counters
              (ignored-colors 0)
@@ -391,10 +391,10 @@ BEG is the position to check for the overlay."
          (kind (overlay-get ov 'colorful--color-kind))
          ;; Get choice.
          (choice (alist-get
-                  (completing-read prompt colorful--conversion-choices
+                  (completing-read prompt colorful--conversion-choices-prompt
                                    (lambda (elt) (not (eq (cdr elt) kind)))
                                    t nil nil)
-                  colorful--conversion-choices nil nil 'equal))
+                  colorful--conversion-choices-prompt nil nil 'equal))
          (converted-color (colorful--converter ov choice kind)))
 
     (unless converted-color

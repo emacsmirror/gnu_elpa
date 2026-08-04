@@ -455,18 +455,23 @@ propertized crumbs."
 
 ;;;###autoload
 (defcustom breadcrumb-opinionated-mlf
-  '("%e"
+  '((:eval (bc--fancy-stub t))
+    "%e"
     mode-line-modified
     (:eval (bc-project-crumbs))
+    (:eval (bc--fancy-stub nil))
     (:propertize " " face default)
-    (:eval (bc-imenu-crumbs))
+    (:eval (bc--fancy-imenu-crumbs))
     mode-line-format-right-align
+    (:eval (bc--fancy-stub t))
     (vc-mode vc-mode)
-    "  "
+    " "
     mode-line-modes
     mode-line-misc-info
     " %p%   %l:%c"
-    (:eval (format-time-string "  %H:%M")))
+    (:eval (format-time-string "  %H:%M"))
+    (:eval (bc--fancy-stub nil))
+    (:propertize " " face default))
   "A `mode-line-format' with breadcrumb project and imenu crumbs.
 Replaces `mode-line-buffer-identification' with the output of
 `breadcrumb-project-crumbs' and `breadcrumb-imenu-crumbs'."
@@ -478,6 +483,7 @@ Replaces `mode-line-buffer-identification' with the output of
   "Minor modes whose lighters are hidden by `breadcrumb-opinionated-mode'."
   :type '(repeat symbol))
 
+
 (defvar bc--saved-mlf)
 (defvar bc--saved-lighters nil)
 
@@ -485,6 +491,27 @@ Replaces `mode-line-buffer-identification' with the output of
   (when-let* ((cell (assq mode minor-mode-alist)))
     (push (cons mode (cadr cell)) bc--saved-lighters)
     (setcar (cdr cell) "")))
+
+(defvar bc--fancy-stub-cache (make-hash-table :test 'equal)
+  "Cache of `bc--fancy-stub' results, keyed by (OPENING . SELECTED).
+Each value is (BG . STRING), recomputed when BG no longer matches.")
+
+(defun bc--fancy-stub (opening)
+  (let* ((selected (mode-line-window-selected-p))
+         (key (cons opening selected))
+         (bg (face-attribute (if selected 'mode-line 'mode-line-inactive) :background))
+         (cached (gethash key bc--fancy-stub-cache)))
+    (if (and cached (equal (car cached) bg))
+        (cdr cached)
+      (let ((str (propertize (if opening "" "") 'face
+                              `(:inherit default :foreground ,bg))))
+        (puthash key (cons bg str) bc--fancy-stub-cache)
+        str))))
+
+(cl-defun bc--fancy-imenu-crumbs ()
+  (let ((retval (breadcrumb-imenu-crumbs)))
+    (when retval
+      (concat (bc--fancy-stub t) retval (bc--fancy-stub nil)))))
 
 ;;;###autoload
 (define-minor-mode breadcrumb-opinionated-mode

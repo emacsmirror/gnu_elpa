@@ -63,9 +63,9 @@
 (declare-function colorful--oklab-to-hex "colorful-mode")
 (declare-function colorful--oklch-to-hex "colorful-mode")
 (declare-function colorful--hsl-to-hex "colorful-mode")
-(declare-function color-hsl-to-rgb "color")
 (declare-function colorful--find-overlay "colorful-mode")
 
+(declare-function color-hsl-to-rgb "color")
 (declare-function ansi-color-apply "ansi-color")
 
 

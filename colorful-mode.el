@@ -181,7 +181,8 @@ comments, including color names, which can be annoying."
 (defvar colorful--conversion-choices-prompt
   '(("Hexadecimal color format" . hex)
     ("Color name" . color-name)
-    ("CSS RGB" . css-rgb))
+    ("CSS RGB" . css-rgb)
+    ("CSS HSL" . css-hsl))
   "Alist of supported conversions formats for prompt.")
 
 (defvar colorful--conversion-functions
@@ -196,7 +197,12 @@ comments, including color names, which can be annoying."
                   (seq-let (r g b)
                       (mapcar (lambda (x) (round (* x 255)))
                               (color-name-to-rgb color))
-                    (format "rgb(%d, %d, %d)" r g b)))))
+                    (format "rgb(%d, %d, %d)" r g b))))
+    (css-hsl . ,(lambda (color _kind)
+                  (seq-let (r g b)
+                      (apply #'color-rgb-to-hsl (color-name-to-rgb color))
+                    (format "hsl(%d, %d%%, %d%%)"
+                            (* r 360) (* g 100) (* b 100))))))
   "Alist of functions for colors conversion by kind.
 Each function in this alist is called with 2 arguments:
 COLOR - the color string (in hex/name format) to convert.

@@ -218,6 +218,7 @@ ISBN ranges from the International ISBN Agency are updated yearly."
   :version "30.2"
   :package-version '((isbn . "0.1.0")))
 
+;;;###autoload
 (defun isbn-hyphenation-ranges-update (&optional nofile)
   "Update cache of ISBN hyphenation ranges.
 

@@ -247,32 +247,32 @@ Bound to t during bulk loads from file to avoid N writes for N entries.")
 (defmacro with-greader-dict-temp-buffer (&rest body)
   "Optimized `with-temp-buffer' for greader-dict.
 Execute BODY in a temporary bufer as if we where in the reading
-buffer."
+buffer.
+The source buffer whose dictionary/filters state is copied into the
+temporary buffer is `greader--current-buffer' when a reading session
+is active, otherwise whatever buffer is current at the point this
+macro is invoked \(so that both interactive commands, with point in
+the target buffer, and programmatic callers using
+`with-current-buffer' resolve to the right buffer\).  We deliberately
+do not fall back to the stale, hook-updated
+`greader-dict--current-reading-buffer' for this resolution: it can
+point at an unrelated buffer whenever no reading is active, since it
+is last-write-wins across every buffer where `greader-dict-mode' or
+`greader-dict-filters-mode' happens to be on."
   (declare (indent defun))
-  `(with-temp-buffer
-     (setq greader-dict--current-reading-buffer (buffer-local-value
-						 'greader-dict--current-reading-buffer
-						 (or
-						  greader--current-buffer
-						  (current-buffer))))
-     (setq greader-dictionary (buffer-local-value 'greader-dictionary
-						  (or
-						   greader--current-buffer
-						   greader-dict--current-reading-buffer)))
-     (setq greader-dict-filename (buffer-local-value
-				  'greader-dict-filename
-				  (or greader--current-buffer greader-dict--current-reading-buffer)))
-     (setq greader-dict-local-language (buffer-local-value
-					'greader-dict-local-language
-					(or greader--current-buffer greader-dict--current-reading-buffer)))
-     (setq greader-filters (buffer-local-value 'greader-filters
-					       (or
-						greader--current-buffer
-						greader-dict--current-reading-buffer)))
-     (setq greader-dict-filters-mode (buffer-local-value
-					'greader-dict-filters-mode
-					(or greader--current-buffer greader-dict--current-reading-buffer)))
-     ,@body))
+  (let ((source (make-symbol "source-buffer")))
+    `(let ((,source (or greader--current-buffer (current-buffer))))
+       (with-temp-buffer
+	 (setq greader-dict--current-reading-buffer ,source)
+	 (setq greader-dictionary (buffer-local-value 'greader-dictionary ,source))
+	 (setq greader-dict-filename (buffer-local-value
+				      'greader-dict-filename ,source))
+	 (setq greader-dict-local-language (buffer-local-value
+					    'greader-dict-local-language ,source))
+	 (setq greader-filters (buffer-local-value 'greader-filters ,source))
+	 (setq greader-dict-filters-mode (buffer-local-value
+					  'greader-dict-filters-mode ,source))
+	 ,@body))))
 
 ;; merging dictionaries.
 

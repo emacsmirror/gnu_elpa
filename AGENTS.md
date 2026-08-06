@@ -48,11 +48,5 @@ make doc       # Info manual
 make dev       # compile + lint + test
 ```
 
-Run `make dev` before submission. Run `make doc` when user-facing syntax or
-docs change.
-
-## Contributions
-
-Patches: <patches@thanosapollo.org>, subject `[PATCH emacs-keymap-popup] …`.
-
-Bugs and features: <bugs@thanosapollo.org>, subject `[BUG emacs-keymap-popup] …`.
+Run `make dev` after non-trivial edits. Run `make doc` when user-facing syntax
+or docs change.

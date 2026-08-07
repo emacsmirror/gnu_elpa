@@ -701,24 +701,11 @@ Do not follow KEYMAP's parent or evaluate `menu-item' filters."
           (setq map prefix)))
       (keymap-popup--raw-local-event-binding map (car events)))))
 
-(defun keymap-popup--raw-binding (keymap key)
-  "Return KEY's raw binding in KEYMAP or one of its parents."
-  (or (keymap-popup--raw-local-binding keymap key)
-      (and-let* ((parent (keymap-parent keymap)))
-        (keymap-popup--raw-binding parent key))))
-
 (defun keymap-popup--bind-launcher (keymap key command)
   "Bind popup launcher COMMAND to KEY in KEYMAP.
-Signal an error instead of replacing an existing binding."
-  (let* ((local (keymap-popup--raw-local-binding keymap key))
-         (existing (or local
-                       (and-let* ((parent (keymap-parent keymap)))
-                         (keymap-popup--raw-binding parent key)))))
-    (when (and existing
-               (not (or (eq existing command)
-                        (and (null local)
-                             (symbolp existing)
-                             (get existing 'keymap-popup-launcher)))))
+Signal an error instead of replacing an existing local binding."
+  (let ((local (keymap-popup--raw-local-binding keymap key)))
+    (when (and local (not (eq local command)))
       (error "keymap-popup: Popup key %S is already bound" key)))
   (when (symbolp command)
     (put command 'keymap-popup-launcher t))

@@ -99,8 +99,8 @@ optional and may appear in any order before the first binding.
 =keymap-popup-annotate=
 accepts the display keywords above except =:parent=, but does /not/
 apply defaults for =:popup-key= or =:exit-key= -- it never binds keys
-unless asked.  A popup key may not replace an ordinary existing binding;
-such a collision signals an error.
+unless asked.  A popup key may not replace an ordinary local binding;
+such a collision signals an error.  Inherited bindings may be shadowed.
 
 A binding takes one of three forms:
 

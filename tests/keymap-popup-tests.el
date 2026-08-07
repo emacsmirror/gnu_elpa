@@ -2118,6 +2118,16 @@ entry independently)."
          t)
    :type 'error))
 
+(ert-deftest keymap-popup-test-define-allows-inherited-popup-key-collision ()
+  (eval '(keymap-popup-define keymap-popup--test-inherited-collision-child
+           :parent special-mode-map
+           "x" ("Ignore" ignore))
+        t)
+  (should
+   (eq (keymap-lookup keymap-popup--test-inherited-collision-child "h")
+       #'keymap-popup--test-inherited-collision-child-popup))
+  (should (eq (keymap-lookup special-mode-map "h") #'describe-mode)))
+
 (ert-deftest keymap-popup-test-annotate-refuses-popup-key-collision ()
   (setq keymap-popup--test-annotate-collision (make-sparse-keymap))
   (keymap-set keymap-popup--test-annotate-collision "c" #'forward-char)

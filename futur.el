@@ -3,7 +3,7 @@
 ;; Copyright (C) 2026  Free Software Foundation, Inc.
 
 ;; Author: Stefan Monnier <monnier@iro.umontreal.ca>
-;; Version: 1.7
+;; Version: 2.0
 ;; Keywords: concurrency, async, promises, futures
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -27,13 +27,13 @@
 
 ;;; News:
 
-;; Since Version 1.7:
+;; Version 2.0:
 
 ;; - New functions `futur-elisp-funcall' and `futur-elisp-sandbox-funcall'
 ;;   to run ELisp code concurrently in subprocesses.
+;; - Better support for aborting futur-elisp subprocesses.
 ;; - New function `futur-catch-abort'.
 ;; - New function `futur-dbus-call-method'.
-;; - Better support for aborting futur-elisp subprocesses.
 
 ;; Version 1.5:
 

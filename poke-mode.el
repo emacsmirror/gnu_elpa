@@ -114,7 +114,7 @@
 ;; from perl -nE 'say qq{"$1"} if /^var (\S+)/ && $1 !~ /^EC?_/' libpoke/*.pk
 (defconst poke-builtin-constants
   '("ENDIAN_LITTLE" "ENDIAN_BIG"
-    "IOS_F_READ" "IOS_F_WRITE" "IOS_F_CREATE"
+    "IOS_F_READ" "IOS_F_WRITE" "IOS_F_TRUNCATE" "IOS_F_CREATE"
     "IOS_M_RDONLY" "IOS_M_WRONLY" "IOS_M_RDWR"
     "load_path" "NULL")
   "List of Poke builtin constants and variables.")

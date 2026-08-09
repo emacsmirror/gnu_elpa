@@ -485,6 +485,10 @@ and the text of the current heading, like this:
 
     [[denote:20240118T060608::*Heading text][Some test::Heading text]].
 
+If the value is `local', the link consists of the text of the current heading, like this:
+
+    [[*Heading text][Heading text]].
+
 However, if there already exists a CUSTOM_ID property for the current
 heading, this is always given priority and is used instead of the
 context.
@@ -529,6 +533,7 @@ navigates to that heading.
   :package-version '(denote . "4.0.0")
   :type '(choice (const :tag "No link to heading (default)" nil)
                  (const :tag "Link to the context" context)
+                 (const :tag "Link to local heading" local)
                  (const :tag "Link wtih CUSTOM_ID, creating it if needed" id)))
 
 (defcustom denote-templates nil
@@ -7028,8 +7033,11 @@ create a new one."
   (org-get-heading :no-tags :no-todo :no-priority :no-comment))
 
 (defun denote-link-format-heading-description (file-text heading-text)
-  "Return description for FILE-TEXT with HEADING-TEXT at the end."
-  (format "%s::%s" file-text heading-text))
+  "Return description for FILE-TEXT with HEADING-TEXT at the end or
+only HEADING-TEXT if `denote-org-store-link-to-heading' is set to `local' links."
+  (if (eq denote-org-store-link-to-heading 'local)
+      (format "%s" heading-text)
+    (format "%s::%s" file-text heading-text)))
 
 ;;;###autoload
 (defun denote-link-ol-store (&optional _interactive?)
@@ -7059,6 +7067,8 @@ Also see the user option `denote-org-store-link-to-heading'."
                  (format "denote:%s::#%s" file-id id)))
               ((and heading-links (eq denote-org-store-link-to-heading 'context) heading)
                (format "denote:%s::*%s" file-id heading))
+              ((and heading-links (eq denote-org-store-link-to-heading 'local) heading)
+               (format "*%s" heading))
               ((and heading-links heading)
                (format "denote:%s::#%s" file-id (denote-link-ol-get-id)))
               (t

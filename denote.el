@@ -3675,12 +3675,14 @@ here for clarity."
          (if date (format-time-string "%F %T" date) ""))))
 
 (defun denote--date-parse-string (date)
-  "Convert DATE to Denote's preferred string format if a recognized pattern.
-Otherwise, return DATE unchanged.  Currently supports Unix timestamps."
-  (cond ((string-match "[0-9]\\{10\\}" date) ; seconds since epoch
-         (let ((secs (string-to-number (match-string 0 date))))
-           (format-time-string "%Y-%m-%d %H:%M:%S" (seconds-to-time secs))))
-        (t date)))
+  "Convert DATE to Denote's preferred string format.
+If DATE is a Unix timestamp, convert it accordingly."
+  (if-let* ((_ (string-match "[0-9]\\{10\\}" date)) ; seconds since epoch
+            (match (match-string 0 date))
+            (seconds (string-to-number match))
+            (time (seconds-to-time seconds)))
+      (format-time-string "%Y-%m-%d %H:%M:%S" time)
+    date))
 
 (defun denote-date-prompt (&optional initial-date prompt-text)
   "Prompt for date, expecting YYYY-MM-DD or that plus HH:MM.

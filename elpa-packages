@@ -75,7 +75,6 @@
   :ignored-files ("COPYING"))
  (auctex :url "https://git.savannah.gnu.org/git/auctex.git"
   :branch "main"
-  :news "NEWS.org"
   :make "elpa"
   :doc ("doc/auctex.texi" "doc/preview-latex.texi"))
  (auctex-cont-latexmk	:url "https://github.com/ultronozm/auctex-cont-latexmk.el")
@@ -142,9 +141,7 @@
   :readme "README.org")
  (calibre               :url "https://git.disroot.org/kjartanoli/calibre.el")
  (cape			:url "https://github.com/minad/cape"
-  :doc "README.org"
-  :news "CHANGELOG.org"
-  :ignored-files ("LICENSE"))
+  :doc "README.org")
  (capf-autosuggest	:url "https://repo.or.cz/emacs-capf-autosuggest.git")
  (caps-lock		:url nil)
  (captain		:url nil)
@@ -181,9 +178,7 @@
  (cond-star             :core "lisp/emacs-lisp/cond-star.el")
  (constants             :url "https://github.com/cdominik/constants-for-Emacs")
  (consult		:url "https://github.com/minad/consult"
-  :doc "README.org"
-  :news "CHANGELOG.org"
-  :ignored-files ("LICENSE"))
+  :doc "README.org")
  (consult-denote		:url "https://github.com/protesilaos/consult-denote"
   :doc "README.org"
   :news "CHANGELOG.org"
@@ -198,8 +193,6 @@
   )
  (corfu			:url "https://github.com/minad/corfu"
   :doc "README.org"
-  :news "CHANGELOG.org"
-  :ignored-files ("LICENSE")
   :renames (("extensions/" "")))
  (coterm		:url "https://repo.or.cz/emacs-coterm.git")
  (counsel		:url "https://github.com/abo-abo/swiper"
@@ -260,8 +253,7 @@
  (devicetree-ts-mode	:url "https://git.sr.ht/~akagi/devicetree-ts-mode"
   :ignored-files ("LICENSE"))
  (dicom			:url "https://github.com/minad/dicom"
-  :doc "README.org"
-  :ignored-files ("LICENSE"))
+  :doc "README.org")
  (dict-tree		:url nil) ;"http://www.dr-qubit.org/git/predictive.git"
  (diff-hl		:url "https://github.com/dgutov/diff-hl.git")
  (diffview            	:url "https://github.com/mgalgs/diffview-mode.git")
@@ -500,9 +492,7 @@
  (javaimp		:url nil)
  (jgraph-mode		:url nil)
  (jinx			:url "https://github.com/minad/jinx"
-  :doc "README.org"
-  :news "CHANGELOG.org"
-  :ignored-files ("LICENSE"))
+  :doc "README.org")
  (jit-spell		:url "https://github.com/astoff/jit-spell")
  (js2-mode		:url "https://github.com/mooz/js2-mode.git")
  (json-mode		:url nil)
@@ -564,9 +554,7 @@
   )
  (map			:core "lisp/emacs-lisp/map.el")
  (marginalia		:url "https://github.com/minad/marginalia"
-  :doc "README.org"
-  :news "CHANGELOG.org"
-  :ignored-files ("LICENSE"))
+  :doc "README.org")
  (markchars		:url nil)
  (math-symbol-lists 	:url "https://github.com/vspinu/math-symbol-lists.git")
  (mathjax               :url "https://github.com/astoff/mathjax.el"
@@ -651,9 +639,7 @@
  ;;(org-drill		:url "https://gitlab.com/phillord/org-drill")
  (org-mem               :url "https://github.com/meedstrom/org-mem")
  (org-modern		:url "https://github.com/minad/org-modern"
-  :doc "README.org"
-  :news "CHANGELOG.org"
-  :ignored-files ("LICENSE"))
+  :doc "README.org")
  (org-notify		:url "https://github.com/p-m/org-notify"
   )
  (org-real		:url "https://codeberg.org/strawburster/org-real"
@@ -669,9 +655,7 @@
  (orgalist            	:url nil)
  (osc			:url nil)
  (osm			:url "https://github.com/minad/osm"
-  :doc "README.org"
-  :news "CHANGELOG.org"
-  :ignored-files ("LICENSE"))
+  :doc "README.org")
  (other-frame-window	:url nil)
  (pabbrev             	:url "https://github.com/phillord/pabbrev.git")
  (paced			:url "bzr::bzr://bzr.savannah.nongnu.org/paced-el/trunk"
@@ -856,9 +840,7 @@
   :doc "taxy-magit-section.info")
  (temp-buffer-browse  	:url "https://github.com/leoliu/temp-buffer-browse")
  (tempel		:url "https://github.com/minad/tempel"
-  :doc "README.org"
-  :news "CHANGELOG.org"
-  :ignored-files ("LICENSE"))
+  :doc "README.org")
  (termint		:url "https://github.com/milanglacier/termint.el"
   :readme "README.md")
  (test-simple         	:url "https://github.com/rocky/emacs-test-simple")
@@ -948,8 +930,6 @@
  (verilog-mode		:core "lisp/progmodes/verilog-mode.el")
  (vertico		:url "https://github.com/minad/vertico"
   :doc "README.org"
-  :news "CHANGELOG.org"
-  :ignored-files ("LICENSE")
   :renames (("extensions/" "")))
  (vertico-posframe	:url "https://github.com/tumashu/vertico-posframe")
  (vigenere 		:url nil)

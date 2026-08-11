@@ -1,4 +1,4 @@
-#+title: jinx.el - Changelog
+#+title: jinx.el - News
 #+author: Daniel Mendler
 #+language: en
 

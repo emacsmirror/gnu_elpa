@@ -427,6 +427,7 @@ current buffer."
   (remove-hook 'emulation-mode-map-alists ergoemacs-override-alist)
   (setq ergoemacs-override-alist
         `((ergoemacs-mode-send-emacs-keys . ,ergoemacs--emacs-command-emulation-map)
+          (ergoemacs-mode-term-mode . ,ergoemacs-mode-term-keymap)
           (ergeoemacs-mode-term-raw-mode . ,ergoemacs-mode-term-raw-keymap)
           (ergoemacs--ena-prefix-override-keymap . ,ergoemacs--prefix-override-keymap)
           (ergoemacs--ena-prefix-repeat-keymap .   ,ergoemacs--prefix-repeat-keymap)
@@ -440,7 +441,8 @@ current buffer."
       (describe-key key-list buffer)
     (remove-hook 'emulation-mode-map-alists ergoemacs-override-alist)
     (setq ergoemacs-override-alist
-          `((ergeoemacs-mode-term-raw-mode . ,ergoemacs-mode-term-raw-keymap)
+          `((ergoemacs-mode-term-mode . ,ergoemacs-mode-term-keymap)
+            (ergeoemacs-mode-term-raw-mode . ,ergoemacs-mode-term-raw-keymap)
             (ergoemacs--ena-prefix-override-keymap . ,ergoemacs--prefix-override-keymap)
             (ergoemacs--ena-prefix-repeat-keymap .   ,ergoemacs--prefix-repeat-keymap)
             (ergoemacs--ena-region-keymap . ,ergoemacs-mark-active-keymap)

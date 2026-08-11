@@ -365,7 +365,8 @@ This is structured by valid keyboard layouts for
 (defvar ergoemacs-translation-hash (make-hash-table)
   "Hash table of translations, structured by translatin type.")
 
-(dolist (pkg '(ergoemacs-cua
+(dolist (pkg '(ergoemacs-term ; before `ergoemacs-cua', which calls into it
+               ergoemacs-cua
                ergoemacs-command-loop
                ergoemacs-advice
                ergoemacs-functions
@@ -461,7 +462,11 @@ after initializing ergoemacs-mode.")
 (defun ergoemacs-setup-override-keymap ()
   "Setup `ergoemacs-mode' keymaps."
   (setq ergoemacs-override-alist
-        `((ergeoemacs-mode-term-raw-mode . ,ergoemacs-mode-term-raw-keymap)
+        ;; The terminal keymap comes first: it is all command remappings,
+        ;; and a remapping is only found if no higher keymap already
+        ;; remaps that command.
+        `((ergoemacs-mode-term-mode . ,ergoemacs-mode-term-keymap)
+          (ergeoemacs-mode-term-raw-mode . ,ergoemacs-mode-term-raw-keymap)
           (ergoemacs--ena-prefix-override-keymap . ,ergoemacs--prefix-override-keymap)
           (ergoemacs--ena-prefix-repeat-keymap .   ,ergoemacs--prefix-repeat-keymap)
           (ergoemacs--ena-region-keymap . ,ergoemacs-mark-active-keymap)

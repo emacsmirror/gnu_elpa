@@ -113,3 +113,33 @@ To overcome this there `ergoemacs-mode` does the following:
 It will also keep the shift selection active by sending shifted keys if necessary.
 
 If you think this is too much magic, you can turn this off with the variable `ergoemacs-mode-send-emacs-keys`
+
+ ## Terminal emulators
+
+A terminal buffer -- `eat`, `term` -- is not really editable.  It only
+shows the screen the inferior program draws; text inserted or deleted
+there never reaches the program, and the next redraw wipes it out.  So
+in a terminal the ergoemacs editing keys would do nothing useful, and
+the keys the program wanted (`M-b`, `M-DEL`, `C-r` ...) would never
+arrive, because `ergoemacs-mode` overrides the terminal's keymap along
+with everybody else's.
+
+`ergoemacs-mode` therefore gives those keys their usual meaning by
+sending the equivalent key to the terminal instead of running the
+command: Alt+e kills the word before the cursor by sending `M-DEL`,
+Ctrl+z undoes by sending `C-_`, Ctrl+v writes the current kill to the
+terminal's input, and so on.  The translations live in
+`ergoemacs-term-command-alist`.
+
+Keys that only read the buffer are deliberately left alone.  Copying,
+searching the scrollback with Ctrl+f, setting the mark and selecting
+all still act on the Emacs buffer, which is where the text you want to
+copy is.  Ctrl+x with an active region copies rather than cutting,
+since text cannot be taken out of a terminal's screen.
+
+Terminals being browsed with Emacs keys -- `eat-emacs-mode`,
+`term-line-mode` -- keep the ordinary ergoemacs keys; only the paste
+key still reaches the program.
+
+Another terminal emulator can be taught to `ergoemacs-mode` by adding
+an entry to `ergoemacs-term-backends`.

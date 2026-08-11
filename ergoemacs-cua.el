@@ -125,8 +125,10 @@ This override is enabled for active regions before the copy and paste are enable
 (defvar ergoemacs-mode-send-emacs-keys)
 (defvar ergoemacs-send-keys-term)
 (defvar term-raw-map)
+(declare-function ergoemacs-term--select-keymaps "ergoemacs-term")
 (defun ergoemacs--select-keymaps ()
   "Setup conditions for selecting the proper keymaps in `ergoemacs--keymap-alist'."
+  (ergoemacs-term--select-keymaps)
   (if (and (eq major-mode 'term-mode)
            (eq (current-local-map) term-raw-map))
       (setq ergoemacs-mode-regular nil
@@ -260,7 +262,11 @@ This uses `ergoemacs-cut-line-or-region' (unlike `cua-mode').
 
 Pass prefix ARG to the respective copy functions."
   (interactive "P")
-  (ergoemacs-cut-line-or-region arg)
+  ;; Go through any remapping, so that in a terminal buffer this copies the
+  ;; region rather than deleting part of the screen the program drew.
+  (funcall (or (command-remapping 'ergoemacs-cut-line-or-region)
+               #'ergoemacs-cut-line-or-region)
+           arg)
   (let ((keys (this-single-command-keys)))
     (setq unread-command-events
 	      (cons (aref keys (1- (length keys))) unread-command-events))))

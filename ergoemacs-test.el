@@ -209,7 +209,16 @@ not using cua or cutting line. I think kill-region is what is meant."
 
 (ert-deftest ergoemacs-test-function-unbind-commands-active ()
   "Make sure the unbound keys work"
-  (should (eq 'undefined (key-binding (read-kbd-macro "C-x C-s")))))
+  ;; The unbound keys live in the `ergoemacs-mode' emulation keymaps, so they
+  ;; only answer while the mode is on.  Turn it on rather than counting on
+  ;; whatever an earlier test happened to leave behind.
+  (let ((was ergoemacs-mode))
+    (unwind-protect
+        (progn
+          (ergoemacs-mode 1)
+          (should (eq 'undefined (key-binding (read-kbd-macro "C-x C-s")))))
+      (unless was
+        (ergoemacs-mode -1)))))
 
 ;;; Org-mode
 

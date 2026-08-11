@@ -1,4 +1,4 @@
-#+title: cape.el - Changelog
+#+title: cape.el - News
 #+author: Daniel Mendler
 #+language: en
 

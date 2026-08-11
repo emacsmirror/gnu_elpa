@@ -1,4 +1,5 @@
 #+title: orderless.el - News
+#+author: Omar Antolín Camarena
 #+language: en
 
 * Version 1.7 (2026-05-19)

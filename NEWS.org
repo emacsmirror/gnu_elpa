@@ -1,4 +1,4 @@
-#+title: dicom.el - Changelog
+#+title: dicom.el - News
 #+author: Daniel Mendler
 #+language: en
 

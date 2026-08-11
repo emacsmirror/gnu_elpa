@@ -1,4 +1,4 @@
-#+title: orderless.el - Changelog
+#+title: orderless.el - News
 #+language: en
 
 * Version 1.7 (2026-05-19)

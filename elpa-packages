@@ -780,6 +780,8 @@
  (sisu-mode		:url nil)
  (site-lisp             :url "https://codeberg.org/pkal/site-lisp.el")
  (sketch-mode		:url "https://github.com/dalanicolai/sketch-mode")
+ (slang-ts-mode		:url "https://codeberg.org/Hikari/slang-ts-mode"
+  :ignored-files ("LICENSE"))
  (slime-volleyball	:url nil)
  (sm-c-mode 		:url nil)
  (smalltalk-mode	:url nil) ;; Was "git://git.sv.gnu.org/smalltalk"

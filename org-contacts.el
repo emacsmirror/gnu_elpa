@@ -1583,9 +1583,10 @@ are effectively trimmed.  If nil, all zero-length substrings are retained."
 ;;;###autoload
 (if (fboundp 'org-link-set-parameters)
     (org-link-set-parameters "org-contact"
+                             :store #'org-contacts-link-store
                              :follow #'org-contacts-link-open
                              :complete #'org-contacts-link-complete
-                             :store #'org-contacts-link-store
+                             :preview #'org-contacts-link-preview
                              :face 'org-contacts-link-face)
   (when (fboundp 'org-add-link-type)
     (org-add-link-type "org-contact" 'org-contacts-link-open)))
@@ -1681,6 +1682,38 @@ Each element has the form (NAME . (FILE . POSITION))."
                                 (lambda (plist) (plist-get plist :name))
                                 (org-contacts-all-contacts)))))
     (concat "org-contact:" name)))
+
+(defcustom org-contacts-avatar-preview-size 64
+  "The org-contacts avatar image size :height."
+  :type 'number
+  :safe #'numberp
+  :group 'org-link-beautify)
+
+;;;###autoload
+(defun org-contacts-link-preview (ov path link)
+  "Preview org-contct: link of PATH over OV overlay position for LINK element."
+  (if-let* ((name path)
+            (_ (display-graphic-p))
+            (epom (org-contacts-search-contact name))
+            (image (org-contacts-get-avatar-icon epom))
+            (display-height org-contacts-avatar-preview-size))
+      ;; display org-contacts avatar image
+      (prog1 ov
+        (setf (image-property image :height) display-height)
+        (overlay-put ov 'display image)
+        (overlay-put ov 'after-string (concat
+                                       (propertize "{" 'face '(:foreground "purple2"))
+                                       (propertize (format "@%s" name) 'face 'org-verbatim)
+                                       (propertize "}" 'face '(:foreground "purple2")))))
+    ;; display text-properties with icon
+    (if-let* ((text (org-element-property :title (org-contacts-search-contact name))))
+        (overlay-put ov 'after-string (concat
+                                       (propertize "{" 'face '(:foreground "purple2"))
+                                       (propertize text 'face 'org-verbatim)
+                                       ;; TODO: change text face height to not following the contact avatar icon image height.
+                                       ;; (propertize text 'face '(:inherit org-verbatim :height (face-attribute 'default :height)))
+                                       (propertize "}" 'face '(:foreground "purple2"))))
+      (org-link-beautify-iconify ov path link))))
 
 (defun org-contacts-link-face (path)
   "Different face color for different org-contacts: link PATH."

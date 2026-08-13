@@ -4,6 +4,8 @@
 
 ;; Author: Stefan Monnier <monnier@iro.umontreal.ca>
 ;; Version: 2.0
+;; Package-Requires: ((emacs "27.1"))
+;; URL: https://elpa.gnu.org/packages/futur.html
 ;; Keywords: concurrency, async, promises, futures
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -154,17 +156,41 @@ Only a single iteration can proceed on a given queue at the same time."
                       (setq cells (nreverse revtail)))
                 (setf (futur--queue-revtail queue) nil)))))))))
 
+;; Avoid warnings for Emacs compiled without thread support
+(declare-function condition-notify "thread")
+(declare-function condition-wait "thread")
+(declare-function make-condition-variable "thread")
+(declare-function make-mutex "thread")
+(declare-function make-thread "thread")
+(declare-function mutex-lock "thread")
+(declare-function mutex-unlock "thread")
+(declare-function thread-join "thread")
+(declare-function thread-live-p "thread")
+(declare-function thread-signal "thread")
+
+(defvar futur-use-threads (fboundp 'make-thread) ;New in Emacs-26
+  "If non-nil, futur will use timers for background tasks instead.
+Threads have the advantage that we can make sure background tasks are
+run in a clean dynamic environment, whereas timers are run in the dynamic
+environment of the current waiting code, which can include all kinds of
+undesirable let-bindings.
+But Emacs's threads still suffer from several implementation warts
+and limitations.")
+
+(defconst futur--background
+  (when futur-use-threads
+    (futur--make-thread #'futur--background "futur--background")))
+
 (defvar futur--pending (futur--queue)
   "Pending operations.")
 
-(defconst futur--pending-mutex (make-mutex "futur-pending"))
-(defconst futur--pending-condvar
-  (make-condition-variable futur--pending-mutex))
+(defconst futur--pending-mutex
+  (when futur-use-threads
+    (make-mutex "futur-pending")))
 
-(eval-and-compile
-  (unless (fboundp 'with-suppressed-warnings) ;Emacs-27
-    (defmacro with-suppressed-warnings (_warnings &rest body)
-      (with-no-warnings ,@body))))
+(defconst futur--pending-condvar
+  (when futur-use-threads
+    (make-condition-variable futur--pending-mutex)))
 
 (defun futur--background ()
   (let ((inhibit-quit t)
@@ -188,19 +214,6 @@ Only a single iteration can proceed on a given queue at the same time."
     (wrong-number-of-arguments ;; Emacs<31
      (with-current-buffer (get-buffer-create " *futur--background*")
        (make-thread f name)))))
-
-(defvar futur-use-threads (fboundp 'make-thread) ;New in Emacs-26
-  "If non-nil, futur will use timers for background tasks instead.
-Threads have the advantage that we can make sure background tasks are
-run in a clean dynamic environment, whereas timers are run in the dynamic
-environment of the current waiting code, which can include all kinds of
-undesirable let-bindings.
-But Emacs's threads still suffer from several implementation warts
-and limitations.")
-
-(defconst futur--background
-  (when futur-use-threads
-    (futur--make-thread #'futur--background "futur--background")))
 
 (defun futur--funcall (&rest args)
   "Call ARGS like `funcall' but outside of the current dynamic scope.

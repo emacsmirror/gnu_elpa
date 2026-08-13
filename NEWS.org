@@ -5,8 +5,8 @@
 * Version 2.10 (2026-08-13)
 
 - Let-bind =parse-sexp-lookup-properties= to nil during Jinx tokenization. This
-  avoids inference with the =syntax-table= property attached by some major modes
-  like =haskell-mode=.
+  avoids interference with the =syntax-table= property attached by some major
+  modes like =haskell-mode=.
 
 * Version 2.9 (2026-08-01)
 

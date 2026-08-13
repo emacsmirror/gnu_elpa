@@ -63,7 +63,7 @@
 ;;   specific property. Or other matcher on `org-sparse-tree'.
 
 ;;; Code:
-
+
 (require 'cl-lib)
 (require 'org)
 (require 'gnus-util)
@@ -209,6 +209,11 @@ This overrides `org-email-link-description-format' if set."
 (defcustom org-contacts-irc-nickname-property "IRC_NICKNAME"
   "Name of the property for IRC nickname match."
   :type 'string)
+
+(defcustom org-contacts-add-org-capture-template nil
+  "Whether auto add org-capture template into `org-capture-templates'."
+  :type 'boolean)
+
 
 ;; Decalre external functions and variables
 (declare-function org-reverse-string "org")
@@ -1762,6 +1767,36 @@ are effectively trimmed.  If nil, all zero-length substrings are retained."
                                 (org-contacts-mailto-link--get-all-emails))))
     (concat "mailto:" email)))
 
+;;; add `org-capture' template for org-contacts
+
+(when org-contacts-add-org-capture-template
+  (add-to-list 'org-capture-templates
+               `("C" ,(format "%s\tRecord contact -> 'Contacts.org'"
+                              (nerd-icons-mdicon "nf-md-card_account_details" :face 'nerd-icons-blue))
+                 entry (file ,(expand-file-name (car org-contacts-files)))
+                 "\
+* %^{NAME}\t\t\t\t%^g
+:PROPERTIES:
+:ID:   %(org-id-new)
+:DIR:  %\\1
+:DATE: %^U
+:AVATAR: %^{Avatar}
+:NICK: %^{Nick}
+:GENDER: %^{Gender|male|female|transgender}
+:RELATIONSHIP: %^{Relationship|internet|meet|friend|good friend|boy friend|girl friend|workmate|classmate|schoolmate}
+:FIRST-MEET: %^U  %^{How is the first-time meet? when? where? how?}
+:LANGUAGES: %^{Languages|Chinese|Chinese, English|English|Japanese|Korean}
+:SKILLS: %^{Skills|programming|economy}
+:OCCUPATION: %^{Occupation|programmer|freelancer|businessman|servant|artist}
+:END:
+%?"
+                 :empty-lines 0 :jump-to-captured t
+                 :refile-targets ((,(expand-file-name (car org-contacts-files)) . (:maxlevel 2)))
+                 ;; :after-finalize org-contacts--candidates-cache-reset
+                 )
+               :append))
+
+
 (provide 'org-contacts)
 
 ;;; org-contacts.el ends here

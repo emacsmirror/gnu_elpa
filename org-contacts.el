@@ -253,6 +253,38 @@ A regexp matching strings of whitespace, `,' and `;'.")
 (defvar org-contacts-all-contacts nil
   "A data store variable of all contacts.")
 
+(defun org-contacts--all-contacts ()
+  "Return a list of all contacts in `org-contacts-files'.
+Each element has the form (NAME . (FILE . POSITION))."
+  (mapcan
+   (lambda (file)
+     (unless (buffer-live-p (get-buffer (file-name-nondirectory file)))
+       (find-file-noselect file))
+     (with-current-buffer (find-file-noselect file)
+       (org-map-entries
+        (lambda ()
+          (let* ((name (substring-no-properties (org-get-heading t t t t)))
+                 (file (buffer-file-name))
+                 (position (point))
+                 ;; extract properties Org entry headline at `position' as data API for better contacts searching.
+                 (entry-properties (org-entry-properties position 'standard))
+                 (property-name-chinese (cdr (assoc (upcase "NAME(Chinese)")  entry-properties)))
+                 (property-name-english (cdr (assoc (upcase "NAME(English)")  entry-properties)))
+                 (property-nick  (cdr (assoc "NICK" entry-properties)))
+                 (property-email (cdr (assoc "EMAIL" entry-properties)))
+                 ;; (property-mobile (cdr (assoc "MOBILE" entry-properties)))
+                 (property-wechat (cdr (assoc (upcase "WeChat") entry-properties)))
+                 (property-qq (cdr (assoc "QQ" entry-properties))))
+            (list :name name :file file :position position
+                  :name-chinese property-name-chinese
+                  :name-english property-name-english
+                  :nick property-nick
+                  :email property-email
+                  :mobile property-email
+                  :wechat property-wechat
+                  :qq property-qq))))))
+   (org-contacts-files)))
+
 (defun org-contacts-all-contacts ()
   "Return the data of all contacts."
   (setq org-contacts-all-contacts
@@ -1595,8 +1627,7 @@ are effectively trimmed.  If nil, all zero-length substrings are retained."
 (defun org-contacts-link-store ()
   "Store the contact in `org-contacts-files' with a link."
   (when (and (eq major-mode 'org-mode)
-             (member (buffer-file-name)
-                     (mapcar #'expand-file-name (org-contacts-files)))
+             (member (buffer-file-name) (mapcar #'expand-file-name (org-contacts-files)))
              (not (org-before-first-heading-p))
              (let ((element (org-element-at-point)))
                (funcall (cdr (org-make-tags-matcher org-contacts-matcher))
@@ -1614,49 +1645,16 @@ are effectively trimmed.  If nil, all zero-length substrings are retained."
           (org-link-add-props :link link :description headline-str)
           link)))))
 
-(defun org-contacts--all-contacts ()
-  "Return a list of all contacts in `org-contacts-files'.
-Each element has the form (NAME . (FILE . POSITION))."
-  (mapcan
-   (lambda (file)
-     (unless (buffer-live-p (get-buffer (file-name-nondirectory file)))
-       (find-file-noselect file))
-     (with-current-buffer (find-file-noselect file)
-       (org-map-entries
-        (lambda ()
-          (let* ((name (substring-no-properties (org-get-heading t t t t)))
-                 (file (buffer-file-name))
-                 (position (point))
-                 ;; extract properties Org entry headline at `position' as data API for better contacts searching.
-                 (entry-properties (org-entry-properties position 'standard))
-                 (property-name-chinese (cdr (assoc (upcase "NAME(Chinese)")  entry-properties)))
-                 (property-name-english (cdr (assoc (upcase "NAME(English)")  entry-properties)))
-                 (property-nick  (cdr (assoc "NICK" entry-properties)))
-                 (property-email (cdr (assoc "EMAIL" entry-properties)))
-                 ;; (property-mobile (cdr (assoc "MOBILE" entry-properties)))
-                 (property-wechat (cdr (assoc (upcase "WeChat") entry-properties)))
-                 (property-qq (cdr (assoc "QQ" entry-properties))))
-            (list :name name :file file :position position
-                  :name-chinese property-name-chinese
-                  :name-english property-name-english
-                  :nick property-nick
-                  :email property-email
-                  :mobile property-email
-                  :wechat property-wechat
-                  :qq property-qq))))))
-   (org-contacts-files)))
-
 ;;;###autoload
 (defun org-contacts-link-open (query)
   "Open org-contacts: link with jumping or searching QUERY."
   (let (( bufs (mapcar #'find-file-noselect (org-contacts-files)) )) ;; list of buffers of org-contacts-files
     (cond ;;
      ;; 1. /query/ format searching
-     ((string-match "/\\(.*\\)/" query)  ;; conditional check, as well as captures query
-      (multi-occur bufs                  ;; do 'occur' on all buffers of org-contacts-files
-       (match-string 1 query)))          ;; the captured query
-
-     ;; 2.  jump to exact contact headline directly
+     ;; Conditional check, as well as captures query do 'occur' on all buffers of org-contacts-files the captured query.
+     ((string-match "/\\(.*\\)/" query)
+      (multi-occur bufs (match-string 1 query)))
+     ;; 2. jump to exact contact headline directly
      (t                                          ;;
       (let ((query-has-found nil))               ;; local variable to check whether we found query
         (dolist (buf bufs)                       ;; loop over all buffers
@@ -1669,10 +1667,8 @@ Each element has the form (NAME . (FILE . POSITION))."
                     (org-fold-show-context)
                     (setq query-has-found t)     ;; sets query-has-found; thus it exits on loop
                     )))))
-
         (unless query-has-found         ;; notifies if there was no query
-          (user-error "[org-contacts] Can't find <%s> in your `org-contacts-files'" query))))
-     )))
+          (user-error "[org-contacts] Can't find <%s> in your `org-contacts-files'" query)))))))
 
 ;;;###autoload
 (defun org-contacts-link-complete (&optional _arg)

@@ -5,7 +5,7 @@
 ;; Author: zach shaftel <zach@shaf.tel>
 ;; Maintainer: zach shaftel <zach@shaf.tel>
 ;; Created: May 14, 2026
-;; Version: 0.3.2
+;; Version: 0.3.3
 ;; Keywords: lisp, languages, tree-sitter
 ;; URL: https://codeberg.org/zshaftel/lisp-ts-mode
 ;; Package-Requires: ((emacs "30.2") cond-star (compat "31"))
@@ -65,14 +65,14 @@
 (add-to-list 'ts-language-source-alist
              '(common-lisp
                "https://codeberg.org/zshaftel/tree-sitter-cl-syntax"
-               :commit "13ed8fe10e336a55f88b714ddd5a5c21f382232e"
+               :commit "be6e40bf2b284d3051bada749b9c662be877d4a1"
                :source-dir "grammars/cl/src")
              t)
 
 (add-to-list 'ts-language-source-alist
              '(cl-format
                "https://codeberg.org/zshaftel/tree-sitter-cl-syntax"
-               :commit "13ed8fe10e336a55f88b714ddd5a5c21f382232e"
+               :commit "be6e40bf2b284d3051bada749b9c662be877d4a1"
                :source-dir "grammars/format/src")
              t)
 

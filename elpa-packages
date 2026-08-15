@@ -75,7 +75,6 @@
   :ignored-files ("COPYING"))
  (auctex :url "https://git.savannah.gnu.org/git/auctex.git"
   :branch "main"
-  :news "NEWS.org"
   :make "elpa"
   :doc ("doc/auctex.texi" "doc/preview-latex.texi"))
  (auctex-cont-latexmk	:url "https://github.com/ultronozm/auctex-cont-latexmk.el")
@@ -97,8 +96,8 @@
   ;; a "parallel" history to that of the upstream.
   :manual-sync t)
  (beacon		:url "https://github.com/Malabarba/beacon")
- (beardbolt		:url "https://github.com/joaotavora/beardbolt"
-  :readme "README.md")
+ ;; (beardbolt		:url "https://github.com/joaotavora/beardbolt"
+ ;;  :readme "README.md")
  (beframe		:url "https://github.com/protesilaos/beframe"
   :doc "README.org"
   :readme "README.md"
@@ -142,9 +141,7 @@
   :readme "README.org")
  (calibre               :url "https://git.disroot.org/kjartanoli/calibre.el")
  (cape			:url "https://github.com/minad/cape"
-  :doc "README.org"
-  :news "CHANGELOG.org"
-  :ignored-files ("LICENSE"))
+  :doc "README.org")
  (capf-autosuggest	:url "https://repo.or.cz/emacs-capf-autosuggest.git")
  (caps-lock		:url nil)
  (captain		:url nil)
@@ -181,9 +178,7 @@
  (cond-star             :core "lisp/emacs-lisp/cond-star.el")
  (constants             :url "https://github.com/cdominik/constants-for-Emacs")
  (consult		:url "https://github.com/minad/consult"
-  :doc "README.org"
-  :news "CHANGELOG.org"
-  :ignored-files ("LICENSE"))
+  :doc "README.org")
  (consult-denote		:url "https://github.com/protesilaos/consult-denote"
   :doc "README.org"
   :news "CHANGELOG.org"
@@ -195,12 +190,9 @@
   :news "changelog.org"
   :readme "readme.org")
  (context-coloring	:url "https://github.com/jacksonrayhamilton/context-coloring.git"
-  ;; FIXME: https://github.com/jacksonrayhamilton/context-coloring/issues/9
   )
  (corfu			:url "https://github.com/minad/corfu"
   :doc "README.org"
-  :news "CHANGELOG.org"
-  :ignored-files ("LICENSE")
   :renames (("extensions/" "")))
  (coterm		:url "https://repo.or.cz/emacs-coterm.git")
  (counsel		:url "https://github.com/abo-abo/swiper"
@@ -261,8 +253,7 @@
  (devicetree-ts-mode	:url "https://git.sr.ht/~akagi/devicetree-ts-mode"
   :ignored-files ("LICENSE"))
  (dicom			:url "https://github.com/minad/dicom"
-  :doc "README.org"
-  :ignored-files ("LICENSE"))
+  :doc "README.org")
  (dict-tree		:url nil) ;"http://www.dr-qubit.org/git/predictive.git"
  (diff-hl		:url "https://github.com/dgutov/diff-hl.git")
  (diffview            	:url "https://github.com/mgalgs/diffview-mode.git")
@@ -275,6 +266,10 @@
   :doc "README.org"
   :readme "README.md"
   :ignored-files ("COPYING" "doclicense.texi"))
+ (dired-sidebar		:url "https://github.com/jojojames/dired-sidebar")
+ ;;(disk
+ ;; FIXME: Waiting for copyright paperwork.
+ ;; :url "https://git.sr.ht/~rosell/disk.el")
  (disk-usage		:url "https://gitlab.com/ambrevar/emacs-disk-usage")
  (dismal		:url nil)
  (disproject		:url "https://github.com/aurtzy/disproject"
@@ -399,13 +394,14 @@
   :doc "README.org"
   :news "CHANGELOG.org"
   :ignored-files ("COPYING" "doclicense.texi"))
- (forgejo		:url "https://codeberg.org/thanosapollo/emacs-forgejo"
+ (forgejo		:url nil ;; "https://git.thanosapollo.org/emacs-forgejo"
   :lisp-dir "lisp")
  (frame-tabs		:url nil)
  (frog-menu		:url "https://github.com/clemera/frog-menu")
  (fsm			:url nil)
  (ftable		:url "https://github.com/casouri/ftable")
- (futur			:url nil)
+ (futur			:url nil
+  :readme "README.md")
  (gcmh			:url "https://gitlab.com/koral/gcmh")
  (ggtags		:url "https://github.com/leoliu/ggtags")
  (gited			:url nil)
@@ -415,7 +411,7 @@
  (gnome-c-style		:url "https://github.com/ueno/gnome-c-style.git")
  (gnome-dark-style      :url "https://github.com/dimagid/gnome-dark-style")
  (gnorb               	:url nil) ;; Was "https://github.com/girzel/gnorb"
- (gnosis		:url "https://git.thanosapollo.org/gnosis"
+ (gnosis		:url "https://git.thanosapollo.org/emacs-gnosis"
   :lisp-dir "lisp"
   :doc "docs/gnosis.org")
  (gnu-elpa		:url nil)
@@ -456,6 +452,9 @@
   :make ("kotl/kotl-autoloads.el")
   :doc "man/hyperbole.texi"
   :news "HY-NEWS")
+ (ibuffer-sidebar	:url "https://github.com/jojojames/ibuffer-sidebar"
+  :ignored-files ("LICENSE" "screenshots")
+  :readme "readme.org")
  (idlwave		:url "https://github.com/jdtsmith/idlwave"
   :doc "idlwave.texi"
   :news "CHANGES"
@@ -493,15 +492,13 @@
  (javaimp		:url nil)
  (jgraph-mode		:url nil)
  (jinx			:url "https://github.com/minad/jinx"
-  :doc "README.org"
-  :news "CHANGELOG.org"
-  :ignored-files ("LICENSE"))
+  :doc "README.org")
  (jit-spell		:url "https://github.com/astoff/jit-spell")
  (js2-mode		:url "https://github.com/mooz/js2-mode.git")
  (json-mode		:url nil)
  (jsonrpc		:core "lisp/jsonrpc.el")
  (jumpc			:url nil)
- (keymap-popup		:url "https://codeberg.org/thanosapollo/emacs-keymap-popup"
+ (keymap-popup		:url "https://git.thanosapollo.org/emacs-keymap-popup"
   :doc "docs/keymap-popup.org")
  (kind-icon		:url "https://github.com/jdtsmith/kind-icon")
  (kiwix			:url "https://repo.or.cz/kiwix.el.git"
@@ -530,6 +527,7 @@
   :doc "README.org"
   :news "CHANGELOG.org"
   :ignored-files ("COPYING" "doclicense.texi"))
+ (lisp-ts-mode		:url "https://codeberg.org/zshaftel/lisp-ts-mode")
  (listen		:url "https://github.com/alphapapa/listen.el"
   :release-branch "stable"
   :doc "README.org")
@@ -556,9 +554,7 @@
   )
  (map			:core "lisp/emacs-lisp/map.el")
  (marginalia		:url "https://github.com/minad/marginalia"
-  :doc "README.org"
-  :news "CHANGELOG.org"
-  :ignored-files ("LICENSE"))
+  :doc "README.org")
  (markchars		:url nil)
  (math-symbol-lists 	:url "https://github.com/vspinu/math-symbol-lists.git")
  (mathjax               :url "https://github.com/astoff/mathjax.el"
@@ -591,7 +587,7 @@
   :readme "README.md"
   :news "CHANGELOG.org"
   :ignored-files ("COPYING" "doclicense.texi"))
- (mpdired	:url "https://ledu-giraud.fr/mpdired.git")
+ (mpdired		:url "https://ledu-giraud.fr/mpdired.git")
  (multi-mode		:url nil)
  (multishell		:url "https://github.com/kenmanheimer/EmacsMultishell")
  (muse			:url "https://github.com/alexott/muse" ;FIXME: Not nearly in-sync
@@ -635,7 +631,7 @@
  (org-edna		:url "bzr::https://bzr.savannah.gnu.org/git/org-edna-el"
   ;; The Bzr<->Git bridge wasn't working well enough last time I tried.
   :manual-sync t)
- (org-gnosis		:url "https://git.thanosapollo.org/org-gnosis"
+ (org-gnosis		:url nil ;; "https://git.thanosapollo.org/org-gnosis"
   :doc "doc/org-gnosis.org")
  (org-jami-bot		:url "https://gitlab.com/hperrey/org-jami-bot"
   :ignored-files ("LICENSE"))
@@ -643,12 +639,8 @@
  ;;(org-drill		:url "https://gitlab.com/phillord/org-drill")
  (org-mem               :url "https://github.com/meedstrom/org-mem")
  (org-modern		:url "https://github.com/minad/org-modern"
-  :doc "README.org"
-  :news "CHANGELOG.org"
-  :ignored-files ("LICENSE"))
+  :doc "README.org")
  (org-notify		:url "https://github.com/p-m/org-notify"
-  ;; FIXME: Upstream diverged; https://github.com/p-m/org-notify/issues/9
-  ;; :merge t
   )
  (org-real		:url "https://codeberg.org/strawburster/org-real"
   :ignored-files ("LICENSE"))
@@ -663,9 +655,7 @@
  (orgalist            	:url nil)
  (osc			:url nil)
  (osm			:url "https://github.com/minad/osm"
-  :doc "README.org"
-  :news "CHANGELOG.org"
-  :ignored-files ("LICENSE"))
+  :doc "README.org")
  (other-frame-window	:url nil)
  (pabbrev             	:url "https://github.com/phillord/pabbrev.git")
  (paced			:url "bzr::bzr://bzr.savannah.nongnu.org/paced-el/trunk"
@@ -730,9 +720,8 @@
  (pyim			:url "https://github.com/tumashu/pyim.git")
  (pyim-basedict		:url "https://github.com/tumashu/pyim-basedict.git")
  (python		:core "lisp/progmodes/python.el")
- ;;(qrencode		:url "https://github.com/ruediger/qrencode-el"
- ;; ;; Waiting for confirmation from maintainer.
- ;; :ignored-files ("LICENSE.md"))
+ (qrencode		:url "https://github.com/ruediger/qrencode-el"
+  :ignored-files ("LICENSE.md"))
  (quarter-plane		:url nil)
  (queue			:url nil) ;"http://www.dr-qubit.org/git/predictive.git"
  ;; (rails-routes	:url "https://github.com/otavioschwanck/emacs-rails-routes")
@@ -773,6 +762,8 @@
  (scanner		:url "https://codeberg.org/rstocker/scanner.git")
  (scroll-restore	:url nil)
  (sed-mode		:url nil)
+ (sendai-theme		:url "https://git.sr.ht/~jimporter/sendai-theme"
+  )
  (seq			:url nil)
  (setup			:url "https://codeberg.org/pkal/setup.el")
  (shelisp		:url nil)
@@ -789,6 +780,8 @@
  (sisu-mode		:url nil)
  (site-lisp             :url "https://codeberg.org/pkal/site-lisp.el")
  (sketch-mode		:url "https://github.com/dalanicolai/sketch-mode")
+ (slang-ts-mode		:url "https://codeberg.org/Hikari/slang-ts-mode"
+  :ignored-files ("LICENSE"))
  (slime-volleyball	:url nil)
  (sm-c-mode 		:url nil)
  (smalltalk-mode	:url nil) ;; Was "git://git.sv.gnu.org/smalltalk"
@@ -849,9 +842,7 @@
   :doc "taxy-magit-section.info")
  (temp-buffer-browse  	:url "https://github.com/leoliu/temp-buffer-browse")
  (tempel		:url "https://github.com/minad/tempel"
-  :doc "README.org"
-  :news "CHANGELOG.org"
-  :ignored-files ("LICENSE"))
+  :doc "README.org")
  (termint		:url "https://github.com/milanglacier/termint.el"
   :readme "README.md")
  (test-simple         	:url "https://github.com/rocky/emacs-test-simple")
@@ -941,8 +932,6 @@
  (verilog-mode		:core "lisp/progmodes/verilog-mode.el")
  (vertico		:url "https://github.com/minad/vertico"
   :doc "README.org"
-  :news "CHANGELOG.org"
-  :ignored-files ("LICENSE")
   :renames (("extensions/" "")))
  (vertico-posframe	:url "https://github.com/tumashu/vertico-posframe")
  (vigenere 		:url nil)
@@ -974,6 +963,8 @@
   :readme "readme.rst")
  (wpuzzle		:url nil)
  (wrap-search		:url "https://dataswamp.org/~incal/wrap-search.git")
+ ;; Waiting for copyright paperwork.
+ ;;(xc			:url "https://codeberg.org/ryanprior/xc.el")
  (xclip			:url nil)
  (xeft                  :url "https://git.sr.ht/~casouri/xeft"
   :ignored-files ("*.gif"))

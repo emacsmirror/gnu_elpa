@@ -1,7 +1,7 @@
 #+TITLE: ELPA-Admin README
 #+DATE: 2022-12-11
 
-Copyright (C) 2010-2025 Free Software Foundation, Inc. \\
+Copyright (C) 2010-2026 Free Software Foundation, Inc. \\
 See the end of the file for license conditions.
 
 #+BEGIN_COMMENT
@@ -213,6 +213,11 @@ if the version is equal to FLAG.
 
 Note that the usage of this option is discouraged.  Only use it if the
 package maintainer explicitly wishes to use a "rolling release" model.
+
+** =:pdf FLAG=
+If FLAG is non-nil and if the package has a =:doc=, then build the doc
+also in PDF format in addition to the HTML format.
+Don't abuse it: this is rarely worthwhile.
 
 * Configuration (elpa-config)
 

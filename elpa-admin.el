@@ -49,6 +49,12 @@
 (require 'lisp-mnt)
 (require 'package)
 
+;; FIXME: `read-symbol-shorthands' as currently implemented is
+;; a gaping security hole.  So try and avoid the corresponding problems.
+(when (boundp 'permanently-enabled-local-variables)
+  (setq permanently-enabled-local-variables
+        (delq 'read-symbol-shorthands permanently-enabled-local-variables)))
+(put 'read-symbol-shorthands 'safe-local-variable nil)
 
 (defvar elpaa--release-subdir "archive/"
   "Subdirectory where the ELPA release files (tarballs, ...) will be placed.")
@@ -607,7 +613,27 @@ returns.  Return the selected revision."
   (let ((self (rassoc (file-name-nondirectory tarball) oldtarballs)))
     (when self
       (setq oldtarballs (delq self oldtarballs))))
-  (with-demoted-errors "elpaa--prune-old-tarballs: %S"
+  ;; First make sure the old tarballs are all compressed and remove any
+  ;; left-over duplicates (i.e. compressed + non-compressed of the same).
+  (with-demoted-errors "elpaa--prune-old-tarballs-1: %S"
+    (let ((deleted nil))
+      (dolist (oldtarball oldtarballs)
+        ;; Delete old non-compressed tarballs.
+        (let ((file (cdr oldtarball)))
+          (when (string-match "\\.\\(tar\\|el\\)\\'" file)
+            ;; Make sure we don't delete the file we just created.
+            (cl-assert (not (equal file (file-name-nondirectory tarball))))
+            (if (file-readable-p (expand-file-name (concat file ".lz") destdir))
+                (progn (push oldtarball deleted)
+                       (message "Deleting non-compressed tarball: %s" file)
+                       (delete-file (expand-file-name file destdir)))
+              ;; FIXME: This should never happen.
+              (message "!!Tarball without matching compressed file: %s" file)
+              (elpaa--call nil "lzip" (expand-file-name file destdir))
+              (setf (cdr oldtarball) (concat file ".lz"))))))
+      (setq oldtarballs (cl-set-difference oldtarballs deleted))))
+  ;; Then use a heuristic to decide which versions are worthy.
+  (with-demoted-errors "elpaa--prune-old-tarballs-2: %S"
     (when (nthcdr elpaa--keep-max oldtarballs)
       (let* ((keep (elpaa--keep-old oldtarballs elpaa--keep-max))
              (keep (nreverse (sort keep
@@ -1001,38 +1027,89 @@ Core folders are recursively searched, excluded files are ignored."
            (string-match-p re file-name))
          core-files)))))
 
-(defun elpaa--get-devel-version (dir pkg-spec)
-  "Compute the date-based pseudo-version used for devel builds."
-  (let* ((gitdate
-          (with-temp-buffer
-            (if (plist-get (cdr pkg-spec) :core)
-                (let ((core-files (elpaa--core-files pkg-spec))
-                      (default-directory (expand-file-name "emacs/")))
-                  ;; For core packages, don't use the date of the last
-                  ;; commit to the branch, but that of the last commit
-                  ;; to the core files.
-                  (apply #'elpaa--call t "git" "log" "--pretty=format:%cI" "--no-patch"
-                         "-1" "--" core-files))
-              ;; FIXME: Why follow symlinks?  I have the nagging feeling that
-              ;; this used to be needed for the :core case only, so not needed
-              ;; here any more.
-              (let* ((ftn (file-truename      ;; Follow symlinks!
-                           (expand-file-name (elpaa--main-file pkg-spec) dir)))
-                     (default-directory (file-name-directory ftn)))
-                (elpaa--call t "git" "show" "--pretty=format:%cI" "--no-patch")))
-            (buffer-string)))
-         (verdate
-          ;; Convert Git's date into something that looks like a version number.
-          ;; While we're at it, convert Git's date into its UTC equivalent,
-          ;; to try and make sure time-versions are monotone.
-          (format-time-string "%Y%m%d.%H%M%S"
-                              (elpaa--git-date-to-timestamp gitdate)
-                              0)))
+(defun elpaa--get-devel-datecount (dir pkg-spec &optional release-rev)
+  "Get the (GITDATE . COUNT) info for devel builds."
+  (with-temp-buffer
+    (cond
+     ((plist-get (cdr pkg-spec) :core)
+      (let ((core-files (elpaa--core-files pkg-spec))
+            (default-directory (expand-file-name "emacs/")))
+        ;; For core packages, don't use the date of the last
+        ;; commit to the branch, but that of the last commit
+        ;; to the core files.
+        (apply #'elpaa--call t "git" "log"
+               "--pretty=format:%H %cI" "--no-patch" "-1" "--" core-files)
+        (goto-char (point-min))
+        (let ((lastrev (if (search-forward " " nil t)
+                           (buffer-substring (point-min) (match-beginning 0))
+                         "HEAD"))
+              (gitdate (buffer-substring (point) (point-max))))
+          (erase-buffer)
+          (apply #'elpaa--call t "git" "rev-list" "--count" lastrev
+                 (if release-rev (concat "^" release-rev))
+                 "--" core-files)
+          (cons gitdate (buffer-string)))))
+     (t
+      ;; FIXME: Why follow symlinks?  I have the nagging feeling that
+      ;; this used to be needed for the :core case only, so not needed
+      ;; here any more.
+      (let* ((ftn (file-truename ;; Follow symlinks!
+                   (expand-file-name (elpaa--main-file pkg-spec) dir)))
+             (default-directory (file-name-directory ftn)))
+        (elpaa--call t "git" "show"
+                     "--pretty=format:%cI" "--no-patch")
+        (let ((gitdate (delete-and-extract-region (point-min) (point-max))))
+          (elpaa--call t "git" "rev-list" "--count" "HEAD"
+                       (if release-rev (concat "^" release-rev)))
+          (cons gitdate (buffer-string))))))))
+
+(defun elpaa--make-old-devel-vers (vers datecount)
+  (pcase-let*
+      ((`(,gitdate . ,_count) datecount)
+       (time (elpaa--git-date-to-timestamp gitdate))
+       (verdate
+        (concat vers (if (string-match "[0-9]\\'" vers) ".") "0."
+                ;; Convert Git's date into something that looks like
+                ;; a version number.  While we're at it, convert Git's
+                ;; date into its UTC equivalent, to try and make sure
+                ;; time-versions are monotone.
+                (format-time-string "%Y%m%d.%H%M%S" time 0))))
     ;; Get rid of leading zeros since ELPA's version numbers don't allow them.
     (replace-regexp-in-string "\\(\\`\\|[^0-9]\\)0+\\([0-9]\\)" "\\1\\2"
                               ;; Remove trailing newline or anything untoward.
-                              (replace-regexp-in-string "[^.0-9]+" ""
-                                                        verdate))))
+                              ;;(replace-regexp-in-string "[^.0-9]+" "" verdate)
+                              verdate)))
+
+(defun elpaa--make-new-devel-vers (vers datecount)
+  (pcase-let*
+      ((`(,gitdate . ,count) datecount)
+       (time (elpaa--git-date-to-timestamp gitdate))
+       (verdate
+        ;; Add a ".0." so that when the version number goes from
+        ;; NN.MM to NN.MM.1 we don't end up with the devel build
+        ;; of NN.MM comparing as more recent than NN.MM.1.
+        ;; But be careful to turn "2.3" into "2.3.0.DATE"
+        ;; and "2.3b" into "2.3b0.DATE".
+        ;; FIXME: Signal an error if OLDVERS < VERS < OLDVERS.0.DATE.
+        (concat vers (if (string-match "[0-9]\\'" vers) ".") "0."
+                (format-time-string
+                 (if (not (string-match "\\`[0-9]*\n\\'" count))
+                     ;; Old style format.
+                     "%Y%m%d.%H%M%S" (concat "%Y%m%d." (substring count 0 -1)))
+                 time 0))))
+    ;; FIXME: Before using this new DATE.COUNT scheme, we need to
+    ;; arrange the code so that we don't uselessly
+    ;; create a fresh new `foo-VERS.0.DATE.COUNT.tar' when we already
+    ;; have the corresponding `foo-VERS.0.DATE.TIME.tar'.
+    ;; Otherwise we'll artificially re-release "all" the `-devel'
+    ;; packages when the scheme changes.
+    ;; Maybe the easiest way to do that is to decide which scheme to use
+    ;; based on GITDATE.
+    ;; Get rid of leading zeros since ELPA's version numbers don't allow them.
+    (replace-regexp-in-string "\\(\\`\\|[^0-9]\\)0+\\([0-9]\\)" "\\1\\2"
+                              ;; Remove trailing newline or anything untoward.
+                              ;;(replace-regexp-in-string "[^.0-9]+" "" verdate)
+                              verdate)))
 
 (defun elpaa--get-package-spec (pkg &optional pkg-specs noerror)
   "Retrieve the property list for PKG from `elpaa--specs-file'.
@@ -1066,7 +1143,7 @@ SPECS is the list of package specifications."
   '(:auto-sync :branch :core :doc :excludes :ignored-files
     :lisp-dir :maintainer :make :manual-sync :merge :news ;;  :main-file
     :readme :release :release-branch :renames :rolling-release
-    :shell-command :url :version-map
+    :shell-command :url :version-map :pdf
     ;; Internal use only.
     :parent--package)
   "List of keywords that can appear in a spec.")
@@ -1286,19 +1363,30 @@ place the resulting tarball into the file named TARBALL-ONLY."
       ;; Do it before building the release tarball, because building
       ;; the release tarball may revert to some older commit.
       (let* ((vers (nth 1 metadata))
-             (date-version (elpaa--get-devel-version dir pkg-spec))
-             ;; Add a ".0." so that when the version number goes from
-             ;; NN.MM to NN.MM.1 we don't end up with the devel build
-             ;; of NN.MM comparing as more recent than NN.MM.1.
-             ;; But be careful to turn "2.3" into "2.3.0.DATE"
-             ;; and "2.3b" into "2.3b0.DATE".
-             (devel-vers
-              (concat vers (if (string-match "[0-9]\\'" vers) ".")
-                      "0." date-version))
-             (tarball (or tarball-only
-                          (format "%s%s-%s.tar"
-                                  elpaa--devel-subdir
-                                  pkgname devel-vers)))
+             (release-rev
+              (elpaa--get-release-revision
+                      dir pkg-spec vers
+                      (plist-get (cdr pkg-spec) :version-map)))
+             (datecount (elpaa--get-devel-datecount dir pkg-spec release-rev))
+             (old-devel-vers (elpaa--make-old-devel-vers vers datecount))
+             (new-devel-vers (elpaa--make-new-devel-vers vers datecount))
+             (devel-vers new-devel-vers)
+             (tarball
+              (or tarball-only
+                  (let ((old-name
+                         (format "%s%s-%s.tar"
+                                 elpaa--devel-subdir pkgname old-devel-vers))
+                        (new-name
+                         (format "%s%s-%s.tar"
+                                 elpaa--devel-subdir pkgname new-devel-vers)))
+                    (if (file-exists-p old-name)
+                        (progn
+                          (message "Pre-existing old devel version: %s"
+                                   old-name)
+                          (setq devel-vers old-devel-vers)
+                          old-name)
+                      (elpaa--message "New devel version: %s" new-name)
+                      new-name))))
              (new
               (let ((elpaa--name (concat elpaa--name "-devel"))
                     (elpaa--url elpaa--devel-url))
@@ -1354,10 +1442,7 @@ place the resulting tarball into the file named TARBALL-ONLY."
                                  elpaa--release-subdir pkgname vers)))
             (when (elpaa--make-one-tarball
                    tarball dir pkg-spec vers
-                   (lambda ()
-                     (elpaa--get-release-revision
-                      dir pkg-spec vers
-                      (plist-get (cdr pkg-spec) :version-map))))
+                   (lambda () release-rev))
               (elpaa--release-email pkg-spec metadata dir))))))))))
 
 (defun elpaa--call (destination program &rest args)
@@ -1386,6 +1471,11 @@ PROGRAM, DESTINATION, ARGS is like in `elpaa--call'."
     (elpaa--message "call-sandboxed %S" args)
     (let ((dd (expand-file-name default-directory))) ;No `~' allowed!
       (setq args (nconc `("--bind" ,dd ,dd) args)))
+    (when (file-directory-p "/var/lib/texmf")
+      ;; Hack for LaTeX.
+      (setq args (append '("--overlay-src" "/var/lib/texmf"
+                           "--tmp-overlay" "/var/lib/texmf")
+                         args)))
     ;; Add read-only dirs in reverse order.
     (dolist (b (append elpaa--sandbox-ro-binds
                        elpaa--sandbox-extra-ro-dirs))
@@ -1393,8 +1483,12 @@ PROGRAM, DESTINATION, ARGS is like in `elpaa--call'."
         (setq b (expand-file-name b))
         (setq args (nconc `("--ro-bind" ,b ,b) args))))
     (let ((exitcode
-           (apply #'elpaa--call destination "bwrap"
-                  (append elpaa--bwrap-args args))))
+           ;; Don't inherit MAKEFLAGS from any surrounding make process,
+           ;; nor TMP/TMPDIR since the container uses its own tmp dir.
+           (let ((process-environment `("MAKEFLAGS" "TMP" "TMPDIR"
+                                        ,@process-environment)))
+             (apply #'elpaa--call destination "bwrap"
+                    (append elpaa--bwrap-args args)))))
       (unless (eq exitcode 0)
         (if (eq destination t)
             (error "Error-indicating exit code in elpaa--call-sandboxed:\n%s"
@@ -1429,6 +1523,17 @@ PROGRAM, DESTINATION, ARGS is like in `elpaa--call'."
       (apply orig-fun header args)
     (or (apply orig-fun "package-maintainer" args)
         (apply orig-fun header args))))
+
+;; FIXME: Fix that in `package-buffer-info'.
+(advice-add 'lm-package-requires :around #'elpaa--demote-deps-syntax-errors)
+(defun elpaa--demote-deps-syntax-errors (orig-fun &rest args)
+  (condition-case err
+      (apply orig-fun args)
+    (error
+     ;; FIXME: Sadly, the invalid version number causes errors later on.
+     ;;`((syntax-error-in-Package-Requires ,(error-message-string err)))
+     `((syntax-error-in-Package-Requires "0")
+       (,(make-symbol (error-message-string err)) "0")))))
 
 (defun elpaa--metadata (dir pkg-spec)
   "Return a list (SIMPLE VERSION DESCRIPTION REQ EXTRAS).
@@ -1555,7 +1660,7 @@ Rename DIR/ to PKG-VERS/, and return the descriptor."
     (pcase-let ((`(,version ,desc ,requires ,extras)
                  (cdr metadata)))
       (write-region
-       (concat (format ";; Generated package description from %s.el  -*- %sno-byte-compile: t -*-\n"
+       (concat (format ";; Generated package description from %s.el  -*- %sno-byte-compile: t; lexical-binding:t -*-\n"
 		       name
 		       (let* ((emacs-req (assq 'emacs requires))
 		              (emacs-vers (car (cadr emacs-req))))
@@ -1792,6 +1897,7 @@ which see."
     ((or "md" "markdown") 'text/markdown)
     (_
      (require 'mailcap)
+     (declare-function mailcap-extension-to-mime "mailcap" (extn))
      (let ((mt (if ext (mailcap-extension-to-mime ext))))
          (if mt (intern mt) 'text/plain)))))
 
@@ -2902,11 +3008,9 @@ directory; one of archive, archive-devel."
       (let ((default-directory
              (if input-dir (expand-file-name input-dir)
                default-directory)))
-        ;; FIXME: The name of the output file is splattered all over the output
-        ;; file, so it ends up wrong after renaming.  Maybe it's harmless,
-        ;; I don't know, but it's not satisfactory.
-        (apply #'elpaa--call-sandboxed
-               t "makeinfo" "--no-split" input-name "-o" tmpfile extraargs))
+        (apply #'elpaa--call-sandboxed t
+               "makeinfo" `("--no-split" "--force"
+                            ,input-name "-o" ,tmpfile ,@extraargs)))
       (unless (= (point-min) (point-max))
         (message "%s" (buffer-string))))
     (elpaa--message "Renaming %S => %S" tmpfile output)
@@ -2915,12 +3019,12 @@ directory; one of archive, archive-devel."
     ;; the empty temp dir ends up in the tarball (bug#80217).
     (delete-directory tmpdir 'recursive)))
 
-(defun elpaa--html-build-doc (pkg-spec docfile html-dir)
-  (setq html-dir (directory-file-name html-dir))
+(defun elpaa--html-build-doc (pkg-spec docfile doc-dir)
+  (setq doc-dir (directory-file-name doc-dir))
   (let* ((destname (elpaa--doc-html-file docfile))
-	 (html-file (expand-file-name destname html-dir))
+	 (html-file (expand-file-name destname doc-dir))
 	 (html-xref-file
-	  (expand-file-name destname (file-name-directory html-dir))))
+	  (expand-file-name destname (file-name-directory doc-dir))))
     (elpaa--makeinfo docfile html-file
                      (list "--html" (format "--css-ref=%s" elpaa--css-url)))
     (elpaa--doc-html-adjust-auxfiles pkg-spec docfile html-file
@@ -2931,7 +3035,7 @@ directory; one of archive, archive-devel."
 
     ;; Create a symlink from elpa/archive[-devel]/doc/* to
     ;; the actual file, so html references work.
-    (let ((target (file-name-concat (file-name-nondirectory html-dir)
+    (let ((target (file-name-concat (file-name-nondirectory doc-dir)
                                     destname))
           (current-target (file-attribute-type
                            (file-attributes html-xref-file))))
@@ -2942,6 +3046,16 @@ directory; one of archive, archive-devel."
        ((equal target current-target) nil) ;Nothing to do.
        (t (error "Manual name %S conflicts with %S"
                  destname current-target))))))
+
+(defun elpaa--pdf-build-doc (pkg-spec docfile doc-dir)
+  (let* ((destname (concat (file-name-base docfile) ".pdf"))
+	 (pdf-file (expand-file-name destname doc-dir)))
+    (elpaa--makeinfo docfile pdf-file (list "--pdf"))
+    (push (cons "(pdf)"
+                (file-relative-name pdf-file
+                                    (file-name-directory
+                                     (directory-file-name doc-dir))))
+          (plist-get (cdr pkg-spec) :internal--html-docs))))
 
 (defun elpaa--doc-html-adjust-auxfiles (pkg-spec docfile html-file offset)
   ;; (let* ((auxfiles (elpaa--spec-get pkg-spec :doc-files)))
@@ -2988,10 +3102,10 @@ directory; one of archive, archive-devel."
         (let ((make-backup-files nil))
           (save-buffer))))))
 
-(defun elpaa--build-Info-1 (pkg-spec docfile dir html-dir)
+(defun elpaa--build-Info-1 (pkg-spec docfile dir doc-dir)
   "Build an info file from DOCFILE (a texinfo source file).
-DIR must be the package source directory.  If HTML-DIR is
-non-nil, also build html files, store them there.  HTML-DIR is
+DIR must be the package source directory.  If DOC-DIR is
+non-nil, also build html files, store them there.  DOC-DIR is
 relative to elpa root."
   (let* ((elpaa--sandbox-ro-binds
           (cons default-directory elpaa--sandbox-ro-binds))
@@ -3028,7 +3142,10 @@ relative to elpa root."
         (elpaa--temp-file info-file)
         (elpaa--makeinfo docfile info-file)
 
-	(when html-dir (elpaa--html-build-doc pkg-spec docfile html-dir))
+	(when doc-dir
+	  (elpaa--html-build-doc pkg-spec docfile doc-dir)
+	  (when (elpaa--spec-get pkg-spec :pdf)
+	    (elpaa--pdf-build-doc pkg-spec docfile doc-dir)))
 
         (setq docfile info-file)))
 
@@ -3295,6 +3412,8 @@ relative to elpa root."
 
 (defun elpaa-ert-package-install (top-directory package)
   ;; blitz default value and set up from elpa.
+  ;; (unless (file-directory-p (expand-file-name (format "packages/%s" package)
+  ;;                                             top-directory))
   (setq package-archives
         `(("local-elpa"
 	   . ,(expand-file-name "packages" top-directory)))
@@ -3325,12 +3444,11 @@ relative to elpa root."
    (elpaa-ert-test-find-tests package-directory package)))
 
 (defun elpaa-ert-test-package (top-directory package)
-  (elpaa-ert-package-install top-directory package)
-  (elpaa-ert-load-tests
-   (expand-file-name (format "packages/%s" package) top-directory)
-   package)
-
-  (ert-run-tests-batch-and-exit t))
+  ;; (elpaa-ert-package-install top-directory package)
+  (let ((default-directory
+         (expand-file-name (format "packages/%s" package) top-directory)))
+    (elpaa-ert-load-tests default-directory package)
+    (ert-run-tests-batch-and-exit t)))
 
 ;;; Make dependencies
 
@@ -3515,7 +3633,7 @@ relative to elpa root."
          (pkg (intern pkgname))
          (pkg-spec (assoc-string pkg (elpaa--get-specs) t))
          (srcdir (format "packages/%s" pkg))
-         (files 
+         (files
           (elpaa--package-oldfiles
            pkgname
            (file-name-directory (expand-file-name filename)))))
@@ -3561,10 +3679,10 @@ relative to elpa root."
             ,@entries)))
         (write-region (point-min) (point-max) filename)))))
 
-(provide 'elpa-admin)
 
 ;; Local Variables:
 ;; nameless-current-name: "elpaa"
 ;; End:
 
+(provide 'elpa-admin)
 ;;; elpa-admin.el ends here

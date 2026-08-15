@@ -58,7 +58,7 @@ program."
 The following %-sequences are replaced:
 
   %m - the message text
-  %s - suggestions, in parentheses preceded by a space 
+  %s - suggestions, in parentheses preceded by a space
   %c - the error code
   %p - numerical priority"
   :type 'string)
@@ -69,10 +69,10 @@ The following %-sequences are replaced:
       ;; FIXME: If harper is not installed, this will be nil until the
       ;; package is re-compiled.
       (with-temp-buffer
-	(call-process flymake-harper-executable nil t nil "config")
-	(goto-char (point-min))
-	(let ((config (json-parse-buffer :object-type 'alist)))
-	  (mapcar #'car config)))))
+        (call-process flymake-harper-executable nil t nil "config")
+        (goto-char (point-min))
+        (let ((config (json-parse-buffer :object-type 'alist)))
+          (mapcar #'car config)))))
   "List of Harper options.")
 
 (defconst flymake-harper--custom-type
@@ -108,26 +108,26 @@ Flymake diagnostic objects."
   (let (diags)
     (dolist (lint data)
       (let ((rule (plist-get lint :rule))
-	    (span (plist-get lint :span)))
-	(unless (memq rule flymake-harper-disable)
-	  (push (flymake-make-diagnostic
-		 source
-		 (1+ (plist-get span :char_start))
-		 (1+ (plist-get span :char_end))
-		 (pcase (plist-get lint :priority)
-		   ;; FIXME: I am not sure if these are the actual
-		   ;; thresholds, we should ask if around.
-		   ((pred (< 50)) :error)
-		   ((pred (< 25)) :warning)
-		   (_ :note))
-		 (format-spec
-		  flymake-harper-message-format
-		  `((?m . ,(plist-get lint :message))
+            (span (plist-get lint :span)))
+        (unless (memq rule flymake-harper-disable)
+          (push (flymake-make-diagnostic
+                 source
+                 (1+ (plist-get span :char_start))
+                 (1+ (plist-get span :char_end))
+                 (pcase (plist-get lint :priority)
+                   ;; FIXME: I am not sure if these are the actual
+                   ;; thresholds, we should ask if around.
+                   ((pred (< 50)) :error)
+                   ((pred (< 25)) :warning)
+                   (_ :note))
+                 (format-spec
+                  flymake-harper-message-format
+                  `((?m . ,(plist-get lint :message))
                     (?c . ,(plist-get lint :rule))
                     (?s . ,(and-let* ((sug (plist-get lint :suggestions)))
-			     (concat " (" (string-join sug ", ") ")")))
-		    (?p . ,(plist-get lint :priority)))))
-		diags))))
+                             (concat " (" (string-join sug ", ") ")")))
+                    (?p . ,(plist-get lint :priority)))))
+                diags))))
     diags))
 
 (defvar-local flymake-harper--flymake-proc nil)
@@ -153,7 +153,7 @@ Flymake diagnostic objects."
                 ((condition-case err
                      (let ((response (json-parse-buffer :object-type 'plist
                                                         :array-type 'list)))
-		       (thread-last
+                       (thread-last
                          (plist-get (car response) :lints)
                          (flymake-harper-sentinel-1 source)
                          (funcall report-fn)))
@@ -180,7 +180,7 @@ node `(flymake) Backend functions' for more details."
                :command
                (list flymake-harper-executable "lint" "--format=json")
                :sentinel (flymake-harper-make-sentinel (current-buffer) report-fn)
-	       :stderr (get-buffer-create " *harper-flymake-stderr*"))))
+               :stderr (get-buffer-create " *harper-flymake-stderr*"))))
     (setq flymake-harper--flymake-proc proc)
     (save-restriction
       (widen)

@@ -6,7 +6,7 @@
 ;;         Philip Kaludercic <philipk@posteo.net>
 ;; Maintainer: Philip Kaludercic <philipk@posteo.net>
 ;; Version: 0.1.0
-;; Keywords: convenience
+;; Keywords: convenience, text
 ;; Package-Requires: ((emacs "27.1"))
 ;; URL: https://codeberg.org/pkal/flymake-harper.el
 

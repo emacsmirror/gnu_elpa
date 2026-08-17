@@ -8,7 +8,7 @@
 ;; Modified: 2 Jul 2023
 ;; Version: 3.1.16
 ;; Keywords: tools, convenience
-;; URL: https://github.com/cjohansson/emacs-ssh-deploy
+;; URL: https://forgejo.cvj.se/cjohansson/emacs-ssh-deploy
 
 ;; Package-Requires: ((emacs "25"))
 

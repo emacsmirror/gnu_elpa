@@ -135,7 +135,7 @@
 Respect the connection-local value of user option `kubed-kubectl-program'."
   (if-let* ((hop-dir (kubed-tramp--previous-hop vec)))
       (let ((default-directory hop-dir))
-        (connection-local-value kubed-kubectl-program 'kubed))
+        (kubed-kubectl-program))
     kubed-kubectl-program))
 
 (defun kubed-tramp-get-method-parameter-advice (of vec param &rest rest)

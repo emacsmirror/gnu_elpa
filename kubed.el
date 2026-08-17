@@ -106,10 +106,6 @@ The value 0 says to fetch and show all available log lines without limit."
   "Specification of resource name column in Kubernetes resource list buffers."
   :type '(list string natnum boolean))
 
-(defsubst kubed-kubectl-program ()
-  "Return the connection-local value of variable `kubed-kubectl-program'."
-  (connection-local-value kubed-kubectl-program 'kubed))
-
 (defcustom kubed-execution-environment-buffer-locals
   '(process-environment exec-path)
   "List of buffer-local variables that affect how `kubectl' runs.

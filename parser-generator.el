@@ -8,7 +8,7 @@
 ;; Modified: 5 Jan 2025
 ;; Version: 0.2.9
 ;; Keywords: tools, convenience
-;; URL: https://github.com/cjohansson/emacs-parser-generator
+;; URL: https://forgejo.cvj.se/cjohansson/emacs-parser-generator
 
 ;; Package-Requires: ((emacs "26"))
 

@@ -95,6 +95,14 @@
   (unless (assoc kubed-tramp-method tramp-methods)
     (user-error "Kubed Tramp support requires Tramp version 2.7 or later")))
 
+(defun kubed--format-spec (format specification)
+  (if (fboundp 'tramp-format-spec)
+      (tramp-format-spec format specification)
+    ;; Copied from `tramp-format-spec'.
+    (format-spec
+     (replace-regexp-in-string (rx "%" (group (= 2 alnum))) "%%\\1" format)
+     specification)))
+
 (defun kubed-tramp--previous-hop (vec)
   (or
    ;; Previous hop explicit in VEC.
@@ -114,7 +122,7 @@
 	     (string-match-p
 	      (or (eval (nth 1 item) t) "")
 	      (or (tramp-file-name-user-domain vec) "")))
-        (tramp-format-spec
+        (kubed--format-spec
 	 (eval (nth 2 item) t)
 	 (format-spec-make
 	  ?u (or (tramp-file-name-user vec) "")

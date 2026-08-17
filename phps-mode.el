@@ -8,7 +8,7 @@
 ;; Modified: 9 Jan 2025
 ;; Version: 0.4.52
 ;; Keywords: tools, convenience
-;; URL: https://github.com/cjohansson/emacs-phps-mode
+;; URL: https://forgejo.cvj.se/cjohansson/emacs-phps-mode
 
 ;; Package-Requires: ((emacs "26"))
 

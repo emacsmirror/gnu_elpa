@@ -107,8 +107,7 @@
   (or
    ;; Previous hop explicit in VEC.
    (when-let* ((hop (tramp-file-name-hop vec)))
-     (tramp-make-tramp-file-name
-      (tramp-dissect-hop-name (tramp-file-name-hop vec))))
+     (tramp-make-tramp-file-name (tramp-dissect-hop-name hop)))
    ;; Implicit previous hop registered in `tramp-default-proxies-alist'.
    (seq-some
     (lambda (item)

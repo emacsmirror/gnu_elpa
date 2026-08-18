@@ -1,6 +1,12 @@
 @comment @itemize @w{}
 @comment @item
 
+Changes and New Features in 27.XX.0:
+@itemize @bullet
+@item SAS function names are now automatically generated;
+see @code{etc/func.sas}.
+@end itemize
+
 Changes and New Features in 26.01.0:
 @itemize @bullet
 @item ESS[BUGS] is still relevant due to NIMBLE keeping the language alive.

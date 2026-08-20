@@ -1,4 +1,4 @@
-;;; flymake-harper.el --- Flymake backend for harper -*- lexical-binding: t; -*-
+;;; flymake-harper.el --- Flymake backend for Harper -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2021-2026  Free Software Foundation, Inc.
 

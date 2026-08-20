@@ -126,7 +126,8 @@ Flymake diagnostic objects."
                     (?c . ,(plist-get lint :rule))
                     (?s . ,(and-let* ((sug (plist-get lint :suggestions)))
                              (concat " (" (string-join sug ", ") ")")))
-                    (?p . ,(plist-get lint :priority)))))
+                    (?p . ,(plist-get lint :priority)))
+                  'delete))
                 diags))))
     diags))
 

@@ -187,6 +187,7 @@ node `(flymake) Backend functions' for more details."
       (process-send-region proc (point-min) (point-max))
       (process-send-eof proc))))
 
+;;;###autoload
 (defun flymake-harper-setup ()
   "Set up the Harper as a Flymake backend in this buffer.
 The Flymake minor mode will be enabled if it is not already enabled.."

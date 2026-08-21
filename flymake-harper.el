@@ -5,7 +5,7 @@
 ;; Author: Manuel Uberti <manuel.uberti@inventati.org>,
 ;;         Philip Kaludercic <philipk@posteo.net>
 ;; Maintainer: Philip Kaludercic <philipk@posteo.net>
-;; Version: 0.1.0
+;; Version: 0.1.1
 ;; Keywords: convenience, text
 ;; Package-Requires: ((emacs "27.1"))
 ;; URL: https://codeberg.org/pkal/flymake-harper.el
@@ -31,6 +31,12 @@
 ;; with by calling `flymake-harper-setup' manually or using a hook.
 ;; Configure `flymake-harper-disable' to disable certain types of
 ;; warnings, if you are experiencing too many false positives.
+
+;;; News:
+
+;; Version 0.1.1 fixes minor mistakes from the previous release.  The
+;; only user-noticeable change should be that `flymake-harper-setup'
+;; is auto-loaded and can therefore be added directly to mode hooks.
 
 ;;; Code:
 

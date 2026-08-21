@@ -2,6 +2,10 @@
 #+author: Daniel Mendler
 #+language: en
 
+* Development
+
+- =cape-dabbrev=: Inhibit redisplay to prevent flicker.
+
 * Version 2.8 (2026-08-01)
 
 - =cape-dict=, =cape-dabbrev=: Down case candidates if input is all lower case.

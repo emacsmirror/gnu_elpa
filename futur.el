@@ -168,6 +168,14 @@ Only a single iteration can proceed on a given queue at the same time."
 (declare-function thread-live-p "thread")
 (declare-function thread-signal "thread")
 
+(defun futur--make-thread (f name)
+  (condition-case nil
+      (with-suppressed-warnings ((callargs make-thread))
+        (make-thread f name 'silently))
+    (wrong-number-of-arguments ;; Emacs<31
+     (with-current-buffer (get-buffer-create " *futur--background*")
+       (make-thread f name)))))
+
 (defvar futur-use-threads (fboundp 'make-thread) ;New in Emacs-26
   "If non-nil, futur will use timers for background tasks instead.
 Threads have the advantage that we can make sure background tasks are
@@ -206,14 +214,6 @@ and limitations.")
                (futur--queue-dequeue futur--pending))))
         (with-demoted-errors "future--background: %S"
           (apply pending))))))
-
-(defun futur--make-thread (f name)
-  (condition-case nil
-      (with-suppressed-warnings ((callargs make-thread))
-        (make-thread f name 'silently))
-    (wrong-number-of-arguments ;; Emacs<31
-     (with-current-buffer (get-buffer-create " *futur--background*")
-       (make-thread f name)))))
 
 (defun futur--funcall (&rest args)
   "Call ARGS like `funcall' but outside of the current dynamic scope.

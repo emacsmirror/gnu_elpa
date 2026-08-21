@@ -24,6 +24,17 @@
 
 ;;; Code:
 
+(when futur-tests--no-threads
+  ;; Simulate a build without threads support.
+  (dolist (f '( thread-yield make-thread current-thread thread-name
+                thread-signal thread-live-p thread-join thread--blocker
+                all-threads make-mutex mutex-lock mutex-unlock mutex-name
+                make-condition-variable condition-wait condition-notify
+                condition-mutex condition-name thread-last-error
+                thread-buffer-disposition thread-set-buffer-disposition))
+    (fset f nil))
+  (setq features (delq 'threads features)))
+
 (require 'futur)
 (require 'futur-elisp)
 (require 'ert)

@@ -29,6 +29,10 @@
 
 ;;; News:
 
+;; Recent:
+
+;; - Fix issues found when using timers instead of threads.
+
 ;; Version 2.0:
 
 ;; - New functions `futur-elisp-funcall' and `futur-elisp-sandbox-funcall'
@@ -189,6 +193,15 @@ and limitations.")
   (when futur-use-threads
     (futur--make-thread #'futur--background "futur--background")))
 
+(defconst futur--proc-bug80468
+  ;; Create dummy process so we can force re-consulting the list of timers
+  ;; by causing some process output.
+  (unless futur-use-threads
+    (let ((proc (start-process "futur-bug80468" nil nil)))
+      (set-process-filter proc #'ignore)
+      (set-process-sentinel proc #'ignore)
+      proc)))
+
 (defvar futur--pending (futur--queue)
   "Pending operations.")
 
@@ -221,7 +234,9 @@ The code is conceptually run in another thread and while we try to run as
 soon as possible, and fairly, we do not guarantee the specific
 time or order of execution."
   (if (not futur--background)
-      (apply #'run-with-timer 0 nil args)
+      (progn
+        (apply #'run-with-timer 0 nil args)
+        (process-send-string futur--proc-bug80468 "\n"))
     (with-mutex futur--pending-mutex
       (futur--queue-enqueue futur--pending args)
       ;; FIXME: Maybe we should have a combo

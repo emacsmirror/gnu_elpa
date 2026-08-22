@@ -24,7 +24,7 @@
 
 ;;; Code:
 
-(when futur-tests--no-threads
+(when (bound-and-true-p futur-tests--no-threads)
   ;; Simulate a build without threads support.
   (dolist (f '( thread-yield make-thread current-thread thread-name
                 thread-signal thread-live-p thread-join thread--blocker

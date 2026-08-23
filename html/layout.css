@@ -109,7 +109,7 @@ header {
 
 					/* The navbar links are not really text-links so we don't want
 						 :visited to change their color. */
-					color: HighlightText !important;
+					color: var(--foreground) !important;
 				}
 
 				@media (min-width: 90ch) {

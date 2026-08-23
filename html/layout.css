@@ -31,6 +31,7 @@ GNU General Public License for more details. */
 
 	} */
 
+	--page-width: 100ch;
 	--radius: 1ch;
 }
 
@@ -41,7 +42,7 @@ html {
 }
 
 body {
-	max-width: 100ch;
+	max-width: var(--page-width);
 	margin: auto;
 	padding: var(--radius);
 	background: var(--background);
@@ -112,7 +113,7 @@ header {
 					color: var(--foreground) !important;
 				}
 
-				@media (min-width: 90ch) {
+				@media (min-width: calc(var(--page-width) * 2 * var(--radius))) {
 					&.other {
 						float: right;
 					}
@@ -157,7 +158,7 @@ main {
 	search input {
 		margin: var(--radius) auto;
 		display: block;
-		width: min(50ch, 100%);
+		width: min(calc(var(--page-width) / 2), 100%);
 		font-size: larger;
 	}
 
@@ -211,7 +212,7 @@ main {
 			}
 		}
 
-		@media (min-width: 90ch) {
+		@media (min-width: calc(var(--page-width) * 2 * var(--radius))) {
 			&+dl {
 				display: grid;
 				grid-template-columns: max-content auto;
@@ -229,7 +230,7 @@ footer {
 	text-align: center;
 }
 
-@media (max-width: 100ch) {
+@media (calc(var(--page-width) * 2 * var(--radius))) {
 	body {
 		padding: 0;
 

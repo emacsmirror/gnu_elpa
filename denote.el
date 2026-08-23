@@ -485,7 +485,8 @@ and the text of the current heading, like this:
 
     [[denote:20240118T060608::*Heading text][Some test::Heading text]].
 
-If the value is `local', the link consists of the text of the current heading, like this:
+If the value is `local', the link consists of the text of the current
+heading, like this:
 
     [[*Heading text][Heading text]].
 

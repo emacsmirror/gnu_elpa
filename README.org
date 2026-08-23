@@ -3414,9 +3414,16 @@ and the text of the current heading, like this:
 
 : [[denote:20240118T060608::*Heading text][Some test::Heading text]].
 
+If the value is ~local~, the link consists of the text of the current
+heading, like this:
+
+: [[*Heading text][Heading text]].
+
+[ The ~local~ option is part of {{{development-version}}}. ]
+
 However, if there already exists a =CUSTOM_ID= property for the
 current heading, this is always given priority and is used instead of
-the context.
+the context or local heading.
 
 If the value is ~id~ or, for backward-compatibility, any other non-nil
 value, then Denote will use the standard Org mechanism of the

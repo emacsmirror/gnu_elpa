@@ -107,7 +107,8 @@ Each function must accept a timer as argument."
 (defcustom tmr-timer-repeat-functions
   (list #'tmr-sound-play
         #'tmr-notification-notify
-        #'tmr-print-message-for-repeating-timer)
+        #'tmr-print-message-for-repeating-timer
+        #'tmr-acknowledge-minibuffer)
   "Functions to execute when a timer is about to repeat.
 Each function must accept a timer as argument."
   :type 'hook
@@ -509,7 +510,11 @@ optional `tmr--timer-description'."
               "")
             (propertize "Started" 'face 'tmr-start-time)
             start
-            (propertize "Ends" 'face 'tmr-end-time)
+            (propertize
+             (if (time-less-p (current-time) (tmr--timer-end-date timer))
+                 "Ends"
+               "Ended")
+             'face 'tmr-end-time)
             end)))
 
 (defun tmr--format-creation-date (timer)
@@ -884,13 +889,19 @@ If optional DEFAULT is provided use it as a default candidate."
   "Ask the user if a timer must be acknowledged."
   (y-or-n-p "Acknowledge timer after finish? "))
 
+(defun tmr--acknowledge-prompt-text (timer)
+  "Return prompt text for TIMER acknowledgement."
+  (if (< 0 (tmr--timer-repeat-count timer))
+       (tmr--long-description-for-repeated-timer timer)
+     (tmr--long-description-for-finished-timer timer)))
+
 (defun tmr-acknowledge-dialog (timer)
   "Acknowledge TIMER by showing a GUI dialog."
   (when-let* (((tmr--timer-acknowledgep timer))
               (duration
                (x-popup-dialog
                 t
-                `(,(tmr--long-description-for-finished-timer timer)
+                `(,(tmr--acknowledge-prompt-text timer)
                   ("Acknowledge" . nil)
                   ("+ 1 m" . 60)
                   ("+ 5 m" . 300)
@@ -906,7 +917,7 @@ If optional DEFAULT is provided use it as a default candidate."
         (let ((input
                (read-from-minibuffer
                 (format "%s\nAcknowledge with `%s' or additional duration: "
-                        (tmr--long-description-for-finished-timer timer)
+                        (tmr--acknowledge-prompt-text timer)
                         tmr-acknowledge-timer-text))))
           (not (or (equal input tmr-acknowledge-timer-text)
                    (when-let* ((duration
@@ -955,20 +966,42 @@ This function is used if a timer is not acknowledged."
                  (propertize (tmr--format-duration timer) 'face 'tmr-duration)
                  (propertize (number-to-string count) 'face 'tmr-repeat-count)))))))
 
+(defun tmr--finish (timer)
+  "Complete finished TIMER and run `tmr-timer-finished-functions'."
+  (setf (tmr--timer-finishedp timer) t)
+  (run-hooks 'tmr--update-hook)
+  (run-hook-with-args 'tmr-timer-finished-functions timer))
+
+(defun tmr--schedule-next-repetition (timer)
+  "Handle TIMER with repetition."
+  (setf (tmr--timer-repeat-count timer) (- (tmr--timer-repeat-count timer) 1))
+  (setf (tmr--timer-end-date timer) (time-add (current-time) (tmr--timer-duration timer)))
+  (setf (tmr--timer-timer-object timer) (run-with-timer (tmr--timer-duration timer) nil #'tmr--complete timer))
+  (run-hooks 'tmr--update-hook))
+
+(defun tmr--repeat-with-acknowledgement (timer)
+  "Handle repeat TIMER with acknowledgement."
+  (setf (tmr--timer-timer-object timer) nil)
+  (run-hooks 'tmr--update-hook)
+  (run-hook-with-args 'tmr-timer-repeat-functions timer)
+  (unless (tmr--timer-timer-object timer)
+    (tmr--schedule-next-repetition timer)
+    (run-hook-with-args 'tmr-timer-created-functions timer)))
+
+(defun tmr--repeat-immediately (timer)
+  "Repeat TIMER and run `tmr-timer-repeat-functions'."
+  (tmr--schedule-next-repetition timer)
+  (run-hook-with-args 'tmr-timer-repeat-functions timer))
+
 (defun tmr--complete (timer)
-  "Mark TIMER as finished or repeat it, if appropriate, and execute hooks."
-  (if (>= 0 (tmr--timer-repeat-count timer))
-      (progn
-        (setf (tmr--timer-finishedp timer) t)
-        (run-hooks 'tmr--update-hook)
-        (run-hook-with-args 'tmr-timer-finished-functions timer))
-    (setf (tmr--timer-repeat-count timer) (1- (tmr--timer-repeat-count timer)))
-    (setf (tmr--timer-end-date timer) (time-add (tmr--timer-end-date timer)
-                                                (tmr--timer-duration timer)))
-    (setf (tmr--timer-timer-object timer)
-          (run-with-timer (tmr--timer-duration timer) nil #'tmr--complete timer))
-    (run-hooks 'tmr--update-hook)
-    (run-hook-with-args 'tmr-timer-repeat-functions timer)))
+  "Handle completed TIMER or repeat it if appropriate."
+  (cond
+   ((>= 0 (tmr--timer-repeat-count timer))
+    (tmr--finish timer))
+   ((tmr--timer-acknowledgep timer)
+    (tmr--repeat-with-acknowledgement timer))
+   (t
+    (tmr--repeat-immediately timer))))
 
 (defun tmr--subr (time description acknowledgep repeat-count)
   "Do the work of `tmr' and `tmr-repeat'.
@@ -1050,8 +1083,9 @@ REPEAT-COUNT is an integer indicating how many times the timer shall be
 repeated.  In interactive use, prompt for REPEAT-COUNT.
 
 See `tmr' for a description of the arguments DESCRIPTION and
-ACKNOWLEDGEP.  Here ACKNOWLEDGEP takes effect after all REPEAT-COUNT are
-done.
+ACKNOWLEDGEP.  When ACKNOWLEDGEP is non-nil, prompt for an
+acknowledgement for each repeat timer and only start the next one after
+the previous one is acknowledged.
 
 Also see `tmr-with-details'."
   (interactive

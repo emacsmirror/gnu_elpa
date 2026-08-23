@@ -25,6 +25,10 @@ build-all:
 	$(EMACS) -l $(CURDIR)/admin/elpa-admin.el	\
 	         -f elpaa-batch-make-all-packages
 
+archive/%.html archive-devel/%.html:
+	$(EMACS) -l $(CURDIR)/admin/elpa-admin.el	\
+	         -f elpaa-batch-make-one-webpage $@
+
 %.tar: dummy
 	$(EMACS) -l $(CURDIR)/admin/elpa-admin.el	\
 	         -f elpaa-batch-make-one-tarball $@

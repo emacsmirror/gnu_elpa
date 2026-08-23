@@ -1213,6 +1213,35 @@ SPECS is the list of package specifications."
     (elpaa--make-one-package (elpaa--get-package-spec
                               (pop command-line-args-left)))))
 
+(defun elpaa---make-one-webpage (pkg-spec destdir)
+  (let* ((pkgname (format "%s" (car pkg-spec)))
+         (dir (elpaa--pkg-root pkg-spec))
+         (pkgdesc (elpaa--process-multi-file-package
+                   dir (car pkg-spec) 'dont-rename))
+         (version (package-version-join (aref (cdr pkgdesc) 0)))
+         (files (cons (cons version (format "%s.tar" pkgname))
+                      (assoc-delete-all
+                       version
+                       (elpaa--package-oldfiles pkgname destdir))))
+         (default-directory (expand-file-name destdir)))
+    (elpaa--html-make-pkg
+     pkgdesc pkg-spec files dir
+     ;; we don't pass a readme here, since we don't want to generate one
+     ;; right now.
+     nil)))
+
+(defun elpaa-batch-make-one-webpage (&rest _)
+  "Rebuild the website for one particular package."
+  (while command-line-args-left
+    (let* ((arg (pop command-line-args-left))
+           (pkg (file-name-base arg))
+           (pkg-spec (or (elpaa--get-package-spec pkg)
+                         (error "Failed to find package %s" pkg)))
+           (destdir (file-name-directory arg)))
+      (if (file-exists-p arg)
+          (elpaa---make-one-webpage pkg-spec destdir)
+        (elpaa--message "Cannot regenerate %S, file doesn't exist" arg)))))
+
 (defun elpaa-batch-make-one-tarball (&rest _)
   "Build a tarball for a particular package."
   (while command-line-args-left
@@ -2201,7 +2230,8 @@ in case of cyclic dependencies."
              (readme-text plain-readme)
              (readme-html (elpaa--section-to-html readme-content pkg-spec))
              (readme-output-filename (concat name "-readme.txt")))
-        (write-region readme-text nil readme-output-filename)
+        (when readme-text
+          (write-region readme-text nil readme-output-filename))
         (insert "<h2>Full description</h2>\n"
                 "<div class=\"splice fulldescription\">\n"
                 readme-html

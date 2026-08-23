@@ -531,7 +531,7 @@ navigates to that heading.
   identifier of the file, even if this user option is set to a
   non-nil value.  ]"
   :group 'denote
-  :package-version '(denote . "4.0.0")
+  :package-version '(denote . "4.3.0")
   :type '(choice (const :tag "No link to heading (default)" nil)
                  (const :tag "Link to the context" context)
                  (const :tag "Link to local heading" local)

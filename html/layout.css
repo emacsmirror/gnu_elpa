@@ -160,6 +160,7 @@ main {
 		display: block;
 		width: min(calc(var(--page-width) / 2), 100%);
 		font-size: larger;
+		padding: calc(var(--radius) / 2);
 	}
 
 	table#packages {

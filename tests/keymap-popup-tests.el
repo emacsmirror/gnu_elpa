@@ -556,6 +556,71 @@ PROPERTIES may supply active-state and session values used by a test."
     (should (string-match-p "Alpha" (car lines)))
     (should (string-match-p "Beta" (car lines)))))
 
+(ert-deftest keymap-popup-test-render-wraps-columns-to-width ()
+  "Groups flow onto another row when they exceed the available width."
+  (let* ((rows (list (list (list :name "Alpha"
+                                 :entries (list (list :key "a" :description "Aaa"
+                                                      :type 'suffix :command 'ignore)))
+                           (list :name "Beta"
+                                 :entries (list (list :key "b" :description "Bbb"
+                                                      :type 'suffix :command 'ignore))))))
+         (wrapped (substring-no-properties (keymap-popup--render rows nil 18)))
+         (fitting (substring-no-properties (keymap-popup--render rows nil 19)))
+         (wrapped-lines (split-string wrapped "\n" t)))
+    (should-not (string-match-p "Alpha.*Beta" wrapped))
+    (should (string-match-p "Alpha.*Beta" fitting))
+    (dolist (line wrapped-lines)
+      (should (<= (string-width line) 18)))))
+
+(ert-deftest keymap-popup-test-render-truncates-overwide-column ()
+  "A lone group cannot make the rendered popup wider than its window."
+  (let* ((truncate-string-ellipsis "…")
+         (rows (list (list (list :name "A very long heading"
+                                 :entries (list (list :key "a"
+                                                      :description "A long description"
+                                                      :type 'suffix
+                                                      :command 'ignore))))))
+         (output (substring-no-properties (keymap-popup--render rows nil 12))))
+    (should (string-match-p "…" output))
+    (dolist (line (split-string output "\n" t))
+      (should (<= (string-width line) 12)))))
+
+(ert-deftest keymap-popup-test-popup-reflows-after-display ()
+  "The initial popup reflows without resolving descriptions twice."
+  (let ((map (make-sparse-keymap))
+        (description-calls 0))
+    (dolist (key '("a" "b" "c"))
+      (keymap-set map key #'ignore))
+    (keymap-popup-attach
+     map (list :group "Alpha"
+               "a" (list (lambda ()
+                           (cl-incf description-calls)
+                           "Aaa")
+                         'ignore)
+               :group "Beta" "b" '("Bbb" ignore)
+               :group "Gamma" "c" '("Ccc" ignore)))
+    (save-window-excursion
+      (let* ((popup-window (selected-window))
+             (_ (split-window popup-window 25 'right))
+             (keymap-popup-backend
+              (lambda ()
+                (list :show (lambda (buf)
+                              (set-window-buffer popup-window buf))
+                      :fit #'ignore
+                      :hide #'ignore))))
+        (unwind-protect
+            (progn
+              (keymap-popup map)
+              (let* ((buf (get-buffer keymap-popup--buffer-name))
+                     (width (max 1 (1- (window-body-width popup-window))))
+                     (output (with-current-buffer buf (buffer-string)))
+                     (lines (split-string output "\n" t)))
+                (should (= description-calls 1))
+                (should-not (string-match-p "Alpha.*Beta.*Gamma" output))
+                (dolist (line lines)
+                  (should (<= (string-width line) width)))))
+          (keymap-popup-dismiss))))))
+
 (ert-deftest keymap-popup-test-render-rows-separated ()
   (let* ((rows (list (list (list :name "Row1"
                                  :entries (list (list :key "a" :description "Aaa"
@@ -596,6 +661,29 @@ PROPERTIES may supply active-state and session values used by a test."
       (should b-pos)
       (should d-pos)
       (should (= b-pos d-pos)))))
+
+(ert-deftest keymap-popup-test-wrapped-columns-stay-aligned ()
+  "Automatic rows retain declared column alignment."
+  (let* ((entry (lambda (key description)
+                  (list :key key :description description
+                        :type 'suffix :command 'ignore)))
+         (rows (list
+                (list (list :name "Alpha" :entries (list (funcall entry "a" "Aaa")))
+                      (list :name "Beta" :entries (list (funcall entry "b" "Bbb")))
+                      (list :name "Gamma" :entries (list (funcall entry "g" "Ggg"))))
+                (list (list :name "Longer Name"
+                            :entries (list (funcall entry "l" "Lll")))
+                      (list :name "Delta" :entries (list (funcall entry "d" "Ddd")))
+                      (list :name "Epsilon" :entries (list (funcall entry "e" "Eee"))))))
+         (lines (split-string
+                 (substring-no-properties (keymap-popup--render rows nil 22))
+                 "\n" t))
+         (alpha-line (cl-find-if (lambda (line) (string-match-p "Alpha" line)) lines))
+         (longer-line (cl-find-if (lambda (line) (string-match-p "Longer Name" line)) lines)))
+    (should (= (string-match "Beta" alpha-line)
+               (string-match "Delta" longer-line)))
+    (should-not (string-match-p "Gamma" alpha-line))
+    (should-not (string-match-p "Epsilon" longer-line))))
 
 (ert-deftest keymap-popup-test-join-columns ()
   (let* ((col-a '("Header A" "  a  Aaa" "  b  Bbb"))

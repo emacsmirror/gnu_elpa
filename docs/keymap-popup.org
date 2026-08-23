@@ -139,8 +139,14 @@ properties, and unsupported options report the offending entry directly.
   "D" ("Remove feed" my-feed-remove))
 #+end_src
 
-=:row= between groups starts a fresh row of columns beneath the
-first.  Groups may attach their own predicates:
+At display time, groups flow from left to right and automatically continue
+on another display row when the popup window is too narrow.  This applies
+even when the declaration contains no =:row=.  An individual group wider
+than the window is truncated with an ellipsis rather than disturbing the
+column alignment.
+
+=:row= between groups forces a fresh row beneath the first regardless of
+the available width.  Groups may attach their own predicates:
 =:group ("Bulk" :if PRED :inapt-if PRED)=.
 
 ** Dynamic descriptions

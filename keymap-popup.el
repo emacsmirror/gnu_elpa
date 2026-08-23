@@ -1133,20 +1133,77 @@ Returns a list of ((col-lines ...) ...) per row, filtering empty groups."
                               when (nth i cols)
                               maximize (keymap-popup--column-width (nth i cols))))))
 
-(defun keymap-popup--render (rows &optional prefix-mode)
-  "Render ROWS into a complete popup string.
-ROWS is a list of rows, each row a list of groups.
-When PREFIX-MODE is non-nil, highlight :c-u entries and dim others.
-Column widths are aligned across all rows."
-  (let* ((rendered-rows (keymap-popup--rows-to-columns rows prefix-mode))
+(defconst keymap-popup--column-separator "   "
+  "Horizontal separator between popup columns.")
+
+(defun keymap-popup--wrap-column-row (columns widths max-width)
+  "Split COLUMNS and WIDTHS into rows fitting MAX-WIDTH.
+Each result is a plist with :columns and :widths.  A single column
+wider than MAX-WIDTH remains intact for final line truncation."
+  (named-let wrap ((cols columns) (rest-widths widths)
+                   (row-cols nil) (row-widths nil) (row-width 0)
+                   (result nil))
+    (if (null cols)
+        (append result
+                (and row-cols
+                     (list (list :columns row-cols :widths row-widths))))
+      (let* ((width (car rest-widths))
+             (next-width (+ row-width width
+                            (if row-cols
+                                (string-width keymap-popup--column-separator)
+                              0))))
+        (if (and row-cols max-width (> next-width max-width))
+            (wrap cols rest-widths nil nil 0
+                  (append result
+                          (list (list :columns row-cols :widths row-widths))))
+          (wrap (cdr cols) (cdr rest-widths)
+                (append row-cols (list (car cols)))
+                (append row-widths (list width))
+                next-width result))))))
+
+(defun keymap-popup--layout-column-rows (rendered-rows widths max-width)
+  "Return RENDERED-ROWS laid out within MAX-WIDTH using WIDTHS."
+  (apply #'append
+         (mapcar
+          (lambda (columns)
+            (keymap-popup--wrap-column-row
+             columns (seq-take widths (length columns)) max-width))
+          rendered-rows)))
+
+(defun keymap-popup--fit-line (line max-width)
+  "Return LINE truncated to MAX-WIDTH when necessary."
+  (if (and max-width (> (string-width line) max-width))
+      (truncate-string-to-width line max-width nil nil t)
+    line))
+
+(defun keymap-popup--render-columns (rendered-rows &optional max-width)
+  "Render RENDERED-ROWS within MAX-WIDTH as a popup string."
+  (let* ((max-width (and max-width (max 1 max-width)))
          (col-widths (keymap-popup--global-col-widths rendered-rows))
-         (sections (cl-loop for cols in rendered-rows
-                            when cols
-                            collect (string-join
-                                     (keymap-popup--join-columns
-                                      cols "   " col-widths)
-                                     "\n"))))
+         (layout (keymap-popup--layout-column-rows
+                  rendered-rows col-widths max-width))
+         (sections
+          (mapcar
+           (lambda (row)
+             (string-join
+              (mapcar (lambda (line)
+                        (keymap-popup--fit-line line max-width))
+                      (keymap-popup--join-columns
+                       (plist-get row :columns)
+                       keymap-popup--column-separator
+                       (plist-get row :widths)))
+              "\n"))
+           layout)))
     (concat (string-join sections "\n") "\n")))
+
+(defun keymap-popup--render (rows &optional prefix-mode max-width)
+  "Render ROWS into a complete popup string.
+ROWS is a list of rows, each row a list of groups.  When PREFIX-MODE
+is non-nil, highlight :c-u entries and dim others.  Align column
+widths across declared rows.  When MAX-WIDTH is non-nil, flow groups
+onto additional display rows and truncate any lone over-wide column."
+  (keymap-popup--render-columns
+   (keymap-popup--rows-to-columns rows prefix-mode) max-width))
 
 ;;; Popup state
 
@@ -1272,17 +1329,28 @@ Returns nil when BUF is dead (the popup already closed)."
               (or (keymap-popup--inapt-active-p entry)
                   (keymap-popup--inapt-active-p group))))))
 
-(defun keymap-popup--refresh-buffer (buf descriptions &optional prefix-mode)
-  "Re-render popup BUF with DESCRIPTIONS, refit via backend.
-PREFIX-MODE toggles prefix argument highlighting."
-  (let ((content (keymap-popup--render descriptions prefix-mode)))
+(defun keymap-popup--write-rendered (buf rendered-rows)
+  "Write RENDERED-ROWS to popup BUF and refit its backend."
+  (let* ((window (get-buffer-window buf t))
+         ;; `window-body-width' includes the continuation column.
+         (width (and window (max 1 (1- (window-body-width window)))))
+         (content (keymap-popup--render-columns rendered-rows width)))
     (with-current-buffer buf
       (let ((inhibit-read-only t))
         (erase-buffer)
         (insert content)
         (goto-char (point-min))))
     (when-let* ((fit (plist-get (keymap-popup--session-get buf :backend) :fit)))
-      (funcall fit buf))))
+      (funcall fit buf))
+    rendered-rows))
+
+(defun keymap-popup--refresh-buffer (buf descriptions &optional prefix-mode)
+  "Re-render popup BUF with DESCRIPTIONS, refit via backend.
+PREFIX-MODE toggles prefix argument highlighting.  When BUF is
+visible, flow groups within its window's usable text width.  Return
+the rendered columns so an initial display can reflow them unchanged."
+  (keymap-popup--write-rendered
+   buf (keymap-popup--rows-to-columns descriptions prefix-mode)))
 
 (defun keymap-popup--refresh (buf)
   "Re-render popup BUF from its buffer-local state.
@@ -1748,8 +1816,12 @@ dispatch.  Sub-menu keys push a navigation stack.
     (let ((session (keymap-popup--make-session keymap active))
           (buf (keymap-popup--prepare-buffer)))
       (keymap-popup--init-session buf session)
-      (keymap-popup--refresh buf)
-      (funcall (plist-get (plist-get session :backend) :show) buf)
+      (let ((rendered-rows (keymap-popup--refresh buf)))
+        (funcall (plist-get (plist-get session :backend) :show) buf)
+        ;; The display action decides the real window width.  Reflow
+        ;; the resolved columns after showing; do not call dynamic
+        ;; descriptions and predicates a second time.
+        (keymap-popup--write-rendered buf rendered-rows))
       (keymap-popup--activate-transient-map buf)
       (add-hook 'minibuffer-setup-hook #'keymap-popup--suspend)
       (add-hook 'minibuffer-exit-hook #'keymap-popup--resume)

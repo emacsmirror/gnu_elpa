@@ -485,14 +485,14 @@ The specification which bugs shall be suppressed is taken from
   "Which function to apply printing the tabulated list..
 See `debbugs-gnu-package' for an alternative.")
 
-(defcustom debbugs-gnu-emacs-current-release "31.1"
+(defcustom debbugs-gnu-emacs-current-release "31.2"
   "The current Emacs release developed for."
   :type '(choice (const "24.5")
 		 (const "25.1") (const "25.2")
 		 (const "26.1") (const "26.3")
 		 (const "27.1") (const "27.2")
 		 (const "28.1")
-		 (const "31.1"))
+		 (const "31.1") (const "31.2"))
   :version "31.1")
 
 (defconst debbugs-gnu-emacs-blocking-reports
@@ -504,7 +504,8 @@ See `debbugs-gnu-package' for an alternative.")
     ("27.1" . 39200)
     ("27.2" . 43018)
     ("28.1" . 39202)
-    ("31.1" . 81521))
+    ("31.1" . 81521)
+    ("31.2" . 81695))
   "The IDs of the Emacs report used to track blocking bug reports.
 It is a list of cons cells, each one containing the Emacs
 version (a string) and the bug report number (a number).")

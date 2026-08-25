@@ -159,47 +159,27 @@ text to be replaced, while BEG and END are buffer positions.")
   :package-version '(substitute . "0.6.0")
   :group 'substitute)
 
-(defun substitute--prompt-without-highlight (target scope)
-  "Prompt for string while referencing TARGET and SCOPE."
-  (let ((pretty-target (substitute--prettify-target-description target)))
-    (substitute--collect-targets target scope)
-    (read-from-minibuffer
-     (format "Substitute `%s' (%s times) %s with: "
-             (propertize pretty-target 'face 'substitute-prompt-target-highlight)
-             (length substitute--last-matches)
-             (substitute--scope-description scope))
-     (if substitute-insert-target-into-minibuffer
-         target
-       nil)
-     nil nil 'substitute--history pretty-target)))
-
-(defun substitute--prompt-with-highlight (target scope)
-  "Prompt for string while referencing TARGET and SCOPE.
-Highlight the TARGET's matching occurences per the user option
-`substitute-highlight'."
-  (let ((pretty-target (substitute--prettify-target-description target)))
-    (unwind-protect
-        (progn
-          (substitute--collect-targets target scope)
-          (substitute--highlight-targets)
-          (substitute--prompt-without-highlight pretty-target scope))
-      (substitute--remove-highlights)
-      (setq-local substitute--last-matches nil))))
-
-(defun substitute--highlight (target scope)
-  "Do what `substitute-highlight' entails for TARGET in SCOPE."
-  (funcall
-   (if substitute-highlight
-       'substitute--prompt-with-highlight
-     'substitute--prompt-without-highlight)
-   target
-   scope))
-
 (defun substitute--prompt (target scope)
   "Return appropriate prompt based on `substitute-highlight'.
 Pass to it the TARGET and SCOPE arguments."
   (barf-if-buffer-read-only)
-  (substitute--highlight target scope))
+  (let ((pretty-target (substitute--prettify-target-description target)))
+    (unwind-protect
+        (progn
+          (substitute--collect-targets target scope)
+          (when substitute-highlight
+            (substitute--highlight-targets))
+          (read-from-minibuffer
+           (format "Substitute `%s' (%s times) %s with: "
+                   (propertize pretty-target 'face 'substitute-prompt-target-highlight)
+                   (length substitute--last-matches)
+                   (substitute--scope-description scope))
+           (if substitute-insert-target-into-minibuffer
+               target
+             nil)
+           nil nil 'substitute--history pretty-target))
+      (substitute--remove-highlights)
+      (setq-local substitute--last-matches nil))))
 
 (defun substitute--widen ()
   "Do `widen' if `substitute-ignore-narrowing' is non-nil."

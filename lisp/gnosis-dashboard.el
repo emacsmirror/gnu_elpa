@@ -8,7 +8,6 @@
 
 ;; Version: 0.0.1
 
-;; Package-Requires: ((emacs "27.2"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -847,8 +846,7 @@ to the canonical form via `gnosis--tag-rename-batch'."
             (cl-remove-if (lambda (entry) (member (car entry) tags))
                           tabulated-list-entries))
       (dolist (tag tags)
-        (gnosis-tl-delete-entry tag))
-      )))
+        (gnosis-tl-delete-entry tag)))))
 
 (defun gnosis-dashboard-suspend-tag (&optional tag)
   "Suspend themata of TAG or marked tags."

@@ -14,3 +14,4 @@ research
 *.info
 *.texi
 refs/*
+/result*

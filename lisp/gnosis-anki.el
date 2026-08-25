@@ -210,7 +210,7 @@ field as front, rest as back if templates are unavailable."
     (cons (list (car fields)) (cdr fields))))
 
 (defun gnosis-anki--media-value-p (value)
-  "Return non-nil if VALUE contains only media references, not text."
+  "Return non-nil when VALUE consists only of media references, not text."
   (and (not (string-empty-p value))
        (string-match-p
         "\\`\\s-*\\(\\[sound:[^]]*\\]\\|<img [^>]*>\\)\\s-*\\'"

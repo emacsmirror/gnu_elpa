@@ -635,7 +635,7 @@ SELECT thema_id, tag FROM import_db.thema_tag WHERE thema_id IN (%s)"
        db "DETACH DATABASE import_db"))))
 
 (defun gnosis-import-apply ()
-  "Apply all changes from the import diff."
+  "Apply the complete import diff."
   (interactive nil gnosis-import-diff-mode)
   (let ((new-ids gnosis-import--new-ids)
         (changed-ids gnosis-import--changed-ids)

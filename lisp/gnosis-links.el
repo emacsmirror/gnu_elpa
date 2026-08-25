@@ -50,7 +50,7 @@ for recursion."
 ;;; Bulk link operations
 
 (defun gnosis--themata-to-update (themata string node-id)
-  "Return THEMATA updates replacing STRING with a link to NODE-ID."
+  "Return pairs for THEMATA after replacing STRING with a link to NODE-ID."
   (cl-loop for thema in themata
            for thema-id = (nth 0 thema)
            for keimenon = (nth 1 thema)
@@ -60,7 +60,8 @@ for recursion."
            collect (cons thema-id (cdr result))))
 
 (defun gnosis--update-themata-keimenon (updates)
-  "Apply UPDATES list of (ID . NEW-KEIMENON) to database."
+  "Apply thema keimenon pairs to the database.
+UPDATES contains (ID . NEW-KEIMENON) pairs."
   (gnosis-sqlite-with-transaction (gnosis--ensure-db)
     (dolist (update updates)
       (gnosis-update 'themata
@@ -68,7 +69,7 @@ for recursion."
                      `(= id ,(car update))))))
 
 (defun gnosis--commit-bulk-link (count string)
-  "Commit bulk link changes for COUNT themata with STRING."
+  "Commit the bulk-link transaction for COUNT themata using STRING."
   (unless gnosis-testing
     (gnosis--ensure-git-repo)
     (gnosis--git-chain
@@ -410,7 +411,7 @@ Each element is a (source dest) pair."
 (defun gnosis--commit-link-cleanup
     (orphaned stale missing
 	      &optional node-links-removed)
-  "Commit link cleanup changes.
+  "Commit the link-cleanup transaction.
 ORPHANED, STALE, MISSING are thema-links counts.
 NODE-LINKS-REMOVED is the number of broken node-links
 deleted."

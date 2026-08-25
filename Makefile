@@ -1,5 +1,6 @@
 .POSIX:
-.PHONY: all doc autoload autoload-smoke compile test check load clean
+.PHONY: all doc autoload autoload-smoke compile lint lint-checkdoc \
+	lint-package-lint test check dev load clean
 
 -include local.mk
 
@@ -23,6 +24,8 @@ MODULES := gnosis-sqlite gnosis-tl gnosis-utils gnosis-org \
 	gnosis-nodes gnosis-journal gnosis gnosis-review gnosis-dashboard \
 	gnosis-export-import gnosis-anki
 SOURCES := $(addprefix $(LISP_DIR)/,$(addsuffix .el,$(MODULES)))
+PACKAGE_LINT_SOURCES := $(LISP_DIR)/gnosis.el \
+	$(filter-out $(LISP_DIR)/gnosis.el,$(SOURCES))
 
 TESTS := tests/gnosis-test-sqlite.el \
 	tests/gnosis-test-algorithm.el \
@@ -103,6 +106,40 @@ test:
 	done
 
 check: compile autoload-smoke test
+
+lint-checkdoc:
+	@set -eu; for file in $(SOURCES); do \
+		output=$$($(ENV) $(EMACS) $(EMACS_OPTS) -L $(LISP_DIR) \
+			--eval="(progn (require 'checkdoc) \
+			  (checkdoc-file \"$$file\"))" 2>&1); \
+		if test -n "$$output"; then \
+			printf '%s\n' "$$output"; exit 1; \
+		fi; \
+	done
+
+lint-package-lint:
+	@set -eu; for file in $(PACKAGE_LINT_SOURCES); do \
+		$(ENV) $(EMACS) $(EMACS_OPTS) $(LOAD_PATH) \
+			--eval="(package-initialize)" \
+			--eval="(dolist (spec '((keymap-popup (0 4 3)) \
+			                         (compat (31 0 0 2)))) \
+			  (push (list (car spec) \
+			    (package-desc-create :name (car spec) \
+			      :version (cadr spec) :summary \"Nix dependency\" \
+			      :reqs nil :kind 'dir :archive \"nix\")) \
+			    package-alist))" \
+			--eval="(require 'package-lint)" \
+			--eval="(setq package-lint-main-file \
+			  \"$(LISP_DIR)/gnosis.el\")" \
+			--eval="(unless \
+			  (cl-letf (((symbol-function 'package-initialize) #'ignore)) \
+			    (package-lint-batch-and-exit-1 (list \"$$file\"))) \
+			  (kill-emacs 1))"; \
+	done
+
+lint: lint-checkdoc lint-package-lint
+
+dev: lint check
 
 load:
 	rm -f $(LISP_DIR)/*.elc

@@ -33,7 +33,7 @@
   :group 'gnosis)
 
 (defun gnosis--git-cmd (args &optional sentinel)
-  "Run git with ARGS list, watching for password prompts.
+  "Run git with ARGS list and detect password requests.
 
 ARGS is a list of strings passed directly to git (no shell interpretation).
 Optional SENTINEL is called with (process event) on completion.

@@ -1,266 +1,230 @@
 {
-  description = "Personal knowledge system for GNU Emacs";
+  description = "Knowledge management and spaced repetition for Emacs";
 
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+  inputs.keymap-popup = {
+    url = "git+https://git.thanosapollo.org/emacs-keymap-popup.git";
+    flake = false;
+  };
 
   outputs =
-    { self, nixpkgs }:
+    {
+      self,
+      nixpkgs,
+      keymap-popup,
+      ...
+    }:
     let
       systems = [
         "x86_64-linux"
         "aarch64-linux"
-        "x86_64-darwin"
         "aarch64-darwin"
       ];
-
       forAllSystems = nixpkgs.lib.genAttrs systems;
-
-      mkGnosis =
+      version = "0.10.6";
+      packageFiles = [
+        ./lisp/gnosis-algorithm.el
+        ./lisp/gnosis-anki.el
+        ./lisp/gnosis-cloze.el
+        ./lisp/gnosis-custom-values.el
+        ./lisp/gnosis-dashboard.el
+        ./lisp/gnosis-db.el
+        ./lisp/gnosis-export-import.el
+        ./lisp/gnosis-journal.el
+        ./lisp/gnosis-links.el
+        ./lisp/gnosis-monkeytype.el
+        ./lisp/gnosis-nodes.el
+        ./lisp/gnosis-org.el
+        ./lisp/gnosis-review.el
+        ./lisp/gnosis-sqlite.el
+        ./lisp/gnosis-tags.el
+        ./lisp/gnosis-tl.el
+        ./lisp/gnosis-utils.el
+        ./lisp/gnosis-vc.el
+        ./lisp/gnosis.el
+      ];
+      testFiles = [
+        ./tests/gnosis-test-algorithm.el
+        ./tests/gnosis-test-anki.el
+        ./tests/gnosis-test-bulk-link.el
+        ./tests/gnosis-test-cloze.el
+        ./tests/gnosis-test-dashboard.el
+        ./tests/gnosis-test-db.el
+        ./tests/gnosis-test-export-import.el
+        ./tests/gnosis-test-helpers.el
+        ./tests/gnosis-test-insert-template.el
+        ./tests/gnosis-test-isolation.el
+        ./tests/gnosis-test-journal.el
+        ./tests/gnosis-test-migration.el
+        ./tests/gnosis-test-nodes.el
+        ./tests/gnosis-test-org.el
+        ./tests/gnosis-test-review.el
+        ./tests/gnosis-test-script-detection.el
+        ./tests/gnosis-test-sqlite.el
+      ];
+    in
+    {
+      packages = forAllSystems (
         system:
         let
           pkgs = import nixpkgs { inherit system; };
           lib = pkgs.lib;
-          version =
-            let
-              rev = self.shortRev or null;
-            in
-            if rev == null then "0.10.6-dirty" else "0.10.6-${rev}";
-
-          emacs = pkgs.emacs30-nox or pkgs.emacs-nox or pkgs.emacs;
-          emacsPackages = pkgs.emacsPackagesFor emacs;
-          elispFiles = [
-            "lisp/gnosis-sqlite.el"
-            "lisp/gnosis-tl.el"
-            "lisp/gnosis-utils.el"
-            "lisp/gnosis-org.el"
-            "lisp/gnosis-algorithm.el"
-            "lisp/gnosis-cloze.el"
-            "lisp/gnosis-db.el"
-            "lisp/gnosis-vc.el"
-            "lisp/gnosis-tags.el"
-            "lisp/gnosis-custom-values.el"
-            "lisp/gnosis-links.el"
-            "lisp/gnosis.el"
-            "lisp/gnosis-nodes.el"
-            "lisp/gnosis-journal.el"
-            "lisp/gnosis-review.el"
-            "lisp/gnosis-dashboard.el"
-            "lisp/gnosis-export-import.el"
-            "lisp/gnosis-anki.el"
-            "lisp/gnosis-monkeytype.el"
-          ];
-          elispFileArgs = lib.concatStringsSep " " elispFiles;
-          ignoredSourceNames = [
-            ".direnv"
-            ".emacs-test-cache"
-            ".hermes"
-            ".test-results"
-            ":memory:"
-            "gnosis.db"
-          ];
-
-          source = lib.cleanSourceWith {
-            src = ./.;
-            filter =
-              path: type:
-              let
-                name = baseNameOf path;
-              in
-              (lib.cleanSourceFilter path type)
-              && !(
-                lib.elem name ignoredSourceNames
-                || lib.hasSuffix ".elc" name
-                || lib.hasSuffix "~" name
-                || lib.hasSuffix ".tar" name
-                || lib.hasSuffix ".tar.gz" name
-                || lib.hasSuffix ".apkg" name
-                || lib.hasInfix "/.worktrees/" path
-                || lib.hasInfix "/org-fc/" path
-                || lib.hasInfix "/org-roam/" path
-                || lib.hasInfix "/temp/" path
-              );
+          emacsPackages = pkgs.emacsPackagesFor pkgs.emacs-nox;
+          packageSource = lib.fileset.toSource {
+            root = ./lisp;
+            fileset = lib.fileset.unions packageFiles;
           };
-
-          keymapPopupVersion = "0.3.1";
-          keymapPopupSrc = pkgs.fetchzip {
-            url = "https://elpa.gnu.org/packages/keymap-popup-${keymapPopupVersion}.tar";
-            hash = "sha256-hoH9SJ8LQS/uWNmwvauBJwMnnr4+DwhJpUFuHOihldM=";
-          };
-
           keymapPopup = emacsPackages.trivialBuild {
             pname = "keymap-popup";
-            version = keymapPopupVersion;
-            src = keymapPopupSrc;
+            version = "0.4.3";
+            src = keymap-popup;
             packageRequires = [ ];
           };
-
-          compat = emacsPackages.compat;
-
-          gnosisEl = emacsPackages.trivialBuild {
+          gnosis = emacsPackages.trivialBuild {
             pname = "gnosis";
             inherit version;
-            src = source;
+            src = packageSource;
             packageRequires = [
-              compat
+              emacsPackages.compat
               keymapPopup
             ];
-            nativeBuildInputs = [
-              pkgs.gnumake
-              pkgs.texinfo
-            ];
-
-            buildPhase = ''
-              runHook preBuild
-              emacs -l package -f package-initialize -L lisp --batch \
-                -f batch-byte-compile ${elispFileArgs}
-              (cd lisp && emacs --batch \
-                --eval "(loaddefs-generate \".\" \"gnosis-autoloads.el\")")
-              env GNOSIS_ENV_WRAPPED=1 make doc
-              runHook postBuild
-            '';
-
-            installPhase = ''
-              runHook preInstall
-              lispdir="$out/share/emacs/site-lisp"
-              infodir="$out/share/info"
-              mkdir -p "$lispdir" "$infodir"
-              install -m444 lisp/*.el lisp/*.elc "$lispdir/"
-              install -m444 docs/gnosis.info "$infodir/"
-              runHook postInstall
-            '';
-
-            meta = with lib; {
-              description = "Personal knowledge system for GNU Emacs";
-              homepage = "https://thanosapollo.org/projects/gnosis/";
-              license = licenses.gpl3Plus;
-              platforms = emacs.meta.platforms;
-            };
           };
-
-          devEmacs = emacsPackages.emacsWithPackages (_: [
-            compat
+          emacsWithGnosis = emacsPackages.emacsWithPackages (_: [
+            emacsPackages.compat
             keymapPopup
+            gnosis
+            emacsPackages.package-lint
           ]);
-          emacsWithGnosis = emacsPackages.emacsWithPackages (_: [ gnosisEl ]);
-
-          mkCheck =
-            name: target:
-            pkgs.stdenvNoCC.mkDerivation {
-              pname = "gnosis-${name}";
-              inherit version;
-              src = source;
-              nativeBuildInputs = [
-                devEmacs
-                pkgs.gnumake
-                pkgs.texinfo
-              ];
-              dontConfigure = true;
-
-              buildPhase = ''
-                runHook preBuild
-                unset EMACSDATA EMACSDOC EMACSLOADPATH EMACSPATH GREP_OPTIONS
-                export HOME="$TMPDIR/home"
-                export XDG_CACHE_HOME="$TMPDIR/cache"
-                export XDG_CONFIG_HOME="$TMPDIR/config"
-                export XDG_DATA_HOME="$TMPDIR/share"
-                export XDG_STATE_HOME="$TMPDIR/state"
-                mkdir -p "$HOME" "$XDG_CACHE_HOME" "$XDG_CONFIG_HOME" \
-                  "$XDG_DATA_HOME" "$XDG_STATE_HOME"
-                env GNOSIS_ENV_WRAPPED=1 make EMACS=emacs ${target}
-                runHook postBuild
-              '';
-
-              installPhase = ''
-                runHook preInstall
-                mkdir -p "$out"
-                touch "$out/${name}-passed"
-                runHook postInstall
-              '';
-            };
-
-          mkApp = name: target: {
-            type = "app";
-            program = "${
-              pkgs.writeShellApplication {
-                name = "gnosis-${name}";
-                runtimeInputs = [
-                  devEmacs
-                  pkgs.gnumake
-                  pkgs.texinfo
-                ];
-                text = ''
-                  exec env GNOSIS_ENV_WRAPPED=1 make EMACS=emacs ${target} "$@"
-                '';
-              }
-            }/bin/gnosis-${name}";
-            meta.description = "Run make ${target} for Gnosis";
-          };
-
-          testCheck = mkCheck "test" "test";
         in
         {
-          inherit
-            devEmacs
-            emacsWithGnosis
-            gnosisEl
-            keymapPopup
-            keymapPopupSrc
-            pkgs
-            testCheck
-            ;
+          default = gnosis;
+          inherit gnosis;
+          keymap-popup = keymapPopup;
+          emacs-with-gnosis = emacsWithGnosis;
+        }
+      );
 
-          apps = {
-            default = mkApp "test" "test";
-            doc = mkApp "doc" "doc";
-            test = mkApp "test" "test";
+      checks = forAllSystems (
+        system:
+        let
+          pkgs = import nixpkgs { inherit system; };
+          lib = pkgs.lib;
+          emacsPackages = pkgs.emacsPackagesFor pkgs.emacs-nox;
+          source = lib.fileset.toSource {
+            root = ./.;
+            fileset = lib.fileset.unions ([ ./Makefile ] ++ packageFiles ++ testFiles);
           };
-        };
-    in
-    {
-      apps = forAllSystems (system: (mkGnosis system).apps);
-
-      checks = forAllSystems (system: {
-        default = (mkGnosis system).testCheck;
-        package = (mkGnosis system).gnosisEl;
-      });
-
-      devShells = forAllSystems (system: {
-        default =
-          let
-            gnosis = mkGnosis system;
-          in
-          gnosis.pkgs.mkShell {
-            packages = with gnosis.pkgs; [
-              gnosis.devEmacs
-              git
-              gnumake
-              sqlite
-              texinfo
+          keymapPopup = emacsPackages.trivialBuild {
+            pname = "keymap-popup";
+            version = "0.4.3";
+            src = keymap-popup;
+            packageRequires = [ ];
+          };
+          emacsWithDependencies = emacsPackages.emacsWithPackages (_: [
+            emacsPackages.compat
+            keymapPopup
+            self.packages.${system}.gnosis
+            emacsPackages.package-lint
+          ]);
+          check = pkgs.stdenvNoCC.mkDerivation {
+            pname = "gnosis-check";
+            inherit version;
+            src = source;
+            nativeBuildInputs = [
+              emacsWithDependencies
+              pkgs.gnumake
             ];
-
-            EMACS = "emacs";
-
-            shellHook = ''
-              echo "gnosis dev shell"
-              echo "  make test       # run ERT suites"
-              echo "  make doc        # build Texinfo docs"
-              echo "  nix flake check # package and test"
+            dontConfigure = true;
+            buildPhase = ''
+              runHook preBuild
+              export HOME="$TMPDIR/home"
+              export XDG_CACHE_HOME="$TMPDIR/cache"
+              export XDG_CONFIG_HOME="$TMPDIR/config"
+              export XDG_DATA_HOME="$TMPDIR/share"
+              export XDG_STATE_HOME="$TMPDIR/state"
+              mkdir -p "$HOME" "$XDG_CACHE_HOME" "$XDG_CONFIG_HOME" \
+                "$XDG_DATA_HOME" "$XDG_STATE_HOME"
+              make ENV= EMACS=emacs dev
+              runHook postBuild
+            '';
+            installPhase = ''
+              mkdir -p "$out"
+              touch "$out/passed"
             '';
           };
-      });
+        in
+        {
+          default = check;
+          package = self.packages.${system}.gnosis;
+        }
+      );
 
-      formatter = forAllSystems (system: (mkGnosis system).pkgs.nixfmt);
+      apps = forAllSystems (
+        system:
+        let
+          pkgs = import nixpkgs { inherit system; };
+          lib = pkgs.lib;
+          emacs = self.packages.${system}.emacs-with-gnosis;
+          source = lib.fileset.toSource {
+            root = ./.;
+            fileset = lib.fileset.unions ([ ./Makefile ] ++ packageFiles ++ testFiles);
+          };
+          mkApp =
+            name: target:
+            let
+              script = pkgs.writeShellApplication {
+                name = "gnosis-${name}";
+                runtimeInputs = [
+                  emacs
+                  pkgs.coreutils
+                  pkgs.gnumake
+                ];
+                text = ''
+                  work=$(mktemp -d)
+                  trap 'chmod -R u+w "$work"; rm -rf "$work"' EXIT
+                  mkdir -p "$work/project" "$work/home" "$work/cache" \
+                    "$work/config" "$work/data" "$work/state"
+                  cp -R ${source}/. "$work/project/"
+                  chmod -R u+w "$work/project"
+                  export HOME="$work/home"
+                  export XDG_CACHE_HOME="$work/cache"
+                  export XDG_CONFIG_HOME="$work/config"
+                  export XDG_DATA_HOME="$work/data"
+                  export XDG_STATE_HOME="$work/state"
+                  cd "$work/project"
+                  make ENV= EMACS=emacs ${target} "$@"
+                '';
+              };
+            in
+            {
+              type = "app";
+              program = "${script}/bin/gnosis-${name}";
+              meta.description = "Run the Gnosis ${name} target";
+            };
+        in
+        {
+          check = mkApp "check" "dev";
+          test = mkApp "test" "test";
+          lint = mkApp "lint" "lint";
+        }
+      );
 
-      overlays.default = final: prev: {
-        gnosis = self.packages.${prev.system}.gnosis;
-        emacs-with-gnosis = self.packages.${prev.system}.emacs-with-gnosis;
-      };
+      devShells = forAllSystems (
+        system:
+        let
+          pkgs = import nixpkgs { inherit system; };
+        in
+        {
+          default = pkgs.mkShellNoCC {
+            packages = [
+              pkgs.git
+              pkgs.gnumake
+              self.packages.${system}.emacs-with-gnosis
+            ];
+          };
+        }
+      );
 
-      packages = forAllSystems (system: {
-        default = (mkGnosis system).gnosisEl;
-        emacs-with-gnosis = (mkGnosis system).emacsWithGnosis;
-        gnosis = (mkGnosis system).gnosisEl;
-        keymap-popup = (mkGnosis system).keymapPopup;
-      });
+      formatter = forAllSystems (system: (import nixpkgs { inherit system; }).nixfmt);
     };
 }

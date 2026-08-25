@@ -198,6 +198,7 @@
  (counsel		:url "https://github.com/abo-abo/swiper"
   :manual-sync t
   )
+ (cperl-mode		:core "lisp/progmodes/cperl-mode.el")
  (cpio-mode		:url "https://github.com/dlewan/cpio-mode")
  (cpupower		:url "https://gitlab.com/steve-emacs-stuff/cpupower-el")
  (crdt			:url "https://code.librehq.com/qhong/crdt.el")

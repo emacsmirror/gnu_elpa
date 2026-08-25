@@ -50,7 +50,7 @@ for recursion."
 ;;; Bulk link operations
 
 (defun gnosis--themata-to-update (themata string node-id)
-  "Return list of (ID . NEW-KEIMENON) for THEMATA needing updates."
+  "Return THEMATA updates replacing STRING with a link to NODE-ID."
   (cl-loop for thema in themata
            for thema-id = (nth 0 thema)
            for keimenon = (nth 1 thema)
@@ -80,8 +80,8 @@ for recursion."
        (when gnosis-vc-auto-push (gnosis-vc-push))))))
 
 (defun gnosis-bulk-link-themata (ids string node-id)
-  "Replace STRING with org-link to NODE-ID in themata
-with IDS.  Return list of updated thema IDs."
+  "Replace STRING with a link to NODE-ID in themata with IDS.
+Return the updated thema IDs."
   (when (string-empty-p string)
     (user-error "String cannot be empty"))
   (unless node-id
@@ -104,8 +104,7 @@ with IDS.  Return list of updated thema IDs."
         (mapcar #'car updates)))))
 
 (defun gnosis-bulk-link-string (string node-id)
-  "Replace all instances of STRING in themata keimenon
-with org-link to NODE-ID."
+  "Replace all STRING instances in thema keimenon with a link to NODE-ID."
   (interactive
    (let* ((string (read-string "String to replace: "))
           (nodes (gnosis-select '[id title] 'nodes))
@@ -134,8 +133,7 @@ with org-link to NODE-ID."
           (gnosis-select 'id 'journal nil t)))
 
 (defun gnosis--orphaned-link-dests ()
-  "Return dest UUIDs in thema-links that have no
-matching node or journal entry."
+  "Return thema-link destination UUIDs without a node or journal entry."
   (let ((link-dests (gnosis--all-link-dests))
         (node-ids (gnosis--all-node-ids)))
     (cl-set-difference link-dests node-ids :test #'equal)))
@@ -148,8 +146,7 @@ matching node or journal entry."
                      `(in dest ,(vconcat orphaned-dests))))))
 
 (defun gnosis--node-links-missing-dest ()
-  "Return (source dest) pairs from node-links where
-dest has no matching node."
+  "Return node-link pairs whose destination has no matching node."
   (let* ((all-links (gnosis-select '[source dest]
                                    'node-links nil))
          (node-ids (gnosis--all-node-ids))
@@ -161,8 +158,7 @@ dest has no matching node."
              collect (list source dest))))
 
 (defun gnosis--node-links-missing-source ()
-  "Return (source dest) pairs from node-links where
-source has no matching node."
+  "Return node-link pairs whose source has no matching node."
   (let* ((all-links (gnosis-select '[source dest]
                                    'node-links nil))
          (node-ids (gnosis--all-node-ids))
@@ -174,8 +170,7 @@ source has no matching node."
              collect (list source dest))))
 
 (defun gnosis--delete-broken-node-links (broken-links)
-  "Delete BROKEN-LINKS list of (source dest) from
-node-links table."
+  "Delete BROKEN-LINKS pairs from the node-links table."
   (when broken-links
     (gnosis-sqlite-with-transaction (gnosis--ensure-db)
       (dolist (link broken-links)
@@ -436,8 +431,7 @@ deleted."
 
 ;;;###autoload
 (defun gnosis-links-cleanup ()
-  "Remove orphaned/stale thema-links and broken
-node-links."
+  "Remove orphaned or stale thema-links and broken node-links."
   (interactive)
   (let ((orphaned-dests (gnosis--orphaned-link-dests))
         (stale (gnosis--stale-links))
@@ -472,8 +466,7 @@ node-links."
 
 ;;;###autoload
 (defun gnosis-links-sync ()
-  "Full re-sync: remove orphaned/stale thema-links,
-broken node-links, and insert missing."
+  "Resync links by removing broken entries and inserting missing ones."
   (interactive)
   (let ((orphaned-dests (gnosis--orphaned-link-dests))
         (stale (gnosis--stale-links))

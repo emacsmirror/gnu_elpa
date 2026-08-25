@@ -754,6 +754,7 @@ be called with new SUCCESS value plus THEMA."
 
 (defun gnosis-review-action--view-link (success thema result)
   "View linked node(s) for THEMA.
+SUCCESS is the review result.
 RESULT is the algorithm result to thread through."
   (if (gnosis-get-linked-nodes thema)
       (progn (gnosis-view-linked-node thema)
@@ -799,7 +800,7 @@ To customize the keybindings, adjust `gnosis-review-keybindings'."
 	     do (gnosis-monkeytype-thema thema))))
 
 (defun gnosis-monkeytype-start ()
-  "Gnosis Monkeytype Session"
+  "Start a Gnosis Monkeytype session."
   (interactive)
   (gnosis-review #'gnosis-monkeytype-session))
 

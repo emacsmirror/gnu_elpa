@@ -517,7 +517,8 @@ cloze/basic a string/list of the right answer(s)
 PARATHEMA: Parathema information to display after the answer
 TAGS: Tags to organize themata
 SUSPEND: Integer value of 1 or 0, where 1 suspends the card.
-LINKS: List of id links."
+LINKS: List of id links.
+REVIEW-IMAGE is optional image data and GNOSIS-ID is an optional ID."
   (cl-assert (stringp type) nil "Type must be a string")
   (cl-assert (stringp keimenon) nil "Keimenon must be a string")
   (cl-assert (listp hypothesis) nil "Hypothesis value must be a list")
@@ -547,9 +548,10 @@ LINKS: List of id links."
 
 (defun gnosis-update-thema (id keimenon hypothesis answer parathema tags links
 			       &optional type)
-  "Update thema entry for ID.
+  "Update thema ID with KEIMENON, HYPOTHESIS, ANSWER, and PARATHEMA.
+TAGS and LINKS replace existing associations; TYPE optionally changes type.
 
-If gnosis ID does not exist, create it anew and issue a warning.
+If ID does not exist, TYPE is required to create it anew and issue a warning.
 When `gnosis--id-cache' is bound, uses hash table for existence check."
   (let* ((id (if (stringp id) (string-to-number id) id))
 	 (current-type (gnosis-get 'type 'themata `(= id ,id))))
@@ -600,7 +602,8 @@ KEIMENON, TAGS, SUSPEND, and LINKS are validated."
 
 (defun gnosis-add-thema--dispatch (id type keimenon hypothesis
 				      answer parathema tags suspend links)
-  "Dispatch thema creation or update for ID.
+  "Dispatch creation or update for thema ID of TYPE.
+KEIMENON, HYPOTHESIS, ANSWER, PARATHEMA, TAGS, SUSPEND, and LINKS are fields.
 When ID is \"NEW\", create via `gnosis-add-thema-fields'.
 Otherwise, update via `gnosis-update-thema'."
   (if (equal id "NEW")
@@ -611,7 +614,8 @@ Otherwise, update via `gnosis-update-thema'."
 
 (defun gnosis-add-thema--basic (id type keimenon hypothesis
 				   answer parathema tags suspend links)
-  "Add or update a basic thema."
+  "Add or update basic thema ID of TYPE.
+Use KEIMENON, HYPOTHESIS, ANSWER, PARATHEMA, TAGS, SUSPEND, and LINKS as fields."
   (gnosis-add-thema--assert-common keimenon tags suspend links)
   (cl-assert (or (null hypothesis)
 		 (and (listp hypothesis) (= (length hypothesis) 1)))
@@ -623,7 +627,10 @@ Otherwise, update via `gnosis-update-thema'."
 
 (defun gnosis-add-thema--double (id _type keimenon hypothesis
 				    answer parathema tags suspend links)
-  "Add a double thema (two basic themata with reversed Q/A)."
+  "Add or update double thema ID, ignoring _TYPE.
+Use KEIMENON, HYPOTHESIS, ANSWER, PARATHEMA, TAGS, SUSPEND, and LINKS as fields.
+When ID is \"NEW\", create two basic themata with reversed question and answer;
+otherwise update the existing thema."
   (gnosis-add-thema--assert-common keimenon tags suspend links)
   (cl-assert (listp hypothesis) nil "Hypothesis must be a list.")
   (cl-assert (and (listp answer) (= (length answer) 1))
@@ -641,7 +648,8 @@ Otherwise, update via `gnosis-update-thema'."
 
 (defun gnosis-add-thema--mcq (id type keimenon hypothesis
 				 answer parathema tags suspend links)
-  "Add or update an MCQ thema."
+  "Add or update MCQ thema ID of TYPE.
+Use KEIMENON, HYPOTHESIS, ANSWER, PARATHEMA, TAGS, SUSPEND, and LINKS as fields."
   (gnosis-add-thema--assert-common keimenon tags suspend links)
   (cl-assert (string= type "mcq") nil "TYPE must be \"mcq\".")
   (cl-assert (and (listp hypothesis) (> (length hypothesis) 1))
@@ -654,7 +662,8 @@ Otherwise, update via `gnosis-update-thema'."
 
 (defun gnosis-add-thema--cloze (id type keimenon hypothesis
 				   answer parathema tags suspend links)
-  "Add or update a cloze thema."
+  "Add or update cloze thema ID of TYPE.
+Use KEIMENON, HYPOTHESIS, ANSWER, PARATHEMA, TAGS, SUSPEND, and LINKS as fields."
   (gnosis-add-thema--assert-common keimenon tags suspend links)
   (cl-assert (string= type "cloze") nil "TYPE must be \"cloze\".")
   (cl-assert (or (null hypothesis) (>= (length answer) (length hypothesis)))
@@ -679,7 +688,8 @@ Otherwise, update via `gnosis-update-thema'."
 
 (defun gnosis-add-thema--mc-cloze (id type keimenon hypothesis
 				      answer parathema tags suspend links)
-  "Add or update an mc-cloze thema."
+  "Add or update mc-cloze thema ID of TYPE.
+Use KEIMENON, HYPOTHESIS, ANSWER, PARATHEMA, TAGS, SUSPEND, and LINKS as fields."
   (gnosis-add-thema--assert-common keimenon tags suspend links)
   (cl-assert (string= type "mc-cloze") nil "TYPE must be \"mc-cloze\".")
   (cl-assert (and (listp hypothesis) (> (length hypothesis) (length answer)))
@@ -696,7 +706,8 @@ Otherwise, update via `gnosis-update-thema'."
 ;;;###autoload
 (defun gnosis-add-thema (type &optional keimenon hypothesis
 			      answer parathema tags example)
-  "Add thema with TYPE."
+  "Add thema with TYPE and optional KEIMENON, HYPOTHESIS, and fields.
+The remaining optional fields are ANSWER, PARATHEMA, TAGS, and EXAMPLE."
   (interactive (list
 		(downcase (completing-read "Select type: " gnosis-thema-types))))
   (window-configuration-to-register :gnosis-edit)

@@ -200,6 +200,7 @@ LENGTH: length of id, default to 18."
 
 (defun gnosis-generate-ids (n &optional length)
   "Generate N unique gnosis IDs as a list.
+Each ID has optional LENGTH, defaulting to 18 digits.
 Uses `gnosis--id-cache' for O(1) collision checking when bound."
   (let ((ids nil) (count 0))
     (while (< count n)
@@ -610,7 +611,7 @@ Handles both Lisp list dates and already-converted integers."
    ((and (listp value) (= (length value) 3))
     (gnosis--date-to-int value))
    ((null value) nil)
-   (t (warn "gnosis: unexpected date value during migration: %S" value)
+   (t (warn "Gnosis: unexpected date value during migration: %S" value)
       nil)))
 
 (defun gnosis-db--migrate-v7 ()

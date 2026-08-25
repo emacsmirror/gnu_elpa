@@ -62,7 +62,7 @@ Enables foreign keys and sets a busy timeout."
 
 (defun gnosis-sqlite--encode-param (value)
   "Encode VALUE for binding as a SQL parameter.
-nil -> :null, numbers pass through, everything else -> prin1-to-string."
+Nil becomes null, numbers pass through, and other values use `prin1-to-string'."
   (cond
    ((null value) nil)
    ((numberp value) value)
@@ -70,8 +70,8 @@ nil -> :null, numbers pass through, everything else -> prin1-to-string."
 
 (defun gnosis-sqlite--decode (value)
   "Decode a single SQL result VALUE to a Lisp object.
-nil -> nil, numbers pass through, empty string -> empty string,
-other strings -> read-from-string (emacsql-compatible)."
+Nil and numbers pass through; empty strings stay empty; other strings use
+`read-from-string' for Emacsql compatibility."
   (cond
    ((null value) nil)
    ((numberp value) value)
@@ -292,7 +292,7 @@ Supported patterns:
     ;; Subtraction: (- n col)
     (`(- ,(and (pred numberp) n) ,(and (pred symbolp) col))
      (cons (format "%s - %s" n (gnosis-sqlite--ident col)) nil))
-    (_ (error "gnosis-sqlite: unsupported expression: %S" expr))))
+    (_ (error "Gnosis SQLite: unsupported expression: %S" expr))))
 
 ;;; S-expression compiler: columns
 
@@ -304,7 +304,7 @@ SPEC can be a symbol (single column), a vector of symbols, or `*'."
    ((vectorp spec)
     (mapconcat #'gnosis-sqlite--ident (append spec nil) ", "))
    ((symbolp spec) (gnosis-sqlite--ident spec))
-   (t (error "gnosis-sqlite: unsupported column spec: %S" spec))))
+   (t (error "Gnosis SQLite: unsupported column spec: %S" spec))))
 
 ;;; S-expression compiler: schema
 
@@ -356,7 +356,7 @@ COL-SPEC is like (name type :constraint1 :constraint2 ...)."
                                 (symbol-name action)
                                 1)))))))))
        sql))
-    (_ (error "gnosis-sqlite: unsupported constraint: %S" constraint))))
+    (_ (error "Gnosis SQLite: unsupported constraint: %S" constraint))))
 
 (defun gnosis-sqlite--compile-schema (schema)
   "Compile emacsql SCHEMA S-expression to SQL column/constraint definitions.

@@ -45,7 +45,7 @@
   "Number of tag rows per INSERT batch within a chunk.")
 
 (defun gnosis-anki--html-to-org (str)
-  "Convert HTML markup in STR to org-mode equivalents.
+  "Convert HTML markup in STR to Org mode equivalents.
 Converts bold, italic, underline, sub/superscript and links.
 Strips remaining HTML tags.  Collapses excessive blank lines.
 Short-circuits when STR contains no HTML markup or entities."
@@ -87,7 +87,7 @@ Removes *bold*, /italic/, _underline_ wrappers, keeping content."
     s))
 
 (defun gnosis-anki--sanitize-segment (seg)
-  "Sanitize a single tag SEG for org-mode.
+  "Sanitize a single tag SEG for Org mode.
 NFC-normalizes, replaces dashes with underscores, removes
 non-alphanumeric characters (keeping underscore and @), collapses
 repeated underscores, and trims leading/trailing underscores.
@@ -221,7 +221,7 @@ field as front, rest as back if templates are unavailable."
   "Get field values for FIELD-NAMES-TO-GET from RAW-FIELDS.
 ALL-FIELD-NAMES is the ordered list of all field names.
 Skips fields whose values are pure media (sound/image).
-Returns a list of org-mode text strings."
+Returns a list of Org mode text strings."
   (let (texts)
     (dolist (target field-names-to-get)
       (let ((idx (cl-position target all-field-names :test #'string=)))
@@ -400,7 +400,8 @@ MODEL-INFO maps mid strings to
     (cons skipped (nreverse result))))
 
 (defun gnosis-anki--insert-tags (db tag-params)
-  "Bulk-insert TAG-PARAMS (flat list of id,tag pairs) into thema_tag.
+  "Bulk-insert TAG-PARAMS into thema_tag using DB.
+TAG-PARAMS is a flat list of id,tag pairs.
 Batches inserts in groups of `gnosis-anki--tag-batch-size'."
   (let ((tag-count (/ (length tag-params) 2)))
     (when (> tag-count 0)

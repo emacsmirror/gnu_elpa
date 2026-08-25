@@ -77,12 +77,11 @@ Each entry is a list of (:tag NAME PARAMETERS) where:
       (unless (or (null agnoia) (numberp agnoia))
         (user-error "Agnoia should be a number"))
       (unless (or (null amnesia)
-                  (gnosis-algorithm--valid-param-p :amnesia amnesia))
-        (user-error "Amnesia should be a number in (0, 1]"))
-      (unless (or (null lethe)
-                  (gnosis-algorithm--valid-param-p :lethe lethe))
-        (user-error "Lethe should be an integer greater than 0"))))
-  t)
+                  (and (numberp amnesia)
+                       (<= amnesia 1) (>= amnesia 0)))
+        (user-error "Amnesia should be a number between 0 and 1"))
+      (unless (or (null lethe) (and (integerp lethe) (> lethe 0)))
+        (user-error "Lethe should be an integer greater than 0")))))
 
 (defvar gnosis--custom-values-ht nil
   "Hash table cache mapping tag strings to their custom value plists.
@@ -184,7 +183,9 @@ Uses cached hash table lookup when CUSTOM-VALUES is nil."
   "Return aggregated tag value for thema ID and KEYWORD.
 
 AGGREGATOR combines multiple tag values (e.g., #\\='max
-or #\\='min).  Returns nil when no tags define KEYWORD."
+or #\\='min).  When ID is nil, CUSTOM-TAGS supplies the tags;
+CUSTOM-VALUES supplies the lookup rules.
+Return nil when no tags define KEYWORD."
   (let ((vals (gnosis-get-custom-tag-values
                id keyword custom-tags custom-values)))
     (and vals (apply aggregator vals))))
@@ -195,59 +196,63 @@ or #\\='min).  Returns nil when no tags define KEYWORD."
 
 Looks up tag values (aggregated with AGGREGATOR), falling back to
 DEFAULT-VAR.
-When VALIDATE-P is non-nil, validates the resolved value:
-- For :amnesia, uses `gnosis-algorithm--valid-param-p' (bound (0,1]).
-- For other keywords, signals an error if value >= 1."
+When VALIDATE-P is non-nil, signals error if value >= 1.
+When ID is nil, CUSTOM-TAGS supplies the tags; CUSTOM-VALUES supplies
+the lookup rules."
   (let* ((tag-val (gnosis--get-tag-value
                    id keyword aggregator
                    custom-tags custom-values))
          (val (or tag-val default-var)))
-    (when validate-p
-      (if (eq keyword :amnesia)
-          (unless (gnosis-algorithm--valid-param-p keyword val)
-            (user-error "Amnesia must be a number in (0, 1]; got %s" val))
-        (when (>= val 1)
-          (user-error "%s value must be lower than 1" keyword))))
+    (when (and validate-p (>= val 1))
+      (user-error "%s value must be lower than 1" keyword))
     val))
 
 ;; Named wrappers -- tag variants (used in tests)
 
 (defun gnosis-get-thema-tag-amnesia (id &optional custom-tags custom-values)
-  "Return tag amnesia for thema ID."
+  "Return tag amnesia for ID.
+When ID is nil, CUSTOM-TAGS supplies tags; CUSTOM-VALUES supplies rules."
   (gnosis--get-tag-value id :amnesia #'max custom-tags custom-values))
 
 (defun gnosis-get-thema-tag-epignosis (id &optional custom-tags custom-values)
-  "Return tag epignosis for thema ID."
+  "Return tag epignosis for ID.
+When ID is nil, CUSTOM-TAGS supplies tags; CUSTOM-VALUES supplies rules."
   (gnosis--get-tag-value id :epignosis #'max custom-tags custom-values))
 
 (defun gnosis-get-thema-tag-agnoia (id &optional custom-tags custom-values)
-  "Return tag agnoia for thema ID."
+  "Return tag agnoia for ID.
+When ID is nil, CUSTOM-TAGS supplies tags; CUSTOM-VALUES supplies rules."
   (gnosis--get-tag-value id :agnoia #'max custom-tags custom-values))
 
 (defun gnosis-get-thema-tag-anagnosis (id &optional custom-tags custom-values)
-  "Return tag anagnosis for thema ID."
+  "Return tag anagnosis for ID.
+When ID is nil, CUSTOM-TAGS supplies tags; CUSTOM-VALUES supplies rules."
   (gnosis--get-tag-value id :anagnosis #'min custom-tags custom-values))
 
 (defun gnosis-get-thema-tag-lethe (id &optional custom-tags custom-values)
-  "Return tag lethe for thema ID."
+  "Return tag lethe for ID.
+When ID is nil, CUSTOM-TAGS supplies tags; CUSTOM-VALUES supplies rules."
   (gnosis--get-tag-value id :lethe #'min custom-tags custom-values))
 
 ;; Named wrappers -- merged (tag overrides default)
 
 (defun gnosis-get-thema-amnesia (id &optional custom-tags custom-values)
-  "Return amnesia value for thema ID."
+  "Return amnesia for ID.
+When ID is nil, CUSTOM-TAGS supplies tags; CUSTOM-VALUES supplies rules."
   (gnosis-get-thema-custom-value
    id :amnesia #'max gnosis-algorithm-amnesia-value
    t custom-tags custom-values))
 
 (defun gnosis-get-thema-epignosis (id &optional custom-tags custom-values)
-  "Return epignosis value for thema ID."
+  "Return epignosis for ID.
+When ID is nil, CUSTOM-TAGS supplies tags; CUSTOM-VALUES supplies rules."
   (gnosis-get-thema-custom-value
    id :epignosis #'max gnosis-algorithm-epignosis-value
    t custom-tags custom-values))
 
 (defun gnosis-get-thema-agnoia (id &optional custom-tags custom-values)
-  "Return agnoia value for thema ID."
+  "Return agnoia for ID.
+When ID is nil, CUSTOM-TAGS supplies tags; CUSTOM-VALUES supplies rules."
   (gnosis-get-thema-custom-value
    id :agnoia #'max gnosis-algorithm-agnoia-value
    t custom-tags custom-values))
@@ -278,13 +283,15 @@ CUSTOM-TAGS: Custom tags to be used instead."
       gnosis-algorithm-proto)))
 
 (defun gnosis-get-thema-anagnosis (id &optional custom-tags custom-values)
-  "Return anagnosis value for thema ID."
+  "Return anagnosis for ID.
+When ID is nil, CUSTOM-TAGS supplies tags; CUSTOM-VALUES supplies rules."
   (gnosis-get-thema-custom-value
    id :anagnosis #'min gnosis-algorithm-anagnosis-value
    nil custom-tags custom-values))
 
 (defun gnosis-get-thema-lethe (id &optional custom-tags custom-values)
-  "Return lethe value for thema ID."
+  "Return lethe for ID.
+When ID is nil, CUSTOM-TAGS supplies tags; CUSTOM-VALUES supplies rules."
   (gnosis-get-thema-custom-value
    id :lethe #'min gnosis-algorithm-lethe-value
    nil custom-tags custom-values))

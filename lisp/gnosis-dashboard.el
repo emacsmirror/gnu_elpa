@@ -228,7 +228,7 @@ Avoids re-fetching from the database."
 
 (defun gnosis-dashboard-suspend-thema ()
   "Suspend or unsuspend themata.
-With prefix arg (C-u), unsuspend.  Without, suspend.
+With \\[universal-argument], unsuspend.  Without it, suspend.
 For a single thema (no selection), toggles current value."
   (interactive nil gnosis-dashboard-themata-mode)
   (let* ((ids (or gnosis-dashboard--selected-ids
@@ -1337,7 +1337,7 @@ Queries the thema-links table where dest = NODE-ID."
   (gnosis-select 'dest 'node-links `(= source ,node-id) t))
 
 (defun gnosis-dashboard-nodes--data (&optional node-ids)
-  "Get nodes data formatted for tabulated-list-mode.
+  "Get nodes data formatted for `tabulated-list-mode'.
 If NODE-IDS is provided, only get data for those nodes.
 Returns list of (ID [TITLE LINK-COUNT BACKLINK-COUNT THEMATA-LINKS-COUNT])."
   (let* ((nodes-data (gnosis-nodes-get-nodes-data node-ids))
@@ -1516,7 +1516,7 @@ When NODE-IDS is non-nil, only search files whose node ID is in that list."
     (nreverse matching-ids)))
 
 (defun gnosis-dashboard-nodes-search-by-content (query)
-  "Search ALL nodes by file content in `gnosis-nodes-dir'."
+  "Search all nodes for QUERY in files under `gnosis-nodes-dir'."
   (interactive "sSearch all nodes by content: ")
   (when (string-empty-p query)
     (user-error "Search query cannot be empty"))
@@ -1530,7 +1530,7 @@ When NODE-IDS is non-nil, only search files whose node ID is in that list."
       (message "No nodes found matching '%s'" query))))
 
 (defun gnosis-dashboard-nodes-filter-by-content (query)
-  "Filter CURRENT nodes by searching file content."
+  "Filter current nodes by searching their files for QUERY."
   (interactive "sFilter current nodes by content: ")
   (unless gnosis-dashboard-nodes-current-ids
     (user-error "No nodes to filter"))

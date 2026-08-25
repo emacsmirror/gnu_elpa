@@ -95,8 +95,8 @@ EXAMPLE: Boolean value, if non-nil do not add properties for thema."
       (insert "\n" (or (cdr comp) "") "\n\n"))))
 
 (defun gnosis-export-parse-themata (&optional separator)
-  "Extract content for each level-2 heading for thema
-headings with a GNOSIS_ID.
+  "Extract qualifying level-1 thema headings.
+Each heading must have both GNOSIS_ID and GNOSIS_TYPE properties.
 
 Split content of Hypothesis and Answer headings using
 SEPARATOR."
@@ -379,8 +379,8 @@ When INCLUDE-SUSPENDED, also export suspended themata."
 
 (defun gnosis-import--commit (new-count changed-count
 					filename)
-  "Commit database after importing NEW-COUNT new and
-CHANGED-COUNT changed from FILENAME."
+  "Commit database after importing NEW-COUNT new entries.
+CHANGED-COUNT is the updated count from FILENAME."
   (unless gnosis-testing
     (when (file-exists-p (expand-file-name ".git" gnosis-dir))
       (gnosis--git-chain
@@ -411,8 +411,8 @@ CHANGED-COUNT changed from FILENAME."
   "List of changed thema IDs from the import.")
 
 (defun gnosis-import--changed-fields (row)
-  "Return comma-separated string of changed field names
-from ROW.  ROW has flags at positions 3-7: type, keimenon,
+  "Return comma-separated names of fields changed in ROW.
+ROW has flags at positions 3-7: type, keimenon,
 hypothesis, answer, parathema."
   (let ((names '((3 . "type") (4 . "keimenon")
                  (5 . "hypothesis") (6 . "answer")
@@ -527,8 +527,7 @@ CHANGED-ROWS: (ID TYPE KEIMENON FIELDS)."
 
 (defun gnosis-import--apply-changes (file new-ids
 					  changed-ids)
-  "Apply import from FILE: insert NEW-IDS, update
-CHANGED-IDS."
+  "Apply import from FILE by inserting NEW-IDS and updating CHANGED-IDS."
   (let* ((db (gnosis--ensure-db))
          (sanitized (gnosis-import--sanitize-path file))
          (today (gnosis--date-to-int
@@ -711,8 +710,7 @@ WHERE thema_id = ?" (list id)))
          #'string<)))
 
 (defun gnosis-import--render-detail (id status data)
-  "Render detail buffer for thema ID with STATUS using
-DATA plist."
+  "Render detail buffer for thema ID with STATUS using DATA plist."
   (let* ((current-row (or (plist-get data :current-row)
                           '(nil nil nil nil)))
          (import-row (plist-get data :import-row))

@@ -63,7 +63,7 @@ Optionally, use custom DEFAULT-FACE."
 
 (defconst gnosis-utils--org-link-re
   "\\[\\[[^]]*\\]\\[[^]]*\\]\\]\\|\\[\\[[^]]*\\]\\]"
-  "Regexp matching org-mode links: [[target][desc]] or [[target]].")
+  "Regexp matching Org mode links: [[target][desc]] or [[target]].")
 
 (defun gnosis-utils-string-outside-links-p (text string)
   "Return non-nil if STRING appears in TEXT outside of org-links."

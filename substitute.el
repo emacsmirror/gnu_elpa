@@ -182,7 +182,7 @@ Pass to it the TARGET and SCOPE arguments."
         (progn
           (substitute--collect-targets target scope)
           (when substitute-highlight
-            (substitute--highlight-targets))
+            (substitute--highlight-targets substitute--last-matches))
           (read-from-minibuffer
            (format "Substitute `%s' (%s times) %s with: "
                    (propertize pretty-target 'face 'substitute-prompt-target-highlight)
@@ -330,9 +330,9 @@ text."
     ('line (substitute--scope-current-line))
     (_ (substitute--scope-top-of-buffer))))
 
-(defun substitute--highlight-targets ()
-  "Highlight `substitute--last-matches'."
-  (when-let* ((targets substitute--last-matches))
+(defun substitute--highlight-targets (targets)
+  "Highlight TARGETS of form `substitute--last-matches'."
+  (when targets
     (save-excursion
       (save-restriction
         (mapcar
@@ -341,8 +341,8 @@ text."
              (substitute--add-highlight beg end)))
          targets)))))
 
-(defun substitute--replace-targets (sub &optional scope fixed)
-  "Replace `substitute--last-matches' target with SUB.
+(defun substitute--replace-targets (targets sub &optional scope fixed)
+  "Replace TARGETS of form `substitute--last-matches' with SUB.
 If optional SCOPE is equal to `above', then adjust for a reverse
 motion.
 
@@ -350,7 +350,7 @@ With optional FIXED as a non-nil value, do not alter the case of
 the substituted text.  Otherwise perform capitalization or
 upcasing based on the target text.  See the documenation of
 `replace-match' for how this works."
-  (when-let* ((targets substitute--last-matches))
+  (when targets
     (save-excursion
       (when (listp buffer-undo-list)
         (push (point) buffer-undo-list))
@@ -374,7 +374,7 @@ text (also see `substitute-fixed-letter-case')."
   (let* ((targets (or substitute--last-matches
                       (substitute--collect-targets target scope)))
          (count (length targets)))
-    (substitute--replace-targets sub scope fixed)
+    (substitute--replace-targets targets sub scope fixed)
     (setq-local substitute--last-matches nil)
     (run-hook-with-args 'substitute-post-replace-hook
                         target sub count

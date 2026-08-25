@@ -159,6 +159,20 @@ text to be replaced, while BEG and END are buffer positions.")
   :package-version '(substitute . "0.6.0")
   :group 'substitute)
 
+(defun substitute--collect-targets (target scope)
+  "Store occurrences of TARGET in SCOPE in `substitute--last-matches'."
+  (let ((search-fn (if (eq scope 'above) 're-search-backward 're-search-forward)))
+    (setq-local substitute--last-matches nil)
+    (save-excursion
+      (save-restriction
+        (substitute--setup-scope target scope)
+        (while (funcall search-fn target nil t)
+          (push (list (regexp-quote (match-string-no-properties 0))
+                      (match-beginning 0)
+                      (match-end 0))
+                substitute--last-matches))))
+    substitute--last-matches))
+
 (defun substitute--prompt (target scope)
   "Return appropriate prompt based on `substitute-highlight'.
 Pass to it the TARGET and SCOPE arguments."
@@ -315,20 +329,6 @@ text."
     ('paragraph (substitute--scope-current-paragraph))
     ('line (substitute--scope-current-line))
     (_ (substitute--scope-top-of-buffer))))
-
-(defun substitute--collect-targets (target scope)
-  "Store occurrences of TARGET in SCOPE in `substitute--last-matches'."
-  (let ((search-fn (if (eq scope 'above) 're-search-backward 're-search-forward)))
-    (setq-local substitute--last-matches nil)
-    (save-excursion
-      (save-restriction
-        (substitute--setup-scope target scope)
-        (while (funcall search-fn target nil t)
-          (push (list (regexp-quote (match-string-no-properties 0))
-                      (match-beginning 0)
-                      (match-end 0))
-                substitute--last-matches))))
-    substitute--last-matches))
 
 (defun substitute--highlight-targets ()
   "Highlight `substitute--last-matches'."

@@ -2,6 +2,12 @@
 #+author: Daniel Mendler
 #+language: en
 
+* Development
+
+- =consult-completion-in-region=: Support default completion UI if eager display
+  and update is enabled, such that in-buffer completion can be transferred to
+  the minibuffer.
+
 * Version 3.7 (2026-08-05)
 
 - =minibuffer-exit-hook=: Internal refactoring of minibuffer-local hooks.

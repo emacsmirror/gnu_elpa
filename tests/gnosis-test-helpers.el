@@ -12,7 +12,6 @@
 
 ;;; Code:
 
-(require 'cl-lib)
 (require 'gnosis)
 
 (let ((lisp-dir (expand-file-name "../lisp"
@@ -23,47 +22,20 @@
   "Path to temporary test database file.")
 
 (defvar gnosis-test--dir nil
-  "Path to temporary test Gnosis directory.")
-
-(defvar gnosis-test--timers nil
-  "Timers scheduled during the current test body.")
+  "Path to the temporary directory owned by the current test fixture.")
 
 (defmacro gnosis-test-with-db (&rest body)
-  "Run BODY with a fresh temporary gnosis database.
-Rebinds `gnosis-db' and initialises the schema."
+  "Run BODY with an isolated temporary Gnosis environment.
+Rebind the database, data directory, and version-control guards."
   (declare (indent 0) (debug t))
-  `(let* ((gnosis-test--db-file (make-temp-file "gnosis-test-" nil ".db"))
-          (gnosis-test--dir (make-temp-file "gnosis-test-dir-" t))
-          (user-emacs-directory
-           (file-name-as-directory
-            (expand-file-name "emacs.d" gnosis-test--dir)))
+  `(let* ((gnosis-test--dir (make-temp-file "gnosis-test-" t))
           (gnosis-dir (file-name-as-directory gnosis-test--dir))
-          (gnosis-nodes-dir
-           (file-name-as-directory
-            (expand-file-name "nodes" gnosis-test--dir)))
-          (gnosis-journal-dir
-           (file-name-as-directory
-            (expand-file-name "journal" gnosis-nodes-dir)))
+          (gnosis-test--db-file (expand-file-name "gnosis.db" gnosis-dir))
+          (gnosis-db (gnosis-sqlite-open gnosis-test--db-file))
           (gnosis-testing t)
           (gnosis-vc-auto-push nil)
-          (gnosis-db (gnosis-sqlite-open gnosis-test--db-file))
-          (gnosis--id-cache nil)
-          (gnosis-test--timers nil))
-     (make-directory user-emacs-directory t)
-     (make-directory gnosis-dir t)
-     (make-directory gnosis-nodes-dir t)
-     (make-directory gnosis-journal-dir t)
-     (let ((gnosis-test--run-with-timer (symbol-function 'run-with-timer)))
-       (cl-letf (((symbol-function 'gnosis--ensure-git-repo) #'ignore)
-                 ((symbol-function 'gnosis--git-chain)
-                  (lambda (&rest _) nil))
-                 ((symbol-function 'gnosis-vc-push) #'ignore)
-                 ((symbol-function 'run-with-timer)
-                  (lambda (secs repeat function &rest args)
-                    (let ((timer (apply gnosis-test--run-with-timer
-                                        secs repeat function args)))
-                      (push timer gnosis-test--timers)
-                      timer))))
+          (gnosis--id-cache nil))
+     (unwind-protect
          (unwind-protect
              (progn
                (gnosis-sqlite-with-transaction gnosis-db
@@ -73,12 +45,8 @@ Rebinds `gnosis-db' and initialises the schema."
                              (gnosis-sqlite--ident table)
                              (gnosis-sqlite--compile-schema schema)))))
                ,@body)
-           (mapc #'cancel-timer gnosis-test--timers)
-           (gnosis-sqlite-close gnosis-db)
-           (when (file-exists-p gnosis-test--db-file)
-             (delete-file gnosis-test--db-file))
-           (when (file-directory-p gnosis-test--dir)
-             (delete-directory gnosis-test--dir t)))))))
+           (gnosis-sqlite-close gnosis-db))
+       (delete-directory gnosis-test--dir t))))
 
 (defun gnosis-test--add-basic-thema (keimenon answer
                                      &optional tags parathema thema-id suspend)

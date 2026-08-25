@@ -21,6 +21,7 @@
 (declare-function gnosis-nodes-select "gnosis-nodes")
 (declare-function gnosis-nodes--find "gnosis-nodes")
 (declare-function gnosis-nodes--create-file "gnosis-nodes")
+(declare-function gnosis-nodes-insert "gnosis-nodes")
 (declare-function gnosis-nodes-select-template "gnosis-nodes")
 (declare-function gnosis-nodes-find "gnosis-nodes")
 (declare-function gnosis-nodes-mode "gnosis-nodes")

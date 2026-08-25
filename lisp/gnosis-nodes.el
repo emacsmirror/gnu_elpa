@@ -20,6 +20,8 @@
 (require 'gnosis-db)
 (require 'gnosis-sqlite)
 (declare-function gnosis-journal--dir "gnosis-journal")
+(defvar gnosis-journal-file)
+(defvar gnosis-journal-templates)
 
 (defgroup gnosis-nodes nil
   "Gnosis node management."

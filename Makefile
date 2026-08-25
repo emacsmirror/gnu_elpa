@@ -1,126 +1,143 @@
 .POSIX:
-.PHONY: all doc do-doc compile do-compile test do-test load clean
+.PHONY: all doc autoload autoload-smoke compile test check load clean
 
-NIX := $(shell command -v nix 2>/dev/null)
-
-# Public targets re-enter make through the nix dev shell so builds and
-# tests run against the flake's isolated dependencies; do-* targets do
-# the real work and expect Emacs plus deps on PATH.
-ENV_MAKE = $(MAKE) --no-print-directory
-ifeq ($(GNOSIS_ENV_WRAPPED),)
-ifneq ($(NIX),)
-ENV_MAKE = nix develop --no-write-lock-file path:$(CURDIR) --command env GNOSIS_ENV_WRAPPED=1 $(MAKE) --no-print-directory
-endif
-endif
+-include local.mk
 
 EMACS ?= emacs
+EMACSCLIENT ?= emacsclient
+EMACS_OPTS ?= -Q --batch
+ENV ?=
+EXTRA_LOAD_PATH ?=
+
+LISP_DIR := lisp
+TEST_DIR := tests
+LOAD_PATH := -L $(LISP_DIR) -L $(TEST_DIR) $(EXTRA_LOAD_PATH)
+AUTOLOADS := $(LISP_DIR)/gnosis-autoloads.el
 ORG := docs/gnosis.org
 TEXI := docs/gnosis.texi
 INFO := docs/gnosis.info
-LISP_DIR := lisp
-TEST_FILES := tests/gnosis-test-sqlite.el \
+
+MODULES := gnosis-sqlite gnosis-tl gnosis-utils gnosis-org \
+	gnosis-algorithm gnosis-cloze gnosis-db gnosis-vc \
+	gnosis-tags gnosis-custom-values gnosis-links gnosis-monkeytype \
+	gnosis-nodes gnosis-journal gnosis gnosis-review gnosis-dashboard \
+	gnosis-export-import gnosis-anki
+SOURCES := $(addprefix $(LISP_DIR)/,$(addsuffix .el,$(MODULES)))
+
+TESTS := tests/gnosis-test-sqlite.el \
 	tests/gnosis-test-algorithm.el \
-	tests/gnosis-test-custom-values.el \
 	tests/gnosis-test-export-import.el \
 	tests/gnosis-test-dashboard.el \
 	tests/gnosis-test-cloze.el \
 	tests/gnosis-test-bulk-link.el \
 	tests/gnosis-test-script-detection.el \
 	tests/gnosis-test-insert-template.el \
+	tests/gnosis-test-isolation.el \
 	tests/gnosis-test-org.el \
 	tests/gnosis-test-nodes.el \
 	tests/gnosis-test-review.el \
 	tests/gnosis-test-journal.el \
 	tests/gnosis-test-migration.el \
-	tests/gnosis-test-anki.el \
+	tests/gnosis-test-anki.el
 
-all: doc
+all: check
 
-doc:
-	@$(ENV_MAKE) do-doc
+doc: $(ORG)
+	$(ENV) $(EMACS) $(EMACS_OPTS) --load org \
+		--eval "(with-current-buffer (find-file \"$(ORG)\") \
+		  (org-texinfo-export-to-info))"
 
-do-doc: $(ORG)
-	$(EMACS) --batch \
-	-Q \
-	--load org \
-	--eval "(with-current-buffer (find-file \"$(ORG)\") (org-texinfo-export-to-info))" \
-	--kill
+autoload:
+	rm -f $(AUTOLOADS)
+	$(ENV) $(EMACS) $(EMACS_OPTS) -L $(LISP_DIR) \
+		--eval "(loaddefs-generate \"$(LISP_DIR)\" \"$(AUTOLOADS)\")"
 
-compile:
-	@$(ENV_MAKE) do-compile
+autoload-smoke: autoload
+	$(ENV) $(EMACS) $(EMACS_OPTS) -L $(LISP_DIR) \
+		-l gnosis-autoloads \
+		--eval "(dolist (command '(gnosis-add-thema gnosis-dashboard \
+		  gnosis-nodes-find gnosis-review)) \
+		  (unless (autoloadp (symbol-function command)) \
+		    (error \"Missing autoload: %S\" command)))"
 
-# docstrings-wide is excluded: keymap-popup-define generates launcher
-# docstrings wider than 80 columns.
-do-compile:
+compile: autoload
 	rm -f $(LISP_DIR)/*.elc
-	$(EMACS) --batch \
-	-q \
-	--eval "(setq byte-compile-error-on-warn t)" \
-	--eval "(setq byte-compile-warnings '(not docstrings-wide))" \
-	-L $(LISP_DIR) \
-	-f batch-byte-compile $(LISP_DIR)/*.el
+	$(ENV) $(EMACS) $(EMACS_OPTS) $(LOAD_PATH) \
+		--eval "(defun gnosis--compile-log-warning \
+		  (string position fill level) \
+		  (unless (and (eq level :warning) \
+		               (equal string \"docstring wider than 80 characters\") \
+		               (memq byte-compile-current-form \
+		                 '(gnosis-dashboard-mode-map--enter-gnosis-dashboard-nodes-map \
+		                   gnosis-dashboard-mode-map--enter-gnosis-dashboard-themata-map \
+		                   gnosis-dashboard-mode-map--enter-gnosis-dashboard-import-export-map \
+		                   gnosis-dashboard-mode-map--enter-gnosis-dashboard-maintenance-map \
+		                   gnosis-dashboard-nodes-mode-map--enter-gnosis-dashboard-nodes-search-map \
+		                   gnosis-dashboard-nodes-mode-map--enter-gnosis-dashboard-nodes-filter-map \
+		                   gnosis-dashboard-nodes-mode-map--enter-gnosis-dashboard-nodes-sort-map))) \
+		    (if (eq level :warning) \
+		        (error \"%s\" string) \
+		      (byte-compile--log-warning-for-byte-compile \
+		       string position fill level))))" \
+		--eval "(setq byte-compile-error-on-warn nil \
+		              byte-compile-log-warning-function \
+		              #'gnosis--compile-log-warning \
+		              load-prefer-newer t)" \
+		-f batch-byte-compile $(SOURCES)
 
 test:
-	@$(ENV_MAKE) do-compile do-test
-
-do-test:
-	rm -f $(LISP_DIR)/*.elc
-	@set -e; for f in $(TEST_FILES); do \
-		echo "Running $$f..."; \
-		$(EMACS) --batch \
-		-q \
-		--eval "(add-to-list 'load-path \"$(shell pwd)/$(LISP_DIR)\")" \
-		--load $$f; \
+	@set -eu; for file in $(TESTS); do \
+		tmp=$$(mktemp -d); \
+		trap 'rm -rf "$$tmp"' 0 1 2 3 15; \
+		echo "Running $$file..."; \
+		HOME="$$tmp/home" XDG_CACHE_HOME="$$tmp/cache" \
+		XDG_CONFIG_HOME="$$tmp/config" XDG_DATA_HOME="$$tmp/share" \
+		XDG_STATE_HOME="$$tmp/state" GNOSIS_TEST_DIR="$$tmp/gnosis" \
+		$(ENV) $(EMACS) $(EMACS_OPTS) $(LOAD_PATH) -l ert \
+			--eval="(setq gnosis-dir \
+			  (file-name-as-directory (getenv \"GNOSIS_TEST_DIR\")) \
+			  gnosis-testing t gnosis-vc-auto-push nil \
+			  load-prefer-newer t)" \
+			-l "$$file" -f ert-run-tests-batch-and-exit; \
+		rm -rf "$$tmp"; trap - 0 1 2 3 15; \
 	done
 
-EL_FILES := gnosis-sqlite.el gnosis-tl.el gnosis-utils.el gnosis-org.el \
-	gnosis-algorithm.el gnosis-cloze.el gnosis-db.el gnosis-vc.el \
-	gnosis-tags.el gnosis-custom-values.el gnosis-links.el \
-	gnosis.el gnosis-nodes.el gnosis-journal.el \
-	gnosis-review.el gnosis-dashboard.el gnosis-export-import.el \
-	gnosis-anki.el gnosis-monkeytype.el
+check: compile autoload-smoke test
 
 load:
 	rm -f $(LISP_DIR)/*.elc
-	@emacsclient -e "(progn \
-	  (dolist (sym '(gnosis-dashboard-common-map \
-	               gnosis-dashboard-themata-mode-map \
-	               gnosis-dashboard-tags-mode-map \
-	               gnosis-dashboard-mode-map \
-	               gnosis-dashboard-nodes-mode-map \
-	               gnosis-dashboard-nodes-sort-map \
-	               gnosis-dashboard-nodes-search-map \
-	               gnosis-dashboard-nodes-filter-map \
-	               gnosis-dashboard-nodes-map \
-	               gnosis-dashboard-themata-map \
-	               gnosis-import-diff-mode-map \
-	               gnosis-review-map)) \
-	    (when (boundp sym) (makunbound sym))) \
-	  (dolist (sym '(gnosis-dashboard-menu \
-	               gnosis-dashboard-themata-mode-menu \
-	               gnosis-dashboard-tags-mode-menu \
-	               gnosis-dashboard-nodes-mode-menu \
-	               gnosis-dashboard-menu-nodes \
-	               gnosis-dashboard-menu-themata \
-	               gnosis-dashboard-nodes-sort-menu \
-	               gnosis-dashboard-nodes-search-menu \
-	               gnosis-dashboard-nodes-filter-menu \
-	               gnosis-import-diff-menu)) \
-	    (when (fboundp sym) (fmakunbound sym))))" > /dev/null
-	@for f in $(EL_FILES); do \
-		emacsclient -e "(load-file \"$(shell pwd)/$(LISP_DIR)/$$f\")" > /dev/null; \
-	done
-	@emacsclient -e "(dolist (buf (buffer-list)) \
-	  (with-current-buffer buf \
-	    (cond ((derived-mode-p 'gnosis-dashboard-themata-mode) \
-	           (use-local-map gnosis-dashboard-themata-mode-map)) \
-	          ((derived-mode-p 'gnosis-dashboard-tags-mode) \
-	           (use-local-map gnosis-dashboard-tags-mode-map)) \
-	          ((derived-mode-p 'gnosis-dashboard-nodes-mode) \
-	           (use-local-map gnosis-dashboard-nodes-mode-map)) \
-	          ((derived-mode-p 'gnosis-dashboard-mode) \
-	           (use-local-map gnosis-dashboard-mode-map)))))" > /dev/null
-	@echo "Loaded $(words $(EL_FILES)) files."
+	@$(EMACSCLIENT) -e "(progn \
+	  (add-to-list 'load-path \"$(CURDIR)/$(LISP_DIR)\") \
+	  (dolist (symbol '(gnosis-dashboard-common-map \
+	                   gnosis-dashboard-themata-mode-map \
+	                   gnosis-dashboard-tags-mode-map \
+	                   gnosis-dashboard-mode-map \
+	                   gnosis-dashboard-nodes-mode-map \
+	                   gnosis-dashboard-nodes-sort-map \
+	                   gnosis-dashboard-nodes-search-map \
+	                   gnosis-dashboard-nodes-filter-map \
+	                   gnosis-dashboard-nodes-map \
+	                   gnosis-dashboard-themata-map \
+	                   gnosis-dashboard-import-export-map \
+	                   gnosis-dashboard-maintenance-map \
+	                   gnosis-import-diff-mode-map \
+	                   gnosis-review-map)) \
+	    (when (boundp symbol) (makunbound symbol))) \
+	  (dolist (file '($(SOURCES))) \
+	    (load-file (expand-file-name (symbol-name file) \"$(CURDIR)\"))) \
+	  (dolist (buffer (buffer-list)) \
+	    (with-current-buffer buffer \
+	      (cond ((derived-mode-p 'gnosis-dashboard-themata-mode) \
+	             (use-local-map gnosis-dashboard-themata-mode-map)) \
+	            ((derived-mode-p 'gnosis-dashboard-tags-mode) \
+	             (use-local-map gnosis-dashboard-tags-mode-map)) \
+	            ((derived-mode-p 'gnosis-dashboard-nodes-mode) \
+	             (use-local-map gnosis-dashboard-nodes-mode-map)) \
+	            ((derived-mode-p 'gnosis-dashboard-mode) \
+	             (use-local-map gnosis-dashboard-mode-map))))))" \
+	  > /dev/null
+	@echo "Loaded $(words $(SOURCES)) files."
 
 clean:
-	rm -f $(TEXI) $(INFO) $(LISP_DIR)/*.elc *-pkg.el*
+	rm -f $(TEXI) $(INFO) $(AUTOLOADS) \
+		$(LISP_DIR)/*.elc $(TEST_DIR)/*.elc *-pkg.el*

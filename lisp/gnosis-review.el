@@ -691,9 +691,9 @@ The loop is wrapped in a `review-loop' catch so that
 This function initializes the `gnosis-dir' as a Git repository if it is not
 already one.  It then adds the gnosis.db file to the repository and commits
 the changes with a message containing the reviewed number THEMA-NUM."
-  (gnosis--ensure-git-repo)
   (if gnosis-testing
       (message "Review session finished.  %d themata reviewed." thema-num)
+    (gnosis--ensure-git-repo)
     (gnosis--git-chain
      `(("add" "gnosis.db")
        ("commit" "-m"
@@ -741,8 +741,8 @@ should be recursively called using SUCCESS and THEMA."
 
 (defun gnosis-review-action--override (success thema _result)
   "Override current review result for SUCCESS.
-The algorithm result is recomputed with the flipped SUCCESS
-value, so the passed one is ignored.
+The current algorithm result is ignored and recomputed with the
+flipped SUCCESS value.
 
 This function should be used with `gnosis-review-actions', which will
 be called with new SUCCESS value plus THEMA."
@@ -822,10 +822,6 @@ answers highlighted."
 	  (t (gnosis-monkeytype keimenon answer)))))
 
 ;;; Entry points
-
-;; Declared for the byte compiler: `keymap-popup-define' references the
-;; variable in generated functions before its `defvar-keymap' form.
-(defvar gnosis-review-map)
 
 (keymap-popup-define gnosis-review-map
   "Review"

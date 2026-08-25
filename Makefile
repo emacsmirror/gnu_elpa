@@ -58,7 +58,7 @@ autoload:
 autoload-smoke: autoload
 	$(ENV) $(EMACS) $(EMACS_OPTS) -L $(LISP_DIR) \
 		-l gnosis-autoloads \
-		--eval "(dolist (command '(gnosis-add-thema gnosis-dashboard \
+		--eval "(dolist (command '(gnosis gnosis-add-thema gnosis-dashboard \
 		  gnosis-nodes-find gnosis-review)) \
 		  (unless (autoloadp (symbol-function command)) \
 		    (error \"Missing autoload: %S\" command)))"

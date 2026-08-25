@@ -802,6 +802,12 @@ Return thema ids for themata that match QUERY."
     (append (gnosis-select 'id 'themata clause-keimenon t)
 	    (gnosis-select 'id 'themata clause-answer t))))
 
+;;;###autoload
+(defun gnosis ()
+  "Open the Gnosis dashboard."
+  (interactive)
+  (gnosis-dashboard))
+
 ;; Gnosis mode ;;
 ;;;;;;;;;;;;;;;;;
 

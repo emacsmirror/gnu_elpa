@@ -260,6 +260,20 @@ Uses `gnosis--id-cache' for O(1) collision checking when bound."
        (lapses integer :not-null)]
       (:foreign-key [thema-id] :references themata [id]
                     :on-delete :cascade)))
+    (scheduler-state
+     ([(thema-id integer :primary-key :not-null)
+       (config-id integer :not-null)
+       (stability real)
+       (difficulty real)
+       (last-reviewed-at-us integer)
+       (last-review-day integer)
+       (due-day integer :not-null)
+       (reps integer :not-null)
+       (lapses integer :not-null)
+       (suspended integer :not-null)]
+      (:foreign-key [thema-id] :references scheduler-baseline [thema-id]
+                    :on-delete :cascade)
+      (:foreign-key [config-id] :references scheduler-config [id])))
     (activity-log
      ([(date integer :not-null)
        (reviewed-total integer :not-null)
@@ -371,6 +385,11 @@ Used for fresh databases only."
 		  "CREATE INDEX IF NOT EXISTS idx_journal_file
                    ON journal(file)"))
     (gnosis-sqlite-execute db stmt))
+  (when (gnosis-table-exists-p 'scheduler-state)
+    (gnosis-sqlite-execute
+     db
+     "CREATE INDEX IF NOT EXISTS idx_scheduler_state_due
+        ON scheduler_state(suspended, due_day, reps)"))
   ;; source_guid index: created by v8 migration for existing DBs,
   ;; or here for fresh DBs where the column already exists
   (gnosis-db--migrate-step "create source_guid index"

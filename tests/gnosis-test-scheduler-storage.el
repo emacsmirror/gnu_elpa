@@ -105,5 +105,59 @@
       "INSERT INTO scheduler_baseline VALUES (?, ?, ?, ?)"
       '(1 20260831 0 0)))))
 
+(ert-deftest gnosis-test-scheduler-state-roundtrips-bootstrap-projection ()
+  "Round-trip a migrated projection with no FSRS memory state."
+  (gnosis-test-scheduler--with-fresh-db
+    (gnosis-sqlite-execute
+     gnosis-db "INSERT INTO themata VALUES (?, ?, ?, ?, ?, ?)"
+     '(1 "basic" "Question" ("") ("Answer") nil))
+    (gnosis-sqlite-execute
+     gnosis-db "INSERT INTO scheduler_baseline VALUES (?, ?, ?, ?)"
+     '(1 20260830 7 2))
+    (gnosis-sqlite-execute
+     gnosis-db
+     "INSERT INTO scheduler_state VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+     '(1 1 nil nil nil nil 20260830 7 2 0))
+    (should
+     (equal '((1 1 nil nil nil nil 20260830 7 2 0))
+            (gnosis-sqlite-select gnosis-db "SELECT * FROM scheduler_state")))))
+
+(ert-deftest gnosis-test-scheduler-state-enforces-authority-and-due-index ()
+  "Require baseline/config authority and index due projections."
+  (gnosis-test-scheduler--with-fresh-db
+    (should-error
+     (gnosis-sqlite-execute
+      gnosis-db
+      "INSERT INTO scheduler_state VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+      '(404 1 nil nil nil nil 20260830 0 0 0)))
+    (gnosis-sqlite-execute
+     gnosis-db "INSERT INTO themata VALUES (?, ?, ?, ?, ?, ?)"
+     '(1 "basic" "Question" ("") ("Answer") nil))
+    (gnosis-sqlite-execute
+     gnosis-db "INSERT INTO scheduler_baseline VALUES (?, ?, ?, ?)"
+     '(1 20260830 0 0))
+    (should-error
+     (gnosis-sqlite-execute
+      gnosis-db
+      "INSERT INTO scheduler_state VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+      '(1 404 nil nil nil nil 20260830 0 0 0)))
+    (gnosis-sqlite-execute
+     gnosis-db
+     "INSERT INTO scheduler_state VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+     '(1 1 nil nil nil nil 20260830 0 0 0))
+    (should-error
+     (gnosis-sqlite-execute
+      gnosis-db
+      "INSERT INTO scheduler_state VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+      '(1 1 nil nil nil nil 20260831 0 0 0)))
+    (should
+     (equal '(idx_scheduler_state_due)
+            (mapcar #'car
+                    (gnosis-sqlite-select
+                     gnosis-db
+                     "SELECT name FROM sqlite_master
+                        WHERE type = 'index'
+                          AND name = 'idx_scheduler_state_due'"))))))
+
 (provide 'gnosis-test-scheduler-storage)
 ;;; gnosis-test-scheduler-storage.el ends here

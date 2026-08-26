@@ -32,6 +32,7 @@
 
 (require 'gnosis)
 (require 'gnosis-db)
+(require 'gnosis-scheduler)
 (require 'gnosis-cloze)
 (require 'gnosis-vc)
 (require 'gnosis-algorithm)
@@ -475,24 +476,26 @@ SUSPEND, when non-nil, imports themata as suspended."
                                  (list id (prin1-to-string tag)))))))
     (gnosis-sqlite-with-transaction db
       (sqlite-execute db
-                      (concat "INSERT INTO themata (id, type, keimenon, hypothesis, answer, source_guid) VALUES "
-                              (mapconcat (lambda (_) "(?,?,?,?,?,?)") items ", "))
-                      themata-params)
+		      (concat "INSERT INTO themata (id, type, keimenon, hypothesis, answer, source_guid) VALUES "
+			      (mapconcat (lambda (_) "(?,?,?,?,?,?)") items ", "))
+		      themata-params)
       ;; INSERT INTO review (3 cols)
       (sqlite-execute db
-                      (concat "INSERT INTO review VALUES "
-                              (mapconcat (lambda (_) "(?,?,?)") items ", "))
-                      review-params)
+		      (concat "INSERT INTO review VALUES "
+			      (mapconcat (lambda (_) "(?,?,?)") items ", "))
+		      review-params)
       ;; INSERT INTO review_log (9 cols)
       (sqlite-execute db
-                      (concat "INSERT INTO review_log VALUES "
-                              (mapconcat (lambda (_) "(?,?,?,?,?,?,?,?,?)") items ", "))
-                      review-log-params)
+		      (concat "INSERT INTO review_log VALUES "
+			      (mapconcat (lambda (_) "(?,?,?,?,?,?,?,?,?)") items ", "))
+		      review-log-params)
+      (gnosis-scheduler-initialize-themata
+       (mapcar (lambda (id) (list id today suspend-val)) ids) db)
       ;; INSERT INTO extras (3 cols)
       (sqlite-execute db
-                      (concat "INSERT INTO extras VALUES "
-                              (mapconcat (lambda (_) "(?,?,?)") items ", "))
-                      extras-params)
+		      (concat "INSERT INTO extras VALUES "
+			      (mapconcat (lambda (_) "(?,?,?)") items ", "))
+		      extras-params)
       (gnosis-anki--insert-tags db tag-params))))
 
 (defun gnosis-anki--build-model-info-from-col (anki-db model-info)
@@ -634,84 +637,39 @@ Returns (SKIPPED . PREPARED) where PREPARED is a list of plists."
      (lambda ()
        (when gnosis-vc-auto-push (gnosis-vc-push))))))
 
-(defun gnosis-anki--finish-import (db imported skipped source-file cleanup-fn callback)
-  "Finalize import into DB and report completion through CALLBACK.
-IMPORTED and SKIPPED are counts used for messages and CALLBACK.
-SOURCE-FILE is used for the commit message.  CLEANUP-FN is called
-when non-nil.  CALLBACK is called with IMPORTED, SKIPPED, and nil
-on success, or with IMPORTED, SKIPPED, and the first finalization
-error object.  A finalization error may be reported after rows were
-inserted; IMPORTED and SKIPPED remain authoritative.  CALLBACK should
-not signal."
-  (let (import-error)
-    (condition-case err
-        (sqlite-execute db "ANALYZE")
-      (error (setq import-error err)))
-    (unless import-error
-      (condition-case err
-          (gnosis-anki--commit-import imported source-file)
-        (error (setq import-error err))))
-    (condition-case err
-        (when cleanup-fn
-          (funcall cleanup-fn))
-      (error
-       (if import-error
-           (message "Anki import cleanup error after prior failure: %S" err)
-         (setq import-error err))))
-    (if import-error
-        (progn
-          (message "Anki import error at completion: %S" import-error)
-          (when callback
-            (funcall callback imported skipped import-error)))
-      (message "Anki import complete: %d imported, %d skipped" imported skipped)
-      (when callback
-        (funcall callback imported skipped nil)))))
-
 (defun gnosis-anki--chunk-insert (db item-chunks id-chunks total skipped
                                      gnosis-val amnesia-val today cleanup-fn
                                      source-file
-                                     &optional extra-tag suspend callback)
+                                     &optional extra-tag suspend)
   "Insert ITEM-CHUNKS with ID-CHUNKS into DB asynchronously.
 TOTAL and SKIPPED are counts for progress messages.  GNOSIS-VAL,
 AMNESIA-VAL, TODAY are pre-computed constants.  CLEANUP-FN is
 called with no args after the last chunk.  SOURCE-FILE is the
 original file path for the git commit message.  EXTRA-TAG and
-SUSPEND are passed through to `gnosis-anki--bulk-insert-chunk'.
-CALLBACK, when non-nil, is called with IMPORTED, SKIPPED, and
-ERROR after import completes or fails during chunk insertion or
-finalization."
-  (let ((imported 0)
-        (import-testing gnosis-testing)
-        (import-dir gnosis-dir)
-        (import-vc-auto-push gnosis-vc-auto-push))
+SUSPEND are passed through to `gnosis-anki--bulk-insert-chunk'."
+  (let ((imported 0))
     (cl-labels
         ((process-next (item-rest id-rest)
-           (let ((gnosis-testing import-testing)
-                 (gnosis-dir import-dir)
-                 (gnosis-vc-auto-push import-vc-auto-push))
-             (if (null item-rest)
-                 (gnosis-anki--finish-import db imported skipped source-file
-                                             cleanup-fn callback)
-               (condition-case err
-                   (progn
-                     (gnosis-anki--bulk-insert-chunk
-                      db (car item-rest) (car id-rest)
-                      gnosis-val amnesia-val today extra-tag suspend)
-                     (setq imported (+ imported (length (car item-rest))))
-                     (message "Importing... %d/%d (%d%%)"
-                              imported total (/ (* 100 imported) total))
-                     (run-with-timer 0.1 nil #'process-next
-                                     (cdr item-rest) (cdr id-rest)))
-                 (error
-                  (message "Anki import error at chunk %d: %S" imported err)
-                  (condition-case cleanup-err
-                      (when cleanup-fn
-                        (funcall cleanup-fn))
-                    (error
-                     (message "Anki import cleanup error after chunk failure: %S"
-                              cleanup-err)))
-                  (when callback
-                    (funcall callback imported skipped err))))))))
+           (if (null item-rest)
+               (progn
+                 (sqlite-execute db "ANALYZE")
+                 (gnosis-anki--commit-import imported source-file)
+                 (when cleanup-fn (funcall cleanup-fn))
+                 (message "Anki import complete: %d imported, %d skipped"
+                          imported skipped))
+             (condition-case err
+                 (progn
+                   (gnosis-anki--bulk-insert-chunk
+                    db (car item-rest) (car id-rest)
+                    gnosis-val amnesia-val today extra-tag suspend)
+                   (setq imported (+ imported (length (car item-rest))))
+                   (message "Importing... %d/%d (%d%%)"
+                            imported total (/ (* 100 imported) total))
+                   (run-with-timer 0.1 nil #'process-next
+                                   (cdr item-rest) (cdr id-rest)))
+               (error
+                (message "Anki import error at chunk %d: %S" imported err)
+                (when cleanup-fn (funcall cleanup-fn)))))))
       (process-next item-chunks id-chunks))))
 
 (defun gnosis-anki--build-guid-cache ()
@@ -726,18 +684,13 @@ Uses raw `sqlite-select' because source_guid is stored without
     cache))
 
 (defun gnosis-anki--import-db
-    (db-file &optional tmp-p extra-tag suspend source-file callback)
+    (db-file &optional tmp-p extra-tag suspend source-file)
   "Import notes from Anki database at DB-FILE asynchronously.
 Parses all notes, then bulk-inserts in chunks using timers so
 Emacs stays responsive.  When TMP-P is non-nil, clean up DB-FILE
 and its temp directory after import.  EXTRA-TAG is appended to
 each thema's tags.  SUSPEND imports as suspended.  SOURCE-FILE
-is the original .apkg path for the git commit message.  CALLBACK,
-when non-nil, is called with IMPORTED, SKIPPED, and ERROR after
-import completes or fails during chunk insertion or finalization.
-Empty imports may call CALLBACK before this function returns;
-parse/setup errors signal synchronously before scheduling chunks.  A
-non-nil ERROR may describe finalization after rows were inserted."
+is the original .apkg path for the git commit message."
   (let* ((parse-result (gnosis-anki--parse-anki-db db-file))
          (skipped (car parse-result))
          (prepared (cdr parse-result))
@@ -757,19 +710,9 @@ non-nil ERROR may describe finalization after rows were inserted."
     (when (> dup-count 0)
       (message "Skipping %d duplicate notes (already imported)" dup-count))
     (if (zerop total)
-        (let (cleanup-error)
-          (condition-case err
-              (when cleanup-fn
-                (funcall cleanup-fn))
-            (error (setq cleanup-error err)))
-          (if cleanup-error
-              (progn
-                (message "Anki import cleanup error: %S" cleanup-error)
-                (when callback
-                  (funcall callback 0 skipped cleanup-error)))
-            (message "Anki import: 0 imported, %d skipped" skipped)
-            (when callback
-              (funcall callback 0 skipped nil))))
+        (progn
+          (when cleanup-fn (funcall cleanup-fn))
+          (message "Anki import: 0 imported, %d skipped" skipped))
       (let* ((gnosis--id-cache (gnosis-anki--build-id-cache))
              (all-ids (progn (message "Generating %d IDs..." total)
                              (gnosis-generate-ids total))))
@@ -783,7 +726,7 @@ non-nil ERROR may describe finalization after rows were inserted."
          (gnosis--today-int)
          cleanup-fn
          (or source-file db-file)
-         extra-tag suspend callback)))))
+         extra-tag suspend)))))
 
 ;;;###autoload
 (defun gnosis-import-anki (file)

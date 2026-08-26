@@ -181,22 +181,40 @@ REVIEWED-AT-US, REVIEW-DAY, and RETENTION complete the evidence."
         :due-day (nth 5 state) :reps (nth 6 state) :lapses (nth 7 state)
         :suspended (nth 8 state) :new-p (if (zerop (nth 6 state)) 1 0)))
 
-(defun gnosis-scheduler-initialize-thema
-    (thema-id due-day suspended &optional db)
-  "Initialize THEMA-ID at DUE-DAY with SUSPENDED state in optional DB."
-  (unless (and (integerp thema-id) (memq suspended '(0 1)))
+(defun gnosis-scheduler-initialize-themata (rows &optional db)
+  "Initialize scheduler storage for ROWS in optional DB.
+Each row is (THEMA-ID DUE-DAY SUSPENDED)."
+  (unless (and rows
+               (cl-every
+                (lambda (row)
+                  (and (= (length row) 3) (integerp (nth 0 row))
+                       (memq (nth 2 row) '(0 1))
+                       (progn (gnosis-scheduler--day-time (nth 1 row)) t)))
+                rows))
     (error "Invalid scheduler initialization"))
-  (gnosis-scheduler--day-time due-day)
   (let ((db (or db (gnosis--ensure-db))))
     (gnosis-sqlite-with-transaction db
       (gnosis-sqlite-execute
-       db "INSERT INTO scheduler_baseline VALUES (?, ?, ?, ?)"
-       (list thema-id due-day 0 0))
+       db (concat "INSERT INTO scheduler_baseline VALUES "
+                  (mapconcat (lambda (_) "(?,?,?,?)") rows ","))
+       (apply #'append
+              (mapcar (lambda (row) (list (nth 0 row) (nth 1 row) 0 0)) rows)))
       (gnosis-sqlite-execute
-       db "INSERT INTO scheduler_state VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-       (list thema-id 1 nil nil nil nil due-day 0 0 suspended))
-      (gnosis-scheduler--state-result
-       thema-id (list 1 nil nil nil nil due-day 0 0 suspended)))))
+       db (concat "INSERT INTO scheduler_state VALUES "
+                  (mapconcat (lambda (_) "(?,?,?,?,?,?,?,?,?,?)") rows ","))
+       (apply #'append
+              (mapcar (lambda (row)
+                        (list (nth 0 row) 1 nil nil nil nil (nth 1 row)
+                              0 0 (nth 2 row)))
+                      rows))))))
+
+(defun gnosis-scheduler-initialize-thema
+    (thema-id due-day suspended &optional db)
+  "Initialize THEMA-ID at DUE-DAY with SUSPENDED state in optional DB."
+  (gnosis-scheduler-initialize-themata
+   (list (list thema-id due-day suspended)) db)
+  (gnosis-scheduler--state-result
+   thema-id (list 1 nil nil nil nil due-day 0 0 suspended)))
 
 (defun gnosis-scheduler-replay (baseline events configs suspended)
   "Replay BASELINE and EVENTS using CONFIGS and current SUSPENDED fact."

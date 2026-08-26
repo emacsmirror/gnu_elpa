@@ -448,6 +448,15 @@ TMP-P, EXTRA-TAG, SUSPEND, and SOURCE-FILE are passed through to
       (should (= 2 (length (gnosis-select 'id 'review nil t))))
       ;; Verify review_log
       (should (= 2 (length (gnosis-select 'id 'review-log nil t))))
+      (should
+       (equal `((1001 ,today 0 0) (1002 ,today 0 0))
+              (gnosis-sqlite-select
+               gnosis-db "SELECT * FROM scheduler_baseline ORDER BY thema_id")))
+      (should
+       (equal `((1001 1 nil nil nil nil ,today 0 0 0)
+                (1002 1 nil nil nil nil ,today 0 0 0))
+              (gnosis-sqlite-select
+               gnosis-db "SELECT * FROM scheduler_state ORDER BY thema_id")))
       ;; Verify extras
       (should (string= "See manual"
                         (gnosis-get 'parathema 'extras '(= id 1001))))
@@ -459,6 +468,29 @@ TMP-P, EXTRA-TAG, SUSPEND, and SOURCE-FILE are passed through to
       (let ((tags (gnosis-select 'tag 'thema-tag '(= thema-id 1002) t)))
         (should (= 1 (length tags)))
         (should (member "lisp" tags))))))
+
+(ert-deftest gnosis-test-anki-bulk-insert-scheduler-rollback ()
+  "Roll back a whole Anki chunk when scheduler insertion fails."
+  (gnosis-test-with-db
+    (gnosis-sqlite-execute
+     gnosis-db
+     "CREATE TRIGGER controlled_anki_scheduler_failure
+        BEFORE INSERT ON scheduler_state
+        BEGIN SELECT RAISE(ABORT, 'controlled scheduler failure'); END")
+    (let ((item (list :type "basic" :keimenon "Q" :hypothesis '("")
+                      :answer '("A") :parathema "" :tags '("test")))
+          (today (gnosis--today-int)))
+      (should-error
+       (gnosis-anki--bulk-insert-chunk
+        gnosis-db (list item) '(1001)
+        (prin1-to-string gnosis-algorithm-gnosis-value)
+        gnosis-algorithm-amnesia-value today nil t))
+      (dolist (table '(themata review review-log extras thema-tag
+                      scheduler-baseline scheduler-state))
+        (should (= 0 (caar (gnosis-sqlite-select
+                            gnosis-db
+                            (format "SELECT COUNT(*) FROM %s"
+                                    (gnosis-sqlite--ident table))))))))))
 
 (ert-deftest gnosis-test-anki-bulk-insert-cloze ()
   "Bulk insert cloze themata and verify encoding."
@@ -474,7 +506,7 @@ TMP-P, EXTRA-TAG, SUSPEND, and SOURCE-FILE are passed through to
            (amnesia-val gnosis-algorithm-amnesia-value)
            (today (gnosis--today-int)))
       (gnosis-anki--bulk-insert-chunk gnosis-db items ids
-                                      gnosis-val amnesia-val today)
+                                      gnosis-val amnesia-val today nil t)
       (should (= 1 (length (gnosis-select 'id 'themata nil t))))
       (should (string= "cloze" (gnosis-get 'type 'themata '(= id 2001))))
       (should (string= "Emacs is a text editor"
@@ -482,7 +514,9 @@ TMP-P, EXTRA-TAG, SUSPEND, and SOURCE-FILE are passed through to
       (should (equal '("text editor")
                      (gnosis-get 'answer 'themata '(= id 2001))))
       (should (string= "extra info"
-                        (gnosis-get 'parathema 'extras '(= id 2001)))))))
+                        (gnosis-get 'parathema 'extras '(= id 2001))))
+      (should (= 1 (gnosis-get 'suspended 'scheduler-state
+                               '(= thema-id 2001)))))))
 
 (ert-deftest gnosis-test-anki-bulk-insert-many-tags ()
   "Bulk insert with many tags triggers tag batching."
@@ -524,6 +558,13 @@ TMP-P, EXTRA-TAG, SUSPEND, and SOURCE-FILE are passed through to
             ;; Every thema has a review_log entry
             (should (= (length (gnosis-select 'id 'themata nil t))
                        (length (gnosis-select 'id 'review-log nil t))))
+            ;; Every thema has scheduler baseline and current state.
+            (should (= (length (gnosis-select 'id 'themata nil t))
+                       (length (gnosis-select 'thema-id
+                                              'scheduler-baseline nil t))))
+            (should (= (length (gnosis-select 'id 'themata nil t))
+                       (length (gnosis-select 'thema-id
+                                              'scheduler-state nil t))))
             ;; Every thema has an extras entry
             (should (= (length (gnosis-select 'id 'themata nil t))
                        (length (gnosis-select 'id 'extras nil t))))

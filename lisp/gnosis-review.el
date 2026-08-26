@@ -65,7 +65,8 @@
   "State for a review session."
   (reviewed 0 :type integer)
   (total 0 :type integer)
-  (remaining nil :type list))
+  (remaining nil :type list)
+  (requeued nil :type list))
 
 (defvar-local gnosis-review--state nil
   "Buffer-local review state for the current session.")
@@ -583,44 +584,64 @@ Returns (TYPE (SUCCESS . ALGORITHM-RESULT))."
           (list type (funcall func-name id tags)))
       (error "Malformed thema type: '%s'" type))))
 
+(defun gnosis-review--failed-disposition-p (disposition)
+  "Return t if accepted DISPOSITION records an Again rating."
+  (let ((rating (and (listp disposition)
+                     (plist-get disposition :rating))))
+    (cond ((eq disposition :deleted) nil)
+          ((equal rating 1) t)
+          ((equal rating 3) nil)
+          (t (error "Review action did not settle a binary outcome")))))
+
 (defun gnosis-review-process-thema (thema state)
   "Process review for THEMA and update STATE.
 
-Displays the thema, processes the review result, increments the
-reviewed count, and pops from remaining.  Forces header redisplay.
-Returns STATE.
+Displays the thema, processes the review result, advances the bounded
+remaining queue, and forces header redisplay.  Return STATE.
 
 This is a helper function for `gnosis-review-session'."
-  (pcase-let* ((gnosis-review--monkeytype-text nil)
-	       (`(,thema-type ,review-cons)
-		(gnosis-review--display-thema thema))
-	       (success (car review-cons))
-	       (result (cdr review-cons)))
-    (when (and (not success)
-	       gnosis-review--monkeytype-text
-	       gnosis-monkeytype-enable
-	       (member thema-type gnosis-monkeytype-themata))
-      (gnosis-monkeytype gnosis-review--monkeytype-text))
-    (gnosis-review-actions success thema result)
-    ;; Use jump-to-register after first review.
-    (when (get-register :gnosis-pre-image)
-      (jump-to-register :gnosis-pre-image))
-    (cl-incf (gnosis-review-state-reviewed state))
-    (setf (gnosis-review-state-remaining state)
-	  (remove thema (gnosis-review-state-remaining state)))
+  (let ((remaining (gnosis-review-state-remaining state)))
+    (unless (equal thema (car remaining))
+      (error "Review queue is out of order"))
+    (pcase-let* ((gnosis-review--monkeytype-text nil)
+                 (`(,thema-type ,review-cons)
+                  (gnosis-review--display-thema thema))
+                 (success (car review-cons))
+                 (result (cdr review-cons)))
+      (when (and (not success)
+                 gnosis-review--monkeytype-text
+                 gnosis-monkeytype-enable
+                 (member thema-type gnosis-monkeytype-themata))
+        (gnosis-monkeytype gnosis-review--monkeytype-text))
+      (let* ((disposition (gnosis-review-actions success thema result))
+             (failed-p (gnosis-review--failed-disposition-p disposition))
+             (requeued (gnosis-review-state-requeued state)))
+        ;; Use jump-to-register after first review.
+        (when (get-register :gnosis-pre-image)
+          (jump-to-register :gnosis-pre-image))
+        (let* ((rest (cdr remaining))
+               (requeue-p (and failed-p
+                               (not (gnosis-suspended-p thema))
+                               (not (member thema requeued)))))
+          (cl-incf (gnosis-review-state-reviewed state))
+          (when requeue-p
+            (cl-incf (gnosis-review-state-total state)))
+          (setf (gnosis-review-state-remaining state)
+                (if requeue-p (append rest (list thema)) rest)
+                (gnosis-review-state-requeued state)
+                (if requeue-p (cons thema requeued) requeued))))
     (force-mode-line-update)
-    state))
+    state)))
 
 
-(defun gnosis-review-session (themata state)
-  "Review THEMATA in a single pass using STATE.
-THEMATA: list of thema IDs.
-STATE: a `gnosis-review-state' struct.
-Returns STATE."
-  (if (null themata)
+(defun gnosis-review-session (state)
+  "Review the bounded remaining queue in review STATE.
+Return STATE after completion."
+  (if (null (gnosis-review-state-remaining state))
       (progn (message "No themata for review.") state)
-    (cl-loop for thema in themata
-	     do (gnosis-review-process-thema thema state))
+    (while (gnosis-review-state-remaining state)
+      (gnosis-review-process-thema
+       (car (gnosis-review-state-remaining state)) state))
     state))
 
 (defun gnosis-review-loop (collector)
@@ -644,7 +665,7 @@ The loop is wrapped in a `review-loop' catch so that
     (pop-to-buffer-same-window buf)
     (catch 'review-loop
       (while themata
-	(gnosis-review-session themata state)
+	(gnosis-review-session state)
 	(setq themata (funcall fn))
 	(when themata
 	  (message "New %d remaining themata" (length themata))
@@ -753,7 +774,7 @@ To customize the keybindings, adjust `gnosis-review-keybindings'."
       (?n (gnosis-review-result id success result))
       (?o (gnosis-review-action--override success id result))
       (?s (gnosis-review-action--suspend success id result))
-      (?d (gnosis-delete-thema id))
+      (?d (gnosis-delete-thema id) :deleted)
       (?e (gnosis-review-action--edit success id result))
       (?v (gnosis-review-action--view-link success id result))
       (?q (gnosis-review-action--quit success id result)))))

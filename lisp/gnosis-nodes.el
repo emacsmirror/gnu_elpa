@@ -23,6 +23,11 @@
 (defvar gnosis-journal-file)
 (defvar gnosis-journal-templates)
 
+(defun gnosis-nodes--journal-dir ()
+  "Return the journal directory, loading its owning module on demand."
+  (require 'gnosis-journal)
+  (gnosis-journal--dir))
+
 (defgroup gnosis-nodes nil
   "Gnosis node management."
   :group 'gnosis)
@@ -127,7 +132,7 @@ This avoids re-reading (and re-decrypting) files already open."
 	     (table (if journal 'journal 'nodes))
 	     (filename (file-name-nondirectory file))
 	     (full-path (expand-file-name file (if journal
-						   (gnosis-journal--dir)
+						   (gnosis-nodes--journal-dir)
 						 gnosis-nodes-dir)))
 	     (mtime (format-time-string "%s" (file-attribute-modification-time
 					      (file-attributes full-path))))
@@ -175,7 +180,7 @@ Try M-x gnosis-nodes-db-force-sync if issue persists."
 Removes node rows, associated links, and tags."
   (let* ((file (or file (file-name-nondirectory (buffer-file-name))))
 	 (filename (file-name-nondirectory file))
-	 (journal-p (file-in-directory-p file (gnosis-journal--dir)))
+	 (journal-p (file-in-directory-p file (gnosis-nodes--journal-dir)))
 	 (nodes (if journal-p
 		    (gnosis-nodes-select 'id 'journal `(= file ,filename) t)
 		  (gnosis-nodes-select 'id 'nodes `(= file ,filename) t))))
@@ -195,7 +200,7 @@ Removes all contents of FILE in database, adding them anew.
 When FILE is the current buffer's file, parses the buffer directly
 instead of re-reading from disk (avoids re-decrypting .gpg files)."
   (let* ((file (or file (buffer-file-name)))
-	 (journal-p (file-in-directory-p file (gnosis-journal--dir)))
+	 (journal-p (file-in-directory-p file (gnosis-nodes--journal-dir)))
 	 (buf (and file (get-file-buffer file))))
     (gnosis-nodes--delete-file file)
     (gnosis-nodes--update-file file journal-p buf)
@@ -205,22 +210,18 @@ instead of re-reading from disk (avoids re-decrypting .gpg files)."
 
 ;;;###autoload
 (defun gnosis-nodes-delete-file (&optional file)
-  "Delete FILE from disk and remove its database rows.
-When FILE is nil, delete the current buffer's visited file."
+  "Delete FILE.
+Delete file contents in database & file."
   (interactive)
-  (let ((file (expand-file-name
-	       (or file
-		   (buffer-file-name)
-		   (user-error "Current buffer is not visiting a file")))))
-    (if (or (file-in-directory-p file gnosis-nodes-dir)
-	    (file-in-directory-p file (gnosis-journal--dir)))
-	(when (y-or-n-p (format "Delete file: %s?" file))
-	  (gnosis-nodes--delete-file file)
-	  (delete-file file)
-	  (let ((buffer (get-file-buffer file)))
-	    (when buffer
-	      (kill-buffer buffer))))
-      (user-error "%s is not a gnosis node file" file))))
+  (let ((file (or file (file-name-nondirectory (buffer-file-name)))))
+    (if (or (file-in-directory-p (buffer-file-name) gnosis-nodes-dir)
+	    (file-in-directory-p (buffer-file-name) (gnosis-nodes--journal-dir)))
+	(progn
+	  (when (y-or-n-p (format "Delete file: %s?" file))
+	    (gnosis-nodes--delete-file file)
+	    (delete-file (buffer-file-name))
+	    (kill-buffer (buffer-name))))
+      (error "%s is not a gnosis node file" file))))
 
 ;;; Find/create operations
 
@@ -251,7 +252,7 @@ EXTRAS: The template to be inserted at the start."
   (let* ((file (expand-file-name
 		(gnosis-org--create-name
 		 title nil
-		 (and (eq directory (gnosis-journal--dir))
+		 (and (eq directory (gnosis-nodes--journal-dir))
 		      (bound-and-true-p gnosis-journal-as-gpg))
 		 gnosis-nodes-create-as-gpg
 		 gnosis-nodes-timestring)
@@ -345,7 +346,7 @@ Uses the node-tag junction table for proper querying."
 (defun gnosis-nodes--journal-buffer-p ()
   "Return non-nil if current buffer is a journal file."
   (and buffer-file-name
-       (or (file-in-directory-p buffer-file-name (gnosis-journal--dir))
+       (or (file-in-directory-p buffer-file-name (gnosis-nodes--journal-dir))
            (and gnosis-journal-file
                 (string= (expand-file-name buffer-file-name)
                          (expand-file-name gnosis-journal-file))))))
@@ -406,7 +407,7 @@ If JOURNAL-P is non-nil, retrieve/create node as a journal entry."
       (save-window-excursion
         (gnosis-nodes--create-file
          node (if journal-p
-                  (gnosis-journal--dir)
+                  (gnosis-nodes--journal-dir)
                 gnosis-nodes-dir))
         (save-buffer)
         (setf id (car (gnosis-nodes-select 'id table `(= title ,node) t)))))
@@ -545,7 +546,7 @@ If file or id are not found, use `org-open-at-point'."
 	    (expand-file-name
 	     (car (gnosis-nodes-select 'file 'journal
 				       `(= id ,id) t))
-	     (gnosis-journal--dir)))
+	     (gnosis-nodes--journal-dir)))
 	   (org-id-goto id))
 	  (t (org-open-at-point)))
     (gnosis-nodes-mode 1)))
@@ -617,6 +618,7 @@ When FORCE (prefix arg), rebuild from scratch."
       (gnosis-nodes-db-update-files force))
     ;; Sync journal files
     (message "Syncing journal files...")
+    (require 'gnosis-journal)
     (gnosis-journal-db-sync force)
     (message "Node sync complete!")))
 
@@ -652,7 +654,7 @@ Added to `org-mode-hook'."
              (or (file-in-directory-p
                   buffer-file-name gnosis-nodes-dir)
                  (file-in-directory-p
-                  buffer-file-name (gnosis-journal--dir))))
+                  buffer-file-name (gnosis-nodes--journal-dir))))
     (gnosis-nodes-mode 1)))
 
 (add-hook 'org-mode-hook #'gnosis-nodes--find-file-h)

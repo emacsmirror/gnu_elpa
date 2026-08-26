@@ -217,6 +217,7 @@ Returns nil on success, or an error message string on failure."
                (or line "?") id
                (error-message-string err))))))
 
+;;;###autoload
 (defun gnosis-save ()
   "Save themata in current buffer."
   (interactive nil gnosis-edit-mode)

@@ -18,15 +18,7 @@
 (require 'gnosis-org)
 (require 'gnosis-db)
 (require 'gnosis-sqlite)
-(declare-function gnosis-nodes-select "gnosis-nodes")
-(declare-function gnosis-nodes--find "gnosis-nodes")
-(declare-function gnosis-nodes--create-file "gnosis-nodes")
-(declare-function gnosis-nodes-insert "gnosis-nodes")
-(declare-function gnosis-nodes-select-template "gnosis-nodes")
-(declare-function gnosis-nodes-find "gnosis-nodes")
-(declare-function gnosis-nodes-mode "gnosis-nodes")
-(declare-function gnosis-nodes-update-file "gnosis-nodes")
-(declare-function gnosis-nodes--file-changed-p "gnosis-nodes")
+(require 'gnosis-nodes)
 
 (defgroup gnosis-journal nil
   "Gnosis journal."

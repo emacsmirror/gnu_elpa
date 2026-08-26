@@ -27,7 +27,20 @@ SOURCES := $(addprefix $(LISP_DIR)/,$(addsuffix .el,$(MODULES)))
 PACKAGE_LINT_SOURCES := $(LISP_DIR)/gnosis.el \
 	$(filter-out $(LISP_DIR)/gnosis.el,$(SOURCES))
 
+AUTOLOAD_COMMANDS := gnosis gnosis-add-thema gnosis-modeline-mode \
+	gnosis-dashboard gnosis-export-db gnosis-import-db gnosis-save \
+	gnosis-import-anki gnosis-journal-find gnosis-journal-insert \
+	gnosis-journal gnosis-links-check gnosis-links-cleanup gnosis-links-sync \
+	gnosis-nodes-delete-file gnosis-nodes-find gnosis-nodes-find-by-tag \
+	gnosis-nodes-insert-template gnosis-nodes-insert gnosis-nodes-insert-tags \
+	gnosis-nodes-visit-backlinks gnosis-nodes-db-sync \
+	gnosis-nodes-db-force-sync gnosis-review gnosis-review-topic \
+	gnosis-history-clear gnosis-monkeytype-start gnosis-vc-push gnosis-vc-pull
+
 TESTS := tests/gnosis-test-sqlite.el \
+	tests/gnosis-test-autoload-boundary.el \
+	tests/gnosis-test-journal-boundary.el \
+	tests/gnosis-test-nodes-boundary.el \
 	tests/gnosis-test-algorithm.el \
 	tests/gnosis-test-export-import.el \
 	tests/gnosis-test-dashboard.el \
@@ -58,10 +71,10 @@ autoload:
 autoload-smoke: autoload
 	$(ENV) $(EMACS) $(EMACS_OPTS) -L $(LISP_DIR) \
 		-l gnosis-autoloads \
-		--eval "(dolist (command '(gnosis gnosis-add-thema gnosis-dashboard \
-		  gnosis-nodes-find gnosis-review)) \
-		  (unless (autoloadp (symbol-function command)) \
-		    (error \"Missing autoload: %S\" command)))"
+		--eval "(dolist (command '($(AUTOLOAD_COMMANDS))) \
+		  (unless (and (autoloadp (symbol-function command)) \
+		               (commandp command)) \
+		    (error \"Missing command autoload: %S\" command)))"
 
 compile: autoload
 	rm -f $(LISP_DIR)/*.elc

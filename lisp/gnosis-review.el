@@ -590,6 +590,7 @@ If NEW? is non-nil, increment new themata log by 1."
 			`(= reviewed-new ,inc-new)
 			`(= date ,date)))))
 
+;;;###autoload
 (defun gnosis-history-clear ()
   "Delete all activity log entries."
   (interactive)
@@ -799,6 +800,7 @@ To customize the keybindings, adjust `gnosis-review-keybindings'."
     (cl-loop for thema in themata
 	     do (gnosis-monkeytype-thema thema))))
 
+;;;###autoload
 (defun gnosis-monkeytype-start ()
   "Start a Gnosis Monkeytype session."
   (interactive)

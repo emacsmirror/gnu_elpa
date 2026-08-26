@@ -785,6 +785,7 @@ non-nil ERROR may describe finalization after rows were inserted."
          (or source-file db-file)
          extra-tag suspend callback)))))
 
+;;;###autoload
 (defun gnosis-import-anki (file)
   "Import Anki deck package FILE (.apkg) into gnosis."
   (interactive "fAnki deck (.apkg): ")

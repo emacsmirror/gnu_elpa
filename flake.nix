@@ -46,6 +46,7 @@
       testFiles = [
         ./tests/gnosis-test-algorithm.el
         ./tests/gnosis-test-anki.el
+        ./tests/gnosis-test-autoload-boundary.el
         ./tests/gnosis-test-bulk-link.el
         ./tests/gnosis-test-cloze.el
         ./tests/gnosis-test-dashboard.el
@@ -54,8 +55,10 @@
         ./tests/gnosis-test-helpers.el
         ./tests/gnosis-test-insert-template.el
         ./tests/gnosis-test-isolation.el
+        ./tests/gnosis-test-journal-boundary.el
         ./tests/gnosis-test-journal.el
         ./tests/gnosis-test-migration.el
+        ./tests/gnosis-test-nodes-boundary.el
         ./tests/gnosis-test-nodes.el
         ./tests/gnosis-test-org.el
         ./tests/gnosis-test-review.el

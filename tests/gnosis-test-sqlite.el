@@ -361,6 +361,35 @@ Value is pre-encoded (prin1-to-string) in the compiler."
       (gnosis-sqlite-close db)
       (delete-file db-file))))
 
+(ert-deftest gnosis-test-sqlite-transaction-nesting-is-connection-local ()
+  "An inner transaction on another connection rolls back independently."
+  (let* ((file1 (make-temp-file "gnosis-sqlite-test-" nil ".db"))
+         (file2 (make-temp-file "gnosis-sqlite-test-" nil ".db"))
+         (db1 (gnosis-sqlite-open file1))
+         (db2 (gnosis-sqlite-open file2)))
+    (unwind-protect
+        (progn
+          (gnosis-sqlite-execute db1
+                                 "CREATE TABLE test (id INTEGER PRIMARY KEY)")
+          (gnosis-sqlite-execute db2
+                                 "CREATE TABLE test (id INTEGER PRIMARY KEY)")
+          (gnosis-sqlite-with-transaction db1
+            (gnosis-sqlite-execute db1 "INSERT INTO test VALUES (?)" '(1))
+            (condition-case nil
+                (gnosis-sqlite-with-transaction db2
+                  (gnosis-sqlite-execute db2
+                                         "INSERT INTO test VALUES (?)" '(2))
+                  (error "Deliberate inner error"))
+              (error nil)))
+          (should (= 1 (caar (gnosis-sqlite-select
+                              db1 "SELECT COUNT(*) FROM test"))))
+          (should (= 0 (caar (gnosis-sqlite-select
+                              db2 "SELECT COUNT(*) FROM test")))))
+      (gnosis-sqlite-close db1)
+      (gnosis-sqlite-close db2)
+      (delete-file file1)
+      (delete-file file2))))
+
 (ert-deftest gnosis-test-sqlite-integration-schema ()
   "Create all gnosis tables from schemata."
   (let* ((db-file (make-temp-file "gnosis-sqlite-test-" nil ".db"))

@@ -121,34 +121,34 @@ Used internally by `gnosis--insert-into', `gnosis-update', etc."
 
 ;;; Transactions
 
-(defvar gnosis-sqlite--in-transaction nil
-  "Non-nil when inside a `gnosis-sqlite-with-transaction' block.")
+(defvar gnosis-sqlite--transaction-dbs nil
+  "Dynamically bound list of database handles in active transactions.")
 
 (defmacro gnosis-sqlite-with-transaction (db &rest body)
   "Execute BODY inside a transaction on DB.
-Only the outermost invocation issues BEGIN/COMMIT.
-Rolls back on error via `unwind-protect'."
+Only the outermost invocation for each database issues BEGIN/COMMIT.
+Roll back an incomplete outer transaction on any nonlocal exit."
   (declare (indent 1) (debug t))
   (let ((db-sym (gensym "db"))
         (outer-sym (gensym "outer"))
-        (result-sym (gensym "result")))
+        (completed-sym (gensym "completed")))
     `(let* ((,db-sym ,db)
-            (,outer-sym (not gnosis-sqlite--in-transaction))
-            (gnosis-sqlite--in-transaction t)
-            (,result-sym nil))
+            (,outer-sym
+             (not (memq ,db-sym gnosis-sqlite--transaction-dbs)))
+            (gnosis-sqlite--transaction-dbs
+             (cons ,db-sym gnosis-sqlite--transaction-dbs))
+            (,completed-sym nil))
        (when ,outer-sym
          (sqlite-execute ,db-sym "BEGIN IMMEDIATE"))
        (unwind-protect
-           (progn
-             (setq ,result-sym (progn ,@body))
+           (prog1 (progn ,@body)
              (when ,outer-sym
                (sqlite-execute ,db-sym "COMMIT"))
-             ,result-sym)
-         (when (and ,outer-sym
-                    (condition-case nil
-                        (progn (sqlite-execute ,db-sym "ROLLBACK") t)
-                      (error nil)))
-           nil)))))
+             (setq ,completed-sym t))
+         (when (and ,outer-sym (not ,completed-sym))
+           (condition-case nil
+               (sqlite-execute ,db-sym "ROLLBACK")
+             (error nil)))))))
 
 ;;; Batch execution helpers
 

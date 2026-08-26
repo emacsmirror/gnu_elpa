@@ -774,9 +774,10 @@ to the canonical form via `gnosis--tag-rename-batch'."
     (when (y-or-n-p (format "%s %d themata across %d tag(s)?"
                             action (length themata) (length tags)))
       (gnosis-sqlite-execute-batch (gnosis--ensure-db)
-				   "UPDATE review_log SET suspend = ? WHERE id IN (%s)"
-				   themata
-				   (list suspend))
+                                   "UPDATE review_log SET suspend = ? WHERE id IN (%s)"
+                                   themata
+                                   (list suspend))
+      (gnosis-dashboard--invalidate-tag-caches)
       (remove-overlays nil nil 'gnosis-mark t)
       (message "%sed %d themata" action (length themata)))))
 

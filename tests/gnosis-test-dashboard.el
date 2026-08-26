@@ -142,6 +142,22 @@ Includes `gnosis-test-with-clean-cache' for isolation."
            (vec1 (cadr e1)))
       (should (equal (aref vec1 5) "Yes"))))))
 
+(ert-deftest gnosis-test-dashboard-suspend-tag-invalidates-entry-cache ()
+  "Suspend-by-tag makes the next formatted entry reflect SQLite state."
+  (gnosis-test-with-db
+   (gnosis-test-with-clean-cache
+    (let ((id (gnosis-test--add-basic-thema "Q?" "A" '("math"))))
+      (should (equal
+               (aref (cadar (gnosis-dashboard--output-themata (list id))) 5)
+               "No"))
+      (cl-letf (((symbol-function 'y-or-n-p) (lambda (&rest _) t)))
+        (let ((current-prefix-arg nil))
+          (gnosis-dashboard-suspend-tag "math")))
+      (should (= (gnosis-get 'suspend 'review-log `(= id ,id)) 1))
+      (should (equal
+               (aref (cadar (gnosis-dashboard--output-themata (list id))) 5)
+               "Yes"))))))
+
 (ert-deftest gnosis-test-dashboard-output-themata-list-tags ()
   "List-valued tags are joined with commas."
   (gnosis-test-with-db

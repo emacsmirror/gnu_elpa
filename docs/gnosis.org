@@ -996,9 +996,9 @@ those of related nodes at the specified distance in the knowledge graph.
 
 ** Activity Logging
 
-Every reviewed thema increments a daily activity counter, recording total
-and new themata reviewed per day.  This data drives the dashboard's
-streak display.  To clear the log, call =M-x gnosis-history-clear=.
+Daily activity is a read-only projection over preserved legacy totals and
+immutable review events.  It records total and new themata reviewed per day
+and drives the dashboard's streak display.
 
 ** Monkeytype
 

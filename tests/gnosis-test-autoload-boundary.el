@@ -13,6 +13,10 @@
 (require 'ert)
 (require 'gnosis-autoloads)
 
+(ert-deftest gnosis-test-history-clear-is-not-autoloaded ()
+  "Do not expose destructive clearing for derived review history."
+  (should-not (fboundp 'gnosis-history-clear)))
+
 (defvar gnosis-db)
 (defvar gnosis-dir)
 (defvar gnosis-nodes-dir)

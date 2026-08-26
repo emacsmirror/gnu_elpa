@@ -311,6 +311,64 @@
      (equal '((20260829 5 1) (20260830 11 3) (20260831 1 1))
             (gnosis-db-review-activity gnosis-db)))))
 
+(ert-deftest gnosis-test-review-activity-api-ignores-legacy-log ()
+  "Read aggregate activity without consulting or mutating the legacy log."
+  (gnosis-test-scheduler--with-fresh-db
+    (let* ((today (gnosis--today-int))
+           (yesterday (gnosis--date-to-int (gnosis-algorithm-date -1))))
+      (gnosis-sqlite-execute
+       gnosis-db
+       "INSERT INTO review_activity_baseline VALUES (?, ?, ?), (?, ?, ?)"
+       (list yesterday 3 1 today 5 1))
+      (gnosis-sqlite-execute
+       gnosis-db "INSERT INTO themata VALUES (?, ?, ?, ?, ?, ?)"
+       '(1 "basic" "Q" ("") ("A") nil))
+      (gnosis-sqlite-execute
+       gnosis-db "INSERT INTO scheduler_baseline VALUES (?, ?, ?, ?)"
+       (list 1 today 0 0))
+      (gnosis-test-scheduler--insert-event-fixture
+       gnosis-db nil nil nil nil nil today)
+      (gnosis-sqlite-execute
+       gnosis-db "INSERT INTO activity_log VALUES (?, ?, ?)" (list today 99 99))
+      (let ((before
+             (list
+              (gnosis-sqlite-select
+               gnosis-db "SELECT * FROM review_activity_baseline")
+              (gnosis-sqlite-select gnosis-db "SELECT * FROM review_events")
+              (gnosis-sqlite-select gnosis-db "SELECT * FROM activity_log"))))
+        (should (equal (list (list yesterday 3 1) (list today 6 2))
+                       (gnosis-review-activity)))
+        (should (= 6 (gnosis-get-date-total-themata today)))
+        (should (= 2 (gnosis-get-date-new-themata today)))
+        (should (= 4.5 (gnosis-calculate-average-daily-reviews 2)))
+        (should
+         (equal before
+                (list
+                 (gnosis-sqlite-select
+                  gnosis-db "SELECT * FROM review_activity_baseline")
+                 (gnosis-sqlite-select gnosis-db "SELECT * FROM review_events")
+                 (gnosis-sqlite-select gnosis-db "SELECT * FROM activity_log"))))))))
+
+(ert-deftest gnosis-test-review-activity-missing-day-is-read-only ()
+  "Return zero for missing activity without creating a legacy row."
+  (gnosis-test-scheduler--with-fresh-db
+    (gnosis-sqlite-execute
+     gnosis-db "CREATE TRIGGER reject_legacy_activity_insert
+                  BEFORE INSERT ON activity_log
+                  BEGIN SELECT RAISE(ABORT, 'read attempted write'); END")
+    (should (equal (list (gnosis--today-int) 0 0)
+                   (gnosis-review-activity (gnosis--today-int))))
+    (should (= 0 (gnosis-get-date-total-themata)))
+    (should (= 0 (gnosis-get-date-new-themata)))
+    (should-not
+     (gnosis-sqlite-select gnosis-db "SELECT * FROM activity_log"))))
+
+(ert-deftest gnosis-test-review-history-mutators-are-removed ()
+  "Do not expose commands that mutate derived review activity."
+  (require 'gnosis-review)
+  (should-not (fboundp 'gnosis-history-clear))
+  (should-not (fboundp 'gnosis-review-increment-activity-log)))
+
 (ert-deftest gnosis-test-review-activity-baseline-is-immutable ()
   "Reject replacement, update, and deletion of preserved activity."
   (gnosis-test-scheduler--with-fresh-db

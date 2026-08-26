@@ -35,7 +35,7 @@ AUTOLOAD_COMMANDS := gnosis gnosis-add-thema gnosis-modeline-mode \
 	gnosis-nodes-insert-template gnosis-nodes-insert gnosis-nodes-insert-tags \
 	gnosis-nodes-visit-backlinks gnosis-nodes-db-sync \
 	gnosis-nodes-db-force-sync gnosis-review gnosis-review-topic \
-	gnosis-history-clear gnosis-monkeytype-start gnosis-vc-push gnosis-vc-pull
+	gnosis-monkeytype-start gnosis-vc-push gnosis-vc-pull
 
 TESTS := tests/gnosis-test-sqlite.el \
 	tests/gnosis-test-autoload-boundary.el \

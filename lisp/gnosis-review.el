@@ -541,32 +541,6 @@ TAGS are pre-fetched for custom value lookup."
   "Return t if thema with ID is new."
   (zerop (gnosis-get 'reps 'scheduler-state `(= thema-id ,id))))
 
-;;; Activity log
-
-(defun gnosis-review-increment-activity-log (new? &optional date)
-  "Increment activity log for DATE by one.
-
-If NEW? is non-nil, increment new themata log by 1."
-  (let* ((current-total-value (gnosis-get-date-total-themata))
-	 (inc-total (cl-incf current-total-value))
-	 (current-new-value (gnosis-get-date-new-themata))
-	 (inc-new (cl-incf current-new-value))
-	 (date (or date (gnosis--today-int))))
-    (gnosis-update 'activity-log
-		   `(= reviewed-total ,inc-total)
-		   `(= date ,date))
-    (and new?
-	 (gnosis-update 'activity-log
-			`(= reviewed-new ,inc-new)
-			`(= date ,date)))))
-
-;;;###autoload
-(defun gnosis-history-clear ()
-  "Delete all activity log entries."
-  (interactive)
-  (when (y-or-n-p "Delete all activity log?")
-    (gnosis-sqlite-execute (gnosis--ensure-db) "DELETE FROM activity_log")))
-
 ;;; Session management
 
 (defun gnosis-review--display-thema (id)

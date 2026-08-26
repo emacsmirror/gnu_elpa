@@ -214,7 +214,6 @@ This is set automatically based on buffer type:
 (autoload 'gnosis-display-next-review "gnosis-review")
 (autoload 'gnosis-get-linked-nodes "gnosis-review")
 (autoload 'gnosis-monkeytype-start "gnosis-review" nil t)
-(autoload 'gnosis-history-clear "gnosis-review" nil t)
 
 ;; Anki import autoload
 (autoload 'gnosis-import-anki "gnosis-anki" nil t)
@@ -259,15 +258,23 @@ When VERIFICATION is non-nil, skip `y-or-n-p' prompt."
 				     ids)))))
 
 
+(defun gnosis-review-activity (&optional date)
+  "Return aggregate review activity, optionally only for DATE.
+Rows have the shape (DATE REVIEWED-TOTAL REVIEWED-NEW).  A missing DATE
+returns an explicit zero row without mutating review evidence."
+  (let ((rows (gnosis-db-review-activity)))
+    (if date (or (assoc date rows) (list date 0 0)) rows)))
+
 (defun gnosis-calculate-average-daily-reviews (&optional days)
   "Calculate average reviews over the last DAYS days."
   (let* ((days (or days gnosis-default-average-review-period))
 	 (dates (cl-loop for d from 0 below days
 			 collect (gnosis--date-to-int (gnosis-algorithm-date (- d)))))
-	 (review-counts (gnosis-select 'reviewed-total 'activity-log
-				       `(and (> reviewed-total 0)
-					     (in date ,(vconcat dates)))
-				       t)))
+	 (activity (gnosis-review-activity))
+	 (review-counts
+	  (cl-loop for date in dates
+		   for count = (nth 1 (assoc date activity))
+		   when (and count (> count 0)) collect count)))
     (if review-counts
 	(/ (apply #'+ review-counts) (float (length review-counts)))
       0)))
@@ -766,33 +773,14 @@ The remaining optional fields are ANSWER, PARATHEMA, TAGS, and EXAMPLE."
 
 (defun gnosis-get-date-total-themata (&optional date)
   "Return total themata reviewed for DATE (YYYYMMDD integer).
-
-If entry for DATE does not exist, it will be created.
-
 Defaults to current date."
-  (let* ((date (or date (gnosis--today-int)))
-	 (date-log (gnosis-select
-		    '[date reviewed-total reviewed-new] 'activity-log
-		    `(= date ,date) t))
-	 (reviewed-total (cadr date-log))
-	 (reviewed-new (or (caddr date-log) 0)))
-    (or reviewed-total
-	(progn
-	  ;; Using reviewed-new instead of hardcoding 0 just to not mess up tests.
-	  (and (= date (gnosis--today-int))
-	       (gnosis--insert-into 'activity-log `([,date 0 ,reviewed-new])))
-	  0))))
+  (nth 1 (gnosis-review-activity (or date (gnosis--today-int)))))
 
 (defun gnosis-get-date-new-themata (&optional date)
   "Return new themata reviewed for DATE (YYYYMMDD integer).
 
 Defaults to current date."
-  (let* ((date (or date (gnosis--today-int)))
-	 (reviewed-new (or (car (gnosis-select 'reviewed-new
-					       'activity-log
-					       `(= date ,date) t))
-			   0)))
-    reviewed-new))
+  (nth 2 (gnosis-review-activity (or date (gnosis--today-int)))))
 (defun gnosis-search-thema (&optional query)
   "Search for thema QUERY.
 

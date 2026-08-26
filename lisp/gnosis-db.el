@@ -253,6 +253,13 @@ Uses `gnosis--id-cache' for O(1) collision checking when bound."
        (implementation text :not-null)
        (desired-retention real :not-null)
        (parameters text :not-null)]))
+    (scheduler-baseline
+     ([(thema-id integer :primary-key :not-null)
+       (due-day integer :not-null)
+       (reps integer :not-null)
+       (lapses integer :not-null)]
+      (:foreign-key [thema-id] :references themata [id]
+                    :on-delete :cascade)))
     (activity-log
      ([(date integer :not-null)
        (reviewed-total integer :not-null)

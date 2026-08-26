@@ -64,5 +64,46 @@
       (list 2 "fsrs" "gnosis-fsrs6-v1" "fsrs-rs-6.6.1" nil
             gnosis-fsrs-default-parameters)))))
 
+(ert-deftest gnosis-test-scheduler-baseline-roundtrip ()
+  "Store one immutable scheduling baseline for a thema."
+  (gnosis-test-scheduler--with-fresh-db
+    (gnosis-sqlite-execute
+     gnosis-db
+     "INSERT INTO themata VALUES (?, ?, ?, ?, ?, ?)"
+     '(1 "basic" "Question" ("") ("Answer") nil))
+    (gnosis-sqlite-execute
+     gnosis-db
+     "INSERT INTO scheduler_baseline
+        (thema_id, due_day, reps, lapses) VALUES (?, ?, ?, ?)"
+     '(1 20260830 7 2))
+    (should
+     (equal '((1 20260830 7 2))
+            (gnosis-sqlite-select
+             gnosis-db
+             "SELECT thema_id, due_day, reps, lapses
+                FROM scheduler_baseline")))))
+
+(ert-deftest gnosis-test-scheduler-baseline-enforces-one-existing-thema ()
+  "Reject duplicate baselines and baselines without a thema."
+  (gnosis-test-scheduler--with-fresh-db
+    (should-error
+     (gnosis-sqlite-execute
+      gnosis-db
+      "INSERT INTO scheduler_baseline VALUES (?, ?, ?, ?)"
+      '(404 20260830 0 0)))
+    (gnosis-sqlite-execute
+     gnosis-db
+     "INSERT INTO themata VALUES (?, ?, ?, ?, ?, ?)"
+     '(1 "basic" "Question" ("") ("Answer") nil))
+    (gnosis-sqlite-execute
+     gnosis-db
+     "INSERT INTO scheduler_baseline VALUES (?, ?, ?, ?)"
+     '(1 20260830 0 0))
+    (should-error
+     (gnosis-sqlite-execute
+      gnosis-db
+      "INSERT INTO scheduler_baseline VALUES (?, ?, ?, ?)"
+      '(1 20260831 0 0)))))
+
 (provide 'gnosis-test-scheduler-storage)
 ;;; gnosis-test-scheduler-storage.el ends here

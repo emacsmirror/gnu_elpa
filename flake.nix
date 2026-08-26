@@ -24,6 +24,7 @@
       version = "0.10.6";
       packageFiles = [
         ./lisp/gnosis-algorithm.el
+        ./lisp/gnosis-fsrs.el
         ./lisp/gnosis-anki.el
         ./lisp/gnosis-cloze.el
         ./lisp/gnosis-custom-values.el
@@ -44,6 +45,7 @@
         ./lisp/gnosis.el
       ];
       testFiles = [
+        ./tests/gnosis-fsrs-v2.json
         ./tests/gnosis-test-algorithm.el
         ./tests/gnosis-test-anki.el
         ./tests/gnosis-test-autoload-boundary.el
@@ -52,6 +54,7 @@
         ./tests/gnosis-test-dashboard.el
         ./tests/gnosis-test-db.el
         ./tests/gnosis-test-export-import.el
+        ./tests/gnosis-test-fsrs.el
         ./tests/gnosis-test-helpers.el
         ./tests/gnosis-test-insert-template.el
         ./tests/gnosis-test-isolation.el

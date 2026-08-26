@@ -19,7 +19,7 @@ TEXI := docs/gnosis.texi
 INFO := docs/gnosis.info
 
 MODULES := gnosis-sqlite gnosis-tl gnosis-utils gnosis-org \
-	gnosis-algorithm gnosis-cloze gnosis-db gnosis-vc \
+	gnosis-algorithm gnosis-fsrs gnosis-cloze gnosis-db gnosis-vc \
 	gnosis-tags gnosis-custom-values gnosis-links gnosis-monkeytype \
 	gnosis-nodes gnosis-journal gnosis gnosis-review gnosis-dashboard \
 	gnosis-export-import gnosis-anki
@@ -41,6 +41,7 @@ TESTS := tests/gnosis-test-sqlite.el \
 	tests/gnosis-test-autoload-boundary.el \
 	tests/gnosis-test-journal-boundary.el \
 	tests/gnosis-test-nodes-boundary.el \
+	tests/gnosis-test-fsrs.el \
 	tests/gnosis-test-algorithm.el \
 	tests/gnosis-test-export-import.el \
 	tests/gnosis-test-dashboard.el \

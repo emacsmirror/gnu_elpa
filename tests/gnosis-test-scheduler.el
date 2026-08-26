@@ -56,6 +56,9 @@
 (defconst gnosis-test-scheduler--event-id (make-string 64 ?a)
   "Canonical event identity used by acceptance tests.")
 
+(defconst gnosis-test-scheduler--event-id-2 (make-string 64 ?b)
+  "Second canonical event identity used by replay tests.")
+
 (ert-deftest gnosis-test-scheduler-event-id-is-generated-before-effects ()
   "Generate distinct stable text identities without touching storage."
   (let ((first (gnosis-scheduler-event-id))
@@ -183,6 +186,66 @@
                         gnosis-db "SELECT COUNT(*) FROM review_events"))))
     (should (= 0 (caar (gnosis-sqlite-select
                         gnosis-db "SELECT reps FROM scheduler_state"))))))
+
+(ert-deftest gnosis-test-scheduler-rebuilds-projection-from-events ()
+  "Replay two events and rebuild the deleted projection exactly."
+  (gnosis-test-scheduler--with-db
+    (gnosis-test-scheduler--seed-state)
+    (gnosis-scheduler-accept-review
+     gnosis-test-scheduler--event-id 1 'success 1000000 20260830)
+    (gnosis-scheduler-accept-review
+     gnosis-test-scheduler--event-id-2 1 'failure 2000000 20260831)
+    (let ((expected (car (gnosis-sqlite-select
+                          gnosis-db "SELECT * FROM scheduler_state")))
+          (first (gnosis-scheduler-replay-thema 1 0 gnosis-db)))
+      (should (equal first (gnosis-scheduler-replay-thema 1 0 gnosis-db)))
+      (gnosis-sqlite-execute gnosis-db
+                             "DELETE FROM scheduler_state WHERE thema_id = 1")
+      (let ((rebuilt (gnosis-scheduler-rebuild-state 1 0 gnosis-db)))
+        (should (equal first rebuilt))
+        (should (= 0 (plist-get rebuilt :new-p)))
+        (should (equal expected
+                       (car (gnosis-sqlite-select
+                             gnosis-db "SELECT * FROM scheduler_state"))))))))
+
+(ert-deftest gnosis-test-scheduler-replay-rejects-evidence-drift ()
+  "Reject config, prior-memory, and result drift in immutable evidence."
+  (gnosis-test-scheduler--with-db
+    (gnosis-test-scheduler--seed-state)
+    (gnosis-scheduler-accept-review
+     gnosis-test-scheduler--event-id 1 'success 1000000 20260830)
+    (let* ((baseline (car (gnosis-sqlite-select
+                           gnosis-db "SELECT * FROM scheduler_baseline")))
+           (event (car (gnosis-sqlite-select
+                        gnosis-db "SELECT * FROM review_events")))
+           (configs '((1 . 0.9))))
+      (should (gnosis-scheduler-replay baseline (list event) configs 0))
+      (should-error (gnosis-scheduler-replay baseline nil nil 0))
+      (let* ((changed (copy-sequence event))
+             (large (+ most-positive-fixnum 10))
+             (distinct (string-to-number (number-to-string large))))
+        (setcar (nthcdr 2 changed) large)
+        (should (gnosis-scheduler-replay
+                 baseline (list changed)
+                 (list '(1 . 0.9) (cons distinct 0.9)) 0)))
+      (dolist (mutation '((2 . 2) (8 . 4.0) (13 . 20260909)))
+        (let ((changed (copy-sequence event)))
+          (setcar (nthcdr (car mutation) changed) (cdr mutation))
+          (should-error
+           (gnosis-scheduler-replay baseline (list changed) configs 0)))))))
+
+(ert-deftest gnosis-test-scheduler-rebuild-requires-current-suspension ()
+  "Preserve the explicit current suspension fact during projection rebuild."
+  (gnosis-test-scheduler--with-db
+    (gnosis-test-scheduler--seed-state 1 1)
+    (gnosis-scheduler-accept-review
+     gnosis-test-scheduler--event-id 1 'success 1000000 20260830)
+    (gnosis-sqlite-execute gnosis-db
+                           "DELETE FROM scheduler_state WHERE thema_id = 1")
+    (should-error (gnosis-scheduler-rebuild-state 1 nil gnosis-db))
+    (gnosis-scheduler-rebuild-state 1 1 gnosis-db)
+    (should (= 1 (caar (gnosis-sqlite-select
+                        gnosis-db "SELECT suspended FROM scheduler_state"))))))
 
 (provide 'gnosis-test-scheduler)
 ;;; gnosis-test-scheduler.el ends here

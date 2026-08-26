@@ -34,6 +34,12 @@
   (secure-hash 'sha256 (prin1-to-string
                 (list (current-time) (emacs-pid) (random) (user-uid)))))
 
+(defun gnosis-scheduler--event-id-p (value)
+  "Return non-nil when VALUE is a canonical event identity."
+  (and (stringp value)
+       (let ((case-fold-search nil))
+         (string-match-p "\\`[0-9a-f]\\{64\\}\\'" value))))
+
 (defun gnosis-scheduler--day-time (day)
   "Return local noon for YYYYMMDD integer DAY, rejecting invalid dates."
   (unless (and (integerp day) (> day 0))
@@ -79,6 +85,17 @@
                (= reviewed-at-us (nth 3 row)) (= review-day (nth 4 row)))
     (error "Review event identity conflicts with retained evidence"))
   (gnosis-scheduler--event-result row))
+
+(defun gnosis-scheduler--config-retention (db config-id)
+  "Return supported desired retention for CONFIG-ID in DB."
+  (or (caar
+       (gnosis-sqlite-select
+        db "SELECT desired_retention FROM scheduler_config
+             WHERE id = ? AND algorithm = ? AND model = ?
+               AND implementation = ? AND parameters = ?"
+        (list config-id "fsrs" "gnosis-fsrs6-v1" "fsrs-rs-6.6.1"
+              gnosis-fsrs-default-parameters)))
+      (error "Unsupported scheduler config")))
 
 (defun gnosis-scheduler--compute-result
     (event-id thema-id outcome reviewed-at-us review-day state retention)
@@ -146,12 +163,104 @@ REVIEWED-AT-US, REVIEW-DAY, and RETENTION complete the evidence."
                 (plist-get result :lapses-after) (plist-get result :thema-id))))
     (error "Scheduler state projection disappeared")))
 
+(defun gnosis-scheduler--evidence-equal-p (expected actual)
+  "Return non-nil when EXPECTED and ACTUAL event evidence agree."
+  (cl-every
+   (lambda (key)
+     (let ((left (plist-get expected key)) (right (plist-get actual key)))
+       (if (and (floatp left) (floatp right))
+           (< (abs (- left right)) 1.0e-6)
+         (equal left right))))
+   gnosis-scheduler--event-keys))
+
+(defun gnosis-scheduler--state-result (thema-id state)
+  "Return THEMA-ID scheduler plist decoded from replay STATE."
+  (list :thema-id thema-id :config-id (nth 0 state)
+        :stability (nth 1 state) :difficulty (nth 2 state)
+        :last-reviewed-at-us (nth 3 state) :last-review-day (nth 4 state)
+        :due-day (nth 5 state) :reps (nth 6 state) :lapses (nth 7 state)
+        :suspended (nth 8 state) :new-p (if (zerop (nth 6 state)) 1 0)))
+
+(defun gnosis-scheduler-replay (baseline events configs suspended)
+  "Replay BASELINE and EVENTS using CONFIGS and current SUSPENDED fact."
+  (unless (and (= (length baseline) 4) (memq suspended '(0 1))
+               (cl-every #'integerp baseline)
+               (>= (nth 2 baseline) 0) (>= (nth 3 baseline) 0))
+    (error "Invalid scheduler replay baseline"))
+  (gnosis-scheduler--day-time (nth 1 baseline))
+  (unless (cdr (assoc 1 configs))
+    (error "Replay config missing"))
+  (let* ((thema-id (nth 0 baseline))
+         (initial (list 1 nil nil nil nil (nth 1 baseline)
+                        (nth 2 baseline) (nth 3 baseline) suspended))
+         (final
+          (cl-reduce
+           (lambda (state row)
+             (unless (and (= (length row) 19)
+                          (= thema-id (nth 1 row))
+                          (gnosis-scheduler--event-id-p (nth 0 row)))
+               (error "Incomplete scheduler replay event"))
+             (let* ((config-id (nth 2 row))
+                    (retention (cdr (assoc config-id configs)))
+                    (outcome (pcase (nth 5 row)
+                               (1 'failure) (3 'success)
+                               (_ (error "Invalid replay rating"))))
+                    (input-state (cons config-id (cdr state)))
+                    (expected (gnosis-scheduler--compute-result
+                               (nth 0 row) thema-id outcome (nth 3 row)
+                               (nth 4 row) input-state
+                               (or retention (error "Replay config missing"))))
+                    (actual (gnosis-scheduler--event-result row)))
+               (unless (gnosis-scheduler--evidence-equal-p expected actual)
+                 (error "Review event does not replay"))
+               (list config-id (plist-get expected :stability)
+                     (plist-get expected :difficulty) (nth 3 row) (nth 4 row)
+                     (plist-get expected :due-day)
+                     (plist-get expected :reps-after)
+                     (plist-get expected :lapses-after) suspended)))
+           events :initial-value initial)))
+    (gnosis-scheduler--state-result thema-id final)))
+
+(defun gnosis-scheduler-replay-thema (thema-id suspended &optional db)
+  "Replay THEMA-ID using current SUSPENDED fact and optional DB."
+  (let* ((db (or db (gnosis--ensure-db)))
+         (baseline (car (gnosis-sqlite-select
+                         db "SELECT * FROM scheduler_baseline WHERE thema_id = ?"
+                         (list thema-id))))
+         (events (gnosis-sqlite-select
+                  db "SELECT * FROM review_events WHERE thema_id = ?
+                       ORDER BY reviewed_at_us, event_id" (list thema-id)))
+         (configs (gnosis-sqlite-select
+                   db "SELECT id, desired_retention FROM scheduler_config
+                        WHERE algorithm = ? AND model = ?
+                          AND implementation = ? AND parameters = ?"
+                   (list "fsrs" "gnosis-fsrs6-v1" "fsrs-rs-6.6.1"
+                         gnosis-fsrs-default-parameters))))
+    (unless baseline (error "Scheduler baseline does not exist"))
+    (gnosis-scheduler-replay baseline events
+                             (mapcar (lambda (row) (cons (car row) (cadr row)))
+                                     configs)
+                             suspended)))
+
+(defun gnosis-scheduler-rebuild-state (thema-id suspended &optional db)
+  "Rebuild THEMA-ID projection with current SUSPENDED fact in optional DB."
+  (let ((db (or db (gnosis--ensure-db))))
+    (gnosis-sqlite-with-transaction db
+      (let ((result (gnosis-scheduler-replay-thema thema-id suspended db)))
+        (gnosis-sqlite-execute
+         db "INSERT OR REPLACE INTO scheduler_state VALUES
+              (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+         (list thema-id (plist-get result :config-id)
+               (plist-get result :stability) (plist-get result :difficulty)
+               (plist-get result :last-reviewed-at-us)
+               (plist-get result :last-review-day) (plist-get result :due-day)
+               (plist-get result :reps) (plist-get result :lapses) suspended))
+        result))))
+
 (defun gnosis-scheduler-accept-review
     (event-id thema-id outcome reviewed-at-us review-day)
   "Accept EVENT-ID for THEMA-ID, OUTCOME, REVIEWED-AT-US, and REVIEW-DAY."
-  (unless (and (stringp event-id)
-               (let ((case-fold-search nil))
-                 (string-match-p "\\`[0-9a-f]\\{64\\}\\'" event-id))
+  (unless (and (gnosis-scheduler--event-id-p event-id)
                (integerp thema-id) (memq outcome '(failure success))
                (integerp reviewed-at-us) (>= reviewed-at-us 0))
     (error "Invalid scheduler review input"))
@@ -175,15 +284,8 @@ REVIEWED-AT-US, REVIEW-DAY, and RETENTION complete the evidence."
                            FROM scheduler_state WHERE thema_id = ?"
                         (list thema-id))))
                  (_ (unless state (error "Scheduler state does not exist")))
-                 (retention
-                  (caar
-                   (gnosis-sqlite-select
-                    db "SELECT desired_retention FROM scheduler_config
-                         WHERE id = ? AND algorithm = ? AND model = ?
-                           AND implementation = ? AND parameters = ?"
-                    (list (nth 0 state) "fsrs" "gnosis-fsrs6-v1"
-                          "fsrs-rs-6.6.1" gnosis-fsrs-default-parameters))))
-                 (_ (unless retention (error "Unsupported scheduler config")))
+                 (retention (gnosis-scheduler--config-retention
+                             db (nth 0 state)))
                  (result (gnosis-scheduler--compute-result
                           event-id thema-id outcome reviewed-at-us review-day
                           state retention)))

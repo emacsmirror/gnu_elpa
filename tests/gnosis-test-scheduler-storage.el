@@ -160,8 +160,8 @@
                           AND name = 'idx_scheduler_state_due'"))))))
 
 (defun gnosis-test-scheduler--insert-event-fixture
-    (db &optional rating elapsed config-id)
-  "Insert one event into DB with optional RATING, ELAPSED, and CONFIG-ID."
+    (db &optional rating elapsed config-id event-id thema-id review-day)
+  "Insert one event into DB, optionally overriding fixture fields."
   (gnosis-sqlite-execute
    db
    "INSERT INTO review_events
@@ -170,7 +170,8 @@
        stability, difficulty, raw_interval_days, calendar_interval_days,
        due_day, reps_before, reps_after, lapses_before, lapses_after, new_p)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-   (list "event-1" 1 (or config-id 1) 1000000 20260830
+   (list (or event-id "event-1") (or thema-id 1) (or config-id 1)
+         1000000 (or review-day 20260830)
          (or rating 3) (or elapsed 0)
          nil nil 2.3065 2.118104 2.3065 2 20260901 0 1 0 0 1)))
 
@@ -268,6 +269,47 @@
     (gnosis-sqlite-execute gnosis-db "DELETE FROM themata WHERE id = ?" '(1))
     (should (= 0 (caar (gnosis-sqlite-select
                         gnosis-db "SELECT COUNT(*) FROM review_events"))))))
+
+(ert-deftest gnosis-test-review-activity-unions-baseline-and-events ()
+  "Aggregate preserved legacy activity with immutable review events."
+  (gnosis-test-scheduler--with-fresh-db
+    (gnosis-sqlite-execute
+     gnosis-db
+     "INSERT INTO review_activity_baseline VALUES (?, ?, ?), (?, ?, ?)"
+     '(20260829 5 1 20260830 10 2))
+    (dolist (row '((1 "Q1") (2 "Q2")))
+      (gnosis-sqlite-execute
+       gnosis-db "INSERT INTO themata VALUES (?, ?, ?, ?, ?, ?)"
+       (list (car row) "basic" (cadr row) '("") '("A") nil))
+      (gnosis-sqlite-execute
+       gnosis-db "INSERT INTO scheduler_baseline VALUES (?, ?, ?, ?)"
+       (list (car row) 20260830 0 0)))
+    (gnosis-test-scheduler--insert-event-fixture gnosis-db)
+    (gnosis-test-scheduler--insert-event-fixture
+     gnosis-db nil nil nil "event-2" 2 20260831)
+    (should
+     (equal '((20260829 5 1) (20260830 11 3) (20260831 1 1))
+            (gnosis-db-review-activity gnosis-db)))))
+
+(ert-deftest gnosis-test-review-activity-baseline-is-immutable ()
+  "Reject replacement, update, and deletion of preserved activity."
+  (gnosis-test-scheduler--with-fresh-db
+    (gnosis-sqlite-execute
+     gnosis-db "INSERT INTO review_activity_baseline VALUES (?, ?, ?)"
+     '(20260830 10 2))
+    (should-error
+     (gnosis-sqlite-execute
+      gnosis-db "INSERT OR REPLACE INTO review_activity_baseline VALUES (?, ?, ?)"
+      '(20260830 11 3)))
+    (should-error
+     (gnosis-sqlite-execute
+      gnosis-db "UPDATE review_activity_baseline SET reviewed_total = 11"))
+    (should-error
+     (gnosis-sqlite-execute gnosis-db "DELETE FROM review_activity_baseline"))
+    (should
+     (equal '((20260830 10 2))
+            (gnosis-sqlite-select
+             gnosis-db "SELECT * FROM review_activity_baseline")))))
 
 (provide 'gnosis-test-scheduler-storage)
 ;;; gnosis-test-scheduler-storage.el ends here

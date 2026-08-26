@@ -96,6 +96,19 @@ Optional argument FLATTEN, when non-nil, flattens the result."
 	 (output (gnosis-sqlite--select-compiled db sql (cdr where))))
     (if flatten (apply #'append output) output)))
 
+(defun gnosis-db-review-activity (&optional db)
+  "Return (DATE REVIEWED-TOTAL REVIEWED-NEW) activity rows from DB."
+  (gnosis-sqlite-select
+   (or db (gnosis--ensure-db))
+   "SELECT date, SUM(reviewed_total), SUM(reviewed_new)
+      FROM
+        (SELECT date, reviewed_total, reviewed_new
+           FROM review_activity_baseline
+         UNION ALL
+         SELECT review_day, COUNT(*), SUM(new_p)
+           FROM review_events GROUP BY review_day)
+     GROUP BY date ORDER BY date"))
+
 (defun gnosis-table-exists-p (table)
   "Check if TABLE exists."
   (let* ((db (gnosis--ensure-db))
@@ -309,6 +322,12 @@ Uses `gnosis--id-cache' for O(1) collision checking when bound."
       (:check "lapses_after = lapses_before + CASE rating WHEN 1 THEN 1 ELSE 0 END")
       (:check "new_p IN (0, 1)")
       (:check "new_p = CASE reps_before WHEN 0 THEN 1 ELSE 0 END")))
+    (review-activity-baseline
+     ([(date integer :primary-key :not-null)
+       (reviewed-total integer :not-null)
+       (reviewed-new integer :not-null)]
+      (:check "reviewed_total >= 0")
+      (:check "reviewed_new BETWEEN 0 AND reviewed_total")))
     (activity-log
      ([(date integer :not-null)
        (reviewed-total integer :not-null)
@@ -395,6 +414,29 @@ Uses `gnosis--id-cache' for O(1) collision checking when bound."
           (SELECT 1 FROM review_events WHERE event_id = NEW.event_id)
         BEGIN
           SELECT RAISE(ABORT, 'review event already exists');
+        END")
+    (gnosis-sqlite-execute
+     db
+     "CREATE TRIGGER IF NOT EXISTS review_activity_baseline_no_replace
+        BEFORE INSERT ON review_activity_baseline
+        WHEN EXISTS
+          (SELECT 1 FROM review_activity_baseline WHERE date = NEW.date)
+        BEGIN
+          SELECT RAISE(ABORT, 'review activity baseline already exists');
+        END")
+    (gnosis-sqlite-execute
+     db
+     "CREATE TRIGGER IF NOT EXISTS review_activity_baseline_no_update
+        BEFORE UPDATE ON review_activity_baseline
+        BEGIN
+          SELECT RAISE(ABORT, 'review activity baseline is immutable');
+        END")
+    (gnosis-sqlite-execute
+     db
+     "CREATE TRIGGER IF NOT EXISTS review_activity_baseline_no_delete
+        BEFORE DELETE ON review_activity_baseline
+        BEGIN
+          SELECT RAISE(ABORT, 'review activity baseline is immutable');
         END")
     (gnosis-sqlite-execute
      db

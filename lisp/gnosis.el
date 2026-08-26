@@ -423,8 +423,8 @@ When VERIFICATION is non-nil, skips `y-or-n-p' prompt."
          (suspend-value
           (or suspend-value
               (if (= items-num 1)
-                  (if (= (gnosis-get 'suspend 'review-log
-                                     `(= id ,(car ids)))
+                  (if (= (gnosis-get 'suspended 'scheduler-state
+                                     `(= thema-id ,(car ids)))
                          1)
                       0 1)
                 1)))
@@ -435,10 +435,14 @@ When VERIFICATION is non-nil, skips `y-or-n-p' prompt."
                   (y-or-n-p (format "%s thema? " action))
                 (y-or-n-p (format "%s %d themata? " action items-num))))))
     (when verification
-      (gnosis-sqlite-execute-batch (gnosis--ensure-db)
-				   "UPDATE review_log SET suspend = ? WHERE id IN (%s)"
-				   ids
-				   (list suspend-value)))))
+      (let ((db (gnosis--ensure-db)))
+        (gnosis-sqlite-with-transaction db
+          (gnosis-sqlite-execute-batch
+           db "UPDATE scheduler_state SET suspended = ?
+                WHERE thema_id IN (%s)" ids (list suspend-value))
+          (gnosis-sqlite-execute-batch
+           db "UPDATE review_log SET suspend = ? WHERE id IN (%s)"
+           ids (list suspend-value)))))))
 
 (defun gnosis-mcq-answer (id)
   "Choose the correct answer, from mcq choices for question ID."
@@ -476,7 +480,7 @@ previous state on exit."
 
 (defun gnosis-suspended-p (id)
   "Return t if thema with ID is suspended."
-  (= (gnosis-get 'suspend 'review-log `(= id ,id)) 1))
+  (= (gnosis-get 'suspended 'scheduler-state `(= thema-id ,id)) 1))
 
 (cl-defun gnosis-collect-thema-ids (&key tags due query)
   "Return list of thema IDs filtered by TAGS, DUE, QUERY.
@@ -496,11 +500,11 @@ QUERY: search string."
 (defun gnosis-get-themata-by-reviews (max-reviews &optional thema-ids)
   "Return thema IDs with at most MAX-REVIEWS total reviews.
 When THEMA-IDS is non-nil, restrict to that subset."
-  (gnosis-select 'id 'review-log
+  (gnosis-select 'thema-id 'scheduler-state
                  (if thema-ids
-                     `(and (<= n ,max-reviews)
-                           (in id ,(vconcat thema-ids)))
-                   `(<= n ,max-reviews))
+                     `(and (<= reps ,max-reviews)
+                           (in thema-id ,(vconcat thema-ids)))
+                   `(<= reps ,max-reviews))
                  t))
 
 

@@ -20,7 +20,9 @@
 
 (require 'ert)
 (require 'gnosis)
+(require 'gnosis-anki)
 (require 'gnosis-export-import)
+(require 'gnosis-review)
 (require 'gnosis-scheduler)
 (require 'gnosis-test-helpers)
 
@@ -309,6 +311,44 @@
                (car (gnosis-sqlite-select
                      gnosis-db
                      "SELECT due_day FROM scheduler_baseline WHERE thema_id = 101"))))))))
+
+(ert-deftest gnosis-test-scheduler-all-creation-paths-are-due-and-new ()
+  "Read ordinary, Anki, and SQLite imports from scheduler authority."
+  (gnosis-test-scheduler--with-db
+    (let ((export-file (concat (make-temp-file "gnosis-due-import-") ".db"))
+          (today (gnosis--today-int)))
+      (unwind-protect
+          (progn
+            (gnosis-add-thema-fields
+             "basic" "Ordinary" '("") '("A") "" '("test") 0 nil nil 101)
+            (gnosis-anki--bulk-insert-chunk
+             gnosis-db
+             (list (list :type "basic" :keimenon "Anki" :hypothesis '("")
+                         :answer '("A") :parathema "" :tags '("test")))
+             '(102) (prin1-to-string gnosis-algorithm-gnosis-value)
+             gnosis-algorithm-amnesia-value today)
+            (gnosis-add-thema-fields
+             "basic" "SQLite" '("") '("A") "" '("test") 0 nil nil 103)
+            (gnosis-export-db export-file)
+            (gnosis-sqlite-execute gnosis-db
+                                   "DELETE FROM themata WHERE id = 103")
+            (gnosis-import--apply-changes
+             export-file '(103) nil
+             (gnosis-import--file-sha256 export-file))
+            (gnosis-sqlite-execute
+             gnosis-db "UPDATE review_log SET next_rev = 20990101,
+                         n = 9, suspend = 1 WHERE id IN (101, 102, 103)")
+            (let ((expected '(101 102 103))
+                  (gnosis-new-themata-limit nil)
+                  (gnosis-review-new-first t))
+              (should (equal expected (gnosis-review-get-due-themata)))
+              (should (equal expected (sort (gnosis-get-themata-by-reviews 0)
+                                            #'<)))
+              (dolist (id expected)
+                (should (gnosis-review-is-thema-new-p id))
+                (should-not (gnosis-suspended-p id)))))
+        (when (file-exists-p export-file)
+          (delete-file export-file))))))
 
 (provide 'gnosis-test-scheduler)
 ;;; gnosis-test-scheduler.el ends here

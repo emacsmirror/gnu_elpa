@@ -25,8 +25,10 @@
   (gnosis-test-with-db
     (let* ((id (gnosis-test--add-basic-thema "Q" "A")))
       ;; Set next-rev to yesterday
-      (gnosis-update 'review-log `(= next-rev ,(gnosis--date-to-int (gnosis-algorithm-date -1)))
-                     `(= id ,id))
+      (gnosis-update 'scheduler-state
+                     `(= due-day ,(gnosis--date-to-int
+                                    (gnosis-algorithm-date -1)))
+                     `(= thema-id ,id))
       (should (gnosis-review-is-due-today-p id)))))
 
 (ert-deftest gnosis-test-review-due-today-today ()
@@ -41,8 +43,10 @@
   (gnosis-test-with-db
     (let* ((id (gnosis-test--add-basic-thema "Q" "A")))
       ;; Set next-rev to tomorrow
-      (gnosis-update 'review-log `(= next-rev ,(gnosis--date-to-int (gnosis-algorithm-date 1)))
-                     `(= id ,id))
+      (gnosis-update 'scheduler-state
+                     `(= due-day ,(gnosis--date-to-int
+                                    (gnosis-algorithm-date 1)))
+                     `(= thema-id ,id))
       (should-not (gnosis-review-is-due-today-p id)))))
 
 ;;; ---- Group 2: gnosis-review-is-due-p ----
@@ -78,8 +82,10 @@
     (let* ((id1 (gnosis-test--add-basic-thema "Q1" "A1"))
            (id2 (gnosis-test--add-basic-thema "Q2" "A2")))
       ;; Push id2 to future
-      (gnosis-update 'review-log `(= next-rev ,(gnosis--date-to-int (gnosis-algorithm-date 5)))
-                     `(= id ,id2))
+      (gnosis-update 'scheduler-state
+                     `(= due-day ,(gnosis--date-to-int
+                                    (gnosis-algorithm-date 5)))
+                     `(= thema-id ,id2))
       (let ((gnosis-review-new-first nil)
             (gnosis-new-themata-limit nil))
         (let ((due (gnosis-review-get--due-themata)))
@@ -91,9 +97,9 @@
   (gnosis-test-with-db
     (let* ((new-id (gnosis-test--add-basic-thema "New Q" "A"))
            (old-id (gnosis-test--add-basic-thema "Old Q" "A")))
-      ;; Make old-id look reviewed (n > 0)
+      ;; Make old-id reviewed in scheduler authority.
       (gnosis-sqlite-execute gnosis-db
-        "UPDATE review_log SET n = 5 WHERE id = ?" (list old-id))
+        "UPDATE scheduler_state SET reps = 5 WHERE thema_id = ?" (list old-id))
       (let ((gnosis-review-new-first t)
             (gnosis-new-themata-limit nil))
         (let* ((due (gnosis-review-get--due-themata))
@@ -114,10 +120,48 @@
   "Thema with n>0 is NOT new."
   (gnosis-test-with-db
     (let* ((id (gnosis-test--add-basic-thema "Q" "A")))
-      ;; Simulate a review
+      ;; Simulate a review in scheduler authority.
       (gnosis-sqlite-execute gnosis-db
-        "UPDATE review_log SET n = 1 WHERE id = ?" (list id))
+        "UPDATE scheduler_state SET reps = 1 WHERE thema_id = ?" (list id))
       (should-not (gnosis-review-is-thema-new-p id)))))
+
+(ert-deftest gnosis-test-review-reads-only-scheduler-authority ()
+  "Ignore contradictory legacy due, newness, and suspension facts."
+  (gnosis-test-with-db
+    (let* ((id (gnosis-test--add-basic-thema "Q" "A"))
+           (today (gnosis--today-int))
+           (future (gnosis--date-to-int (gnosis-algorithm-date 10))))
+      (gnosis-sqlite-execute
+       gnosis-db "UPDATE review_log SET next_rev = ?, n = 9, suspend = 1
+                   WHERE id = ?" (list future id))
+      (should (gnosis-review-is-due-today-p id))
+      (should (gnosis-review-is-due-p id))
+      (should (gnosis-review-is-thema-new-p id))
+      (should (member id (gnosis-review-get-due-themata)))
+      (should (member id (gnosis-get-themata-by-reviews 0)))
+      (should-not (gnosis-review-get-overdue-themata))
+      (gnosis-sqlite-execute
+       gnosis-db "UPDATE scheduler_state SET due_day = ?, reps = 1
+                   WHERE thema_id = ?" (list (1- today) id))
+      (should (equal (list id) (gnosis-review-get-overdue-themata)))
+      (should (= 1 (gnosis-review-count-overdue))))))
+
+(ert-deftest gnosis-test-review-suspension-projection-is-atomic ()
+  "Read and update suspension through scheduler authority atomically."
+  (gnosis-test-with-db
+    (let ((id (gnosis-test--add-basic-thema "Q" "A")))
+      (gnosis-sqlite-execute gnosis-db
+                             "UPDATE review_log SET suspend = 1 WHERE id = ?"
+                             (list id))
+      (gnosis-toggle-suspend-themata (list id) nil t)
+      (should (gnosis-suspended-p id))
+      (should (= 1 (gnosis-get 'suspend 'review-log `(= id ,id))))
+      (gnosis-sqlite-execute
+       gnosis-db "CREATE TRIGGER controlled_legacy_suspend_failure
+                   BEFORE UPDATE OF suspend ON review_log
+                   BEGIN SELECT RAISE(ABORT, 'controlled failure'); END")
+      (should-error (gnosis-toggle-suspend-themata (list id) 0 t))
+      (should (gnosis-suspended-p id)))))
 
 (provide 'gnosis-test-review)
 

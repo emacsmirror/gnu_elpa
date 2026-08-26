@@ -281,18 +281,24 @@ Check if it's suspended, and if it's due today."
 This function ignores if thema is suspended.  Refer to
 `gnosis-review-is-due-p' if you need to check for suspended value as
 well."
-  (let ((next-rev (gnosis-get 'next-rev 'review-log `(= id ,id))))
-    (<= next-rev (gnosis--today-int))))
+  (let ((due-day (gnosis-get 'due-day 'scheduler-state
+                             `(= thema-id ,id))))
+    (<= due-day (gnosis--today-int))))
 
 (defun gnosis-review-get--due-themata ()
   "Return due thema IDs & due dates."
-  (let* ((today (gnosis--today-int))
-	 (old-themata (gnosis-select '[id next-rev] 'review-log
-				     `(and (> n 0) (= suspend 0)
-					   (<= next-rev ,today))))
-	 (new-themata (gnosis-select '[id next-rev] 'review-log
-				     `(and (= n 0) (= suspend 0)
-					   (<= next-rev ,today)))))
+  (let* ((db (gnosis--ensure-db))
+         (today (gnosis--today-int))
+	 (old-themata
+          (gnosis-sqlite-select
+           db "SELECT thema_id, due_day FROM scheduler_state
+                WHERE reps > 0 AND suspended = 0 AND due_day <= ?
+                ORDER BY due_day, thema_id" (list today)))
+	 (new-themata
+          (gnosis-sqlite-select
+           db "SELECT thema_id, due_day FROM scheduler_state
+                WHERE reps = 0 AND suspended = 0 AND due_day <= ?
+                ORDER BY due_day, thema_id" (list today))))
     (let ((limited-new (if gnosis-new-themata-limit
 			   (cl-subseq new-themata 0 (min gnosis-new-themata-limit
 							 (length new-themata)))
@@ -308,15 +314,20 @@ well."
 (defun gnosis-review-get-overdue-themata ()
   "Return IDs of overdue themata (reviewed at least once, due before today)."
   (let ((today (gnosis--today-int)))
-    (gnosis-select 'id 'review-log
-		   `(and (> n 0) (= suspend 0) (< next-rev ,today))
-		   t)))
+    (mapcar #'car
+            (gnosis-sqlite-select
+             (gnosis--ensure-db)
+             "SELECT thema_id FROM scheduler_state
+               WHERE reps > 0 AND suspended = 0 AND due_day < ?
+               ORDER BY due_day, thema_id" (list today)))))
 
 (defun gnosis-review-count-overdue ()
   "Return count of overdue themata."
   (let ((today (gnosis--today-int)))
     (or (caar (gnosis-sqlite-select (gnosis--ensure-db)
-				    "SELECT COUNT(*) FROM review_log WHERE n > 0 AND suspend = 0 AND next_rev < ?"
+				    "SELECT COUNT(*) FROM scheduler_state
+                                      WHERE reps > 0 AND suspended = 0
+                                        AND due_day < ?"
 				    (list today)))
 	0)))
 
@@ -568,8 +579,7 @@ TAGS are pre-fetched for custom value lookup."
 
 (defun gnosis-review-is-thema-new-p (id)
   "Return t if thema with ID is new."
-  (let ((reviews (car (gnosis-select 'n 'review-log `(= id ,id) t))))
-    (not (> reviews 0))))
+  (zerop (gnosis-get 'reps 'scheduler-state `(= thema-id ,id))))
 
 ;;; Activity log
 

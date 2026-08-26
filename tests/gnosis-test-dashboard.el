@@ -408,8 +408,10 @@ Binds `gnosis-nodes-dir' to the temp directory."
 ;; ──────────────────────────────────────────────────────────
 
 (defun gnosis-test--set-review-count (id n)
-  "Set the review count N for thema ID in review-log."
-  (gnosis-update 'review-log `(= n ,n) `(= id ,id)))
+  "Set review count N for thema ID in both transition-era stores."
+  (gnosis-sqlite-with-transaction gnosis-db
+    (gnosis-update 'review-log `(= n ,n) `(= id ,id))
+    (gnosis-update 'scheduler-state `(= reps ,n) `(= thema-id ,id))))
 
 (ert-deftest gnosis-test-get-themata-by-reviews-basic ()
   "Get themata filtered by review count."

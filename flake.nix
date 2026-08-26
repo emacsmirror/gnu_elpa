@@ -57,6 +57,7 @@
         ./tests/gnosis-test-isolation.el
         ./tests/gnosis-test-journal-boundary.el
         ./tests/gnosis-test-journal.el
+        ./tests/gnosis-test-links.el
         ./tests/gnosis-test-migration.el
         ./tests/gnosis-test-nodes-boundary.el
         ./tests/gnosis-test-nodes.el

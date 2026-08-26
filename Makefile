@@ -49,6 +49,7 @@ TESTS := tests/gnosis-test-sqlite.el \
 	tests/gnosis-test-script-detection.el \
 	tests/gnosis-test-insert-template.el \
 	tests/gnosis-test-isolation.el \
+	tests/gnosis-test-links.el \
 	tests/gnosis-test-org.el \
 	tests/gnosis-test-nodes.el \
 	tests/gnosis-test-review.el \

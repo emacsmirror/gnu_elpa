@@ -20,7 +20,9 @@
 
 (require 'ert)
 (require 'gnosis)
+(require 'gnosis-export-import)
 (require 'gnosis-scheduler)
+(require 'gnosis-test-helpers)
 
 (defmacro gnosis-test-scheduler--with-db (&rest body)
   "Run BODY against a freshly initialized temporary database."
@@ -246,6 +248,67 @@
     (gnosis-scheduler-rebuild-state 1 1 gnosis-db)
     (should (= 1 (caar (gnosis-sqlite-select
                         gnosis-db "SELECT suspended FROM scheduler_state"))))))
+
+(ert-deftest gnosis-test-scheduler-ordinary-creation-initializes-state ()
+  "Initialize scheduler storage through every ordinary creation path."
+  (gnosis-test-scheduler--with-db
+    (gnosis-add-thema-fields
+     "basic" "Q1" '("") '("A1") "" '("test") 0 nil nil 101)
+    (gnosis-update-thema 102 "Q2" '("") '("A2") "" '("test") nil "basic")
+    (should-not
+     (gnosis-save-thema '(103 "basic" "Q3" ("") ("A3") "" ("test") 1)))
+    (gnosis-test--add-basic-thema "Q4" "A4" nil nil 104 0)
+    (let ((today (gnosis--today-int)))
+      (should
+       (equal (list (list 101 today 0 0) (list 102 today 0 0)
+                    (list 103 today 0 0) (list 104 today 0 0))
+              (gnosis-sqlite-select
+               gnosis-db "SELECT * FROM scheduler_baseline ORDER BY thema_id")))
+      (should
+       (equal `((101 1 nil nil nil nil ,today 0 0 0)
+                (102 1 nil nil nil nil ,today 0 0 0)
+                (103 1 nil nil nil nil ,today 0 0 0)
+                (104 1 nil nil nil nil ,today 0 0 0))
+              (gnosis-sqlite-select
+               gnosis-db "SELECT * FROM scheduler_state ORDER BY thema_id"))))))
+
+(ert-deftest gnosis-test-scheduler-ordinary-creation-rolls-back-together ()
+  "Roll back content and scheduler rows when initialization fails."
+  (gnosis-test-scheduler--with-db
+    (gnosis-sqlite-execute
+     gnosis-db
+     "CREATE TRIGGER controlled_initializer_failure
+        BEFORE INSERT ON scheduler_state
+        BEGIN SELECT RAISE(ABORT, 'controlled initializer failure'); END")
+    (should-error
+     (gnosis-add-thema-fields
+      "basic" "Question" '("") '("Answer") "" '("test") 0 nil nil 101))
+    (dolist (table '(themata review review-log scheduler-baseline scheduler-state))
+      (should (= 0 (caar (gnosis-sqlite-select
+                          gnosis-db
+                          (format "SELECT COUNT(*) FROM %s"
+                                  (gnosis-sqlite--ident table)))))))))
+
+(ert-deftest gnosis-test-scheduler-ordinary-creation-captures-one-day ()
+  "Use one captured logical day for every new-card schedule row."
+  (gnosis-test-scheduler--with-db
+    (let (calls)
+      (cl-letf (((symbol-function 'gnosis--today-int)
+                 (lambda ()
+                   (push t calls)
+                   (if (= (length calls) 1) 20260830 20260831))))
+        (gnosis-add-thema-fields
+         "basic" "Question" '("") '("Answer") "" '("test") 0 nil nil 101))
+      (should (= 1 (length calls)))
+      (should
+       (equal '(20260830 20260830 20260830)
+              (append
+               (car (gnosis-sqlite-select
+                     gnosis-db
+                     "SELECT last_rev, next_rev FROM review_log WHERE id = 101"))
+               (car (gnosis-sqlite-select
+                     gnosis-db
+                     "SELECT due_day FROM scheduler_baseline WHERE thema_id = 101"))))))))
 
 (provide 'gnosis-test-scheduler)
 ;;; gnosis-test-scheduler.el ends here

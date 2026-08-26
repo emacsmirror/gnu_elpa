@@ -56,6 +56,7 @@
 (require 'subr-x)
 
 (require 'gnosis-db)
+(require 'gnosis-scheduler)
 (require 'gnosis-vc)
 (require 'gnosis-tags)
 (require 'gnosis-custom-values)
@@ -527,7 +528,8 @@ REVIEW-IMAGE is optional image data and GNOSIS-ID is an optional ID."
   (cl-assert (listp tags) nil "Tags must be a list")
   (cl-assert (listp links) nil "Links must be a list")
   (let* ((gnosis-id (or gnosis-id (gnosis-generate-id)))
-	 (review-image (or review-image "")))
+	 (review-image (or review-image ""))
+         (today (gnosis--today-int)))
     (gnosis-sqlite-with-transaction (gnosis--ensure-db)
       (gnosis--insert-into 'themata
 			   `([,gnosis-id ,(downcase type)
@@ -537,9 +539,10 @@ REVIEW-IMAGE is optional image data and GNOSIS-ID is an optional ID."
 			   `([,gnosis-id
 			      ,gnosis-algorithm-gnosis-value
 			      ,gnosis-algorithm-amnesia-value]))
-      (gnosis--insert-into 'review-log `([,gnosis-id ,(gnosis--today-int)
-						     ,(gnosis--today-int) 0 0 0 0
+      (gnosis--insert-into 'review-log `([,gnosis-id ,today
+						     ,today 0 0 0 0
 						     ,suspend 0]))
+      (gnosis-scheduler-initialize-thema gnosis-id today suspend)
       (gnosis--insert-into 'extras `([,gnosis-id ,parathema ,review-image]))
       (cl-loop for link in links
 	       do (gnosis--insert-into 'thema-links `([,gnosis-id ,link])))

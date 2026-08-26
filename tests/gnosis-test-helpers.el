@@ -38,12 +38,7 @@ Rebind the database, data directory, and version-control guards."
      (unwind-protect
          (unwind-protect
              (progn
-               (gnosis-sqlite-with-transaction gnosis-db
-                 (pcase-dolist (`(,table ,schema) gnosis-db--schemata)
-                   (gnosis-sqlite-execute gnosis-db
-                     (format "CREATE TABLE %s (%s)"
-                             (gnosis-sqlite--ident table)
-                             (gnosis-sqlite--compile-schema schema)))))
+               (gnosis-db-init)
                ,@body)
            (gnosis-sqlite-close gnosis-db))
        (delete-directory gnosis-test--dir t))))
@@ -58,6 +53,7 @@ SUSPEND: 1 to suspend, 0 or nil for active."
          (tags (or tags '("test")))
          (parathema (or parathema ""))
          (suspend (or suspend 0))
+         (today (gnosis--today-int))
          (hypothesis '(""))
          (answer (if (listp answer) answer (list answer))))
     (gnosis-sqlite-with-transaction gnosis-db
@@ -65,9 +61,10 @@ SUSPEND: 1 to suspend, 0 or nil for active."
                                            ,answer nil]))
       (gnosis--insert-into 'review `([,id ,gnosis-algorithm-gnosis-value
                                           ,gnosis-algorithm-amnesia-value]))
-      (gnosis--insert-into 'review-log `([,id ,(gnosis--today-int)
-                                              ,(gnosis--today-int) 0 0 0 0
+      (gnosis--insert-into 'review-log `([,id ,today
+                                              ,today 0 0 0 0
                                               ,suspend 0]))
+      (gnosis-scheduler-initialize-thema id today suspend)
       (gnosis--insert-into 'extras `([,id ,parathema ""]))
       (cl-loop for tag in tags
 	       do (gnosis--insert-into 'thema-tag `([,id ,tag]))))

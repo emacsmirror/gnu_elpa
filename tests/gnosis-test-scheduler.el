@@ -1,0 +1,188 @@
+;;; gnosis-test-scheduler.el --- Scheduler acceptance tests  -*- lexical-binding: t; -*-
+
+;; Copyright (C) 2026  Free Software Foundation, Inc.
+
+;; Author: Thanos Apollo <public@thanosapollo.org>
+;; Keywords: extensions
+;; URL: https://git.thanosapollo.org/gnosis
+;; Version: 0.0.1
+
+;; This program is free software; you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+
+;;; Commentary:
+
+;; Verify atomic, idempotent binary FSRS review acceptance.
+
+;;; Code:
+
+(require 'ert)
+(require 'gnosis)
+(require 'gnosis-scheduler)
+
+(defmacro gnosis-test-scheduler--with-db (&rest body)
+  "Run BODY against a freshly initialized temporary database."
+  (declare (indent 0) (debug t))
+  `(let* ((dir (make-temp-file "gnosis-accept-" t))
+          (gnosis-dir (file-name-as-directory dir))
+          (gnosis-db nil)
+          (gnosis-testing t))
+     (unwind-protect
+         (progn (gnosis--ensure-db) ,@body)
+       (when gnosis-db (gnosis-sqlite-close gnosis-db))
+       (delete-directory dir t))))
+
+(defun gnosis-test-scheduler--seed-state (&optional thema-id suspended)
+  "Insert a new scheduler projection for THEMA-ID with SUSPENDED state."
+  (let ((id (or thema-id 1)))
+    (gnosis-sqlite-execute
+     gnosis-db "INSERT INTO themata VALUES (?, ?, ?, ?, ?, ?)"
+     (list id "basic" "Question" '("") '("Answer") nil))
+    (gnosis-sqlite-execute
+     gnosis-db "INSERT INTO scheduler_baseline VALUES (?, ?, ?, ?)"
+     (list id 20260830 0 0))
+    (gnosis-sqlite-execute
+     gnosis-db
+     "INSERT INTO scheduler_state VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+     (list id 1 nil nil nil nil 20260830 0 0 (or suspended 0)))
+    id))
+
+(defun gnosis-test-scheduler--near-p (left right)
+  "Return non-nil when LEFT and RIGHT differ by less than 0.001."
+  (< (abs (- left right)) 0.001))
+
+(defconst gnosis-test-scheduler--event-id (make-string 64 ?a)
+  "Canonical event identity used by acceptance tests.")
+
+(ert-deftest gnosis-test-scheduler-event-id-is-generated-before-effects ()
+  "Generate distinct stable text identities without touching storage."
+  (let ((first (gnosis-scheduler-event-id))
+        (second (gnosis-scheduler-event-id)))
+    (should (string-match-p "\\`[[:xdigit:]]\\{64\\}\\'" first))
+    (should-not (equal first second))))
+
+(ert-deftest gnosis-test-scheduler-rejects-malformed-id-before-db-access ()
+  "Reject noncanonical identities before opening or touching the database."
+  (let (db-touched)
+    (cl-letf (((symbol-function 'gnosis--ensure-db)
+               (lambda () (setq db-touched t) (error "DB touched"))))
+      (dolist (event-id (list "" "abc" (make-string 63 ?a)
+                              (make-string 64 ?A)
+                              (concat (make-string 63 ?a) "g")))
+        (should-error
+         (gnosis-scheduler-accept-review
+          event-id 1 'success 1000000 20260830))))
+    (should-not db-touched)))
+
+(ert-deftest gnosis-test-scheduler-accept-good-atomically ()
+  "Accept Good as one event and one matching state projection."
+  (gnosis-test-scheduler--with-db
+    (gnosis-test-scheduler--seed-state)
+    (let ((result (gnosis-scheduler-accept-review
+                   gnosis-test-scheduler--event-id 1 'success 1000000 20260830)))
+      (should (= 3 (plist-get result :rating)))
+      (should (= 2 (plist-get result :calendar-interval-days)))
+      (should (= 20260901 (plist-get result :due-day)))
+      (should (= 1 (plist-get result :reps-after)))
+      (should (= 0 (plist-get result :lapses-after)))
+      (should (= 1 (plist-get result :new-p)))
+      (should (gnosis-test-scheduler--near-p
+               2.3065 (plist-get result :stability)))
+      (should (gnosis-test-scheduler--near-p
+               2.118104 (plist-get result :difficulty)))
+      (should (= 1 (caar (gnosis-sqlite-select
+                          gnosis-db "SELECT COUNT(*) FROM review_events"))))
+      (should
+       (equal (list (plist-get result :stability)
+                    (plist-get result :difficulty)
+                    1000000 20260830 20260901 1 0)
+              (car (gnosis-sqlite-select
+                    gnosis-db
+                    "SELECT stability, difficulty, last_reviewed_at_us,
+                            last_review_day, due_day, reps, lapses
+                       FROM scheduler_state WHERE thema_id = 1")))))))
+
+(ert-deftest gnosis-test-scheduler-accept-failure-as-again ()
+  "Map binary failure to Again and increment the lapse count."
+  (gnosis-test-scheduler--with-db
+    (gnosis-test-scheduler--seed-state)
+    (let ((result (gnosis-scheduler-accept-review
+                   gnosis-test-scheduler--event-id 1 'failure 1000000 20260830)))
+      (should (= 1 (plist-get result :rating)))
+      (should (= 1 (plist-get result :calendar-interval-days)))
+      (should (= 20260831 (plist-get result :due-day)))
+      (should (= 1 (plist-get result :lapses-after))))))
+
+(ert-deftest gnosis-test-scheduler-retry-is-idempotent ()
+  "Return retained evidence on exact retry and reject identity conflicts."
+  (gnosis-test-scheduler--with-db
+    (gnosis-test-scheduler--seed-state)
+    (let* ((first (gnosis-scheduler-accept-review
+                   gnosis-test-scheduler--event-id 1 'success 1000000 20260830))
+           (retry (gnosis-scheduler-accept-review
+                   gnosis-test-scheduler--event-id 1 'success 1000000 20260830)))
+      (should (equal first retry))
+      (should-error
+       (gnosis-scheduler-accept-review
+        gnosis-test-scheduler--event-id 1 'failure 1000000 20260830))
+      (should (= 1 (caar (gnosis-sqlite-select
+                          gnosis-db "SELECT COUNT(*) FROM review_events"))))
+      (should (= 1 (caar (gnosis-sqlite-select
+                          gnosis-db "SELECT reps FROM scheduler_state")))))))
+
+(ert-deftest gnosis-test-scheduler-acceptance-rolls-back-both-effects ()
+  "Roll back event insertion when state projection cannot update."
+  (gnosis-test-scheduler--with-db
+    (gnosis-test-scheduler--seed-state)
+    (gnosis-sqlite-execute
+     gnosis-db
+     "CREATE TRIGGER controlled_state_failure
+        BEFORE UPDATE ON scheduler_state
+        BEGIN SELECT RAISE(ABORT, 'controlled state failure'); END")
+    (should-error
+     (gnosis-scheduler-accept-review
+      gnosis-test-scheduler--event-id 1 'success 1000000 20260830))
+    (should (= 0 (caar (gnosis-sqlite-select
+                        gnosis-db "SELECT COUNT(*) FROM review_events"))))
+    (should
+     (equal '((nil nil nil nil 20260830 0 0))
+            (gnosis-sqlite-select
+             gnosis-db
+             "SELECT stability, difficulty, last_reviewed_at_us,
+                     last_review_day, due_day, reps, lapses
+                FROM scheduler_state WHERE thema_id = 1")))))
+
+(ert-deftest gnosis-test-scheduler-rejects-nonbinary-input-before-effects ()
+  "Reject unsupported ratings before inserting or updating anything."
+  (gnosis-test-scheduler--with-db
+    (gnosis-test-scheduler--seed-state)
+    (should-error
+     (gnosis-scheduler-accept-review gnosis-test-scheduler--event-id 1 'hard 1000000 20260830))
+    (should (= 0 (caar (gnosis-sqlite-select
+                        gnosis-db "SELECT COUNT(*) FROM review_events"))))
+    (should (= 0 (caar (gnosis-sqlite-select
+                        gnosis-db "SELECT reps FROM scheduler_state"))))))
+
+(ert-deftest gnosis-test-scheduler-rejects-unsupported-config-snapshot ()
+  "Reject an immutable config whose parameters are not the pinned model."
+  (gnosis-test-scheduler--with-db
+    (gnosis-test-scheduler--seed-state)
+    (let ((parameters (copy-sequence gnosis-fsrs-default-parameters)))
+      (aset parameters 0 9.9)
+      (gnosis-sqlite-execute
+       gnosis-db "INSERT INTO scheduler_config VALUES (?, ?, ?, ?, ?, ?)"
+       (list 2 "fsrs" "gnosis-fsrs6-v1" "fsrs-rs-6.6.1" 0.9 parameters)))
+    (gnosis-sqlite-execute
+     gnosis-db "UPDATE scheduler_state SET config_id = 2 WHERE thema_id = 1")
+    (should-error
+     (gnosis-scheduler-accept-review
+      gnosis-test-scheduler--event-id 1 'success 1000000 20260830))
+    (should (= 0 (caar (gnosis-sqlite-select
+                        gnosis-db "SELECT COUNT(*) FROM review_events"))))
+    (should (= 0 (caar (gnosis-sqlite-select
+                        gnosis-db "SELECT reps FROM scheduler_state"))))))
+
+(provide 'gnosis-test-scheduler)
+;;; gnosis-test-scheduler.el ends here

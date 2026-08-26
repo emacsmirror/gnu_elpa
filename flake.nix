@@ -37,6 +37,7 @@
         ./lisp/gnosis-nodes.el
         ./lisp/gnosis-org.el
         ./lisp/gnosis-review.el
+        ./lisp/gnosis-scheduler.el
         ./lisp/gnosis-sqlite.el
         ./lisp/gnosis-tags.el
         ./lisp/gnosis-tl.el
@@ -67,6 +68,7 @@
         ./tests/gnosis-test-org.el
         ./tests/gnosis-test-review.el
         ./tests/gnosis-test-scheduler-storage.el
+        ./tests/gnosis-test-scheduler.el
         ./tests/gnosis-test-script-detection.el
         ./tests/gnosis-test-sqlite.el
       ];

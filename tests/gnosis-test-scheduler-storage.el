@@ -64,6 +64,22 @@
       (list 2 "fsrs" "gnosis-fsrs6-v1" "fsrs-rs-6.6.1" nil
             gnosis-fsrs-default-parameters)))))
 
+(ert-deftest gnosis-test-scheduler-config-is-immutable ()
+  "Reject replacement, update, and deletion of scheduler configuration."
+  (gnosis-test-scheduler--with-fresh-db
+    (should-error
+     (gnosis-sqlite-execute
+      gnosis-db
+      "INSERT OR REPLACE INTO scheduler_config
+         SELECT * FROM scheduler_config WHERE id = 1"))
+    (should-error
+     (gnosis-sqlite-execute
+      gnosis-db "UPDATE scheduler_config SET desired_retention = 0.8"))
+    (should-error
+     (gnosis-sqlite-execute gnosis-db "DELETE FROM scheduler_config"))
+    (should (= 1 (caar (gnosis-sqlite-select
+                        gnosis-db "SELECT COUNT(*) FROM scheduler_config"))))))
+
 (ert-deftest gnosis-test-scheduler-baseline-roundtrip ()
   "Store one immutable scheduling baseline for a thema."
   (gnosis-test-scheduler--with-fresh-db
@@ -227,6 +243,10 @@
      gnosis-db "INSERT INTO scheduler_baseline VALUES (?, ?, ?, ?)"
      '(1 20260830 0 0))
     (gnosis-test-scheduler--insert-event-fixture gnosis-db)
+    (should-error
+     (gnosis-sqlite-execute
+      gnosis-db "UPDATE scheduler_baseline SET due_day = ? WHERE thema_id = ?"
+      '(20260831 1)))
     (should-error
      (gnosis-sqlite-execute
       gnosis-db

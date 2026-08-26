@@ -6,7 +6,7 @@
 
 ;;; Commentary:
 
-;; Tests for the complete migration chain v1 -> v2 -> v3 -> v4 -> v5 -> v6 -> v7 -> v8.
+;; Tests for the complete migration chain v1 through v9.
 ;; One chain test exercises the full sequence; edge-case tests isolate
 ;; specific migration steps.
 
@@ -213,6 +213,45 @@ tags and links tables, extras with parathema/review_image."
        (gnosis-sqlite-close gnosis-db)
        (delete-file gnosis-test--db-file))))
 
+(defmacro gnosis-test-with-v8-db (&rest body)
+  "Run BODY with a disposable exact v8 database."
+  (declare (indent 0) (debug t))
+  `(gnosis-test-with-db
+     (dolist (table '(review-events scheduler-state scheduler-baseline
+                      scheduler-config review-activity-baseline))
+       (gnosis-sqlite-execute
+        gnosis-db (format "DROP TABLE %s" (gnosis-sqlite--ident table))))
+     (gnosis--db-set-version 8)
+     ,@body))
+
+(defun gnosis-test--populate-v8-scheduler-data ()
+  "Insert representative content, schedules, and activity into a v8 DB."
+  (dolist (row '((1 "Q1" ("A1")) (2 "Q2" ("A2"))))
+    (gnosis-sqlite-execute
+     gnosis-db
+     "INSERT INTO themata
+        (id, type, keimenon, hypothesis, answer, source_guid)
+      VALUES (?, ?, ?, ?, ?, ?)"
+     (list (nth 0 row) "basic" (nth 1 row) '("") (nth 2 row) nil))
+    (gnosis-sqlite-execute
+     gnosis-db "INSERT INTO review (id, gnosis, amnesia) VALUES (?, ?, ?)"
+     (list (nth 0 row) 1 1)))
+  (dolist (row '((1 20260820 20260825 3 5 0 2 0 7)
+                 (2 20260821 20260901 0 0 0 0 1 0)))
+    (gnosis-sqlite-execute
+     gnosis-db
+     "INSERT INTO review_log
+        (id, last_rev, next_rev, c_success, t_success,
+         c_fails, t_fails, suspend, n)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+     row))
+  (dolist (row '((20260820 5 2) (20260820 3 1) (20260821 4 0)))
+    (gnosis-sqlite-execute
+     gnosis-db
+     "INSERT INTO activity_log (date, reviewed_total, reviewed_new)
+      VALUES (?, ?, ?)"
+     row)))
+
 ;;; Populate functions
 
 (defun gnosis-test--populate-v1-data ()
@@ -270,8 +309,8 @@ tags and links tables, extras with parathema/review_image."
 
 ;;; ---- Group 2: Full chain test ----
 
-(ert-deftest gnosis-test-migrate-v1-to-v8-chain ()
-  "Sequential migration chain: v1 -> v2 -> ... -> v8 on one DB."
+(ert-deftest gnosis-test-migrate-v1-to-v9-chain ()
+  "Sequential migration chain from v1 through v9 on one DB."
   (gnosis-test-with-v1-db
     (gnosis-test--populate-v1-data)
 
@@ -407,7 +446,12 @@ tags and links tables, extras with parathema/review_image."
     ;; source_guid column exists (NULL for existing themata)
     (let ((row (car (gnosis-sqlite-select gnosis-db
                       "SELECT source_guid FROM themata WHERE id = 1"))))
-      (should (null (car row))))))
+      (should (null (car row))))
+    ;; -- v8 -> v9 --
+    (gnosis-db--migrate-v9)
+    (should (= 9 (gnosis--db-version)))
+    (should (= 4 (caar (gnosis-sqlite-select
+                        gnosis-db "SELECT COUNT(*) FROM scheduler_state"))))))
 
 ;;; ---- Group 3: Edge-case tests ----
 
@@ -524,7 +568,7 @@ tags and links tables, extras with parathema/review_image."
       (should-not (member "multi-dash-tag" tags)))))
 
 (ert-deftest gnosis-test-migrate-empty-db-chain ()
-  "Empty DB (schema only, no data) migrates v1 through v8 without error."
+  "Empty DB schema migrates v1 through v9 without error."
   (gnosis-test-with-v1-db
     (gnosis-db--migrate-v2)
     (gnosis-db--migrate-v3)
@@ -533,7 +577,8 @@ tags and links tables, extras with parathema/review_image."
     (gnosis-db--migrate-v6)
     (gnosis-db--migrate-v7)
     (gnosis-db--migrate-v8)
-    (should (= 8 (gnosis--db-version)))))
+    (gnosis-db--migrate-v9)
+    (should (= 9 (gnosis--db-version)))))
 
 (ert-deftest gnosis-test-migrate-v4-populated-to-v6 ()
   "PRAGMA 4 DB with data: v5 is no-op, v6 migrates decks/tags/nodes."
@@ -630,9 +675,9 @@ tags and links tables, extras with parathema/review_image."
       (cl-letf (((symbol-function 'gnosis--commit-migration)
 		 (lambda (from to) (setq commit-args (list from to)))))
 	(gnosis--db-run-migrations 4))
-      ;; Should have been called with from=4, to=8 (last migration run)
-      (should (equal '(4 8) commit-args))
-      (should (= 8 (gnosis--db-version))))))
+      ;; Should have been called with from=4, to=9 (last migration run)
+      (should (equal '(4 9) commit-args))
+      (should (= 9 (gnosis--db-version))))))
 
 (ert-deftest gnosis-test-migrate-no-commit-when-up-to-date ()
   "gnosis--db-run-migrations does not commit when no migrations are needed."
@@ -715,6 +760,78 @@ tags and links tables, extras with parathema/review_image."
       (should (= 20260325 (nth 1 row))))
     (let ((date (caar (gnosis-sqlite-select gnosis-db "SELECT date FROM activity_log"))))
       (should (= 20260320 date)))))
+
+;;; ---- Group 5: v9 FSRS bootstrap ----
+
+(ert-deftest gnosis-test-migrate-v8-to-v9-preserves-known-facts ()
+  "Bootstrap scheduler storage without inventing FSRS memory or events."
+  (gnosis-test-with-v8-db
+    (gnosis-test--populate-v8-scheduler-data)
+    (gnosis-sqlite-execute gnosis-db "PRAGMA foreign_keys = ON")
+    (let ((content (gnosis-sqlite-select
+                    gnosis-db "SELECT * FROM themata ORDER BY id")))
+      (gnosis-db--migrate-v9)
+      (should (= 9 (gnosis--db-version)))
+      (should (equal content
+                     (gnosis-sqlite-select
+                      gnosis-db "SELECT * FROM themata ORDER BY id"))))
+    (should
+     (equal '((1 20260825 7 2) (2 20260901 0 0))
+            (gnosis-sqlite-select
+             gnosis-db "SELECT * FROM scheduler_baseline ORDER BY thema_id")))
+    (should
+     (equal '((1 1 nil nil nil nil 20260825 7 2 0)
+              (2 1 nil nil nil nil 20260901 0 0 1))
+            (gnosis-sqlite-select
+             gnosis-db "SELECT * FROM scheduler_state ORDER BY thema_id")))
+    (should (= 0 (caar (gnosis-sqlite-select
+                        gnosis-db "SELECT COUNT(*) FROM review_events"))))
+    (should
+     (equal '((20260820 8 3) (20260821 4 0))
+            (gnosis-sqlite-select
+             gnosis-db "SELECT * FROM review_activity_baseline ORDER BY date")))
+    (should
+     (equal '((20260820 8 3) (20260821 4 0))
+            (gnosis-db-review-activity gnosis-db)))))
+
+(ert-deftest gnosis-test-migrate-v8-to-v9-rolls-back-completely ()
+  "Roll back scheduler DDL, data, and version when bootstrap fails."
+  (gnosis-test-with-v8-db
+    (gnosis-test--populate-v8-scheduler-data)
+    (gnosis-sqlite-execute gnosis-db "PRAGMA foreign_keys = ON")
+    (let ((content (gnosis-sqlite-select gnosis-db "SELECT * FROM themata"))
+          (schedule (gnosis-sqlite-select gnosis-db "SELECT * FROM review_log"))
+          (activity (gnosis-sqlite-select gnosis-db "SELECT * FROM activity_log"))
+          failure-reached)
+      (cl-letf (((symbol-function 'gnosis-db--create-scheduler-guards)
+                 (lambda (_db)
+                   (setq failure-reached t)
+                   (error "controlled migration failure"))))
+        (should-error (gnosis-db--migrate-v9)))
+      (should failure-reached)
+      (should (= 8 (gnosis--db-version)))
+      (dolist (table '(scheduler-config scheduler-baseline scheduler-state
+                       review-events review-activity-baseline))
+        (should-not (gnosis-table-exists-p table)))
+      (should (equal content
+                     (gnosis-sqlite-select gnosis-db "SELECT * FROM themata")))
+      (should (equal schedule
+                     (gnosis-sqlite-select gnosis-db "SELECT * FROM review_log")))
+      (should (equal activity
+                     (gnosis-sqlite-select gnosis-db "SELECT * FROM activity_log"))))))
+
+(ert-deftest gnosis-test-migrate-v8-to-v9-rejects-missing-schedule ()
+  "Reject incomplete legacy schedule authority without partial migration."
+  (gnosis-test-with-v8-db
+    (gnosis-test--populate-v8-scheduler-data)
+    (gnosis-sqlite-execute gnosis-db "DELETE FROM review_log WHERE id = ?" '(2))
+    (should-error (gnosis-db--migrate-v9))
+    (should (= 8 (gnosis--db-version)))
+    (dolist (table '(scheduler-config scheduler-baseline scheduler-state
+                     review-events review-activity-baseline))
+      (should-not (gnosis-table-exists-p table)))
+    (should (= 2 (caar (gnosis-sqlite-select
+                        gnosis-db "SELECT COUNT(*) FROM themata"))))))
 
 (provide 'gnosis-test-migration)
 

@@ -60,7 +60,7 @@ Initialized lazily by `gnosis--ensure-db' on first use.")
 (defvar gnosis-testing nil
   "Change this to non-nil when running manual tests.")
 
-(defconst gnosis-db-version 8
+(defconst gnosis-db-version 9
   "Gnosis database version.")
 
 (defvar gnosis--id-cache nil
@@ -398,6 +398,28 @@ Uses `gnosis--id-cache' for O(1) collision checking when bound."
   (when (gnosis-table-exists-p 'review-events)
     (gnosis-sqlite-execute
      db
+     "CREATE TRIGGER IF NOT EXISTS scheduler_config_no_replace
+        BEFORE INSERT ON scheduler_config
+        WHEN EXISTS (SELECT 1 FROM scheduler_config WHERE id = NEW.id)
+        BEGIN
+          SELECT RAISE(ABORT, 'scheduler config already exists');
+        END")
+    (gnosis-sqlite-execute
+     db
+     "CREATE TRIGGER IF NOT EXISTS scheduler_config_no_update
+        BEFORE UPDATE ON scheduler_config
+        BEGIN
+          SELECT RAISE(ABORT, 'scheduler config is immutable');
+        END")
+    (gnosis-sqlite-execute
+     db
+     "CREATE TRIGGER IF NOT EXISTS scheduler_config_no_delete
+        BEFORE DELETE ON scheduler_config
+        BEGIN
+          SELECT RAISE(ABORT, 'scheduler config is immutable');
+        END")
+    (gnosis-sqlite-execute
+     db
      "CREATE TRIGGER IF NOT EXISTS scheduler_baseline_no_replace
         BEFORE INSERT ON scheduler_baseline
         WHEN EXISTS
@@ -405,6 +427,13 @@ Uses `gnosis--id-cache' for O(1) collision checking when bound."
              WHERE thema_id = NEW.thema_id)
         BEGIN
           SELECT RAISE(ABORT, 'scheduler baseline already exists');
+        END")
+    (gnosis-sqlite-execute
+     db
+     "CREATE TRIGGER IF NOT EXISTS scheduler_baseline_no_update
+        BEFORE UPDATE ON scheduler_baseline
+        BEGIN
+          SELECT RAISE(ABORT, 'scheduler baseline is immutable');
         END")
     (gnosis-sqlite-execute
      db
@@ -831,6 +860,48 @@ Handles both Lisp list dates and already-converted integers."
 			   "CREATE INDEX IF NOT EXISTS idx_themata_source_guid ON themata(source_guid)"))
   (gnosis--db-set-version 8))
 
+(defun gnosis-db--migrate-v9 ()
+  "Bootstrap FSRS storage from known v8 schedule and activity facts."
+  (let ((db (gnosis--ensure-db))
+        (tables '(scheduler-config scheduler-baseline scheduler-state
+                  review-events review-activity-baseline)))
+    (gnosis-sqlite-with-transaction db
+      (dolist (table tables)
+        (let ((schema (cadr (assq table gnosis-db--schemata))))
+          (gnosis-sqlite-execute
+           db (format "CREATE TABLE %s (%s)"
+                      (gnosis-sqlite--ident table)
+                      (gnosis-sqlite--compile-schema schema)))))
+      (gnosis-db--install-default-scheduler-config db)
+      (when (> (caar (gnosis-sqlite-select
+                      db
+                      "SELECT COUNT(*) FROM themata AS t
+                         LEFT JOIN review_log AS r ON r.id = t.id
+                        WHERE r.id IS NULL"))
+               0)
+        (error "Gnosis: v8 thema lacks scheduler history"))
+      (gnosis-sqlite-execute
+       db
+       "INSERT INTO scheduler_baseline (thema_id, due_day, reps, lapses)
+        SELECT id, next_rev, n, t_fails FROM review_log")
+      (gnosis-sqlite-execute
+       db
+       "INSERT INTO scheduler_state
+          (thema_id, config_id, stability, difficulty,
+           last_reviewed_at_us, last_review_day, due_day,
+           reps, lapses, suspended)
+        SELECT id, 1, NULL, NULL, NULL, NULL, next_rev, n, t_fails, suspend
+          FROM review_log")
+      (gnosis-sqlite-execute
+       db
+       "INSERT INTO review_activity_baseline
+          (date, reviewed_total, reviewed_new)
+        SELECT date, SUM(reviewed_total), SUM(reviewed_new)
+          FROM activity_log GROUP BY date")
+      (gnosis--db-create-indexes db)
+      (gnosis-db--create-scheduler-guards db)
+      (gnosis--db-set-version 9))))
+
 (defconst gnosis-db--migrations
   `((1 . gnosis-db--migrate-v1)
     (2 . gnosis-db--migrate-v2)
@@ -839,7 +910,8 @@ Handles both Lisp list dates and already-converted integers."
     (5 . gnosis-db--migrate-v5)
     (6 . gnosis-db--migrate-v6)
     (7 . gnosis-db--migrate-v7)
-    (8 . gnosis-db--migrate-v8))
+    (8 . gnosis-db--migrate-v8)
+    (9 . gnosis-db--migrate-v9))
   "Alist of (VERSION . FUNCTION).
 Each migration brings the DB from VERSION-1 to VERSION.")
 

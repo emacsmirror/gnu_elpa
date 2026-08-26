@@ -16,6 +16,8 @@
 (require 'gnosis-tl)
 (require 'gnosis-dashboard)
 
+(defvar gnosis-dashboard--history)
+
 (load (expand-file-name "gnosis-test-helpers.el"
 			(file-name-directory (or load-file-name buffer-file-name))))
 
@@ -33,7 +35,8 @@ cross-test pollution."
      (cancel-function-timers #'gnosis-dashboard--warm-cache-chunk)
      (let ((gnosis-dashboard--entry-cache (make-hash-table :test 'equal))
            (gnosis-dashboard--selected-ids nil)
-           (gnosis-dashboard--load-generation 0))
+           (gnosis-dashboard--load-generation 0)
+           (gnosis-dashboard--history nil))
        ,@body)))
 
 (defmacro gnosis-test-with-dashboard-buffer (&rest body)
@@ -58,7 +61,6 @@ Includes `gnosis-test-with-clean-cache' for isolation."
 (defun gnosis-test--add-link (thema-id node-id)
   "Insert a link from THEMA-ID to NODE-ID string."
   (gnosis--insert-into 'thema-links `([,thema-id ,node-id])))
-
 
 ;; ──────────────────────────────────────────────────────────
 ;; Pure function tests
@@ -477,6 +479,146 @@ Binds `gnosis-nodes-dir' to the temp directory."
           (should (member id1 displayed-ids))
           (should (member id2 displayed-ids))
           (should-not (member id3 displayed-ids))))))))
+
+(ert-deftest gnosis-test-dashboard-themata-back-restores-view-and-point ()
+  "Themata Back restores the previous IDs and point."
+  (gnosis-test-with-db
+    (let* ((id1 (gnosis-test--add-basic-thema "Needle" "A1"))
+           (id2 (gnosis-test--add-basic-thema "Other" "A2"))
+           (ids (list id1 id2)))
+      (gnosis-test-with-dashboard-buffer
+        (gnosis-dashboard-output-themata ids)
+        (with-current-buffer gnosis-dashboard-buffer-name
+          (gnosis-dashboard--goto-id id2)
+          (gnosis-dashboard-filter-themata "Needle")
+          (should (equal gnosis-dashboard-themata-current-ids (list id1)))
+          (gnosis-dashboard-themata-back)
+          (should (equal gnosis-dashboard-themata-current-ids ids))
+          (should (equal (tabulated-list-get-id) id2)))))))
+
+(ert-deftest gnosis-test-dashboard-themata-back-restores-deferred-point ()
+  "Themata Back restores point after progressive rendering finishes."
+  (gnosis-test-with-db
+    (let* ((id1 (gnosis-test--add-basic-thema "Needle" "A1"))
+           (id2 (gnosis-test--add-basic-thema "Other 2" "A2"))
+           (id3 (gnosis-test--add-basic-thema "Other 3" "A3"))
+           (id4 (gnosis-test--add-basic-thema "Other 4" "A4"))
+           (ids (list id1 id2 id3 id4))
+           (gnosis-dashboard-render-chunk-size 1)
+           timers)
+      (gnosis-test-with-dashboard-buffer
+        (cl-letf (((symbol-function 'run-with-timer)
+                   (lambda (_seconds _repeat function &rest args)
+                     (setq timers
+                           (append timers (list (cons function args)))))))
+          (cl-labels ((drain-timers ()
+                        (while timers
+                          (pcase-let ((`(,function . ,args) (pop timers)))
+                            (apply function args)))))
+            (gnosis-dashboard-output-themata ids)
+            (drain-timers)
+            (with-current-buffer gnosis-dashboard-buffer-name
+              (gnosis-dashboard--goto-id id4)
+              (gnosis-dashboard-filter-themata "Needle")
+              (gnosis-dashboard-themata-back)
+              (drain-timers)
+              (should (equal (tabulated-list-get-id) id4)))))))))
+
+(ert-deftest gnosis-test-dashboard-nodes-back-crosses-view-modes ()
+  "Node history restores exact node view and point across related views."
+  (gnosis-test-with-db
+    (let ((thema-id (gnosis-test--add-basic-thema "Q" "A")))
+      (gnosis--insert-into
+       'nodes '(["n1" "one.org" "One" 0 nil "0" "one"]
+                ["n2" "two.org" "Two" 0 nil "0" "two"]))
+      (gnosis--insert-into 'node-links '(["n1" "n2"]))
+      (gnosis-test--add-link thema-id "n1")
+      (gnosis-test-with-dashboard-buffer
+        (gnosis-dashboard-output-nodes '("n1" "n2"))
+        (with-current-buffer gnosis-dashboard-buffer-name
+          (gnosis-dashboard--goto-id "n1")
+          (gnosis-dashboard-nodes-show-links)
+          (should (equal gnosis-dashboard-nodes-current-ids '("n2")))
+          (gnosis-dashboard-nodes-back)
+          (should (equal (sort (copy-sequence gnosis-dashboard-nodes-current-ids)
+                               #'string<)
+                         '("n1" "n2")))
+          (should (equal (tabulated-list-get-id) "n1"))
+          (gnosis-dashboard-nodes-show-themata-links)
+          (should (eq major-mode 'gnosis-dashboard-themata-mode))
+          (gnosis-dashboard-themata-back)
+          (should (eq major-mode 'gnosis-dashboard-nodes-mode))
+          (should (equal (tabulated-list-get-id) "n1")))))))
+
+(ert-deftest gnosis-test-dashboard-filtered-tags-survive-cross-mode-back ()
+  "Back from a thema restores the filtered tag view and point."
+  (gnosis-test-with-db
+    (gnosis-test--add-basic-thema "Q1" "A1" '("alpha"))
+    (gnosis-test--add-basic-thema "Q2" "A2" '("alpine"))
+    (gnosis-test--add-basic-thema "Q3" "A3" '("beta"))
+    (gnosis-test-with-dashboard-buffer
+      (gnosis-dashboard-output-tags)
+      (with-current-buffer gnosis-dashboard-buffer-name
+        (gnosis-dashboard-filter-tags "^a")
+        (gnosis-dashboard--goto-id "alpine")
+        (gnosis-dashboard-tag-view-themata)
+        (should (eq major-mode 'gnosis-dashboard-themata-mode))
+        (gnosis-dashboard-themata-back)
+        (should (eq major-mode 'gnosis-dashboard-tags-mode))
+        (should (equal (sort (copy-sequence gnosis-dashboard-tags-current)
+                             #'string<)
+                       '("alpha" "alpine")))
+        (should (equal (tabulated-list-get-id) "alpine"))))))
+
+(ert-deftest gnosis-test-dashboard-view-by-tags-back-restores-all-tags ()
+  "Back from main tag filtering restores the complete tags view."
+  (gnosis-test-with-db
+    (gnosis-test--add-basic-thema "Q1" "A1" '("alpha"))
+    (gnosis-test--add-basic-thema "Q2" "A2" '("beta"))
+    (gnosis-test-with-dashboard-buffer
+      (cl-letf (((symbol-function 'run-with-timer) #'ignore)
+                ((symbol-function 'keymap-popup) #'ignore)
+                ((symbol-function 'gnosis-tags-filter-prompt)
+                 (lambda () '(("alpha") . nil))))
+        (gnosis-dashboard)
+        (with-current-buffer gnosis-dashboard-buffer-name
+          (should (eq major-mode 'gnosis-dashboard-mode))
+          (gnosis-dashboard-view-by-tags)
+          (let ((view (car gnosis-dashboard--history)))
+            (should (eq (plist-get view :type) 'tags))
+            (should-not (plist-get view :id))
+            (should (equal (sort (copy-sequence (plist-get view :items))
+                                 #'string<)
+                           '("alpha" "beta"))))
+          (gnosis-dashboard-themata-back)
+          (should (eq major-mode 'gnosis-dashboard-tags-mode))
+          (should (equal (sort (copy-sequence gnosis-dashboard-tags-current)
+                               #'string<)
+                         '("alpha" "beta")))
+          (should (= (point) (point-min))))))))
+
+(ert-deftest gnosis-test-dashboard-view-by-tags-back-restores-empty-tags ()
+  "Back from accepted main filtering restores an empty tags view."
+  (gnosis-test-with-db
+    (gnosis-test--add-basic-thema "Q1" "A1")
+    (gnosis-sqlite-execute gnosis-db "DELETE FROM thema_tag")
+    (gnosis-test-with-dashboard-buffer
+      (cl-letf (((symbol-function 'run-with-timer) #'ignore)
+                ((symbol-function 'keymap-popup) #'ignore)
+                ((symbol-function 'gnosis-tags-filter-prompt)
+                 (lambda () '(nil . nil))))
+        (gnosis-dashboard)
+        (with-current-buffer gnosis-dashboard-buffer-name
+          (should (eq major-mode 'gnosis-dashboard-mode))
+          (gnosis-dashboard-view-by-tags)
+          (should (equal (car gnosis-dashboard--history)
+                         '(:type tags :id nil :items nil)))
+          (gnosis-test--add-basic-thema "Q2" "A2" '("new"))
+          (should (equal (gnosis-select 'tag 'thema-tag) '(("new"))))
+          (gnosis-dashboard-themata-back)
+          (should (eq major-mode 'gnosis-dashboard-tags-mode))
+          (should-not gnosis-dashboard-tags-current)
+          (should (= (point) (point-min))))))))
 
 ;; ──────────────────────────────────────────────────────────
 ;; gnosis-tl pure function tests

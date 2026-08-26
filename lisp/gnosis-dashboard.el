@@ -81,25 +81,14 @@ edit, delete, and suspend.")
     gnosis-dashboard-module-today-stats
     gnosis-dashboard-module-average-rev))
 
-(defvar gnosis-dashboard-themata-history nil
-  "Stack of previous themata views for navigation history.")
-
-(defvar gnosis-dashboard--view-history nil
-  "Stack of previous dashboard views for cross-mode navigation.
-Each entry is a function to restore that view
- (e.g. `gnosis-dashboard-output-tags').")
+(defvar gnosis-dashboard--history nil
+  "Stack of previous dashboard views for navigation.")
 
 (defvar gnosis-dashboard-themata-current-ids nil
   "Current list of thema IDs being displayed.")
 
-(defvar gnosis-dashboard-nodes-history nil
-  "Stack of previous node views for navigation history.")
-
 (defvar gnosis-dashboard-nodes-current-ids nil
   "Current list of node IDs being displayed.")
-
-(defvar gnosis-dashboard-tags-history nil
-  "Stack of previous tag views for navigation history.")
 
 (defvar gnosis-dashboard-tags-current nil
   "Current list of tags being displayed.")
@@ -156,6 +145,52 @@ Each entry is a function to restore that view
 		(gnosis-select 'date 'activity-log '(> reviewed-total 0) t))
 	       'face 'success))))))
 
+
+(defun gnosis-dashboard--push-current-view (&optional view)
+  "Push VIEW or the current list view onto navigation history."
+  (let* ((snapshot (or view
+                       (pcase major-mode
+                         ('gnosis-dashboard-themata-mode
+                          (cons 'themata gnosis-dashboard-themata-current-ids))
+                         ('gnosis-dashboard-nodes-mode
+                          (cons 'nodes gnosis-dashboard-nodes-current-ids))
+                         ('gnosis-dashboard-tags-mode
+                          (cons 'tags gnosis-dashboard-tags-current)))))
+         (items (cdr snapshot)))
+    (when (or view items)
+      (push (list :type (car snapshot)
+                  :id (when (derived-mode-p 'tabulated-list-mode)
+                        (tabulated-list-get-id))
+                  :items (copy-sequence items))
+            gnosis-dashboard--history))))
+
+(defun gnosis-dashboard--goto-id (id)
+  "Move point to dashboard row ID when it is present."
+  (when id
+    (goto-char (point-min))
+    (while (and (not (eobp))
+                (not (equal (tabulated-list-get-id) id)))
+      (forward-line 1))
+    (equal (tabulated-list-get-id) id)))
+
+(defun gnosis-dashboard--restore-view (view)
+  "Restore dashboard VIEW from navigation history."
+  (let ((id (plist-get view :id))
+        (items (plist-get view :items)))
+    (pcase-exhaustive (plist-get view :type)
+      ('themata (gnosis-dashboard-output-themata items id))
+      ('nodes
+       (gnosis-dashboard-output-nodes items)
+       (gnosis-dashboard--goto-id id))
+      ('tags
+       (gnosis-dashboard-output-tags items)
+       (gnosis-dashboard--goto-id id)))))
+
+(defun gnosis-dashboard--back ()
+  "Restore the previous dashboard view, or open the main dashboard."
+  (if gnosis-dashboard--history
+      (gnosis-dashboard--restore-view (pop gnosis-dashboard--history))
+    (gnosis-dashboard)))
 
 (defun gnosis-dashboard-return (&optional current-values)
   "Return to the current dashboard view.
@@ -247,8 +282,7 @@ For a single thema (no selection), toggles current value."
   ;; Save current themata view and position to history
   ;; before showing new search results
   (when gnosis-dashboard-themata-current-ids
-    (push (cons (tabulated-list-get-id) gnosis-dashboard-themata-current-ids)
-          gnosis-dashboard-themata-history))
+    (gnosis-dashboard--push-current-view))
   (gnosis-dashboard-output-themata
    (gnosis-collect-thema-ids
     :query (or str (read-string "Search for thema: ")))))
@@ -269,8 +303,7 @@ If IDS is not provided, use current themata being displayed."
       (if filtered
           (progn
             ;; Save current position and IDs to history
-            (push (cons (tabulated-list-get-id) ids)
-                  gnosis-dashboard-themata-history)
+            (gnosis-dashboard--push-current-view)
             (gnosis-dashboard-output-themata filtered))
         (message "No themata match the filter")))))
 
@@ -283,8 +316,7 @@ With prefix arg, prompt for count.  Default 0 (never reviewed)."
   (let ((ids (gnosis-get-themata-by-reviews max-reviews)))
     (if ids
         (progn
-          (setq gnosis-dashboard-themata-history nil
-                gnosis-dashboard--view-history nil)
+          (setq gnosis-dashboard--history nil)
           (gnosis-dashboard-output-themata ids))
       (message "No themata with at most %d reviews" max-reviews))))
 
@@ -300,9 +332,7 @@ With prefix arg, prompt for count.  Default 0 (never reviewed)."
                    max-reviews gnosis-dashboard-themata-current-ids)))
     (if filtered
         (progn
-          (push (cons (tabulated-list-get-id)
-                      gnosis-dashboard-themata-current-ids)
-                gnosis-dashboard-themata-history)
+          (gnosis-dashboard--push-current-view)
           (gnosis-dashboard-output-themata filtered))
       (message "No themata in current view with at most %d reviews"
                max-reviews))))
@@ -310,30 +340,7 @@ With prefix arg, prompt for count.  Default 0 (never reviewed)."
 (defun gnosis-dashboard-themata-back ()
   "Go back to the previous themata view, nodes view, or main dashboard."
   (interactive)
-  (cond
-   ;; If themata history exists, go back in themata
-   (gnosis-dashboard-themata-history
-    (let* ((previous (pop gnosis-dashboard-themata-history))
-           (previous-id (car previous))
-           (previous-ids (cdr previous)))
-      (gnosis-dashboard-output-themata previous-ids)
-      ;; Restore cursor position
-      (when previous-id
-        (goto-char (point-min))
-        (while (and (not (eobp))
-                    (not (equal (tabulated-list-get-id) previous-id)))
-          (forward-line 1)))))
-   ;; If no themata history but we're in themata mode and nodes history exists
-   ((and (not gnosis-dashboard-themata-history)
-         (eq major-mode 'gnosis-dashboard-themata-mode)
-         gnosis-dashboard-nodes-history)
-    (gnosis-dashboard-nodes-back))
-   ;; If view history exists, go back to previous view (tags, etc.)
-   (gnosis-dashboard--view-history
-    (funcall (pop gnosis-dashboard--view-history)))
-   ;; Otherwise go to main dashboard
-   (t
-    (gnosis-dashboard))))
+  (gnosis-dashboard--back))
 
 ;; `keymap-popup-define' expands launcher functions that reference the
 ;; keymap variable before its `defvar-keymap' form; declare the maps so
@@ -563,10 +570,11 @@ proportionally so all columns fit."
         (gnosis-dashboard--compute-column-format (window-width))))
 
 
-(defun gnosis-dashboard--progressive-render (entries gen)
+(defun gnosis-dashboard--progressive-render (entries gen &optional restore-id)
   "Render ENTRIES progressively in chunks.
 First chunk is rendered immediately; remaining chunks are appended
-via timers.  GEN is the load generation for staleness checks."
+via timers.  GEN is the load generation for staleness checks.
+When RESTORE-ID is non-nil, select that row once rendered."
   (let* ((size gnosis-dashboard-render-chunk-size)
          (first-chunk (seq-take entries size))
          (rest (nthcdr size entries)))
@@ -579,6 +587,9 @@ via timers.  GEN is the load generation for staleness checks."
     (setq tabulated-list-entries (copy-sequence first-chunk))
     (set-buffer-modified-p nil)
     (goto-char (point-min))
+    (when (and restore-id (assoc restore-id first-chunk))
+      (gnosis-dashboard--goto-id restore-id)
+      (setq restore-id nil))
     ;; Schedule remaining chunks
     (when rest
       (let* ((tail (last tabulated-list-entries))
@@ -590,13 +601,15 @@ via timers.  GEN is the load generation for staleness checks."
                        (nreverse result))))
         (run-with-timer gnosis-dashboard-timer-delay nil
                         #'gnosis-dashboard--append-chunk
-                        buf chunks tail gen)))))
+                        buf chunks tail gen restore-id)))))
 
-(defun gnosis-dashboard--append-chunk (buf chunks entries-tail gen)
+(defun gnosis-dashboard--append-chunk
+    (buf chunks entries-tail gen &optional restore-id)
   "Append one chunk of entries to BUF.
 CHUNKS: remaining list of entry sublists.
 ENTRIES-TAIL: last cons cell of `tabulated-list-entries' for nconc.
-GEN: load generation — no-op if stale."
+GEN: load generation — no-op if stale.
+When RESTORE-ID is non-nil, select that row once rendered."
   (when (and (buffer-live-p buf)
              (eq (buffer-local-value 'major-mode buf)
                  'gnosis-dashboard-themata-mode)
@@ -608,14 +621,18 @@ GEN: load generation — no-op if stale."
         ;; Extend tabulated-list-entries via nconc to the tail
         (let ((new-tail (copy-sequence chunk)))
           (setcdr entries-tail new-tail)
-          (setq entries-tail (last new-tail))))
+          (setq entries-tail (last new-tail)))
+        (when (and restore-id (assoc restore-id chunk))
+          (gnosis-dashboard--goto-id restore-id)
+          (setq restore-id nil)))
       (when (cdr chunks)
         (run-with-timer gnosis-dashboard-timer-delay nil
                         #'gnosis-dashboard--append-chunk
-                        buf (cdr chunks) entries-tail gen)))))
+                        buf (cdr chunks) entries-tail gen restore-id)))))
 
-(defun gnosis-dashboard-output-themata (thema-ids)
-  "Display THEMA-IDS in the gnosis dashboard."
+(defun gnosis-dashboard-output-themata (thema-ids &optional restore-id)
+  "Display THEMA-IDS in the gnosis dashboard.
+When RESTORE-ID is non-nil, select that row once rendered."
   (cl-assert (listp thema-ids) t "`thema-ids' must be a list of thema ids.")
   (cl-incf gnosis-dashboard--load-generation)
   (pop-to-buffer-same-window gnosis-dashboard-buffer-name)
@@ -634,8 +651,7 @@ GEN: load generation — no-op if stale."
       (when sorter
         (setq entries (sort entries sorter)))
       (gnosis-dashboard--progressive-render
-       entries gnosis-dashboard--load-generation))
-    (goto-char (point-min))))
+       entries gnosis-dashboard--load-generation restore-id))))
 
 (defun gnosis-dashboard-output-tag (tag)
   "Output TAG name and total themata."
@@ -785,9 +801,7 @@ to the canonical form via `gnosis--tag-rename-batch'."
   "View themata for TAG."
   (interactive)
   (let ((tag (or tag (tabulated-list-get-id))))
-    ;; Clear history for fresh start from tags
-    (setq gnosis-dashboard-themata-history nil)
-    (push #'gnosis-dashboard-output-tags gnosis-dashboard--view-history)
+    (gnosis-dashboard--push-current-view)
     (gnosis-dashboard-output-themata (gnosis-get-tag-themata tag))))
 
 (keymap-popup-define gnosis-dashboard-tags-mode-map
@@ -818,8 +832,9 @@ to the canonical form via `gnosis--tag-rename-batch'."
   :interactive nil
   (gnosis-dashboard--common-setup))
 
-(defun gnosis-dashboard-output-tags (&optional tags)
-  "Format gnosis dashboard with output of TAGS."
+(cl-defun gnosis-dashboard-output-tags (&optional (tags nil tags-supplied-p))
+  "Format the Gnosis dashboard with TAGS.
+When TAGS is omitted, use every current database tag."
   (interactive)
   (let* ((tag-counts (gnosis-sqlite-select (gnosis--ensure-db)
 					   "SELECT tag, COUNT(*) FROM thema_tag GROUP BY tag"))
@@ -828,7 +843,7 @@ to the canonical form via `gnosis--tag-rename-batch'."
                               :size (length tag-counts))))
                      (dolist (row tag-counts ht)
                        (puthash (car row) (cadr row) ht))))
-         (tags (or tags (mapcar #'car tag-counts))))
+         (tags (if tags-supplied-p tags (mapcar #'car tag-counts))))
     (setq gnosis-dashboard-tags-current tags
           gnosis-dashboard-tags-count-ht count-ht)
     (pop-to-buffer-same-window gnosis-dashboard-buffer-name)
@@ -866,8 +881,7 @@ Translates {n}, {n,}, {n,m} to \\{n\\}, \\{n,\\}, \\{n,m\\}."
                     gnosis-dashboard-tags-current)))
     (if filtered
         (progn
-          (push (cons (tabulated-list-get-id) gnosis-dashboard-tags-current)
-                gnosis-dashboard-tags-history)
+          (gnosis-dashboard--push-current-view)
           (gnosis-dashboard-output-tags filtered))
       (message "No tags match pattern: %s" pattern))))
 
@@ -884,25 +898,14 @@ Translates {n}, {n,}, {n,m} to \\{n\\}, \\{n,\\}, \\{n,m\\}."
     (if filtered
         (progn
           (when gnosis-dashboard-tags-current
-            (push (cons (tabulated-list-get-id) gnosis-dashboard-tags-current)
-                  gnosis-dashboard-tags-history))
+            (gnosis-dashboard--push-current-view))
           (gnosis-dashboard-output-tags filtered))
       (message "No tags match pattern: %s" pattern))))
 
 (defun gnosis-dashboard-tags-back ()
   "Go back to the previous tags view, or to main dashboard."
   (interactive)
-  (if gnosis-dashboard-tags-history
-      (let* ((previous (pop gnosis-dashboard-tags-history))
-             (previous-id (car previous))
-             (previous-tags (cdr previous)))
-        (gnosis-dashboard-output-tags previous-tags)
-        (when previous-id
-          (goto-char (point-min))
-          (while (and (not (eobp))
-                      (not (equal (tabulated-list-get-id) previous-id)))
-            (forward-line 1))))
-    (gnosis-dashboard)))
+  (gnosis-dashboard--back))
 
 (defun gnosis-dashboard-history (&optional history)
   "Display review HISTORY."
@@ -949,11 +952,11 @@ Translates {n}, {n,}, {n,m} to \\{n\\}, \\{n,\\}, \\{n,m\\}."
   :description "Nodes"
   :group "Nodes"
   "a" ("View all nodes" (lambda () (interactive)
-			  (setq gnosis-dashboard-nodes-history nil)
+			  (setq gnosis-dashboard--history nil)
 			  (gnosis-dashboard-output-nodes)))
   "t" ("View nodes by tag" gnosis-dashboard-nodes-search-by-tag)
   "i" ("View isolated nodes" (lambda () (interactive)
-			       (setq gnosis-dashboard-nodes-history nil)
+			       (setq gnosis-dashboard--history nil)
 			       (gnosis-dashboard-output-nodes)
 			       (gnosis-dashboard-nodes-show-isolated))))
 
@@ -962,8 +965,7 @@ Translates {n}, {n,}, {n,m} to \\{n\\}, \\{n,\\}, \\{n,m\\}."
   :description "Themata"
   :group "Themata"
   "a" ("View all themata" (lambda () (interactive)
-			    (setq gnosis-dashboard-themata-history nil
-				  gnosis-dashboard--view-history nil)
+			    (setq gnosis-dashboard--history nil)
 			    (gnosis-dashboard-output-themata (gnosis-collect-thema-ids))))
   "SPC" ("Search themata" gnosis-dashboard-suffix-query)
   "t" ("View by tags" gnosis-dashboard-view-by-tags)
@@ -1149,8 +1151,7 @@ Uses +tag/-tag syntax: +foo adds tag foo, -bar removes tag bar."
                       (cl-remove-duplicates (mapcar #'car orphaned-rows)))))
     (if thema-ids
         (progn
-          (setq gnosis-dashboard-themata-history nil
-                gnosis-dashboard--view-history nil)
+          (setq gnosis-dashboard--history nil)
           (gnosis-dashboard-output-themata thema-ids))
       (message "No themata with orphaned links"))))
 
@@ -1160,7 +1161,12 @@ Uses +tag/-tag syntax: +foo adds tag foo, -bar removes tag bar."
   (let* ((filter (gnosis-tags-filter-prompt))
 	 (ids (gnosis-filter-by-tags (car filter) (cdr filter))))
     (when ids
-      (push #'gnosis-dashboard-output-tags gnosis-dashboard--view-history)
+      (gnosis-dashboard--push-current-view
+       (cons 'tags
+             (mapcar #'car
+                     (gnosis-sqlite-select
+                      (gnosis--ensure-db)
+                      "SELECT DISTINCT tag FROM thema_tag"))))
       (gnosis-dashboard-output-themata ids))))
 
 
@@ -1201,6 +1207,7 @@ GENERATION prevents stale updates when the user navigates away."
 (defun gnosis-dashboard ()
   "Launch gnosis dashboard."
   (interactive)
+  (setq gnosis-dashboard--history nil)
   (cl-incf gnosis-dashboard--load-generation)
   (let* ((buffer (get-buffer-create gnosis-dashboard-buffer-name))
          (inhibit-read-only t))
@@ -1293,8 +1300,7 @@ DISPLAY-FN displays results, defaults to `gnosis-dashboard-output-nodes'."
          (display-fn (or display-fn #'gnosis-dashboard-output-nodes)))
     (if related-ids
         (progn
-          (push (cons node-id gnosis-dashboard-nodes-current-ids)
-                gnosis-dashboard-nodes-history)
+          (gnosis-dashboard--push-current-view)
           (funcall display-fn related-ids))
       (message "%s" no-results-msg))))
 
@@ -1315,8 +1321,6 @@ DISPLAY-FN displays results, defaults to `gnosis-dashboard-output-nodes'."
 (defun gnosis-dashboard-nodes-show-themata-links ()
   "Show themata that link to the node at point."
   (interactive)
-  ;; Clear themata history for fresh start in themata view
-  (setq gnosis-dashboard-themata-history nil)
   (gnosis-dashboard-nodes--show-related
    #'gnosis-dashboard-get-themata-links
    "No themata link to this node"
@@ -1351,9 +1355,7 @@ Isolated nodes have no backlinks, no forward links, and no themata links."
 				collect id)))
     (if isolated-ids
         (progn
-          (push (cons (tabulated-list-get-id)
-                      gnosis-dashboard-nodes-current-ids)
-                gnosis-dashboard-nodes-history)
+          (gnosis-dashboard--push-current-view)
           (gnosis-dashboard-output-nodes isolated-ids))
       (message "No isolated nodes found"))))
 
@@ -1372,9 +1374,7 @@ Searches the database for nodes whose titles contain the search term."
     (if matching-ids
         (progn
           ;; Save current view to history
-          (push (cons (tabulated-list-get-id)
-                      gnosis-dashboard-nodes-current-ids)
-                gnosis-dashboard-nodes-history)
+          (gnosis-dashboard--push-current-view)
           (gnosis-dashboard-output-nodes matching-ids))
       (message "No nodes found with title matching '%s'" query))))
 
@@ -1399,9 +1399,7 @@ Only searches within currently displayed nodes."
     (if matching-ids
         (progn
           ;; Save current view to history
-          (push (cons (tabulated-list-get-id)
-                      gnosis-dashboard-nodes-current-ids)
-                gnosis-dashboard-nodes-history)
+          (gnosis-dashboard--push-current-view)
           (gnosis-dashboard-output-nodes matching-ids))
       (message "No nodes in current view match '%s'" query))))
 
@@ -1433,9 +1431,7 @@ When NODE-IDS is non-nil, only search files whose node ID is in that list."
   (let ((matching-ids (gnosis-dashboard-nodes--search-files query)))
     (if matching-ids
         (progn
-          (push (cons (tabulated-list-get-id)
-                      gnosis-dashboard-nodes-current-ids)
-                gnosis-dashboard-nodes-history)
+          (gnosis-dashboard--push-current-view)
           (gnosis-dashboard-output-nodes matching-ids))
       (message "No nodes found matching '%s'" query))))
 
@@ -1450,9 +1446,7 @@ When NODE-IDS is non-nil, only search files whose node ID is in that list."
                        query gnosis-dashboard-nodes-current-ids)))
     (if matching-ids
         (progn
-          (push (cons (tabulated-list-get-id)
-                      gnosis-dashboard-nodes-current-ids)
-                gnosis-dashboard-nodes-history)
+          (gnosis-dashboard--push-current-view)
           (gnosis-dashboard-output-nodes matching-ids))
       (message "No nodes in current view match '%s'" query))))
 
@@ -1467,9 +1461,7 @@ When NODE-IDS is non-nil, only search files whose node ID is in that list."
   (let ((matching-ids (gnosis-nodes--nodes-by-tag tag)))
     (if matching-ids
         (progn
-          (push (cons (tabulated-list-get-id)
-                      gnosis-dashboard-nodes-current-ids)
-                gnosis-dashboard-nodes-history)
+          (gnosis-dashboard--push-current-view)
           (gnosis-dashboard-output-nodes matching-ids))
       (message "No nodes found with tag '%s'" tag))))
 
@@ -1490,9 +1482,7 @@ When NODE-IDS is non-nil, only search files whose node ID is in that list."
            nodes-with-tag :test #'equal)))
     (if matching-ids
         (progn
-          (push (cons (tabulated-list-get-id)
-                      gnosis-dashboard-nodes-current-ids)
-                gnosis-dashboard-nodes-history)
+          (gnosis-dashboard--push-current-view)
           (gnosis-dashboard-output-nodes matching-ids))
       (message "No nodes in current view have tag '%s'" tag))))
 
@@ -1507,28 +1497,14 @@ When NODE-IDS is non-nil, only search files whose node ID is in that list."
                       :test #'equal))))
     (if node-ids
         (progn
-          (push (cons (tabulated-list-get-id)
-                      gnosis-dashboard-nodes-current-ids)
-                gnosis-dashboard-nodes-history)
+          (gnosis-dashboard--push-current-view)
           (gnosis-dashboard-output-nodes node-ids))
       (message "No nodes linked to due themata"))))
 
 (defun gnosis-dashboard-nodes-back ()
   "Go back to the previous nodes view, or to main dashboard if at top level."
   (interactive)
-  (if gnosis-dashboard-nodes-history
-      (let* ((previous (pop gnosis-dashboard-nodes-history))
-             (previous-id (car previous))
-             (previous-ids (cdr previous)))
-        (gnosis-dashboard-output-nodes previous-ids)
-        ;; Restore cursor position
-        (when previous-id
-          (goto-char (point-min))
-          (while (and (not (eobp))
-                      (not (equal (tabulated-list-get-id) previous-id)))
-            (forward-line 1))))
-    ;; No history - go back to main dashboard
-    (gnosis-dashboard)))
+  (gnosis-dashboard--back))
 
 (defun gnosis-dashboard-nodes-visit ()
   "Visit the node at point."

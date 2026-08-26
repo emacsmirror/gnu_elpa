@@ -130,7 +130,9 @@
                    gnosis-test-scheduler--event-id 1 'success 1000000 20260830))
            (retry (gnosis-scheduler-accept-review
                    gnosis-test-scheduler--event-id 1 'success 1000000 20260830)))
-      (should (equal first retry))
+      (should (plist-get first :inserted-p))
+      (should-not (plist-get retry :inserted-p))
+      (should (gnosis-scheduler--evidence-equal-p first retry))
       (should-error
        (gnosis-scheduler-accept-review
         gnosis-test-scheduler--event-id 1 'failure 1000000 20260830))
@@ -349,6 +351,126 @@
                 (should-not (gnosis-suspended-p id)))))
         (when (file-exists-p export-file)
           (delete-file export-file))))))
+
+(ert-deftest gnosis-test-scheduler-review-override-accepts-final-rating-once ()
+  "Preview Good, override to Again, and accept one final immutable event."
+  (gnosis-test-scheduler--with-db
+    (gnosis-test-scheduler--seed-state)
+    (let* ((today (gnosis--today-int))
+           (gnosis-due-themata-total 2)
+           (pending (gnosis-review--pending-result
+                     1 t gnosis-test-scheduler--event-id 1000000 today))
+           overridden final-success)
+      (gnosis-sqlite-execute
+       gnosis-db "INSERT INTO review_log VALUES (?, ?, ?, 0, 0, 0, 0, 0, 0)"
+       (list 1 today today))
+      (cl-letf (((symbol-function 'gnosis-display-next-review) #'ignore)
+                ((symbol-function 'gnosis-review-actions)
+                 (lambda (success _id result)
+                   (setq final-success success
+                         overridden result))))
+        (gnosis-review-action--override t 1 pending))
+      (should-not final-success)
+      (should (= 3 (plist-get (plist-get pending :preview) :rating)))
+      (should (= 1 (plist-get (plist-get overridden :preview) :rating)))
+      (should (equal (plist-get pending :event-id)
+                     (plist-get overridden :event-id)))
+      (should (equal (gnosis-review--result-date overridden)
+                     (gnosis--int-to-date
+                      (plist-get (plist-get overridden :preview) :due-day))))
+      (should (= 0 (caar (gnosis-sqlite-select
+                          gnosis-db "SELECT COUNT(*) FROM review_events"))))
+      (should-error (gnosis-review-result 1 t overridden))
+      (gnosis-review-result 1 nil overridden)
+      (should (= 1 gnosis-due-themata-total))
+      (gnosis-review-result 1 nil overridden)
+      (should (= 1 gnosis-due-themata-total))
+      (should (= 1 (caar (gnosis-sqlite-select
+                          gnosis-db "SELECT COUNT(*) FROM review_events"))))
+      (should (equal '(1 1 1)
+                     (car (gnosis-sqlite-select
+                           gnosis-db "SELECT rating, reps, lapses
+                                      FROM review_events JOIN scheduler_state
+                                        USING (thema_id)"))))
+      (should (= 0 (gnosis-get 'n 'review-log '(= id 1)))))))
+
+(ert-deftest gnosis-test-scheduler-review-basic-displays-preview-before-accept ()
+  "Display pending FSRS due date, then accept only on explicit result."
+  (gnosis-test-scheduler--with-db
+    (let ((id (gnosis-test--add-basic-thema "Question" "Answer"))
+          displayed)
+      (cl-letf (((symbol-function 'gnosis--read-string-with-input-method)
+                 (lambda (&rest _) "Answer"))
+                ((symbol-function 'gnosis-display-next-review)
+                 (lambda (date _success) (setq displayed date)))
+                ((symbol-function 'gnosis-display-image) #'ignore)
+                ((symbol-function 'gnosis-display-keimenon) #'ignore)
+                ((symbol-function 'gnosis-display-hint) #'ignore)
+                ((symbol-function 'gnosis-display-basic-answer) #'ignore)
+                ((symbol-function 'gnosis-display-parathema) #'ignore))
+        (pcase-let ((`(,success . ,result) (gnosis-review-basic id nil)))
+          (should success)
+          (should (equal displayed (gnosis-review--result-date result)))
+          (should (= 0 (caar (gnosis-sqlite-select
+                              gnosis-db "SELECT COUNT(*) FROM review_events"))))
+          (gnosis-review-result id success result)
+          (should (= 1 (caar (gnosis-sqlite-select
+                              gnosis-db "SELECT COUNT(*) FROM review_events")))))))))
+
+(ert-deftest gnosis-test-scheduler-review-covers-timing-and-same-day ()
+  "Accept Good early/on-time/overdue plus bootstrap and same-day reviews."
+  (gnosis-test-scheduler--with-db
+    (let* ((today (gnosis--today-int))
+           (last-day (gnosis--date-to-int (gnosis-algorithm-date -10)))
+           (timing '((-1 . early) (0 . on-time) (1 . overdue))))
+      (cl-loop for id from 201 to 203
+               for (due-offset . class) in timing
+               for event-char from ?a
+               do (progn
+                    (gnosis-test--add-basic-thema "Q" "A" nil nil id 0)
+                    (gnosis-sqlite-execute
+                     gnosis-db "UPDATE scheduler_state
+                                   SET stability = 10.0, difficulty = 5.0,
+                                       last_reviewed_at_us = 1,
+                                       last_review_day = ?, due_day = ?, reps = 1
+                                 WHERE thema_id = ?"
+                     (list last-day
+                           (gnosis--date-to-int
+                            (gnosis-algorithm-date (- due-offset)))
+                           id))
+                    (let ((pending (gnosis-review--pending-result
+                                    id t (make-string 64 event-char)
+                                    (+ 2000000 id) today)))
+                      (let ((previous-due
+                             (gnosis-get 'due-day 'scheduler-state
+                                         `(= thema-id ,id))))
+                        (pcase class
+                          ('early (should (> previous-due today)))
+                          ('on-time (should (= previous-due today)))
+                          ('overdue (should (< previous-due today))))
+                      (should (= 10 (plist-get (plist-get pending :preview)
+                                               :elapsed-days)))
+                        (gnosis-review-result id t pending)))))
+      (gnosis-test--add-basic-thema "Bootstrap" "A" nil nil 204 0)
+      (let ((first (gnosis-review--pending-result
+                    204 t (make-string 64 ?d) 3000000 today)))
+        (gnosis-review-result 204 t first))
+      (let ((second (gnosis-review--pending-result
+                     204 t (make-string 64 ?e) 3000001 today)))
+        (gnosis-review-result 204 t second))
+      (should (equal '(0 0)
+                     (mapcar #'car
+                             (gnosis-sqlite-select
+                              gnosis-db "SELECT elapsed_days FROM review_events
+                                         WHERE thema_id = 204
+                                         ORDER BY reviewed_at_us"))))
+      (should (equal '(3 3 3 3 3)
+                     (mapcar #'car
+                             (gnosis-sqlite-select
+                              gnosis-db "SELECT rating FROM review_events
+                                         ORDER BY thema_id, reviewed_at_us"))))
+      (should (= 5 (caar (gnosis-sqlite-select
+                          gnosis-db "SELECT COUNT(*) FROM review_events")))))))
 
 (provide 'gnosis-test-scheduler)
 ;;; gnosis-test-scheduler.el ends here

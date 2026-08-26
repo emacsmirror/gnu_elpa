@@ -299,14 +299,46 @@ Each row is (THEMA-ID DUE-DAY SUSPENDED)."
                (plist-get result :reps) (plist-get result :lapses) suspended))
         result))))
 
-(defun gnosis-scheduler-accept-review
+(defun gnosis-scheduler--validate-review
     (event-id thema-id outcome reviewed-at-us review-day)
-  "Accept EVENT-ID for THEMA-ID, OUTCOME, REVIEWED-AT-US, and REVIEW-DAY."
+  "Validate EVENT-ID, THEMA-ID, OUTCOME, REVIEWED-AT-US, and REVIEW-DAY."
   (unless (and (gnosis-scheduler--event-id-p event-id)
                (integerp thema-id) (memq outcome '(failure success))
                (integerp reviewed-at-us) (>= reviewed-at-us 0))
     (error "Invalid scheduler review input"))
-  (gnosis-scheduler--day-time review-day)
+  (gnosis-scheduler--day-time review-day))
+
+(defun gnosis-scheduler--fresh-result
+    (db event-id thema-id outcome reviewed-at-us review-day)
+  "Compute fresh EVENT-ID evidence for THEMA-ID from DB.
+OUTCOME, REVIEWED-AT-US, and REVIEW-DAY complete the review facts."
+  (let ((state
+         (car (gnosis-sqlite-select
+               db "SELECT config_id, stability, difficulty,
+                          last_reviewed_at_us, last_review_day, due_day,
+                          reps, lapses, suspended
+                     FROM scheduler_state WHERE thema_id = ?"
+               (list thema-id)))))
+    (unless state (error "Scheduler state does not exist"))
+    (gnosis-scheduler--compute-result
+     event-id thema-id outcome reviewed-at-us review-day state
+     (gnosis-scheduler--config-retention db (nth 0 state)))))
+
+(defun gnosis-scheduler-preview-review
+    (event-id thema-id outcome reviewed-at-us review-day)
+  "Preview EVENT-ID evidence for THEMA-ID without mutation.
+OUTCOME, REVIEWED-AT-US, and REVIEW-DAY complete the review facts."
+  (gnosis-scheduler--validate-review
+   event-id thema-id outcome reviewed-at-us review-day)
+  (gnosis-scheduler--fresh-result
+   (gnosis--ensure-db) event-id thema-id outcome reviewed-at-us review-day))
+
+(defun gnosis-scheduler-accept-review
+    (event-id thema-id outcome reviewed-at-us review-day)
+  "Accept EVENT-ID for THEMA-ID, OUTCOME, REVIEWED-AT-US, and REVIEW-DAY.
+Return event evidence with `:inserted-p' reporting this call's effect."
+  (gnosis-scheduler--validate-review
+   event-id thema-id outcome reviewed-at-us review-day)
   (let ((db (gnosis--ensure-db))
         (rating (if (eq outcome 'failure) 1 3)))
     (gnosis-sqlite-with-transaction db
@@ -315,25 +347,15 @@ Each row is (THEMA-ID DUE-DAY SUSPENDED)."
                    db "SELECT * FROM review_events WHERE event_id = ?"
                    (list event-id)))))
         (if existing
-            (gnosis-scheduler--retained-result
-             existing thema-id rating reviewed-at-us review-day)
-          (let* ((state
-                  (car (gnosis-sqlite-select
-                        db
-                        "SELECT config_id, stability, difficulty,
-                                last_reviewed_at_us, last_review_day, due_day,
-                                reps, lapses, suspended
-                           FROM scheduler_state WHERE thema_id = ?"
-                        (list thema-id))))
-                 (_ (unless state (error "Scheduler state does not exist")))
-                 (retention (gnosis-scheduler--config-retention
-                             db (nth 0 state)))
-                 (result (gnosis-scheduler--compute-result
-                          event-id thema-id outcome reviewed-at-us review-day
-                          state retention)))
+            (append
+             (gnosis-scheduler--retained-result
+              existing thema-id rating reviewed-at-us review-day)
+             '(:inserted-p nil))
+          (let ((result (gnosis-scheduler--fresh-result
+                         db event-id thema-id outcome reviewed-at-us review-day)))
             (gnosis-scheduler--insert-event db result)
             (gnosis-scheduler--update-state db result)
-            result))))))
+            (append result '(:inserted-p t))))))))
 
 (provide 'gnosis-scheduler)
 ;;; gnosis-scheduler.el ends here

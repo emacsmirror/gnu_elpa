@@ -38,6 +38,7 @@
 
 (require 'gnosis)
 (require 'gnosis-db)
+(require 'gnosis-scheduler)
 (require 'gnosis-cloze)
 (require 'gnosis-vc)
 (require 'gnosis-custom-values)
@@ -331,95 +332,53 @@ well."
 				    (list today)))
 	0)))
 
-;;; Algorithm bridge
+;;; Scheduler bridge
 
-(defun gnosis-review-algorithm (id success &optional tags)
-  "Return next review date, gnosis score, and log data for thema ID.
+(defun gnosis-review--pending-result
+    (id success &optional event-id reviewed-at-us review-day)
+  "Return pending binary review for ID and SUCCESS without mutation.
+EVENT-ID, REVIEWED-AT-US, and REVIEW-DAY may pin deterministic facts."
+  (let* ((event-id (or event-id (gnosis-scheduler-event-id)))
+         (reviewed-at-us
+          (or reviewed-at-us (car (time-convert nil 1000000))))
+         (review-day (or review-day (gnosis--today-int)))
+         (outcome (if success 'success 'failure)))
+    (list :event-id event-id :thema-id id :outcome outcome
+          :reviewed-at-us reviewed-at-us :review-day review-day
+          :preview (gnosis-scheduler-preview-review
+                    event-id id outcome reviewed-at-us review-day))))
 
-SUCCESS is a boolean value, t for success, nil for failure.
-TAGS, when non-nil, are passed to custom value lookups so they
-skip the per-thema tag query.
+(defun gnosis-review-algorithm (id success &optional _tags)
+  "Return pending FSRS review for thema ID and binary SUCCESS."
+  (gnosis-review--pending-result id success))
 
-Returns (NEXT-REV GNOSIS-SCORE LOG-ALIST) where LOG-ALIST has
-keys n, c-success, c-fails, t-success, t-fails for
-`gnosis-review--update'."
-  (let* (;; Fetch all review-log fields in one query (includes n, t-fails)
-	 (log-data (car (gnosis-select '[t-success c-success c-fails
-						   last-rev next-rev n t-fails]
-				       'review-log `(= id ,id))))
-	 (t-success (nth 0 log-data))
-	 (c-success (nth 1 log-data))
-	 (c-fails (nth 2 log-data))
-	 (last-interval (gnosis-algorithm-date-diff
-			 (gnosis--int-to-date (nth 3 log-data))))
-	 (existing-next-rev (gnosis--int-to-date (nth 4 log-data)))
-	 (n (nth 5 log-data))
-	 (t-fails (nth 6 log-data))
-	 (gnosis (gnosis-get 'gnosis 'review `(= id ,id)))
-	 ;; Pass tags to skip per-thema tag query
-	 (amnesia (gnosis-get-thema-amnesia nil tags))
-	 (lethe (gnosis-get-thema-lethe nil tags))
-	 (computed-next-rev (gnosis-algorithm-next-interval
-			     :last-interval last-interval
-			     :gnosis-synolon (nth 2 gnosis)
-			     :success success
-			     :successful-reviews t-success
-			     :c-fails c-fails
-			     :lethe lethe
-			     :amnesia amnesia
-			     :proto (gnosis-get-thema-proto nil tags)))
-	 ;; On success, keep the later of computed vs existing to prevent
-	 ;; early reviews from deflating intervals.
-	 (next-rev (if (and success
-			    (gnosis-algorithm--date-later-p existing-next-rev computed-next-rev))
-		       existing-next-rev
-		     computed-next-rev)))
-    (list
-     next-rev
-     (gnosis-algorithm-next-gnosis
-      :gnosis gnosis
-      :success success
-      :epignosis (gnosis-get-thema-epignosis nil tags)
-      :agnoia (gnosis-get-thema-agnoia nil tags)
-      :anagnosis (gnosis-get-thema-anagnosis nil tags)
-      :c-successes (if success (1+ c-success) 0)
-      :c-failures (if success 0 (1+ c-fails))
-      :lethe lethe)
-     `((n . ,n) (c-success . ,c-success) (c-fails . ,c-fails)
-       (t-success . ,t-success) (t-fails . ,t-fails)))))
+(defun gnosis-review--override-result (result success)
+  "Return RESULT preview recomputed for binary SUCCESS."
+  (gnosis-review--pending-result
+   (plist-get result :thema-id) success
+   (plist-get result :event-id) (plist-get result :reviewed-at-us)
+   (plist-get result :review-day)))
 
-(defun gnosis-review--update (id success result)
-  "Update review-log for thema ID.
-
-SUCCESS is a boolean value, t for success, nil for failure.
-RESULT is the return value of `gnosis-review-algorithm'."
-  (let* ((next-rev (nth 0 result))
-	 (gnosis-score (nth 1 result))
-	 (log-alist (nth 2 result))
-	 (n (alist-get 'n log-alist))
-	 (c-success (alist-get 'c-success log-alist))
-	 (c-fails (alist-get 'c-fails log-alist))
-	 (t-success (alist-get 't-success log-alist))
-	 (t-fails (alist-get 't-fails log-alist)))
-    (gnosis-review-increment-activity-log (not (> n 0)))
-    ;; Single review-log UPDATE
-    (gnosis-sqlite-execute (gnosis--ensure-db)
-			   "UPDATE review_log SET last_rev = ?, next_rev = ?, n = ?, c_success = ?, c_fails = ?, t_success = ?, t_fails = ? WHERE id = ?"
-			   (list (gnosis--today-int) (gnosis--date-to-int next-rev) (1+ n)
-				 (if success (1+ c-success) 0)
-				 (if success 0 (1+ c-fails))
-				 (if success (1+ t-success) t-success)
-				 (if success t-fails (1+ t-fails))
-				 id))
-    ;; Single review UPDATE
-    (gnosis-update 'review `(= gnosis ',gnosis-score) `(= id ,id))))
+(defun gnosis-review--result-date (result)
+  "Return next review date from pending RESULT."
+  (gnosis--int-to-date
+   (plist-get (plist-get result :preview) :due-day)))
 
 (defun gnosis-review-result (id success result)
-  "Update review thema ID results for SUCCESS.
-RESULT is the return value of `gnosis-review-algorithm'."
-  (gnosis-review--update id success result)
-  (when (and gnosis-due-themata-total (> gnosis-due-themata-total 0))
-    (cl-decf gnosis-due-themata-total)))
+  "Accept pending RESULT for thema ID and binary SUCCESS."
+  (let ((outcome (if success 'success 'failure)))
+    (unless (and (= id (plist-get result :thema-id))
+                 (eq outcome (plist-get result :outcome)))
+      (error "Review result does not match final outcome"))
+    (let ((accepted
+           (gnosis-scheduler-accept-review
+            (plist-get result :event-id) id outcome
+            (plist-get result :reviewed-at-us)
+            (plist-get result :review-day))))
+      (when (and (plist-get accepted :inserted-p)
+                 gnosis-due-themata-total (> gnosis-due-themata-total 0))
+        (cl-decf gnosis-due-themata-total))
+      accepted)))
 
 ;;; Type-specific review
 
@@ -438,7 +397,7 @@ TAGS are pre-fetched for custom value lookup."
       (unless success (setq gnosis-review--monkeytype-text answer))
       (gnosis-display-correct-answer-mcq answer user-choice)
       (gnosis-display-parathema parathema)
-      (gnosis-display-next-review (nth 0 result) success)
+      (gnosis-display-next-review (gnosis-review--result-date result) success)
       (cons success result))))
 
 (defun gnosis-review-basic (id tags)
@@ -462,7 +421,7 @@ TAGS are pre-fetched for custom value lookup."
       (unless success (setq gnosis-review--monkeytype-text answer))
       (gnosis-display-basic-answer answer success user-input)
       (gnosis-display-parathema parathema)
-      (gnosis-display-next-review (nth 0 result) success)
+      (gnosis-display-next-review (gnosis-review--result-date result) success)
       (cons success result))))
 
 (defun gnosis-review-cloze--input (clozes &optional user-input)
@@ -546,7 +505,7 @@ TAGS are pre-fetched for custom value lookup."
 	    (throw 'done nil)))))
     (let ((result (gnosis-review-algorithm id success tags)))
       (gnosis-display-parathema parathema)
-      (gnosis-display-next-review (nth 0 result) success)
+      (gnosis-display-next-review (gnosis-review--result-date result) success)
       (cons success result))))
 
 (defun gnosis-review-mc-cloze (id tags)
@@ -574,7 +533,7 @@ TAGS are pre-fetched for custom value lookup."
       (setq gnosis-review--monkeytype-text (car cloze)))
     (let ((result (gnosis-review-algorithm id success tags)))
       (gnosis-display-parathema parathema)
-      (gnosis-display-next-review (nth 0 result) success)
+      (gnosis-display-next-review (gnosis-review--result-date result) success)
       (cons success result))))
 
 (defun gnosis-review-is-thema-new-p (id)
@@ -750,17 +709,15 @@ should be recursively called using SUCCESS and THEMA."
   (gnosis-toggle-suspend-themata (list thema))
   (gnosis-review-actions success thema result))
 
-(defun gnosis-review-action--override (success thema _result)
-  "Override current review result for SUCCESS.
-The current algorithm result is ignored and recomputed with the
-flipped SUCCESS value.
+(defun gnosis-review-action--override (success thema result)
+  "Override pending RESULT for THEMA by flipping binary SUCCESS.
 
 This function should be used with `gnosis-review-actions', which will
 be called with new SUCCESS value plus THEMA."
   (setf success (not success))
-  (let* ((tags (gnosis-select 'tag 'thema-tag `(= thema-id ,thema) t))
-	 (new-result (gnosis-review-algorithm thema success tags)))
-    (gnosis-display-next-review (nth 0 new-result) success)
+  (let ((new-result (gnosis-review--override-result result success)))
+    (gnosis-display-next-review
+     (gnosis-review--result-date new-result) success)
     (gnosis-review-actions success thema new-result)))
 
 (defun gnosis-review-action--view-link (success thema result)

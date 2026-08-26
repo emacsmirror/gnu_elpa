@@ -31,6 +31,7 @@
 (require 'vc-git)
 (require 'gnosis-sqlite)
 (require 'gnosis-algorithm)
+(require 'gnosis-fsrs)
 
 (defcustom gnosis-dir (locate-user-emacs-file "gnosis")
   "Gnosis directory."
@@ -244,7 +245,14 @@ Uses `gnosis--id-cache' for O(1) collision checking when bound."
        (suspend integer :not-null)   ;; Binary value, 1=suspended
        (n integer :not-null)]        ;; Number of reviews
       (:foreign-key [id] :references themata [id]
-		    :on-delete :cascade)))
+                    :on-delete :cascade)))
+    (scheduler-config
+     ([(id integer :primary-key :not-null)
+       (algorithm text :not-null)
+       (model text :not-null)
+       (implementation text :not-null)
+       (desired-retention real :not-null)
+       (parameters text :not-null)]))
     (activity-log
      ([(date integer :not-null)
        (reviewed-total integer :not-null)
@@ -299,6 +307,17 @@ Uses `gnosis--id-cache' for O(1) collision checking when bound."
 
 ;;; Table creation
 
+(defun gnosis-db--install-default-scheduler-config (db)
+  "Install the pinned default scheduler configuration into DB."
+  (gnosis-sqlite-execute
+   db
+   "INSERT INTO scheduler_config
+      (id, algorithm, model, implementation, desired_retention, parameters)
+    VALUES (?, ?, ?, ?, ?, ?)"
+   (list 1 "fsrs" "gnosis-fsrs6-v1" "fsrs-rs-6.6.1"
+         gnosis-fsrs-default-retention
+         gnosis-fsrs-default-parameters)))
+
 (defun gnosis--db-version ()
   "Return the current user_version pragma from the database."
   (caar (gnosis-sqlite-select (gnosis--ensure-db) "PRAGMA user_version")))
@@ -318,6 +337,7 @@ Used for fresh databases only."
 			       (format "CREATE TABLE %s (%s)"
 				       (gnosis-sqlite--ident table)
 				       (gnosis-sqlite--compile-schema schema))))
+      (gnosis-db--install-default-scheduler-config db)
       (gnosis--db-create-indexes db)
       (gnosis--db-set-version gnosis-db-version))))
 

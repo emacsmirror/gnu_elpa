@@ -66,6 +66,7 @@
         ./tests/gnosis-test-nodes.el
         ./tests/gnosis-test-org.el
         ./tests/gnosis-test-review.el
+        ./tests/gnosis-test-scheduler-storage.el
         ./tests/gnosis-test-script-detection.el
         ./tests/gnosis-test-sqlite.el
       ];

@@ -42,6 +42,7 @@ TESTS := tests/gnosis-test-sqlite.el \
 	tests/gnosis-test-journal-boundary.el \
 	tests/gnosis-test-nodes-boundary.el \
 	tests/gnosis-test-fsrs.el \
+	tests/gnosis-test-scheduler-storage.el \
 	tests/gnosis-test-algorithm.el \
 	tests/gnosis-test-export-import.el \
 	tests/gnosis-test-dashboard.el \

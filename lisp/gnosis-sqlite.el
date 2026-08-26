@@ -332,6 +332,10 @@ COL-SPEC is like (name type :constraint1 :constraint2 ...)."
 (defun gnosis-sqlite--compile-constraint (constraint)
   "Compile a table-level CONSTRAINT to SQL string."
   (pcase constraint
+    (`(:check ,expression)
+     (unless (stringp expression)
+       (error "Gnosis SQLite: CHECK expression must be a string"))
+     (format "CHECK (%s)" expression))
     (`(:unique ,cols)
      (format "UNIQUE (%s)"
              (mapconcat #'gnosis-sqlite--ident

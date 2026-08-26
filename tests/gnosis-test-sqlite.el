@@ -276,6 +276,13 @@ Value is pre-encoded (prin1-to-string) in the compiler."
   (pcase-dolist (`(,_table ,schema) gnosis-db--schemata)
     (should (stringp (gnosis-sqlite--compile-schema schema)))))
 
+(ert-deftest gnosis-test-sqlite-schema-check-constraint ()
+  "Compile a trusted table-level CHECK constraint."
+  (should
+   (equal "CHECK (rating IN (1, 3))"
+          (gnosis-sqlite--compile-constraint
+           '(:check "rating IN (1, 3)")))))
+
 ;;; ---- Group 6: Values compiler ----
 
 (ert-deftest gnosis-test-sqlite-values-single-vector ()

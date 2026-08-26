@@ -274,6 +274,41 @@ Uses `gnosis--id-cache' for O(1) collision checking when bound."
       (:foreign-key [thema-id] :references scheduler-baseline [thema-id]
                     :on-delete :cascade)
       (:foreign-key [config-id] :references scheduler-config [id])))
+    (review-events
+     ([(event-id text :primary-key :not-null)
+       (thema-id integer :not-null)
+       (config-id integer :not-null)
+       (reviewed-at-us integer :not-null)
+       (review-day integer :not-null)
+       (rating integer :not-null)
+       (elapsed-days integer :not-null)
+       (prior-stability real)
+       (prior-difficulty real)
+       (stability real :not-null)
+       (difficulty real :not-null)
+       (raw-interval-days real :not-null)
+       (calendar-interval-days integer :not-null)
+       (due-day integer :not-null)
+       (reps-before integer :not-null)
+       (reps-after integer :not-null)
+       (lapses-before integer :not-null)
+       (lapses-after integer :not-null)
+       (new-p integer :not-null)]
+      (:foreign-key [thema-id] :references scheduler-baseline [thema-id]
+                    :on-delete :cascade)
+      (:foreign-key [config-id] :references scheduler-config [id])
+      (:check "rating IN (1, 3)")
+      (:check "elapsed_days >= 0")
+      (:check "(prior_stability IS NULL) = (prior_difficulty IS NULL)")
+      (:check "stability > 0")
+      (:check "difficulty BETWEEN 1 AND 10")
+      (:check "raw_interval_days >= 0")
+      (:check "calendar_interval_days >= 1")
+      (:check "reps_before >= 0 AND reps_after = reps_before + 1")
+      (:check "lapses_before >= 0")
+      (:check "lapses_after = lapses_before + CASE rating WHEN 1 THEN 1 ELSE 0 END")
+      (:check "new_p IN (0, 1)")
+      (:check "new_p = CASE reps_before WHEN 0 THEN 1 ELSE 0 END")))
     (activity-log
      ([(date integer :not-null)
        (reviewed-total integer :not-null)
@@ -339,6 +374,54 @@ Uses `gnosis--id-cache' for O(1) collision checking when bound."
          gnosis-fsrs-default-retention
          gnosis-fsrs-default-parameters)))
 
+(defun gnosis-db--create-scheduler-guards (db)
+  "Create append-only review-event guards on DB when available."
+  (when (gnosis-table-exists-p 'review-events)
+    (gnosis-sqlite-execute
+     db
+     "CREATE TRIGGER IF NOT EXISTS scheduler_baseline_no_replace
+        BEFORE INSERT ON scheduler_baseline
+        WHEN EXISTS
+          (SELECT 1 FROM scheduler_baseline
+             WHERE thema_id = NEW.thema_id)
+        BEGIN
+          SELECT RAISE(ABORT, 'scheduler baseline already exists');
+        END")
+    (gnosis-sqlite-execute
+     db
+     "CREATE TRIGGER IF NOT EXISTS review_events_no_replace
+        BEFORE INSERT ON review_events
+        WHEN EXISTS
+          (SELECT 1 FROM review_events WHERE event_id = NEW.event_id)
+        BEGIN
+          SELECT RAISE(ABORT, 'review event already exists');
+        END")
+    (gnosis-sqlite-execute
+     db
+     "CREATE TRIGGER IF NOT EXISTS scheduler_baseline_no_direct_delete
+        BEFORE DELETE ON scheduler_baseline
+        WHEN EXISTS (SELECT 1 FROM themata WHERE id = OLD.thema_id)
+        BEGIN
+          SELECT RAISE(ABORT, 'scheduler baseline requires hard thema deletion');
+        END")
+    (gnosis-sqlite-execute
+     db
+     "CREATE TRIGGER IF NOT EXISTS review_events_no_update
+        BEFORE UPDATE ON review_events
+        BEGIN
+          SELECT RAISE(ABORT, 'review events are immutable');
+        END")
+    (gnosis-sqlite-execute
+     db
+     "CREATE TRIGGER IF NOT EXISTS review_events_no_direct_delete
+        BEFORE DELETE ON review_events
+        WHEN EXISTS
+          (SELECT 1 FROM scheduler_baseline
+             WHERE thema_id = OLD.thema_id)
+        BEGIN
+          SELECT RAISE(ABORT, 'review events require hard thema deletion');
+        END")))
+
 (defun gnosis--db-version ()
   "Return the current user_version pragma from the database."
   (caar (gnosis-sqlite-select (gnosis--ensure-db) "PRAGMA user_version")))
@@ -360,6 +443,7 @@ Used for fresh databases only."
 				       (gnosis-sqlite--compile-schema schema))))
       (gnosis-db--install-default-scheduler-config db)
       (gnosis--db-create-indexes db)
+      (gnosis-db--create-scheduler-guards db)
       (gnosis--db-set-version gnosis-db-version))))
 
 (defun gnosis--db-create-indexes (db)
@@ -390,6 +474,15 @@ Used for fresh databases only."
      db
      "CREATE INDEX IF NOT EXISTS idx_scheduler_state_due
         ON scheduler_state(suspended, due_day, reps)"))
+  (when (gnosis-table-exists-p 'review-events)
+    (gnosis-sqlite-execute
+     db
+     "CREATE INDEX IF NOT EXISTS idx_review_events_replay
+        ON review_events(thema_id, reviewed_at_us, event_id)")
+    (gnosis-sqlite-execute
+     db
+     "CREATE INDEX IF NOT EXISTS idx_review_events_day
+        ON review_events(review_day)"))
   ;; source_guid index: created by v8 migration for existing DBs,
   ;; or here for fresh DBs where the column already exists
   (gnosis-db--migrate-step "create source_guid index"

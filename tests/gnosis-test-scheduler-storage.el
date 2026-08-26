@@ -159,5 +159,115 @@
                         WHERE type = 'index'
                           AND name = 'idx_scheduler_state_due'"))))))
 
+(defun gnosis-test-scheduler--insert-event-fixture
+    (db &optional rating elapsed config-id)
+  "Insert one event into DB with optional RATING, ELAPSED, and CONFIG-ID."
+  (gnosis-sqlite-execute
+   db
+   "INSERT INTO review_events
+      (event_id, thema_id, config_id, reviewed_at_us, review_day,
+       rating, elapsed_days, prior_stability, prior_difficulty,
+       stability, difficulty, raw_interval_days, calendar_interval_days,
+       due_day, reps_before, reps_after, lapses_before, lapses_after, new_p)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+   (list "event-1" 1 (or config-id 1) 1000000 20260830
+         (or rating 3) (or elapsed 0)
+         nil nil 2.3065 2.118104 2.3065 2 20260901 0 1 0 0 1)))
+
+(ert-deftest gnosis-test-review-events-roundtrip-complete-evidence ()
+  "Round-trip one complete immutable review event."
+  (gnosis-test-scheduler--with-fresh-db
+    (gnosis-sqlite-execute
+     gnosis-db "INSERT INTO themata VALUES (?, ?, ?, ?, ?, ?)"
+     '(1 "basic" "Question" ("") ("Answer") nil))
+    (gnosis-sqlite-execute
+     gnosis-db "INSERT INTO scheduler_baseline VALUES (?, ?, ?, ?)"
+     '(1 20260830 0 0))
+    (gnosis-test-scheduler--insert-event-fixture gnosis-db)
+    (should
+     (equal '("event-1" 1 1 1000000 20260830 3 0 nil nil
+              2.3065 2.118104 2.3065 2 20260901 0 1 0 0 1)
+            (car (gnosis-sqlite-select gnosis-db "SELECT * FROM review_events"))))))
+
+(ert-deftest gnosis-test-review-events-enforce-binary-ordered-evidence ()
+  "Reject malformed evidence and index canonical replay order."
+  (gnosis-test-scheduler--with-fresh-db
+    (gnosis-sqlite-execute
+     gnosis-db "INSERT INTO themata VALUES (?, ?, ?, ?, ?, ?)"
+     '(1 "basic" "Question" ("") ("Answer") nil))
+    (should-error (gnosis-test-scheduler--insert-event-fixture gnosis-db))
+    (gnosis-sqlite-execute
+     gnosis-db "INSERT INTO scheduler_baseline VALUES (?, ?, ?, ?)"
+     '(1 20260830 0 0))
+    (should-error
+     (gnosis-test-scheduler--insert-event-fixture gnosis-db nil nil 404))
+    (should-error (gnosis-test-scheduler--insert-event-fixture gnosis-db 2))
+    (should-error (gnosis-test-scheduler--insert-event-fixture gnosis-db 3 -1))
+    (gnosis-test-scheduler--insert-event-fixture gnosis-db)
+    (should-error (gnosis-test-scheduler--insert-event-fixture gnosis-db))
+    (should
+     (equal '(thema_id reviewed_at_us event_id)
+            (mapcar (lambda (row) (nth 2 row))
+                    (gnosis-sqlite-select
+                     gnosis-db "PRAGMA index_info(idx_review_events_replay)"))))
+    (should
+     (equal '(review_day)
+            (mapcar (lambda (row) (nth 2 row))
+                    (gnosis-sqlite-select
+                     gnosis-db "PRAGMA index_info(idx_review_events_day)"))))))
+
+(ert-deftest gnosis-test-review-events-reject-direct-mutation ()
+  "Reject direct update and deletion of immutable event evidence."
+  (gnosis-test-scheduler--with-fresh-db
+    (gnosis-sqlite-execute
+     gnosis-db "INSERT INTO themata VALUES (?, ?, ?, ?, ?, ?)"
+     '(1 "basic" "Question" ("") ("Answer") nil))
+    (gnosis-sqlite-execute
+     gnosis-db "INSERT INTO scheduler_baseline VALUES (?, ?, ?, ?)"
+     '(1 20260830 0 0))
+    (gnosis-test-scheduler--insert-event-fixture gnosis-db)
+    (should-error
+     (gnosis-sqlite-execute
+      gnosis-db
+      "INSERT OR REPLACE INTO scheduler_baseline
+         SELECT thema_id, due_day + 1, reps, lapses
+           FROM scheduler_baseline WHERE thema_id = ?"
+      '(1)))
+    (should-error
+     (gnosis-sqlite-execute
+      gnosis-db
+      "INSERT OR REPLACE INTO review_events
+         SELECT * FROM review_events WHERE event_id = ?"
+      '("event-1")))
+    (should-error
+     (gnosis-sqlite-execute
+      gnosis-db "DELETE FROM scheduler_baseline WHERE thema_id = ?" '(1)))
+    (should-error
+     (gnosis-sqlite-execute
+      gnosis-db "UPDATE review_events SET due_day = ? WHERE event_id = ?"
+      '(20260902 "event-1")))
+    (should-error
+     (gnosis-sqlite-execute
+      gnosis-db "DELETE FROM review_events WHERE event_id = ?" '("event-1")))
+    (should (= 20260830
+               (caar (gnosis-sqlite-select
+                      gnosis-db "SELECT due_day FROM scheduler_baseline"))))
+    (should (= 1 (caar (gnosis-sqlite-select
+                        gnosis-db "SELECT COUNT(*) FROM review_events"))))))
+
+(ert-deftest gnosis-test-review-events-delete-only-with-hard-thema-delete ()
+  "Cascade event deletion only when its owning thema is hard deleted."
+  (gnosis-test-scheduler--with-fresh-db
+    (gnosis-sqlite-execute
+     gnosis-db "INSERT INTO themata VALUES (?, ?, ?, ?, ?, ?)"
+     '(1 "basic" "Question" ("") ("Answer") nil))
+    (gnosis-sqlite-execute
+     gnosis-db "INSERT INTO scheduler_baseline VALUES (?, ?, ?, ?)"
+     '(1 20260830 0 0))
+    (gnosis-test-scheduler--insert-event-fixture gnosis-db)
+    (gnosis-sqlite-execute gnosis-db "DELETE FROM themata WHERE id = ?" '(1))
+    (should (= 0 (caar (gnosis-sqlite-select
+                        gnosis-db "SELECT COUNT(*) FROM review_events"))))))
+
 (provide 'gnosis-test-scheduler-storage)
 ;;; gnosis-test-scheduler-storage.el ends here

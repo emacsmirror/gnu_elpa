@@ -395,7 +395,7 @@ mode hooks, e.g., `prog-mode-hook'."
   `((?f "File" bookmark-default-handler)
     (?h "Help" help-bookmark-jump Info-bookmark-jump
         Man-bookmark-jump woman-bookmark-jump)
-    (?p "Picture" image-bookmark-jump)
+    (?i "Image" image-bookmark-jump image-dired-bookmark-jump)
     (?d "Docview" doc-view-bookmark-jump)
     (?m "Mail" gnus-summary-bookmark-jump)
     (?s "Shell" eshell-bookmark-jump shell-bookmark-jump)

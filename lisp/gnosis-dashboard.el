@@ -142,7 +142,8 @@ edit, delete, and suspend.")
       (format "Current streak: %s day(s)"
 	      (propertize
 	       (gnosis-dashboard--streak
-		(gnosis-select 'date 'activity-log '(> reviewed-total 0) t))
+		(cl-loop for (date total) in (gnosis-review-activity)
+			 when (> total 0) collect date))
 	       'face 'success))))))
 
 
@@ -911,8 +912,7 @@ Translates {n}, {n,}, {n,m} to \\{n\\}, \\{n,\\}, \\{n,m\\}."
   "Display review HISTORY."
   (interactive)
   (let* ((history (or history
-		      (gnosis-select '[date reviewed-total reviewed-new]
-				     'activity-log)))
+		      (gnosis-review-activity)))
 	 (buffer (get-buffer-create "*Gnosis History*")))
     (with-current-buffer buffer
       (let ((inhibit-read-only t))

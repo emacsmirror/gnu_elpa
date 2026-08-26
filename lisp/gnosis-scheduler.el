@@ -21,6 +21,7 @@
 
 (require 'gnosis-db)
 (require 'gnosis-fsrs)
+(require 'seq)
 
 (defconst gnosis-scheduler--event-keys
   '(:event-id :thema-id :config-id :reviewed-at-us :review-day :rating
@@ -194,19 +195,25 @@ Each row is (THEMA-ID DUE-DAY SUSPENDED)."
     (error "Invalid scheduler initialization"))
   (let ((db (or db (gnosis--ensure-db))))
     (gnosis-sqlite-with-transaction db
-      (gnosis-sqlite-execute
-       db (concat "INSERT INTO scheduler_baseline VALUES "
-                  (mapconcat (lambda (_) "(?,?,?,?)") rows ","))
-       (apply #'append
-              (mapcar (lambda (row) (list (nth 0 row) (nth 1 row) 0 0)) rows)))
-      (gnosis-sqlite-execute
-       db (concat "INSERT INTO scheduler_state VALUES "
-                  (mapconcat (lambda (_) "(?,?,?,?,?,?,?,?,?,?)") rows ","))
-       (apply #'append
-              (mapcar (lambda (row)
-                        (list (nth 0 row) 1 nil nil nil nil (nth 1 row)
-                              0 0 (nth 2 row)))
-                      rows))))))
+      (let ((batch-size
+             (max 1 (/ (gnosis-sqlite--max-variable-number db) 10))))
+        (dolist (chunk (seq-partition rows batch-size))
+          (gnosis-sqlite-execute
+           db (concat "INSERT INTO scheduler_baseline VALUES "
+                      (mapconcat (lambda (_) "(?,?,?,?)") chunk ","))
+           (apply #'append
+                  (mapcar (lambda (row)
+                            (list (nth 0 row) (nth 1 row) 0 0))
+                          chunk)))
+          (gnosis-sqlite-execute
+           db (concat "INSERT INTO scheduler_state VALUES "
+                      (mapconcat (lambda (_) "(?,?,?,?,?,?,?,?,?,?)")
+                                 chunk ","))
+           (apply #'append
+                  (mapcar (lambda (row)
+                            (list (nth 0 row) 1 nil nil nil nil (nth 1 row)
+                                  0 0 (nth 2 row)))
+                          chunk))))))))
 
 (defun gnosis-scheduler-initialize-thema
     (thema-id due-day suspended &optional db)

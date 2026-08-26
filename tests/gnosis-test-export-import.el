@@ -46,6 +46,15 @@
                     ;; Metadata (plain text, not emacsql-encoded)
                     (should (sqlite-select edb
                               "SELECT value FROM gnosis_meta WHERE key = 'exported_at'")))
+                    (should (equal "2" (caar (sqlite-select
+                                               edb
+                                               "SELECT value FROM gnosis_meta WHERE key = 'format_version'"))))
+                    (should
+                     (equal '(("extras") ("gnosis_meta") ("thema_tag")
+                              ("themata"))
+                            (sqlite-select
+                             edb "SELECT name FROM sqlite_master
+                                   WHERE type = 'table' ORDER BY name")))
                 (gnosis-sqlite-close edb))))
         (when (file-exists-p export-file) (delete-file export-file))))))
 
@@ -69,16 +78,25 @@
 (ert-deftest gnosis-test-export-excludes-suspended ()
   "Export without include-suspended skips suspended themata."
   (gnosis-test-with-db
-    (gnosis-test--add-basic-thema "Active" "A1" '("a"))
-    (gnosis-test--add-basic-thema "Suspended" "A2" '("s") nil nil 1)
-    (let ((export-file (concat (make-temp-file "gnosis-export-susp-") ".db")))
+    (let ((active (gnosis-test--add-basic-thema "Active" "A1" '("a")))
+          (suspended (gnosis-test--add-basic-thema
+                      "Suspended" "A2" '("s") nil nil 1))
+          (export-file (concat (make-temp-file "gnosis-export-susp-") ".db")))
+      ;; Legacy state deliberately disagrees; scheduler_state is authoritative.
+      (gnosis-sqlite-execute gnosis-db
+                             "UPDATE review_log SET suspend = 1 WHERE id = ?"
+                             (list active))
+      (gnosis-sqlite-execute gnosis-db
+                             "UPDATE review_log SET suspend = 0 WHERE id = ?"
+                             (list suspended))
       (unwind-protect
           (progn
             (gnosis-export-db export-file nil nil nil)
             (let ((edb (gnosis-sqlite-open export-file)))
               (unwind-protect
-                  (should (= 1 (caar (gnosis-sqlite-select edb
-                                       "SELECT COUNT(*) FROM themata"))))
+                  (should (equal (list (list active))
+                                 (gnosis-sqlite-select
+                                  edb "SELECT id FROM themata")))
                 (gnosis-sqlite-close edb))))
         (when (file-exists-p export-file) (delete-file export-file))))))
 
@@ -95,6 +113,21 @@
               (unwind-protect
                   (should (= 2 (caar (gnosis-sqlite-select edb
                                        "SELECT COUNT(*) FROM themata"))))
+                (gnosis-sqlite-close edb))))
+        (when (file-exists-p export-file) (delete-file export-file))))))
+
+(ert-deftest gnosis-test-export-excludes-all-suspended ()
+  "Export zero content when scheduler authority suspends every thema."
+  (gnosis-test-with-db
+    (gnosis-test--add-basic-thema "Suspended" "A" '("s") nil nil 1)
+    (let ((export-file (concat (make-temp-file "gnosis-export-none-") ".db")))
+      (unwind-protect
+          (progn
+            (gnosis-export-db export-file)
+            (let ((edb (gnosis-sqlite-open export-file)))
+              (unwind-protect
+                  (should (= 0 (caar (gnosis-sqlite-select
+                                      edb "SELECT COUNT(*) FROM themata"))))
                 (gnosis-sqlite-close edb))))
         (when (file-exists-p export-file) (delete-file export-file))))))
 
@@ -126,18 +159,18 @@
       (unwind-protect
           (progn
             (gnosis-export-db export-file)
+            ;; No format_version is the supported legacy v1 contract.
+            (let ((edb (sqlite-open export-file)))
+              (sqlite-execute edb
+                              "DELETE FROM gnosis_meta WHERE key = 'format_version'")
+              (sqlite-close edb))
             ;; Import into a fresh DB: all should be detected as new
             (let* ((db-file2 (make-temp-file "gnosis-test2-" nil ".db"))
                    (gnosis-db (gnosis-sqlite-open db-file2))
                    (gnosis--id-cache nil))
               (unwind-protect
                   (progn
-                    (gnosis-sqlite-with-transaction gnosis-db
-                      (pcase-dolist (`(,table ,schema) gnosis-db--schemata)
-                        (gnosis-sqlite-execute gnosis-db
-                          (format "CREATE TABLE %s (%s)"
-                                  (gnosis-sqlite--ident table)
-                                  (gnosis-sqlite--compile-schema schema)))))
+                    (gnosis-db-init)
                     (let* ((diff (gnosis-import--diff export-file))
                            (new-rows (car diff))
                            (changed-rows (cadr diff)))
@@ -201,14 +234,18 @@
                    (gnosis--id-cache nil))
               (unwind-protect
                   (progn
-                    (gnosis-sqlite-with-transaction gnosis-db
-                      (pcase-dolist (`(,table ,schema) gnosis-db--schemata)
-                        (gnosis-sqlite-execute gnosis-db
-                          (format "CREATE TABLE %s (%s)"
-                                  (gnosis-sqlite--ident table)
-                                  (gnosis-sqlite--compile-schema schema)))))
-                    (gnosis-import--apply-changes export-file
-                      (list id1 id2) nil)
+                    (gnosis-db-init)
+                    (let ((execute (symbol-function 'sqlite-execute))
+                          (gnosis-sqlite--max-vars 10))
+                      (cl-letf
+                          (((symbol-function 'sqlite-execute)
+                            (lambda (db sql &optional params)
+                              (when (> (length params) 10)
+                                (error "Controlled bind-variable limit"))
+                              (funcall execute db sql params))))
+                        (gnosis-import--apply-changes
+                         export-file (list id1 id2) nil
+                         (gnosis-import--file-sha256 export-file))))
                     ;; Themata created
                     (should (= 2 (length (gnosis-select 'id 'themata nil t))))
                     ;; Tags preserved
@@ -221,7 +258,190 @@
                       (should (string-search "See SICP" p)))
                     ;; Review state initialized
                     (should (gnosis-select 'id 'review `(= id ,id1) t))
-                    (should (gnosis-select 'id 'review-log `(= id ,id1) t)))
+                    (should (gnosis-select 'id 'review-log `(= id ,id1) t))
+                    (let ((today (gnosis--date-to-int
+                                  (gnosis-algorithm-date)))
+                          (sorted-ids (sort (list id1 id2) #'<)))
+                      (should
+                       (equal (mapcar (lambda (id) (list id today 0 0))
+                                      sorted-ids)
+                              (gnosis-sqlite-select
+                               gnosis-db "SELECT * FROM scheduler_baseline
+                                           ORDER BY thema_id")))
+                      (should
+                       (equal (mapcar
+                               (lambda (id)
+                                 (list id 1 nil nil nil nil today 0 0 0))
+                               sorted-ids)
+                              (gnosis-sqlite-select
+                               gnosis-db "SELECT * FROM scheduler_state
+                                           ORDER BY thema_id")))))
+                (gnosis-sqlite-close gnosis-db)
+                (delete-file db-file2))))
+        (when (file-exists-p export-file) (delete-file export-file))))))
+
+(ert-deftest gnosis-test-import-rejects-future-version-before-mutation ()
+  "Reject future content formats before changing the destination DB."
+  (gnosis-test-with-db
+    (let* ((id (gnosis-test--add-basic-thema "Q" "A" '("test")))
+           (export-file (concat (make-temp-file "gnosis-future-") ".db")))
+      (unwind-protect
+          (progn
+            (gnosis-export-db export-file)
+            (let ((edb (sqlite-open export-file)))
+              (sqlite-execute edb
+                              "UPDATE gnosis_meta SET value = '999'
+                                WHERE key = 'format_version'")
+              (sqlite-close edb))
+            (let* ((db-file2 (make-temp-file "gnosis-future-dst-" nil ".db"))
+                   (gnosis-db (gnosis-sqlite-open db-file2)))
+              (unwind-protect
+                  (progn
+                    (gnosis-db-init)
+                    (should-error
+                     (gnosis-import--apply-changes
+                      export-file (list id) nil
+                      (gnosis-import--file-sha256 export-file)))
+                    (should-error
+                     (gnosis-import--apply-snapshot
+                      export-file (list id) nil))
+                    (should (= 0 (caar (gnosis-sqlite-select
+                                        gnosis-db
+                                        "SELECT COUNT(*) FROM themata")))))
+                (gnosis-sqlite-close gnosis-db)
+                (delete-file db-file2))))
+        (when (file-exists-p export-file) (delete-file export-file))))))
+
+(ert-deftest gnosis-test-import-rejects-malformed-metadata-authority ()
+  "Reject uppercase future metadata, views, and conflicting rows."
+  (dolist (kind '(uppercase view duplicate))
+    (let ((file (make-temp-file "gnosis-malformed-meta-" nil ".db")))
+      (unwind-protect
+          (let ((db (sqlite-open file)))
+            (unwind-protect
+                (pcase kind
+                  ('uppercase
+                   (sqlite-execute
+                    db "CREATE TABLE GNOSIS_META
+                         (key TEXT PRIMARY KEY, value TEXT)")
+                   (sqlite-execute
+                    db "INSERT INTO GNOSIS_META VALUES
+                         ('format_version', '999')"))
+                  ('view
+                   (sqlite-execute db "CREATE TABLE source (key TEXT, value TEXT)")
+                   (sqlite-execute
+                    db "CREATE VIEW gnosis_meta AS SELECT key, value FROM source"))
+                  ('duplicate
+                   (sqlite-execute db "CREATE TABLE gnosis_meta
+                                       (key TEXT, value TEXT)")
+                   (sqlite-execute db "INSERT INTO gnosis_meta VALUES
+                                       ('format_version', '1'),
+                                       ('format_version', '2')")))
+              (sqlite-close db))
+            (should-error (gnosis-import--format-version file)))
+        (when (file-exists-p file) (delete-file file))))))
+
+(ert-deftest gnosis-test-import-rejects-source-replaced-after-diff ()
+  "Reject a valid-v2 source replaced after the reviewed diff."
+  (gnosis-test-with-db
+    (let* ((id (gnosis-test--add-basic-thema "Reviewed" "A" '("test")))
+           (source (concat (make-temp-file "gnosis-reviewed-") ".db"))
+           (replacement (concat (make-temp-file "gnosis-replaced-") ".db")))
+      (unwind-protect
+          (progn
+            (gnosis-export-db source)
+            (let* ((diff (gnosis-import--diff source))
+                   (source-id (nth 2 diff)))
+              (should (stringp source-id))
+              (copy-file source replacement t)
+              (let ((db (sqlite-open replacement)))
+                (sqlite-execute
+                 db "UPDATE themata SET keimenon = '\"Replacement\"'")
+                (sqlite-close db))
+              (rename-file replacement source t)
+              (let* ((db-file2 (make-temp-file "gnosis-replaced-dst-" nil ".db"))
+                     (gnosis-db (gnosis-sqlite-open db-file2)))
+                (unwind-protect
+                    (progn
+                      (gnosis-db-init)
+                      (should-error
+                       (gnosis-import--apply-changes
+                        source (list id) nil source-id))
+                      (should (= 0 (caar (gnosis-sqlite-select
+                                          gnosis-db
+                                          "SELECT COUNT(*) FROM themata")))))
+                  (gnosis-sqlite-close gnosis-db)
+                  (delete-file db-file2)))))
+        (when (file-exists-p source) (delete-file source))
+        (when (file-exists-p replacement) (delete-file replacement))))))
+
+(ert-deftest gnosis-test-import-diff-uses-private-source-snapshot ()
+  "Keep diff rows and identity on snapshot A while pathname serves B."
+  (gnosis-test-with-db
+    (gnosis-test--add-basic-thema "Reviewed" "A" '("test"))
+    (let ((source (concat (make-temp-file "gnosis-diff-source-") ".db"))
+          (replacement (concat (make-temp-file "gnosis-diff-swap-") ".db")))
+      (unwind-protect
+          (progn
+            (gnosis-export-db source)
+            (copy-file source replacement t)
+            (let ((db (sqlite-open replacement)))
+              (sqlite-execute
+               db "UPDATE themata SET keimenon = '\"Replacement\"'")
+              (sqlite-close db))
+            (let ((real-diff (symbol-function 'gnosis-import--diff-snapshot))
+                  (snapshot-called nil))
+              (cl-letf
+                  (((symbol-function 'gnosis-import--diff-snapshot)
+                    (lambda (snapshot)
+                      (setq snapshot-called t)
+                      (let ((original (make-temp-file
+                                       "gnosis-diff-original-" nil ".db")))
+                        (unwind-protect
+                            (progn
+                              (copy-file source original t)
+                              (copy-file replacement source t)
+                              (funcall real-diff snapshot))
+                          (copy-file original source t)
+                          (delete-file original))))))
+                (let ((diff (gnosis-import--diff source)))
+                  (should snapshot-called)
+                  (should-not (car diff))
+                  (should-not (cadr diff))
+                  (should (equal (nth 2 diff)
+                                 (gnosis-import--file-sha256 source)))))))
+        (when (file-exists-p source) (delete-file source))
+        (when (file-exists-p replacement) (delete-file replacement))))))
+
+(ert-deftest gnosis-test-import-scheduler-failure-rolls-back-content ()
+  "Roll back imported content when scheduler initialization fails."
+  (gnosis-test-with-db
+    (let* ((id (gnosis-test--add-basic-thema "Q" "A" '("test")))
+           (export-file (concat (make-temp-file "gnosis-rollback-") ".db")))
+      (unwind-protect
+          (progn
+            (gnosis-export-db export-file)
+            (let* ((db-file2 (make-temp-file "gnosis-rollback-dst-" nil ".db"))
+                   (gnosis-db (gnosis-sqlite-open db-file2)))
+              (unwind-protect
+                  (progn
+                    (gnosis-db-init)
+                    (gnosis-sqlite-execute
+                     gnosis-db
+                     "CREATE TRIGGER controlled_import_scheduler_failure
+                        BEFORE INSERT ON scheduler_state
+                        BEGIN SELECT RAISE(ABORT, 'controlled failure'); END")
+                    (should-error
+                     (gnosis-import--apply-changes
+                      export-file (list id) nil
+                      (gnosis-import--file-sha256 export-file)))
+                    (dolist (table '(themata review review-log
+                                    scheduler-baseline scheduler-state))
+                      (should (= 0 (caar (gnosis-sqlite-select
+                                          gnosis-db
+                                          (format "SELECT COUNT(*) FROM %s"
+                                                  (gnosis-sqlite--ident
+                                                   table))))))))
                 (gnosis-sqlite-close gnosis-db)
                 (delete-file db-file2))))
         (when (file-exists-p export-file) (delete-file export-file))))))
@@ -230,6 +450,7 @@
   "Apply import updates changed themata content."
   (gnosis-test-with-db
     (let* ((id1 (gnosis-test--add-basic-thema "Old question" "Old answer" '("old")))
+           (id2 (gnosis-test--add-basic-thema "New question" "New answer" '("new")))
            (export-file (concat (make-temp-file "gnosis-apply-change-") ".db")))
       (unwind-protect
           (progn
@@ -239,13 +460,34 @@
               (sqlite-execute edb
                 (format "UPDATE themata SET keimenon = '\"New question\"' WHERE id = %d" id1))
               (sqlite-close edb))
+            (gnosis-sqlite-execute
+             gnosis-db "DELETE FROM themata WHERE id = ?" (list id2))
+            (gnosis-sqlite-execute
+             gnosis-db "UPDATE scheduler_state SET stability = 2.5,
+                         difficulty = 3.5, last_reviewed_at_us = 1000000,
+                         last_review_day = 20260830, due_day = 20990101,
+                         reps = 7, lapses = 2, suspended = 1
+                         WHERE thema_id = ?" (list id1))
+            (let ((expected-state
+                   (car (gnosis-sqlite-select
+                         gnosis-db "SELECT * FROM scheduler_state
+                                    WHERE thema_id = ?" (list id1)))))
             ;; Apply as changed
-            (gnosis-import--apply-changes export-file nil (list id1))
+              (gnosis-import--apply-changes
+               export-file (list id2) (list id1)
+               (gnosis-import--file-sha256 export-file))
             ;; Verify
-            (should (= 1 (length (gnosis-select 'id 'themata nil t))))
-            (should (equal "New question"
-                           (gnosis-get 'keimenon 'themata `(= id ,id1)))))
-        (when (file-exists-p export-file) (delete-file export-file))))))
+              (should (= 2 (length (gnosis-select 'id 'themata nil t))))
+              (should (equal "New question"
+                             (gnosis-get 'keimenon 'themata `(= id ,id1))))
+              (should (equal expected-state
+                             (car (gnosis-sqlite-select
+                                   gnosis-db "SELECT * FROM scheduler_state
+                                              WHERE thema_id = ?"
+                                   (list id1)))))
+              (should (gnosis-select 'thema-id 'scheduler-baseline
+                                     `(= thema-id ,id2) t)))
+        (when (file-exists-p export-file) (delete-file export-file)))))))
 
 ;; ---- Group 4: Edit mode support (unchanged) ----
 

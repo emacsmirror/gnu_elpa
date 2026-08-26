@@ -30,12 +30,8 @@ cross-test pollution."
   (declare (indent 0) (debug t))
   `(progn
      (cancel-function-timers #'gnosis-dashboard--append-chunk)
-     (cancel-function-timers #'gnosis-dashboard--prerender-chunk)
      (cancel-function-timers #'gnosis-dashboard--warm-cache-chunk)
      (let ((gnosis-dashboard--entry-cache (make-hash-table :test 'equal))
-           (gnosis-dashboard--rendered-text nil)
-           (gnosis-dashboard--rendered-ids nil)
-           (gnosis-dashboard--rendered-width nil)
            (gnosis-dashboard--selected-ids nil)
            (gnosis-dashboard--load-generation 0))
        ,@body)))
@@ -225,15 +221,34 @@ Includes `gnosis-test-with-clean-cache' for isolation."
         (tabulated-list-init-header)
         (setq tabulated-list-entries
               (list (list id1 ["Q1"]) (list id2 ["Q2"]) (list id3 ["Q3"])))
-        (setq gnosis-dashboard-thema-ids (list id1 id2 id3))
+        (setq gnosis-dashboard-themata-current-ids (list id1 id2 id3))
         (tabulated-list-print t)
         ;; Remove id2
         (gnosis-dashboard--remove-entries (list id2))
         ;; Two entries remain
         (should (= (length tabulated-list-entries) 2))
         (should-not (cl-find id2 tabulated-list-entries :key #'car))
-        ;; thema-ids also updated
-        (should-not (member id2 gnosis-dashboard-thema-ids)))))))
+        ;; Current view state is updated with the rendered entries.
+        (should-not (member id2 gnosis-dashboard-themata-current-ids)))))))
+
+(ert-deftest gnosis-test-dashboard-delete-refresh-keeps-current-ids-exact ()
+  "Refreshing after deletion keeps current IDs equal to rendered entries."
+  (gnosis-test-with-db
+   (let ((id1 (gnosis-test--add-basic-thema "Q1" "A1"))
+         (id2 (gnosis-test--add-basic-thema "Q2" "A2")))
+     (gnosis-test-with-dashboard-buffer
+      (gnosis-dashboard-output-themata (list id1 id2))
+      (with-current-buffer gnosis-dashboard-buffer-name
+        (goto-char (point-min))
+        (let ((deleted-id (tabulated-list-get-id)))
+          (cl-letf (((symbol-function 'y-or-n-p)
+                     (lambda (&rest _) t)))
+            (gnosis-dashboard-delete))
+          (gnosis-dashboard-return)
+          (let ((displayed-ids (mapcar #'car tabulated-list-entries)))
+            (should-not (member deleted-id displayed-ids))
+            (should (equal gnosis-dashboard-themata-current-ids
+                           displayed-ids)))))))))
 
 (ert-deftest gnosis-test-dashboard-update-entries ()
   "Update-entries refreshes data from DB for specified IDs."
@@ -299,8 +314,7 @@ Includes `gnosis-test-with-clean-cache' for isolation."
      (gnosis-test-with-dashboard-buffer
       (gnosis-dashboard-output-themata ids)
       (with-current-buffer gnosis-dashboard-buffer-name
-        (should (equal gnosis-dashboard-themata-current-ids ids))
-        (should (equal gnosis-dashboard-thema-ids ids)))))))
+        (should (equal gnosis-dashboard-themata-current-ids ids)))))))
 
 ;; ──────────────────────────────────────────────────────────
 ;; Mark/selection tests
@@ -1370,6 +1384,89 @@ This is the critical bug fix: (not nil) => t was wrong."
            (last tabulated-list-entries)
            (1- gnosis-dashboard--load-generation))
           (should (= (count-lines (point-min) (point-max)) old-count))))))))
+
+(ert-deftest gnosis-test-dashboard-progressive-render-stops-after-view-change ()
+  "A pending themata chunk must not alter later tags or nodes views."
+  (gnosis-test-with-db
+   (let* ((gnosis-dashboard-render-chunk-size 1)
+          (id1 (gnosis-test--add-basic-thema "Q1" "A1" '("tag")))
+          (id2 (gnosis-test--add-basic-thema "Q2" "A2" '("tag")))
+          pending-function pending-args)
+     (gnosis-test-with-dashboard-buffer
+      (cl-letf (((symbol-function 'run-with-timer)
+                 (lambda (_seconds _repeat function &rest args)
+                   (setq pending-function function
+                         pending-args args))))
+        (gnosis-dashboard-output-themata (list id1 id2))
+        (should (eq pending-function #'gnosis-dashboard--append-chunk))
+        (dolist (renderer '(gnosis-dashboard-output-tags
+                            gnosis-dashboard-output-nodes))
+          (funcall renderer)
+          (with-current-buffer gnosis-dashboard-buffer-name
+            (let ((expected-mode major-mode)
+                  (expected-entries (copy-tree tabulated-list-entries))
+                  (expected-text (buffer-string)))
+              (apply pending-function pending-args)
+              (should (eq major-mode expected-mode))
+              (should (equal tabulated-list-entries expected-entries))
+              (should (equal (buffer-string) expected-text))))))))))
+
+(ert-deftest gnosis-test-dashboard-stats-load-stops-after-view-change ()
+  "Deferred main statistics must not alter later tags or nodes views."
+  (gnosis-test-with-db
+   (gnosis-test--add-basic-thema "Q1" "A1" '("tag"))
+   (gnosis-test-with-dashboard-buffer
+    (with-current-buffer gnosis-dashboard-buffer-name
+      (gnosis-dashboard-mode)
+      (let ((inhibit-read-only t))
+        (insert "Loading statistics..."))
+      (let ((marker (copy-marker (point-min)))
+            (generation gnosis-dashboard--load-generation))
+        (unwind-protect
+            (dolist (renderer '(gnosis-dashboard-output-tags
+                                gnosis-dashboard-output-nodes))
+              (funcall renderer)
+              (with-current-buffer gnosis-dashboard-buffer-name
+                (let ((expected-mode major-mode)
+                      (expected-entries (copy-tree tabulated-list-entries))
+                      (expected-text (buffer-string)))
+                  (cl-letf (((symbol-function 'run-with-idle-timer) #'ignore))
+                    (gnosis-dashboard--load-stats
+                     (current-buffer) marker generation))
+                  (should (eq major-mode expected-mode))
+                  (should (equal tabulated-list-entries expected-entries))
+                  (should (equal (buffer-string) expected-text)))))
+          (set-marker marker nil)))))))
+
+(ert-deftest gnosis-test-dashboard-stale-idle-render-does-not-replace-view ()
+  "A stale final render callback must not replace a later themata view."
+  (gnosis-test-with-db
+   (let ((id1 (gnosis-test--add-basic-thema "Original question" "A1"))
+         (id2 (gnosis-test--add-basic-thema "Second question" "A2")))
+     (gnosis-test-with-dashboard-buffer
+      (gnosis-dashboard-output-themata (list id1))
+      (with-current-buffer gnosis-dashboard-buffer-name
+        (let (idle-callback idle-args)
+          (cl-letf (((symbol-function 'run-with-idle-timer)
+                     (lambda (_seconds _repeat function &rest args)
+                       (setq idle-callback function
+                             idle-args args))))
+            (gnosis-dashboard--append-chunk
+             (current-buffer)
+             (list (list (list id2
+                               ["Second question" "" "" "test"
+                                "basic" "No"])))
+             (last tabulated-list-entries)
+             gnosis-dashboard--load-generation))
+          (let ((inhibit-read-only t))
+            (erase-buffer)
+            (insert "Different dashboard view"))
+          (cl-incf gnosis-dashboard--load-generation)
+          (when idle-callback
+            (apply idle-callback idle-args))
+          (gnosis-dashboard-output-themata (list id1))
+          (goto-char (point-min))
+          (should (search-forward "Original question" nil t))))))))
 
 ;; ──────────────────────────────────────────────────────────
 ;; Benchmark tests

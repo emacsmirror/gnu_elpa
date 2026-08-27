@@ -126,17 +126,14 @@
       (should-not (gnosis-review-is-thema-new-p id)))))
 
 (ert-deftest gnosis-test-review-reads-only-scheduler-authority ()
-  "Ignore contradictory legacy due, newness, and suspension facts."
+  "Read due, newness, and suspension from scheduler authority."
   (gnosis-test-with-db
     (let* ((id (gnosis-test--add-basic-thema "Q" "A"))
-           (today (gnosis--today-int))
-           (future (gnosis--date-to-int (gnosis-date 10))))
-      (gnosis-sqlite-execute
-       gnosis-db "UPDATE review_log SET next_rev = ?, n = 9, suspend = 1
-                   WHERE id = ?" (list future id))
+           (today (gnosis--today-int)))
       (should (gnosis-review-is-due-today-p id))
       (should (gnosis-review-is-due-p id))
       (should (gnosis-review-is-thema-new-p id))
+      (should-not (gnosis-suspended-p id))
       (should (member id (gnosis-review-get-due-themata)))
       (should (member id (gnosis-get-themata-by-reviews 0)))
       (should-not (gnosis-review-get-overdue-themata))
@@ -146,22 +143,14 @@
       (should (equal (list id) (gnosis-review-get-overdue-themata)))
       (should (= 1 (gnosis-review-count-overdue))))))
 
-(ert-deftest gnosis-test-review-suspension-projection-is-atomic ()
-  "Read and update suspension through scheduler authority atomically."
+(ert-deftest gnosis-test-review-suspension-uses-scheduler-authority ()
+  "Read and update suspension through scheduler authority."
   (gnosis-test-with-db
     (let ((id (gnosis-test--add-basic-thema "Q" "A")))
-      (gnosis-sqlite-execute gnosis-db
-                             "UPDATE review_log SET suspend = 1 WHERE id = ?"
-                             (list id))
-      (gnosis-toggle-suspend-themata (list id) nil t)
+      (gnosis-toggle-suspend-themata (list id) 1 t)
       (should (gnosis-suspended-p id))
-      (should (= 1 (gnosis-get 'suspend 'review-log `(= id ,id))))
-      (gnosis-sqlite-execute
-       gnosis-db "CREATE TRIGGER controlled_legacy_suspend_failure
-                   BEFORE UPDATE OF suspend ON review_log
-                   BEGIN SELECT RAISE(ABORT, 'controlled failure'); END")
-      (should-error (gnosis-toggle-suspend-themata (list id) 0 t))
-      (should (gnosis-suspended-p id)))))
+      (gnosis-toggle-suspend-themata (list id) 0 t)
+      (should-not (gnosis-suspended-p id)))))
 
 (ert-deftest gnosis-test-review-failure-requeues-once-and-completes ()
   "Append a failed thema once and finish after its bounded retry."

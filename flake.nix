@@ -27,7 +27,6 @@
         ./lisp/gnosis-fsrs.el
         ./lisp/gnosis-anki.el
         ./lisp/gnosis-cloze.el
-        ./lisp/gnosis-custom-values.el
         ./lisp/gnosis-dashboard.el
         ./lisp/gnosis-db.el
         ./lisp/gnosis-export-import.el

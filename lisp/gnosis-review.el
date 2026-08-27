@@ -41,7 +41,6 @@
 (require 'gnosis-scheduler)
 (require 'gnosis-cloze)
 (require 'gnosis-vc)
-(require 'gnosis-custom-values)
 (require 'gnosis-algorithm)
 (require 'gnosis-monkeytype)
 (require 'gnosis-utils)
@@ -349,7 +348,7 @@ EVENT-ID, REVIEWED-AT-US, and REVIEW-DAY may pin deterministic facts."
           :preview (gnosis-scheduler-preview-review
                     event-id id outcome reviewed-at-us review-day))))
 
-(defun gnosis-review-algorithm (id success &optional _tags)
+(defun gnosis-review-algorithm (id success)
   "Return pending FSRS review for thema ID and binary SUCCESS."
   (gnosis-review--pending-result id success))
 
@@ -383,9 +382,8 @@ EVENT-ID, REVIEWED-AT-US, and REVIEW-DAY may pin deterministic facts."
 
 ;;; Type-specific review
 
-(defun gnosis-review-mcq (id tags)
-  "Review MCQ thema with ID.
-TAGS are pre-fetched for custom value lookup."
+(defun gnosis-review-mcq (id)
+  "Review MCQ thema with ID."
   (let* ((data (car (gnosis-select '[keimenon answer] 'themata `(= id ,id))))
 	 (keimenon (nth 0 data))
 	 (answer (car (nth 1 data)))
@@ -394,16 +392,15 @@ TAGS are pre-fetched for custom value lookup."
     (gnosis-display-keimenon (gnosis-org-format-string keimenon))
     (let* ((user-choice (gnosis-mcq-answer id))
 	   (success (string= answer user-choice))
-	   (result (gnosis-review-algorithm id success tags)))
+	   (result (gnosis-review-algorithm id success)))
       (unless success (setq gnosis-review--monkeytype-text answer))
       (gnosis-display-correct-answer-mcq answer user-choice)
       (gnosis-display-parathema parathema)
       (gnosis-display-next-review (gnosis-review--result-date result) success)
       (cons success result))))
 
-(defun gnosis-review-basic (id tags)
-  "Review basic type thema for ID.
-TAGS are pre-fetched for custom value lookup."
+(defun gnosis-review-basic (id)
+  "Review basic type thema for ID."
   (let* ((data (car (gnosis-select
 		     '[keimenon hypothesis answer]
 		     'themata `(= id ,id))))
@@ -418,7 +415,7 @@ TAGS are pre-fetched for custom value lookup."
     (let* ((user-input (gnosis--read-string-with-input-method
 			"Answer: " answer))
 	   (success (gnosis-compare-strings answer user-input))
-	   (result (gnosis-review-algorithm id success tags)))
+	   (result (gnosis-review-algorithm id success)))
       (unless success (setq gnosis-review--monkeytype-text answer))
       (gnosis-display-basic-answer answer success user-input)
       (gnosis-display-parathema parathema)
@@ -462,9 +459,8 @@ Returns (NEW-UNREVEALED NEW-HINTS NEW-REVEALED)."
 	    unrevealed-hints)))
     (list new-unrevealed new-hints new-revealed)))
 
-(defun gnosis-review-cloze (id tags)
-  "Review cloze type thema for ID.
-TAGS are pre-fetched for custom value lookup."
+(defun gnosis-review-cloze (id)
+  "Review cloze type thema for ID."
   (let* ((data (car (gnosis-select
 		     '[keimenon answer hypothesis]
 		     'themata `(= id ,id))))
@@ -504,14 +500,13 @@ TAGS are pre-fetched for custom value lookup."
 		  gnosis-review--monkeytype-text
 		  (car unrevealed-clozes))
 	    (throw 'done nil)))))
-    (let ((result (gnosis-review-algorithm id success tags)))
+    (let ((result (gnosis-review-algorithm id success)))
       (gnosis-display-parathema parathema)
       (gnosis-display-next-review (gnosis-review--result-date result) success)
       (cons success result))))
 
-(defun gnosis-review-mc-cloze (id tags)
-  "Review mc-cloze type thema for ID.
-TAGS are pre-fetched for custom value lookup."
+(defun gnosis-review-mc-cloze (id)
+  "Review mc-cloze type thema for ID."
   (let* ((data (car (gnosis-select
 		     '[keimenon answer hypothesis]
 		     'themata `(= id ,id))))
@@ -532,7 +527,7 @@ TAGS are pre-fetched for custom value lookup."
       (gnosis-display-cloze-string keimenon nil nil nil cloze)
       (gnosis-display-correct-answer-mcq (car cloze) user-input)
       (setq gnosis-review--monkeytype-text (car cloze)))
-    (let ((result (gnosis-review-algorithm id success tags)))
+    (let ((result (gnosis-review-algorithm id success)))
       (gnosis-display-parathema parathema)
       (gnosis-display-next-review (gnosis-review--result-date result) success)
       (cons success result))))
@@ -545,17 +540,14 @@ TAGS are pre-fetched for custom value lookup."
 
 (defun gnosis-review--display-thema (id)
   "Display thema with ID and call the appropriate review func.
-Fetches tags once and passes them to the type-specific function.
 Returns (TYPE (SUCCESS . ALGORITHM-RESULT))."
   (let* ((type (gnosis-get 'type 'themata `(= id ,id)))
-         (tags (gnosis-select 'tag 'thema-tag
-			      `(= thema-id ,id) t))
          (func-name (intern (format "gnosis-review-%s"
 				    (downcase type)))))
     (if (fboundp func-name)
         (progn
 	  (window-configuration-to-register :gnosis-pre-image)
-          (list type (funcall func-name id tags)))
+          (list type (funcall func-name id)))
       (error "Malformed thema type: '%s'" type))))
 
 (defun gnosis-review--failed-disposition-p (disposition)

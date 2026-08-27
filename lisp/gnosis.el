@@ -46,9 +46,9 @@
 ;; Everything lives in one database: themata, review history,
 ;; nodes, node links, and thema-to-node links.
 ;;
-;; The spaced repetition algorithm is highly adjustable, allowing
-;; users to set specific values for tags, creating a personalized
-;; learning environment for each topic.
+;; Gnosis uses FSRS-6 for spaced-repetition scheduling.  Tags organise
+;; themata and select focused review sessions without changing scheduler
+;; parameters.
 
 ;;; Code:
 
@@ -59,7 +59,6 @@
 (require 'gnosis-scheduler)
 (require 'gnosis-vc)
 (require 'gnosis-tags)
-(require 'gnosis-custom-values)
 (require 'gnosis-links)
 (require 'animate)
 

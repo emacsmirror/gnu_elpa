@@ -772,8 +772,8 @@ Every thema shares a common set of fields:
 - *answer*: The correct answer or list of cloze gaps.
 - *parathema* (/παράθεμα/, side-text): supplementary text shown after
   answering, used to add context or a longer explanation.
-- *tags*: A list of strings for organising themata and applying
-  per-tag algorithm customisation.
+- *tags*: A list of strings for organising, filtering, and selecting
+  themata for focused review sessions.
 - *links*: Node IDs extracted from =[[id:...]]= org-links present in the
   keimenon or parathema.  Used for topic-based review.
 
@@ -842,13 +842,9 @@ place, re-synchronising both tags and node links.
 
 ** Tags on Themata
 
-Tags are free-form strings that serve two purposes:
-
-1. *Organisation*: Filter themata during review by including or excluding
-   tags (see [[#review][Review System]]).
-2. *Algorithm customisation*: Override the default spaced repetition
-   parameters for all themata carrying a given tag (see
-   [[#algorithm][The Algorithm]]).
+Tags are free-form strings used to organise themata.  During review,
+you can include or exclude tags to select a focused session (see
+[[#review][Review System]]).
 
 During thema creation or editing, press =C-c C-q= in the edit buffer to
 add tags interactively using completion against existing tags.
@@ -1171,39 +1167,6 @@ midnight to be counted against the same day as the rest of their
 evening session.
 
 /The setting affects all date-dependent logic/
-
-** Per-Tag Algorithm Customisation
-
-=gnosis-custom-values= lets you override algorithm parameters for all
-themata carrying a given tag:
-
-#+begin_src emacs-lisp
-(use-package gnosis
-  :config
-  (setq gnosis-custom-values
-        '(;; Strict scheduling for Greek vocabulary.
-          (:tag "greek"
-                (:proto     (0 1 3 7)
-                 :amnesia   0.6
-                 :lethe     2
-                 :anagnosis 4
-                 :epignosis 0.15
-                 :agnoia    0.25))
-
-          ;; Lenient scheduling for programming concepts.
-          (:tag "programming"
-                (:proto     (0 1)
-                 :amnesia   0.4
-                 :lethe     3
-                 :anagnosis 2
-                 :epignosis 0.2
-                 :agnoia    0.15)))))
-#+end_src
-
-When a thema carries multiple tags with overlapping parameters, gnosis
-aggregates: for =:amnesia=, =:epignosis=, =:agnoia= the maximum is used;
-for =:anagnosis=, =:lethe= the minimum is used; for =:proto= the
-element-wise maximum.
 
 ** All Algorithm Variables
 

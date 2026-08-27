@@ -20,7 +20,7 @@ INFO := docs/gnosis.info
 
 MODULES := gnosis-sqlite gnosis-tl gnosis-utils gnosis-org \
 	gnosis-algorithm gnosis-fsrs gnosis-cloze gnosis-db gnosis-scheduler gnosis-vc \
-	gnosis-tags gnosis-custom-values gnosis-links gnosis-monkeytype \
+	gnosis-tags gnosis-links gnosis-monkeytype \
 	gnosis-nodes gnosis-journal gnosis gnosis-review gnosis-dashboard \
 	gnosis-export-import gnosis-anki
 SOURCES := $(addprefix $(LISP_DIR)/,$(addsuffix .el,$(MODULES)))

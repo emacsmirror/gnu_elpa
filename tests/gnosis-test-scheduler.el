@@ -408,7 +408,7 @@
                 ((symbol-function 'gnosis-display-hint) #'ignore)
                 ((symbol-function 'gnosis-display-basic-answer) #'ignore)
                 ((symbol-function 'gnosis-display-parathema) #'ignore))
-        (pcase-let ((`(,success . ,result) (gnosis-review-basic id nil)))
+        (pcase-let ((`(,success . ,result) (gnosis-review-basic id)))
           (should success)
           (should (equal displayed (gnosis-review--result-date result)))
           (should (= 0 (caar (gnosis-sqlite-select

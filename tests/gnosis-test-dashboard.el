@@ -115,14 +115,11 @@ Includes `gnosis-test-with-clean-cache' for isolation."
       (list two-days-ago 0 0 yesterday 2 1 today 5 1))
      (gnosis-scheduler-accept-review
       (make-string 64 ?a) id 'success 1000000 today)
-     (gnosis-sqlite-execute
-      gnosis-db "INSERT INTO activity_log VALUES (?, ?, ?)" (list today 99 99))
      (let ((before
             (list
              (gnosis-sqlite-select
               gnosis-db "SELECT * FROM review_activity_baseline")
-             (gnosis-sqlite-select gnosis-db "SELECT * FROM review_events")
-             (gnosis-sqlite-select gnosis-db "SELECT * FROM activity_log"))))
+             (gnosis-sqlite-select gnosis-db "SELECT * FROM review_events"))))
        (with-temp-buffer
          (funcall gnosis-dashboard-module-today-stats)
          (funcall gnosis-dashboard-module-average-rev)
@@ -150,8 +147,7 @@ Includes `gnosis-test-with-clean-cache' for isolation."
                (list
                 (gnosis-sqlite-select
                  gnosis-db "SELECT * FROM review_activity_baseline")
-                (gnosis-sqlite-select gnosis-db "SELECT * FROM review_events")
-                (gnosis-sqlite-select gnosis-db "SELECT * FROM activity_log"))))))))
+                (gnosis-sqlite-select gnosis-db "SELECT * FROM review_events"))))))))
 
 (ert-deftest gnosis-test-dashboard-sort-total-themata ()
   "Sort entries by column index 1 (total themata count)."

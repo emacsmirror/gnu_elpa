@@ -200,8 +200,6 @@ Includes `gnosis-test-with-clean-cache' for isolation."
         (gnosis-add-thema-fields
          "basic" "Scheduler only" '("") '("A") "" '("test")
          1 nil nil id)
-        (should-not (gnosis-select 'id 'review `(= id ,id) t))
-        (should-not (gnosis-select 'id 'review-log `(= id ,id) t))
         (should (equal
                  "Yes"
                  (aref (cadar (gnosis-dashboard--output-themata (list id))) 5)))
@@ -225,7 +223,6 @@ Includes `gnosis-test-with-clean-cache' for isolation."
           (gnosis-dashboard-suspend-tag "math")))
       (should (= (gnosis-get 'suspended 'scheduler-state
                              `(= thema-id ,id)) 1))
-      (should (= (gnosis-get 'suspend 'review-log `(= id ,id)) 1))
       (should (equal
                (aref (cadar (gnosis-dashboard--output-themata (list id))) 5)
                "Yes"))))))
@@ -478,10 +475,8 @@ Binds `gnosis-nodes-dir' to the temp directory."
 ;; ──────────────────────────────────────────────────────────
 
 (defun gnosis-test--set-review-count (id n)
-  "Set review count N for thema ID in both transition-era stores."
-  (gnosis-sqlite-with-transaction gnosis-db
-    (gnosis-update 'review-log `(= n ,n) `(= id ,id))
-    (gnosis-update 'scheduler-state `(= reps ,n) `(= thema-id ,id))))
+  "Set authoritative review count N for thema ID."
+  (gnosis-update 'scheduler-state `(= reps ,n) `(= thema-id ,id)))
 
 (ert-deftest gnosis-test-get-themata-by-reviews-basic ()
   "Get themata filtered by review count."

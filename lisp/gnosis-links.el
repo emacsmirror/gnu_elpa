@@ -59,14 +59,17 @@ for recursion."
            when (car result)
            collect (cons thema-id (cdr result))))
 
-(defun gnosis--update-themata-keimenon (updates)
+(defun gnosis--update-themata-keimenon (updates node-id)
   "Apply thema keimenon pairs to the database.
-UPDATES contains (ID . NEW-KEIMENON) pairs."
+UPDATES contains (ID . NEW-KEIMENON) pairs.
+NODE-ID is added to each updated thema's link index."
   (gnosis-sqlite-with-transaction (gnosis--ensure-db)
     (dolist (update updates)
       (gnosis-update 'themata
                      `(= keimenon ,(cdr update))
-                     `(= id ,(car update))))))
+                     `(= id ,(car update)))
+      (gnosis--insert-into
+       'thema-links `([,(car update) ,node-id]) t))))
 
 (defun gnosis--commit-bulk-link (count string)
   "Commit the bulk-link transaction for COUNT themata using STRING."
@@ -98,7 +101,7 @@ Return the updated thema IDs."
       (when (y-or-n-p
              (format "Replace '%s' in %d themata? "
                      string (length updates)))
-        (gnosis--update-themata-keimenon updates)
+        (gnosis--update-themata-keimenon updates node-id)
         (gnosis--commit-bulk-link (length updates) string)
         (message "Updated %d themata with links to '%s'"
                  (length updates) string)

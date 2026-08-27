@@ -59,5 +59,18 @@
        (gnosis-select '[source dest] 'thema-links
                       `(and (= source ,source) (= dest ,expected)))))))
 
+(ert-deftest gnosis-test-bulk-link-updates-thema-link-index ()
+  "Bulk-link updates both thema text and its node-link index."
+  (gnosis-test-with-db
+    (let ((id (gnosis-test--add-basic-thema "Emacs question" "Answer")))
+      (gnosis--insert-into
+       'nodes '(["node-1" "node.org" "Emacs" 0 nil "0" "hash"]))
+      (cl-letf (((symbol-function 'y-or-n-p) (lambda (&rest _) t)))
+        (gnosis-bulk-link-themata (list id) "Emacs" "node-1"))
+      (should (equal (gnosis-get 'keimenon 'themata `(= id ,id))
+                     "[[id:node-1][Emacs]] question"))
+      (should (equal (gnosis-select '[source dest] 'thema-links)
+                     `((,id "node-1")))))))
+
 (provide 'gnosis-test-links)
 ;;; gnosis-test-links.el ends here

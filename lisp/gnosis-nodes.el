@@ -175,9 +175,10 @@ Try M-x gnosis-nodes-db-force-sync to rebuild database."
 Try M-x gnosis-nodes-db-force-sync if issue persists."
               file (error-message-string err)))))
 
-(defun gnosis-nodes--delete-file (&optional file)
+(defun gnosis-nodes--delete-file (&optional file preserve-incoming)
   "Delete contents for FILE in database.
-Removes node rows, associated links, and tags."
+Removes node rows, associated links, and tags.
+When PRESERVE-INCOMING is non-nil, retain links from other files."
   (let* ((file (or file (file-name-nondirectory (buffer-file-name))))
 	 (filename (file-name-nondirectory file))
 	 (journal-p (file-in-directory-p file (gnosis-nodes--journal-dir)))
@@ -192,7 +193,8 @@ Removes node rows, associated links, and tags."
 		      (gnosis-nodes--delete 'nodes `(= id ,node)))
 		    (gnosis-nodes--delete 'node-tag `(= node-id ,node))
 		    (gnosis-nodes--delete 'node-links `(= source ,node))
-		    (gnosis-nodes--delete 'node-links `(= dest ,node)))))))
+		    (unless preserve-incoming
+		      (gnosis-nodes--delete 'node-links `(= dest ,node))))))))
 
 (defun gnosis-nodes-update-file (&optional file)
   "Update contents of FILE in database.
@@ -202,7 +204,7 @@ instead of re-reading from disk (avoids re-decrypting .gpg files)."
   (let* ((file (or file (buffer-file-name)))
 	 (journal-p (file-in-directory-p file (gnosis-nodes--journal-dir)))
 	 (buf (and file (get-file-buffer file))))
-    (gnosis-nodes--delete-file file)
+    (gnosis-nodes--delete-file file t)
     (gnosis-nodes--update-file file journal-p buf)
     ;; Update todos
     (when (and journal-p file)

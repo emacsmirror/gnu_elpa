@@ -141,6 +141,44 @@
                 (gnosis-sqlite-close edb))))
         (when (file-exists-p export-file) (delete-file export-file))))))
 
+(ert-deftest gnosis-test-export-no-matching-tags-is-empty ()
+  "An active tag filter matching nothing exports zero themata."
+  (gnosis-test-with-db
+    (gnosis-test--add-basic-thema "Q1" "A1" '("present"))
+    (gnosis-test--add-basic-thema "Q2" "A2" '("other"))
+    (let ((export-file (concat (make-temp-file "gnosis-export-filter-") ".db")))
+      (unwind-protect
+          (progn
+            (gnosis-export-db export-file '("absent") nil t)
+            (let ((edb (gnosis-sqlite-open export-file)))
+              (unwind-protect
+                  (should (= 0 (caar (gnosis-sqlite-select
+                                      edb "SELECT COUNT(*) FROM themata"))))
+                (gnosis-sqlite-close edb))))
+        (when (file-exists-p export-file) (delete-file export-file))))))
+
+(ert-deftest gnosis-test-save-rolls-back-all-fields-on-link-error ()
+  "A failed save leaves no partially inserted thema rows."
+  (gnosis-test-with-db
+    (with-temp-buffer
+      (org-mode)
+      (insert "* Thema :probe:\n"
+              ":PROPERTIES:\n"
+              ":GNOSIS_ID: 123456789012345678\n"
+              ":GNOSIS_TYPE: Basic\n"
+              ":END:\n"
+              "** Keimenon\n"
+              "Q [[id:node-x][X]] [[id:node-x][X]]\n"
+              "** Hypothesis\n- hint\n"
+              "** Answer\n- A\n"
+              "** Parathema\n")
+      (should-error (gnosis-save) :type 'user-error))
+    (dolist (table '(themata review review-log extras thema-links thema-tag))
+      (should (= 0 (caar (gnosis-sqlite-select
+                          gnosis-db
+                          (format "SELECT COUNT(*) FROM %s"
+                                  (gnosis-sqlite--ident table)))))))))
+
 ;; ---- Group 2: Import diff ----
 
 (ert-deftest gnosis-test-import-diff-detects-new ()

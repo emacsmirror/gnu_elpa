@@ -230,10 +230,13 @@ Returns nil on success, or an error message string on failure."
               (puthash id t ht))))
          (errors nil)
          (edited-id (string-to-number (caar themata))))
-    (gnosis-sqlite-with-transaction (gnosis--ensure-db)
-      (cl-loop for thema in themata
-               for err = (gnosis-save-thema thema)
-               when err do (push err errors)))
+    (catch 'gnosis-save-failed
+      (gnosis-sqlite-with-transaction (gnosis--ensure-db)
+        (cl-loop for thema in themata
+                 for err = (gnosis-save-thema thema)
+                 when err do (push err errors))
+        (when errors
+          (throw 'gnosis-save-failed nil))))
     (if errors
         (user-error
          "Failed to import %d thema(ta):\n%s"
@@ -854,10 +857,6 @@ WHERE thema_id = ?" (list id)))
         (gnosis-import--render-detail
          id status data))
       (display-buffer buf))))
-
-;; Declared for the byte compiler: `keymap-popup-define' references the
-;; variable in generated functions before its `defvar-keymap' form.
-(defvar gnosis-import-diff-mode-map)
 
 (keymap-popup-define gnosis-import-diff-mode-map
   "Import Review"

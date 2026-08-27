@@ -1,6 +1,8 @@
 .POSIX:
 .PHONY: all doc autoload autoload-smoke compile lint lint-checkdoc \
-	lint-package-lint test check dev load clean
+	lint-package-lint test check dev load clean \
+	_doc _autoload _autoload-smoke _compile _lint _lint-checkdoc \
+	_lint-package-lint _test _test-summary _check _dev
 
 -include local.mk
 
@@ -9,6 +11,11 @@ EMACSCLIENT ?= emacsclient
 EMACS_OPTS ?= -Q --batch
 ENV ?=
 EXTRA_LOAD_PATH ?=
+NIX ?= nix
+NIX_FLAGS ?= --no-write-lock-file
+GNOSIS_ENV_WRAPPED ?=
+JOBS ?= $(shell nproc 2>/dev/null || printf '4')
+TEST_RESULTS := .test-results
 
 LISP_DIR := lisp
 TEST_DIR := tests
@@ -60,20 +67,31 @@ TESTS := tests/gnosis-test-sqlite.el \
 	tests/gnosis-test-journal.el \
 	tests/gnosis-test-migration.el \
 	tests/gnosis-test-anki.el
+TEST_STAMPS := $(patsubst tests/%.el,$(TEST_RESULTS)/%.stamp,$(TESTS))
 
 all: check
 
-doc: $(ORG)
+doc autoload autoload-smoke compile lint lint-checkdoc lint-package-lint \
+test check dev:
+	@if test -z "$(GNOSIS_ENV_WRAPPED)" && test -z "$$IN_NIX_SHELL" \
+		&& command -v "$(NIX)" >/dev/null 2>&1; then \
+		exec "$(NIX)" develop $(NIX_FLAGS) --command \
+			$(MAKE) GNOSIS_ENV_WRAPPED=1 _$@; \
+	else \
+		exec $(MAKE) GNOSIS_ENV_WRAPPED=1 _$@; \
+	fi
+
+_doc: $(ORG)
 	$(ENV) $(EMACS) $(EMACS_OPTS) --load org \
 		--eval "(with-current-buffer (find-file \"$(ORG)\") \
 		  (org-texinfo-export-to-info))"
 
-autoload:
+_autoload:
 	rm -f $(AUTOLOADS)
 	$(ENV) $(EMACS) $(EMACS_OPTS) -L $(LISP_DIR) \
 		--eval "(loaddefs-generate \"$(LISP_DIR)\" \"$(AUTOLOADS)\")"
 
-autoload-smoke: autoload
+_autoload-smoke: _autoload
 	$(ENV) $(EMACS) $(EMACS_OPTS) -L $(LISP_DIR) \
 		-l gnosis-autoloads \
 		--eval "(dolist (command '($(AUTOLOAD_COMMANDS))) \
@@ -81,7 +99,7 @@ autoload-smoke: autoload
 		               (commandp command)) \
 		    (error \"Missing command autoload: %S\" command)))"
 
-compile: autoload
+_compile: _autoload
 	rm -f $(LISP_DIR)/*.elc
 	$(ENV) $(EMACS) $(EMACS_OPTS) $(LOAD_PATH) \
 		--eval "(defun gnosis--compile-log-warning \
@@ -106,12 +124,17 @@ compile: autoload
 		              load-prefer-newer t)" \
 		-f batch-byte-compile $(SOURCES)
 
-test:
-	@set -eu; for file in $(TESTS); do \
-		tmp=$$(mktemp -d); \
-		trap 'rm -rf "$$tmp"' 0 1 2 3 15; \
-		echo "Running $$file..."; \
-		HOME="$$tmp/home" XDG_CACHE_HOME="$$tmp/cache" \
+_test: _autoload
+	@rm -rf $(TEST_RESULTS)
+	@mkdir -p $(TEST_RESULTS)
+	@$(MAKE) --no-print-directory -j$(JOBS) -Otarget _test-summary
+
+$(TEST_RESULTS)/%.stamp: tests/%.el
+	@tmp=$$(mktemp -d); log="$(TEST_RESULTS)/$*.log"; \
+	trap 'rm -rf "$$tmp"' 0 1 2 3 15; \
+	mkdir -p "$$tmp/home" "$$tmp/cache" "$$tmp/config" \
+		"$$tmp/share" "$$tmp/state" "$$tmp/gnosis"; \
+	if HOME="$$tmp/home" XDG_CACHE_HOME="$$tmp/cache" \
 		XDG_CONFIG_HOME="$$tmp/config" XDG_DATA_HOME="$$tmp/share" \
 		XDG_STATE_HOME="$$tmp/state" GNOSIS_TEST_DIR="$$tmp/gnosis" \
 		$(ENV) $(EMACS) $(EMACS_OPTS) $(LOAD_PATH) -l ert \
@@ -119,13 +142,45 @@ test:
 			  (file-name-as-directory (getenv \"GNOSIS_TEST_DIR\")) \
 			  gnosis-testing t gnosis-vc-auto-push nil \
 			  load-prefer-newer t)" \
-			-l "$$file" -f ert-run-tests-batch-and-exit; \
-		rm -rf "$$tmp"; trap - 0 1 2 3 15; \
-	done
+			-l "$<" -f ert-run-tests-batch-and-exit > "$$log" 2>&1; then \
+		status=OK; \
+	else \
+		status=FAIL; \
+	fi; \
+	n=$$(grep -o 'Ran [0-9][0-9]*' "$$log" | grep -o '[0-9][0-9]*' || true); \
+	if test "$$status" = OK; then \
+		printf '  OK %s (%s tests)\n' "$<" "$${n:-0}"; \
+		rm -f "$$log"; \
+	else \
+		printf 'FAIL %s (%s tests)\n' "$<" "$${n:-0}"; \
+		while IFS= read -r line; do printf '%s\n' "$$line"; done < "$$log"; \
+	fi; \
+	printf '%s %s\n' "$$status" "$${n:-0}" > "$@"
 
-check: compile autoload-smoke test
+_test-summary: $(TEST_STAMPS)
+	@total=0; passed=0; failed=0; failed_files=""; \
+	for stamp in $(TEST_STAMPS); do \
+		read status n < "$$stamp"; total=$$((total + n)); \
+		if test "$$status" = FAIL; then \
+			failed=$$((failed + 1)); \
+			failed_files="$$failed_files tests/$$(basename "$$stamp" .stamp).el"; \
+		else \
+			passed=$$((passed + 1)); \
+		fi; \
+	done; \
+	printf '%s tests across %s files: %s passed, %s failed\n' \
+		"$$total" "$(words $(TEST_STAMPS))" "$$passed" "$$failed"; \
+	if test "$$failed" -eq 0; then \
+		rm -rf $(TEST_RESULTS); \
+	else \
+		printf 'Failed files:%s\nLogs preserved in $(TEST_RESULTS)/\n' \
+			"$$failed_files"; \
+	fi; \
+	test "$$failed" -eq 0
 
-lint-checkdoc:
+_check: _compile _autoload-smoke _test
+
+_lint-checkdoc:
 	@set -eu; for file in $(SOURCES); do \
 		output=$$($(ENV) $(EMACS) $(EMACS_OPTS) -L $(LISP_DIR) \
 			--eval="(progn (require 'checkdoc) \
@@ -135,7 +190,7 @@ lint-checkdoc:
 		fi; \
 	done
 
-lint-package-lint:
+_lint-package-lint:
 	@set -eu; for file in $(PACKAGE_LINT_SOURCES); do \
 		$(ENV) $(EMACS) $(EMACS_OPTS) $(LOAD_PATH) \
 			--eval="(package-initialize)" \
@@ -155,9 +210,9 @@ lint-package-lint:
 			  (kill-emacs 1))"; \
 	done
 
-lint: lint-checkdoc lint-package-lint
+_lint: _lint-checkdoc _lint-package-lint
 
-dev: lint check
+_dev: _lint _check
 
 load:
 	rm -f $(LISP_DIR)/*.elc
@@ -196,3 +251,4 @@ load:
 clean:
 	rm -f $(TEXI) $(INFO) $(AUTOLOADS) \
 		$(LISP_DIR)/*.elc $(TEST_DIR)/*.elc *-pkg.el*
+	rm -rf $(TEST_RESULTS)

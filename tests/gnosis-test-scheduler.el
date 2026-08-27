@@ -287,7 +287,7 @@
     (should-error
      (gnosis-add-thema-fields
       "basic" "Question" '("") '("Answer") "" '("test") 0 nil nil 101))
-    (dolist (table '(themata review review-log scheduler-baseline scheduler-state))
+    (dolist (table '(themata scheduler-baseline scheduler-state))
       (should (= 0 (caar (gnosis-sqlite-select
                           gnosis-db
                           (format "SELECT COUNT(*) FROM %s"
@@ -308,12 +308,7 @@
                  (caar (gnosis-sqlite-select
                         gnosis-db
                         "SELECT due_day FROM scheduler_baseline
-                          WHERE thema_id = 101"))))
-      (dolist (table '(review review-log))
-        (should (= 0 (caar (gnosis-sqlite-select
-                            gnosis-db
-                            (format "SELECT COUNT(*) FROM %s"
-                                    (gnosis-sqlite--ident table))))))))))
+                          WHERE thema_id = 101")))))))
 
 (ert-deftest gnosis-test-scheduler-all-creation-paths-are-due-and-new ()
   "Read ordinary, Anki, and SQLite imports from scheduler authority."
@@ -337,11 +332,6 @@
             (gnosis-import--apply-changes
              export-file '(103) nil
              (gnosis-import--file-sha256 export-file))
-            (dolist (table '(review review-log))
-              (should (= 0 (caar (gnosis-sqlite-select
-                                  gnosis-db
-                                  (format "SELECT COUNT(*) FROM %s"
-                                          (gnosis-sqlite--ident table)))))))
             (let ((expected '(101 102 103))
                   (gnosis-new-themata-limit nil)
                   (gnosis-review-new-first t))
@@ -363,9 +353,6 @@
            (pending (gnosis-review--pending-result
                      1 t gnosis-test-scheduler--event-id 1000000 today))
            overridden final-success)
-      (gnosis-sqlite-execute
-       gnosis-db "INSERT INTO review_log VALUES (?, ?, ?, 0, 0, 0, 0, 0, 0)"
-       (list 1 today today))
       (cl-letf (((symbol-function 'gnosis-display-next-review) #'ignore)
                 ((symbol-function 'gnosis-review-actions)
                  (lambda (success _id result)
@@ -393,8 +380,7 @@
                      (car (gnosis-sqlite-select
                            gnosis-db "SELECT rating, reps, lapses
                                       FROM review_events JOIN scheduler_state
-                                        USING (thema_id)"))))
-      (should (= 0 (gnosis-get 'n 'review-log '(= id 1)))))))
+                                        USING (thema_id)")))))))
 
 (ert-deftest gnosis-test-scheduler-review-basic-displays-preview-before-accept ()
   "Display pending FSRS due date, then accept only on explicit result."

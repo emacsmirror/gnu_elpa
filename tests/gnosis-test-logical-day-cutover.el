@@ -54,7 +54,7 @@
     (should (= 20250615 (gnosis--today-int)))))
 
 (ert-deftest gnosis-test-logical-day-cutover-production-inventory ()
-  "Reject old date API calls outside the retiring toy algorithm module."
+  "Reject old date API calls in production."
   (let ((regexp (rx symbol-start
                     "gnosis-algorithm-"
                     (or "date" "date-diff" "-date-later-p")
@@ -62,11 +62,9 @@
     (dolist (file (directory-files
                    (expand-file-name "lisp" gnosis-test-logical-day-cutover--root)
                    t "\\.el\\'"))
-      (unless (member (file-name-nondirectory file)
-                      '("gnosis-algorithm.el" "gnosis-autoloads.el"))
-        (with-temp-buffer
-          (insert-file-contents file)
-          (should-not (re-search-forward regexp nil t)))))))
+      (with-temp-buffer
+        (insert-file-contents file)
+        (should-not (re-search-forward regexp nil t))))))
 
 (ert-deftest gnosis-test-legacy-scheduler-writer-inventory ()
   "Reject toy constants and legacy scheduler inserts in production."
@@ -79,11 +77,9 @@
     (dolist (file (directory-files
                    (expand-file-name "lisp" gnosis-test-logical-day-cutover--root)
                    t "\\.el\\'"))
-      (unless (member (file-name-nondirectory file)
-                      '("gnosis-algorithm.el" "gnosis-autoloads.el"))
-        (with-temp-buffer
-          (insert-file-contents file)
-          (should-not (re-search-forward regexp nil t)))))))
+      (with-temp-buffer
+        (insert-file-contents file)
+        (should-not (re-search-forward regexp nil t))))))
 
 (ert-deftest gnosis-test-logical-day-cutover-manual-option ()
   "Document the neutral day-boundary option without the old name."

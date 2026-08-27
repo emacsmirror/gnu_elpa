@@ -24,7 +24,6 @@
       version = "0.10.6";
       packageFiles = [
         ./lisp/gnosis-logical-day.el
-        ./lisp/gnosis-algorithm.el
         ./lisp/gnosis-fsrs.el
         ./lisp/gnosis-anki.el
         ./lisp/gnosis-cloze.el
@@ -48,7 +47,6 @@
       testFiles = [
         ./docs/gnosis.org
         ./tests/gnosis-fsrs-v2.json
-        ./tests/gnosis-test-algorithm.el
         ./tests/gnosis-test-anki.el
         ./tests/gnosis-test-autoload-boundary.el
         ./tests/gnosis-test-bulk-link.el

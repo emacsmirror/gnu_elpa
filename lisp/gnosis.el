@@ -66,7 +66,6 @@
 (require 'org)
 (require 'org-element)
 
-(require 'gnosis-algorithm)
 (require 'gnosis-monkeytype)
 (require 'gnosis-utils)
 (require 'gnosis-org)
@@ -546,13 +545,6 @@ REVIEW-IMAGE is optional image data and GNOSIS-ID is an optional ID."
 			   `([,gnosis-id ,(downcase type)
 					 ,keimenon ,hypothesis
 					 ,answer nil]))
-      (gnosis--insert-into 'review
-			   `([,gnosis-id
-			      ,gnosis-algorithm-gnosis-value
-			      ,gnosis-algorithm-amnesia-value]))
-      (gnosis--insert-into 'review-log `([,gnosis-id ,today
-						     ,today 0 0 0 0
-						     ,suspend 0]))
       (gnosis-scheduler-initialize-thema gnosis-id today suspend)
       (gnosis--insert-into 'extras `([,gnosis-id ,parathema ,review-image]))
       (cl-loop for link in links

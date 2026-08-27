@@ -18,7 +18,7 @@
   (add-to-list 'load-path lisp-dir))
 
 (require 'gnosis-sqlite)
-(require 'gnosis-algorithm)
+(require 'gnosis-logical-day)
 
 ;; Load gnosis-db--schemata for schema tests
 (defvar gnosis-db--schemata)
@@ -108,10 +108,6 @@
   (let ((val (gnosis-date)))
     (should (equal (gnosis-sqlite--decode (gnosis-sqlite--encode-param val)) val))))
 
-(ert-deftest gnosis-test-sqlite-roundtrip-gnosis-value ()
-  "Encode then decode gnosis algorithm value is identity."
-  (let ((val gnosis-algorithm-gnosis-value))
-    (should (equal (gnosis-sqlite--decode (gnosis-sqlite--encode-param val)) val))))
 
 ;;; ---- Group 2: Identifier conversion ----
 

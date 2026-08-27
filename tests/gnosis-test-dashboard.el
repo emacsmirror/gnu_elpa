@@ -196,6 +196,26 @@ Includes `gnosis-test-with-clean-cache' for isolation."
            (vec1 (cadr e1)))
       (should (equal (aref vec1 5) "Yes"))))))
 
+(ert-deftest gnosis-test-dashboard-scheduler-only-themata-remain-visible ()
+  "Read direct and warmed rows without legacy scheduler records."
+  (gnosis-test-with-db
+    (gnosis-test-with-dashboard-buffer
+      (let ((id 9001))
+        (gnosis-add-thema-fields
+         "basic" "Scheduler only" '("") '("A") "" '("test")
+         1 nil nil id)
+        (should-not (gnosis-select 'id 'review `(= id ,id) t))
+        (should-not (gnosis-select 'id 'review-log `(= id ,id) t))
+        (should (equal
+                 "Yes"
+                 (aref (cadar (gnosis-dashboard--output-themata (list id))) 5)))
+        (gnosis-update 'scheduler-state '(= suspended 0) `(= thema-id ,id))
+        (clrhash gnosis-dashboard--entry-cache)
+        (gnosis-dashboard--warm-cache-chunk (list (list id)) 1 0)
+        (should (equal "No" (aref (cadr (gethash id
+                                                  gnosis-dashboard--entry-cache))
+                                        5)))))))
+
 (ert-deftest gnosis-test-dashboard-suspend-tag-invalidates-entry-cache ()
   "Suspend-by-tag makes the next formatted entry reflect SQLite state."
   (gnosis-test-with-db
@@ -207,6 +227,8 @@ Includes `gnosis-test-with-clean-cache' for isolation."
       (cl-letf (((symbol-function 'y-or-n-p) (lambda (&rest _) t)))
         (let ((current-prefix-arg nil))
           (gnosis-dashboard-suspend-tag "math")))
+      (should (= (gnosis-get 'suspended 'scheduler-state
+                             `(= thema-id ,id)) 1))
       (should (= (gnosis-get 'suspend 'review-log `(= id ,id)) 1))
       (should (equal
                (aref (cadar (gnosis-dashboard--output-themata (list id))) 5)

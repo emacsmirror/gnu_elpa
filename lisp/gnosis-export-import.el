@@ -38,7 +38,6 @@
 (require 'gnosis-vc)
 (require 'gnosis-links)
 (require 'gnosis-logical-day)
-(require 'gnosis-algorithm)
 (require 'gnosis-sqlite)
 (require 'keymap-popup)
 (require 'org)
@@ -637,24 +636,6 @@ SELECT id, parathema, review_image FROM import_db.extras WHERE id IN (%s)"
             (gnosis-sqlite-execute-batch db
                                          "INSERT OR IGNORE INTO thema_tag (thema_id, tag) \
 SELECT thema_id, tag FROM import_db.thema_tag WHERE thema_id IN (%s)"
-                                         new-ids)
-            ;; Initialize review state for new themata
-            (let ((gnosis-val
-                   (prin1-to-string
-                    gnosis-algorithm-gnosis-value))
-                  (amnesia-val
-                   (prin1-to-string
-                    gnosis-algorithm-amnesia-value)))
-              (gnosis-sqlite-execute-batch db
-                                           (format "INSERT OR IGNORE INTO review (id, gnosis, amnesia) \
-SELECT id, '%s', '%s' FROM import_db.themata WHERE id IN (%%s)"
-                                                   gnosis-val amnesia-val)
-                                           new-ids))
-            (gnosis-sqlite-execute-batch db
-                                         (format "INSERT OR IGNORE INTO review_log \
-(id, last_rev, next_rev, c_success, t_success, c_fails, t_fails, suspend, n) \
-SELECT id, 0, %d, 0, 0, 0, 0, 0, 0 FROM import_db.themata WHERE id IN (%%s)"
-                                                 today)
                                          new-ids)
             (gnosis-scheduler-initialize-themata
              (mapcar (lambda (id) (list id today 0)) new-ids) db)

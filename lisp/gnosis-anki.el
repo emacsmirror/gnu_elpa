@@ -35,7 +35,6 @@
 (require 'gnosis-scheduler)
 (require 'gnosis-cloze)
 (require 'gnosis-vc)
-(require 'gnosis-algorithm)
 (require 'seq)
 (require 'ucs-normalize)
 
@@ -419,17 +418,15 @@ Batches inserts in groups of `gnosis-anki--tag-batch-size'."
             (setq offset end)))))))
 
 (defun gnosis-anki--bulk-insert-chunk
-    (db items ids gnosis-val amnesia-val today
+    (db items ids today
 	&optional extra-tag suspend)
   "Bulk-insert ITEMS into DB with pre-assigned IDS.
 ITEMS is a list of plists from `gnosis-anki--parse-notes'.
 IDS is a list of integer IDs, one per item.
-GNOSIS-VAL, AMNESIA-VAL, TODAY are pre-computed constants.
+TODAY is the captured logical review day.
 EXTRA-TAG, when non-nil, is appended to each item's tags.
 SUSPEND, when non-nil, imports themata as suspended."
   (let ((themata-params nil)
-        (review-params nil)
-        (review-log-params nil)
         (extras-params nil)
         (tag-params nil)
         (suspend-val (if suspend 1 0)))
@@ -456,14 +453,6 @@ SUSPEND, when non-nil, imports themata as suspended."
                                      (prin1-to-string hypothesis)
                                      (prin1-to-string answer)
                                      guid)))
-                  ;; review: id, gnosis-val, amnesia-val
-                  (setq review-params
-                        (nconc review-params
-                               (list id gnosis-val amnesia-val)))
-                  ;; review_log: id, date, date, 0, 0, 0, 0, suspend, 0
-                  (setq review-log-params
-                        (nconc review-log-params
-                               (list id today today 0 0 0 0 suspend-val 0)))
                   ;; extras: id, parathema, review-image
                   (setq extras-params
                         (nconc extras-params
@@ -479,16 +468,6 @@ SUSPEND, when non-nil, imports themata as suspended."
 		      (concat "INSERT INTO themata (id, type, keimenon, hypothesis, answer, source_guid) VALUES "
 			      (mapconcat (lambda (_) "(?,?,?,?,?,?)") items ", "))
 		      themata-params)
-      ;; INSERT INTO review (3 cols)
-      (sqlite-execute db
-		      (concat "INSERT INTO review VALUES "
-			      (mapconcat (lambda (_) "(?,?,?)") items ", "))
-		      review-params)
-      ;; INSERT INTO review_log (9 cols)
-      (sqlite-execute db
-		      (concat "INSERT INTO review_log VALUES "
-			      (mapconcat (lambda (_) "(?,?,?,?,?,?,?,?,?)") items ", "))
-		      review-log-params)
       (gnosis-scheduler-initialize-themata
        (mapcar (lambda (id) (list id today suspend-val)) ids) db)
       ;; INSERT INTO extras (3 cols)
@@ -638,12 +617,12 @@ Returns (SKIPPED . PREPARED) where PREPARED is a list of plists."
        (when gnosis-vc-auto-push (gnosis-vc-push))))))
 
 (defun gnosis-anki--chunk-insert (db item-chunks id-chunks total skipped
-                                     gnosis-val amnesia-val today cleanup-fn
+                                     today cleanup-fn
                                      source-file
                                      &optional extra-tag suspend)
   "Insert ITEM-CHUNKS with ID-CHUNKS into DB asynchronously.
-TOTAL and SKIPPED are counts for progress messages.  GNOSIS-VAL,
-AMNESIA-VAL, TODAY are pre-computed constants.  CLEANUP-FN is
+TOTAL and SKIPPED are counts for progress messages.  TODAY is the
+captured logical review day.  CLEANUP-FN is
 called with no args after the last chunk.  SOURCE-FILE is the
 original file path for the git commit message.  EXTRA-TAG and
 SUSPEND are passed through to `gnosis-anki--bulk-insert-chunk'."
@@ -661,7 +640,7 @@ SUSPEND are passed through to `gnosis-anki--bulk-insert-chunk'."
                  (progn
                    (gnosis-anki--bulk-insert-chunk
                     db (car item-rest) (car id-rest)
-                    gnosis-val amnesia-val today extra-tag suspend)
+                    today extra-tag suspend)
                    (setq imported (+ imported (length (car item-rest))))
                    (message "Importing... %d/%d (%d%%)"
                             imported total (/ (* 100 imported) total))
@@ -721,8 +700,6 @@ is the original .apkg path for the git commit message."
          (seq-partition prepared gnosis-anki--chunk-size)
          (seq-partition all-ids gnosis-anki--chunk-size)
          total skipped
-         (prin1-to-string gnosis-algorithm-gnosis-value)
-         gnosis-algorithm-amnesia-value
          (gnosis--today-int)
          cleanup-fn
          (or source-file db-file)

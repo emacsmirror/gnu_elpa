@@ -434,20 +434,16 @@ TMP-P, EXTRA-TAG, SUSPEND, and SOURCE-FILE are passed through to
                               :parathema ""
                               :tags '("lisp"))))
            (ids '(1001 1002))
-           (gnosis-val (prin1-to-string gnosis-algorithm-gnosis-value))
-           (amnesia-val gnosis-algorithm-amnesia-value)
            (today (gnosis--today-int)))
-      (gnosis-anki--bulk-insert-chunk gnosis-db items ids
-                                      gnosis-val amnesia-val today)
+      (gnosis-anki--bulk-insert-chunk gnosis-db items ids today)
       ;; Verify themata
       (should (= 2 (length (gnosis-select 'id 'themata nil t))))
       (should (string= "basic" (gnosis-get 'type 'themata '(= id 1001))))
       (should (string= "What is Emacs?"
                         (gnosis-get 'keimenon 'themata '(= id 1001))))
-      ;; Verify review
-      (should (= 2 (length (gnosis-select 'id 'review nil t))))
-      ;; Verify review_log
-      (should (= 2 (length (gnosis-select 'id 'review-log nil t))))
+      ;; Legacy scheduler rows are no longer created.
+      (should-not (gnosis-select 'id 'review nil t))
+      (should-not (gnosis-select 'id 'review-log nil t))
       (should
        (equal `((1001 ,today 0 0) (1002 ,today 0 0))
               (gnosis-sqlite-select
@@ -482,9 +478,7 @@ TMP-P, EXTRA-TAG, SUSPEND, and SOURCE-FILE are passed through to
           (today (gnosis--today-int)))
       (should-error
        (gnosis-anki--bulk-insert-chunk
-        gnosis-db (list item) '(1001)
-        (prin1-to-string gnosis-algorithm-gnosis-value)
-        gnosis-algorithm-amnesia-value today nil t))
+        gnosis-db (list item) '(1001) today nil t))
       (dolist (table '(themata review review-log extras thema-tag
                       scheduler-baseline scheduler-state))
         (should (= 0 (caar (gnosis-sqlite-select
@@ -502,11 +496,8 @@ TMP-P, EXTRA-TAG, SUSPEND, and SOURCE-FILE are passed through to
                               :parathema "extra info"
                               :tags '("cloze"))))
            (ids '(2001))
-           (gnosis-val (prin1-to-string gnosis-algorithm-gnosis-value))
-           (amnesia-val gnosis-algorithm-amnesia-value)
            (today (gnosis--today-int)))
-      (gnosis-anki--bulk-insert-chunk gnosis-db items ids
-                                      gnosis-val amnesia-val today nil t)
+      (gnosis-anki--bulk-insert-chunk gnosis-db items ids today nil t)
       (should (= 1 (length (gnosis-select 'id 'themata nil t))))
       (should (string= "cloze" (gnosis-get 'type 'themata '(= id 2001))))
       (should (string= "Emacs is a text editor"
@@ -530,11 +521,8 @@ TMP-P, EXTRA-TAG, SUSPEND, and SOURCE-FILE are passed through to
                               :parathema ""
                               :tags many-tags)))
            (ids '(3001))
-           (gnosis-val (prin1-to-string gnosis-algorithm-gnosis-value))
-           (amnesia-val gnosis-algorithm-amnesia-value)
            (today (gnosis--today-int)))
-      (gnosis-anki--bulk-insert-chunk gnosis-db items ids
-                                      gnosis-val amnesia-val today)
+      (gnosis-anki--bulk-insert-chunk gnosis-db items ids today)
       (let ((tags (gnosis-select 'tag 'thema-tag '(= thema-id 3001) t)))
         (should (= 20 (length tags)))))))
 
@@ -552,12 +540,9 @@ TMP-P, EXTRA-TAG, SUSPEND, and SOURCE-FILE are passed through to
             ;; At least 15 themata (10 basic + 5+ cloze items)
             (let ((count (length (gnosis-select 'id 'themata nil t))))
               (should (>= count 15)))
-            ;; Every thema has a review entry
-            (should (= (length (gnosis-select 'id 'themata nil t))
-                       (length (gnosis-select 'id 'review nil t))))
-            ;; Every thema has a review_log entry
-            (should (= (length (gnosis-select 'id 'themata nil t))
-                       (length (gnosis-select 'id 'review-log nil t))))
+            ;; New imports create no legacy scheduler rows.
+            (should-not (gnosis-select 'id 'review nil t))
+            (should-not (gnosis-select 'id 'review-log nil t))
             ;; Every thema has scheduler baseline and current state.
             (should (= (length (gnosis-select 'id 'themata nil t))
                        (length (gnosis-select 'thema-id
@@ -872,11 +857,8 @@ TMP-P, EXTRA-TAG, SUSPEND, and SOURCE-FILE are passed through to
                               :tags '("test")
                               :guid "abc123")))
            (ids '(6001))
-           (gnosis-val (prin1-to-string gnosis-algorithm-gnosis-value))
-           (amnesia-val gnosis-algorithm-amnesia-value)
            (today (gnosis--today-int)))
-      (gnosis-anki--bulk-insert-chunk gnosis-db items ids
-                                      gnosis-val amnesia-val today)
+      (gnosis-anki--bulk-insert-chunk gnosis-db items ids today)
       (should (string= "abc123"
                         (gnosis-get 'source-guid 'themata '(= id 6001)))))))
 

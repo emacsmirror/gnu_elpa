@@ -426,7 +426,7 @@ Uses `gnosis-dashboard--entry-cache' to avoid re-querying known entries."
     ;; Fetch and cache only the missing entries
     (when uncached
       (let ((rows (gnosis-sqlite-select-batch (gnosis--ensure-db)
-					      "SELECT themata.id, themata.keimenon, themata.hypothesis, themata.answer, (SELECT '(' || GROUP_CONCAT(tag, ' ') || ')' FROM thema_tag WHERE thema_id = themata.id) AS tags, themata.type, review_log.suspend FROM themata JOIN review_log ON themata.id = review_log.id WHERE themata.id IN (%s)"
+					      "SELECT themata.id, themata.keimenon, themata.hypothesis, themata.answer, (SELECT '(' || GROUP_CONCAT(tag, ' ') || ')' FROM thema_tag WHERE thema_id = themata.id) AS tags, themata.type, scheduler_state.suspended FROM themata JOIN scheduler_state ON themata.id = scheduler_state.thema_id WHERE themata.id IN (%s)"
 					      uncached)))
 	(dolist (row rows)
 	  (puthash (car row) (gnosis-dashboard--format-entry row)
@@ -516,7 +516,7 @@ Continues as long as the dashboard buffer exists."
            (new-warmed (+ warmed (length ids))))
       (when uncached
         (let ((rows (gnosis-sqlite-select-batch (gnosis--ensure-db)
-						"SELECT themata.id, themata.keimenon, themata.hypothesis, themata.answer, (SELECT '(' || GROUP_CONCAT(tag, ' ') || ')' FROM thema_tag WHERE thema_id = themata.id) AS tags, themata.type, review_log.suspend FROM themata JOIN review_log ON themata.id = review_log.id WHERE themata.id IN (%s)"
+						"SELECT themata.id, themata.keimenon, themata.hypothesis, themata.answer, (SELECT '(' || GROUP_CONCAT(tag, ' ') || ')' FROM thema_tag WHERE thema_id = themata.id) AS tags, themata.type, scheduler_state.suspended FROM themata JOIN scheduler_state ON themata.id = scheduler_state.thema_id WHERE themata.id IN (%s)"
 						uncached)))
           (dolist (row rows)
             (puthash (car row) (gnosis-dashboard--format-entry row)
@@ -791,10 +791,7 @@ to the canonical form via `gnosis--tag-rename-batch'."
          (action (if (= suspend 0) "Unsuspend" "Suspend")))
     (when (y-or-n-p (format "%s %d themata across %d tag(s)?"
                             action (length themata) (length tags)))
-      (gnosis-sqlite-execute-batch (gnosis--ensure-db)
-                                   "UPDATE review_log SET suspend = ? WHERE id IN (%s)"
-                                   themata
-                                   (list suspend))
+      (gnosis-toggle-suspend-themata themata suspend t)
       (gnosis-dashboard--invalidate-tag-caches)
       (remove-overlays nil nil 'gnosis-mark t)
       (message "%sed %d themata" action (length themata)))))

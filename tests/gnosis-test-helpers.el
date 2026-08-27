@@ -14,6 +14,12 @@
 
 (require 'gnosis)
 
+(defconst gnosis-test--legacy-gnosis-value '(0.35 0.30 1.3)
+  "Toy gnosis value used only by pre-FSRS database fixtures.")
+
+(defconst gnosis-test--legacy-amnesia-value 0.5
+  "Toy amnesia value used only by pre-FSRS database fixtures.")
+
 (let ((lisp-dir (expand-file-name "../lisp"
                   (file-name-directory (or load-file-name default-directory)))))
   (add-to-list 'load-path lisp-dir))
@@ -59,8 +65,8 @@ SUSPEND: 1 to suspend, 0 or nil for active."
     (gnosis-sqlite-with-transaction gnosis-db
       (gnosis--insert-into 'themata `([,id "basic" ,keimenon ,hypothesis
                                            ,answer nil]))
-      (gnosis--insert-into 'review `([,id ,gnosis-algorithm-gnosis-value
-                                          ,gnosis-algorithm-amnesia-value]))
+      (gnosis--insert-into 'review `([,id ,gnosis-test--legacy-gnosis-value
+                                          ,gnosis-test--legacy-amnesia-value]))
       (gnosis--insert-into 'review-log `([,id ,today
                                               ,today 0 0 0 0
                                               ,suspend 0]))

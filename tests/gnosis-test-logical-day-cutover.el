@@ -68,6 +68,23 @@
           (insert-file-contents file)
           (should-not (re-search-forward regexp nil t)))))))
 
+(ert-deftest gnosis-test-legacy-scheduler-writer-inventory ()
+  "Reject toy constants and legacy scheduler inserts in production."
+  (let ((regexp
+         (rx (or "gnosis-algorithm-gnosis-value"
+                 "gnosis-algorithm-amnesia-value"
+                 "(gnosis--insert-into 'review"
+                 (seq "INSERT" (optional " OR IGNORE") " INTO review"
+                      (optional "_log") (any " ("))))))
+    (dolist (file (directory-files
+                   (expand-file-name "lisp" gnosis-test-logical-day-cutover--root)
+                   t "\\.el\\'"))
+      (unless (member (file-name-nondirectory file)
+                      '("gnosis-algorithm.el" "gnosis-autoloads.el"))
+        (with-temp-buffer
+          (insert-file-contents file)
+          (should-not (re-search-forward regexp nil t)))))))
+
 (ert-deftest gnosis-test-logical-day-cutover-manual-option ()
   "Document the neutral day-boundary option without the old name."
   (with-temp-buffer

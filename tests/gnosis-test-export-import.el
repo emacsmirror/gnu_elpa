@@ -256,9 +256,9 @@
                     ;; Extras preserved
                     (let ((p (gnosis-get 'parathema 'extras `(= id ,id2))))
                       (should (string-search "See SICP" p)))
-                    ;; Review state initialized
-                    (should (gnosis-select 'id 'review `(= id ,id1) t))
-                    (should (gnosis-select 'id 'review-log `(= id ,id1) t))
+                    ;; Only authoritative scheduler state is initialized.
+                    (should-not (gnosis-select 'id 'review `(= id ,id1) t))
+                    (should-not (gnosis-select 'id 'review-log `(= id ,id1) t))
                     (let ((today (gnosis--date-to-int
                                   (gnosis-date)))
                           (sorted-ids (sort (list id1 id2) #'<)))

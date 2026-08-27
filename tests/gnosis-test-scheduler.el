@@ -304,15 +304,16 @@
         (gnosis-add-thema-fields
          "basic" "Question" '("") '("Answer") "" '("test") 0 nil nil 101))
       (should (= 1 (length calls)))
-      (should
-       (equal '(20260830 20260830 20260830)
-              (append
-               (car (gnosis-sqlite-select
-                     gnosis-db
-                     "SELECT last_rev, next_rev FROM review_log WHERE id = 101"))
-               (car (gnosis-sqlite-select
-                     gnosis-db
-                     "SELECT due_day FROM scheduler_baseline WHERE thema_id = 101"))))))))
+      (should (= 20260830
+                 (caar (gnosis-sqlite-select
+                        gnosis-db
+                        "SELECT due_day FROM scheduler_baseline
+                          WHERE thema_id = 101"))))
+      (dolist (table '(review review-log))
+        (should (= 0 (caar (gnosis-sqlite-select
+                            gnosis-db
+                            (format "SELECT COUNT(*) FROM %s"
+                                    (gnosis-sqlite--ident table))))))))))
 
 (ert-deftest gnosis-test-scheduler-all-creation-paths-are-due-and-new ()
   "Read ordinary, Anki, and SQLite imports from scheduler authority."
@@ -327,8 +328,7 @@
              gnosis-db
              (list (list :type "basic" :keimenon "Anki" :hypothesis '("")
                          :answer '("A") :parathema "" :tags '("test")))
-             '(102) (prin1-to-string gnosis-algorithm-gnosis-value)
-             gnosis-algorithm-amnesia-value today)
+             '(102) today)
             (gnosis-add-thema-fields
              "basic" "SQLite" '("") '("A") "" '("test") 0 nil nil 103)
             (gnosis-export-db export-file)
@@ -337,9 +337,11 @@
             (gnosis-import--apply-changes
              export-file '(103) nil
              (gnosis-import--file-sha256 export-file))
-            (gnosis-sqlite-execute
-             gnosis-db "UPDATE review_log SET next_rev = 20990101,
-                         n = 9, suspend = 1 WHERE id IN (101, 102, 103)")
+            (dolist (table '(review review-log))
+              (should (= 0 (caar (gnosis-sqlite-select
+                                  gnosis-db
+                                  (format "SELECT COUNT(*) FROM %s"
+                                          (gnosis-sqlite--ident table)))))))
             (let ((expected '(101 102 103))
                   (gnosis-new-themata-limit nil)
                   (gnosis-review-new-first t))

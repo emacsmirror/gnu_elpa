@@ -2,7 +2,7 @@
 .PHONY: all doc autoload autoload-smoke compile lint lint-checkdoc \
 	lint-package-lint test check dev load clean \
 	_doc _autoload _autoload-smoke _compile _lint _lint-checkdoc \
-	_lint-package-lint _test _check _dev
+	_lint-package-lint _test _test-summary _check _dev
 
 -include local.mk
 
@@ -14,6 +14,8 @@ EXTRA_LOAD_PATH ?=
 NIX ?= nix
 NIX_FLAGS ?= --no-write-lock-file
 GNOSIS_ENV_WRAPPED ?=
+JOBS ?= $(shell nproc 2>/dev/null || printf '4')
+TEST_RESULTS := .test-results
 
 LISP_DIR := lisp
 TEST_DIR := tests
@@ -61,6 +63,7 @@ TESTS := tests/gnosis-test-sqlite.el \
 	tests/gnosis-test-journal.el \
 	tests/gnosis-test-migration.el \
 	tests/gnosis-test-anki.el
+TEST_STAMPS := $(patsubst tests/%.el,$(TEST_RESULTS)/%.stamp,$(TESTS))
 
 all: check
 
@@ -118,11 +121,16 @@ _compile: _autoload
 		-f batch-byte-compile $(SOURCES)
 
 _test: _autoload
-	@set -eu; for file in $(TESTS); do \
-		tmp=$$(mktemp -d); \
-		trap 'rm -rf "$$tmp"' 0 1 2 3 15; \
-		echo "Running $$file..."; \
-		HOME="$$tmp/home" XDG_CACHE_HOME="$$tmp/cache" \
+	@rm -rf $(TEST_RESULTS)
+	@mkdir -p $(TEST_RESULTS)
+	@$(MAKE) --no-print-directory -j$(JOBS) -Otarget _test-summary
+
+$(TEST_RESULTS)/%.stamp: tests/%.el
+	@tmp=$$(mktemp -d); log="$(TEST_RESULTS)/$*.log"; \
+	trap 'rm -rf "$$tmp"' 0 1 2 3 15; \
+	mkdir -p "$$tmp/home" "$$tmp/cache" "$$tmp/config" \
+		"$$tmp/share" "$$tmp/state" "$$tmp/gnosis"; \
+	if HOME="$$tmp/home" XDG_CACHE_HOME="$$tmp/cache" \
 		XDG_CONFIG_HOME="$$tmp/config" XDG_DATA_HOME="$$tmp/share" \
 		XDG_STATE_HOME="$$tmp/state" GNOSIS_TEST_DIR="$$tmp/gnosis" \
 		$(ENV) $(EMACS) $(EMACS_OPTS) $(LOAD_PATH) -l ert \
@@ -130,9 +138,41 @@ _test: _autoload
 			  (file-name-as-directory (getenv \"GNOSIS_TEST_DIR\")) \
 			  gnosis-testing t gnosis-vc-auto-push nil \
 			  load-prefer-newer t)" \
-			-l "$$file" -f ert-run-tests-batch-and-exit; \
-		rm -rf "$$tmp"; trap - 0 1 2 3 15; \
-	done
+			-l "$<" -f ert-run-tests-batch-and-exit > "$$log" 2>&1; then \
+		status=OK; \
+	else \
+		status=FAIL; \
+	fi; \
+	n=$$(grep -o 'Ran [0-9][0-9]*' "$$log" | grep -o '[0-9][0-9]*' || true); \
+	if test "$$status" = OK; then \
+		printf '  OK %s (%s tests)\n' "$<" "$${n:-0}"; \
+		rm -f "$$log"; \
+	else \
+		printf 'FAIL %s (%s tests)\n' "$<" "$${n:-0}"; \
+		while IFS= read -r line; do printf '%s\n' "$$line"; done < "$$log"; \
+	fi; \
+	printf '%s %s\n' "$$status" "$${n:-0}" > "$@"
+
+_test-summary: $(TEST_STAMPS)
+	@total=0; passed=0; failed=0; failed_files=""; \
+	for stamp in $(TEST_STAMPS); do \
+		read status n < "$$stamp"; total=$$((total + n)); \
+		if test "$$status" = FAIL; then \
+			failed=$$((failed + 1)); \
+			failed_files="$$failed_files tests/$$(basename "$$stamp" .stamp).el"; \
+		else \
+			passed=$$((passed + 1)); \
+		fi; \
+	done; \
+	printf '%s tests across %s files: %s passed, %s failed\n' \
+		"$$total" "$(words $(TEST_STAMPS))" "$$passed" "$$failed"; \
+	if test "$$failed" -eq 0; then \
+		rm -rf $(TEST_RESULTS); \
+	else \
+		printf 'Failed files:%s\nLogs preserved in $(TEST_RESULTS)/\n' \
+			"$$failed_files"; \
+	fi; \
+	test "$$failed" -eq 0
 
 _check: _compile _autoload-smoke _test
 
@@ -207,3 +247,4 @@ load:
 clean:
 	rm -f $(TEXI) $(INFO) $(AUTOLOADS) \
 		$(LISP_DIR)/*.elc $(TEST_DIR)/*.elc *-pkg.el*
+	rm -rf $(TEST_RESULTS)

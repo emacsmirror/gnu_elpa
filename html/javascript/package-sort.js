@@ -41,44 +41,42 @@ const compare = {
 
 const comparator = rel => (l, r) => rel(l, r) ? -1 : rel(r, l) ? 1 : 0;
 
-window.addEventListener("DOMContentLoaded", function (event) {
-	const tbody = document.querySelector("#packages tbody");
-	const rows = Array.from(tbody.children);
-	
-	const headers = document.querySelectorAll("#packages th");
-	for (let i = 0; i < headers.length; i++) {
-		const header = headers[i];
+const tbody = document.querySelector("#packages tbody");
+const rows = Array.from(tbody.children);
 
-		// We support sorting if the column has been annotated by a
-		// tag that indicates how to sort the data.
-		const fn = index[header.dataset.sort];
-		if (!fn) continue;
+const headers = document.querySelectorAll("#packages th");
+for (let i = 0; i < headers.length; i++) {
+	const header = headers[i];
 
-		header.addEventListener("click", function(event) {
-			// We reset the order for each column except the one we
-			// are sorting on.  By default, if no previous order is
-			// set, we start by sorting in descending order, since the
-			// most likely information the user is interested in is
-			// finding the most popular packages by descending rank.
-			for (let j = 0; j < headers.length; j++) {
-				if (j != i) delete headers[j].dataset.order;
-			}
-			header.dataset.order = header.dataset.order === "desc" ?
-				"asc" : "desc";
+	// We support sorting if the column has been annotated by a
+	// tag that indicates how to sort the data.
+	const fn = index[header.dataset.sort];
+	if (!fn) continue;
 
-			// We could move lookup out of this function, but then we
-			// would compute more at startup, which is wasteful
-			// assuming that not every user will sort the table
-			// multiple times over.
-			const lookup = new Map(rows.map(e =>
-				[e, fn(e.children[i])]))
+	header.addEventListener("click", function(event) {
+		// We reset the order for each column except the one we
+		// are sorting on.  By default, if no previous order is
+		// set, we start by sorting in descending order, since the
+		// most likely information the user is interested in is
+		// finding the most popular packages by descending rank.
+		for (let j = 0; j < headers.length; j++) {
+			if (j != i) delete headers[j].dataset.order;
+		}
+		header.dataset.order = header.dataset.order === "desc" ?
+			"asc" : "desc";
 
-			rows.sort(comparator((l, r) =>
-				compare[header.dataset.order](lookup.get(l), lookup.get(r))));
-			tbody.replaceChildren(...rows);
-		});
-	}
-});
+		// We could move lookup out of this function, but then we
+		// would compute more at startup, which is wasteful
+		// assuming that not every user will sort the table
+		// multiple times over.
+		const lookup = new Map(rows.map(e =>
+			[e, fn(e.children[i])]))
+
+		rows.sort(comparator((l, r) =>
+			compare[header.dataset.order](lookup.get(l), lookup.get(r))));
+		tbody.replaceChildren(...rows);
+	});
+}
 
 // Local Variables:
 // indent-tabs-mode: t

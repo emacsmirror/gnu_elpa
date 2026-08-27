@@ -23,6 +23,7 @@
       forAllSystems = nixpkgs.lib.genAttrs systems;
       version = "0.10.6";
       packageFiles = [
+        ./lisp/gnosis-logical-day.el
         ./lisp/gnosis-algorithm.el
         ./lisp/gnosis-fsrs.el
         ./lisp/gnosis-anki.el
@@ -61,6 +62,7 @@
         ./tests/gnosis-test-journal-boundary.el
         ./tests/gnosis-test-journal.el
         ./tests/gnosis-test-links.el
+        ./tests/gnosis-test-logical-day.el
         ./tests/gnosis-test-migration.el
         ./tests/gnosis-test-nodes-boundary.el
         ./tests/gnosis-test-nodes.el

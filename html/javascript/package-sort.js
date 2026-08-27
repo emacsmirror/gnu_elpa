@@ -77,9 +77,3 @@ for (let i = 0; i < headers.length; i++) {
 		tbody.replaceChildren(...rows);
 	});
 }
-
-// Local Variables:
-// indent-tabs-mode: t
-// js-indent-level: 4
-// tab-width: 4
-// End:

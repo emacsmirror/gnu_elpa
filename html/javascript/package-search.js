@@ -73,9 +73,3 @@ search.addEventListener("input", function(event) {
 
 const main = document.querySelector("search");
 main.prepend(search);
-
-// Local Variables:
-// indent-tabs-mode: t
-// js-indent-level: 4
-// tab-width: 4
-// End:

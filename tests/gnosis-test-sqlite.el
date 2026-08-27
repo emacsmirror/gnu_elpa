@@ -392,7 +392,9 @@ Value is pre-encoded (prin1-to-string) in the compiler."
           ;; Verify tables exist
           (let ((tables (gnosis-sqlite-select
                          db "SELECT name FROM sqlite_master WHERE type = 'table'")))
-            (should (>= (length tables) 7))))
+            (should (>= (length tables) 7)))
+          (dolist (legacy '(review review-log activity-log))
+            (should-not (assq legacy gnosis-db--schemata))))
       (gnosis-sqlite-close db)
       (delete-file db-file))))
 

@@ -241,24 +241,6 @@ Uses `gnosis--id-cache' for O(1) collision checking when bound."
        (hypothesis text :not-null)
        (answer text :not-null)
        (source-guid text)]))
-    (review
-     ([(id integer :primary-key :not-null) ;; thema-id
-       (gnosis integer :not-null)
-       (amnesia integer :not-null)]
-      (:foreign-key [id] :references themata [id]
-		    :on-delete :cascade)))
-    (review-log
-     ([(id integer :primary-key :not-null) ;; thema-id
-       (last-rev integer :not-null)  ;; Last review date
-       (next-rev integer :not-null)  ;; Next review date
-       (c-success integer :not-null) ;; Consecutive successful reviews
-       (t-success integer :not-null) ;; Total successful reviews
-       (c-fails integer :not-null)   ;; Consecutive failed reviewss
-       (t-fails integer :not-null)   ;; Total failed reviews
-       (suspend integer :not-null)   ;; Binary value, 1=suspended
-       (n integer :not-null)]        ;; Number of reviews
-      (:foreign-key [id] :references themata [id]
-                    :on-delete :cascade)))
     (scheduler-config
      ([(id integer :primary-key :not-null)
        (algorithm text :not-null)
@@ -328,10 +310,6 @@ Uses `gnosis--id-cache' for O(1) collision checking when bound."
        (reviewed-new integer :not-null)]
       (:check "reviewed_total >= 0")
       (:check "reviewed_new BETWEEN 0 AND reviewed_total")))
-    (activity-log
-     ([(date integer :not-null)
-       (reviewed-total integer :not-null)
-       (reviewed-new integer :not-null)]))
     (extras
      ([(id integer :primary-key :not-null)
        (parathema string)
@@ -519,9 +497,7 @@ Used for fresh databases only."
 
 (defun gnosis--db-create-indexes (db)
   "Create all performance indexes on DB."
-  (dolist (stmt '("CREATE INDEX IF NOT EXISTS idx_review_log_due
-                   ON review_log(n, suspend, next_rev)"
-		  "CREATE INDEX IF NOT EXISTS idx_thema_tag_thema_id
+  (dolist (stmt '("CREATE INDEX IF NOT EXISTS idx_thema_tag_thema_id
                    ON thema_tag(thema_id)"
 		  "CREATE INDEX IF NOT EXISTS idx_thema_tag_tag
                    ON thema_tag(tag)"
@@ -533,8 +509,6 @@ Used for fresh databases only."
                    ON node_links(source)"
 		  "CREATE INDEX IF NOT EXISTS idx_node_links_dest
                    ON node_links(dest)"
-		  "CREATE INDEX IF NOT EXISTS idx_activity_log_date
-                   ON activity_log(date)"
 		  "CREATE INDEX IF NOT EXISTS idx_nodes_file
                    ON nodes(file)"
 		  "CREATE INDEX IF NOT EXISTS idx_journal_file
@@ -898,6 +872,9 @@ Handles both Lisp list dates and already-converted integers."
           (date, reviewed_total, reviewed_new)
         SELECT date, SUM(reviewed_total), SUM(reviewed_new)
           FROM activity_log GROUP BY date")
+      (dolist (table '(review review-log activity-log))
+        (gnosis-sqlite-execute
+         db (format "DROP TABLE %s" (gnosis-sqlite--ident table))))
       (gnosis--db-create-indexes db)
       (gnosis-db--create-scheduler-guards db)
       (gnosis--db-set-version 9))))

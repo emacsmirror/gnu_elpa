@@ -213,6 +213,31 @@ tags and links tables, extras with parathema/review_image."
        (gnosis-sqlite-close gnosis-db)
        (delete-file gnosis-test--db-file))))
 
+(defun gnosis-test--create-legacy-scheduler-tables ()
+  "Create the scheduler tables present before the v9 cutover."
+  (gnosis-sqlite-execute
+   gnosis-db
+   "CREATE TABLE review (
+      id INTEGER PRIMARY KEY NOT NULL,
+      gnosis INTEGER NOT NULL,
+      amnesia INTEGER NOT NULL,
+      FOREIGN KEY (id) REFERENCES themata (id) ON DELETE CASCADE)")
+  (gnosis-sqlite-execute
+   gnosis-db
+   "CREATE TABLE review_log (
+      id INTEGER PRIMARY KEY NOT NULL,
+      last_rev INTEGER NOT NULL, next_rev INTEGER NOT NULL,
+      c_success INTEGER NOT NULL, t_success INTEGER NOT NULL,
+      c_fails INTEGER NOT NULL, t_fails INTEGER NOT NULL,
+      suspend INTEGER NOT NULL, n INTEGER NOT NULL,
+      FOREIGN KEY (id) REFERENCES themata (id) ON DELETE CASCADE)")
+  (gnosis-sqlite-execute
+   gnosis-db
+   "CREATE TABLE activity_log (
+      date INTEGER NOT NULL,
+      reviewed_total INTEGER NOT NULL,
+      reviewed_new INTEGER NOT NULL)"))
+
 (defmacro gnosis-test-with-v8-db (&rest body)
   "Run BODY with a disposable exact v8 database."
   (declare (indent 0) (debug t))
@@ -221,6 +246,7 @@ tags and links tables, extras with parathema/review_image."
                       scheduler-config review-activity-baseline))
        (gnosis-sqlite-execute
         gnosis-db (format "DROP TABLE %s" (gnosis-sqlite--ident table))))
+     (gnosis-test--create-legacy-scheduler-tables)
      (gnosis--db-set-version 8)
      ,@body))
 
@@ -451,9 +477,20 @@ tags and links tables, extras with parathema/review_image."
     (gnosis-db--migrate-v9)
     (should (= 9 (gnosis--db-version)))
     (should (= 4 (caar (gnosis-sqlite-select
-                        gnosis-db "SELECT COUNT(*) FROM scheduler_state"))))))
+                        gnosis-db "SELECT COUNT(*) FROM scheduler_state"))))
+    (should (equal '((20260320 10 2))
+                   (gnosis-sqlite-select
+                    gnosis-db "SELECT * FROM review_activity_baseline")))
+    (dolist (legacy '(review review-log activity-log))
+      (should-not (gnosis-table-exists-p legacy)))))
 
 ;;; ---- Group 3: Edge-case tests ----
+
+(ert-deftest gnosis-test-fresh-v9-omits-legacy-storage ()
+  "Create a fresh current database without retired scheduler tables."
+  (gnosis-test-with-db
+    (dolist (legacy '(review review-log activity-log))
+      (should-not (gnosis-table-exists-p legacy)))))
 
 (ert-deftest gnosis-test-migrate-mcq-answer-index-first ()
   "MCQ answer index 1 resolves to the first option."
@@ -578,7 +615,9 @@ tags and links tables, extras with parathema/review_image."
     (gnosis-db--migrate-v7)
     (gnosis-db--migrate-v8)
     (gnosis-db--migrate-v9)
-    (should (= 9 (gnosis--db-version)))))
+    (should (= 9 (gnosis--db-version)))
+    (dolist (legacy '(review review-log activity-log))
+      (should-not (gnosis-table-exists-p legacy)))))
 
 (ert-deftest gnosis-test-migrate-v4-populated-to-v6 ()
   "PRAGMA 4 DB with data: v5 is no-op, v6 migrates decks/tags/nodes."
@@ -695,8 +734,9 @@ tags and links tables, extras with parathema/review_image."
 (ert-deftest gnosis-test-migrate-v7-list-dates-to-integers ()
   "v7 migration converts Lisp list dates to YYYYMMDD integers."
   (gnosis-test-with-db
-    ;; Simulate pre-v7 state: current schema with list dates in DB
+    ;; Simulate pre-v7 schedule storage with list dates in DB.
     (gnosis--db-set-version 6)
+    (gnosis-test--create-legacy-scheduler-tables)
     ;; Insert test data with list dates (as emacsql stores them)
     (gnosis-sqlite-execute gnosis-db
       "INSERT INTO themata (id, type, keimenon, hypothesis, answer)
@@ -734,6 +774,7 @@ tags and links tables, extras with parathema/review_image."
   "v7 migration is idempotent: already-integer dates are unchanged."
   (gnosis-test-with-db
     (gnosis--db-set-version 6)
+    (gnosis-test--create-legacy-scheduler-tables)
     ;; Insert data with integer dates (already migrated format)
     (gnosis-sqlite-execute gnosis-db
       "INSERT INTO themata (id, type, keimenon, hypothesis, answer)
@@ -792,7 +833,76 @@ tags and links tables, extras with parathema/review_image."
              gnosis-db "SELECT * FROM review_activity_baseline ORDER BY date")))
     (should
      (equal '((20260820 8 3) (20260821 4 0))
-            (gnosis-db-review-activity gnosis-db)))))
+            (gnosis-db-review-activity gnosis-db)))
+    (dolist (legacy '(review review-log activity-log))
+      (should-not (gnosis-table-exists-p legacy)))))
+
+(ert-deftest gnosis-test-migrate-v8-to-v9-acceptance-journey ()
+  "Migrate, review, replay, reopen, and hard-delete one overdue thema."
+  (gnosis-test-with-v8-db
+    (gnosis-sqlite-execute
+     gnosis-db "INSERT INTO themata VALUES (?, ?, ?, ?, ?, ?)"
+     '(1 "basic" "Question" ("") ("Answer") nil))
+    (gnosis-sqlite-execute
+     gnosis-db "INSERT INTO review VALUES (?, ?, ?)" '(1 1 1))
+    (gnosis-sqlite-execute
+     gnosis-db "INSERT INTO review_log VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+     '(1 20260810 20260820 1 1 0 1 0 2))
+    (gnosis-sqlite-execute
+     gnosis-db "INSERT INTO activity_log VALUES (?, ?, ?)" '(20260829 3 1))
+    (gnosis-db--migrate-v9)
+    (should (equal '(1 20260820 2 1)
+                   (car (gnosis-sqlite-select
+                         gnosis-db "SELECT * FROM scheduler_baseline"))))
+    (should (equal '(1 1 nil nil nil nil 20260820 2 1 0)
+                   (car (gnosis-sqlite-select
+                         gnosis-db "SELECT * FROM scheduler_state"))))
+    (dolist (legacy '(review review-log activity-log))
+      (should-not (gnosis-table-exists-p legacy)))
+    (cl-letf (((symbol-function 'gnosis--today-int) (lambda () 20260830)))
+      (should (equal '(1) (gnosis-review-get-due-themata)))
+      (should-not (gnosis-review-is-thema-new-p 1))
+      (should-not (gnosis-suspended-p 1)))
+    (let* ((event-id (make-string 64 ?a))
+           (first (gnosis-scheduler-accept-review
+                   event-id 1 'success 1000000 20260830))
+           (state-after
+            (car (gnosis-sqlite-select gnosis-db
+                                       "SELECT * FROM scheduler_state")))
+           (retry (gnosis-scheduler-accept-review
+                   event-id 1 'success 1000000 20260830))
+           (activity '((20260829 3 1) (20260830 1 0))))
+      (should (plist-get first :inserted-p))
+      (should-not (plist-get retry :inserted-p))
+      (should (= 1 (caar (gnosis-sqlite-select
+                          gnosis-db "SELECT COUNT(*) FROM review_events"))))
+      (should (equal state-after
+                     (car (gnosis-sqlite-select
+                           gnosis-db "SELECT * FROM scheduler_state"))))
+      (should (equal activity (gnosis-review-activity)))
+      (gnosis-sqlite-execute
+       gnosis-db "DELETE FROM scheduler_state WHERE thema_id = ?" '(1))
+      (gnosis-scheduler-rebuild-state 1 0 gnosis-db)
+      (should (equal state-after
+                     (car (gnosis-sqlite-select
+                           gnosis-db "SELECT * FROM scheduler_state"))))
+      (gnosis-sqlite-close gnosis-db)
+      (setq gnosis-db (gnosis-sqlite-open gnosis-test--db-file))
+      (gnosis-db-init)
+      (should (equal state-after
+                     (car (gnosis-sqlite-select
+                           gnosis-db "SELECT * FROM scheduler_state"))))
+      (should (equal activity (gnosis-review-activity)))
+      (cl-letf (((symbol-function 'gnosis--today-int) (lambda () 20260830)))
+        (should-not (gnosis-review-get-due-themata))
+        (should-not (gnosis-review-is-thema-new-p 1))
+        (should-not (gnosis-suspended-p 1)))
+      (gnosis-delete-themata '(1))
+      (dolist (table '(themata scheduler-baseline scheduler-state review-events))
+        (should (= 0 (caar (gnosis-sqlite-select
+                            gnosis-db
+                            (format "SELECT COUNT(*) FROM %s"
+                                    (gnosis-sqlite--ident table))))))))))
 
 (ert-deftest gnosis-test-migrate-v8-to-v9-rolls-back-completely ()
   "Roll back scheduler DDL, data, and version when bootstrap fails."

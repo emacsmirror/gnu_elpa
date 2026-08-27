@@ -81,6 +81,21 @@
         (insert-file-contents file)
         (should-not (re-search-forward regexp nil t))))))
 
+(ert-deftest gnosis-test-legacy-storage-production-inventory ()
+  "Allow legacy storage names only in historical database migrations."
+  (let ((regexp
+         (rx (or (seq symbol-start (or "review_log" "activity_log") symbol-end)
+                 (seq "'" symbol-start
+                      (or "review" "review-log" "activity-log") symbol-end)))))
+    (dolist (file (directory-files
+                   (expand-file-name "lisp" gnosis-test-logical-day-cutover--root)
+                   t "\\.el\\'"))
+      (unless (string= (file-name-nondirectory file) "gnosis-db.el")
+        (with-temp-buffer
+          (emacs-lisp-mode)
+          (insert-file-contents file)
+          (should-not (re-search-forward regexp nil t)))))))
+
 (ert-deftest gnosis-test-logical-day-cutover-manual-option ()
   "Document the neutral day-boundary option without the old name."
   (with-temp-buffer

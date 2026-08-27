@@ -441,9 +441,6 @@ TMP-P, EXTRA-TAG, SUSPEND, and SOURCE-FILE are passed through to
       (should (string= "basic" (gnosis-get 'type 'themata '(= id 1001))))
       (should (string= "What is Emacs?"
                         (gnosis-get 'keimenon 'themata '(= id 1001))))
-      ;; Legacy scheduler rows are no longer created.
-      (should-not (gnosis-select 'id 'review nil t))
-      (should-not (gnosis-select 'id 'review-log nil t))
       (should
        (equal `((1001 ,today 0 0) (1002 ,today 0 0))
               (gnosis-sqlite-select
@@ -479,7 +476,7 @@ TMP-P, EXTRA-TAG, SUSPEND, and SOURCE-FILE are passed through to
       (should-error
        (gnosis-anki--bulk-insert-chunk
         gnosis-db (list item) '(1001) today nil t))
-      (dolist (table '(themata review review-log extras thema-tag
+      (dolist (table '(themata extras thema-tag
                       scheduler-baseline scheduler-state))
         (should (= 0 (caar (gnosis-sqlite-select
                             gnosis-db
@@ -540,9 +537,6 @@ TMP-P, EXTRA-TAG, SUSPEND, and SOURCE-FILE are passed through to
             ;; At least 15 themata (10 basic + 5+ cloze items)
             (let ((count (length (gnosis-select 'id 'themata nil t))))
               (should (>= count 15)))
-            ;; New imports create no legacy scheduler rows.
-            (should-not (gnosis-select 'id 'review nil t))
-            (should-not (gnosis-select 'id 'review-log nil t))
             ;; Every thema has scheduler baseline and current state.
             (should (= (length (gnosis-select 'id 'themata nil t))
                        (length (gnosis-select 'thema-id

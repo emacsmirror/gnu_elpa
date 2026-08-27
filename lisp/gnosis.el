@@ -247,8 +247,7 @@ When VERIFICATION is non-nil, skip `y-or-n-p' prompt."
   "Delete themata with IDS, batched to stay within SQL variable limits."
   (let ((db (gnosis--ensure-db)))
     (gnosis-sqlite-with-transaction db
-      (dolist (table '("thema_tag" "thema_links" "review"
-                       "review_log" "extras" "themata"))
+      (dolist (table '("thema_tag" "thema_links" "extras" "themata"))
         (gnosis-sqlite-execute-batch db
 				     (format "DELETE FROM %s WHERE %s IN (%%s)"
 					     table
@@ -445,10 +444,7 @@ When VERIFICATION is non-nil, skips `y-or-n-p' prompt."
         (gnosis-sqlite-with-transaction db
           (gnosis-sqlite-execute-batch
            db "UPDATE scheduler_state SET suspended = ?
-                WHERE thema_id IN (%s)" ids (list suspend-value))
-          (gnosis-sqlite-execute-batch
-           db "UPDATE review_log SET suspend = ? WHERE id IN (%s)"
-           ids (list suspend-value)))))))
+                WHERE thema_id IN (%s)" ids (list suspend-value)))))))
 
 (defun gnosis-mcq-answer (id)
   "Choose the correct answer, from mcq choices for question ID."

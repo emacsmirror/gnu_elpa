@@ -82,13 +82,6 @@
           (suspended (gnosis-test--add-basic-thema
                       "Suspended" "A2" '("s") nil nil 1))
           (export-file (concat (make-temp-file "gnosis-export-susp-") ".db")))
-      ;; Legacy state deliberately disagrees; scheduler_state is authoritative.
-      (gnosis-sqlite-execute gnosis-db
-                             "UPDATE review_log SET suspend = 1 WHERE id = ?"
-                             (list active))
-      (gnosis-sqlite-execute gnosis-db
-                             "UPDATE review_log SET suspend = 0 WHERE id = ?"
-                             (list suspended))
       (unwind-protect
           (progn
             (gnosis-export-db export-file nil nil nil)
@@ -256,9 +249,6 @@
                     ;; Extras preserved
                     (let ((p (gnosis-get 'parathema 'extras `(= id ,id2))))
                       (should (string-search "See SICP" p)))
-                    ;; Only authoritative scheduler state is initialized.
-                    (should-not (gnosis-select 'id 'review `(= id ,id1) t))
-                    (should-not (gnosis-select 'id 'review-log `(= id ,id1) t))
                     (let ((today (gnosis--date-to-int
                                   (gnosis-date)))
                           (sorted-ids (sort (list id1 id2) #'<)))
@@ -435,8 +425,7 @@
                      (gnosis-import--apply-changes
                       export-file (list id) nil
                       (gnosis-import--file-sha256 export-file)))
-                    (dolist (table '(themata review review-log
-                                    scheduler-baseline scheduler-state))
+                    (dolist (table '(themata scheduler-baseline scheduler-state))
                       (should (= 0 (caar (gnosis-sqlite-select
                                           gnosis-db
                                           (format "SELECT COUNT(*) FROM %s"

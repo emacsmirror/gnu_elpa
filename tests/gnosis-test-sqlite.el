@@ -123,12 +123,6 @@
   "Colons become dots (table:col -> table.col)."
   (should (equal (gnosis-sqlite--ident 'themata:id) "themata.id")))
 
-(ert-deftest gnosis-test-sqlite-ident-review-log ()
-  "review-log becomes review_log."
-  (should (equal (gnosis-sqlite--ident 'review-log) "review_log")))
-
-;;; ---- Group 3: Expression compiler ----
-
 (ert-deftest gnosis-test-sqlite-expr-equal-literal ()
   "Literal number equality: (= 1 1)."
   (let ((result (gnosis-sqlite--compile-expr '(= 1 1))))
@@ -156,9 +150,10 @@ Value is pre-encoded (prin1-to-string) in the compiler."
     (should (equal (cdr result) (list (prin1-to-string '("a" "b")))))))
 
 (ert-deftest gnosis-test-sqlite-expr-equal-col-col ()
-  "Column = column: (= themata:id review-log:id)."
-  (let ((result (gnosis-sqlite--compile-expr '(= themata:id review-log:id))))
-    (should (equal (car result) "themata.id = review_log.id"))
+  "Compile a symbolic RHS as an identifier without parameters."
+  (let ((result (gnosis-sqlite--compile-expr
+                 '(= themata:id scheduler-state:thema-id))))
+    (should (equal (car result) "themata.id = scheduler_state.thema_id"))
     (should (null (cdr result)))))
 
 (ert-deftest gnosis-test-sqlite-expr-and ()
@@ -246,16 +241,6 @@ Value is pre-encoded (prin1-to-string) in the compiler."
     (should (string-match-p "id INTEGER PRIMARY KEY" result))
     (should (string-match-p "type TEXT NOT NULL" result))
     (should (string-match-p "answer TEXT NOT NULL" result))))
-
-(ert-deftest gnosis-test-sqlite-schema-review-log ()
-  "Compile review-log schema."
-  (let* ((schema (cadr (assq 'review-log gnosis-db--schemata)))
-         (result (gnosis-sqlite--compile-schema schema)))
-    (should (string-match-p "id INTEGER PRIMARY KEY NOT NULL" result))
-    (should (string-match-p "last_rev INTEGER NOT NULL" result))
-    (should (string-match-p "suspend INTEGER NOT NULL" result))
-    (should (string-match-p "FOREIGN KEY (id) REFERENCES themata (id) ON DELETE CASCADE"
-                            result))))
 
 (ert-deftest gnosis-test-sqlite-schema-thema-links ()
   "Compile thema-links schema."

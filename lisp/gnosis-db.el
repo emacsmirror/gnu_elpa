@@ -30,7 +30,7 @@
 (require 'subr-x)
 (require 'vc-git)
 (require 'gnosis-sqlite)
-(require 'gnosis-algorithm)
+(require 'gnosis-logical-day)
 (require 'gnosis-fsrs)
 
 (defcustom gnosis-dir (locate-user-emacs-file "gnosis")
@@ -187,8 +187,8 @@ Example:
 
 (defun gnosis--today-int ()
   "Return today as a YYYYMMDD integer.
-Respects `gnosis-algorithm-day-start-hour'."
-  (gnosis--date-to-int (gnosis-algorithm-date)))
+Respects `gnosis-day-start-hour'."
+  (gnosis--date-to-int (gnosis-date)))
 
 ;;; ID generation
 

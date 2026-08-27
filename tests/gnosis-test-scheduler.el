@@ -421,7 +421,7 @@
   "Accept Good early/on-time/overdue plus bootstrap and same-day reviews."
   (gnosis-test-scheduler--with-db
     (let* ((today (gnosis--today-int))
-           (last-day (gnosis--date-to-int (gnosis-algorithm-date -10)))
+           (last-day (gnosis--date-to-int (gnosis-date -10)))
            (timing '((-1 . early) (0 . on-time) (1 . overdue))))
       (cl-loop for id from 201 to 203
                for (due-offset . class) in timing
@@ -436,7 +436,7 @@
                                  WHERE thema_id = ?"
                      (list last-day
                            (gnosis--date-to-int
-                            (gnosis-algorithm-date (- due-offset)))
+                            (gnosis-date (- due-offset)))
                            id))
                     (let ((pending (gnosis-review--pending-result
                                     id t (make-string 64 event-char)

@@ -27,7 +27,7 @@
       ;; Set next-rev to yesterday
       (gnosis-update 'scheduler-state
                      `(= due-day ,(gnosis--date-to-int
-                                    (gnosis-algorithm-date -1)))
+                                    (gnosis-date -1)))
                      `(= thema-id ,id))
       (should (gnosis-review-is-due-today-p id)))))
 
@@ -45,7 +45,7 @@
       ;; Set next-rev to tomorrow
       (gnosis-update 'scheduler-state
                      `(= due-day ,(gnosis--date-to-int
-                                    (gnosis-algorithm-date 1)))
+                                    (gnosis-date 1)))
                      `(= thema-id ,id))
       (should-not (gnosis-review-is-due-today-p id)))))
 
@@ -84,7 +84,7 @@
       ;; Push id2 to future
       (gnosis-update 'scheduler-state
                      `(= due-day ,(gnosis--date-to-int
-                                    (gnosis-algorithm-date 5)))
+                                    (gnosis-date 5)))
                      `(= thema-id ,id2))
       (let ((gnosis-review-new-first nil)
             (gnosis-new-themata-limit nil))
@@ -130,7 +130,7 @@
   (gnosis-test-with-db
     (let* ((id (gnosis-test--add-basic-thema "Q" "A"))
            (today (gnosis--today-int))
-           (future (gnosis--date-to-int (gnosis-algorithm-date 10))))
+           (future (gnosis--date-to-int (gnosis-date 10))))
       (gnosis-sqlite-execute
        gnosis-db "UPDATE review_log SET next_rev = ?, n = 9, suspend = 1
                    WHERE id = ?" (list future id))

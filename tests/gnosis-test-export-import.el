@@ -260,7 +260,7 @@
                     (should (gnosis-select 'id 'review `(= id ,id1) t))
                     (should (gnosis-select 'id 'review-log `(= id ,id1) t))
                     (let ((today (gnosis--date-to-int
-                                  (gnosis-algorithm-date)))
+                                  (gnosis-date)))
                           (sorted-ids (sort (list id1 id2) #'<)))
                       (should
                        (equal (mapcar (lambda (id) (list id today 0 0))

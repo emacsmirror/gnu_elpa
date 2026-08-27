@@ -20,12 +20,32 @@
 
 (require 'time-date)
 
-(defcustom gnosis-day-start-hour 3
+(defvar gnosis--legacy-day-start-hour
+  (if (and (boundp 'gnosis-algorithm-day-start-hour)
+           (eq (indirect-variable 'gnosis-algorithm-day-start-hour)
+               'gnosis-algorithm-day-start-hour))
+      (symbol-value 'gnosis-algorithm-day-start-hour)
+    :unset)
+  "Pre-load value of the obsolete logical-day boundary option.")
+
+(when (and (boundp 'gnosis-algorithm-day-start-hour)
+           (eq (indirect-variable 'gnosis-algorithm-day-start-hour)
+               'gnosis-algorithm-day-start-hour))
+  (makunbound 'gnosis-algorithm-day-start-hour))
+(define-obsolete-variable-alias
+  'gnosis-algorithm-day-start-hour 'gnosis-day-start-hour "0.11.0")
+
+(defcustom gnosis-day-start-hour
+  (if (eq gnosis--legacy-day-start-hour :unset)
+      3
+    gnosis--legacy-day-start-hour)
   "Hour at which a new logical review day begins.
 The value must be an integer from 0 through 23.  Reviews before this
 hour belong to the previous calendar day."
   :group 'gnosis
   :type 'integer)
+
+(makunbound 'gnosis--legacy-day-start-hour)
 
 (defun gnosis-date (&optional offset time)
   "Return the logical review date as (YEAR MONTH DAY).

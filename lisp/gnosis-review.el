@@ -41,7 +41,6 @@
 (require 'gnosis-scheduler)
 (require 'gnosis-cloze)
 (require 'gnosis-vc)
-(require 'gnosis-algorithm)
 (require 'gnosis-monkeytype)
 (require 'gnosis-utils)
 (require 'gnosis-nodes)

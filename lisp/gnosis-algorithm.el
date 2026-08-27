@@ -31,6 +31,7 @@
 (require 'cl-lib)
 (require 'calendar)
 (require 'time-date)
+(require 'gnosis-logical-day)
 
 (defcustom gnosis-algorithm-proto '(0 1 2)
   "Gnosis proto interval for the first successful reviews.
@@ -54,13 +55,9 @@ Third item : Total gnosis (gnosis-synolon/totalis) -> Total gnosis score"
 
 Used to calculate new interval upon a failed recall i.e the memory loss.
 
-The closer this value is to 1, the more the memory loss.
-Must be a number in the half-open interval (0, 1]; 0 is rejected
-because it means \"no forgetting\" and breaks interval calculation."
+The closer this value is to 1, the more the memory loss."
   :group 'gnosis
-  :type '(restricted-sexp
-          :match-alternatives
-          ((lambda (val) (gnosis-algorithm--valid-param-p :amnesia val)))))
+  :type 'float)
 
 (defcustom gnosis-algorithm-epignosis-value 0.1
   "Value to increase gnosis-plus upon anagnosis.
@@ -111,35 +108,6 @@ A value of 0.1 means +/- 10%%.  Set to 0 to disable."
   :group 'gnosis
   :type 'float)
 
-(defcustom gnosis-algorithm-day-start-hour 3
-  "Hour at which a new review day begins (0-23).
-When set to 0, days start at midnight (default).
-When set to e.g. 6, reviews done between 00:00 and 05:59
-count as the previous calendar day."
-  :group 'gnosis
-  :type 'integer)
-
-(defun gnosis-algorithm--valid-param-p (param value)
-  "Return non-nil if VALUE is an in-bounds value for algorithm PARAM.
-PARAM is a keyword naming an algorithm parameter.  VALUE must be a
-concrete value; nil is NOT valid (it means \"unset\"), so callers
-that treat nil as \"use the default\" check for nil themselves --
-see `gnosis-validate-custom-values' for that pattern.
-
-Bounds, matching what `gnosis-algorithm-next-interval' dereferences:
-- `:amnesia'  -- number in the half-open interval (0, 1].
-  0 is rejected: it means \"no forgetting\" and, before this guard
-  existed, crashed review via an in-algorithm assertion.
-- `:lethe'    -- integer >= 1.
-
-An unknown PARAM is rejected (returns nil) so that adding a new
-parameter forces an explicit bounds decision here, rather than
-silently accepting whatever a caller supplies."
-  (pcase param
-    (:amnesia (and (numberp value) (> value 0) (<= value 1)))
-    (:lethe   (and (integerp value) (>= value 1)))
-    (_        nil)))
-
 (defun gnosis-algorithm-round-items (list)
   "Round all items in LIST to 2 decimal places."
   (cl-loop for item in list
@@ -157,22 +125,20 @@ intervals less than 2."
 		   gnosis-algorithm-interval-fuzz)))
       (* interval (1+ fuzz)))))
 
-(defun gnosis-algorithm-date (&optional offset base-time)
-  "Return the date (year month day), OFFSET days from BASE-TIME.
-OFFSET is an integer number of days from the base date (default 0).
-BASE-TIME defaults to the current time; passing an explicit time
-value makes the result reproducible for testing.
+(defun gnosis-algorithm-date (&optional offset)
+  "Return the current date in a list (year month day).
+Optional integer OFFSET is a number of days from the current date.
 
-Respects `gnosis-algorithm-day-start-hour': when set to e.g. 6,
+Respects `gnosis-day-start-hour': when set to e.g. 6,
 times before 06:00 count as the previous calendar day."
   (cl-assert (or (integerp offset) (null offset)) nil
              "Date offset must be an integer or nil")
-  (cl-assert (<= 0 gnosis-algorithm-day-start-hour 23) nil
+  (cl-assert (<= 0 gnosis-day-start-hour 23) nil
              "day-start-hour must be 0-23, got %d"
-             gnosis-algorithm-day-start-hour)
-  (let* ((shifted (time-subtract (or base-time (current-time))
+             gnosis-day-start-hour)
+  (let* ((shifted (time-subtract (current-time)
                                  (seconds-to-time
-                                  (* gnosis-algorithm-day-start-hour 3600))))
+                                  (* gnosis-day-start-hour 3600))))
          (decoded-time (decode-time shifted))
          (target (if (and offset (not (zerop offset)))
                      (decoded-time-add
@@ -253,58 +219,6 @@ When C-FAILURES reach ANAGOSNIS, increase gnosis-minus by AGNOIA."
 		     neo-plus)))
     (gnosis-algorithm-round-items (list neo-plus neo-minus neo-synolon))))
 
-(defun gnosis-algorithm--next-interval
-    (last-interval gnosis-synolon success successful-reviews
-     amnesia proto c-fails lethe)
-  "Return the next review interval in DAYS as a non-negative number.
-Pure: given the same inputs it always returns the same value.
-No RNG, no wall-clock reads.
-
-LAST-INTERVAL is the previous interval (0 is treated as 1 on success).
-GNOSIS-SYNOLON is the current synolon (interval multiplier on success).
-SUCCESS is non-nil for a successful review.
-SUCCESSFUL-REVIEWS is the count of consecutive successful reviews.
-AMNESIA is the forget factor in (0, 1]; 1 means total forget.
-The retained interval portion on failure is therefore (1 - AMNESIA).
-PROTO is the list of proto (learning-step) intervals.
-C-FAILS is the count of consecutive failures.
-LETHE is the lethe threshold; C-FAILS >= LETHE on failure resets to 0."
-  (let* ((last-interval (if (and (<= last-interval 0) success)
-                            1 last-interval))
-         (forget (- 1 amnesia)))        ; inverse amnesia
-    (cond
-     ;; Proto phase success: use the proto step.
-     ((and (< successful-reviews (length proto)) success)
-      (nth successful-reviews proto))
-     ;; Proto phase failure: reset to 0.
-     ((and (< successful-reviews (length proto)) (not success))
-      0)
-     ;; Lethe event on failure: reset to 0.
-     ((and (>= c-fails lethe) (not success))
-      0)
-     (t
-      (let ((success-interval (* gnosis-synolon last-interval))
-            (failure-interval (* forget last-interval)))
-        (if success
-            success-interval
-          ;; Cap failure interval at 7 days to prevent overly lenient
-          ;; reschedules for mature cards.
-          (max (min success-interval failure-interval 7) 0)))))))
-
-(defun gnosis-algorithm--apply-fuzz (interval)
-  "Return INTERVAL with +/- fuzz variation applied.
-RNG-dependent: reads `gnosis-algorithm-interval-fuzz'.  Intervals at
-or below 2 or a zero fuzz factor pass through unchanged.  This is
-the internal scheduling-pipeline seam over
-`gnosis-algorithm-fuzz-interval'."
-  (gnosis-algorithm-fuzz-interval interval))
-
-(defun gnosis-algorithm--schedule-date (interval &optional now)
-  "Return the review date (year month day) for INTERVAL days from NOW.
-NOW defaults to the current time.  INTERVAL is rounded to the nearest
-integer day before date conversion."
-  (gnosis-algorithm-date (round interval) now))
-
 (cl-defun gnosis-algorithm-next-interval
     (&key last-interval gnosis-synolon success
           successful-reviews amnesia proto c-fails lethe)
@@ -332,18 +246,35 @@ LETHE: Upon having C-FAILS >= lethe, set next interval to 0."
              "Success value must be a boolean")
   (cl-assert (integerp successful-reviews) nil
              "Successful-reviews must be an integer")
-  ;; User-configurable parameters: a bad value is user data, not a
-  ;; program bug, so signal `user-error' instead of an assertion that
-  ;; can be compiled out.  Bounds live in one place:
-  ;; `gnosis-algorithm--valid-param-p'.
-  (unless (gnosis-algorithm--valid-param-p :amnesia amnesia)
-    (user-error "Amnesia must be a number in (0, 1]; got %s" amnesia))
-  (unless (gnosis-algorithm--valid-param-p :lethe lethe)
-    (user-error "Lethe must be an integer >= 1; got %s" lethe))
-  (gnosis-algorithm--schedule-date
-   (gnosis-algorithm--apply-fuzz
-    (gnosis-algorithm--next-interval last-interval gnosis-synolon success
-        successful-reviews amnesia proto c-fails lethe))))
+  (cl-assert (and (floatp amnesia) (<= amnesia 1)) nil
+             "Amnesia must be a float <=1")
+  (cl-assert (and (<= amnesia 1) (> amnesia 0)) nil
+             "Value of amnesia must be a float <= 1")
+  (cl-assert (and (integerp lethe) (>= lethe 1)) nil
+             "Value of lethe must be an integer >= 1")
+  ;; If last-interval is 0, use 1 instead, only for successful reviews.
+  (let* ((last-interval (if (and (<= last-interval 0) success)
+			    1 last-interval))
+	 (amnesia (- 1 amnesia)) ;; inverse amnesia
+	 (interval (cond ((and (< successful-reviews (length proto))
+			       success)
+			  (nth successful-reviews proto))
+			 ;; Proto phase failure: reset to 0.
+			 ((and (< successful-reviews (length proto))
+			       (not success))
+			  0)
+			 ;; Lethe event, reset interval.
+			 ((and (>= c-fails lethe)
+			       (not success))
+			  0)
+			 (t (let* ((success-interval (* gnosis-synolon last-interval))
+				   (failure-interval (* amnesia last-interval)))
+			      (if success success-interval
+				;; Cap failure interval at 7 days to prevent
+				;; overly lenient reschedules for mature cards.
+			        (max (min success-interval failure-interval 7) 0)))))))
+    (gnosis-algorithm-date
+     (round (gnosis-algorithm-fuzz-interval interval)))))
 
 (defun gnosis-algorithm--date-later-p (date1 date2)
   "Return non-nil if DATE1 is later than DATE2.

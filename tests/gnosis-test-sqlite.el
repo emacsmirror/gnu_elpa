@@ -105,7 +105,7 @@
 
 (ert-deftest gnosis-test-sqlite-roundtrip-date ()
   "Encode then decode a date list is identity."
-  (let ((val (gnosis-algorithm-date)))
+  (let ((val (gnosis-date)))
     (should (equal (gnosis-sqlite--decode (gnosis-sqlite--encode-param val)) val))))
 
 (ert-deftest gnosis-test-sqlite-roundtrip-gnosis-value ()
@@ -439,7 +439,7 @@ Value is pre-encoded (prin1-to-string) in the compiler."
     (unwind-protect
         (progn
           (gnosis-sqlite-execute db "CREATE TABLE test (id INTEGER, date TEXT)")
-          (let ((date (gnosis-algorithm-date)))
+          (let ((date (gnosis-date)))
             (gnosis-sqlite-execute db "INSERT INTO test VALUES (?, ?)"
                                    (list 1 date))
             (let ((rows (gnosis-sqlite-select db "SELECT date FROM test WHERE id = ?"

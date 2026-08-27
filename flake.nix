@@ -46,6 +46,7 @@
         ./lisp/gnosis.el
       ];
       testFiles = [
+        ./docs/gnosis.org
         ./tests/gnosis-fsrs-v2.json
         ./tests/gnosis-test-algorithm.el
         ./tests/gnosis-test-anki.el
@@ -63,6 +64,7 @@
         ./tests/gnosis-test-journal.el
         ./tests/gnosis-test-links.el
         ./tests/gnosis-test-logical-day.el
+        ./tests/gnosis-test-logical-day-cutover.el
         ./tests/gnosis-test-migration.el
         ./tests/gnosis-test-nodes-boundary.el
         ./tests/gnosis-test-nodes.el

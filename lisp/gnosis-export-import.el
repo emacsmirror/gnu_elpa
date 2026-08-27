@@ -37,6 +37,7 @@
 (require 'gnosis-tags)
 (require 'gnosis-vc)
 (require 'gnosis-links)
+(require 'gnosis-logical-day)
 (require 'gnosis-algorithm)
 (require 'gnosis-sqlite)
 (require 'keymap-popup)
@@ -615,7 +616,7 @@ CHANGED-ROWS: (ID TYPE KEIMENON FIELDS)."
   (let* ((db (gnosis--ensure-db))
          (sanitized (gnosis-import--sanitize-path file))
          (today (gnosis--date-to-int
-                 (gnosis-algorithm-date))))
+                 (gnosis-date))))
     (gnosis-sqlite-execute
      db (format "ATTACH DATABASE '%s' AS import_db"
                 sanitized))

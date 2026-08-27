@@ -57,6 +57,7 @@
 
 (require 'gnosis-db)
 (require 'gnosis-scheduler)
+(require 'gnosis-logical-day)
 (require 'gnosis-vc)
 (require 'gnosis-tags)
 (require 'gnosis-links)
@@ -268,7 +269,7 @@ returns an explicit zero row without mutating review evidence."
   "Calculate average reviews over the last DAYS days."
   (let* ((days (or days gnosis-default-average-review-period))
 	 (dates (cl-loop for d from 0 below days
-			 collect (gnosis--date-to-int (gnosis-algorithm-date (- d)))))
+			 collect (gnosis--date-to-int (gnosis-date (- d)))))
 	 (activity (gnosis-review-activity))
 	 (review-counts
 	  (cl-loop for date in dates

@@ -28,6 +28,7 @@
 
 (require 'gnosis)
 (require 'gnosis-db)
+(require 'gnosis-logical-day)
 (require 'gnosis-tags)
 (require 'gnosis-links)
 (require 'gnosis-tl)
@@ -215,7 +216,7 @@ DATES: Dates in the activity log, a list of YYYYMMDD integers."
     (dolist (d dates)
       (puthash d t date-set))
     (cl-loop for i from -1 downto -9999
-             for d1 = (gnosis-algorithm-date i)
+             for d1 = (gnosis-date i)
              while (gethash (gnosis--date-to-int d1) date-set)
              do (cl-incf count))
     (when (gethash (gnosis--today-int) date-set)

@@ -45,6 +45,7 @@ TESTS := tests/gnosis-test-sqlite.el \
 	tests/gnosis-test-scheduler-storage.el \
 	tests/gnosis-test-scheduler.el \
 	tests/gnosis-test-logical-day.el \
+	tests/gnosis-test-logical-day-cutover.el \
 	tests/gnosis-test-algorithm.el \
 	tests/gnosis-test-export-import.el \
 	tests/gnosis-test-dashboard.el \

@@ -315,7 +315,7 @@
   "Read aggregate activity without consulting or mutating the legacy log."
   (gnosis-test-scheduler--with-fresh-db
     (let* ((today (gnosis--today-int))
-           (yesterday (gnosis--date-to-int (gnosis-algorithm-date -1))))
+           (yesterday (gnosis--date-to-int (gnosis-date -1))))
       (gnosis-sqlite-execute
        gnosis-db
        "INSERT INTO review_activity_baseline VALUES (?, ?, ?), (?, ?, ?)"

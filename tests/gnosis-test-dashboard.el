@@ -72,14 +72,14 @@ Includes `gnosis-test-with-clean-cache' for isolation."
 
 (ert-deftest gnosis-test-dashboard-streak-yesterday ()
   "Streak with only yesterday returns \"1\"."
-  (let ((dates (list (gnosis--date-to-int (gnosis-algorithm-date -1)))))
+  (let ((dates (list (gnosis--date-to-int (gnosis-date -1)))))
     (should (equal (gnosis-dashboard--streak dates) "1"))))
 
 (ert-deftest gnosis-test-dashboard-streak-consecutive ()
   "Streak with consecutive past days counts correctly."
-  (let ((dates (list (gnosis--date-to-int (gnosis-algorithm-date -1))
-                     (gnosis--date-to-int (gnosis-algorithm-date -2))
-                     (gnosis--date-to-int (gnosis-algorithm-date -3)))))
+  (let ((dates (list (gnosis--date-to-int (gnosis-date -1))
+                     (gnosis--date-to-int (gnosis-date -2))
+                     (gnosis--date-to-int (gnosis-date -3)))))
     (should (equal (gnosis-dashboard--streak dates) "3"))))
 
 (ert-deftest gnosis-test-dashboard-streak-today-only ()
@@ -90,23 +90,23 @@ Includes `gnosis-test-with-clean-cache' for isolation."
 (ert-deftest gnosis-test-dashboard-streak-today-plus-consecutive ()
   "Streak includes today bonus on top of consecutive past days."
   (let ((dates (list (gnosis--today-int)
-                     (gnosis--date-to-int (gnosis-algorithm-date -1))
-                     (gnosis--date-to-int (gnosis-algorithm-date -2)))))
+                     (gnosis--date-to-int (gnosis-date -1))
+                     (gnosis--date-to-int (gnosis-date -2)))))
     (should (equal (gnosis-dashboard--streak dates) "3"))))
 
 (ert-deftest gnosis-test-dashboard-streak-gap ()
   "A gap in dates stops the streak."
   ;; Yesterday and 3-days-ago, but NOT 2-days-ago
-  (let ((dates (list (gnosis--date-to-int (gnosis-algorithm-date -1))
-                     (gnosis--date-to-int (gnosis-algorithm-date -3)))))
+  (let ((dates (list (gnosis--date-to-int (gnosis-date -1))
+                     (gnosis--date-to-int (gnosis-date -3)))))
     (should (equal (gnosis-dashboard--streak dates) "1"))))
 
 (ert-deftest gnosis-test-dashboard-activity-renders-aggregate-evidence ()
   "Render today, average, streak, and history from aggregate activity."
   (gnosis-test-with-db
    (let* ((today (gnosis--today-int))
-          (yesterday (gnosis--date-to-int (gnosis-algorithm-date -1)))
-          (two-days-ago (gnosis--date-to-int (gnosis-algorithm-date -2)))
+          (yesterday (gnosis--date-to-int (gnosis-date -1)))
+          (two-days-ago (gnosis--date-to-int (gnosis-date -2)))
           (id (gnosis-test--add-basic-thema "Q" "A")))
      (gnosis-sqlite-execute
       gnosis-db

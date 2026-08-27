@@ -119,6 +119,26 @@
         "UPDATE review_log SET n = 1 WHERE id = ?" (list id))
       (should-not (gnosis-review-is-thema-new-p id)))))
 
+(ert-deftest gnosis-test-review-update-rolls-back-on-score-write-failure ()
+  "Review activity and log remain unchanged if score persistence fails."
+  (gnosis-test-with-db
+    (let* ((id (gnosis-test--add-basic-thema "Q" "A"))
+           (before-log (car (gnosis-select
+                             '[last-rev next-rev n c-success t-success]
+                             'review-log `(= id ,id))))
+           (result (gnosis-review-algorithm id t '("test"))))
+      (gnosis-sqlite-execute
+       gnosis-db
+       (concat "CREATE TRIGGER fail_review_update "
+               "BEFORE UPDATE ON review BEGIN "
+               "SELECT RAISE(ABORT, 'forced review failure'); END"))
+      (should-error (gnosis-review--update id t result))
+      (should (equal before-log
+                     (car (gnosis-select
+                           '[last-rev next-rev n c-success t-success]
+                           'review-log `(= id ,id)))))
+      (should-not (gnosis-select '* 'activity-log)))))
+
 (provide 'gnosis-test-review)
 
 (ert-run-tests-batch-and-exit)

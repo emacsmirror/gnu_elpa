@@ -1,6 +1,8 @@
 .POSIX:
 .PHONY: all doc autoload autoload-smoke compile lint lint-checkdoc \
-	lint-package-lint test check dev load clean
+	lint-package-lint test check dev load clean \
+	_doc _autoload _autoload-smoke _compile _lint _lint-checkdoc \
+	_lint-package-lint _test _check _dev
 
 -include local.mk
 
@@ -9,6 +11,9 @@ EMACSCLIENT ?= emacsclient
 EMACS_OPTS ?= -Q --batch
 ENV ?=
 EXTRA_LOAD_PATH ?=
+NIX ?= nix
+NIX_FLAGS ?= --no-write-lock-file
+GNOSIS_ENV_WRAPPED ?=
 
 LISP_DIR := lisp
 TEST_DIR := tests
@@ -59,17 +64,27 @@ TESTS := tests/gnosis-test-sqlite.el \
 
 all: check
 
-doc: $(ORG)
+doc autoload autoload-smoke compile lint lint-checkdoc lint-package-lint \
+test check dev:
+	@if test -z "$(GNOSIS_ENV_WRAPPED)" && test -z "$$IN_NIX_SHELL" \
+		&& command -v "$(NIX)" >/dev/null 2>&1; then \
+		exec "$(NIX)" develop $(NIX_FLAGS) --command \
+			$(MAKE) GNOSIS_ENV_WRAPPED=1 _$@; \
+	else \
+		exec $(MAKE) GNOSIS_ENV_WRAPPED=1 _$@; \
+	fi
+
+_doc: $(ORG)
 	$(ENV) $(EMACS) $(EMACS_OPTS) --load org \
 		--eval "(with-current-buffer (find-file \"$(ORG)\") \
 		  (org-texinfo-export-to-info))"
 
-autoload:
+_autoload:
 	rm -f $(AUTOLOADS)
 	$(ENV) $(EMACS) $(EMACS_OPTS) -L $(LISP_DIR) \
 		--eval "(loaddefs-generate \"$(LISP_DIR)\" \"$(AUTOLOADS)\")"
 
-autoload-smoke: autoload
+_autoload-smoke: _autoload
 	$(ENV) $(EMACS) $(EMACS_OPTS) -L $(LISP_DIR) \
 		-l gnosis-autoloads \
 		--eval "(dolist (command '($(AUTOLOAD_COMMANDS))) \
@@ -77,7 +92,7 @@ autoload-smoke: autoload
 		               (commandp command)) \
 		    (error \"Missing command autoload: %S\" command)))"
 
-compile: autoload
+_compile: _autoload
 	rm -f $(LISP_DIR)/*.elc
 	$(ENV) $(EMACS) $(EMACS_OPTS) $(LOAD_PATH) \
 		--eval "(defun gnosis--compile-log-warning \
@@ -102,7 +117,7 @@ compile: autoload
 		              load-prefer-newer t)" \
 		-f batch-byte-compile $(SOURCES)
 
-test:
+_test: _autoload
 	@set -eu; for file in $(TESTS); do \
 		tmp=$$(mktemp -d); \
 		trap 'rm -rf "$$tmp"' 0 1 2 3 15; \
@@ -119,9 +134,9 @@ test:
 		rm -rf "$$tmp"; trap - 0 1 2 3 15; \
 	done
 
-check: compile autoload-smoke test
+_check: _compile _autoload-smoke _test
 
-lint-checkdoc:
+_lint-checkdoc:
 	@set -eu; for file in $(SOURCES); do \
 		output=$$($(ENV) $(EMACS) $(EMACS_OPTS) -L $(LISP_DIR) \
 			--eval="(progn (require 'checkdoc) \
@@ -131,7 +146,7 @@ lint-checkdoc:
 		fi; \
 	done
 
-lint-package-lint:
+_lint-package-lint:
 	@set -eu; for file in $(PACKAGE_LINT_SOURCES); do \
 		$(ENV) $(EMACS) $(EMACS_OPTS) $(LOAD_PATH) \
 			--eval="(package-initialize)" \
@@ -151,9 +166,9 @@ lint-package-lint:
 			  (kill-emacs 1))"; \
 	done
 
-lint: lint-checkdoc lint-package-lint
+_lint: _lint-checkdoc _lint-package-lint
 
-dev: lint check
+_dev: _lint _check
 
 load:
 	rm -f $(LISP_DIR)/*.elc

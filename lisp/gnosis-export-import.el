@@ -229,10 +229,13 @@ Returns nil on success, or an error message string on failure."
               (puthash id t ht))))
          (errors nil)
          (edited-id (string-to-number (caar themata))))
-    (gnosis-sqlite-with-transaction (gnosis--ensure-db)
-      (cl-loop for thema in themata
-               for err = (gnosis-save-thema thema)
-               when err do (push err errors)))
+    (catch 'gnosis-save-failed
+      (gnosis-sqlite-with-transaction (gnosis--ensure-db)
+        (cl-loop for thema in themata
+                 for err = (gnosis-save-thema thema)
+                 when err do (push err errors))
+        (when errors
+          (throw 'gnosis-save-failed nil))))
     (if errors
         (user-error
          "Failed to import %d thema(ta):\n%s"
@@ -308,6 +311,7 @@ When INCLUDE-SUSPENDED, also export suspended themata."
                        :size (length suspended-ids))))
               (dolist (id suspended-ids ht)
                 (puthash id t ht)))))
+         (filtered-p (or include-tags exclude-tags suspended-ids))
          (ids
           (cond
            ((and (or include-tags exclude-tags)
@@ -327,7 +331,7 @@ When INCLUDE-SUSPENDED, also export suspended themata."
                       db "SELECT id FROM themata"))))
            (t nil)))
          (count
-          (if ids (length ids)
+          (if filtered-p (length ids)
             (caar (gnosis-sqlite-select
                    db "SELECT COUNT(*) FROM themata")))))
     (when (called-interactively-p 'any)
@@ -346,8 +350,8 @@ When INCLUDE-SUSPENDED, also export suspended themata."
           (gnosis-sqlite-execute db gnosis-export--thema-tag-schema)
           (gnosis-sqlite-execute db gnosis-export--extras-schema)
           (gnosis-sqlite-execute db gnosis-export--meta-schema)
-          (if ids
-              (progn
+          (if filtered-p
+              (when ids
                 (gnosis-sqlite-execute-batch db
                                              "INSERT INTO export_db.themata SELECT id, type, keimenon, hypothesis, answer FROM themata WHERE id IN (%s)"
                                              ids)

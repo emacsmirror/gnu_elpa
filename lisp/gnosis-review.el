@@ -389,19 +389,21 @@ RESULT is the return value of `gnosis-review-algorithm'."
 	 (c-success (alist-get 'c-success log-alist))
 	 (c-fails (alist-get 'c-fails log-alist))
 	 (t-success (alist-get 't-success log-alist))
-	 (t-fails (alist-get 't-fails log-alist)))
-    (gnosis-review-increment-activity-log (not (> n 0)))
-    ;; Single review-log UPDATE
-    (gnosis-sqlite-execute (gnosis--ensure-db)
-			   "UPDATE review_log SET last_rev = ?, next_rev = ?, n = ?, c_success = ?, c_fails = ?, t_success = ?, t_fails = ? WHERE id = ?"
-			   (list (gnosis--today-int) (gnosis--date-to-int next-rev) (1+ n)
-				 (if success (1+ c-success) 0)
-				 (if success 0 (1+ c-fails))
-				 (if success (1+ t-success) t-success)
-				 (if success t-fails (1+ t-fails))
-				 id))
-    ;; Single review UPDATE
-    (gnosis-update 'review `(= gnosis ',gnosis-score) `(= id ,id))))
+	 (t-fails (alist-get 't-fails log-alist))
+	 (db (gnosis--ensure-db)))
+    (gnosis-sqlite-with-transaction db
+      (gnosis-review-increment-activity-log (not (> n 0)))
+      ;; Single review-log UPDATE
+      (gnosis-sqlite-execute db
+			     "UPDATE review_log SET last_rev = ?, next_rev = ?, n = ?, c_success = ?, c_fails = ?, t_success = ?, t_fails = ? WHERE id = ?"
+			     (list (gnosis--today-int) (gnosis--date-to-int next-rev) (1+ n)
+				   (if success (1+ c-success) 0)
+				   (if success 0 (1+ c-fails))
+				   (if success (1+ t-success) t-success)
+				   (if success t-fails (1+ t-fails))
+				   id))
+      ;; Single review UPDATE
+      (gnosis-update 'review `(= gnosis ',gnosis-score) `(= id ,id)))))
 
 (defun gnosis-review-result (id success result)
   "Update review thema ID results for SUCCESS.

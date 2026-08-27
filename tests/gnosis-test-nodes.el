@@ -159,6 +159,27 @@ Content with [[id:other-node][a link]].
             (should (= 2 (length links))))))
     (gnosis-test-nodes--teardown-dirs)))
 
+(ert-deftest gnosis-test-nodes-refresh-preserves-incoming-links ()
+  "Refreshing a destination node preserves links from other files."
+  (gnosis-test-nodes--setup-dirs)
+  (unwind-protect
+      (let* ((gnosis-nodes-dir gnosis-test-nodes--temp-dir)
+             (gnosis-journal-dir (expand-file-name
+                                  "journal" gnosis-test-nodes--temp-dir))
+             (file (gnosis-test-nodes--create-file
+                    gnosis-nodes-dir "dest.org"
+                    ":PROPERTIES:\n:ID: dest\n:END:\n#+title: Destination\n")))
+        (gnosis-test-with-db
+          (gnosis--insert-into
+           'nodes '(["source" "source.org" "Source" 0 nil "0" "hash"]))
+          (gnosis--insert-into
+           'nodes '(["dest" "dest.org" "Destination" 0 nil "0" "hash"]))
+          (gnosis--insert-into 'node-links '(["source" "dest"]))
+          (gnosis-nodes-update-file file)
+          (should (equal (gnosis-select '[source dest] 'node-links)
+                         '(("source" "dest"))))))
+    (gnosis-test-nodes--teardown-dirs)))
+
 ;;; ---- Group 2: Purge tables ----
 
 (ert-deftest gnosis-test-nodes-purge-tables ()

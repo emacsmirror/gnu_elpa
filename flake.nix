@@ -148,7 +148,7 @@
               export XDG_STATE_HOME="$TMPDIR/state"
               mkdir -p "$HOME" "$XDG_CACHE_HOME" "$XDG_CONFIG_HOME" \
                 "$XDG_DATA_HOME" "$XDG_STATE_HOME"
-              make ENV= EMACS=emacs dev
+              make GNOSIS_ENV_WRAPPED=1 ENV= EMACS=emacs dev
               runHook postBuild
             '';
             installPhase = ''
@@ -196,7 +196,7 @@
                   export XDG_DATA_HOME="$work/data"
                   export XDG_STATE_HOME="$work/state"
                   cd "$work/project"
-                  make ENV= EMACS=emacs ${target} "$@"
+                  make GNOSIS_ENV_WRAPPED=1 ENV= EMACS=emacs ${target} "$@"
                 '';
               };
             in

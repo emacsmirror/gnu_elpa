@@ -311,8 +311,8 @@
      (equal '((20260829 5 1) (20260830 11 3) (20260831 1 1))
             (gnosis-db-review-activity gnosis-db)))))
 
-(ert-deftest gnosis-test-review-activity-api-ignores-legacy-log ()
-  "Read aggregate activity without consulting or mutating the legacy log."
+(ert-deftest gnosis-test-review-activity-api-preserves-evidence ()
+  "Read aggregate activity without mutating its immutable evidence."
   (gnosis-test-scheduler--with-fresh-db
     (let* ((today (gnosis--today-int))
            (yesterday (gnosis--date-to-int (gnosis-date -1))))
@@ -328,14 +328,11 @@
        (list 1 today 0 0))
       (gnosis-test-scheduler--insert-event-fixture
        gnosis-db nil nil nil nil nil today)
-      (gnosis-sqlite-execute
-       gnosis-db "INSERT INTO activity_log VALUES (?, ?, ?)" (list today 99 99))
       (let ((before
              (list
               (gnosis-sqlite-select
                gnosis-db "SELECT * FROM review_activity_baseline")
-              (gnosis-sqlite-select gnosis-db "SELECT * FROM review_events")
-              (gnosis-sqlite-select gnosis-db "SELECT * FROM activity_log"))))
+              (gnosis-sqlite-select gnosis-db "SELECT * FROM review_events"))))
         (should (equal (list (list yesterday 3 1) (list today 6 2))
                        (gnosis-review-activity)))
         (should (= 6 (gnosis-get-date-total-themata today)))
@@ -346,22 +343,25 @@
                 (list
                  (gnosis-sqlite-select
                   gnosis-db "SELECT * FROM review_activity_baseline")
-                 (gnosis-sqlite-select gnosis-db "SELECT * FROM review_events")
-                 (gnosis-sqlite-select gnosis-db "SELECT * FROM activity_log"))))))))
+                 (gnosis-sqlite-select gnosis-db "SELECT * FROM review_events"))))))))
 
 (ert-deftest gnosis-test-review-activity-missing-day-is-read-only ()
-  "Return zero for missing activity without creating a legacy row."
+  "Return zero for missing activity without creating evidence."
   (gnosis-test-scheduler--with-fresh-db
-    (gnosis-sqlite-execute
-     gnosis-db "CREATE TRIGGER reject_legacy_activity_insert
-                  BEFORE INSERT ON activity_log
-                  BEGIN SELECT RAISE(ABORT, 'read attempted write'); END")
-    (should (equal (list (gnosis--today-int) 0 0)
-                   (gnosis-review-activity (gnosis--today-int))))
-    (should (= 0 (gnosis-get-date-total-themata)))
-    (should (= 0 (gnosis-get-date-new-themata)))
-    (should-not
-     (gnosis-sqlite-select gnosis-db "SELECT * FROM activity_log"))))
+    (let ((before (list
+                   (gnosis-sqlite-select
+                    gnosis-db "SELECT * FROM review_activity_baseline")
+                   (gnosis-sqlite-select gnosis-db "SELECT * FROM review_events"))))
+      (should (equal (list (gnosis--today-int) 0 0)
+                     (gnosis-review-activity (gnosis--today-int))))
+      (should (= 0 (gnosis-get-date-total-themata)))
+      (should (= 0 (gnosis-get-date-new-themata)))
+      (should
+       (equal before
+              (list
+               (gnosis-sqlite-select
+                gnosis-db "SELECT * FROM review_activity_baseline")
+               (gnosis-sqlite-select gnosis-db "SELECT * FROM review_events")))))))
 
 (ert-deftest gnosis-test-review-history-mutators-are-removed ()
   "Do not expose commands that mutate derived review activity."

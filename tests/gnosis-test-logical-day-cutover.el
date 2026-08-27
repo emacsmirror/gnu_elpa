@@ -76,6 +76,10 @@
                        gnosis-test-logical-day-cutover--root))
     (should (search-forward "=gnosis-day-start-hour=" nil t))
     (goto-char (point-min))
+    (should (search-forward "* Logical Review Day" nil t))
+    (goto-char (point-min))
+    (should-not (search-forward "gnosis-algorithm-" nil t))
+    (goto-char (point-min))
     (should (search-forward
              "By default, a new review day begins at 03:00." nil t))
     (goto-char (point-min))

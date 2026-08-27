@@ -18,7 +18,7 @@
 - [[#journal][Journal]]
 - [[#themata][Themata]]
 - [[#review][Review System]]
-- [[#algorithm][The Algorithm]]
+- [[#logical-review-day][Logical Review Day]]
 - [[#dashboard][Dashboard]]
 - [[#export-import][Export and Import]]
 - [[#link-health][Link Health and Maintenance]]
@@ -1027,126 +1027,10 @@ specific types via =gnosis-monkeytype-themata=:
   (setq gnosis-vc-auto-push t))
 #+end_src
 
-* The Algorithm
+* Logical Review Day
 :PROPERTIES:
-:CUSTOM_ID: algorithm
+:CUSTOM_ID: logical-review-day
 :END:
-
-Gnosis uses a modified spaced repetition algorithm inspired by SM-2 but
-with distinct vocabulary and several extensions for fine-grained control.
-
-** Overview
-
-The core idea is that every successful recall increases the interval
-before the next review, while every failure decreases it.  The rate of
-growth and decay is governed by a per-thema /gnosis score/, which itself
-adapts over time based on review history.
-
-Gnosis uses actual elapsed time (days since the last review) rather than
-the scheduled interval when computing the next interval.  This rewards
-successful recall after longer delays.
-
-** The Gnosis Score Triplet
-
-Each thema carries a gnosis score stored as a list of three values:
-
-#+begin_example
-(gnosis-plus  gnosis-minus  gnosis-synolon)
-#+end_example
-
-- *gnosis-plus*: How much =gnosis-synolon= grows on success.  Itself
-  grows via /anagnosis/ events.  Default: =0.35=.
-- *gnosis-minus*: How much =gnosis-synolon= shrinks on failure.  Grows
-  via anagnosis events on failures.  Default: =0.30=.
-- *gnosis-synolon* (/synolon/, "total"): The interval multiplier.  On
-  success, next interval = =synolon * elapsed-time=.  Capped at
-  =gnosis-algorithm-synolon-max= (default 3.0), floored at 1.3.
-
-#+begin_src emacs-lisp
-;; Default: plus=0.35, minus=0.30, synolon=1.3
-(setq gnosis-algorithm-gnosis-value '(0.35 0.30 1.3))
-#+end_src
-
-** Proto Phase
-
-New themata go through a /proto/ phase with fixed intervals before the
-standard algorithm applies:
-
-#+begin_src emacs-lisp
-;; Default: 0, 1, 2 days for the first 3 successes.
-(setq gnosis-algorithm-proto '(0 1 2))
-#+end_src
-
-After exhausting the proto list, the algorithm switches to the standard
-=synolon * elapsed-time= calculation.  Failing a review during the proto
-phase always resets the interval to 0 (due again today), regardless of
-elapsed time.
-
-** Interval Calculation
-
-On a *successful* review:
-
-#+begin_example
-next-interval = round(fuzz(gnosis-synolon * elapsed-time))
-#+end_example
-
-The computed date is compared to the previously scheduled date, and the
-*later* of the two is kept, preventing early reviews from deflating
-intervals.
-
-On a *failed* review:
-
-#+begin_example
-failure-factor = 1 - gnosis-algorithm-amnesia-value
-next-interval  = round(fuzz(failure-factor * elapsed-time))
-#+end_example
-
-#+begin_src emacs-lisp
-;; Default: 0.5 -- interval halved on failure.
-(setq gnosis-algorithm-amnesia-value 0.5)
-#+end_src
-
-** Anagnosis Events
-
-/Anagnosis/ (/ἀνάγνωσις/, "recognition") events fire when consecutive
-successes or failures reach a threshold, permanently adjusting the
-gnosis-plus or gnosis-minus values.
-
-#+begin_src emacs-lisp
-;; Fire every 3 consecutive successes or failures.
-(setq gnosis-algorithm-anagnosis-value 3)
-
-;; Increase gnosis-plus by 0.1 on success anagnosis.
-(setq gnosis-algorithm-epignosis-value 0.1)
-
-;; Increase gnosis-minus by 0.2 on failure anagnosis.
-(setq gnosis-algorithm-agnoia-value 0.2)
-#+end_src
-
-A thema you keep getting right will grow its intervals faster over time;
-one you keep failing will be penalised more harshly.
-
-** Lethe
-
-/Lethe/ (the river of forgetfulness) resets the interval to zero when
-consecutive failures reach or exceed the threshold, and reduces
-gnosis-plus to slow future growth:
-
-#+begin_src emacs-lisp
-;; Default: reset on 2 consecutive failures.
-(setq gnosis-algorithm-lethe-value 2)
-#+end_src
-
-** Fuzz
-
-Random variation applied to intervals to prevent review clustering:
-
-#+begin_src emacs-lisp
-;; Default: +/-10%. Set to 0 to disable.
-(setq gnosis-algorithm-interval-fuzz 0.1)
-#+end_src
-
-Fuzz is not applied to intervals of 2 days or fewer.
 
 ** Day Boundary
 
@@ -1167,21 +1051,6 @@ after midnight to be counted against the same day as the rest of their
 evening session.
 
 /The setting affects all date-dependent logic/
-
-** All Algorithm Variables
-
-| Variable                          | Default           | Description                                     |
-|-----------------------------------+-------------------+-------------------------------------------------|
-| =gnosis-algorithm-proto=          | =(0 1 2)=         | Fixed intervals for the first N successes        |
-| =gnosis-algorithm-gnosis-value=   | =(0.35 0.30 1.3)= | Starting (plus minus synolon) score             |
-| =gnosis-algorithm-amnesia-value=  | =0.5=             | Memory loss factor on failure (0 < x < 1)       |
-| =gnosis-algorithm-epignosis-value=| =0.1=             | gnosis-plus increment per success anagnosis     |
-| =gnosis-algorithm-agnoia-value=   | =0.2=             | gnosis-minus increment per failure anagnosis    |
-| =gnosis-algorithm-anagnosis-value=| =3=               | Consecutive review threshold for anagnosis      |
-| =gnosis-algorithm-lethe-value=    | =2=               | Consecutive failures before lethe reset         |
-| =gnosis-algorithm-synolon-max=    | =3.0=             | Maximum value for the interval multiplier       |
-| =gnosis-algorithm-interval-fuzz=  | =0.1=             | Fuzz fraction applied to intervals (0 = off)    |
-| =gnosis-day-start-hour=           | =3=               | Hour (0-23) at which a new review day begins    |
 
 * Dashboard
 :PROPERTIES:

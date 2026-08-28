@@ -7041,8 +7041,9 @@ create a new one."
   "Get current Org heading text."
   (org-get-heading :no-tags :no-todo :no-priority :no-comment))
 
-(defun denote-link-format-heading-description (file-text heading-text)
-  "Return description for FILE-TEXT with HEADING-TEXT at the end or
+(defun denote-link--ol-format-heading-description (file-text heading-text)
+  "Return heading description.
+Return description for FILE-TEXT with HEADING-TEXT at the end or
 only HEADING-TEXT if `denote-org-store-link-to-heading' is set to `local' links."
   (if (eq denote-org-store-link-to-heading 'local)
       (format "%s" heading-text)
@@ -7067,7 +7068,7 @@ Also see the user option `denote-org-store-link-to-heading'."
       (org-link-store-props
        :type "denote"
        :description (if (and heading-links heading)
-                        (denote-link-format-heading-description
+                        (denote-link--ol-format-heading-description
                          description
                          heading)
                       description)

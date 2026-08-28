@@ -37,8 +37,7 @@
 (require 'treesit)
 (eval-when-compile
   (require 'subr-x)
-  (require 'cond-star)
-  (require 'cl-lib))
+  (require 'cond-star))
 
 ;; not in emacs 30
 ;; (ts-declare-unavailable-functions)
@@ -65,14 +64,14 @@
 (add-to-list 'ts-language-source-alist
              '(common-lisp
                "https://codeberg.org/zshaftel/tree-sitter-cl-syntax"
-               :commit "be6e40bf2b284d3051bada749b9c662be877d4a1"
+               :commit "dd2290d2a2480f4d865c57ed541dc714645c386b"
                :source-dir "grammars/cl/src")
              t)
 
 (add-to-list 'ts-language-source-alist
              '(cl-format
                "https://codeberg.org/zshaftel/tree-sitter-cl-syntax"
-               :commit "be6e40bf2b284d3051bada749b9c662be877d4a1"
+               :commit "dd2290d2a2480f4d865c57ed541dc714645c386b"
                :source-dir "grammars/format/src")
              t)
 

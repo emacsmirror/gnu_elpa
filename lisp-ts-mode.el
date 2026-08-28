@@ -5,7 +5,7 @@
 ;; Author: zach shaftel <zach@shaf.tel>
 ;; Maintainer: zach shaftel <zach@shaf.tel>
 ;; Created: May 14, 2026
-;; Version: 0.3.3
+;; Version: 0.3.4
 ;; Keywords: lisp, languages, tree-sitter
 ;; URL: https://codeberg.org/zshaftel/lisp-ts-mode
 ;; Package-Requires: ((emacs "30.2") cond-star (compat "31"))
@@ -440,18 +440,8 @@ and the character's name is given the face
       (add-face-text-property backslash-end (ts-node-end node)
                               'lisp-ts-mode-character-name))))
 
-;; as of now this could just be a `defconst', but we might wanna make certain
-;; rules like format-directive conditional, so let's keep it a function for
-;; forward compatibility.
-(defun lisp-ts-mode--font-lock-rules ()
-  "Return font-lock rules used for `treesit-font-lock-settings' in `lisp-ts-mode'."
+(defconst lisp-ts-mode--cl-font-lock-rules
   (ts-font-lock-rules
-   ;; this rule will only run if explicitly triggered by `gaudy-cl-mode' or when
-   ;; `lisp-ts-format-support-mode' is enabled
-   :language 'cl-format
-   :feature 'format-directive
-   :override 'prepend
-   `((format_string) @lisp-ts-mode--fontify-format-string)
    :default-language 'common-lisp
    :feature 'string
    :override 'append
@@ -502,6 +492,15 @@ and the character's name is given the face
    `(["#." @lisp-ts-mode-read-eval
       "#+" @lisp-ts-mode-positive-read-conditional
       "#-" @lisp-ts-mode-negative-read-conditional])))
+
+(defconst lisp-ts-mode--format-font-lock-rules
+  (ts-font-lock-rules
+   ;; this rule will only run if explicitly triggered by `gaudy-cl-mode' or when
+   ;; `lisp-ts-format-support-mode' is enabled
+   :language 'cl-format
+   :feature 'format-directive
+   :override 'prepend
+   `((format_string) @lisp-ts-mode--fontify-format-string)))
 
 (defconst lisp-ts-mode--font-lock-feature-list
   '((string comment)
@@ -1196,11 +1195,12 @@ This should be set before `lisp-ts-mode' is activated.")
   (setq imenu-case-fold-search t)
   (setq-local lisp-fill-paragraphs-as-doc-string nil) ;specifically designed for elisp
   (setq-local comment-quote-nested nil)
-  ;; FIXME: we should only prompt for the format grammar when turning on
-  ;; `lisp-ts-format-support-mode'
-  (when (and (ts-ensure-installed 'common-lisp) (ts-ensure-installed 'cl-format))
+  (when (static-if (fboundp 'ts-ensure-installed)
+            (ts-ensure-installed 'common-lisp)
+          ;; emacs 30
+          (ts-ready-p 'common-lisp))
     (setq ts-primary-parser (ts-parser-create 'common-lisp))
-    (setq ts-font-lock-settings (lisp-ts-mode--font-lock-rules))
+    (setq ts-font-lock-settings lisp-ts-mode--cl-font-lock-rules)
     (setq ts-font-lock-feature-list lisp-ts-mode--font-lock-feature-list)
     (setq-local ts-thing-settings lisp-ts-mode-thing-settings)
     (ts-major-mode-setup)
@@ -1368,7 +1368,9 @@ format grammar automatically."
     ((not (derived-mode-p 'lisp-ts-mode))
      (lisp-ts-format-support-mode -1)
      (user-error "`lisp-ts-format-support-mode' only works in `lisp-ts-mode'"))
-    ((not (ts-ensure-installed 'cl-format))
+    ((not (static-if (fboundp 'ts-ensure-installed)
+              (ts-ensure-installed 'cl-format)
+            (ts-ready-p 'cl-format t)))
      (lisp-ts-format-support-mode -1)
      (warn "FORMAT grammar not available, `lisp-ts-format-support-mode' disabled"))
     ((bound-and-true-p gaudy-cl-mode)
@@ -1385,7 +1387,10 @@ format grammar automatically."
            :embed 'cl-format
            :host 'common-lisp
            :local t
-           lisp-ts-format-support-mode-query))))
+           lisp-ts-format-support-mode-query))
+         ;; create a "restore point" for turning it off, the rule is added below
+         ts-font-lock-settings ts-font-lock-settings))
+       (ts-add-font-lock-rules lisp-ts-mode--format-font-lock-rules :after)
        (syntax-ppss-flush-cache (point-min))
        (font-lock-flush))))
 

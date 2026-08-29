@@ -32,7 +32,7 @@ GNU General Public License for more details. */
 	} */
 
 	--page-width: 100ch;
-	--radius: 1ch;
+	--padding: 1ch;
 }
 
 html {
@@ -44,7 +44,7 @@ html {
 body {
 	max-width: var(--page-width);
 	margin: auto;
-	padding: var(--radius);
+	padding: var(--padding);
 	background: var(--background);
 }
 
@@ -66,9 +66,9 @@ a {
 
 :target {
 	background: color-mix(in oklab, 100% white, 50% var(--primary));
-	padding: calc(0.5 * var(--radius));
-	margin: 0 calc(-0.5 * var(--radius));
-	border-radius: calc(0.5 * var(--radius));
+	padding: calc(0.5 * var(--padding));
+	margin: 0 calc(-0.5 * var(--padding));
+	border-radius: calc(0.5 * var(--padding));
 }
 
 header {
@@ -88,13 +88,13 @@ header {
 
 	nav {
 		background: linear-gradient(135deg, var(--primary), var(--ternary), var(--secondary));
-		border-radius: var(--radius);
+		border-radius: var(--padding);
 		line-height: 1;
 
 		/* We add additional padding on both ends, so that the space around
 			 each element in the navbar appears to be the same as between
 			 the fringe elements and the side of the navbar. */
-		padding: 0 var(--radius);
+		padding: 0 var(--padding);
 
 		ul {
 			padding: 0;
@@ -105,7 +105,7 @@ header {
 
 				a {
 					text-decoration: none;
-					padding: var(--radius);
+					padding: var(--padding);
 					display: inline-block;
 
 					/* The navbar links are not really text-links so we don't want
@@ -123,8 +123,8 @@ header {
 
 main {
 	background: var(--foreground);
-	padding: var(--radius) calc(2 * var(--radius));
-	border-radius: var(--radius);
+	padding: var(--padding) calc(2 * var(--padding));
+	border-radius: var(--padding);
 	position: relative;
 
 	p, li, dd {
@@ -146,7 +146,7 @@ main {
 		margin: unset auto unset auto;
 		overflow-x: auto;
 		&[align="right"] {
-			margin-left: var(--radius);
+			margin-left: var(--padding);
 		}
 	}
 
@@ -157,11 +157,11 @@ main {
 	}
 
 	search input {
-		margin: var(--radius) auto;
+		margin: var(--padding) auto;
 		display: block;
 		width: min(calc(var(--page-width) / 2), 100%);
 		font-size: larger;
-		padding: calc(var(--radius) / 2);
+		padding: calc(var(--padding) / 2);
 	}
 
 	table#packages {
@@ -181,7 +181,7 @@ main {
 		}
 
 		th, td {
-			padding: var(--radius);
+			padding: var(--padding);
 			overflow-wrap: break-word;
 		}
 		td.alt { background-color: var(--highlight); }
@@ -205,12 +205,12 @@ main {
 
 		&.package .badge {
 			position: absolute;
-			right: var(--radius);
+			right: var(--padding);
 			top: 0;
 
 			img {
 				/* Ensure same margin to the right as above the image. */
-				margin-top: var(--radius);
+				margin-top: var(--padding);
 			}
 		}
 	}
@@ -221,15 +221,15 @@ footer {
 	text-align: center;
 }
 
-@media (min-width: calc(var(--page-width) * 2 * var(--radius))) {
+@media (min-width: calc(var(--page-width) * 2 * var(--padding))) {
 	body {
 		padding: 0;
 
 		header {
-			h1 { padding-left: var(--radius); }
+			h1 { padding-left: var(--padding); }
 			nav {
 				border-radius: 0;
-				padding-left: var(--radius);
+				padding-left: var(--padding);
 			}
 			ul {
 				li.other {
@@ -241,13 +241,13 @@ footer {
 
 	main {
 		border-radius: 0;
-		padding: var(--radius);
+		padding: var(--padding);
 
 		h2.package + dl {
 			display: grid;
 			grid-template-columns: max-content auto;
 
-			dt, dd { padding-top: var(--radius); }
+			dt, dd { padding-top: var(--padding); }
 			dt { grid-column: 1; }
 			dd { grid-column: 2; }
 		}

@@ -1769,6 +1769,7 @@ are effectively trimmed.  If nil, all zero-length substrings are retained."
 
 ;;; add `org-capture' template for org-contacts
 
+;;;###autoload
 (defun org-contacts-load-org-capture-template ()
   "Load org-contacts capture template into `org-capture-templates'."
   (add-to-list 'org-capture-templates

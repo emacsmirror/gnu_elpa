@@ -145,7 +145,7 @@ main {
 
 	img {
 		max-width: 100%;
-		margin: unset auto unset auto;
+		margin: 0 auto;
 		overflow-x: auto;
 		&[align="right"] {
 			margin-left: var(--padding);

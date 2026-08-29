@@ -171,7 +171,7 @@ main {
 		border-collapse: collapse;
 		overflow-x: auto;
 		width: 100%;
-		display: block;
+		table-layout: fixed;
 		contain: layout paint style;
 		margin: auto;
 
@@ -195,11 +195,6 @@ main {
 		}
 		th[data-order="asc"]:after { content: "↓"; }
 		th[data-order="desc"]:after { content: "↑"; }
-
-		/* These rules should ensure/prevent line breaks where it makes sense. */
-		td:nth-child(2) { max-width: 8ch; }	 /* version */
-		td:nth-child(4) { max-width: 4ch; }	 /* rank */
-		td:nth-child(5) { min-width: 10ch; } /* release date */
 	}
 
 	h2 {
@@ -252,6 +247,11 @@ footer {
 			dt, dd { padding-top: var(--padding); }
 			dt { grid-column: 1; }
 			dd { grid-column: 2; }
+		}
+
+		table#packages {
+			width: unset;
+			table-layout: initial;
 		}
 	}
 }

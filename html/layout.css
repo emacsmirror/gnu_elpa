@@ -145,6 +145,9 @@ main {
 		max-width: 100%;
 		margin: unset auto unset auto;
 		overflow-x: auto;
+		&[align="right"] {
+			margin-left: var(--radius);
+		}
 	}
 
 	details {

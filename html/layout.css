@@ -30,6 +30,8 @@ GNU General Public License for more details. */
 
 	} */
 
+	/* Note: when changing this variable, please remember to also adjust
+		 the @media rule below.  */
 	--page-width: 100ch;
 	--padding: 1ch;
 }
@@ -218,7 +220,7 @@ footer {
 	text-align: center;
 }
 
-@media (min-width: calc(var(--page-width) * 2 * var(--padding))) {
+@media screen and (min-width: 100ch) { /* see --page-width comment above */
 	body {
 		padding: 0;
 

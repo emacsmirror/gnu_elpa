@@ -1781,9 +1781,10 @@ are effectively trimmed.  If nil, all zero-length substrings are retained."
 :PROPERTIES:
 :ID:   %(org-id-new)
 :DIR:  %\\1
+:CUSTOM_ID:  %\\1
 :DATE: %^U
 :AVATAR: %^{Avatar}
-:NICK: %^{Nick}
+:NICKNAME: %^{Nick}
 :GENDER: %^{Gender|male|female|transgender}
 :RELATIONSHIP: %^{Relationship|internet|meet|friend|good friend|boy friend|girl friend|workmate|classmate|schoolmate}
 :FIRST-MEET: %^U  %^{How is the first-time meet? when? where? how?}

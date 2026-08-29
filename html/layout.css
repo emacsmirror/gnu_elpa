@@ -12,7 +12,6 @@ GNU General Public License for more details. */
 
 :root {
 	font-family: sans-serif;
-	box-sizing: border-box;
 	text-rendering: optimizeLegibility;
 	font-variant-ligatures: common-ligatures;
 	font-kerning: auto;
@@ -36,10 +35,13 @@ GNU General Public License for more details. */
 }
 
 html {
+	box-sizing: border-box;
+
 	/* Hack to prevent the scroll bar from shifting the content of the
 		 page: https://stackoverflow.com/a/30293718 */
 	padding-left: calc(100vw - 100%);
 }
+*, *::before, *::after { box-sizing: inherit; }
 
 body {
 	max-width: var(--page-width);

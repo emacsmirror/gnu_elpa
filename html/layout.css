@@ -220,7 +220,7 @@ footer {
 	text-align: center;
 }
 
-@media screen and (min-width: 100ch) { /* see --page-width comment above */
+@media screen and (max-width: 100ch) { /* see --page-width comment above */
 	body {
 		padding: 0;
 

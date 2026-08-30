@@ -19,15 +19,17 @@ default:
 .lint:
   stage: lint
   needs: []
+  variables:
+    log_file: ${CI_JOB_NAME}-${CI_COMMIT_SHORT_SHA}.log
   script:
-    - $HOME/.local/bin/eldev lint all elisp >lint.log 2>&1
+    - ${HOME}/.local/bin/eldev lint all elisp 2>&1 | tee ${log_file}
   artifacts:
-    name: lint.log
+    name: ${log_file}
     public: true
     expire_in: 1 week
     when: always
     paths:
-      - lint.log
+      - ${log_file}
 
 .test:
   stage: test

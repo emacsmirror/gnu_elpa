@@ -1,5 +1,11 @@
 ;;; -*- mode: emacs-lisp; lexical-binding: t -*-
 
+(require 'checkdoc)
 (setq eldev-project-main-file "tramp.el"
       eldev-standard-excludes
-      `(:or ,eldev-standard-excludes "tramp-loaddefs.el"))
+      `(:or ,eldev-standard-excludes "tramp-loaddefs.el")
+      checkdoc-proper-noun-list (cons "tramp" checkdoc-proper-noun-list)
+      checkdoc-proper-noun-regexp
+      (concat "\\_<"
+	      (regexp-opt checkdoc-proper-noun-list t)
+	      "\\(\\_>\\|[.!?][ \t\n\"]\\)"))

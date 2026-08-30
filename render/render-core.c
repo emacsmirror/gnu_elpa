@@ -385,7 +385,6 @@ emacs_load_doc(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
 	(void)data;
 
 	size_t str_length = 0;
-	emacs_value ret = EMACS_NIL;
 
 	emacs_value curr_win = EMACS_CURR_WIN;
 	emacs_value current_doc_overlay = init_overlay(env, curr_win);
@@ -489,21 +488,9 @@ emacs_load_doc(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
 	display_img_to_overlay(env, win_state, cp->img_data, cp->img_size,
 			       current_doc_overlay);
 
-	ret = EMACS_T;
-	return ret;
+	return EMACS_T;
 
 cleanup:
-	/* destroy already-inited page primitives */
-	if (doc_state && doc_state->cached_pages_block)
-	{
-		for (int i = 0; i < pages_inited; ++i)
-		{
-			CachedPage *cp = &doc_state->cached_pages_block[i];
-			pthread_cond_destroy(&cp->cond);
-			pthread_mutex_destroy(&cp->mutex);
-		}
-	}
-
 	/* free pool + block */
 	if (doc_state)
 	{
@@ -514,6 +501,14 @@ cleanup:
 		}
 		if (doc_state->cached_pages_block)
 		{
+			/* destroy already-inited page primitives */
+			for (int i = 0; i < pages_inited; ++i)
+			{
+				CachedPage *cp
+				    = &doc_state->cached_pages_block[i];
+				pthread_cond_destroy(&cp->cond);
+				pthread_mutex_destroy(&cp->mutex);
+			}
 			free(doc_state->cached_pages_block);
 			doc_state->cached_pages_block = NULL;
 		}
@@ -541,7 +536,7 @@ cleanup:
 		}
 	}
 
-	return ret;
+	return EMACS_NIL;
 }
 
 /**

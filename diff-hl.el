@@ -614,7 +614,8 @@ contents as they are (or would be) after applying the changes in NEW."
     (let (res)
       (goto-char (point-min))
       (unless (eobp)
-        (diff-beginning-of-hunk t)
+        (ignore-errors
+          (diff-beginning-of-hunk t))
         (while (looking-at diff-hunk-header-re-unified)
           (let ((line (string-to-number (match-string 3)))
                 (beg (point)))

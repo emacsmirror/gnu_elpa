@@ -643,14 +643,18 @@ starts at the beginning of the record.
 ENDKEYFUN moves from the start of the sort key to the end of the sort key.
 ENDKEYFUN may be nil if STARTKEYFUN returns a value or if it would be the
 same as ENDRECFUN."
-  (let ((tbl (syntax-table)))
+  (let ((tbl (syntax-table))
+        (newtbl (make-syntax-table sort-fields-syntax-table)))
+    (mapc (lambda (x)
+	    (modify-syntax-entry (string-to-char x) "\"" newtbl))
+          csv-field-quotes)
     (if (zerop field) (setq field 1))
     (unwind-protect
 	(save-excursion
 	  (save-restriction
 	    (narrow-to-region beg end)
 	    (goto-char (point-min))
-	    (set-syntax-table sort-fields-syntax-table)
+	    (set-syntax-table newtbl)
 	    (sort-subr csv-descending
 		       'csv-nextrecfun 'end-of-line
 		       startkeyfun endkeyfun)))
@@ -702,10 +706,11 @@ BEG and END specify the region to sort."
 				      (goto-char (match-end 2))
 				      8)
 				     (t nil)))))
-		     (string-to-number (buffer-substring (point)
-							 (save-excursion
-							   (forward-sexp 1)
-							   (point)))
+		     (string-to-number (csv--unquote-value
+                                        (buffer-substring (point)
+							  (save-excursion
+							    (forward-sexp 1)
+							    (point))))
 				       (or base sort-numeric-base))))
 		 nil))
 

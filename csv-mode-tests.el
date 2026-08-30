@@ -195,5 +195,23 @@ Foo;Bar;Quux
     (message "Guessed separator: %c" (csv-guess-separator testdata))
     (should-not (equal (csv-guess-separator testdata) ?#))))
 
+(ert-deftest csv-tests-sort-numeric-skips-quotes ()
+  ;; bug#81751
+  (with-temp-buffer
+    (csv-mode)
+    (insert "\"2\",\"6\"
+\"3\",\"5\"
+\"1\",\"4\"")
+    (csv-sort-numeric-fields 1 (point-min) (point-max))
+    (should (equal (buffer-substring (point-min) (point-max))
+                   "\"1\",\"4\"
+\"2\",\"6\"
+\"3\",\"5\""))
+    (csv-sort-numeric-fields 2 (point-min) (point-max))
+    (should (equal (buffer-substring (point-min) (point-max))
+                   "\"1\",\"4\"
+\"3\",\"5\"
+\"2\",\"6\""))))
+
 (provide 'csv-mode-tests)
 ;;; csv-mode-tests.el ends here

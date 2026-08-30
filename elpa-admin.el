@@ -2142,7 +2142,7 @@ in case of cyclic dependencies."
                                      elpaa--sister-archive-release-path))))
                  (format "<a href=\"%s.html\">%s</a> (<a href=\"%s.tar\">.tar</a>)"
                          pkg-name pkg-name pkg-name)))
-             reqs "</dd></dd>")
+             reqs "</dd><dd>")
             "</dd>\n")))
 
 (defun elpaa--html-make-pkg (pkg pkg-spec files srcdir plain-readme)

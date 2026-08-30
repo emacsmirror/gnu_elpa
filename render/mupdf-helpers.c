@@ -157,6 +157,7 @@ load_mupdf_doc(DocState *state)
 	{
 		fprintf(stderr, "Could not open document\n");
 		fz_drop_context(state->ctx);
+		state->ctx = NULL;
 		return EXIT_FAILURE;
 	}
 
@@ -168,6 +169,7 @@ load_mupdf_doc(DocState *state)
 	{
 		fprintf(stderr, "Could not load outline\n");
 		fz_drop_outline(state->ctx, state->outline);
+		state->outline = NULL;
 	}
 
 	return EXIT_SUCCESS;

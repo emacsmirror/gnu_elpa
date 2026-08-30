@@ -38,6 +38,17 @@ activate:
   (use-package lisp-ts-mode
     :ensure t)
 #+end_src
+If you use [[https://github.com/doomemacs][Doom Emacs]], it's now available as a flag in the =common-lisp= module.
+In the ~doom!~ block in your =~init.el=:
+#+begin_src elisp :tangle yes :lexical yes
+  (doom! ;; ...
+         :tools
+         tree-sitter
+         :lang
+         (common-lisp +tree-sitter)
+         ;; ...
+         )
+#+end_src
 If you use [[https://github.com/progfolio/elpaca][elpaca]], you can use the following recipe:
 #+begin_src elisp :tangle yes :lexical yes
   (elpaca lisp-ts-mode)

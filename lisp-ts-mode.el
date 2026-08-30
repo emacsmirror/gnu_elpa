@@ -440,7 +440,8 @@ and the character's name is given the face
       (add-face-text-property backslash-end (ts-node-end node)
                               'lisp-ts-mode-character-name))))
 
-(defconst lisp-ts-mode--cl-font-lock-rules
+(defun lisp-ts-mode--cl-font-lock-rules ()
+  "Return `treesit-font-lock-settings' for `lisp-ts-mode'."
   (ts-font-lock-rules
    :default-language 'common-lisp
    :feature 'string
@@ -493,7 +494,8 @@ and the character's name is given the face
       "#+" @lisp-ts-mode-positive-read-conditional
       "#-" @lisp-ts-mode-negative-read-conditional])))
 
-(defconst lisp-ts-mode--format-font-lock-rules
+(defun lisp-ts-mode--format-font-lock-rules ()
+  "Return `treesit-font-lock-settings' for `lisp-ts-format-support-mode'."
   (ts-font-lock-rules
    ;; this rule will only run if explicitly triggered by `gaudy-cl-mode' or when
    ;; `lisp-ts-format-support-mode' is enabled
@@ -1200,7 +1202,7 @@ This should be set before `lisp-ts-mode' is activated.")
           ;; emacs 30
           (ts-ready-p 'common-lisp))
     (setq ts-primary-parser (ts-parser-create 'common-lisp))
-    (setq ts-font-lock-settings lisp-ts-mode--cl-font-lock-rules)
+    (setq ts-font-lock-settings (lisp-ts-mode--cl-font-lock-rules))
     (setq ts-font-lock-feature-list lisp-ts-mode--font-lock-feature-list)
     (setq-local ts-thing-settings lisp-ts-mode-thing-settings)
     (ts-major-mode-setup)
@@ -1364,7 +1366,7 @@ format grammar automatically."
     (buffer-local-restore-state lisp-ts-format-support-mode--saved-state)
     (kill-local-variable 'lisp-ts-format-support-mode--saved-state))
   (cond*
-    ((not lisp-ts-format-support-mode) nil)
+    ((not lisp-ts-format-support-mode) (font-lock-flush))
     ((not (derived-mode-p 'lisp-ts-mode))
      (lisp-ts-format-support-mode -1)
      (user-error "`lisp-ts-format-support-mode' only works in `lisp-ts-mode'"))
@@ -1373,7 +1375,8 @@ format grammar automatically."
             (ts-ready-p 'cl-format t)))
      (lisp-ts-format-support-mode -1)
      (warn "FORMAT grammar not available, `lisp-ts-format-support-mode' disabled"))
-    ((bound-and-true-p gaudy-cl-mode)
+    ((and (bound-and-true-p gaudy-cl-mode)
+          (bound-and-true-p gaudy-cl-handle-format-strings))
      (warn (concat "`gaudy-cl-mode' and `lisp-ts-format-support-mode' "
                    "are redundant and should not be used together"))
      :non-exit)
@@ -1390,7 +1393,7 @@ format grammar automatically."
            lisp-ts-format-support-mode-query))
          ;; create a "restore point" for turning it off, the rule is added below
          ts-font-lock-settings ts-font-lock-settings))
-       (ts-add-font-lock-rules lisp-ts-mode--format-font-lock-rules :after)
+       (ts-add-font-lock-rules (lisp-ts-mode--format-font-lock-rules) :after)
        (syntax-ppss-flush-cache (point-min))
        (font-lock-flush))))
 

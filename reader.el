@@ -685,22 +685,22 @@ It is hooked to `window-configuration-change-hook' to keep detecting."
           (reader-doc-scale-page scale)
           (reader--center-page))))))
 
+(defun reader--window-close-function (overlay)
+  "Properly close the window belonging to OVERLAY."
+  (let ((window (overlay-get overlay 'window)))
+    (unless (window-valid-p window)
+      (reader-dyn--window-close overlay))))
+
 (defun reader--cleanup-stale-overlay (window)
   "Clean up WINDOW's overlay and other parameters if it belongs to a different buffer."
   (when (windowp window)
     (when-let* ((overlay (window-parameter window 'overlay))
 		((overlayp overlay))
 		((not (eq (overlay-buffer overlay) (window-buffer window)))))
-      (reader-dyn--window-close overlay)
+      (reader--window-close-function overlay)
       (set-window-parameter window 'overlay nil)
       (set-window-parameter window 'page nil)
       (set-window-parameter window 'scale nil))))
-
-(defun reader--window-close-function (overlay)
-  "Properly close the window belonging to OVERLAY."
-  (let ((window (overlay-get overlay 'window)))
-    (unless (window-valid-p window)
-      (reader-dyn--window-close overlay))))
 
 ;; We explicitly bind default keys because relying on the rebinding
 ;; mechanism can lead to them not being bound at all if users have

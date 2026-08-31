@@ -1191,6 +1191,8 @@ Run `doric-themes-after-load-theme-hook' after loading a theme."
     company-tooltip-common-selection
     completions-common-part
     completions-first-difference
+    completion-preview-common
+    completion-preview-exact
     consult-preview-match
     custom-visibility
     font-latex-underline-face

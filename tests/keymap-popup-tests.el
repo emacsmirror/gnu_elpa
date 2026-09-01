@@ -1497,6 +1497,93 @@ come from the wrapper."
             (should (eq received (plist-get active :wrapper-map)))))
       (kill-buffer buf))))
 
+(ert-deftest keymap-popup-test-suspend-submenu-exposes-minibuffer-map ()
+  "Suspending a sub-menu session exposes the minibuffer's local map."
+  (let ((buf (get-buffer-create keymap-popup--buffer-name))
+        (parent-wrapper (make-sparse-keymap))
+        (child-wrapper (make-sparse-keymap))
+        (minibuffer-map (make-sparse-keymap))
+        (overriding-terminal-local-map nil))
+    (keymap-set parent-wrapper "RET" #'ignore)
+    (keymap-set minibuffer-map "RET" #'minibuffer-complete-and-exit)
+    (unwind-protect
+        (progn
+          (keymap-popup-test--session
+           buf nil :wrapper-map child-wrapper
+           :stack (list (list :wrapper-map parent-wrapper)))
+          (internal-push-keymap parent-wrapper
+                                'overriding-terminal-local-map)
+          (internal-push-keymap child-wrapper
+                                'overriding-terminal-local-map)
+          (with-temp-buffer
+            (use-local-map minibuffer-map)
+            (keymap-popup--suspend)
+            (should (eq (key-binding (kbd "RET"))
+                        #'minibuffer-complete-and-exit))))
+      (internal-pop-keymap child-wrapper 'overriding-terminal-local-map)
+      (internal-pop-keymap parent-wrapper 'overriding-terminal-local-map)
+      (kill-buffer buf))))
+
+(ert-deftest keymap-popup-test-resume-submenu-preserves-child-priority ()
+  "Resuming a sub-menu session restores the child wrapper above its parent."
+  (let ((buf (get-buffer-create keymap-popup--buffer-name))
+        (parent-wrapper (make-sparse-keymap))
+        (child-wrapper (make-sparse-keymap))
+        (overriding-terminal-local-map nil))
+    (keymap-set parent-wrapper "x" #'backward-char)
+    (keymap-set child-wrapper "x" #'forward-char)
+    (unwind-protect
+        (progn
+          (keymap-popup-test--session
+           buf nil :wrapper-map child-wrapper
+           :stack (list (list :wrapper-map parent-wrapper)))
+          (internal-push-keymap parent-wrapper
+                                'overriding-terminal-local-map)
+          (internal-push-keymap child-wrapper
+                                'overriding-terminal-local-map)
+          (keymap-popup--suspend)
+          (keymap-popup--resume)
+          (should (eq (key-binding (kbd "x")) #'forward-char)))
+      (internal-pop-keymap child-wrapper 'overriding-terminal-local-map)
+      (internal-pop-keymap parent-wrapper 'overriding-terminal-local-map)
+      (kill-buffer buf))))
+
+(ert-deftest keymap-popup-test-nested-minibuffer-keeps-session-suspended ()
+  "An inner minibuffer exit does not resume maps over its outer minibuffer."
+  (let ((buf (get-buffer-create keymap-popup--buffer-name))
+        (parent-wrapper (make-sparse-keymap))
+        (child-wrapper (make-sparse-keymap))
+        (minibuffer-map (make-sparse-keymap))
+        (depth 1)
+        (overriding-terminal-local-map nil))
+    (keymap-set parent-wrapper "RET" #'ignore)
+    (keymap-set minibuffer-map "RET" #'minibuffer-complete-and-exit)
+    (unwind-protect
+        (progn
+          (keymap-popup-test--session
+           buf nil :wrapper-map child-wrapper
+           :stack (list (list :wrapper-map parent-wrapper)))
+          (internal-push-keymap parent-wrapper
+                                'overriding-terminal-local-map)
+          (internal-push-keymap child-wrapper
+                                'overriding-terminal-local-map)
+          (cl-letf (((symbol-function 'minibuffer-depth)
+                     (lambda () depth)))
+            (keymap-popup--suspend)
+            (setq depth 2)
+            (keymap-popup--suspend)
+            (keymap-popup--resume)
+            (with-temp-buffer
+              (use-local-map minibuffer-map)
+              (should (eq (key-binding (kbd "RET"))
+                          #'minibuffer-complete-and-exit)))
+            (setq depth 1)
+            (keymap-popup--resume)
+            (should (eq (key-binding (kbd "RET")) #'ignore))))
+      (internal-pop-keymap child-wrapper 'overriding-terminal-local-map)
+      (internal-pop-keymap parent-wrapper 'overriding-terminal-local-map)
+      (kill-buffer buf))))
+
 ;;; Add/remove entry tests
 
 (ert-deftest keymap-popup-test-add-entry ()

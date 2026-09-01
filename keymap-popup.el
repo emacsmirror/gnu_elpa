@@ -1481,17 +1481,33 @@ Frame parameters are taken from `keymap-popup-child-frame-parameters'."
 ;; `internal-{push,pop}-keymap' are the only public path for manipulating
 ;; `overriding-terminal-local-map'; `set-transient-map' itself uses them.
 
+(defun keymap-popup--session-wrapper-maps (session)
+  "Return SESSION's wrapper maps in highest-to-lowest priority order."
+  (seq-keep (lambda (state) (plist-get state :wrapper-map))
+            (cons (plist-get session :active)
+                  (plist-get session :stack))))
+
 (defun keymap-popup--suspend ()
-  "Suspend the popup's transient map for minibuffer input."
+  "Suspend the popup's transient maps for minibuffer input."
   (when-let* ((buf (get-buffer keymap-popup--buffer-name))
-              (map (keymap-popup--active-get buf :wrapper-map)))
-    (internal-pop-keymap map 'overriding-terminal-local-map)))
+              (session (keymap-popup--session-state buf)))
+    (unless (plist-get session :suspended-depth)
+      (keymap-popup--set-session
+       buf :suspended-depth (minibuffer-depth))
+      (mapc (lambda (map)
+              (internal-pop-keymap map 'overriding-terminal-local-map))
+            (keymap-popup--session-wrapper-maps session)))))
 
 (defun keymap-popup--resume ()
-  "Resume the popup's transient map after minibuffer input."
+  "Resume the popup's transient maps after minibuffer input."
   (when-let* ((buf (get-buffer keymap-popup--buffer-name))
-              (map (keymap-popup--active-get buf :wrapper-map)))
-    (internal-push-keymap map 'overriding-terminal-local-map)))
+              (session (keymap-popup--session-state buf))
+              (depth (plist-get session :suspended-depth))
+              ((= depth (minibuffer-depth))))
+    (keymap-popup--set-session buf :suspended-depth nil)
+    (mapc (lambda (map)
+            (internal-push-keymap map 'overriding-terminal-local-map))
+          (reverse (keymap-popup--session-wrapper-maps session)))))
 
 (defun keymap-popup--session-exit-functions (session include-active)
   "Return exit functions owned by SESSION.
@@ -1758,6 +1774,7 @@ Use ACTIVE instead of deriving the initial navigation state when non-nil."
         :stack nil
         :prefix-mode nil
         :reentering nil
+        :suspended-depth nil
         :closing nil
         :persistent (pcase (keymap-popup--meta keymap 'persistent)
                       ('yes t)

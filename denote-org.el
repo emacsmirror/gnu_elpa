@@ -151,7 +151,7 @@ Also see `denote-org-backlinks-for-heading'."
                 (heading-id (if (and context-p (null (cdr heading-data)))
                                 heading-text
                               (cdr heading-data)))
-                (description (denote-link-format-heading-description file-text heading-text)))
+                (description (denote-link--ol-format-heading-description file-text heading-text)))
       (insert
        (denote-org-format-link-with-heading
         file

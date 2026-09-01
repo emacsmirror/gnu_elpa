@@ -3542,7 +3542,10 @@ LEFTBRACE and RIGHTBRACE."
          (let ((TeX-argument (buffer-substring (point) (mark))))
            (delete-region (point) (mark))
            TeX-argument)
-       (TeX-read-string (TeX-argument-prompt optional prompt "Text")
+       (TeX-read-string (TeX-argument-prompt
+                         optional prompt
+                         (concat "Text" (when default-value
+                                          (concat" (default " default-value ")"))))
                         initial-input history default-value))
      optional)))
 

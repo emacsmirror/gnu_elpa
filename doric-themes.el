@@ -1337,6 +1337,7 @@ Run `doric-themes-after-load-theme-hook' after loading a theme."
     dired-broken-symlink
     error
     ert-test-result-unexpected
+    flymake-error-echo
     org-checkbox-statistics-todo
     org-headline-todo
     org-todo
@@ -1349,6 +1350,7 @@ Run `doric-themes-after-load-theme-hook' after loading a theme."
     elisp-non-local-exit
     elisp-warning-type
     emacs-news-does-not-need-documentation
+    flymake-warning-echo
     font-latex-warning-face
     font-lock-escape-facex
     font-lock-warning-face
@@ -1360,6 +1362,7 @@ Run `doric-themes-after-load-theme-hook' after loading a theme."
     TeX-error-description-tex-said
     emacs-news-is-documented
     ert-test-result-expected
+    flymake-note-echo
     org-agenda-done
     org-checkbox-statistics-done
     org-done
@@ -1603,6 +1606,11 @@ default to a generic text that mentions the BACKGROUND-MODE."
               '(elisp-widget-type (( )))
 
               '(embark-keybinding ((t :inherit (fixed-pitch bold-italic))))
+
+              `(flymake-eol-information-face ((t :inherit italic :height 0.9)))
+              `(flymake-error-echo-at-eol ((t :inherit italic :foreground ,fg-red :height 0.9)))
+              `(flymake-note-echo-at-eol ((t :inherit italic :foreground ,fg-green :height 0.9)))
+              `(flymake-warning-echo-at-eol ((t :inherit italic :foreground ,fg-yellow :height 0.9)))
 
               `(font-lock-comment-delimiter-face ((t :inherit italic :foreground ,fg-accent)))
               `(font-lock-comment-face ((t :inherit italic :foreground ,fg-accent)))

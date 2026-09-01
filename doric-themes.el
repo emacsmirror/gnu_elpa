@@ -1480,7 +1480,7 @@ default to a generic text that mentions the BACKGROUND-MODE."
               `(tty-menu-disabled-face ((t :background ,bg-accent :foreground ,fg-shadow-subtle)))
               `(tty-menu-enabled-face ((t :background ,bg-accent :foreground ,fg-main)))
               `(tty-menu-selected-face ((t :background ,fg-main :foreground ,bg-main)))
-              `(read-multiple-choice-face ((t :inherit bold-italic :background ,fg-shadow-intense :foreground ,bg-main)))
+              `(read-multiple-choice-face ((t :inherit (fixed-pitch bold-italic) :foreground ,fg-main :inverse-video t)))
 
               '(adoc-meta-face ((t :inherit fixed-pitch)))
               '(adoc-meta-hide-face ((t :inherit fixed-pitch)))

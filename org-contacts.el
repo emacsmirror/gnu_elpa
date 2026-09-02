@@ -820,10 +820,10 @@ See (org) Matching tags and properties for a complete description."
       (cons (current-buffer) position))))
 
 ;;;###autoload
-(defun org-contacts-org-complete-function ()
+(defun org-contacts-complete-contact ()
   "`completion-at-point' function to complete @name in `org-mode'.
 Usage: (add-hook \\='completion-at-point-functions
-                 #\\='org-contacts-org-complete-function nil \\='local)"
+                 #\\='org-contacts-complete-contact nil \\='local)"
   (when-let* ((end (point))
               (begin (save-excursion (skip-chars-backward "[:alnum:]@") (point)))
               (symbol (buffer-substring-no-properties begin end))
@@ -847,12 +847,12 @@ Usage: (add-hook \\='completion-at-point-functions
             :company-location #'org-contacts-org-complete--location-function))))
 
 ;;;###autoload
-(defun org-contacts-org-complete-setup ()
+(defun org-contacts-completion-setup ()
   "Setup `completion-at-point-functions' with `org-contacts' in buffer local."
   (when (member major-mode org-contacts-completion-enabled-mode-list)
-    (add-hook 'completion-at-point-functions 'org-contacts-org-complete-function nil 'local)))
+    (add-hook 'completion-at-point-functions 'org-contacts-complete-contact 80 'local)))
 ;;;###autoload
-(add-hook 'org-mode-hook #'org-contacts-org-complete-setup)
+(add-hook 'org-mode-hook #'org-contacts-completion-setup)
 
 (defun org-contacts-gnus-get-name-email ()
   "Get name and email address from Gnus message."

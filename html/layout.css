@@ -254,6 +254,8 @@ footer {
 		table#packages {
 			width: unset;
 			table-layout: initial;
+			display: block;
+			overflow-x: auto;
 		}
 	}
 }

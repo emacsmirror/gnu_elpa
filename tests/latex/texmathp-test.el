@@ -1,6 +1,6 @@
 ;;; texmathp-test.el --- tests for texmathp  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2020-2021  Free Software Foundation, Inc.
+;; Copyright (C) 2020-2026 Free Software Foundation, Inc.
 
 ;; This file is part of AUCTeX.
 
@@ -67,5 +67,29 @@ $
 c")
                   (LaTeX-mode)
                   (texmathp)))))
+
+;; bug#81327
+(ert-deftest texmathp-escaped-toggle-onoff ()
+  "Test if the math toggle or onoff-regexp is actually unescaped."
+  (should (with-temp-buffer
+            ;; LaTeX: \begin{tabular}{c}$a$\\$b$\end{tabular}
+            (insert "\\begin{tabular}{c}$a$\\\\$b$\\end{tabular}")
+            (LaTeX-mode)
+            (search-backward "b$")
+            (texmathp)))
+
+  (should (with-temp-buffer
+            ;; LaTeX: a\\\(b\)c
+            (insert "a\\\\\\(b\\)c")
+            (LaTeX-mode)
+            (search-backward "b")
+            (texmathp)))
+
+  (should-not (with-temp-buffer
+                ;; LaTeX: a\\(b\\)c
+                (insert "a\\\\(b\\\\)c")
+                (LaTeX-mode)
+                (search-backward "b")
+                (texmathp))))
 
 ;;; texmathp-test.el ends here

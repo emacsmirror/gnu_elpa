@@ -594,6 +594,7 @@ We use characters in the Unicode PUA-B.")
 
 (defvar-local consult--focus-lines-overlays nil
   "Overlays used by `consult-focus-lines'.")
+(put 'consult--focus-lines-overlays 'permanent-local t)
 
 (defvar consult--focus-lines-indicator
   (propertize
@@ -3974,6 +3975,12 @@ INITIAL is the initial input."
                          (overlay-end ov)
                        pt-orig))))))))
 
+(defun consult--focus-lines-revert ()
+  "Revert function which removes the overlays."
+  (lambda ()
+    (mapc #'delete-overlay consult--focus-lines-overlays)
+    (setq consult--focus-lines-overlays nil)))
+
 ;;;###autoload
 (defun consult-focus-lines (filter &optional show initial)
   "Show only matching lines using overlays.
@@ -4012,10 +4019,13 @@ INITIAL is the initial input."
        :initial initial
        :history 'consult--line-history
        :state (consult--focus-lines-state filter))))
+  (cl-callf2 delq #'consult--focus-lines-revert revert-buffer-restore-functions)
   (cl-callf2 assq-delete-all 'consult--focus-lines-overlays mode-line-misc-info)
-  (when (and consult--focus-lines-overlays consult--focus-lines-indicator)
-    (push `(consult--focus-lines-overlays ,consult--focus-lines-indicator)
-          mode-line-misc-info)))
+  (when consult--focus-lines-overlays
+    (push #'consult--focus-lines-revert revert-buffer-restore-functions)
+    (when consult--focus-lines-indicator
+      (push `(consult--focus-lines-overlays ,consult--focus-lines-indicator)
+            mode-line-misc-info))))
 
 ;;;;; Command: consult-goto-line
 

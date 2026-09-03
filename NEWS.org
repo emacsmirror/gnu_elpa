@@ -7,6 +7,7 @@
 - =consult-completion-in-region=: Support default completion UI if eager display
   and update is enabled, such that in-buffer completion can be transferred to
   the minibuffer.
+- =consult-focus-lines=: Handle revert buffer.
 
 * Version 3.7 (2026-08-05)
 

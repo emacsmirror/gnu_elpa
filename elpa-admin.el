@@ -3624,18 +3624,19 @@ relative to elpa root."
           (updated nil ,(elpaa--rfc3339 (current-time)))
           ,@(mapcar
              (pcase-lambda (`(,time ,version . ,_file))
-               (let ((self (concat elpaa--url
-                                   (format "%s.xml#v%s" name version)))
-                     (content
-                      `((p nil
-                           ,(concat "Version " version " of package ")
-                           (a ((href . ,(elpaa--default-url name))) ,name)
-                           ,(concat " has just been released in " elpaa--name
-                                    " ELPA."))
-                        (p nil "You can now find it in "
-                           (kbd nil "M-x list-packages RET") ".")
-                        (p nil ,(concat name " describes itself as:"))
-                        (blockquote nil ,desc))))
+               (let* ((self (concat elpaa--url
+                                    (format "%s.xml#v%s" name version)))
+                      (url (elpaa--default-url name))
+                      (content
+                       `((p nil
+                            ,(concat "Version " version " of package ")
+                            (a ((href . ,url)) ,name)
+                            ,(concat " has just been released in " elpaa--name
+                                     " ELPA."))
+                         (p nil "You can now find it in "
+                            (kbd nil "M-x list-packages RET") ".")
+                         (p nil ,(concat name " describes itself as:"))
+                         (blockquote nil ,desc))))
                  `(entry
                    nil
                    (title nil
@@ -3647,6 +3648,7 @@ relative to elpa root."
                     (name nil "elpa-admin")
                     (email nil "emacs-devel@gnu.org"))
                    (id nil ,(elpaa--rfc4151 self time))
+                   (link ((href . ,url) (rel . "alternate")))
                    (link ((href . ,self) (rel . "self")))
                    (content
                     ((type . "html") (base . ,elpaa--url))

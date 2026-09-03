@@ -597,12 +597,12 @@ We use characters in the Unicode PUA-B.")
 
 (defvar consult--focus-lines-indicator
   (propertize
-   "FOCUS" 'face 'highlight
-   'help-echo
-   "`consult-focus-lines': \\`mouse-1' or \\[consult-focus-lines] \\`RET' to reveal."
-   'local-map
-   (define-keymap "<mode-line> <down-mouse-1>"
-     (lambda () (interactive) (consult-focus-lines nil 'reveal))))
+   "FOCUS"
+   'face 'isearch
+   'mouse-face (static-if (< emacs-major-version 31) 'highlight 'mode-line-highlight)
+   'help-echo "`consult-focus-lines': \\`mouse-1' or \\[consult-focus-lines] \\`RET' to reveal."
+   'local-map (define-keymap "<mode-line> <down-mouse-1>"
+                (lambda () (interactive) (consult-focus-lines nil 'reveal))))
   "Mode line indicator displayed if `consult-focus-lines' is active.")
 
 ;;;; Miscellaneous helper functions

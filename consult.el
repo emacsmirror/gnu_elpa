@@ -594,7 +594,6 @@ We use characters in the Unicode PUA-B.")
 
 (defvar-local consult--focus-lines-overlays nil
   "Overlays used by `consult-focus-lines'.")
-(put 'consult--focus-lines-overlays 'permanent-local t)
 
 (defvar consult--focus-lines-indicator
   (propertize
@@ -3977,9 +3976,7 @@ INITIAL is the initial input."
 
 (defun consult--focus-lines-revert ()
   "Revert function which removes the overlays."
-  (lambda ()
-    (mapc #'delete-overlay consult--focus-lines-overlays)
-    (setq consult--focus-lines-overlays nil)))
+  (apply-partially #'mapc #'delete-overlay consult--focus-lines-overlays))
 
 ;;;###autoload
 (defun consult-focus-lines (filter &optional show initial)

@@ -1,6 +1,6 @@
 ;;; eev-pdflike.el -- hyperlinks to documents made of pages.  -*- lexical-binding: nil; -*-
 
-;; Copyright (C) 2012-2023 Free Software Foundation, Inc.
+;; Copyright (C) 2012-2026 Free Software Foundation, Inc.
 ;;
 ;; This file is part of GNU eev.
 ;;
@@ -19,7 +19,7 @@
 ;;
 ;; Author:     Eduardo Ochs <eduardoochs@gmail.com>
 ;; Maintainer: Eduardo Ochs <eduardoochs@gmail.com>
-;; Version:    20240125
+;; Version:    20260902
 ;; Keywords:   e-scripts
 ;;
 ;; Latest version: <http://anggtwu.net/eev-current/eev-pdflike.el>
@@ -182,6 +182,8 @@
 ;; «.find-texworkspdf-page»		(to "find-texworkspdf-page")
 ;; «.find-pdftools-page»		(to "find-pdftools-page")
 ;; «.find-pdftoolsr-page»		(to "find-pdftoolsr-page")
+;; «.find-emacsreader-page»		(to "find-emacsreader-page")
+;; «.find-emacsreaderr-page»		(to "find-emacsreaderr-page")
 ;; «.find-xdvi-page»			(to "find-xdvi-page")
 ;; «.find-djview-page»			(to "find-djview-page")
 ;; «.find-evince-page»			(to "find-evince-page")
@@ -888,7 +890,6 @@ current page."
 
 
 
-
 ;; The function `ee-pdftools-revert-all' below - from 2019 - was a
 ;; trick that I used to redisplay PDFs when I recompiled their LaTeX
 ;; source. In jan/2022 I added a `(revert-buffer ...)' to
@@ -896,7 +897,7 @@ current page."
 ;; my hacks that use `ee-pdftools-revert-all' in a much better way.
 ;;
 ;; My old notes are here: (find-es "emacs" "ee-pdftools-revert-all")
-;; This function will probably be declared obsolete soon.
+;; This function is obsolete.
 ;;
 (defun ee-pdftools-revert-all ()
 "Run `revert-buffer' in all windows in which pdf-tools is showing PDFs.
@@ -908,6 +909,28 @@ in each window."
     (with-selected-window window
       (if (eq major-mode 'pdf-view-mode)
 	  (revert-buffer)))))
+
+
+
+;; «find-emacsreader-page»   (to ".find-emacsreader-page")
+;; «find-emacsreaderr-page»  (to ".find-emacsreaderr-page")
+;; Based on: (to "find-pdftools-page")
+;;           (to "find-pdftoolsr-page")
+;;    Tests: (defalias 'find-pdf-page 'find-xpdf-page)
+;;           (defalias 'find-pdf-page 'find-emacsreader-page)
+;;           (defalias 'find-pdf-page 'find-emacsreaderr-page)
+;;           (find-pdf-page "~/Coetzee99.pdf" 1)
+;;           (find-pdf-page "~/Coetzee99.pdf" 3)
+(defun find-emacsreader-page (pdffile &optional page &rest rest)
+  "Open PDFFILE in the current window using emacsreader.
+If PAGE is given, go to that page; if PAGE is nil, stay in the
+current page."
+  (reader-open-doc fname)
+  (if page (reader-goto-page page)))
+
+(defun find-emacsreaderr-page (fname &optional page &rest rest)
+  "Like `find-emacsreader-page', but opens the PDF in the right window."
+  (find-2a nil `(find-emacsreader-page ,fname ,page)))
 
 
 

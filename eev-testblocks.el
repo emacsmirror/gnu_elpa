@@ -1,6 +1,6 @@
 ;;; eev-testblocks.el - create "test blocks" using multiline comments.  -*- lexical-binding: nil; -*-
 
-;; Copyright (C) 2019-2025 Free Software Foundation, Inc.
+;; Copyright (C) 2019-2026 Free Software Foundation, Inc.
 ;;
 ;; This file is part of GNU eev.
 ;;
@@ -19,7 +19,7 @@
 ;;
 ;; Author:     Eduardo Ochs <eduardoochs@gmail.com>
 ;; Maintainer: Eduardo Ochs <eduardoochs@gmail.com>
-;; Version:    20251215
+;; Version:    20260902
 ;; Keywords:   e-scripts
 ;;
 ;; Latest version: <http://anggtwu.net/eev-current/eev-testblocks.el>
@@ -65,6 +65,7 @@
 ;;   «.maxima-mode»			(to "maxima-mode")
 ;;   «.octave-mode»			(to "octave-mode")
 ;;   «.org-mode»			(to "org-mode")
+;;   «.perl-mode»			(to "perl-mode")
 ;;   «.php-mode»			(to "php-mode")
 ;;   «.python-mode»			(to "python-mode")
 ;;   «.racket-mode»			(to "racket-mode")
@@ -501,6 +502,20 @@ run %s
 #+end_comment
 
 ")))
+
+
+;; «perl-mode»  (to ".perl-mode")
+(defun ee-insert-test-perl-mode ()
+  (interactive)
+  (insert (ee-adjust-red-stars (format "
+=begin comment
+ (eepitch-perl)
+ (eepitch-kill)
+ (eepitch-perl)
+do \"./%s\" or die \"ERROR\";
+
+=cut
+" (buffer-name)))))
 
 
 ;; «php-mode»  (to ".php-mode")

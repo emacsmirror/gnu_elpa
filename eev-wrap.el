@@ -1,6 +1,6 @@
 ;;; eev-wrap.el --- wrap the current line into a hyperlink  -*- lexical-binding: nil; -*-
 
-;; Copyright (C) 2013,2016,2017,2019,2020,2023 Free Software Foundation, Inc.
+;; Copyright (C) 2013,2016,2017,2019,2020,2023,2026 Free Software Foundation, Inc.
 ;;
 ;; This file is part of GNU eev.
 ;;
@@ -19,7 +19,7 @@
 ;;
 ;; Author:     Eduardo Ochs <eduardoochs@gmail.com>
 ;; Maintainer: Eduardo Ochs <eduardoochs@gmail.com>
-;; Version:    20241012
+;; Version:    20260902
 ;; Keywords:   e-scripts
 ;;
 ;; Latest version: <http://anggtwu.net/eev-current/eev-wrap.el>
@@ -39,6 +39,7 @@
 
 ;; «.ee-template0»		(to "ee-template0")
 ;; «.ee-S»			(to "ee-S")
+;; «.ee-indent-string»		(to "ee-indent-string")
 ;; «.ee-this-line-wrapn»	(to "ee-this-line-wrapn")
 ;; «.eewrap-anchor»		(to "eewrap-anchor")
 ;; «.eewrap-escript-block»	(to "eewrap-escript-block")
@@ -123,6 +124,26 @@ The name of this function comes from the \"S\" in `(format \"%S\" <obj>)'."
 (defalias 'ee-pp0 'ee-S)
 (defun ee-ppp00 (list)             (mapconcat 'ee-pp0 list "\n"))
 (defun ee-ppp0  (list) (concat "(" (mapconcat 'ee-pp0 list "\n ") ")\n"))
+
+
+;; «ee-indent-string»  (to ".ee-indent-string")
+;; Used by: (find-eev "eev-elinks.el" "find-epploadhistory")
+;;
+(defun ee-indent-string-in-mode (str code-to-switch-to-mode)
+  (with-temp-buffer
+    (insert str)
+    (eval code-to-switch-to-mode)
+    (indent-region (point-min) (point-max))
+    (buffer-string)))
+
+(defun ee-indent-string-as-elisp (str)
+  (ee-indent-string-in-mode str '(emacs-lisp-mode)))
+
+(defun ee-pploadhistory00 (list)
+  (concat "(" (mapconcat 'ee-ppp0 list "\n") "\n)\n"))
+
+(defun ee-pploadhistory0 (list)
+  (ee-indent-string-as-elisp (ee-pploadhistory00 list)))
 
 
 

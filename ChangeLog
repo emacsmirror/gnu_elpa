@@ -1,3 +1,29 @@
+2026-09-03  Eduardo Ochs  <eduardoochs@gmail.com>
+
+	* eev-tlinks.el (find-dot-emacs-links): small changes.
+
+	* eev-intro.el (find-eev-levels-intro): new section: "2.1. `M-x
+	find-dot-emacs-links'". Also added added a call for help in the
+	section "5. Completion".
+
+2026-09-02  Eduardo Ochs  <eduardoochs@gmail.com>
+
+	* eev-elinks.el (find-epploadhistory): new function.
+	(find-eloadhistory-links): added an example of how to inspect some
+	entries in the load-history.
+
+	* eev-wrap.el (ee-indent-string-in-mode)
+	(ee-indent-string-as-elisp, ee-pploadhistory00)
+	(ee-pploadhistory0): new functions.
+
+	* eev-tlinks.el (find-pdf-page-links): new function.
+
+	* eev-pdflike.el (find-emacsreader-page, find-emacsreaderr-page):
+	new functions.
+
+	* eev-testblocks.el (ee-insert-test-perl-mode): added
+	`ee-insert-test-perl-mode'.
+
 2026-01-26  Eduardo Ochs  <eduardoochs@gmail.com>
 
 	* eev-videolinks.el (ee-1stclassvideos-info): new video, with

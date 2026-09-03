@@ -1,6 +1,6 @@
 ;;; eev-elinks.el --- `find-efunction-links' and other `find-e*-links'  -*- lexical-binding: nil; -*-
 
-;; Copyright (C) 2012-2024 Free Software Foundation, Inc.
+;; Copyright (C) 2012-2026 Free Software Foundation, Inc.
 ;;
 ;; This file is part of GNU eev.
 ;;
@@ -19,7 +19,7 @@
 ;;
 ;; Author:     Eduardo Ochs <eduardoochs@gmail.com>
 ;; Maintainer: Eduardo Ochs <eduardoochs@gmail.com>
-;; Version:    20241020
+;; Version:    20260902
 ;; Keywords:   e-scripts
 ;;
 ;; Latest version: <http://anggtwu.net/eev-current/eev-elinks.el>
@@ -61,6 +61,7 @@
 ;; «.find-elinks»		(to "find-elinks")
 ;; «.find-efunction-links»	(to "find-efunction-links")
 ;; «.find-eloadhistory-links»	(to "find-eloadhistory-links")
+;; «.find-epploadhistory»	(to "find-epploadhistory")
 ;; «.find-evariable-links»	(to "find-evariable-links")
 ;; «.find-ekey-links»		(to "find-ekey-links")
 ;; «.find-elongkey-links»	(to "find-elongkey-links")
@@ -353,7 +354,7 @@ This is an internal function used by `find-efunction-links' and
 "Visit a temporary buffer containing hyperlinks for eloadhistory."
   (interactive)
   (apply
-   'find-elinks
+   'find-elinks-elisp
    `((find-eloadhistory-links ,@pos-spec-list)
      ;; Convention: the first sexp always regenerates the buffer.
      (find-efunction 'find-eloadhistory-links)
@@ -361,6 +362,15 @@ This is an internal function used by `find-efunction-links' and
      (find-elnode "Where Defined" "load-history")
      (find-estring-elisp (ee-eloadhistory-find-flines))
      (find-estring-elisp (ee-eloadhistory-fors))
+     ""
+     "
+;; See: (find-eev-levels-intro \"5. Completion\")
+
+(find-2a nil '(find-epploadhistory\n
+  (cl-loop for filehistory in load-history
+           if (string-match \"/eev\" (car filehistory))
+           collect filehistory)\n
+))"
      )
    pos-spec-list))
 
@@ -384,6 +394,21 @@ This is an internal function used by `find-efunction-links' and
 (defun ee-shorten-elc (fname)
   "An internal function used by `ee-eloadhistory-find-flines'."
   (ee-shorten-file-name (replace-regexp-in-string ".elc$" ".el" fname)))
+
+
+;; «find-epploadhistory»  (to ".find-epploadhistory")
+;; Test: (setq o (cl-loop for i in '(0 1 2) collect (nth i load-history)))
+;;       (find-epploadhistory o)
+;;       (find-eppp o)
+;;       (find-epp o)
+;;  See: (find-eev "eev-wrap.el" "ee-S" "ee-pploadhistory0")
+(defun find-epploadhistory (object &rest pos-spec-list)
+  "This is a variant of `find-epp' that uses `ee-pploadhistory0'."
+  (let* ((ee-buffer-name (or ee-buffer-name "*pp*")))
+    (apply 'find-estring-elisp (ee-pploadhistory0 object) pos-spec-list)))
+
+
+
 
 
 

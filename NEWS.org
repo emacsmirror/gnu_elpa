@@ -2,7 +2,7 @@
 #+author: Daniel Mendler
 #+language: en
 
-* Development
+* Version 3.8 (2026-09-03)
 
 - =consult-completion-in-region=: Support default completion UI if eager display
   and update is enabled, such that in-buffer completion can be transferred to

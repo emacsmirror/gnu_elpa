@@ -238,7 +238,7 @@ By default the popup dismisses after a suffix command runs.
 
 #+begin_src emacs-lisp
 (keymap-popup-define my-map :persistent t ...)
-(keymap-popup-annotate dired-mode-map :popup-key "?" :persistent t ...)
+(keymap-popup-annotate dired-mode-map :popup-key "C-c C-p" :persistent t ...)
 (setopt keymap-popup-persistent t)        ; global default
 #+end_src
 
@@ -404,7 +404,7 @@ the user's current bindings.
 
 #+begin_src emacs-lisp
 (keymap-popup-annotate dired-mode-map
-  :popup-key "?"
+  :popup-key "C-c C-p"
   :persistent t
   :description (lambda ()
                  (format "Dired: %s" (abbreviate-file-name default-directory)))
@@ -424,6 +424,9 @@ the user's current bindings.
 Entries are =COMMAND-SYMBOL DESCRIPTION= (the key comes from the
 user's binding).  String-key entries are allowed too -- that's how
 sub-menus attach to an annotated keymap.
+
+The example uses =C-c C-p= to preserve Dired's =?= help binding.
+Choose an unbound popup key; existing local bindings are never replaced.
 
 ** Attaching descriptions built from data
 

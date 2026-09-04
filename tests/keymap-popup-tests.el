@@ -7,6 +7,7 @@
 ;;; Code:
 
 (require 'ert)
+(require 'dired)
 (require 'keymap-popup)
 
 (defun keymap-popup-test--session (buf descriptions &rest properties)
@@ -1722,6 +1723,30 @@ come from the wrapper."
                    '("c" "z")))))
 
 ;;; Annotate tests
+
+(ert-deftest keymap-popup-test-manual-dired-example ()
+  "The manual's Dired example opens help without replacing Dired bindings."
+  (let ((dired-mode-map (copy-keymap dired-mode-map))
+        (overriding-terminal-local-map nil)
+        (pre-command-hook nil)
+        (post-command-hook nil)
+        (minibuffer-setup-hook nil)
+        (minibuffer-exit-hook nil)
+        (keymap-popup-backend
+         (lambda () (list :show #'ignore :fit #'ignore :hide #'ignore))))
+    (unwind-protect
+        (progn
+          (with-temp-buffer
+            (insert-file-contents "docs/keymap-popup.org")
+            (search-forward "(keymap-popup-annotate dired-mode-map\n")
+            (goto-char (match-beginning 0))
+            (eval (read (current-buffer)) t))
+          (should (eq (keymap-lookup dired-mode-map "?") #'dired-summary))
+          (call-interactively (keymap-lookup dired-mode-map "C-c C-p"))
+          (should (string-match-p
+                   "Open" (with-current-buffer keymap-popup--buffer-name
+                            (buffer-string)))))
+      (keymap-popup-dismiss))))
 
 (ert-deftest keymap-popup-test-add-entry-selects-one-group ()
   "Duplicate labels and unnamed rows do not duplicate inserted entries."

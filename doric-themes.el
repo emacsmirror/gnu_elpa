@@ -248,7 +248,7 @@ Run `doric-themes-after-load-theme-hook' after loading the theme."
 (defun doric-themes--rotate (themes)
   "Rotate THEMES rightward such that the car is moved to the end."
   (if (proper-list-p themes)
-      (let* ((index (seq-position themes (doric-themes--current-theme)))
+      (let* ((index (or (seq-position themes (doric-themes--current-theme)) -1))
              (offset (1+ index)))
         (append (nthcdr offset themes) (take offset themes)))
     (error "The `%s' is not a list" themes)))

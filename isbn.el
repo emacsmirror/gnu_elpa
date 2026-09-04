@@ -227,7 +227,7 @@ Optional argument NOFILE, if non-nil, prevents writing to
   (interactive)
   (let ((prgrp (make-progress-reporter
                 "Fetching hyphenation ranges from `www.isbn-international.org'...")))
-    (condition-case-unless-debug nil
+    (condition-case nil
         (with-current-buffer
             (url-retrieve-synchronously
              "https://www.isbn-international.org/export_rangemessage.xml"
@@ -287,7 +287,7 @@ with the hyphenated ISBN."
   (unless isbn-hyphenation-ranges-cache
     (let ((prgrp (make-progress-reporter "Loading hyphenation ranges from cache...")))
       (with-temp-buffer
-        (condition-case-unless-debug nil
+        (condition-case nil
             (insert-file-contents isbn-hyphenation-ranges-cache-file)
           (error (error "Hyphenation ranges are not cached.  \
 Please run `isbn-hyphenation-ranges-update'")))
@@ -321,7 +321,7 @@ Please run `isbn-hyphenation-ranges-update'")))
     (push ean hyphenated)
 
     ;; 2. Group identifier
-    (condition-case-unless-debug nil
+    (condition-case nil
         (let* ((rem (funcall remaining))
                ;; The DOM holds several `Prefix' nodes, but only two
                ;; reside under an `EAN.UCC' node.  One of these
@@ -335,7 +335,7 @@ Please run `isbn-hyphenation-ranges-update'")))
       (error (error "Could not determine group identifier")))
 
     ;; 3. Publisher code
-    (condition-case-unless-debug nil
+    (condition-case nil
         (let* ((prefix (string-join (reverse hyphenated) "-"))
                (rem (funcall remaining))
                (len (catch 'len

@@ -400,6 +400,7 @@ Run `doric-themes-after-load-theme-hook' after loading a theme."
     elisp-function
     epa-field-body
     epa-field-name
+    erc-keyword-face
     eshell-ls-readonly
     font-lock-function-name-face
     font-lock-function-call-face
@@ -540,6 +541,9 @@ Run `doric-themes-after-load-theme-hook' after loading a theme."
     edebug-disabled-breakpoint
     elfeed-search-title-face
     epa-validity-disabled
+    erc-direct-msg-face
+    erc-fill-wrap-merge-indicator-face
+    erc-fool-face
     eshell-ls-unreadable
     file-name-shadow
     font-latex-sedate-face
@@ -667,6 +671,8 @@ Run `doric-themes-after-load-theme-hook' after loading a theme."
     diredfl-executable-tag
     elfeed-search-feed-face
     epa-validity-high
+    erc-input-face
+    erc-timestamp-face
     escape-glyph
     eshell-ls-executable
     eshell-ls-special
@@ -701,6 +707,7 @@ Run `doric-themes-after-load-theme-hook' after loading a theme."
 
 (defconst doric-themes-bold-accent-foreground-only-faces
   '(diary
+    erc-command-indicator-face
     magit-branch-local
     magit-branch-remote
     magit-branch-remote-head
@@ -866,6 +873,9 @@ Run `doric-themes-after-load-theme-hook' after loading a theme."
     elfeed-log-warn-level-face
     elisp-macro
     elisp-special-form
+    erc-bold-face
+    erc-nick-default-face
+    erc-pal-face
     erc-prompt-face
     eshell-ls-archive
     eshell-ls-backup
@@ -979,6 +989,7 @@ Run `doric-themes-after-load-theme-hook' after loading a theme."
     elfeed-search-unread-count-face
     elfeed-search-unread-title-face
     elisp-throw-tag
+    erc-action-face
     git-commit-summary
     gnus-header-name
     line-number-current-line
@@ -1059,6 +1070,9 @@ Run `doric-themes-after-load-theme-hook' after loading a theme."
     elisp-shorthand-font-lock-face
     elisp-slot
     elisp-symbol-role-definition
+    erc-current-nick-face
+    erc-my-nick-face
+    erc-my-nick-prefix-face
     eww-invalid-certificate
     font-lock-builtin-face
     font-lock-preprocessor-face
@@ -1195,6 +1209,7 @@ Run `doric-themes-after-load-theme-hook' after loading a theme."
     completion-preview-exact
     consult-preview-match
     custom-visibility
+    erc-underline-face
     font-latex-underline-face
     gnus-emphasis-highlight-words
     lazy-highlight
@@ -1229,6 +1244,7 @@ Run `doric-themes-after-load-theme-hook' after loading a theme."
     denote-faces-link
     denote-faces-query-link
     dictionary-reference-face
+    erc-button
     info-node
     info-xref
     link
@@ -1335,6 +1351,8 @@ Run `doric-themes-after-load-theme-hook' after loading a theme."
 (defconst doric-themes-error-foreground-only-faces
   '(TeX-error-description-error
     dired-broken-symlink
+    erc-dangerous-host-face
+    erc-error-face
     error
     ert-test-result-unexpected
     flymake-error-echo
@@ -1350,6 +1368,8 @@ Run `doric-themes-after-load-theme-hook' after loading a theme."
     elisp-non-local-exit
     elisp-warning-type
     emacs-news-does-not-need-documentation
+    erc-nick-msg-face
+    erc-nick-prefix-face
     flymake-warning-echo
     font-latex-warning-face
     font-lock-escape-facex
@@ -1361,6 +1381,7 @@ Run `doric-themes-after-load-theme-hook' after loading a theme."
   '(TeX-error-description-help
     TeX-error-description-tex-said
     emacs-news-is-documented
+    erc-keep-place-indicator-arrow
     ert-test-result-expected
     flymake-note-echo
     org-agenda-done
@@ -1606,6 +1627,8 @@ default to a generic text that mentions the BACKGROUND-MODE."
               '(elisp-widget-type (( )))
 
               '(embark-keybinding ((t :inherit (fixed-pitch bold-italic))))
+
+              `(erc-notice-face ((t :inherit italic :foreground ,fg-accent)))
 
               `(flymake-eol-information-face ((t :inherit italic :height 0.9)))
               `(flymake-error-echo-at-eol ((t :inherit italic :foreground ,fg-red :height 0.9)))

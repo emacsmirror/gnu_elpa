@@ -1468,6 +1468,7 @@ Run `doric-themes-after-load-theme-hook' after loading a theme."
     diredfl-flag-mark
     diredfl-flag-mark-line
     ibuffer-marked
+    log-view-marked
     package-mark-install-line
     trashed-marked))
 

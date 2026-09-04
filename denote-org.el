@@ -414,9 +414,9 @@ Missing links are those for which REGEXP does not have a match in
 the current buffer.
 
 EXCLUDE-REGEXP is filtered out of the matching files."
-  (when-let* ((all-files (denote-directory-files regexp :omit-current nil exclude-regexp))
-              (linked-files (denote-get-links nil all-files)))
-    (seq-difference all-files linked-files)))
+  (when-let* ((all-files (denote-directory-files regexp :omit-current nil exclude-regexp)))
+    (let ((linked-files (denote-get-links nil all-files)))
+      (seq-difference all-files linked-files))))
 
 (defun denote-org-dblock--files-missing-only (files-matching-regexp &optional sort-by-component reverse exclude-regexp)
   "Return list of missing links to FILES-MATCHING-REGEXP.

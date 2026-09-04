@@ -1622,15 +1622,30 @@ otherwise tears down completely."
   (let* ((child-keymap (keymap-popup--resolve-submenu-target child-keymap))
          (session (keymap-popup--session-state buf))
          (parent (plist-get session :active))
-         (child (keymap-popup--state-for-keymap child-keymap)))
+         (child (keymap-popup--state-for-keymap child-keymap))
+         (content (with-current-buffer buf (buffer-string)))
+         (position (with-current-buffer buf (point)))
+         (complete nil))
     (or (keymap-popup--descriptions-present-p
          (plist-get child :descriptions))
         (user-error "No descriptions in keymap"))
-    (keymap-popup--set-session
-     buf :active child :stack (cons parent (plist-get session :stack))
-     :prefix-mode nil)
-    (keymap-popup--refresh buf)
-    (keymap-popup--activate-transient-map buf)))
+    (unwind-protect
+        (progn
+          (keymap-popup--set-session
+           buf :active child :stack (cons parent (plist-get session :stack))
+           :prefix-mode nil)
+          (keymap-popup--refresh buf)
+          (keymap-popup--activate-transient-map buf)
+          (setq complete t))
+      ;; A failed callback must not leave child state driving the parent map.
+      ;; Restore the saved text without re-running the failing backend.
+      (when (and (not complete) (buffer-live-p buf))
+        (with-current-buffer buf
+          (setq keymap-popup--session session)
+          (let ((inhibit-read-only t))
+            (erase-buffer)
+            (insert content)
+            (goto-char position)))))))
 
 (defun keymap-popup--prefix-argument ()
   "Toggle prefix argument mode in the active popup.
@@ -1654,14 +1669,12 @@ itself, so the binding only needs to exist and do nothing."
 
 (defun keymap-popup--refuse-inapt (buf)
   "Refuse an inapt key press for the popup in BUF.
-Preserves BUF's prefix-mode so \\[universal-argument] is not
-consumed; the popup only ever stores (4) (see
-`keymap-popup--prefix-argument'), so re-setting that value is
-preservation, not approximation."
+Preserves the current prefix argument while BUF's prefix-mode is
+active, including refinements made with digits or a minus sign."
   (message "Command unavailable")
   (when (and (buffer-live-p buf)
              (keymap-popup--session-get buf :prefix-mode))
-    (setq prefix-arg '(4))))
+    (setq prefix-arg current-prefix-arg)))
 
 (defun keymap-popup--call-real-binding (keymap key-str)
   "Call KEY-STR's live binding in KEYMAP if it is a command.

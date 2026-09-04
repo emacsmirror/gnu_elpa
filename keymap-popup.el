@@ -499,31 +499,11 @@ MODE controls whether values have already been evaluated."
         ((null b) a)
         (t (lambda () (and (funcall a) (funcall b))))))
 
-(defun keymap-popup--merge-group-preds (entry group)
-  "Return ENTRY with GROUP's :if and :inapt-if AND-merged into it.
-The entry is returned unchanged when GROUP has no predicates."
-  (let ((g-if (plist-get group :if))
-        (g-inapt (plist-get group :inapt-if)))
-    (if (not (or g-if g-inapt))
-        entry
-      (let* ((merged-if (keymap-popup--combine-preds
-                         g-if (plist-get entry :if)))
-             (merged-inapt (keymap-popup--combine-preds
-                            g-inapt (plist-get entry :inapt-if)))
-             (r (copy-sequence entry))
-             (r (if merged-if (plist-put r :if merged-if) r))
-             (r (if merged-inapt (plist-put r :inapt-if merged-inapt) r)))
-        r))))
-
-(defun keymap-popup--group-entries-merged (group)
-  "Return GROUP's entries with the group's :if/:inapt-if merged in."
-  (mapcar (lambda (e) (keymap-popup--merge-group-preds e group))
-          (plist-get group :entries)))
-
 (defun keymap-popup--flatten-with-groups (rows)
-  "Flatten ROWS into a list of entries with group :if/:inapt-if merged in."
-  (mapcan (lambda (row) (mapcan #'keymap-popup--group-entries-merged row))
-          rows))
+  "Flatten ROWS into entries without changing their predicates."
+  (cl-loop for row in rows
+           append (cl-loop for group in row
+                           append (plist-get group :entries))))
 
 ;;; Generated symbol names
 
@@ -572,16 +552,24 @@ remains lexical regardless of the caller."
       `(keymap-popup--filter-binding ,cmd-form ,if-pred)
     cmd-form))
 
-(defun keymap-popup--build-keymap-pairs (map-name entries)
-  "Build flat key/command list for `defvar-keymap' from ENTRIES.
-MAP-NAME is used to derive generated command names.  Entries with
-:if expand to a `menu-item' form with :filter."
-  (cl-loop for entry in entries
-           for cmd = (keymap-popup--entry-command map-name entry)
-           for cmd-form = (if (symbolp cmd) `#',cmd cmd)
-           append (list (plist-get entry :key)
-                        (keymap-popup--wrap-binding-form
-                         cmd-form (plist-get entry :if)))))
+(defun keymap-popup--build-keymap-pairs (map-name rows)
+  "Build flat key/command forms for MAP-NAME from ROWS.
+Group and entry :if forms are evaluated at load time, then combined
+as function values for the live binding's filter."
+  (cl-loop for row in rows append
+           (cl-loop for group in row append
+                    (cl-loop for entry in (plist-get group :entries)
+                             for cmd = (keymap-popup--entry-command map-name entry)
+                             for cmd-form = (if (symbolp cmd) `#',cmd cmd)
+                             for group-if = (plist-get group :if)
+                             for entry-if = (plist-get entry :if)
+                             for pred = (if (and group-if entry-if)
+                                            `(keymap-popup--combine-preds
+                                              ,group-if ,entry-if)
+                                          (or group-if entry-if))
+                             append (list (plist-get entry :key)
+                                          (keymap-popup--wrap-binding-form
+                                           cmd-form pred))))))
 
 (defun keymap-popup--build-entry-form (entry &optional map-name)
   "Build a canonical entry form for ENTRY.
@@ -838,7 +826,7 @@ pairs."
          (keymap-entries (cl-loop for entry in all-entries
                                   when (eq (plist-get entry :type) 'keymap)
                                   collect entry))
-         (keymap-pairs (keymap-popup--build-keymap-pairs name all-entries))
+         (keymap-pairs (keymap-popup--build-keymap-pairs name rows))
          (launcher (keymap-popup--launcher-name name)))
     `(progn
        ,@(keymap-popup--build-declaration-forms name parent all-entries)
@@ -947,7 +935,7 @@ FN receives a group plist and returns a new group plist."
             rows))
 
 (defun keymap-popup--add-entry-to-rows (rows entry group-name)
-  "Return ROWS with ENTRY appended to the group named GROUP-NAME.
+  "Return ROWS with ENTRY appended to the first group named GROUP-NAME.
 Falls back to the first group if GROUP-NAME is not found.
 If ENTRY's key already appears in ROWS (in any group), the prior
 entry is removed first -- matching the replacement semantics of
@@ -956,15 +944,17 @@ entry is removed first -- matching the replacement semantics of
          (scrubbed (if key
                        (keymap-popup--remove-key-from-rows rows key)
                      rows))
-         (target (or (cl-loop for row in scrubbed
-                              thereis (cl-loop for g in row
-                                               when (equal (plist-get g :name) group-name)
-                                               return group-name))
-                     (plist-get (caar scrubbed) :name))))
+         (target (or (and group-name
+                          (cl-loop for row in scrubbed
+                                   thereis (cl-find group-name row
+                                                    :key (lambda (group)
+                                                           (plist-get group :name))
+                                                    :test #'equal)))
+                     (caar scrubbed))))
     (keymap-popup--map-groups
      scrubbed
      (lambda (group)
-       (if (equal (plist-get group :name) target)
+       (if (eq group target)
            (plist-put (copy-sequence group) :entries
                       (append (plist-get group :entries) (list entry)))
          group)))))
@@ -1375,9 +1365,10 @@ Resolves the docstring for mode-line display."
 An entry keeps its stored :key while that key still dispatches to
 the entry's :command.  When the command has been rebound,
 `where-is-internal' supplies the current key; when it finds no
-binding, the stored key is kept (this covers lambda commands and
-entries hidden by an `:if' filter).  Entries with no stored :key
-\(annotated) resolve via `where-is-internal' and are dropped when
+binding, an unbound stored key is kept to cover `:if' filters.
+A stored key now bound to a different command is dropped.  Entries
+with no stored :key (annotated) resolve via `where-is-internal' and
+are dropped when
 unbound.  Resolution searches only KEYMAP and its parents, never
 the global map."
   (let ((cmd (plist-get entry :command))
@@ -1389,7 +1380,7 @@ the global map."
           (cond
            (keys (plist-put (copy-sequence entry) :key
                             (key-description keys)))
-           (stored entry)))))))
+           ((and stored (null (keymap-lookup keymap stored))) entry)))))))
 
 (defun keymap-popup--resolve-descriptions (rows keymap)
   "Resolve entry keys in ROWS against KEYMAP's current bindings.

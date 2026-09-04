@@ -1019,6 +1019,40 @@ PROPERTIES may supply active-state and session values used by a test."
 
 ;;; Keymap-level predicate enforcement
 
+(ert-deftest keymap-popup-test-combined-if-function-forms ()
+  "Group and entry function forms agree in dispatch and rendering."
+  (eval '(keymap-popup-define keymap-popup--test-combined-if
+           :group ("Shown" :if #'always)
+           "a" ("Allowed" ignore :if #'always)
+           "b" ("Hidden" forward-char :if #'ignore))
+        t)
+  (should (eq (keymap-lookup keymap-popup--test-combined-if "a") #'ignore))
+  (should-not (keymap-lookup keymap-popup--test-combined-if "b")))
+
+(ert-deftest keymap-popup-test-combined-if-lexical-values ()
+  "Compiled and interpreted definitions retain lexical predicates."
+  (dolist (compile '(nil t))
+    (let* ((form '(lambda (group-p entry-p)
+                   (keymap-popup-define keymap-popup--test-lexical-if
+                     :group ("Group" :if group-p)
+                     "a" ("Action" ignore :if entry-p))
+                   keymap-popup--test-lexical-if))
+           (factory (if compile (byte-compile form) (eval form t))))
+      (dolist (flags '((t t) (nil t) (t nil) (nil nil)))
+        (makunbound 'keymap-popup--test-lexical-if)
+        (let* ((group-enabled (car flags))
+               (entry-enabled (cadr flags))
+               (map (funcall factory
+                             (lambda () group-enabled)
+                             (lambda () entry-enabled)))
+               (visible (and group-enabled entry-enabled)))
+          (should (eq (keymap-lookup map "a") (and visible #'ignore)))
+          (should (eq (not (null (string-match-p
+                                 "Action" (keymap-popup--render
+                                           (keymap-popup--meta
+                                            map 'descriptions)))))
+                      visible)))))))
+
 (ert-deftest keymap-popup-test-if-filter-blocks-when-pred-nil ()
   "An :if predicate returning nil unbinds the key via menu-item :filter."
   (eval '(keymap-popup-define keymap-popup--test-if-block
@@ -1686,6 +1720,34 @@ come from the wrapper."
                    '("c" "z")))))
 
 ;;; Annotate tests
+
+(ert-deftest keymap-popup-test-add-entry-selects-one-group ()
+  "Duplicate labels and unnamed rows do not duplicate inserted entries."
+  (dolist (name '(nil "Repeated"))
+    (let ((map (make-sparse-keymap)))
+      (keymap-popup-attach
+       map (list :group name "a" '("A" ignore)
+                 :row :group name "b" '("B" forward-char)))
+      (keymap-popup-add-entry map "c" "C" #'backward-char name)
+      (let* ((rows (keymap-popup--meta map 'descriptions))
+             (first (plist-get (caar rows) :entries))
+             (second (plist-get (caadr rows) :entries)))
+        (should (equal (mapcar (lambda (e) (plist-get e :key)) first)
+                       '("a" "c")))
+        (should (equal (mapcar (lambda (e) (plist-get e :key)) second)
+                       '("b")))))))
+
+(ert-deftest keymap-popup-test-replaced-binding-drops-old-metadata ()
+  "Replacing a command does not apply its old label or popup restrictions."
+  (let ((map (make-sparse-keymap)))
+    (keymap-set map "a" #'ignore)
+    (keymap-popup-attach map '("a" ("Old action" ignore :inapt-if always)))
+    (keymap-set map "a" #'forward-char)
+    (let* ((rows (keymap-popup--resolve-descriptions
+                  (keymap-popup--collect-descriptions map) map))
+           (wrapper (keymap-popup--build-wrapper-map map rows nil "q")))
+      (should-not (keymap-popup--find-entry-by-key rows "a"))
+      (should (eq (keymap-lookup wrapper "a") #'forward-char)))))
 
 (defvar keymap-popup--test-annotate-map
   (let ((map (make-sparse-keymap)))

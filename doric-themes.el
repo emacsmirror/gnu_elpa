@@ -281,6 +281,20 @@ Run `doric-themes-after-load-theme-hook' after loading a theme."
           (doric-themes-load-theme candidate))
       (user-error "`%s' is not part of the Doric collection" candidate))))
 
+;;;###autoload
+(defun doric-themes-rotate-light ()
+  "Like `doric-themes-rotate' but only for the light themes."
+  (declare (interactive-only t))
+  (interactive)
+  (doric-themes-rotate doric-themes-light-themes))
+
+;;;###autoload
+(defun doric-themes-rotate-dark ()
+  "Like `doric-themes-rotate' but only for the dark themes."
+  (declare (interactive-only t))
+  (interactive)
+  (doric-themes-rotate doric-themes-dark-themes))
+
 (defun doric-themes--minus-current (&optional variant)
   "Return list of Doric themes minus the current one.
 Optional VARIANT limits the list of themes to either the dark or light
@@ -328,6 +342,20 @@ Run `doric-themes-after-load-theme-hook' after loading a theme."
          (match (or (nth (random (length themes)) themes) (car themes))))
     (doric-themes-load-theme match)
     (message "Loaded `%s'" (propertize (symbol-name match) 'face 'bold))))
+
+;;;###autoload
+(defun doric-themes-load-random-light ()
+  "Like `doric-themes-load-random' but only for light themes."
+  (declare (interactive-only t))
+  (interactive)
+  (doric-themes-load-random 'light))
+
+;;;###autoload
+(defun doric-themes-load-random-dark ()
+  "Like `doric-themes-load-random' but only for dark themes."
+  (declare (interactive-only t))
+  (interactive)
+  (doric-themes-load-random 'dark))
 
 ;;;; Face customisations
 

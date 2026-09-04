@@ -310,15 +310,12 @@ Please run `isbn-hyphenation-ranges-update'")))
          (length-from-range
           (lambda (dom number)
             (setq number (string-to-number number))
-            (thread-last
-              (dom-child-by-tag rule 'Length)
-              dom-text string-to-number
-              (throw 'len)
-              (when (and (>= number (car range)) (<= number (cadr range))))
-              (let ((range (mapcar #'string-to-number
-                                   (split-string (dom-text (dom-child-by-tag rule 'Range)) "-")))))
-              (dolist (rule (dom-by-tag dom 'Rule)))
-              (catch 'len)))))
+            (catch 'len
+              (dolist (rule (dom-by-tag dom 'Rule))
+                (let ((range (mapcar #'string-to-number
+                                     (split-string (dom-text (dom-child-by-tag rule 'Range)) "-"))))
+                  (when (and (>= number (car range)) (<= number (cadr range)))
+                    (throw 'len (string-to-number (dom-text (dom-child-by-tag rule 'Length)))))))))))
 
     ;; 1. EAN prefix
     (push ean hyphenated)
@@ -329,11 +326,10 @@ Please run `isbn-hyphenation-ranges-update'")))
                ;; The DOM holds several `Prefix' nodes, but only two
                ;; reside under an `EAN.UCC' node.  One of these
                ;; *should* contain the EAN prefix as its only text.
-               (len (thread-last
-                      (throw 'len (funcall length-from-range n rem))
-                      (when (string= (dom-text (dom-child-by-tag n 'Prefix)) ean))
-                      (dolist (n (dom-by-tag isbn-hyphenation-ranges-cache 'EAN.UCC)))
-                      (catch 'len))))
+               (len (catch 'len
+                      (dolist (n (dom-by-tag isbn-hyphenation-ranges-cache 'EAN.UCC))
+                        (when (string= (dom-text (dom-child-by-tag n 'Prefix)) ean)
+                          (throw 'len (funcall length-from-range n rem)))))))
           (unless (eq len 0)
             (push (substring rem 0 len) hyphenated)))
       (error (error "Could not determine group identifier")))
@@ -342,12 +338,10 @@ Please run `isbn-hyphenation-ranges-update'")))
     (condition-case-unless-debug nil
         (let* ((prefix (string-join (reverse hyphenated) "-"))
                (rem (funcall remaining))
-               (len (thread-last
-                      (funcall length-from-range n rem)
-                      (throw 'len)
-                      (when (string= (dom-text (dom-child-by-tag n 'Prefix)) prefix))
-                      (dolist (n (dom-by-tag isbn-hyphenation-ranges-cache 'Group)))
-                      (catch 'len))))
+               (len (catch 'len
+                      (dolist (n (dom-by-tag isbn-hyphenation-ranges-cache 'Group))
+                        (when (string= (dom-text (dom-child-by-tag n 'Prefix)) prefix)
+                          (throw 'len (funcall length-from-range n rem)))))))
           (push (substring rem 0 len) hyphenated))
       (error (error "Could not determine publisher code")))
 

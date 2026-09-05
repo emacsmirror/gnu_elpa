@@ -520,12 +520,12 @@ pure-function tests can still run."
 ;;;; Syntax table spot-checks (no parser required)
 ;;;; ---------------------------------------------------------------------------
 (ert-deftest r-ts-mode-test--syntax-table/hash-is-comment-start ()
-  "# has comment-start syntax in r-ts-mode-syntax-table."
+  "# has `comment-start' syntax in `r-ts-mode-syntax-table'."
   (with-syntax-table r-ts-mode-syntax-table
     (should (eq (char-syntax ?#) ?<))))
 
 (ert-deftest r-ts-mode-test--syntax-table/newline-is-comment-end ()
-  "Newline has comment-end syntax (closes # comments)."
+  "Newline has `comment-end' syntax (closes # comments)."
   (with-syntax-table r-ts-mode-syntax-table
     (should (eq (char-syntax ?\n) ?>))))
 
@@ -602,14 +602,14 @@ pure-function tests can still run."
 ;;;; ---------------------------------------------------------------------------
 
 (ert-deftest r-ts-mode-test--mode-activates ()
-  "r-ts-mode activates without errors when the R grammar is present."
+  "R-ts-mode activates without errors when the R grammar is present."
   :tags '(:ts)
   (r-ts-test--skip-without-grammar)
   (r-ts-test--with-r-buffer "x <- 1\n"
     (should (eq major-mode 'r-ts-mode))))
 
 (ert-deftest r-ts-mode-test--mode-sets-indent-rules ()
-  "r-ts-mode installs treesit-simple-indent-rules in the buffer."
+  "R-ts-mode installs `treesit-simple-indent-rules' in the buffer."
   :tags '(:ts)
   (r-ts-test--skip-without-grammar)
   (r-ts-test--with-r-buffer "x <- 1\n"
@@ -617,7 +617,7 @@ pure-function tests can still run."
     (should treesit-simple-indent-rules)))
 
 (ert-deftest r-ts-mode-test--mode-sets-font-lock-settings ()
-  "r-ts-mode installs treesit-font-lock-settings in the buffer."
+  "R-ts-mode installs `treesit-font-lock-settings' in the buffer."
   :tags '(:ts)
   (r-ts-test--skip-without-grammar)
   (r-ts-test--with-r-buffer "x <- 1\n"

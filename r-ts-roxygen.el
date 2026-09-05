@@ -3,7 +3,7 @@
 
 ;; Author: Manuel Teodoro <ttm@teoten.me>
 ;; URL: https://codeberg.org/R-for-emacs/r-ts-mode
-;; Version: 1.1.2
+;; Version: 1.1.3
 ;; Assisted-by: Sonet:4.6
 ;; Package-Requires: ((emacs "30.1"))
 ;; Created: June, 2026

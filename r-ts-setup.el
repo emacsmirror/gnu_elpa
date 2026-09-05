@@ -3,7 +3,7 @@
 
 ;; Author: Manuel Teodoro <ttm@teoten.me>
 ;; URL: https://codeberg.org/R-for-emacs/r-ts-mode
-;; Version: 1.1.2
+;; Version: 1.1.3
 ;; Assisted-by: Sonet:4.6
 ;; Package-Requires: ((emacs "30.1"))
 ;; Created: June, 2026
@@ -45,8 +45,8 @@
   :group 'r-ts-setup)
 
 (defcustom r-ts-setup-create-treesitter-dir t
-  "When non-nil, automatically create `~/<user-emacs-directory>/tree-sitter/' if
-missing. When nil, signal an error if the target directory does not exist."
+  "When non-nil, automatically create `~/<user-emacs-directory>/tree-sitter/' if missing.
+When nil, signal an error if the target directory does not exist."
   :type 'boolean
   :group 'r-ts-setup)
 
@@ -110,7 +110,7 @@ Returns the path string.  Signals an error on failure."
   (let ((found (seq-find #'file-exists-p
                          (r-ts-setup--binary-path-win package-path))))
     (or found
-        (error "treesitter.r.dll not found under %s.  Please report this issue."
+        (error "File treesitter.r.dll not found under %s.  Please report this issue"
                package-path))))
 
 (defun r-ts-setup--resolve-binary-path (package-path)
@@ -136,8 +136,8 @@ otherwise signal an error."
 ;;;; =========================================================================
 ;;;###autoload
 (defun r-ts-setup-prepare-binaries-from-r-library (&optional package-path emacs-ts-path)
-  "Copy the tree-sitter R grammar from the \='treesitter.r\=' R package to
-Emacs. Searches for the package in PACKAGE-PATH (or auto-detects via R) and
+  "Copy the tree-sitter R grammar from the \='treesitter.r\=' R package to Emacs.
+Searches for the package in PACKAGE-PATH (or auto-detects via R) and
 copies the compiled binary to EMACS-TS-PATH (default:
 ~/<user-emacs-directory>/tree-sitter/)."
   (interactive)

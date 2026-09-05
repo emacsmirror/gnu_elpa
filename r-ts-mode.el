@@ -3,7 +3,7 @@
 
 ;; Author: Manuel Teodoro <ttm@teoten.me>
 ;; URL: https://codeberg.org/R-for-emacs/r-ts-mode
-;; Version: 1.1.2
+;; Version: 1.1.3
 ;; Assisted-by: Sonet:4.6
 ;; Package-Requires: ((emacs "30.1"))
 ;; Created: 2025-09-05
@@ -54,8 +54,7 @@
   "When non-nil, enable verbose debugging messages.  For development use.")
 
 (defvar r-ts-mode-font-lock-keywords nil
-  "Replacement for ESS variable `ess-R-font-lock-keywords'
-to silence ESS fontification.")
+  "Replacement for ESS variable `ess-R-font-lock-keywords' to silence ESS fontification.")
 
 
 ;;;; =========================================================================
@@ -332,9 +331,9 @@ Returns nil if point is not inside an `arguments' or `argument' node."
        (treesit-node-child-by-field-name call-node "function") t))))
 
 (defun r-ts-mode--buffer-function-positions (buffer-or-name)
-  "Return an alist of (name . position) for all function definitions
-in BUFFER-OR-NAME."
-  (with-current-buffer buffer-or-name
+  "Return an alist of (name .
+position) for all function definitions
+in BUFFER-OR-NAME."   (with-current-buffer buffer-or-name
     (let* ((query (treesit-query-compile 'r '((function_definition name: "function" @val))))
            (ranges (mapcar #'car (treesit-query-range 'r query))))
       (delq nil

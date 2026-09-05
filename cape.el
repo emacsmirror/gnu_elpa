@@ -1074,7 +1074,10 @@ Usually you want to add multiple non-exclusive Capfs to the variable
 If CAPF is an anonymous lambda, pass the Capf NAME explicitly for
 meaningful debugging output."
   (unless name
-    (setq name (if (symbolp capf) capf "capf")))
+    (setq name (cond
+                ((symbolp capf) capf)
+                ((subrp capf) (subr-name capf))
+                (t "capf"))))
   (setq name (format "%s@%s" name (incf cape--debug-id)))
   (pcase (funcall capf)
     (`(,beg ,end ,table . ,plist)

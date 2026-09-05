@@ -304,7 +304,8 @@ NAME is the name of the Capf, BEG and END are the input markers."
            ('lambda 'test)
            (_ action))
          (+ beg 0) (+ end 0) (buffer-substring-no-properties beg end)
-         str completion-ignore-case
+         (substring-no-properties str)
+         completion-ignore-case
          (if completion-regexp-list
              (concat " regexp=" (cape--debug-print completion-regexp-list t))
            "")

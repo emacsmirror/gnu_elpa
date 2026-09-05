@@ -88,6 +88,11 @@
 
 ;;; Custom options and variables
 
+(defgroup expreg
+  ()
+  "Custom group for expreg, a utility for expanding regions smartly."
+  :group 'convenience)
+
 (defvar-local expreg-functions
   '( expreg--subword expreg--word expreg--list expreg--string
      expreg--treesit expreg--comment expreg--paragraph-defun)
@@ -102,13 +107,14 @@ as ones where BEG equals END, etc, they’ll be filtered out by
 The function could move point, but shouldn’t return any
 scan-error, like end-of-buffer, or unbalanced parentheses, etc.")
 
-(defvar expreg-restore-point-on-quit nil
+(defcustom expreg-restore-point-on-quit nil
   "If t, restore the point when quitting with ‘keyboard-quit’.
 
 By default, when user presses quit when expanding, nothing special
 happens: the region is deactivated and the point stays at where it is.
 But if this option is turned on, Emacs moves point back to where it was
-when user first started calling ‘expreg-expand’.")
+when user first started calling ‘expreg-expand’."
+  :type 'boolean)
 
 ;;; Helper functions
 
@@ -325,7 +331,9 @@ This is used to restore point when canceling the expansion when
 (defun expreg--subword ()
   "Return a list of regions of the CamelCase subword at point.
 Only return something if ‘subword-mode’ is on, to keep consistency."
-  (when subword-mode
+  (when (and subword-mode
+             (not (looking-at (rx (or (syntax punctuation)
+                                      (syntax paired-delimiter))))))
     (let ((orig (point))
           beg end result)
 

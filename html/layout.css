@@ -59,6 +59,7 @@ code, samp, kbd {
 }
 
 dt {
+	margin-top: var(--padding);
 	font-weight: bold;
 }
 

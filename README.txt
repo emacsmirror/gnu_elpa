@@ -16,3 +16,7 @@ Expreg also recognizes subwords if ‘subword-mode’ is on.
 If ‘expreg-restore-point-on-quit’ is t, when you press ‘C-g’ when
 region is active, on top of deactivating the region, Emacs also
 restores point to where it was when you first started expanding.
+
+Customize ‘expreg-functions’ to control what kind of entities are
+recognized and expanded to. For example, expreg--subword expands
+subwords, expreg--list expands list elements and lists themselves.

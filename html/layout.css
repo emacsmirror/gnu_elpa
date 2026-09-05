@@ -196,8 +196,8 @@ main {
 			content: "↕";
 			font-family: monospace, monospace;
 		}
-		th[data-order="asc"]:after { content: "↓"; }
-		th[data-order="desc"]:after { content: "↑"; }
+		th[data-order="asc"]:after { content: "↑"; }
+		th[data-order="desc"]:after { content: "↓"; }
 	}
 
 	h2 {

@@ -93,7 +93,7 @@
   "Custom group for expreg, a utility for expanding regions smartly."
   :group 'convenience)
 
-(defvar-local expreg-functions
+(defcustom expreg-functions
   '( expreg--subword expreg--word expreg--list expreg--string
      expreg--treesit expreg--comment expreg--paragraph-defun)
   "A list of expansion functions.
@@ -105,7 +105,9 @@ as ones where BEG equals END, etc, they’ll be filtered out by
 ‘expreg--filter-regions’.
 
 The function could move point, but shouldn’t return any
-scan-error, like end-of-buffer, or unbalanced parentheses, etc.")
+scan-error, like end-of-buffer, or unbalanced parentheses, etc."
+  :type 'hook
+  :local t)
 
 (defcustom expreg-restore-point-on-quit nil
   "If t, restore the point when quitting with ‘keyboard-quit’.

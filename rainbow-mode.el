@@ -4,7 +4,7 @@
 
 ;; Author: Julien Danjou <julien@danjou.info>
 ;; Keywords: faces
-;; Version: 1.0.6
+;; Version: 1.0.7
 
 ;; This file is part of GNU Emacs.
 

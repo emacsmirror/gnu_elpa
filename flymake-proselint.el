@@ -2,7 +2,7 @@
 
 ;; Copyright (C) 2021-2023  Free Software Foundation, Inc.
 ;;
-;; Author: Manuel Uberti <manuel.uberti@inventati.org>
+;; Author: Manuel Uberti <manuel.uberti@mailbox.org>
 ;; Maintainer: Manuel Uberti <~manuel-uberti/flymake-proselint@lists.sr.ht>
 ;; Version: 0.3.0
 ;; Keywords: convenience

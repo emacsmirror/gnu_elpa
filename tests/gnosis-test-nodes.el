@@ -12,7 +12,6 @@
 ;;; Code:
 
 (require 'ert)
-(require 'cl-lib)
 (require 'org)
 (require 'gnosis)
 (require 'gnosis-nodes)
@@ -42,10 +41,83 @@
     (with-temp-file path (insert content))
     path))
 
-(defun gnosis-test-nodes--insert-node (id file)
-  "Insert minimal node row ID for FILE."
-  (gnosis--insert-into 'nodes
-    `([,id ,(file-name-nondirectory file) ,id 0 "nil" "0" "hash"])))
+(defmacro gnosis-test-nodes-with-files (file-specs &rest body)
+  "Create node FILE-SPECS and run BODY with their temporary directory.
+Each FILE-SPECS entry is an (ID CONTENT) pair."
+  (declare (indent 1) (debug t))
+  `(progn
+     (gnosis-test-nodes--setup-dirs)
+     (unwind-protect
+         (let ((gnosis-nodes-dir gnosis-test-nodes--temp-dir))
+           (dolist (spec ,file-specs)
+             (let ((id (nth 0 spec))
+                   (content (nth 1 spec)))
+               (gnosis-test-nodes--create-file
+                gnosis-nodes-dir (format "%s.org" id)
+                (format ":PROPERTIES:\n:ID: %s\n:END:\n#+title: %s\n\n%s"
+                        id id content))))
+           ,@body)
+       (gnosis-test-nodes--teardown-dirs))))
+
+(ert-deftest gnosis-test-nodes-search-content-returns-enclosing-node ()
+  "Content search returns only the ID-bearing node enclosing a match."
+  (gnosis-test-nodes--setup-dirs)
+  (unwind-protect
+      (let ((gnosis-nodes-dir gnosis-test-nodes--temp-dir))
+        (gnosis-test-nodes--create-file
+         gnosis-nodes-dir "multi-node.org"
+         ":PROPERTIES:\n:ID: root-id\n:END:\n#+title: Root\n\n* Alpha\n:PROPERTIES:\n:ID: alpha-id\n:END:\nAlpha body.\n\n* Beta\n:PROPERTIES:\n:ID: beta-id\n:END:\nUnique beta needle.\n")
+        (should (equal (gnosis-nodes-search-content "Unique beta needle")
+                       '("beta-id"))))
+    (gnosis-test-nodes--teardown-dirs)))
+
+(ert-deftest gnosis-test-nodes-search-content-does-not-reattribute-filtered-node ()
+  "Filtering out the enclosing node does not attribute its match to an ancestor."
+  (gnosis-test-nodes--setup-dirs)
+  (unwind-protect
+      (let ((gnosis-nodes-dir gnosis-test-nodes--temp-dir))
+        (gnosis-test-nodes--create-file
+         gnosis-nodes-dir "multi-node.org"
+         ":PROPERTIES:\n:ID: root-id\n:END:\n#+title: Root\n\n* Child\n:PROPERTIES:\n:ID: child-id\n:END:\nChild-only needle.\n")
+        (should-not (gnosis-nodes-search-content
+                     "Child-only needle" '("root-id"))))
+    (gnosis-test-nodes--teardown-dirs)))
+
+(ert-deftest gnosis-test-nodes-search-content-all-files ()
+  "Content search returns matching file-level node IDs."
+  (gnosis-test-nodes-with-files
+      '(("node-aaa" "Emacs is a great editor")
+        ("node-bbb" "Vim is also popular")
+        ("node-ccc" "Emacs and Vim are both editors"))
+    (should (equal (gnosis-nodes-search-content "Emacs")
+                   '("node-aaa" "node-ccc")))))
+
+(ert-deftest gnosis-test-nodes-search-content-with-filter ()
+  "NODE-IDS restrict content search to that subset."
+  (gnosis-test-nodes-with-files
+      '(("node-aaa" "Emacs is a great editor")
+        ("node-bbb" "Vim is also popular")
+        ("node-ccc" "Emacs and Vim are both editors"))
+    (should (equal (gnosis-nodes-search-content
+                    "Emacs" '("node-aaa"))
+                   '("node-aaa")))))
+
+(ert-deftest gnosis-test-nodes-search-content-no-matches ()
+  "Content search returns nil when no node matches."
+  (gnosis-test-nodes-with-files
+      '(("node-aaa" "Emacs is a great editor"))
+    (should-not (gnosis-nodes-search-content "nonexistent-term"))))
+
+(ert-deftest gnosis-test-nodes-search-content-rootless-preamble-has-no-owner ()
+  "Content before the first heading has no owner without a file-level ID."
+  (gnosis-test-nodes--setup-dirs)
+  (unwind-protect
+      (let ((gnosis-nodes-dir gnosis-test-nodes--temp-dir))
+        (gnosis-test-nodes--create-file
+         gnosis-nodes-dir "rootless.org"
+         "#+title: Rootless\n\nPreamble needle.\n\n* Child\n:PROPERTIES:\n:ID: child-id\n:END:\nChild body.\n")
+        (should-not (gnosis-nodes-search-content "Preamble needle")))
+    (gnosis-test-nodes--teardown-dirs)))
 
 ;;; ---- Group 1: Journal file sync ----
 
@@ -180,6 +252,77 @@ Content with [[id:other-node][a link]].
                          '(("source" "dest"))))))
     (gnosis-test-nodes--teardown-dirs)))
 
+(ert-deftest gnosis-test-nodes-refresh-rolls-back-failed-replacement ()
+  "Keep the old node index intact when parsing or insertion fails."
+  (gnosis-test-with-db
+    (let* ((gnosis-nodes-dir gnosis-dir)
+           (gnosis-journal-dir (expand-file-name "journal" gnosis-dir))
+           (file (gnosis-test-nodes--create-file
+                  gnosis-dir "node.org"
+                  ":PROPERTIES:\n:ID: root\n:END:\n#+title: Old\n#+filetags: :old:\n[[id:target][Target]]\n")))
+      (gnosis-nodes-update-file file)
+      (let ((before (mapcar (lambda (table) (gnosis-select '* table))
+                           '(nodes node-tag node-links))))
+        (dolist (failure '(parse insert))
+          (with-temp-file file
+            (insert ":PROPERTIES:\n:ID: root\n:END:\n"
+                    (if (eq failure 'parse) "" "#+title: New\n")))
+          (when (eq failure 'insert)
+            (gnosis-sqlite-execute
+             gnosis-db
+             "CREATE TRIGGER reject_node BEFORE INSERT ON nodes
+                BEGIN SELECT RAISE(ABORT, 'Controlled insertion failure'); END"))
+          (let ((caught (condition-case err
+                            (progn (gnosis-nodes-update-file file) nil)
+                          (error err))))
+            (should (equal before
+                           (mapcar (lambda (table) (gnosis-select '* table))
+                                   '(nodes node-tag node-links))))
+            (should caught)))))))
+
+(ert-deftest gnosis-test-nodes-refresh-replaces-owned-index ()
+  "Replace removed headings, tags and outgoing links without losing backlinks."
+  (gnosis-test-with-db
+    (let* ((gnosis-nodes-dir gnosis-dir)
+           (gnosis-journal-dir (expand-file-name "journal" gnosis-dir))
+           (file (gnosis-test-nodes--create-file
+                  gnosis-dir "node.org"
+                  ":PROPERTIES:\n:ID: root\n:END:\n#+title: Old\n#+filetags: :old:\n* Child\n:PROPERTIES:\n:ID: child\n:END:\n[[id:target][Target]]\n")))
+      (gnosis-nodes-update-file file)
+      (gnosis--insert-into
+       'nodes '(["source" "source.org" "Source" 0 nil "0" "hash"]))
+      (gnosis--insert-into 'node-links '(["source" "root"]))
+      (with-temp-file file
+        (insert ":PROPERTIES:\n:ID: root\n:END:\n#+title: New\n#+filetags: :new:\n"))
+      (gnosis-nodes-update-file file)
+      (should (equal '(("root" "New"))
+                     (gnosis-select '[id title] 'nodes '(= file "node.org"))))
+      (should (equal '(("root" "new"))
+                     (gnosis-select '* 'node-tag)))
+      (should (equal '(("source" "root"))
+                     (gnosis-select '* 'node-links))))))
+
+(ert-deftest gnosis-test-nodes-force-sync-rolls-back-journal-failure ()
+  "Keep both indexes when a forced rebuild encounters an invalid journal."
+  (gnosis-test-with-db
+    (let ((gnosis-nodes-dir gnosis-dir)
+          (gnosis-journal-dir (expand-file-name "journal" gnosis-dir)))
+      (make-directory gnosis-journal-dir t)
+      (gnosis-test-nodes--create-file
+       gnosis-dir "node.org"
+       ":PROPERTIES:\n:ID: node\n:END:\n#+title: Replacement\n")
+      (gnosis-test-nodes--create-file
+       gnosis-journal-dir "journal.org" "Missing title\n")
+      (gnosis--insert-into
+       'nodes '(["node" "node.org" "Old" 0 nil "0" "hash"]))
+      (gnosis--insert-into
+       'journal '(["entry" "journal.org" "Old journal" 0 nil "0" "hash"]))
+      (let ((before (mapcar (lambda (table) (gnosis-select '* table))
+                           '(nodes journal))))
+        (should-error (gnosis-nodes-db-sync t))
+        (should (equal before (mapcar (lambda (table) (gnosis-select '* table))
+                                     '(nodes journal))))))))
+
 ;;; ---- Group 2: Purge tables ----
 
 (ert-deftest gnosis-test-nodes-purge-tables ()
@@ -207,83 +350,20 @@ Content with [[id:other-node][a link]].
           (should (null (gnosis-nodes-select '* 'node-tag nil)))))
     (gnosis-test-nodes--teardown-dirs)))
 
-;;; ---- Group 3: File deletion ----
-
-(ert-deftest gnosis-test-nodes-delete-file-explicit-file ()
-  "Explicit FILE deletes that file, not the current buffer's file."
-  (gnosis-test-with-db
-    (let* ((target (gnosis-test-nodes--create-file
-                    gnosis-nodes-dir "target.org" "#+title: Target\n"))
-           (current (gnosis-test-nodes--create-file
-                     gnosis-nodes-dir "current.org" "#+title: Current\n"))
-           (current-file-buffer (find-file-noselect current)))
-      (unwind-protect
-          (progn
-            (gnosis-test-nodes--insert-node "target-id" target)
-            (gnosis-test-nodes--insert-node "current-id" current)
-            (cl-letf (((symbol-function 'y-or-n-p)
-                       (lambda (_prompt) t)))
-              (with-current-buffer current-file-buffer
-                (gnosis-nodes-delete-file target)))
-            (should-not (file-exists-p target))
-            (should (file-exists-p current))
-            (should (buffer-live-p current-file-buffer))
-            (should-not (gnosis-nodes-select
-                         'id 'nodes `(= id "target-id") t))
-            (should (equal '("current-id")
-                           (gnosis-nodes-select
-                            'id 'nodes `(= id "current-id") t))))
-        (when (buffer-live-p current-file-buffer)
-          (kill-buffer current-file-buffer))))))
-
-(ert-deftest gnosis-test-nodes-delete-file-current-buffer-file ()
-  "No-arg deletion deletes the current buffer's visited file."
-  (gnosis-test-with-db
-    (let* ((file (gnosis-test-nodes--create-file
-                  gnosis-nodes-dir "current.org" "#+title: Current\n"))
-           (buffer (find-file-noselect file)))
-      (unwind-protect
-          (progn
-            (gnosis-test-nodes--insert-node "current-id" file)
-            (cl-letf (((symbol-function 'y-or-n-p)
-                       (lambda (_prompt) t)))
-              (with-current-buffer buffer
-                (gnosis-nodes-delete-file)))
-            (should-not (file-exists-p file))
-            (should-not (buffer-live-p buffer))
-            (should-not (gnosis-nodes-select
-                         'id 'nodes `(= id "current-id") t)))
-        (when (buffer-live-p buffer)
-          (kill-buffer buffer))))))
-
-(ert-deftest gnosis-test-nodes-delete-file-rejects-non-node-file ()
-  "Reject FILE outside node and journal directories without prompting."
-  (gnosis-test-nodes--setup-dirs)
-  (let ((other-dir (make-temp-file "gnosis-test-other-" t))
-        prompted)
-    (unwind-protect
-        (let* ((gnosis-nodes-dir gnosis-test-nodes--temp-dir)
-               (gnosis-journal-dir (expand-file-name "journal"
-                                                     gnosis-test-nodes--temp-dir))
-               (file (gnosis-test-nodes--create-file
-                      other-dir "outside.org" "#+title: Outside\n")))
-          (cl-letf (((symbol-function 'y-or-n-p)
-                     (lambda (_prompt) (setq prompted t) t)))
-            (should-error (gnosis-nodes-delete-file file) :type 'user-error))
-          (should (file-exists-p file))
-          (should-not prompted))
-      (when (file-directory-p other-dir)
-        (delete-directory other-dir t))
-      (gnosis-test-nodes--teardown-dirs))))
-
-(ert-deftest gnosis-test-nodes-delete-file-nil-buffer ()
-  "No-arg deletion rejects buffers that are not visiting files."
-  (let (prompted)
-    (cl-letf (((symbol-function 'y-or-n-p)
-               (lambda (_prompt) (setq prompted t) t)))
-      (with-temp-buffer
-        (should-error (gnosis-nodes-delete-file) :type 'user-error)))
-    (should-not prompted)))
+(ert-deftest gnosis-test-nodes-goto-id-without-id-opens-at-point ()
+  "Opening without an ID delegates directly to Org."
+  (with-temp-buffer
+    (org-mode)
+    (insert "plain text")
+    (goto-char (point-min))
+    (let (opened)
+      (cl-letf (((symbol-function 'gnosis-nodes-select)
+                 (lambda (&rest _)
+                   (ert-fail "Queried the database without an ID")))
+                ((symbol-function 'org-open-at-point)
+                 (lambda (&rest _) (setq opened t))))
+        (gnosis-nodes-goto-id)
+        (should opened)))))
 
 (provide 'gnosis-test-nodes)
 

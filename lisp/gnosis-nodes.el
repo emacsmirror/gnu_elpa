@@ -115,65 +115,62 @@ Delegates to `gnosis--delete' (unified DB)."
 
 ;;; File operations
 
+(defun gnosis-nodes-search-content (query &optional node-ids)
+  "Search node files for QUERY and return enclosing node IDs.
+When NODE-IDS is non-nil, return only IDs in that list."
+  (unless (and (stringp query) (not (string-empty-p query)))
+    (error "Search query must be a non-empty string"))
+  (let (matches)
+    (dolist (file (directory-files
+                   gnosis-nodes-dir t "\\.org\\(?:\\.gpg\\)?$"))
+      (when (file-regular-p file)
+        (with-temp-buffer
+          (insert-file-contents file)
+          (dolist (id (gnosis-org-matching-node-ids query node-ids))
+            (unless (member id matches)
+              (push id matches))))))
+    (nreverse matches)))
+
+(defun gnosis-nodes--insert-file-data (table filename mtime info)
+  "Insert parsed INFO for FILENAME with MTIME into TABLE and its indexes."
+  (let ((hash (car (last info))))
+    (dolist (item (butlast info 2))
+      (when-let* ((id (plist-get item :id)))
+        (gnosis-nodes--insert-into
+         table `([,id ,filename ,(plist-get item :title)
+                      ,(plist-get item :level)
+                      ,(prin1-to-string (plist-get item :tags)) ,mtime ,hash]))
+        (dolist (tag (plist-get item :tags))
+          (gnosis-nodes--insert-into 'node-tag `([,id ,tag]) t))
+        (when (and (eq table 'nodes) (stringp (plist-get item :master)))
+          (gnosis-nodes--insert-into
+           'node-links `([,id ,(plist-get item :master)]) t))))
+    (when (eq table 'nodes)
+      (dolist (link (car (last (butlast info))))
+        (gnosis-nodes--insert-into
+         'node-links `[,(cdr link) ,(car link)] t)))))
+
 (defun gnosis-nodes--update-file (file &optional journal buffer)
-  "Add contents of FILE to database.
-If JOURNAL is non-nil, update file as a journal entry.
-When BUFFER is non-nil, parse it instead of reading FILE from disk.
-This avoids re-reading (and re-decrypting) files already open."
-  (condition-case err
-      (let* ((info (if buffer
-		       (with-temp-buffer
-			 (insert (with-current-buffer buffer
-				   (save-restriction (widen) (buffer-string))))
-			 (gnosis-org-get-buffer-info))
-		     (gnosis-org-get-file-info file)))
-	     (hash (car (last info)))
-	     (data (butlast info 2))
-	     (table (if journal 'journal 'nodes))
-	     (filename (file-name-nondirectory file))
-	     (full-path (expand-file-name file (if journal
-						   (gnosis-nodes--journal-dir)
-						 gnosis-nodes-dir)))
-	     (mtime (format-time-string "%s" (file-attribute-modification-time
-					      (file-attributes full-path))))
-	     (links (and (> (length info) 2)
-			 (car (last (butlast info))))))
-	(message "Parsing: %s" filename)
-	(gnosis-sqlite-with-transaction (gnosis--ensure-db)
-	  (cl-loop for item in data
-		   when (plist-get item :id)
-		   do (let ((title (plist-get item :title))
-			    (id (plist-get item :id))
-			    (tags (plist-get item :tags))
-			    (level (plist-get item :level)))
-			(gnosis-nodes--insert-into table
-						   `([,id ,filename ,title ,level
-							  ,(prin1-to-string tags) ,mtime ,hash]))
-			;; Insert tags
-			(cl-loop for tag in tags
-				 do (gnosis-nodes--insert-into 'node-tag `([,id ,tag]) t))
-			;; Insert master relationship as link (nodes only)
-			(when (and (not journal)
-				   (plist-get item :master)
-				   (stringp (plist-get item :master)))
-			  (gnosis-nodes--insert-into
-			   'node-links
-			   `([,id ,(plist-get item :master)])
-			   t))))
-	  ;; Insert ID links (nodes only)
-	  (unless journal
-	    (cl-loop for link in links
-		     do (gnosis-nodes--insert-into
-			 'node-links
-			 `[,(cdr link) ,(car link)] t)))))
-    (file-error
-     (message "File error updating %s: %s.  \
-Try M-x gnosis-nodes-db-force-sync to rebuild database."
-              file (error-message-string err)))
-    (error
-     (message "Error updating %s: %s.  \
-Try M-x gnosis-nodes-db-force-sync if issue persists."
-              file (error-message-string err)))))
+  "Replace the index of FILE atomically, preserving incoming links.
+If JOURNAL is non-nil, index journal entries instead of regular nodes.
+When BUFFER is non-nil, parse its widened contents instead of reading FILE.
+Signal parsing or storage errors without changing the previous index."
+  (let* ((info (if buffer
+                   (with-temp-buffer
+                     (insert (with-current-buffer buffer
+                               (save-restriction (widen) (buffer-string))))
+                     (gnosis-org-get-buffer-info))
+                 (gnosis-org-get-file-info file)))
+         (full-path (expand-file-name
+                     file (if journal (gnosis-nodes--journal-dir)
+                            gnosis-nodes-dir)))
+         (mtime (format-time-string
+                 "%s" (file-attribute-modification-time
+                       (file-attributes full-path)))))
+    (gnosis-sqlite-with-transaction (gnosis--ensure-db)
+      (gnosis-nodes--delete-file full-path t)
+      (gnosis-nodes--insert-file-data
+       (if journal 'journal 'nodes) (file-name-nondirectory file) mtime info))))
 
 (defun gnosis-nodes--delete-file (&optional file preserve-incoming)
   "Delete contents for FILE in database.
@@ -204,7 +201,6 @@ instead of re-reading from disk (avoids re-decrypting .gpg files)."
   (let* ((file (or file (buffer-file-name)))
 	 (journal-p (file-in-directory-p file (gnosis-nodes--journal-dir)))
 	 (buf (and file (get-file-buffer file))))
-    (gnosis-nodes--delete-file file t)
     (gnosis-nodes--update-file file journal-p buf)
     ;; Update todos
     (when (and journal-p file)
@@ -538,19 +534,22 @@ If file or id are not found, use `org-open-at-point'."
   (interactive)
   (let* ((id (or id (gnosis-nodes--get-id-at-point)))
 	 (org-id-track-globally nil))
-    (cond ((gnosis-nodes-select 'file 'nodes `(= id ,id))
-	   (find-file
-	    (expand-file-name (car (gnosis-nodes-select 'file 'nodes `(= id ,id) t))
-			      gnosis-nodes-dir))
-	   (org-id-goto id))
-	  ((gnosis-nodes-select 'file 'journal `(= id ,id))
-	   (find-file
-	    (expand-file-name
-	     (car (gnosis-nodes-select 'file 'journal
-				       `(= id ,id) t))
-	     (gnosis-nodes--journal-dir)))
-	   (org-id-goto id))
-	  (t (org-open-at-point)))
+    (if (not id)
+        (org-open-at-point)
+      (cond ((gnosis-nodes-select 'file 'nodes `(= id ,id))
+	     (find-file
+	      (expand-file-name
+               (car (gnosis-nodes-select 'file 'nodes `(= id ,id) t))
+	       gnosis-nodes-dir))
+	     (org-id-goto id))
+	    ((gnosis-nodes-select 'file 'journal `(= id ,id))
+	     (find-file
+	      (expand-file-name
+	       (car (gnosis-nodes-select 'file 'journal
+				         `(= id ,id) t))
+	       (gnosis-nodes--journal-dir)))
+	     (org-id-goto id))
+	    (t (org-open-at-point))))
     (gnosis-nodes-mode 1)))
 
 ;;; Sync
@@ -617,11 +616,11 @@ When FORCE (prefix arg), rebuild from scratch."
       (when force
 	(gnosis-nodes--purge-tables)
 	(message "Purged all node/journal tables for rebuild."))
-      (gnosis-nodes-db-update-files force))
-    ;; Sync journal files
-    (message "Syncing journal files...")
-    (require 'gnosis-journal)
-    (gnosis-journal-db-sync force)
+      (gnosis-nodes-db-update-files force)
+      ;; Journal rows were also purged, so rebuild them in the same transaction.
+      (message "Syncing journal files...")
+      (require 'gnosis-journal)
+      (gnosis-journal-db-sync force))
     (message "Node sync complete!")))
 
 ;;;###autoload

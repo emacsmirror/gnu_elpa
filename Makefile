@@ -44,29 +44,10 @@ AUTOLOAD_COMMANDS := gnosis gnosis-add-thema gnosis-modeline-mode \
 	gnosis-nodes-db-force-sync gnosis-review gnosis-review-topic \
 	gnosis-monkeytype-start gnosis-vc-push gnosis-vc-pull
 
-TESTS := tests/gnosis-test-sqlite.el \
-	tests/gnosis-test-autoload-boundary.el \
-	tests/gnosis-test-journal-boundary.el \
-	tests/gnosis-test-nodes-boundary.el \
-	tests/gnosis-test-fsrs.el \
-	tests/gnosis-test-scheduler-storage.el \
-	tests/gnosis-test-scheduler.el \
-	tests/gnosis-test-logical-day.el \
-	tests/gnosis-test-logical-day-cutover.el \
-	tests/gnosis-test-export-import.el \
-	tests/gnosis-test-dashboard.el \
-	tests/gnosis-test-cloze.el \
-	tests/gnosis-test-bulk-link.el \
-	tests/gnosis-test-script-detection.el \
-	tests/gnosis-test-insert-template.el \
-	tests/gnosis-test-isolation.el \
-	tests/gnosis-test-links.el \
-	tests/gnosis-test-org.el \
-	tests/gnosis-test-nodes.el \
-	tests/gnosis-test-review.el \
-	tests/gnosis-test-journal.el \
-	tests/gnosis-test-migration.el \
-	tests/gnosis-test-anki.el
+TEST_SUPPORT := $(TEST_DIR)/gnosis-test-db.el \
+	$(TEST_DIR)/gnosis-test-helpers.el
+TESTS := $(filter-out $(TEST_SUPPORT), \
+	$(wildcard $(TEST_DIR)/gnosis-test-*.el))
 TEST_STAMPS := $(patsubst tests/%.el,$(TEST_RESULTS)/%.stamp,$(TESTS))
 
 all: check
@@ -212,7 +193,7 @@ _lint-package-lint:
 
 _lint: _lint-checkdoc _lint-package-lint
 
-_dev: _lint _check
+_dev: _lint _check _doc
 
 load:
 	rm -f $(LISP_DIR)/*.elc

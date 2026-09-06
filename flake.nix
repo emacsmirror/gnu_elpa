@@ -46,32 +46,7 @@
       ];
       testFiles = [
         ./docs/gnosis.org
-        ./tests/gnosis-fsrs-v2.json
-        ./tests/gnosis-test-anki.el
-        ./tests/gnosis-test-autoload-boundary.el
-        ./tests/gnosis-test-bulk-link.el
-        ./tests/gnosis-test-cloze.el
-        ./tests/gnosis-test-dashboard.el
-        ./tests/gnosis-test-db.el
-        ./tests/gnosis-test-export-import.el
-        ./tests/gnosis-test-fsrs.el
-        ./tests/gnosis-test-helpers.el
-        ./tests/gnosis-test-insert-template.el
-        ./tests/gnosis-test-isolation.el
-        ./tests/gnosis-test-journal-boundary.el
-        ./tests/gnosis-test-journal.el
-        ./tests/gnosis-test-links.el
-        ./tests/gnosis-test-logical-day.el
-        ./tests/gnosis-test-logical-day-cutover.el
-        ./tests/gnosis-test-migration.el
-        ./tests/gnosis-test-nodes-boundary.el
-        ./tests/gnosis-test-nodes.el
-        ./tests/gnosis-test-org.el
-        ./tests/gnosis-test-review.el
-        ./tests/gnosis-test-scheduler-storage.el
-        ./tests/gnosis-test-scheduler.el
-        ./tests/gnosis-test-script-detection.el
-        ./tests/gnosis-test-sqlite.el
+        ./tests
       ];
     in
     {
@@ -85,13 +60,13 @@
             root = ./lisp;
             fileset = lib.fileset.unions packageFiles;
           };
-          keymapPopup = emacsPackages.trivialBuild {
+          keymapPopup = emacsPackages.melpaBuild {
             pname = "keymap-popup";
             version = "0.4.3";
             src = keymap-popup;
             packageRequires = [ ];
           };
-          gnosis = emacsPackages.trivialBuild {
+          gnosis = emacsPackages.melpaBuild {
             pname = "gnosis";
             inherit version;
             src = packageSource;
@@ -125,7 +100,7 @@
             root = ./.;
             fileset = lib.fileset.unions ([ ./Makefile ] ++ packageFiles ++ testFiles);
           };
-          keymapPopup = emacsPackages.trivialBuild {
+          keymapPopup = emacsPackages.melpaBuild {
             pname = "keymap-popup";
             version = "0.4.3";
             src = keymap-popup;
@@ -144,6 +119,7 @@
             nativeBuildInputs = [
               emacsWithDependencies
               pkgs.gnumake
+              pkgs.texinfo
             ];
             dontConfigure = true;
             buildPhase = ''
@@ -156,6 +132,12 @@
               mkdir -p "$HOME" "$XDG_CACHE_HOME" "$XDG_CONFIG_HOME" \
                 "$XDG_DATA_HOME" "$XDG_STATE_HOME"
               make GNOSIS_ENV_WRAPPED=1 ENV= EMACS=emacs dev
+              emacs --quick --batch \
+                --eval="(require 'package)" \
+                --eval="(package-initialize)" \
+                --eval="(unless (and (autoloadp (symbol-function 'gnosis)) \
+                                     (commandp 'gnosis)) \
+                          (error \"Installed gnosis command is not autoloaded\"))"
               runHook postBuild
             '';
             installPhase = ''
@@ -187,8 +169,11 @@
                 name = "gnosis-${name}";
                 runtimeInputs = [
                   emacs
+                  pkgs.bash
                   pkgs.coreutils
                   pkgs.gnumake
+                  pkgs.gnugrep
+                  pkgs.texinfo
                 ];
                 text = ''
                   work=$(mktemp -d)
@@ -230,6 +215,7 @@
             packages = [
               pkgs.git
               pkgs.gnumake
+              pkgs.texinfo
               self.packages.${system}.emacs-with-gnosis
             ];
           };

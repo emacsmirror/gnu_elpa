@@ -421,56 +421,6 @@ Includes `gnosis-test-with-clean-cache' for isolation."
         (should (null gnosis-dashboard--selected-ids)))))))
 
 ;; ──────────────────────────────────────────────────────────
-;; Content search helper tests
-;; ──────────────────────────────────────────────────────────
-
-(defmacro gnosis-test-with-org-files (file-specs &rest body)
-  "Create temporary org files per FILE-SPECS then run BODY.
-FILE-SPECS is a list of (ID CONTENT) pairs.
-Binds `gnosis-nodes-dir' to the temp directory."
-  (declare (indent 1) (debug t))
-  `(let ((gnosis-nodes-dir (make-temp-file "gnosis-test-org-" t)))
-     (unwind-protect
-         (progn
-           (dolist (spec ,file-specs)
-             (let ((id (nth 0 spec))
-                   (content (nth 1 spec)))
-               (with-temp-file (expand-file-name
-                                (format "20250101-%s.org" id) gnosis-nodes-dir)
-                 (insert (format ":PROPERTIES:\n:ID: %s\n:END:\n%s" id content)))))
-           ,@body)
-       (delete-directory gnosis-nodes-dir t))))
-
-(ert-deftest gnosis-test-dashboard-search-files-all ()
-  "Search all files returns matching node IDs."
-  (gnosis-test-with-org-files
-   '(("node-aaa" "Emacs is a great editor")
-     ("node-bbb" "Vim is also popular")
-     ("node-ccc" "Emacs and Vim are both editors"))
-   (let ((result (gnosis-dashboard-nodes--search-files "Emacs")))
-     (should (= (length result) 2))
-     (should (member "node-aaa" result))
-     (should (member "node-ccc" result)))))
-
-(ert-deftest gnosis-test-dashboard-search-files-with-filter ()
-  "Search with node-ids filter restricts to subset."
-  (gnosis-test-with-org-files
-   '(("node-aaa" "Emacs is a great editor")
-     ("node-bbb" "Vim is also popular")
-     ("node-ccc" "Emacs and Vim are both editors"))
-   (let ((result (gnosis-dashboard-nodes--search-files
-                  "Emacs" '("node-aaa"))))
-     (should (= (length result) 1))
-     (should (equal (car result) "node-aaa")))))
-
-(ert-deftest gnosis-test-dashboard-search-files-no-matches ()
-  "Search with no matches returns nil."
-  (gnosis-test-with-org-files
-   '(("node-aaa" "Emacs is a great editor"))
-   (let ((result (gnosis-dashboard-nodes--search-files "nonexistent-term")))
-     (should (null result)))))
-
-;; ──────────────────────────────────────────────────────────
 ;; Review count filter tests
 ;; ──────────────────────────────────────────────────────────
 

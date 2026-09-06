@@ -19,6 +19,15 @@
 
 ;;; Code:
 
+(defconst gnosis-fsrs--algorithm "fsrs"
+  "Scheduler algorithm identity stored with FSRS configuration.")
+
+(defconst gnosis-fsrs--model "gnosis-fsrs6-v1"
+  "Gnosis FSRS model identity stored with scheduler configuration.")
+
+(defconst gnosis-fsrs--implementation "fsrs-rs-6.6.1"
+  "Reference implementation identity for the pinned FSRS model.")
+
 (defconst gnosis-fsrs-default-parameters
   [0.212 1.2931 2.3065 8.2956 6.4133 0.8334 3.0194 0.001 1.8722
    0.1666 0.796 1.4835 0.0614 0.2629 1.6483 0.6014 1.8729 0.5425

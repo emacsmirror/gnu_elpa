@@ -66,7 +66,7 @@ other.
 
 Nodes are Zettelkasten-style notes stored as plain org-mode files.
 Each node is a file, or a heading within a file, identified by a
-unique UUID stored as an =#+id:= org property.  Nodes are indexed in
+unique UUID stored as an =:ID:= Org property.  Nodes are indexed in
 the database so that they can be searched, browsed by tag, and linked
 together.  Links between nodes use standard org-mode =[[id:UUID]]= syntax,
 which means they remain compatible with any tool that understands
@@ -108,36 +108,23 @@ questions to the note, then review by topic.
 The following terms appear throughout this manual and in user-facing
 prompts:
 
-- *Gnosis* (/γνῶσις/, knowledge): the name of the package, and also the
-  name of the internal score used by the spaced repetition algorithm to
-  track performance per thema.
+- *Gnosis* (/γνῶσις/, knowledge): the name of the package.
 - *Thema* (/θέμα/, topic or subject; plural /themata/): a single review
   card.
 - *Keimenon* (/κείμενον/, underlying text): the question or prompt shown
   during review.
 - *Parathema* (/παράθεμα/, side-text): supplementary text shown after
   answering, used to add context or a longer explanation.
-- *Anagnosis* (/ἀνάγνωσις/, recognition): an event in the algorithm that
-  fires after a streak of consecutive successes or failures, adjusting
-  the gnosis score.
-- *Epignosis* (/ἐπίγνωσις/, full knowledge): the increment applied to the
-  gnosis score on a correct answer during an anagnosis event.
-- *Agnoia* (/ἄγνοια/, ignorance): the decrement applied on an incorrect
-  answer during an anagnosis event.
-- *Amnesia* (/ἀμνησία/, forgetting): the multiplier applied to the
-  interval on failure.
-- *Lethe* (/λήθη/, forgetting; the river of oblivion): the threshold of
-  consecutive failures that triggers an interval reset.
-- *Proto* (/πρῶτο/, first): the sequence of fixed intervals used during
-  the initial learning phase before the adaptive algorithm takes over.
+
+Scheduling uses FSRS-6 with binary review outcomes.  A failed review maps
+to FSRS /Again/ and a successful review maps to FSRS /Good/.
 
 ** Data Storage
 
 All data lives in a single SQLite database at =GNOSIS-DIR/gnosis.db=.
 The database is created and migrated automatically; no manual setup or
 maintenance is required.  Gnosis requires Emacs 29.1 or later (for
-built-in SQLite support) and the =compat= library.  There are no other
-external dependencies.
+built-in SQLite support), the =compat= library, and =keymap-popup=.
 
 * Installation and Setup
 :PROPERTIES:
@@ -152,10 +139,11 @@ Gnosis requires:
 - GNU Emacs 29.1 or later, compiled with SQLite support.  Verify this
   with ~(fboundp 'sqlite-open)~; it should return =t=.
 - The =compat= library, available from GNU ELPA.
+- The =keymap-popup= library.
 
-No external programs are required.  Git is optionally used by the
-version control integration (~gnosis-vc-auto-push~), but is not a hard
-dependency.
+Core note and review workflows require no external programs.  Git is
+optional for version-control integration, and Anki package import has
+its own optional tools described below.
 
 ** Installing from GNU ELPA
 
@@ -171,43 +159,6 @@ Or with ~use-package~:
 (use-package gnosis
   :ensure t)
 #+end_src
-
-** Installing with GNU Guix
-
-Gnosis is available from the official Guix channel:
-
-#+begin_src sh
-guix install emacs-gnosis
-#+end_src
-
-** Developing with Nix
-
-For development, the repository includes a =flake.nix= that packages the
-local checkout and provides a complete development shell.  When =nix= is
-on =PATH=, the =doc=, =compile=, and =test= make targets automatically
-re-enter through the dev shell, so they run against the flake's isolated
-dependencies from any environment:
-
-#+begin_src sh
-# Byte-compile (warnings as errors) and run all tests:
-make test
-
-# Development shell with all dependencies:
-nix develop
-
-# Build the package from the working tree:
-nix build
-
-# Run the flake test app:
-nix run .#test
-
-# Validate package build and tests:
-nix flake check
-#+end_src
-
-Without =nix= the targets run directly against the Emacs on =PATH=;
-=GNOSIS_ENV_WRAPPED=1 make test= forces direct execution when the
-dependencies are already available.
 
 ** Basic Configuration
 
@@ -756,8 +707,9 @@ journal entry using ~gnosis-journal-insert~.  It works identically to
 Gnosis organises all review material into units called /themata/ (singular:
 /thema/).  The word is Greek for "that which is placed" or "a topic set
 before you," and a thema in gnosis is precisely that: a question or
-prompt placed before you for recall.  Each thema carries its own review
-history, scheduling state, and algorithm parameters.
+prompt placed before you for recall.  Each thema has immutable review
+events and a current scheduler state; FSRS configuration is shared and
+pinned by the package.
 
 ** Fields of a Thema
 
@@ -931,8 +883,8 @@ stages:
    alongside the correct answer, the user's input (when wrong), and the
    parathema if one is present.
 
-4. *Next review date*: The algorithm computes and displays the next
-   scheduled review date.
+4. *Next review date*: FSRS-6 computes and displays the next scheduled
+   review date.
 
 5. *Action prompt*: The user chooses what to do next via a one-character
    prompt.  Available actions include advancing to the next thema,
@@ -940,11 +892,36 @@ stages:
    answer), suspending or deleting the thema, editing the thema, viewing
    linked nodes, or quitting the session.
 
-6. *Algorithm update*: After the user confirms the result, the review log
-   and gnosis score are updated.
+6. *Scheduler update*: After the user confirms the result, gnosis records
+   an immutable review event and updates the current scheduler state in
+   the same database transaction.
 
 During a session, the header line shows the current progress as
 =Reviewed: N/Total=.
+
+** Scheduling and Retention
+
+Gnosis uses the FSRS-6 default parameters pinned from fsrs-rs 6.6.1,
+with desired retention fixed at 90%.  Successful recall maps to /Good/;
+forgotten information maps to /Again/.  Override a result only when the
+automatic answer check misjudged what you actually recalled.
+
+FSRS updates each thema's stability and difficulty after a review.
+Gnosis does not currently fit the shared parameters to your review
+history or provide a desired-retention setting.  The 90% target is a
+model prediction, not a measured guarantee of recall or exam performance.
+
+A failed thema returns once at the end of the current session unless it
+was suspended or deleted.  Further failure does not keep extending that
+session.  Calendar intervals are at least one day; same-day repetitions
+use the FSRS short-term update rather than counting as delayed recall.
+
+For useful feedback, review due material consistently and distinguish
+recall from recognition after seeing the answer.  Rewrite ambiguous or
+repeatedly failed questions instead of rehearsing them indefinitely.
+Assess long-term recall on delayed reviews separately from initial
+learning and same-day repetitions.  Parameter fitting and workload
+comparisons need substantially more history than a few delayed reviews.
 
 ** Type-Specific Review Behaviour
 
@@ -1095,6 +1072,10 @@ node, find isolated nodes with no connections, open a node's org file,
 or start a review of all themata linked to a node (optionally specifying
 link depth to include related nodes).
 
+Content search returns the nearest enclosing ID-bearing node for each
+match.  A match inside a child node therefore does not return the file's
+root node.
+
 Each navigation action pushes the current view onto a history stack, so
 you can step back through your browsing path.
 
@@ -1217,8 +1198,7 @@ Image occlusion notes are skipped.
 *** What Does Not Transfer
 
 Review history, scheduling data, and deck organisation are not imported.
-All imported themata start fresh with default algorithm values and are
-due immediately.
+All imported themata start with fresh FSRS state and are due immediately.
 
 *** Requirements
 

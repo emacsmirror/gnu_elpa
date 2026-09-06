@@ -152,6 +152,14 @@
       (gnosis-toggle-suspend-themata (list id) 0 t)
       (should-not (gnosis-suspended-p id)))))
 
+(ert-deftest gnosis-test-review-suspension-rejects-invalid-value ()
+  "Reject invalid suspension values without changing scheduler state."
+  (gnosis-test-with-db
+    (let ((id (gnosis-test--add-basic-thema "Q" "A")))
+      (should-error (gnosis-toggle-suspend-themata (list id) 2 t))
+      (should-not (gnosis-suspended-p id))
+      (should (member id (gnosis-review-get-due-themata))))))
+
 (ert-deftest gnosis-test-review-failure-requeues-once-and-completes ()
   "Append a failed thema once and finish after its bounded retry."
   (let ((state (gnosis-review-state-create

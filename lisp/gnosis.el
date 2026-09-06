@@ -53,6 +53,7 @@
 ;;; Code:
 
 (require 'cl-lib)
+(require 'seq)
 (require 'subr-x)
 
 (require 'gnosis-db)
@@ -424,6 +425,9 @@ explicitly (safe for bulk operations).
 
 When VERIFICATION is non-nil, skips `y-or-n-p' prompt."
   (cl-assert (listp ids) nil "IDS value needs to be a list.")
+  (cl-assert (or (null suspend-value)
+                 (memq suspend-value '(0 1)))
+             nil "SUSPEND-VALUE must be nil, 0, or 1.")
   (let* ((items-num (length ids))
          (suspend-value
           (or suspend-value

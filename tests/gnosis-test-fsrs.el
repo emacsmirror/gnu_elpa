@@ -67,7 +67,7 @@
    (append '(prior_state elapsed_days outcome expected)
            (and (assq 'desired_retention case) '(desired_retention)))
    "case")
-  (when-let ((state (alist-get 'prior_state case)))
+  (when-let* ((state (alist-get 'prior_state case)))
     (gnosis-test-fsrs--require-keys
      state '(stability difficulty) "prior state"))
   (gnosis-test-fsrs--require-keys
@@ -191,6 +191,21 @@
   (should-error (gnosis-fsrs-transition nil 1 'success 0.9))
   (should-error (gnosis-fsrs-transition nil 0 'easy 0.9))
   (should-error (gnosis-fsrs-transition nil 0 'success 1.0)))
+
+(ert-deftest gnosis-test-fsrs-retention-controls-interval-not-memory ()
+  "Higher retention shortens intervals without changing learned memory state."
+  (dolist (outcome '(failure success))
+    (let* ((state '(:stability 20.0 :difficulty 5.0))
+           (results (mapcar (lambda (retention)
+                              (gnosis-fsrs-transition state 20 outcome retention))
+                            '(0.8 0.9 0.95)))
+           (intervals (mapcar (lambda (result)
+                                (plist-get result :raw-interval-days))
+                              results)))
+      (should (apply #'> intervals))
+      (dolist (key '(:stability :difficulty))
+        (should (apply #'= (mapcar (lambda (result) (plist-get result key))
+                                  results)))))))
 
 (provide 'gnosis-test-fsrs)
 ;;; gnosis-test-fsrs.el ends here

@@ -14,6 +14,7 @@
 
 (require 'cl-lib)
 (require 'org-element)
+(require 'subr-x)
 
 (defun gnosis-org-adjust-title (input)
   "Strip org link markup from INPUT, keeping only link descriptions.
@@ -29,7 +30,7 @@ Converts [[id:xxx][Description]] to Description."
     (let ((heading-level (org-current-level))
 	  (id (org-id-get)))
       (cond (id id)
-	    ((and (null id) (= heading-level 1))
+	    ((or (null heading-level) (= heading-level 1))
 	     (goto-char (point-min))
 	     (org-id-get))
 	    (t
@@ -167,6 +168,23 @@ Extracts their ID, tags, and links."
                     :level 0)
               headlines)
       headlines)))
+
+(defun gnosis-org-matching-node-ids (query &optional node-ids)
+  "Return node IDs whose own Org content matches QUERY.
+When NODE-IDS is non-nil, return only IDs in that list."
+  (unless (derived-mode-p 'org-mode)
+    (org-mode))
+  (let (matches)
+    (save-excursion
+      (goto-char (point-min))
+      (while (search-forward query nil t)
+        (let ((id (save-excursion
+                    (goto-char (match-beginning 0))
+                    (gnosis-org-get-id))))
+          (when (and id (or (null node-ids) (member id node-ids))
+                     (not (member id matches)))
+            (push id matches)))))
+    (nreverse matches)))
 
 (defun gnosis-org-get-buffer-info ()
   "Parse current buffer for node data, links, and content hash.

@@ -216,20 +216,7 @@ LENGTH: length of id, default to 18."
   "Generate N unique gnosis IDs as a list.
 Each ID has optional LENGTH, defaulting to 18 digits.
 Uses `gnosis--id-cache' for O(1) collision checking when bound."
-  (let ((ids nil) (count 0))
-    (while (< count n)
-      (let* ((len (or length 18))
-             (max-val (expt 10 len))
-             (min-val (expt 10 (1- len)))
-             (id (+ (random (- max-val min-val)) min-val))
-             (exists (if gnosis--id-cache
-                         (gethash id gnosis--id-cache)
-                       (gnosis-select 'id 'themata `(= id ,id) t))))
-        (unless exists
-          (when gnosis--id-cache (puthash id t gnosis--id-cache))
-          (push id ids)
-          (cl-incf count))))
-    (nreverse ids)))
+  (cl-loop repeat n collect (gnosis-generate-id length)))
 
 ;;; Schema
 
@@ -367,7 +354,8 @@ Uses `gnosis--id-cache' for O(1) collision checking when bound."
    "INSERT INTO scheduler_config
       (id, algorithm, model, implementation, desired_retention, parameters)
     VALUES (?, ?, ?, ?, ?, ?)"
-   (list 1 "fsrs" "gnosis-fsrs6-v1" "fsrs-rs-6.6.1"
+   (list 1 gnosis-fsrs--algorithm gnosis-fsrs--model
+         gnosis-fsrs--implementation
          gnosis-fsrs-default-retention
          gnosis-fsrs-default-parameters)))
 

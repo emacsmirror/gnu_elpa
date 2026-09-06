@@ -19,6 +19,7 @@
 
 ;;; Code:
 
+(require 'cl-lib)
 (require 'gnosis-db)
 (require 'gnosis-fsrs)
 (require 'seq)
@@ -94,7 +95,8 @@
         db "SELECT desired_retention FROM scheduler_config
              WHERE id = ? AND algorithm = ? AND model = ?
                AND implementation = ? AND parameters = ?"
-        (list config-id "fsrs" "gnosis-fsrs6-v1" "fsrs-rs-6.6.1"
+        (list config-id gnosis-fsrs--algorithm gnosis-fsrs--model
+              gnosis-fsrs--implementation
               gnosis-fsrs-default-parameters)))
       (error "Unsupported scheduler config")))
 
@@ -276,7 +278,8 @@ Each row is (THEMA-ID DUE-DAY SUSPENDED)."
                    db "SELECT id, desired_retention FROM scheduler_config
                         WHERE algorithm = ? AND model = ?
                           AND implementation = ? AND parameters = ?"
-                   (list "fsrs" "gnosis-fsrs6-v1" "fsrs-rs-6.6.1"
+                   (list gnosis-fsrs--algorithm gnosis-fsrs--model
+                         gnosis-fsrs--implementation
                          gnosis-fsrs-default-parameters))))
     (unless baseline (error "Scheduler baseline does not exist"))
     (gnosis-scheduler-replay baseline events

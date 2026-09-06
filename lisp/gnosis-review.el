@@ -30,9 +30,9 @@
 ;; - Type-specific review logic: MCQ, basic, cloze, MC-cloze
 ;; - Review session management and actions (next, override, suspend,
 ;;   edit, quit, view-link)
-;; - Algorithm bridge: computing next intervals and gnosis scores
+;; - Scheduler bridge: previewing and accepting FSRS review results
 ;; - Monkeytype integration for typing practice
-;; - Link view mode for viewing org-gnosis nodes during review
+;; - Link view mode for viewing Gnosis nodes during review
 
 ;;; Code:
 
@@ -374,9 +374,9 @@ EVENT-ID, REVIEWED-AT-US, and REVIEW-DAY may pin deterministic facts."
             (plist-get result :event-id) id outcome
             (plist-get result :reviewed-at-us)
             (plist-get result :review-day))))
-      (when (and (plist-get accepted :inserted-p)
-                 gnosis-due-themata-total (> gnosis-due-themata-total 0))
-        (cl-decf gnosis-due-themata-total))
+      (when gnosis-due-themata-total
+        (setq gnosis-due-themata-total
+              (length (gnosis-review-get-due-themata))))
       accepted)))
 
 ;;; Type-specific review

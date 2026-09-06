@@ -1,8 +1,6 @@
 CONTRIBUTING.org
 LICENSE
 Makefile
-flake.nix
-flake.lock
 
 tests
 

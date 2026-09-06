@@ -33,7 +33,7 @@ other.
 ** Nodes
 
 Nodes are Zettelkasten-style notes stored as plain org-mode files.
-Each node is identified by a unique UUID stored as an =#+id:=
+Each node is identified by a unique UUID stored in an Org =:ID:=
 property.  Nodes are indexed in the database so that they can be
 searched, browsed by tag, and linked together using standard org-mode
 =[[id:UUID]]= syntax.

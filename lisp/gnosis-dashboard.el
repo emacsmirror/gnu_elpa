@@ -1401,32 +1401,12 @@ Only searches within currently displayed nodes."
           (gnosis-dashboard-output-nodes matching-ids))
       (message "No nodes in current view match '%s'" query))))
 
-(defun gnosis-dashboard-nodes--search-files (query &optional node-ids)
-  "Search org files in `gnosis-nodes-dir' for QUERY, return matching node IDs.
-When NODE-IDS is non-nil, only search files whose node ID is in that list."
-  (let ((files (directory-files gnosis-nodes-dir t "\\.org\\(?:\\.gpg\\)?$"))
-        (matching-ids '()))
-    (dolist (file files)
-      (when (file-regular-p file)
-        (with-temp-buffer
-          (insert-file-contents file)
-          (goto-char (point-min))
-          (when (re-search-forward
-                 "^:ID:[[:space:]]+\\([^[:space:]]+\\)"
-                 nil t)
-            (let ((id (match-string 1)))
-              (when (or (null node-ids) (member id node-ids))
-                (goto-char (point-min))
-                (when (search-forward query nil t)
-                  (push id matching-ids))))))))
-    (nreverse matching-ids)))
-
 (defun gnosis-dashboard-nodes-search-by-content (query)
   "Search all nodes for QUERY in files under `gnosis-nodes-dir'."
   (interactive "sSearch all nodes by content: ")
   (when (string-empty-p query)
     (user-error "Search query cannot be empty"))
-  (let ((matching-ids (gnosis-dashboard-nodes--search-files query)))
+  (let ((matching-ids (gnosis-nodes-search-content query)))
     (if matching-ids
         (progn
           (gnosis-dashboard--push-current-view)
@@ -1440,7 +1420,7 @@ When NODE-IDS is non-nil, only search files whose node ID is in that list."
     (user-error "No nodes to filter"))
   (when (string-empty-p query)
     (user-error "Search query cannot be empty"))
-  (let ((matching-ids (gnosis-dashboard-nodes--search-files
+  (let ((matching-ids (gnosis-nodes-search-content
                        query gnosis-dashboard-nodes-current-ids)))
     (if matching-ids
         (progn

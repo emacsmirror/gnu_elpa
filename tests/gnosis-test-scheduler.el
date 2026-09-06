@@ -193,6 +193,44 @@
     (should (= 0 (caar (gnosis-sqlite-select
                         gnosis-db "SELECT reps FROM scheduler_state"))))))
 
+(ert-deftest gnosis-test-review-relearning-preserves-due-count ()
+  "Relearning and early reviews do not consume other themata's due count."
+  (gnosis-test-scheduler--with-db
+    (gnosis-test-scheduler--seed-state 1)
+    (gnosis-test-scheduler--seed-state 2)
+    (let ((gnosis-due-themata-total 2))
+      (cl-letf (((symbol-function 'gnosis--today-int) (lambda () 20260830)))
+        (gnosis-review-result
+         1 nil (gnosis-review--pending-result
+                1 nil gnosis-test-scheduler--event-id 1000000 20260830))
+        (should (= 1 gnosis-due-themata-total))
+        (gnosis-review-result
+         1 t (gnosis-review--pending-result
+              1 t gnosis-test-scheduler--event-id-2 2000000 20260830))
+        (should (= 1 gnosis-due-themata-total))
+        (should (equal '(2) (gnosis-review-get-due-themata)))))))
+
+(ert-deftest gnosis-test-review-retry-repairs-post-commit-count-failure ()
+  "Repair the due count on retry after its first post-commit read failed."
+  (gnosis-test-scheduler--with-db
+    (gnosis-test-scheduler--seed-state 1)
+    (gnosis-test-scheduler--seed-state 2)
+    (let ((gnosis-due-themata-total 2))
+      (cl-letf (((symbol-function 'gnosis--today-int) (lambda () 20260830)))
+        (let ((pending (gnosis-review--pending-result
+                        1 nil gnosis-test-scheduler--event-id 1000000 20260830)))
+          (cl-letf (((symbol-function 'gnosis-review-get-due-themata)
+                     (lambda () (error "Controlled post-commit read failure"))))
+            (should-error (gnosis-review-result 1 nil pending)))
+          (should (= 1 (caar (gnosis-sqlite-select
+                              gnosis-db "SELECT COUNT(*) FROM review_events"))))
+          (should (= 2 gnosis-due-themata-total))
+          (should-not (plist-get (gnosis-review-result 1 nil pending) :inserted-p))
+          (should (= 1 gnosis-due-themata-total))
+          (should (equal '(2) (gnosis-review-get-due-themata)))
+          (should (= 1 (caar (gnosis-sqlite-select
+                              gnosis-db "SELECT COUNT(*) FROM review_events")))))))))
+
 (ert-deftest gnosis-test-scheduler-rebuilds-projection-from-events ()
   "Replay two events and rebuild the deleted projection exactly."
   (gnosis-test-scheduler--with-db
@@ -348,6 +386,7 @@
   "Preview Good, override to Again, and accept one final immutable event."
   (gnosis-test-scheduler--with-db
     (gnosis-test-scheduler--seed-state)
+    (gnosis-test-scheduler--seed-state 2)
     (let* ((today (gnosis--today-int))
            (gnosis-due-themata-total 2)
            (pending (gnosis-review--pending-result

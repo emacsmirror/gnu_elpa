@@ -32,7 +32,8 @@ Converts [[id:xxx][Description]] to Description."
       (cond (id id)
 	    ((or (null heading-level) (= heading-level 1))
 	     (goto-char (point-min))
-	     (org-id-get))
+	     (when (org-before-first-heading-p)
+               (org-id-get)))
 	    (t
 	     (outline-up-heading 1 t)
 	     (gnosis-org-get-id))))))

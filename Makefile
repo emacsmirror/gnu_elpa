@@ -34,7 +34,8 @@ SOURCES := $(addprefix $(LISP_DIR)/,$(addsuffix .el,$(MODULES)))
 PACKAGE_LINT_SOURCES := $(LISP_DIR)/gnosis.el \
 	$(filter-out $(LISP_DIR)/gnosis.el,$(SOURCES))
 
-AUTOLOAD_COMMANDS := gnosis gnosis-add-thema gnosis-modeline-mode \
+AUTOLOAD_COMMANDS := gnosis gnosis-add-thema gnosis-add-thema-from-node \
+	gnosis-modeline-mode \
 	gnosis-dashboard gnosis-export-db gnosis-import-db gnosis-save \
 	gnosis-import-anki gnosis-journal-find gnosis-journal-insert \
 	gnosis-journal gnosis-links-check gnosis-links-cleanup gnosis-links-sync \

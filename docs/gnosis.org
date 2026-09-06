@@ -785,6 +785,32 @@ Inside the edit buffer, use =C-c C-c= to save, =C-c C-q= to add tags,
 =C-c C-o= to follow an org-id link, or =C-c C-k= to quit without
 saving.
 
+From an Org note, use =M-x gnosis-add-thema-from-node= to compose a basic
+question beside the source.  The nearest enclosing heading with an =ID=
+(or the file-level =ID=) is the source node; headings without IDs belong
+to their nearest enclosing node.  An active region prefills the Answer,
+not the question.  Without a region, the Answer starts empty.
+
+Copied passages must survive the existing Org thema format as one Answer
+with the source link unchanged.  Outer answer whitespace is trimmed;
+Unicode and multiline plain paragraphs are supported.  Lossy selections
+are rejected before opening or changing a draft.  For example, answer
+separator lines (newline followed by =- =), Org headings, and leading
+dashes can split or change the answer.  Select a plain passage instead,
+or open the ordinary editor and author structured content manually in
+its supported fields.  This command does not escape arbitrary Org text.
+
+Write a focused recall question in Keimenon and check the Answer before
+saving.  The source =id:= link goes in Parathema, visible after answering,
+so it does not give away the answer.  Saving uses the ordinary thema
+editor and links the saved thema to that exact source node.  Saving or
+canceling returns to the source through the editor's window restoration.
+
+This command does not create IDs, change or save the source note, or
+generate questions automatically.  It requires an existing source ID.
+Finish or cancel any open =*Gnosis NEW*= draft before starting another;
+creation commands will not overwrite it.
+
 ** Editing Themata
 
 To edit an existing thema, use =M-x gnosis-edit-thema= or press =e=

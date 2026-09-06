@@ -716,6 +716,8 @@ Use KEIMENON, HYPOTHESIS, ANSWER, PARATHEMA, TAGS, SUSPEND, and LINKS as fields.
 The remaining optional fields are ANSWER, PARATHEMA, TAGS, and EXAMPLE."
   (interactive (list
 		(downcase (completing-read "Select type: " gnosis-thema-types))))
+  (when (get-buffer "*Gnosis NEW*")
+    (user-error "Finish or cancel the existing *Gnosis NEW* draft first"))
   (window-configuration-to-register :gnosis-edit)
   (pop-to-buffer "*Gnosis NEW*")
   (with-current-buffer "*Gnosis NEW*"
@@ -726,6 +728,59 @@ The remaining optional fields are ANSWER, PARATHEMA, TAGS, and EXAMPLE."
 				 answer parathema tags example))
   (search-backward "keimenon")
   (forward-line))
+
+(defun gnosis--source-thema-round-trip-p (answer parathema)
+  "Return non-nil if ANSWER and PARATHEMA survive the thema Org codec.
+Allow only outer whitespace trimming in ANSWER.  Require exactly one
+basic thema, with no injected fields and an unchanged PARATHEMA."
+  (condition-case nil
+      (with-temp-buffer
+        (delay-mode-hooks (org-mode))
+        (gnosis-export--insert-thema "NEW" "basic" nil nil answer parathema)
+        (let ((themata (gnosis-export-parse-themata)))
+          (and (= (length themata) 1)
+               (equal (butlast (car themata))
+                      (list "NEW" "basic" nil nil
+                            (when answer (list (string-trim answer)))
+                            parathema nil)))))
+    (error nil)))
+
+;;;###autoload
+(defun gnosis-add-thema-from-node ()
+  "Compose a basic thema linked to the Org node at point.
+Use the nearest enclosing ID, including a file-level ID.  Prefill Answer
+with the active region, if any, and leave Keimenon empty.  Put the source
+link in Parathema, which is shown only after answering.
+
+Accept copied text only if the Org codec preserves one Answer and the
+source link, apart from trimming outer answer whitespace.  Reject lossy
+selections such as separator lines, headings, or a leading dash before
+opening the editor.  Select a plain passage instead, or author structured
+content manually in the editor's supported fields.
+
+Open the ordinary thema editor beside the source.  Save with
+`gnosis-save' or cancel with `gnosis-edit-quit'.  Do not create an ID,
+modify or save the source, or replace an existing creation draft."
+  (interactive)
+  (unless (derived-mode-p 'org-mode)
+    (user-error "Create a thema from an Org buffer with a source ID"))
+  (let ((id (save-restriction
+              (widen)
+              (gnosis-org-get-id)))
+        (answer (when (use-region-p)
+                  (buffer-substring-no-properties
+                   (region-beginning) (region-end))))
+        (display-buffer-overriding-action
+         '((display-buffer-below-selected) (inhibit-same-window . t))))
+    (unless (and id (not (string-empty-p id)))
+      (user-error "No source ID at point or in an enclosing Org node"))
+    (let ((parathema (org-link-make-string (concat "id:" id) "Source")))
+      (unless (gnosis--source-thema-round-trip-p answer parathema)
+        (user-error
+         (concat "Source passage cannot be copied without changing its content; "
+                 "select a plain passage or author structured content manually "
+                 "in the editor's supported fields")))
+      (gnosis-add-thema "basic" nil nil answer parathema))))
 
 (defun gnosis-edit-thema (id)
   "Edit thema with ID."

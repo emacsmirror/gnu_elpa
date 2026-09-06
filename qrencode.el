@@ -4,7 +4,7 @@
 
 ;; Author: Rüdiger Sonderfeld <ruediger@c-plusplus.net>
 ;; Keywords: qrcode comm
-;; Version: 1.5-beta3
+;; Version: 1.5-beta4
 ;; Package-Requires: ((emacs "25.1"))
 ;; Package: qrencode
 ;; URL: https://github.com/ruediger/qrencode-el
@@ -987,6 +987,7 @@ QRCode is returned instead of a formatted string."
 (defun qrencode-format-as-netpbm (qr &optional pixel-size)
   "Format QR as NetPBM (bitmap) file.
 Optionally specify PIXEL-SIZE (default is 3)."
+  (declare (obsolete "This function and P1 export will be removed in version 2.0 in favour of faster P4 export." "1.5-beta4"))
   (let* ((size (length qr))
          (factor (or pixel-size 3))
          (nsize (* (+ size 8) factor)))
@@ -1011,6 +1012,36 @@ Optionally specify PIXEL-SIZE (default is 3)."
             (cl-loop for i from 0 below (* 4 factor)
                      concat (qrencode--repeat-string "0" nsize " ")
                      concat "\n"))))
+
+(defun qrencode--write-as-netpbm-p4 (filename qr &optional pixel-size)
+  "Write QR as NetPBM (bitmap, P4 binary) to FILENAME.
+Optionally specify PIXEL-SIZE (default is 3)."
+  (let* ((size (length qr))
+         (factor (or pixel-size 3))
+         (quiet-zone-size (* 4 factor))
+         (nsize (* (+ size 8) factor))
+         (bsize (/ (+ nsize 7) 8))  ; number of bytes. (+7 to round up)
+         (coding-system-for-write 'binary))
+   (with-temp-file filename
+     (set-buffer-multibyte nil)
+     (insert (format "P4\n%d %d\n" nsize nsize))
+     ;; Quiet zone top
+     (dotimes (_ quiet-zone-size)
+       (dotimes (_ bsize) (insert 0)))
+     ;; QR Code
+     (dotimes (r size)
+       (let ((row (make-vector bsize 0)))
+         ;; Skip quiet zone left + right
+         (cl-loop for px from quiet-zone-size below (- nsize quiet-zone-size)
+                  when (/= 0 (qrencode--aaref qr (/ (- px quiet-zone-size) factor) r))
+                  do (aset row (/ px 8)
+                           (logior (aref row (/ px 8))
+                                   (ash 1 (- 7 (% px 8))))))
+         (dotimes (_ factor)
+           (cl-loop for byte across row do (insert byte)))))
+     ;; Quiet zone bottom
+     (dotimes (_ quiet-zone-size)
+       (dotimes (_ bsize) (insert 0))))))
 
 (defgroup qrencode nil
   "QREncode: Encoder for QR Codes."
@@ -1037,6 +1068,17 @@ bitmap format."
   :package-version '(qrencode . "1.2-beta1")
   :group 'qrencode)
 
+(defcustom qrencode-export-format 'p1
+  "Export format.
+P1 is the current default.  But P4 export is much faster and produces
+smaller (binary) files.  In the next major release the default will
+change to P4 and P1 support will be removed."
+  :type '(choice
+          (const :tag "NetPBM text (P1)" p1)
+          (const :tag "NetPBM binary (P4)" p4))
+  :package-version '(qrencode . "1.5-beta4")
+  :group 'qrencode)
+
 (defface qrencode-face
   '((t :foreground "black" :background "white"))
   "Face used for writing QRCodes."
@@ -1051,8 +1093,14 @@ bitmap format."
   (if (null qrencode--raw-qr)
       (error "No raw QRCode data found")
     (let ((qr qrencode--raw-qr))       ; save ref to buffer local var.
-      (with-temp-file filename
-        (insert (qrencode-format-as-netpbm qr qrencode-export-pixel-size)))
+      (pcase qrencode-export-format
+        ('p4
+         (qrencode--write-as-netpbm-p4 filename qr qrencode-export-pixel-size))
+        ((or 'p1 'nil)
+         (with-temp-file filename
+           (with-no-warnings ; Called function is obsolete but P1 is still default.
+             (insert (qrencode-format-as-netpbm qr qrencode-export-pixel-size)))))
+        (format (user-error "Unsupported `qrencode-export-format': %S" format)))
       (run-hook-with-args 'qrencode-post-export-functions filename)
       (message "Wrote QRCode to file %s" filename))))
 

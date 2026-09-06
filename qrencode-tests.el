@@ -240,7 +240,7 @@
              4)))
 
 (ert-deftest qrencode-penalty-blocks-test ()
-  "Test 2x2 block rule"
+  "Test 2x2 block rule."
   (should (= (qrencode--penalty-blocks [[0 1 0 1 0 1]
                                         [1 1 0 1 1 0]
                                         [1 1 1 0 1 0]
@@ -250,7 +250,7 @@
              3)))
 
 (ert-deftest qrencode-penalty-11311-test ()
- "Test 1:1:3:1:1 penalty"
+ "Test 1:1:3:1:1 penalty."
  (should (= (qrencode--penalty-11311
               [[1 0 1 0 1 0 0 1 0 1 0]
                [0 0 0 0 1 0 1 1 1 0 1]
@@ -428,7 +428,7 @@ copy along the right and bottom edges."
 
 (ert-deftest qrencode-version-info-conformance-test ()
   "Version information must be present, doubled and correct for version >= 7.
-  The expected word for version 7 is the literal from section 7.10 of the
+The expected word for version 7 is the literal from section 7.10 of the
   standard, so this does not lean on `qrencode--version-ecc' as its own oracle."
   (dolist (n '(150 271 900))
     (let* ((qr (qrencode (make-string n ?a) nil nil 'return-raw))
@@ -536,26 +536,66 @@ copy along the right and bottom edges."
 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 ")))
 
+(defun qrencode-tests--get-file (filename)
+  "Helper function returning contents of FILENAME."
+  (with-temp-buffer
+    (set-buffer-multibyte nil)
+    (insert-file-contents-literally filename)
+    (buffer-string)))
+
+(ert-deftest qrencode-export-test ()
+  "Test export for P1 and P4."
+  (with-temp-buffer
+    (let ((qrencode-buffer-name (buffer-name)))
+      (with-temp-buffer
+        (insert "https://github.com/ruediger/qrencode-el")
+        (qrencode-region (point-min) (point-max))))
+    (should (not (null qrencode--raw-qr)))
+    (let ((tmpfile-p1 (make-temp-file "qr-p1" nil ".pbm"))
+          (tmpfile-p4 (make-temp-file "qr-p4" nil ".pbm"))
+          p1 p4)
+      (unwind-protect
+          (progn
+            (let ((qrencode-export-format 'p1))
+              (qrencode-export-buffer-to-file tmpfile-p1))
+            (setq p1 (qrencode-tests--get-file tmpfile-p1))
+            (should (string-prefix-p "P1\n" p1))
+            (let ((qrencode-export-format 'p4))
+              (qrencode-export-buffer-to-file tmpfile-p4))
+            (setq p4 (qrencode-tests--get-file tmpfile-p4))
+            (should (string-prefix-p "P4\n" p4))
+            ;; TODO: test sizes.
+            ;; TODO: test pixel equivalence between P1 and P4.
+            )
+        (delete-file tmpfile-p1)
+        (delete-file tmpfile-p4)))))
+
 (ert-deftest qrencode-zbarimg-test ()
   "Test decoding generated QRCodes using the zbarimg program."
   (let ((zbarimg (executable-find "zbarimg")))
     (skip-unless zbarimg)
-    (let ((tmpfile (make-temp-file "qr" nil ".pbm")))
-      (cl-loop for input across
-               ["hello"
-                "https://github.com/ruediger/qrencode-el"
-                "hellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohello"
-                "qrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqr"
+    (let ((tmpfile-p1 (make-temp-file "qr-p1" nil ".pbm"))
+          (tmpfile-p4 (make-temp-file "qr-p4" nil ".pbm")))
+      (unwind-protect
+          (cl-loop for input across
+                   ["hello"
+                    "https://github.com/ruediger/qrencode-el"
+                    "hellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohello"
+                    "qrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqrqr"
 
-                ;; escaped Unicode characters
-                "\U0001f600\U0001f680\u3042"
-                ;; raw UTF-8 characters
-                "😸🚗愛"
-                ]
-               do (with-temp-file tmpfile
-                    (insert (qrencode-format-as-netpbm (qrencode input nil nil 'return-raw))))
-               do (should (string= (shell-command-to-string (format "%s -q '%s'" zbarimg tmpfile))
-                                   (format "QR-Code:%s\n" input)))))))
+                    ;; escaped Unicode characters
+                    "\U0001f600\U0001f680\u3042"
+                    ;; raw UTF-8 characters
+                    "😸🚗愛"
+                    ]
+                   do (qrencode--write-as-netpbm-p4 tmpfile-p4 (qrencode input nil nil 'return-raw))
+                   do (with-temp-file tmpfile-p1
+                        (insert (qrencode-format-as-netpbm (qrencode input nil nil 'return-raw))))
+                   do (dolist (tmpfile (list tmpfile-p1 tmpfile-p4))
+                        (should (string= (shell-command-to-string (format "%s -q '%s'" zbarimg tmpfile))
+                                         (format "QR-Code:%s\n" input)))))
+        (delete-file tmpfile-p1)
+        (delete-file tmpfile-p4)))))
 
 (provide 'qrencode-tests)
 ;;; qrencode-tests.el ends here

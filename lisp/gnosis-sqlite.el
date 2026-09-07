@@ -64,13 +64,35 @@ Enables foreign keys and sets a busy timeout."
 
 ;;; Value encoding (emacsql-compatible)
 
+(defun gnosis-sqlite--serialize (value)
+  "Serialize VALUE as complete Lisp text with deterministic printer settings.
+Unlike SQL parameter encoding, nil and numbers also become strings."
+  (let ((print-length nil)
+        (print-level nil)
+        (print-circle t)
+        (print-continuous-numbering nil)
+        (print-number-table nil)
+        (print-gensym t)
+        (print-quoted t)
+        (print-escape-newlines nil)
+        (print-escape-control-characters nil)
+        (print-escape-nonascii t)
+        (print-escape-multibyte nil)
+        (print-charset-text-property t)
+        (print-symbols-bare nil)
+        (print-integers-as-characters nil)
+        (print-unreadable-function nil)
+        (float-output-format nil))
+    (prin1-to-string value)))
+
 (defun gnosis-sqlite--encode-param (value)
   "Encode VALUE for binding as a SQL parameter.
-Nil becomes null, numbers pass through, and other values use `prin1-to-string'."
+Nil becomes null, numbers pass through, and other values use
+`gnosis-sqlite--serialize'."
   (cond
    ((null value) nil)
    ((numberp value) value)
-   (t (prin1-to-string value))))
+   (t (gnosis-sqlite--serialize value))))
 
 (defun gnosis-sqlite--decode (value)
   "Decode a single SQL result VALUE to a Lisp object.

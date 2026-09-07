@@ -11,7 +11,8 @@
   `(let* ((gnosis-dir (make-temp-file "gnosis-safety-" t))
           (gnosis-db nil)
           (gnosis-testing t)
-          (gnosis-vc-auto-push nil))
+          (gnosis-vc-auto-push nil)
+          (gnosis-vc--pull-owner nil))
      (unwind-protect (progn ,@body)
        (when gnosis-db (sqlite-close gnosis-db))
        (delete-directory gnosis-dir t))))
@@ -322,6 +323,167 @@ attributed to a historical source commit."
             (should-error (gnosis--ensure-db))
             (should-not gnosis-db)
             (should (equal before (gnosis-test-safety-snapshot file)))))))))
+
+(defun gnosis-test-safety-finish-pull (callback &optional status code)
+  "Invoke captured pull CALLBACK with terminal STATUS and exit CODE."
+  (cl-letf (((symbol-function 'process-status) (lambda (_) (or status 'exit)))
+            ((symbol-function 'process-exit-status) (lambda (_) (or code 0))))
+    (funcall callback 'scratch-process
+             (if (or (eq status 'signal) (and code (/= code 0)))
+                 "exited abnormally\n" "finished\n"))))
+
+(ert-deftest gnosis-db-safety-pull-rejects-schema-before-publication ()
+  "A rejected post-pull database must stay unwritable through normal helpers."
+  (gnosis-test-safety
+    (gnosis--ensure-db)
+    (let ((old gnosis-db) callback)
+      (cl-letf (((symbol-function 'gnosis--git-cmd)
+                 (lambda (_args sentinel) (setq callback sentinel))))
+        (gnosis-vc-pull))
+      (sqlite-execute old "PRAGMA user_version = 12")
+      (gnosis-test-safety-finish-pull callback)
+      (should-not gnosis-db)
+      (should-error (sqlite-select old "SELECT 1"))
+      (let* ((file (expand-file-name "gnosis.db" gnosis-dir))
+             (before (gnosis-test-safety-snapshot file)))
+        (should-error (gnosis--ensure-db))
+        (should-error (gnosis--insert-into 'themata
+                       '([99 "basic" "Rejected" ("") ("answer") nil])))
+        (should-not gnosis-db)
+        (should (equal before (gnosis-test-safety-snapshot file)))))))
+
+(ert-deftest gnosis-db-safety-pull-initialization-nonlocal-exits ()
+  "Close rejected candidates after both error and cancellation, then retry."
+  (dolist (fault '(error quit))
+    (gnosis-test-safety
+      (gnosis--ensure-db)
+      (let ((open (symbol-function 'gnosis-sqlite-open)) candidate callback)
+        (cl-letf (((symbol-function 'gnosis--git-cmd)
+                   (lambda (_args sentinel) (setq callback sentinel))))
+          (gnosis-vc-pull))
+        (cl-letf (((symbol-function 'gnosis-sqlite-open)
+                   (lambda (file) (setq candidate (funcall open file))))
+                  ((symbol-function 'gnosis-db-init)
+                   (lambda () (signal fault '("Injected post-pull fault")))))
+          (condition-case nil (gnosis-test-safety-finish-pull callback)
+            (quit nil)))
+        (should candidate)
+        (should-not gnosis-db)
+        (should-error (sqlite-select candidate "SELECT 1"))
+        (should (gnosis--ensure-db))
+        (should (= 11 (gnosis--db-version)))))))
+
+(ert-deftest gnosis-db-safety-pull-rejects-changed-owner ()
+  "A late pull must not close a replacement connection or use another directory."
+  (dolist (change '(connection directory))
+    (gnosis-test-safety
+      (gnosis--ensure-db)
+      (let* ((old gnosis-db)
+             (directory gnosis-dir)
+             (other (make-temp-file "gnosis-other-owner-" t))
+             callback)
+        (unwind-protect
+            (progn
+              (cl-letf (((symbol-function 'gnosis--git-cmd)
+                         (lambda (_args sentinel) (setq callback sentinel))))
+                (gnosis-vc-pull))
+              (if (eq change 'connection)
+                  (setq gnosis-db (gnosis-sqlite-open
+                                   (expand-file-name "gnosis.db" directory)))
+                (setq gnosis-dir other))
+              (let ((current gnosis-db))
+                (gnosis-test-safety-finish-pull callback)
+                (should (eq gnosis-db current))
+                (should (equal '((1)) (sqlite-select current "SELECT 1")))
+                (should-not (file-exists-p (expand-file-name "gnosis.db" other)))))
+          (unless (eq old gnosis-db) (sqlite-close old))
+          (setq gnosis-dir directory)
+          (delete-directory other t))))))
+
+(ert-deftest gnosis-db-safety-pull-supersedes-unopened-owner ()
+  "The first of two pulls cannot publish after a newer pull was admitted."
+  (gnosis-test-safety
+    (let (callbacks)
+      (cl-letf (((symbol-function 'gnosis--git-cmd)
+                 (lambda (_args sentinel) (push sentinel callbacks))))
+        (gnosis-vc-pull)
+        (gnosis-vc-pull))
+      (gnosis-test-safety-finish-pull (cadr callbacks))
+      (should-not gnosis-db)
+      (should-not (file-exists-p (expand-file-name "gnosis.db" gnosis-dir)))
+      (gnosis-test-safety-finish-pull (car callbacks))
+      (should gnosis-db)
+      (should (= 11 (gnosis--db-version))))))
+
+(ert-deftest gnosis-db-safety-pull-retains-relative-directory-context ()
+  "Successful completion uses the initiating directory, not its current buffer."
+  (gnosis-test-safety
+    (gnosis--ensure-db)
+    (let ((old gnosis-db)
+          (default-directory (file-name-as-directory gnosis-dir))
+          (gnosis-dir "./")
+          callback)
+      (cl-letf (((symbol-function 'gnosis--git-cmd)
+                 (lambda (_args sentinel) (setq callback sentinel))))
+        (gnosis-vc-pull))
+      (let ((default-directory temporary-file-directory))
+        (gnosis-test-safety-finish-pull callback))
+      (should gnosis-db)
+      (should-not (eq old gnosis-db))
+      (should-error (sqlite-select old "SELECT 1"))
+      (should (= 11 (gnosis--db-version))))))
+
+(ert-deftest gnosis-db-safety-printer-roundtrip-reopen ()
+  "Nested compiled parameters survive a real database close and reopen."
+  (gnosis-test-safety
+    (gnosis--ensure-db)
+    (let ((answer '("A" "B" "C"))
+          (checkpoint '(:session-id "scratch" :queue (1 2 3)
+                        :history ((1 (:answer ("A" "B" "C")))))))
+      (let ((print-length 2) (print-level 2))
+        (gnosis--insert-into 'themata `([1 "basic" "Question" ("") ,answer nil]))
+        (gnosis--insert-into 'study-history `(["scratch" ,checkpoint])))
+      (sqlite-close gnosis-db)
+      (setq gnosis-db nil)
+      (should (equal answer (gnosis-get 'answer 'themata '(= id 1))))
+      (should (equal checkpoint
+                     (gnosis-get 'data 'study-history '(= session-id "scratch")))))))
+
+(ert-deftest gnosis-db-safety-pull-rechecks-publication-owner ()
+  "A validated candidate must not displace a replacement admitted during open."
+  (gnosis-test-safety
+    (gnosis--ensure-db)
+    (let ((replacement (gnosis-sqlite-open (expand-file-name "gnosis.db" gnosis-dir)))
+          (open (symbol-function 'gnosis-db--open))
+          candidate callback)
+      (unwind-protect
+          (progn
+            (cl-letf (((symbol-function 'gnosis--git-cmd)
+                       (lambda (_args sentinel) (setq callback sentinel))))
+              (gnosis-vc-pull))
+            (cl-letf (((symbol-function 'gnosis-db--open)
+                       (lambda (directory)
+                         (setq candidate (funcall open directory))
+                         (setq gnosis-db replacement)
+                         candidate)))
+              (gnosis-test-safety-finish-pull callback))
+            (should (eq replacement gnosis-db))
+            (should (equal '((1)) (sqlite-select replacement "SELECT 1")))
+            (should-error (sqlite-select candidate "SELECT 1")))
+        (unless (eq replacement gnosis-db) (sqlite-close replacement))))))
+
+(ert-deftest gnosis-db-safety-pull-failure-preserves-connection ()
+  "Failed or killed pulls leave the existing connection usable."
+  (dolist (status '(exit signal))
+    (gnosis-test-safety
+      (gnosis--ensure-db)
+      (let ((old gnosis-db) callback)
+        (cl-letf (((symbol-function 'gnosis--git-cmd)
+                   (lambda (_args sentinel) (setq callback sentinel))))
+          (gnosis-vc-pull))
+        (gnosis-test-safety-finish-pull callback status 1)
+        (should (eq old gnosis-db))
+        (should (equal '((1)) (sqlite-select old "SELECT 1")))))))
 
 (provide 'gnosis-test-db-safety)
 ;;; gnosis-test-db-safety.el ends here

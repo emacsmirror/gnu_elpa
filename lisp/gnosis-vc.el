@@ -79,32 +79,69 @@ Abort chain on failure with a message."
   (interactive)
   (gnosis--git-cmd '("push")))
 
+(defvar gnosis-vc--pull-owner nil
+  "Current pull's unique (CONNECTION DIRECTORY ABSOLUTE-DIRECTORY), or nil.
+DIRECTORY is the original option value; ABSOLUTE-DIRECTORY pins relative paths.
+Only this operation may reopen and publish its original database.")
+
+(defun gnosis-vc--pull-current-p (owner db)
+  "Return non-nil if pull OWNER still owns the current connection DB."
+  (and (eq owner gnosis-vc--pull-owner)
+       (eq db gnosis-db)
+       (equal (cadr owner) gnosis-dir)))
+
+(defun gnosis-vc--reopen-db (owner)
+  "Reopen OWNER's database and return its newly published connection.
+Return nil if ownership changed.  Never publish an unvalidated candidate."
+  (when (gnosis-vc--pull-current-p owner (car owner))
+    ;; Unpublish before closing: failure must not leave a trusted old handle.
+    (setq gnosis-db nil)
+    (when (car owner) (gnosis-sqlite-close (car owner)))
+    (let ((candidate (gnosis-db--open (caddr owner))) published)
+      (unwind-protect
+          (when (gnosis-vc--pull-current-p owner nil)
+            (setq gnosis-db candidate published t)
+            candidate)
+        (unless published (gnosis-sqlite-close candidate))))))
+
+(defun gnosis-vc--finish-pull (owner process)
+  "Settle terminal PROCESS for pull OWNER without touching a successor."
+  (when (memq (process-status process) '(exit signal))
+    (unwind-protect
+        (when (gnosis-vc--pull-current-p owner (car owner))
+          (if (and (eq (process-status process) 'exit)
+                   (zerop (process-exit-status process)))
+              (condition-case err
+                  (when (gnosis-vc--reopen-db owner)
+                    (message "Gnosis: Pull successful, database reopened"))
+                (error
+                 (message "Gnosis: Failed to reopen database: %s"
+                          (error-message-string err))))
+            (message "Gnosis: Git pull failed with exit code %s"
+                     (process-exit-status process))))
+      (when (eq owner gnosis-vc--pull-owner)
+        (setq gnosis-vc--pull-owner nil)))))
+
 ;;;###autoload
 (defun gnosis-vc-pull ()
   "Run `git pull' for gnosis repository.
 
-Reopens the gnosis database after successful pull."
+Reopen and validate the original database after a successful pull, provided
+its connection and directory are still current.  Reopening failure leaves no
+published connection; subsequent commands must validate storage again."
   (interactive)
-  (gnosis--git-cmd
-   '("pull")
-   (lambda (proc event)
-     (cond
-      ((string-match-p "finished" event)
-       (when (zerop (process-exit-status proc))
-	 (condition-case err
-	     (progn
-	       (when (and gnosis-db (gnosis-sqlite-live-p gnosis-db))
-		 (gnosis-sqlite-close gnosis-db))
-	       (setf gnosis-db
-                     (gnosis-sqlite-open
-                      (expand-file-name "gnosis.db" gnosis-dir)))
-	       (gnosis-db-init)
-	       (message "Gnosis: Pull successful, database reopened"))
-	   (error (message "Gnosis: Failed to reopen database: %s"
-			   (error-message-string err))))))
-      ((string-match-p "exited abnormally" event)
-       (message "Gnosis: Git pull failed with exit code %s"
-                (process-exit-status proc)))))))
+  (let ((owner (list gnosis-db (copy-sequence gnosis-dir)
+                     (expand-file-name gnosis-dir)))
+        started)
+    (setq gnosis-vc--pull-owner owner)
+    (unwind-protect
+        (prog1
+            (gnosis--git-cmd
+             '("pull")
+             (lambda (proc _event) (gnosis-vc--finish-pull owner proc)))
+          (setq started t))
+      (when (and (not started) (eq owner gnosis-vc--pull-owner))
+        (setq gnosis-vc--pull-owner nil)))))
 
 (provide 'gnosis-vc)
 ;;; gnosis-vc.el ends here

@@ -860,36 +860,29 @@ Return thema ids for themata that match QUERY."
 ;; Gnosis mode ;;
 ;;;;;;;;;;;;;;;;;
 
+(defconst gnosis--modeline-entry
+  '(:eval
+    (if (and gnosis-due-themata-total (> gnosis-due-themata-total 0))
+        (propertize (format " [%d] " gnosis-due-themata-total)
+                    'face 'warning 'gnosis-modeline t)
+      ""))
+  "Owned mode-line form, independent of its current rendered text.")
+
 ;;;###autoload
 (define-minor-mode gnosis-modeline-mode
   "Minor mode for showing gnosis total due themata on modeline."
   :global t
   :group 'gnosis
   :lighter nil
-  (setq gnosis-due-themata-total (length (gnosis-review-get-due-themata)))
-  (if gnosis-modeline-mode
-      (progn
-        (add-to-list
-         'global-mode-string
-         '(:eval
-           (if (and gnosis-due-themata-total
-                    (> gnosis-due-themata-total 0))
-               (propertize
-                (format " [%d] " gnosis-due-themata-total)
-                'face 'warning
-                'gnosis-modeline t)
-             "")))
-        (force-mode-line-update))
-    (setq global-mode-string
-          (seq-remove
-           (lambda (item)
-             (and (listp item)
-                  (eq (car item) :eval)
-                  (get-text-property
-                   0 'gnosis-modeline
-                   (format "%s" (eval (cadr item))))))
-           global-mode-string))
-    (force-mode-line-update)))
+  (when gnosis-modeline-mode
+    (setq gnosis-due-themata-total (length (gnosis-review-get-due-themata)))
+    ;; The query or a variable watcher may have disabled the mode.
+    (when gnosis-modeline-mode
+      (add-to-list 'global-mode-string gnosis--modeline-entry)))
+  ;; Publication watchers run before assignment and may disable the mode.
+  (unless gnosis-modeline-mode
+    (setq global-mode-string (remove gnosis--modeline-entry global-mode-string)))
+  (force-mode-line-update))
 
 (define-derived-mode gnosis-mode special-mode "Gnosis"
   "Gnosis Mode."

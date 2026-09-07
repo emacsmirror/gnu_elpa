@@ -70,10 +70,10 @@ for O(1) lookups instead of querying the database per thema.")
 
 ;;; Connection
 
-(defun gnosis--ensure-db ()
-  "Return the gnosis database connection, opening it if necessary.
-Creates `gnosis-dir' and runs schema initialization on first use."
-  (unless gnosis-db
+(defun gnosis-db--open (directory)
+  "Return a validated database connection for DIRECTORY without publishing it.
+Create DIRECTORY if needed.  Close the candidate on any nonlocal exit."
+  (let ((gnosis-dir (expand-file-name directory)))
     (unless (file-directory-p gnosis-dir)
       (make-directory gnosis-dir))
     (let ((candidate (gnosis-sqlite-open
@@ -82,13 +82,16 @@ Creates `gnosis-dir' and runs schema initialization on first use."
       (unwind-protect
           (progn
             ;; Recursive query helpers see the candidate only during init.
-            ;; Do not publish it to later commands unless all checks succeed.
             (let ((gnosis-db candidate)) (gnosis-db-init))
-            (setq gnosis-db candidate ready t))
-        (unless ready
-          (setq gnosis-db nil)
-          (gnosis-sqlite-close candidate)))))
-  gnosis-db)
+            (setq ready t)
+            candidate)
+        (unless ready (gnosis-sqlite-close candidate))))))
+
+(defun gnosis--ensure-db ()
+  "Return the gnosis database connection, opening it if necessary.
+Create `gnosis-dir' and validate storage before publishing a new connection."
+  (or gnosis-db
+      (setq gnosis-db (gnosis-db--open gnosis-dir))))
 
 ;;; Query wrappers
 

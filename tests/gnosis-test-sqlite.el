@@ -13,25 +13,27 @@
 ;;; Code:
 (require 'ert)
 
-(let ((lisp-dir (expand-file-name "../lisp"
-                  (file-name-directory (or load-file-name default-directory)))))
-  (add-to-list 'load-path lisp-dir))
-
 (require 'gnosis-sqlite)
 (require 'gnosis-logical-day)
-
-;; Load gnosis-db--schemata for schema tests
-(defvar gnosis-db--schemata)
-(let ((gnosis-db-el (expand-file-name "../lisp/gnosis-db.el"
-                      (file-name-directory (or load-file-name default-directory)))))
-  (with-temp-buffer
-    (insert-file-contents gnosis-db-el)
-    (goto-char (point-min))
-    (when (re-search-forward "(defconst gnosis-db--schemata" nil t)
-      (goto-char (match-beginning 0))
-      (eval (read (current-buffer))))))
+(require 'gnosis-db)
 
 ;;; ---- Group 1: Encode/Decode round-trips ----
+
+(ert-deftest gnosis-test-sqlite-serialize-nil-and-scalars ()
+  "Serialize every scalar as readable text, including nil, not SQL NULL."
+  (let ((print-length 1)
+        (print-level 1)
+        (print-integers-as-characters t)
+        (float-output-format "%.0f"))
+    (dolist (case '((nil . "nil") ("" . "\"\"") ("nil" . "\"nil\"")
+                    (42 . "42") (3.14 . "3.14")))
+      (let ((serialized (gnosis-sqlite--serialize (car case))))
+        (should (stringp serialized))
+        (should (equal serialized (cdr case)))
+        (should (equal (read serialized) (car case)))))
+    (should-not (gnosis-sqlite--encode-param nil))
+    (should (equal (gnosis-sqlite--encode-param "nil")
+                   (gnosis-sqlite--serialize "nil")))))
 
 (ert-deftest gnosis-test-sqlite-encode-nil ()
   "nil encodes as nil (SQL NULL)."
@@ -108,6 +110,74 @@
   (let ((val (gnosis-date)))
     (should (equal (gnosis-sqlite--decode (gnosis-sqlite--encode-param val)) val))))
 
+
+(ert-deftest gnosis-test-sqlite-storage-ignores-printer-settings ()
+  "Persist complete nested values under hostile ambient printer settings."
+  (let* ((db (sqlite-open))
+         (value (list '("A" "B" "C")
+                      (vector '(deep (nested data)) 1.23456789012345)
+                      "λ\n\"quoted\""))
+         (expected (gnosis-sqlite--encode-param value)))
+    (unwind-protect
+        (progn
+          (sqlite-execute db "CREATE TABLE storage (value TEXT)")
+          (dolist (setting '((print-length 2) (print-level 2)
+                             (float-output-format "%.2f")
+                             (print-quoted nil)
+                             (print-escape-newlines t)
+                             (print-escape-control-characters t)
+                             (print-escape-multibyte t)
+                             (print-integers-as-characters t)))
+            (sqlite-execute db "DELETE FROM storage")
+            (cl-progv (list (car setting)) (cdr setting)
+              (gnosis-sqlite-execute db "INSERT INTO storage VALUES (?)"
+                                     (list value)))
+            (should (equal expected (caar (sqlite-select db "SELECT value FROM storage"))))
+            (should (equal value (caar (gnosis-sqlite-select db "SELECT value FROM storage"))))))
+      (sqlite-close db))))
+
+(ert-deftest gnosis-test-sqlite-storage-numbering-is-self-contained ()
+  "Separate SQL values must never share a printer's reference table."
+  (let* ((shared '("shared" "tail"))
+         (value (list shared shared))
+         (db (sqlite-open))
+         (print-circle t)
+         (print-continuous-numbering t)
+         (print-number-table nil))
+    (unwind-protect
+        (progn
+          (sqlite-execute db "CREATE TABLE storage (value TEXT)")
+          ;; Seed ambient numbering with exactly the value about to be stored.
+          (prin1-to-string value)
+          (dotimes (_ 2)
+            (gnosis-sqlite-execute db "INSERT INTO storage VALUES (?)" (list value)))
+          (should (equal (list (list value) (list value))
+                         (gnosis-sqlite-select db "SELECT value FROM storage"))))
+      (sqlite-close db))))
+
+(ert-deftest gnosis-test-sqlite-storage-printer-authority ()
+  "Every output-affecting printer control belongs to the storage boundary."
+  (let* ((settings '((print-length) (print-level) (print-circle . t)
+                     (print-continuous-numbering) (print-number-table)
+                     (print-gensym . t) (print-quoted . t)
+                     (print-escape-newlines) (print-escape-control-characters)
+                     (print-escape-nonascii . t) (print-escape-multibyte)
+                     (print-charset-text-property . t) (print-symbols-bare)
+                     (print-integers-as-characters) (print-unreadable-function)
+                     (float-output-format)))
+         (printer (symbol-function 'prin1-to-string))
+         observed)
+    (cl-progv (mapcar #'car settings)
+        (mapcar (lambda (setting) (not (cdr setting))) settings)
+      (cl-letf (((symbol-function 'prin1-to-string)
+                 (lambda (value &rest args)
+                   (setq observed
+                         (mapcar (lambda (setting)
+                                   (cons (car setting) (symbol-value (car setting))))
+                                 settings))
+                   (apply printer value args))))
+        (gnosis-sqlite--encode-param '("complete" (nested data)))))
+    (should (equal settings observed))))
 
 ;;; ---- Group 2: Identifier conversion ----
 
@@ -512,6 +582,4 @@ Value is pre-encoded (prin1-to-string) in the compiler."
       (delete-file db-file))))
 
 (provide 'gnosis-test-sqlite)
-
-(ert-run-tests-batch-and-exit)
 ;;; gnosis-test-sqlite.el ends here

@@ -862,5 +862,272 @@
                          ("c" . gnosis-study-create)))
           (should (eq (cdr entry) (key-binding (kbd (car entry))))))))))
 
+(defun gnosis-test-study-all-evidence ()
+  "Return schedules, accepted evidence, checkpoints and retained history."
+  (cons (gnosis-test-study-snapshot)
+        (mapcar (lambda (table)
+                  (gnosis-sqlite-select gnosis-db
+                    (format "SELECT * FROM %s ORDER BY 1" table)))
+                '(practice_events practice_voids study_session study_history))))
+
+(defun gnosis-test-study-summary (ids mode)
+  "Accept the first of IDS in MODE and display its summary buffer."
+  (with-current-buffer (gnosis-test-study-state ids mode)
+    (let ((id (car ids)))
+      (gnosis-review-result id t (gnosis-review-algorithm id t)))
+    (gnosis-review--show-summary gnosis-review--state)
+    (current-buffer)))
+
+(defun gnosis-test-study-stale-summary-action (key)
+  "Require native KEY to reject superseded scheduled and practice summaries."
+  (dolist (mode '(due practice))
+    (dolist (historical '(nil t))
+      (gnosis-test-study
+        (let* ((a (gnosis-test--add-basic-thema "A" "A"))
+               (b (gnosis-test--add-basic-thema "B" "B"))
+               (old (gnosis-test-study-summary (list a) mode))
+               (session (gnosis-review-state-session-id (gnosis-review--read-session))))
+          ;; B has both an undo slot and an unfinished queue.
+          (gnosis-test-study-summary (list b a) mode)
+          (when historical
+            (gnosis-review--show-summary
+             (apply #'gnosis-review-state-create :persistent-p t :database gnosis-db
+                    (cddr (gnosis-get 'data 'study-history `(= session-id ,session)))))
+            (setq old (current-buffer)))
+          (let ((before (gnosis-test-study-all-evidence)))
+            (with-current-buffer old
+              (should (derived-mode-p 'gnosis-review-summary-mode))
+              (cl-letf (((symbol-function 'y-or-n-p) (lambda (&rest _) t))
+                        ((symbol-function 'gnosis--read-string-with-input-method)
+                         (lambda (&rest _) (ert-fail "Stale summary entered input"))))
+                (should-error (call-interactively (local-key-binding (kbd key)))
+                              :type 'user-error)))
+            (should (equal before (gnosis-test-study-all-evidence)))))))))
+
+(ert-deftest gnosis-study-summary-undo-rejects-newer-session ()
+  (gnosis-test-study-stale-summary-action "u"))
+
+(ert-deftest gnosis-study-summary-resume-rejects-newer-session ()
+  (gnosis-test-study-stale-summary-action "r"))
+
+(ert-deftest gnosis-study-summary-discard-rejects-newer-session ()
+  (gnosis-test-study-stale-summary-action "d"))
+
+(ert-deftest gnosis-study-summary-rejects-identical-checkpoint-in-other-db ()
+  (gnosis-test-study
+    (dolist (mode '(due practice))
+      (let* ((id (gnosis-test--add-basic-thema "A" "A"))
+             (summary (gnosis-test-study-summary (list id id) mode))
+             (copy (expand-file-name "other.db" gnosis-dir)))
+        ;; Copying preserves numeric thema IDs and all opaque session/event IDs.
+        (gnosis-backup-db copy)
+        (let ((gnosis-db (gnosis-sqlite-open copy)))
+          (unwind-protect
+              (let ((before (gnosis-test-study-all-evidence)))
+                (dolist (key '("u" "r" "d"))
+                  (with-current-buffer summary
+                    (cl-letf (((symbol-function 'y-or-n-p) (lambda (&rest _) t))
+                              ((symbol-function 'gnosis--read-string-with-input-method)
+                               (lambda (&rest _) (ert-fail "Wrong database entered input"))))
+                      (should-error (call-interactively (local-key-binding (kbd key)))
+                                    :type 'user-error)))
+                  (should (equal before (gnosis-test-study-all-evidence)))))
+            (gnosis-sqlite-close gnosis-db)))
+        (delete-file copy)))))
+
+(ert-deftest gnosis-study-summary-discard-captures-owner-before-prompt ()
+  (gnosis-test-study
+    (let* ((id (gnosis-test--add-basic-thema "A" "A"))
+           (summary (gnosis-test-study-summary (list id id) 'practice))
+           (copy (expand-file-name "other.db" gnosis-dir))
+           (original gnosis-db))
+      (gnosis-backup-db copy)
+      (let ((other (gnosis-sqlite-open copy)))
+        (unwind-protect
+            (let ((before (gnosis-test-study-all-evidence)))
+              (with-current-buffer summary
+                (cl-letf (((symbol-function 'y-or-n-p)
+                           (lambda (&rest _)
+                             (setq gnosis-db other)
+                             (set-buffer (get-buffer-create "*Different owner*"))
+                             t)))
+                  (should-error (call-interactively (local-key-binding (kbd "d")))
+                                :type 'user-error)))
+              (should (equal before (gnosis-test-study-all-evidence)))
+              (setq gnosis-db original)
+              (should (equal before (gnosis-test-study-all-evidence))))
+          (setq gnosis-db original)
+          (gnosis-sqlite-close other))))))
+
+(ert-deftest gnosis-study-summary-owned-actions-and-public-resume ()
+  (gnosis-test-study
+    (dolist (mode '(due practice))
+      (let* ((id (gnosis-test--add-basic-thema "A" "A"))
+             (schedule (gnosis-test-study-snapshot))
+             (summary (gnosis-test-study-summary (list id) mode)))
+        (switch-to-buffer summary)
+        (call-interactively (local-key-binding (kbd "u")))
+        (should (= 0 (gnosis-review-state-reviewed (gnosis-review--read-session))))
+        (let ((before (gnosis-test-study-all-evidence)))
+          ;; The old same-session view must not act on a changed checkpoint.
+          (with-current-buffer summary
+            (should-error (call-interactively (local-key-binding (kbd "u")))
+                          :type 'user-error))
+          (should (equal before (gnosis-test-study-all-evidence))))
+        ;; Exercise both the native binding and public resume away from summaries.
+        (cl-letf (((symbol-function 'gnosis--read-string-with-input-method)
+                   (lambda (&rest _) "A"))
+                  ((symbol-function 'read-char-choice) (lambda (&rest _) ?n)))
+          (if (eq mode 'due)
+              (progn
+                (gnosis-review--show-summary (gnosis-review--read-session))
+                (call-interactively (local-key-binding (kbd "r"))))
+            (with-temp-buffer (call-interactively #'gnosis-review-resume))))
+        (should (= 1 (gnosis-review-state-reviewed (gnosis-review--read-session))))
+        ;; A fresh accepted grade in the SAME session still supersedes the old view.
+        (let ((before (gnosis-test-study-all-evidence)))
+          (with-current-buffer summary
+            (should-error (call-interactively (local-key-binding (kbd "u")))
+                          :type 'user-error))
+          (should (equal before (gnosis-test-study-all-evidence))))
+        (when (eq mode 'practice)
+          (should (equal schedule (gnosis-test-study-snapshot))))
+        (gnosis-review--show-summary (gnosis-review--read-session))
+        (cl-letf (((symbol-function 'y-or-n-p)
+                   (lambda (&rest _)
+                     (set-buffer (get-buffer-create "*Different owner*")) t)))
+          (call-interactively (local-key-binding (kbd "d"))))
+        (should-not (gnosis-review--read-session))
+        (when (eq mode 'practice)
+          (should (equal schedule (gnosis-test-study-snapshot))))))))
+
+(ert-deftest gnosis-study-summary-keeps-source-database-before-render ()
+  (gnosis-test-study
+    (let* ((id (gnosis-test--add-basic-thema "A" "A"))
+           (_summary (gnosis-test-study-summary (list id) 'practice))
+           (state (gnosis-review--read-session))
+           (copy (expand-file-name "other.db" gnosis-dir)))
+      (gnosis-backup-db copy)
+      (let ((gnosis-db (gnosis-sqlite-open copy)))
+        (unwind-protect
+            (let ((before (gnosis-test-study-all-evidence)))
+              (gnosis-review--show-summary state)
+              (should-error (call-interactively (local-key-binding (kbd "u")))
+                            :type 'user-error)
+              (should (equal before (gnosis-test-study-all-evidence))))
+          (gnosis-sqlite-close gnosis-db))))))
+
+(ert-deftest gnosis-study-summary-resume-rejects-db-change-during-input ()
+  (gnosis-test-study
+    (dolist (mode '(due practice))
+      (let* ((id (gnosis-test--add-basic-thema "A" "A"))
+             (summary (gnosis-test-study-summary (list id id) mode))
+             (copy (expand-file-name "other.db" gnosis-dir))
+             (original gnosis-db))
+        (gnosis-backup-db copy)
+        (let ((other (gnosis-sqlite-open copy)))
+          (unwind-protect
+              (let ((before (gnosis-test-study-all-evidence)))
+                (switch-to-buffer summary)
+                (cl-letf (((symbol-function 'gnosis--read-string-with-input-method)
+                           (lambda (&rest _) (setq gnosis-db other) "A"))
+                          ((symbol-function 'read-char-choice) (lambda (&rest _) ?n))
+                          ((symbol-function 'y-or-n-p) (lambda (&rest _) nil)))
+                  (should-error (call-interactively (local-key-binding (kbd "r")))
+                                :type 'user-error))
+                (should (equal before (gnosis-test-study-all-evidence)))
+                (setq gnosis-db original)
+                (should (equal before (gnosis-test-study-all-evidence))))
+            (setq gnosis-db original)
+            (gnosis-sqlite-close other)))
+        (delete-file copy)))))
+
+(ert-deftest gnosis-study-summary-resumes-legacy-checkpoint-defaults ()
+  (gnosis-test-study
+    (let* ((id (gnosis-test--add-basic-thema "A" "A"))
+           (buf (gnosis-test-study-state (list id) 'practice))
+           (state (buffer-local-value 'gnosis-review--state buf))
+           ;; Version 1 predates optional practice policy and launch metadata.
+           (data (cl-loop for (key value) on (gnosis-review--state-data state)
+                          by #'cddr when value append (list key value))))
+      (gnosis-sqlite-execute gnosis-db "UPDATE study_session SET data = ?"
+                             (list data))
+      (gnosis-review--show-summary (gnosis-review--read-session))
+      (cl-letf (((symbol-function 'gnosis--read-string-with-input-method)
+                 (lambda (&rest _) "A"))
+                ((symbol-function 'read-char-choice) (lambda (&rest _) ?n)))
+        (call-interactively (local-key-binding (kbd "r"))))
+      (should-not (gnosis-review-state-remaining (gnosis-review--read-session)))
+      (should (= 1 (gnosis-review-state-reviewed (gnosis-review--read-session)))))))
+
+(ert-deftest gnosis-study-monkeytype-public-selection-no-study-writes ()
+  (gnosis-test-study
+    (let* ((id (gnosis-test--add-basic-thema "[[id:source][Question]]" "Answer" '("chosen")))
+           (_other (gnosis-test--add-basic-thema "Other" "Other" '("other")))
+           (before (gnosis-test-study-all-evidence))
+           (review (symbol-function 'gnosis-review))
+           seen)
+      (cl-letf (((symbol-function 'gnosis-completing-read)
+                 (lambda (&rest _) "All themata of tag(s)"))
+                ((symbol-function 'gnosis-tags-filter-prompt)
+                 (lambda (&rest _) '(("chosen"))))
+                ((symbol-function 'recursive-edit)
+                 (lambda ()
+                   (should (derived-mode-p 'gnosis-monkeytype-mode))
+                   (should (eq review (symbol-function 'gnosis-review)))
+                   (push (buffer-substring-no-properties (point-min) (point-max)) seen))))
+        (call-interactively #'gnosis-monkeytype-start))
+      (should (equal '("Question Answer") seen))
+      (should (gnosis-get 'id 'themata `(= id ,id)))
+      (should (equal before (gnosis-test-study-all-evidence))))))
+
+(ert-deftest gnosis-study-review-and-monkeytype-share-selection ()
+  (gnosis-test-study
+    (dolist (row '((101 "New" "chosen") (102 "Overdue" "chosen")
+                   (103 "Future" "chosen") (104 "Other" "other")))
+      (gnosis-test--add-basic-thema (nth 1 row) "Answer"
+                                    (list (nth 2 row)) nil (car row)))
+    (gnosis-sqlite-execute gnosis-db
+      "UPDATE scheduler_state SET reps = 1, due_day = ? WHERE thema_id = 102"
+      (list (gnosis--date-to-int (gnosis-date -1))))
+    (gnosis-sqlite-execute gnosis-db
+      "UPDATE scheduler_state SET due_day = ? WHERE thema_id = 103"
+      (list (gnosis--date-to-int (gnosis-date 1))))
+    (let ((before (gnosis-test-study-all-evidence))
+          (gnosis-new-themata-limit nil))
+      (dolist (case '(("Due themata" "d" (101 102 104))
+                      ("Due themata of specified tag(s)" "t" (101 102))
+                      ("Overdue themata" "o" (102))
+                      ("Due themata (Without Overdue)" "w" (101 104))
+                      ("All themata of tag(s)" "T" (101 102 103))))
+        (let (typing review)
+          (cl-letf (((symbol-function 'gnosis-completing-read)
+                     (lambda (&rest _) (car case)))
+                    ((symbol-function 'gnosis-tags-filter-prompt)
+                     (lambda (&rest _) '(("chosen"))))
+                    ((symbol-function 'gnosis-monkeytype-thema)
+                     (lambda (id) (push id typing)))
+                    ((symbol-function 'gnosis-review-loop)
+                     (lambda (collector &rest _)
+                       (setq review (if (functionp collector)
+                                        (funcall collector) collector)))))
+            (call-interactively #'gnosis-monkeytype-start)
+            (call-interactively (keymap-lookup gnosis-review-map (nth 1 case))))
+          (should (equal (nth 2 case) (sort typing #'<)))
+          (should (equal (nth 2 case) (sort review #'<)))
+          (should (equal before (gnosis-test-study-all-evidence))))))))
+
+(ert-deftest gnosis-study-monkeytype-cancel-selection-keeps-checkpoint ()
+  (gnosis-test-study
+    (let* ((id (gnosis-test--add-basic-thema "A" "A"))
+           (_summary (gnosis-test-study-summary (list id id) 'practice))
+           (before (gnosis-test-study-all-evidence)))
+      (cl-letf (((symbol-function 'gnosis-completing-read)
+                 (lambda (&rest _) (signal 'quit nil))))
+        (should (eq 'cancelled
+                    (condition-case nil (call-interactively #'gnosis-monkeytype-start)
+                      (quit 'cancelled)))))
+      (should (equal before (gnosis-test-study-all-evidence))))))
+
 (provide 'gnosis-test-study)
 ;;; gnosis-test-study.el ends here

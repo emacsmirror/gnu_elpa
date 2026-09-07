@@ -426,5 +426,28 @@
       (should (= 0 (plist-get summary :unattempted)))
       (should (= 1 (plist-get summary :attempts))))))
 
+(ert-deftest gnosis-agent-launch-owns-target-not-selected-summary ()
+  (gnosis-test-agent
+    (gnosis-test--add-basic-thema "A" "a" nil nil 101)
+    (gnosis-test--add-basic-thema "B" "b" nil nil 102)
+    (let ((a (gnosis-test-agent-start '(101))))
+      (gnosis-test-agent-grade t)
+      (gnosis-review--show-summary (gnosis-agent--session a))
+      (let* ((old-summary (current-buffer))
+             (b (gnosis-test-agent-start '(102)))
+             (before (gnosis-test-agent-snapshot))
+             (answers '("b")))
+        (should (eq old-summary (current-buffer)))
+        (cl-letf (((symbol-function 'gnosis--read-string-with-input-method)
+                   (lambda (&rest _) (pop answers)))
+                  ((symbol-function 'read-char-choice) (lambda (&rest _) ?n)))
+          (gnosis-agent--launch (car gnosis-agent--launches)))
+        (should-not answers)
+        (should (equal "completed" (plist-get (gnosis-agent-status b) :status)))
+        (should (equal before (gnosis-test-agent-snapshot)))
+        (with-current-buffer old-summary
+          (should-error (call-interactively (local-key-binding (kbd "u")))
+                        :type 'user-error))))))
+
 (provide 'gnosis-test-agent)
 ;;; gnosis-test-agent.el ends here

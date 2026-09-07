@@ -69,7 +69,8 @@ then asks for binary success.  Neither revealing nor editing accepts a grade."
 ;;; Review state
 
 (cl-defstruct (gnosis-review-state (:constructor gnosis-review-state-create))
-  "State for a review session."
+  "State for a review session.
+DATABASE is the owning open connection, never part of persisted data."
   (reviewed 0 :type integer)
   (total 0 :type integer)
   (remaining nil :type list)
@@ -84,6 +85,7 @@ then asks for binary success.  Neither revealing nor editing accepts a grade."
   last-event
   last-correction
   persistent-p
+  database
   basic-input
   policy
   selected
@@ -96,6 +98,11 @@ then asks for binary success.  Neither revealing nor editing accepts a grade."
 
 (defvar-local gnosis-review--state nil
   "Buffer-local review state for the current session.")
+
+(defvar-local gnosis-review--summary-target nil
+  "Database connection and frozen checkpoint displayed by this summary.
+The cons (DATABASE . DATA) owns only this connection and checkpoint, not
+another database with matching IDs or a newer checkpoint of the same batch.")
 
 (defvar gnosis-review--monkeytype-text nil
   "Text to monkeytype on failed review, or nil.
@@ -131,6 +138,7 @@ Returns the buffer.  MODE defaults to due; practice never reschedules."
 	     :mode (or mode 'due)
              :session-id (gnosis-scheduler-event-id)
              :event-id (gnosis-scheduler-event-id)
+             :database (gnosis--ensure-db)
              :basic-input gnosis-review-basic-input
              :selected (copy-sequence themata)
              :initial (length themata)
@@ -429,16 +437,14 @@ EVENT-ID, REVIEWED-AT-US, and REVIEW-DAY may pin deterministic facts."
     (unless (and (= id (plist-get result :thema-id))
                  (eq outcome (plist-get result :outcome)))
       (error "Review result does not match final outcome"))
-    (let ((accepted
-           (if (eq (plist-get result :mode) 'practice)
-               (gnosis-study-accept-practice result)
-             (gnosis-scheduler-accept-review
-              (plist-get result :event-id) id outcome
-              (plist-get result :reviewed-at-us)
-              (plist-get result :review-day)
-              (plist-get (plist-get result :preview) :config-id)
-              (plist-get result :preview)))))
-      accepted)))
+    (if (eq (plist-get result :mode) 'practice)
+        (gnosis-study-accept-practice result)
+      (gnosis-scheduler-accept-review
+       (plist-get result :event-id) id outcome
+       (plist-get result :reviewed-at-us)
+       (plist-get result :review-day)
+       (plist-get (plist-get result :preview) :config-id)
+       (plist-get result :preview)))))
 
 (defun gnosis-review--state-data (state)
   "Encode STATE as plain versioned session data, without buffer state."
@@ -461,7 +467,8 @@ EVENT-ID, REVIEWED-AT-US, and REVIEW-DAY may pin deterministic facts."
   "Return the retained session state, or nil."
   (when-let* ((data (gnosis-get 'data 'study-session '(= id 1))))
     (unless (equal 1 (plist-get data :version)) (error "Unsupported study session format"))
-    (apply #'gnosis-review-state-create :persistent-p t (cddr data))))
+    (apply #'gnosis-review-state-create :persistent-p t
+           :database (gnosis--ensure-db) (cddr data))))
 
 (defun gnosis-review--save-session (state)
   "Persist STATE on the caller's transaction."
@@ -525,7 +532,7 @@ Return durable state without displaying a buffer or asking for an answer."
                   (_ (gnosis-review-state-remaining old)))
         (user-error "Resume or discard the unfinished study session first"))
       (let ((state (gnosis-review-state-create
-                    :mode 'practice :persistent-p t
+                    :mode 'practice :persistent-p t :database (gnosis--ensure-db)
                     :session-id (gnosis-scheduler-event-id)
                     :event-id (gnosis-scheduler-event-id)
                     :basic-input gnosis-review-basic-input
@@ -535,9 +542,12 @@ Return durable state without displaying a buffer or asking for an answer."
         (gnosis-review--save-session state)
         state))))
 
-(defun gnosis-review--advance (state id success &optional skipped)
-  "Advance STATE after ID and SUCCESS, or a SKIPPED presentation."
-  (let* ((rest (cdr (gnosis-review-state-remaining state)))
+(defun gnosis-review--advance (state id success eligible next-event &optional skipped)
+  "Return a fresh STATE advanced after ID and SUCCESS, or SKIPPED presentation.
+ELIGIBLE says whether ID can be retried.  NEXT-EVENT is the next attempt ID.
+Read no database or clock and leave STATE and its prior snapshots unchanged."
+  (let* ((state (copy-gnosis-review-state state))
+         (rest (cdr (gnosis-review-state-remaining state)))
          (retry (and (not skipped)
                     (if (gnosis-review-state-policy state)
                         (equal "unfinished"
@@ -552,9 +562,9 @@ Return durable state without displaying a buffer or asking for an answer."
                                 :reason))
                       (and (not success)
                            (not (member id (gnosis-review-state-requeued state)))))))
-         (tail (and retry (gnosis-study-eligible-p id))))
+         (tail (and retry eligible)))
     (setf (gnosis-review-state-remaining state) (if tail (append rest (list id)) rest)
-          (gnosis-review-state-event-id state) (gnosis-scheduler-event-id))
+          (gnosis-review-state-event-id state) next-event)
     ;; Retain why a required continuation was dropped, independently of its
     ;; accepted grade and of later eligibility changes.
     (when (or skipped (and retry (not tail)))
@@ -567,10 +577,23 @@ Return durable state without displaying a buffer or asking for an answer."
       (cl-incf (gnosis-review-state-total state)))
     state))
 
+(defun gnosis-review--copy-state (state source)
+  "Copy SOURCE fields onto the existing UI STATE object and return STATE."
+  (cl-loop for i from 1 below (length state) do (aset state i (aref source i)))
+  state)
+
+(defun gnosis-review--check-database (state)
+  "Reject persistent STATE if its owning database is no longer current."
+  (when (and (gnosis-review-state-persistent-p state)
+             (not (eq (gnosis-review-state-database state) (gnosis--ensure-db))))
+    (user-error "Study database changed; resume in its original database")))
+
 (defun gnosis-review--skip (state id)
   "Skip unavailable ID in STATE without overwriting newer durable progress."
+  (gnosis-review--check-database state)
   (if (not (gnosis-review-state-persistent-p state))
-      (gnosis-review--advance state id nil t)
+      (gnosis-review--copy-state
+       state (gnosis-review--advance state id nil nil (gnosis-scheduler-event-id) t))
     (let ((stored
            (gnosis-sqlite-with-transaction (gnosis--ensure-db)
              (let ((current (gnosis-review--read-session)))
@@ -581,10 +604,11 @@ Return durable state without displaying a buffer or asking for an answer."
                  (user-error "Study attempt is stale; resume the retained batch"))
                (when (gnosis-study-eligible-p id)
                  (user-error "Thema is available again; resume the batch"))
-               (gnosis-review--advance current id nil t)
-               (gnosis-review--save-session current)
-               current))))
-      (cl-loop for i from 1 below (length state) do (aset state i (aref stored i))))))
+               (let ((next (gnosis-review--advance
+                            current id nil nil (gnosis-scheduler-event-id) t)))
+                 (gnosis-review--save-session next)
+                 next)))))
+      (gnosis-review--copy-state state stored))))
 
 (defun gnosis-review-result (id success result)
   "Atomically accept RESULT for ID/SUCCESS and settle durable session progress."
@@ -595,6 +619,7 @@ Return durable state without displaying a buffer or asking for an answer."
           (gnosis-sqlite-with-transaction db
             (let ((stored (and persistent (gnosis-review--read-session))))
               (when persistent
+                (gnosis-review--check-database state)
                 (unless (and stored
                              (equal (gnosis-review-state-session-id stored)
                                     (gnosis-review-state-session-id state))
@@ -608,21 +633,21 @@ Return durable state without displaying a buffer or asking for an answer."
                 (when (and persistent
                            (not (equal (plist-get result :event-id)
                                        (gnosis-review-state-last-event stored))))
-                  (let ((before (gnosis-review--state-data stored)))
-                    ;; Keep one checkpoint, never a chain of old checkpoints.
-                    (setq before (plist-put before :undo nil))
-                    (gnosis-review--advance stored id success)
-                    (setf (gnosis-review-state-undo stored)
+                  ;; Keep one checkpoint, never a chain of old checkpoints.
+                  (let* ((before (plist-put (gnosis-review--state-data stored) :undo nil))
+                         (next (gnosis-review--advance
+                                stored id success (gnosis-study-eligible-p id)
+                                (gnosis-scheduler-event-id))))
+                    (setf (gnosis-review-state-undo next)
                           (list :event-id (plist-get result :event-id) :thema-id id
                                 :correction-id (gnosis-scheduler-event-id) :before before)
-                          (gnosis-review-state-last-event stored) (plist-get result :event-id))
-                    (gnosis-review--save-session stored)))
+                          (gnosis-review-state-last-event next) (plist-get result :event-id))
+                    (gnosis-review--save-session next)))
                 accepted)))))
     ;; Database authority has committed before UI projection.  A retry after
     ;; a UI failure resolves the retained event and settled checkpoint.
     (when persistent
-      (let ((stored (gnosis-review--read-session)))
-        (cl-loop for i from 1 below (length state) do (aset state i (aref stored i)))))
+      (gnosis-review--copy-state state (gnosis-review--read-session)))
     (when gnosis-due-themata-total
       (setq gnosis-due-themata-total (length (gnosis-review-get-due-themata))))
     accepted))
@@ -885,7 +910,7 @@ Return STATE after completion."
   (let* ((rows (reverse (gnosis-review-state-outcomes state)))
          (ids (delete-dups (mapcar #'car rows)))
          (first (mapcar (lambda (id) (assoc id rows)) ids))
-         (last (mapcar (lambda (id) (assoc id (reverse rows))) ids))
+         (last (mapcar (lambda (id) (assoc id (gnosis-review-state-outcomes state))) ids))
          (retry (cl-set-difference rows first :test #'eq)))
     (list :selected (gnosis-review-state-initial state)
           :unique (length ids) :attempts (length rows)
@@ -921,6 +946,8 @@ Return STATE after completion."
 (defun gnosis-review--show-summary (state)
   "Display accepted recall evidence from STATE, not a mastery estimate."
   (let* ((summary (gnosis-review-summary state))
+         (target (cons (gnosis-review-state-database state)
+                       (copy-tree (gnosis-review--state-data state))))
          (buf (generate-new-buffer "*Gnosis Study Summary*")))
     (with-current-buffer buf
       (insert (propertize (if (eq (gnosis-review-state-mode state) 'practice)
@@ -950,7 +977,8 @@ Return STATE after completion."
                   (format "Targets reached: %d   Attempt limit (target unmet): %d   Unfinished: %d   Excluded: %d\n"
                           (plist-get progress :target-reached) (plist-get progress :attempt-limit)
                           (plist-get progress :unfinished) (plist-get progress :excluded)))))
-      (gnosis-review-summary-mode))
+      (gnosis-review-summary-mode)
+      (setq gnosis-review--summary-target target))
     (pop-to-buffer buf)))
 
 (keymap-popup-define gnosis-review-summary-mode-map
@@ -968,7 +996,30 @@ Return STATE after completion."
   "q" ("Quit" quit-window))
 
 (define-derived-mode gnosis-review-summary-mode special-mode "Study Summary"
-  "Inspect truthful study outcomes; use h for continuation and repair.")
+  "Inspect truthful study outcomes; use h for continuation and repair.
+Resume, discard and undo act only on the displayed checkpoint in its original
+open database.  Reopen a summary after the checkpoint or connection changes.")
+
+(defun gnosis-review--check-action-target (target)
+  "Reject TARGET unless its database and frozen checkpoint are still current.
+Check at the action boundary, including after prompts or buffer setup hooks."
+  (unless (and (eq (car target) (gnosis--ensure-db))
+               (equal (cdr target)
+                      (when-let* ((state (gnosis-review--read-session)))
+                        (gnosis-review--state-data state))))
+    (user-error "Study summary or session changed; inspect the current batch first")))
+
+(defun gnosis-review--action-target ()
+  "Return the caller's database and checkpoint for a retained-session action.
+Summary commands own the displayed snapshot; elsewhere use the current batch."
+  (let ((target (if (derived-mode-p 'gnosis-review-summary-mode)
+                    (or gnosis-review--summary-target
+                        (user-error "No study checkpoint belongs to this summary"))
+                  (cons (gnosis--ensure-db)
+                        (when-let* ((state (gnosis-review--read-session)))
+                          (gnosis-review--state-data state))))))
+    (gnosis-review--check-action-target target)
+    target))
 
 (defun gnosis-review-loop (collector &optional mode)
   "Review one finite batch from COLLECTOR in MODE, defaulting to due.
@@ -1015,33 +1066,39 @@ accepted grades and restores windows.  Cancelling an answer writes no grade."
 
 ;;;###autoload
 (defun gnosis-review-resume ()
-  "Resume the unfinished frozen batch, discarding any unaccepted reveal."
+  "Resume the unfinished frozen batch, discarding any unaccepted reveal.
+From a summary, require its original database and unchanged checkpoint."
   (interactive)
+  (gnosis-review--resume (gnosis-review--action-target)))
+
+(defun gnosis-review--resume (target)
+  "Resume exact database/checkpoint TARGET, independently of the current buffer."
   (when gnosis-review--running (user-error "Finish the active review first"))
+  (gnosis-review--check-action-target target)
   (let ((state (or (gnosis-review--read-session) (user-error "No study session"))))
     (unless (gnosis-review-state-remaining state) (user-error "Batch is complete"))
     ;; Invalidate any deferred adapter launch before entering native input.
     (when (gnosis-review-state-launch-token state)
       (gnosis-sqlite-with-transaction (gnosis--ensure-db)
-        (unless (equal (gnosis-review--state-data state)
-                       (gnosis-review--state-data (gnosis-review--read-session)))
-          (user-error "Session changed before resume"))
+        (gnosis-review--check-action-target target)
         (setf (gnosis-review-state-launch-token state) nil)
         (gnosis-review--save-session state)))
     (let ((buf (gnosis-review--setup-buffer nil)))
       (with-current-buffer buf (setq gnosis-review--state state))
+      (gnosis-review--check-action-target
+       (cons (car target) (gnosis-review--state-data state)))
       (gnosis-review--run-state buf state))))
 
 ;;;###autoload
 (defun gnosis-review-discard ()
-  "Discard the retained batch and undo slot, never accepted evidence."
+  "Discard the retained batch and undo slot, never accepted evidence.
+From a summary, require its original database and unchanged checkpoint."
   (interactive)
   (when gnosis-review--running (user-error "Finish the active review first"))
-  (let ((previous (gnosis-get 'data 'study-session '(= id 1))))
+  (let ((target (gnosis-review--action-target)))
     (when (y-or-n-p "Discard batch progress (keep accepted grades)? ")
-      (gnosis-sqlite-with-transaction (gnosis--ensure-db)
-        (unless (equal previous (gnosis-get 'data 'study-session '(= id 1)))
-          (user-error "Study session changed; inspect it before discarding"))
+      (gnosis-sqlite-with-transaction (car target)
+        (gnosis-review--check-action-target target)
         (when-let* ((state (gnosis-review--read-session)))
           (setf (gnosis-review-state-cancelled-p state) t
                 (gnosis-review-state-launch-token state) nil)
@@ -1061,12 +1118,14 @@ accepted grades and restores windows.  Cancelling an answer writes no grade."
 (defun gnosis-review-undo (&optional event-id correction-id)
   "Undo the last accepted session grade, retaining append-only evidence.
 Optional EVENT-ID and CORRECTION-ID pin an idempotent retry.  Reject stale
-or superseded targets.  Re-answer with a fresh attempt identity."
+or superseded targets.  Re-answer with a fresh attempt identity.
+From a summary, require its original database and unchanged checkpoint."
   (interactive)
   (when gnosis-review--running (user-error "Quit the active review before undo"))
-  (let* ((db (gnosis--ensure-db))
+  (let* ((target (gnosis-review--action-target))
          (restored
-          (gnosis-sqlite-with-transaction db
+          (gnosis-sqlite-with-transaction (car target)
+            (gnosis-review--check-action-target target)
             (let* ((state (or (gnosis-review--read-session) (user-error "No retained session")))
              (slot (gnosis-review-state-undo state))
              (event (or event-id (plist-get slot :event-id)))
@@ -1081,6 +1140,7 @@ or superseded targets.  Re-answer with a fresh attempt identity."
               (gnosis-study-void-practice correction event)
             (gnosis-scheduler-void-review correction event))
           (let ((restored (apply #'gnosis-review-state-create :persistent-p t
+                                 :database (car target)
                                  (cddr (plist-get slot :before)))))
             (setf (gnosis-review-state-event-id restored) (gnosis-scheduler-event-id)
                   (gnosis-review-state-last-correction restored) (cons event correction))
@@ -1156,8 +1216,8 @@ should be recursively called using SUCCESS and THEMA."
 
 This function should be used with `gnosis-review-actions', which will
 be called with new SUCCESS value plus THEMA."
-  (setf success (not success))
-  (let ((new-result (gnosis-review--override-result result success)))
+  (let* ((success (not success))
+         (new-result (gnosis-review--override-result result success)))
     (gnosis-display-next-review
      (gnosis-review--result-date new-result) success)
     (gnosis-review-actions success thema new-result)))
@@ -1223,54 +1283,70 @@ To customize the keybindings, adjust `gnosis-review-keybindings'."
 
 ;;;###autoload
 (defun gnosis-monkeytype-start ()
-  "Start a Gnosis Monkeytype session."
+  "Select themata and start typing practice without accepting study grades.
+Leave the retained review batch, study evidence and schedules unchanged."
   (interactive)
-  (gnosis-review #'gnosis-monkeytype-session))
+  (gnosis-monkeytype-session
+   (gnosis-review--selection-ids (gnosis-review--read-selection))))
 
 (defun gnosis-monkeytype-thema (thema)
   "Process monkeytyping for THEMA id.
 
 This is used to type the keimenon of thema, with the
 answers highlighted."
-  (let* ((thema-context
-	  (gnosis-select '[keimenon type answer]
-			 'themata `(= id ,thema) t))
-	 (keimenon (replace-regexp-in-string
-		    "\\[\\[\\([^]]+\\)\\]\\[\\([^]]+\\)\\]\\]" "\\2" ;; remove links
-		    (nth 0 thema-context)))
-	 (type (nth 1 thema-context))
-	 (answer (cl-loop for answer in (nth 2 thema-context)
-			  collect (gnosis-utils-trim-quotes answer))))
-    (cond ((string= type "basic")
-	   (gnosis-monkeytype (concat keimenon "\n" (car answer)) answer))
-	  (t (gnosis-monkeytype keimenon answer)))))
+  (apply #'gnosis-monkeytype
+         (gnosis-monkeytype--thema-content
+          (gnosis-select '[keimenon type answer] 'themata `(= id ,thema) t))))
 
 ;;; Entry points
+
+(defun gnosis-review--read-selection (&optional kind)
+  "Read filters and return a (KIND . TAGS) selection without starting study.
+KIND is due, due-tags, overdue, without-overdue or tags.  Prompt when nil."
+  (let ((kind (or kind
+                  (pcase-exhaustive
+                      (gnosis-completing-read "Select themata: " gnosis-review-types t)
+                    ("Due themata" 'due)
+                    ("Due themata of specified tag(s)" 'due-tags)
+                    ("Overdue themata" 'overdue)
+                    ("Due themata (Without Overdue)" 'without-overdue)
+                    ("All themata of tag(s)" 'tags)))))
+    (cons kind
+          (pcase kind
+            ('due-tags (gnosis-tags-filter-prompt
+                        (gnosis-get-tags-for-ids (gnosis-review-get-due-themata))))
+            ('tags (gnosis-tags-filter-prompt))))))
+
+(defun gnosis-review--selection-ids (selection)
+  "Return thema IDs for SELECTION without presenting or grading them.
+SELECTION is a (KIND . TAGS) pair from `gnosis-review--read-selection'."
+  (pcase-exhaustive (car selection)
+    ((or 'due 'due-tags) (gnosis-collect-thema-ids :due t :tags (cdr selection)))
+    ('overdue (gnosis-review-get-overdue-themata))
+    ('without-overdue (cl-set-difference (gnosis-review-get-due-themata)
+                                       (gnosis-review-get-overdue-themata)))
+    ('tags (gnosis-collect-thema-ids :tags (cdr selection)))))
 
 (keymap-popup-define gnosis-review-map
   "Review"
   :description "Review"
   :group "Review"
   "d" ("Due themata" (lambda () (interactive)
-		       (gnosis-review-loop
-			(lambda () (gnosis-collect-thema-ids :due t)))))
+                        (gnosis-review-loop (gnosis-review--selection-ids '(due)))))
   "t" ("Due themata of tag(s)" (lambda () (interactive)
-				 (let* ((due-tags (gnosis-get-tags-for-ids
-						   (gnosis-review-get-due-themata)))
-					(tags (gnosis-tags-filter-prompt due-tags)))
-				   (gnosis-review-loop
-				    (lambda () (gnosis-collect-thema-ids :due t :tags tags))))))
+                                  (gnosis-review-loop
+                                   (gnosis-review--selection-ids
+                                    (gnosis-review--read-selection 'due-tags)))))
   "o" ("Overdue themata" (lambda () (interactive)
-			   (gnosis-review-loop (gnosis-review-get-overdue-themata))))
+                            (gnosis-review-loop (gnosis-review--selection-ids '(overdue)))))
   "w" ("Due without overdue" (lambda () (interactive)
-			       (gnosis-review-loop
-				(cl-set-difference
-				 (mapcar #'car (gnosis-review-get--due-themata))
-				 (gnosis-review-get-overdue-themata)))))
+                                (gnosis-review-loop
+                                 (gnosis-review--selection-ids '(without-overdue)))))
   "T" ("All themata of tag(s)" (lambda () (interactive)
-				 (gnosis-review-loop
-				  (gnosis-collect-thema-ids :tags (gnosis-tags-filter-prompt)))))
-    :group "Topic"
+                                  (gnosis-review-loop
+                                   (gnosis-review--selection-ids
+                                    (gnosis-review--read-selection 'tags)))))
+  :group "Topic"
   "n" ("Review due topic" gnosis-review-due-topic)
   "p" ("Practise topic (no rescheduling)" gnosis-practice-topic)
   "a" ("Review ahead topic (FSRS)" gnosis-review-topic)

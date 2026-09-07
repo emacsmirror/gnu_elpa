@@ -66,6 +66,17 @@
 (defvar gnosis-monkeytype--start-time nil
   "Time of first keystroke, or nil if not yet started.")
 
+(defun gnosis-monkeytype--thema-content (row)
+  "Return typing text and highlighted answers from thema ROW.
+ROW contains keimenon, type and answers.  Strip described Org links, trim
+answer quotes and append the answer for basic questions without changing ROW."
+  (pcase-let* ((`(,keimenon ,type ,answers) row)
+               (text (replace-regexp-in-string
+                      "\\[\\[\\([^]]+\\)\\]\\[\\([^]]+\\)\\]\\]" "\\2" keimenon))
+               (answers (mapcar #'gnosis-utils-trim-quotes answers)))
+    (list (if (equal type "basic") (concat text "\n" (car answers)) text)
+          answers)))
+
 (defun gnosis-monkeytype--format-text (text)
   "Format TEXT using a temp buffer."
   (with-temp-buffer

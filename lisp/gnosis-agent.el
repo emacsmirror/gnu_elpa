@@ -40,7 +40,8 @@
                  (eq 'practice (plist-get data :mode))
                  (plist-get data :policy))
       (user-error "Unknown agent practice session: %s" session-id))
-    (apply #'gnosis-review-state-create :persistent-p t (cddr data))))
+    (apply #'gnosis-review-state-create :persistent-p t
+           :database (gnosis--ensure-db) (cddr data))))
 
 (defun gnosis-agent--current (session-id)
   "Return current agent SESSION-ID, refusing historical or active input."
@@ -82,7 +83,8 @@ boundary; neither accepts a pending grade."
                        (gnosis-review-state-remaining state))
               (with-selected-frame (plist-get record :frame)
                 (let ((gnosis-review-buffer-name (plist-get record :buffer-name)))
-                  (gnosis-review-resume))))))
+                  (gnosis-review--resume
+                   (cons (plist-get record :db) (gnosis-review--state-data state))))))))
       (quit (message "Gnosis practice interrupted; resume the same session"))
       (error (message "Gnosis practice launch stopped: %s" (error-message-string err))))))
 

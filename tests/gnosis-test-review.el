@@ -283,6 +283,31 @@
     (should-not (gnosis-review-state-remaining state))
     (should-not (gnosis-review-state-requeued state))))
 
+(ert-deftest gnosis-test-review-advance-is-a-value-transformation ()
+  "Equal explicit inputs yield equal fresh states and preserve prior snapshots."
+  (dolist (policy (list nil (gnosis-review-practice-policy)))
+    (dolist (eligible '(nil t))
+      (let* ((state (gnosis-review-state-create
+                     :mode 'practice :policy policy :remaining '(101 102)
+                     :initial 2 :total 2 :event-id "before"))
+             (before (copy-tree (gnosis-review--state-data state)))
+             (next (gnosis-review--advance state 101 nil eligible "after")))
+        (should-not (eq next state))
+        (should (equal before (gnosis-review--state-data state)))
+        (should (equal next (gnosis-review--advance state 101 nil eligible "after")))
+        (should (equal (if eligible '(102 101) '(102))
+                       (gnosis-review-state-remaining next)))
+        (should (equal '((101 . nil)) (gnosis-review-state-outcomes next)))
+        (should (equal (unless eligible '(101)) (gnosis-review-state-skipped next)))
+        (should (equal "after" (gnosis-review-state-event-id next)))
+        (should (= 1 (gnosis-review-state-reviewed next)))
+        (should (= (if eligible 3 2) (gnosis-review-state-total next)))
+        (let ((skipped (gnosis-review--advance state 101 nil nil "skip" t)))
+          (should-not (gnosis-review-state-outcomes skipped))
+          (should (= 0 (gnosis-review-state-reviewed skipped)))
+          (should (equal '(102) (gnosis-review-state-remaining skipped)))
+          (should (equal before (gnosis-review--state-data state))))))))
+
 (provide 'gnosis-test-review)
 
 (ert-run-tests-batch-and-exit)

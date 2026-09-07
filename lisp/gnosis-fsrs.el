@@ -37,6 +37,9 @@
 (defconst gnosis-fsrs-default-retention 0.9
   "Default desired retention for FSRS reviews.")
 
+(defconst gnosis-fsrs--maximum-stability 36500.0
+  "Maximum stability in days for the pinned FSRS-6 model.")
+
 (defun gnosis-fsrs--f32 (value)
   "Return VALUE rounded to an IEEE-754 single-precision float."
   (if (zerop value)
@@ -130,7 +133,7 @@
      (if (zerop elapsed-days)
          (gnosis-fsrs--short-term-stability stability rating)
        long-term)
-     0.001 36500.0)))
+     0.001 gnosis-fsrs--maximum-stability)))
 
 (defun gnosis-fsrs--interval (stability desired-retention)
   "Return raw interval for STABILITY and DESIRED-RETENTION."
@@ -185,7 +188,8 @@ DESIRED-RETENTION defaults to `gnosis-fsrs-default-retention'."
             (if prior-state
                 (gnosis-fsrs--next-stability
                  (gnosis-fsrs--clamp
-                  (plist-get prior-state :stability) 0.001 36500.0)
+                  (plist-get prior-state :stability)
+                  0.001 gnosis-fsrs--maximum-stability)
                  (gnosis-fsrs--clamp
                   (plist-get prior-state :difficulty) 1.0 10.0)
                  elapsed-days rating)

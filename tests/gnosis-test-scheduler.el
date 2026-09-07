@@ -499,5 +499,100 @@
       (should (= 5 (caar (gnosis-sqlite-select
                           gnosis-db "SELECT COUNT(*) FROM review_events")))))))
 
+(ert-deftest gnosis-test-scheduler-retention-rejects-calendar-overflow ()
+  "Reject unrepresentable intervals before activating their configuration."
+  (gnosis-test-scheduler--with-db
+    (gnosis-test-scheduler--seed-state)
+    (let ((before (mapcar (lambda (table) (gnosis-select '* table))
+                         '(scheduler-config scheduler-active scheduler-state
+                           review-events))))
+      ;; 0.01 already fails on a first review; 0.1 only fails as memory grows.
+      (dolist (retention '(0.01 0.1))
+        (let* ((prior (and (= retention 0.1)
+                           '(:stability 36500.0 :difficulty 1.0)))
+               (transition (gnosis-fsrs-transition prior 0 'success retention)))
+          (should (gnosis-fsrs--finite-number-p
+                   (plist-get transition :raw-interval-days)))
+          (should-error
+           (gnosis-scheduler--add-days
+            20261231 (plist-get transition :calendar-interval-days)))
+          (should-error (gnosis-scheduler-set-retention retention)
+                        :type 'user-error)))
+      (should (equal before
+                     (mapcar (lambda (table) (gnosis-select '* table))
+                             '(scheduler-config scheduler-active scheduler-state
+                               review-events)))))
+    ;; A rejected preference must leave the next real review usable.
+    (let* ((preview (gnosis-scheduler-preview-review
+                     gnosis-test-scheduler--event-id 1 'success 1000000 20260830))
+           (result (gnosis-scheduler-accept-review
+                    gnosis-test-scheduler--event-id 1 'success 1000000 20260830
+                    (plist-get preview :config-id) preview)))
+      (should (= 20260901 (plist-get result :due-day)))
+      (should (= 1 (plist-get (gnosis-scheduler-replay-thema 1 0) :reps))))))
+
+(ert-deftest gnosis-test-scheduler-retention-rejects-invalid-before-db ()
+  "Reject invalid or numerically overflowing preferences without storage."
+  (let (db-touched)
+    (cl-letf (((symbol-function 'gnosis--ensure-db)
+               (lambda () (setq db-touched t) (error "DB touched"))))
+      (dolist (retention '(nil "0.9" 0 1 -0.1 1.0e+INF -1.0e+INF
+                              0.0e+NaN 1.0e-10 1.0e-100 5.0e-324))
+        (should-error (gnosis-scheduler-set-retention retention)
+                      :type 'user-error)))
+    (should-not db-touched)))
+
+(ert-deftest gnosis-test-scheduler-retention-accepted-calendar-and-replay ()
+  "Preserve uncapped intervals through preview, acceptance, and replay."
+  (gnosis-test-scheduler--with-db
+    (gnosis-test-scheduler--seed-state)
+    (cl-loop for retention in '(0.2 0.8 0.9 0.95 0.9999999999999999)
+             for reviewed-at-us from 1000000
+             for event-char from ?a
+             for outcome in '(success failure success failure success)
+             do
+             (let* ((config (gnosis-scheduler-set-retention retention))
+                    (event-id (make-string 64 event-char))
+                    (state (gnosis-scheduler-replay-thema 1 0))
+                    (prior (and (plist-get state :stability)
+                                (list :stability (plist-get state :stability)
+                                      :difficulty (plist-get state :difficulty))))
+                    (expected (gnosis-fsrs-transition prior 0 outcome retention))
+                    (preview (gnosis-scheduler-preview-review
+                              event-id 1 outcome reviewed-at-us 20260830))
+                    (result (gnosis-scheduler-accept-review
+                             event-id 1 outcome reviewed-at-us 20260830
+                             config preview))
+                    (replayed (gnosis-scheduler-replay-thema 1 0)))
+               (should (= config (gnosis-scheduler-set-retention retention)))
+               (should (= (plist-get expected :calendar-interval-days)
+                          (plist-get result :calendar-interval-days)))
+               (should (= (plist-get expected :raw-interval-days)
+                          (plist-get result :raw-interval-days)))
+               (should (= (plist-get replayed :due-day)
+                          (plist-get preview :due-day)))
+               (should (gnosis-scheduler--day-time (plist-get result :due-day)))
+               (should (gnosis-scheduler--evidence-equal-p preview result))))))
+
+(ert-deftest gnosis-test-scheduler-retention-maximum-memory-calendar ()
+  "Keep the longest supported interval usable without changing input state."
+  (gnosis-test-scheduler--with-db
+    (let* ((config (gnosis-scheduler-set-retention 0.2))
+           (state (list config 36500.0 1.0 1 20261231 20261231 1 0 0))
+           (before (copy-tree state))
+           (result (gnosis-scheduler--compute-result
+                    gnosis-test-scheduler--event-id 1 'success 2 20261231
+                    state 0.2))
+           (interval (plist-get result :calendar-interval-days))
+           (due-day (plist-get result :due-day)))
+      (should (= 36500.0 (plist-get result :stability)))
+      (should (> interval 36500))
+      (should (= interval (gnosis-scheduler--days-between 20261231 due-day)))
+      (should (equal before state))
+      (should (equal result
+                     (gnosis-scheduler--compute-result
+                      gnosis-test-scheduler--event-id 1 'success 2 20261231
+                      state 0.2))))))
+
 (provide 'gnosis-test-scheduler)
 ;;; gnosis-test-scheduler.el ends here

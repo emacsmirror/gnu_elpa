@@ -394,14 +394,37 @@ Retained retries are unchanged."
                                  "SELECT config_id FROM scheduler_active WHERE id = 1"))
       (error "Active scheduler configuration missing")))
 
+(defun gnosis-scheduler--validate-retention (retention day)
+  "Validate RETENTION for the scheduler calendar in DAY's year.
+DAY is a YYYYMMDD integer.  Check the interval at the model's maximum
+stability, not just the first review.  Use December 31 so the calendar
+conversion includes the largest month and day offsets.  Reject numeric
+or calendar overflow rather than silently capping mathematical intervals."
+  (unless (and (gnosis-fsrs--finite-number-p retention) (< 0 retention 1))
+    (user-error "Desired retention must be a finite number between 0 and 1"))
+  (condition-case err
+      (let* ((transition
+              (gnosis-fsrs-transition
+               (list :stability gnosis-fsrs--maximum-stability :difficulty 1.0)
+               0 'success retention))
+             (interval (plist-get transition :calendar-interval-days))
+             (year-end (gnosis--date-to-int (list (/ day 10000) 12 31)))
+             (due-day (gnosis-scheduler--add-days year-end interval)))
+        (unless (= interval (gnosis-scheduler--days-between year-end due-day))
+          (error "Scheduler interval does not round-trip through the calendar")))
+    (error (user-error "Unsupported desired retention: %s"
+                       (error-message-string err)))))
+
 ;;;###autoload
 (defun gnosis-scheduler-set-retention (retention)
   "Select user-wide desired RETENTION for future accepted reviews.
 Append an immutable configuration snapshot.  Existing due dates and events
-are unchanged.  This is a workload preference, not measured topic mastery."
+are unchanged.  This is a workload preference, not measured topic mastery.
+RETENTION must be finite and strictly between 0 and 1.  Before writing,
+require its longest model interval to fit the current year's scheduler
+calendar.  Unsupported values signal `user-error'; intervals are not capped."
   (interactive "nDesired retention (strictly between 0 and 1): ")
-  ;; The transition validates finite numeric retention without writing.
-  (gnosis-fsrs-transition nil 0 'success retention)
+  (gnosis-scheduler--validate-retention retention (gnosis--today-int))
   (let ((db (gnosis--ensure-db)))
     (gnosis-sqlite-with-transaction db
       (let* ((active (gnosis-scheduler-active-config db))

@@ -331,9 +331,8 @@ Returns nil if point is not inside an `arguments' or `argument' node."
        (treesit-node-child-by-field-name call-node "function") t))))
 
 (defun r-ts-mode--buffer-function-positions (buffer-or-name)
-  "Return an alist of (name .
-position) for all function definitions
-in BUFFER-OR-NAME."   (with-current-buffer buffer-or-name
+  "Returns alist (name . position) for function definitions in BUFFER-OR-NAME."
+  (with-current-buffer buffer-or-name
     (let* ((query (treesit-query-compile 'r '((function_definition name: "function" @val))))
            (ranges (mapcar #'car (treesit-query-range 'r query))))
       (delq nil

@@ -209,7 +209,7 @@ Batched to stay within SQL variable limits."
       (dolist (tag add-tags)
         (let* ((max-vars (gnosis-sqlite--max-variable-number db))
                (batch-size (/ max-vars 2))
-               (encoded-tag (prin1-to-string tag))
+               (encoded-tag (gnosis-sqlite--serialize tag))
                (offset 0)
                (total (length ids)))
           (while (< offset total)

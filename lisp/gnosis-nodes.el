@@ -139,7 +139,9 @@ When NODE-IDS is non-nil, return only IDs in that list."
         (gnosis-nodes--insert-into
          table `([,id ,filename ,(plist-get item :title)
                       ,(plist-get item :level)
-                      ,(prin1-to-string (plist-get item :tags)) ,mtime ,hash]))
+                      ;; Preserve the nested Lisp-string tag representation.
+                      ,(gnosis-sqlite--serialize (plist-get item :tags))
+                      ,mtime ,hash]))
         (dolist (tag (plist-get item :tags))
           (gnosis-nodes--insert-into 'node-tag `([,id ,tag]) t))
         (when (and (eq table 'nodes) (stringp (plist-get item :master)))

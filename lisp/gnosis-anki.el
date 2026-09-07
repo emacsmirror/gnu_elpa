@@ -445,24 +445,24 @@ SUSPEND, when non-nil, imports themata as suspended."
                                 tl))))
                   ;; themata: id, type, keimenon, hypothesis,
                   ;; answer, source_guid
-                  ;; Strings are prin1-encoded (emacsql compat)
+                  ;; Lisp fields retain text nil; source_guid stays raw.
                   (setq themata-params
                         (nconc themata-params
-                               (list id (prin1-to-string type)
-                                     (prin1-to-string keimenon)
-                                     (prin1-to-string hypothesis)
-                                     (prin1-to-string answer)
+                               (list id (gnosis-sqlite--serialize type)
+                                     (gnosis-sqlite--serialize keimenon)
+                                     (gnosis-sqlite--serialize hypothesis)
+                                     (gnosis-sqlite--serialize answer)
                                      guid)))
                   ;; extras: id, parathema, review-image
                   (setq extras-params
                         (nconc extras-params
-                               (list id (prin1-to-string parathema)
-                                     (prin1-to-string ""))))
+                               (list id (gnosis-sqlite--serialize parathema)
+                                     (gnosis-sqlite--serialize ""))))
                   ;; thema_tag: id, tag (variable per item)
                   (dolist (tag tags)
                     (setq tag-params
                           (nconc tag-params
-                                 (list id (prin1-to-string tag)))))))
+                                 (list id (gnosis-sqlite--serialize tag)))))))
     (gnosis-sqlite-with-transaction db
       (sqlite-execute db
 		      (concat "INSERT INTO themata (id, type, keimenon, hypothesis, answer, source_guid) VALUES "

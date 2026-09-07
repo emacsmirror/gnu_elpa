@@ -33,7 +33,8 @@
 
 (defun gnosis-scheduler-event-id ()
   "Return a new opaque review-event identity."
-  (secure-hash 'sha256 (prin1-to-string
+  (secure-hash 'sha256
+               (gnosis-sqlite--serialize
                 (list (current-time) (emacs-pid) (random) (user-uid)))))
 
 (defun gnosis-scheduler--event-id-p (value)

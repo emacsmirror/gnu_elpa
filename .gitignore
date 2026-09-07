@@ -11,6 +11,7 @@ research
 \#*
 
 *.md
+!/AGENTS.md
 !/skills/gnosis-themata/SKILL.md
 *.info
 *.texi

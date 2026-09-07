@@ -84,10 +84,15 @@ then asks for binary success.  Neither revealing nor editing accepts a grade."
   last-event
   last-correction
   persistent-p
-  basic-input)
+  basic-input
+  policy
+  selected
+  selection
+  cancelled-p
+  launch-token)
 
 (defvar gnosis-review--running nil
-  "Non-nil during presentation of a study session.")
+  "Identity of the study session currently presenting native input, or nil.")
 
 (defvar-local gnosis-review--state nil
   "Buffer-local review state for the current session.")
@@ -127,6 +132,7 @@ Returns the buffer.  MODE defaults to due; practice never reschedules."
              :session-id (gnosis-scheduler-event-id)
              :event-id (gnosis-scheduler-event-id)
              :basic-input gnosis-review-basic-input
+             :selected (copy-sequence themata)
              :initial (length themata)
              :reviewed 0
 	     :total (length themata)
@@ -444,7 +450,12 @@ EVENT-ID, REVIEWED-AT-US, and REVIEW-DAY may pin deterministic facts."
         :event-id (gnosis-review-state-event-id state) :undo (gnosis-review-state-undo state)
         :last-event (gnosis-review-state-last-event state)
         :last-correction (gnosis-review-state-last-correction state)
-        :basic-input (gnosis-review-state-basic-input state)))
+        :basic-input (gnosis-review-state-basic-input state)
+        :policy (gnosis-review-state-policy state)
+        :selected (gnosis-review-state-selected state)
+        :selection (gnosis-review-state-selection state)
+        :cancelled-p (gnosis-review-state-cancelled-p state)
+        :launch-token (gnosis-review-state-launch-token state)))
 
 (defun gnosis-review--read-session ()
   "Return the retained session state, or nil."
@@ -456,13 +467,91 @@ EVENT-ID, REVIEWED-AT-US, and REVIEW-DAY may pin deterministic facts."
   "Persist STATE on the caller's transaction."
   (gnosis-sqlite-execute (gnosis--ensure-db)
                          "INSERT OR REPLACE INTO study_session VALUES (1, ?)"
-                         (list (gnosis-review--state-data state))))
+                         (list (gnosis-review--state-data state)))
+  (gnosis-review--save-history state))
+
+(defun gnosis-review--save-history (state)
+  "Retain STATE by identity on the caller's transaction."
+  (gnosis-sqlite-execute
+   (gnosis--ensure-db)
+   "INSERT INTO study_history VALUES (?, ?)
+    ON CONFLICT(session_id) DO UPDATE SET data = excluded.data"
+   (list (gnosis-review-state-session-id state)
+         (gnosis-review--state-data state))))
+
+(defun gnosis-review-practice-policy (&optional policy)
+  "Validate POLICY overrides and return a fresh frozen practice policy.
+Require positive integer targets and a cap, and a boolean
+consecutive flag.  Reject unknown and duplicate keys and malformed plists."
+  (let ((defaults '(:successes-required 1 :successes-after-failure 2
+                   :consecutive t :max-attempts-per-thema 5))
+        seen)
+    (unless (and (proper-list-p policy) (zerop (% (length policy) 2)))
+      (user-error "Practice policy must be a keyword plist"))
+    (cl-loop for (key value) on policy by #'cddr do
+             (unless (and (plist-member defaults key) (not (memq key seen))
+                          (if (eq key :consecutive) (memq value '(nil t))
+                            (and (integerp value) (> value 0))))
+               (user-error "Invalid practice policy field: %S" key))
+             (push key seen))
+    (cl-loop for (key value) on defaults by #'cddr append
+             (list key (if (plist-member policy key) (plist-get policy key) value)))))
+
+(defun gnosis-review-policy-progress (policy outcomes)
+  "Return practice progress for POLICY and newest-first boolean OUTCOMES.
+Count effective accepted grades, not voided grades.  Consecutive successes
+reset on failure; otherwise count all successes.  Any failure selects the
+failure target.  A reached target takes precedence over the attempt cap."
+  (let* ((attempts (length outcomes))
+         (failed (memq nil outcomes))
+         (target (plist-get policy (if failed :successes-after-failure
+                                    :successes-required)))
+         (successes (if (plist-get policy :consecutive)
+                        (length (seq-take-while #'identity outcomes))
+                      (seq-count #'identity outcomes))))
+    (list :attempts attempts :successes successes :target target
+          :reason (cond ((>= successes target) "target-reached")
+                        ((>= attempts (plist-get policy :max-attempts-per-thema))
+                         "attempt-limit")
+                        (t "unfinished")))))
+
+(defun gnosis-review--reserve-practice (ids policy selection)
+  "Reserve IDS for native practice with frozen POLICY and SELECTION metadata.
+Return durable state without displaying a buffer or asking for an answer."
+  (when gnosis-review--running (user-error "Finish the active review first"))
+  (let ((policy (gnosis-review-practice-policy policy)))
+    (gnosis-sqlite-with-transaction (gnosis--ensure-db)
+      (when-let* ((old (gnosis-review--read-session))
+                  (_ (gnosis-review-state-remaining old)))
+        (user-error "Resume or discard the unfinished study session first"))
+      (let ((state (gnosis-review-state-create
+                    :mode 'practice :persistent-p t
+                    :session-id (gnosis-scheduler-event-id)
+                    :event-id (gnosis-scheduler-event-id)
+                    :basic-input gnosis-review-basic-input
+                    :policy policy :selection selection
+                    :selected (copy-sequence ids) :remaining (copy-sequence ids)
+                    :initial (length ids) :total (length ids))))
+        (gnosis-review--save-session state)
+        state))))
 
 (defun gnosis-review--advance (state id success &optional skipped)
   "Advance STATE after ID and SUCCESS, or a SKIPPED presentation."
   (let* ((rest (cdr (gnosis-review-state-remaining state)))
-         (tail (and (not skipped) (not success) (gnosis-study-eligible-p id)
-                    (not (member id (gnosis-review-state-requeued state))))))
+         (tail (and (not skipped) (gnosis-study-eligible-p id)
+                    (if (gnosis-review-state-policy state)
+                        (equal "unfinished"
+                               (plist-get
+                                (gnosis-review-policy-progress
+                                 (gnosis-review-state-policy state)
+                                 (cons success
+                                       (mapcar #'cdr
+                                               (seq-filter
+                                                (lambda (row) (equal id (car row)))
+                                                (gnosis-review-state-outcomes state)))))
+                                :reason))
+                      (and (not success)
+                           (not (member id (gnosis-review-state-requeued state))))))))
     (setf (gnosis-review-state-remaining state) (if tail (append rest (list id)) rest)
           (gnosis-review-state-event-id state) (gnosis-scheduler-event-id))
     (if skipped
@@ -805,6 +894,26 @@ Return STATE after completion."
                                           (gnosis-review-state-skipped state))))
           :unattempted (- (gnosis-review-state-initial state) (length ids)))))
 
+(defun gnosis-review-policy-summary (state)
+  "Return frozen-policy target and cap counts for practice STATE."
+  (let ((reasons
+         (mapcar
+          (lambda (id)
+            (if (or (member id (gnosis-review-state-skipped state))
+                    (not (gnosis-get 'id 'themata `(= id ,id))))
+                "excluded"
+              (plist-get
+               (gnosis-review-policy-progress
+                (gnosis-review-state-policy state)
+                (mapcar #'cdr (seq-filter (lambda (row) (equal id (car row)))
+                                         (gnosis-review-state-outcomes state))))
+               :reason)))
+          (gnosis-review-state-selected state))))
+    (list :target-reached (seq-count (lambda (reason) (equal reason "target-reached")) reasons)
+          :attempt-limit (seq-count (lambda (reason) (equal reason "attempt-limit")) reasons)
+          :unfinished (seq-count (lambda (reason) (equal reason "unfinished")) reasons)
+          :excluded (seq-count (lambda (reason) (equal reason "excluded")) reasons))))
+
 (defun gnosis-review--show-summary (state)
   "Display accepted recall evidence from STATE, not a mastery estimate."
   (let* ((summary (gnosis-review-summary state))
@@ -827,6 +936,16 @@ Return STATE after completion."
                       (let ((gnosis-new-themata-limit nil))
                         (length (gnosis-review-get-due-themata))))
               "Session recall is not topic mastery.  Practice is excluded from FSRS replay.\n")
+      (when-let* ((policy (gnosis-review-state-policy state)))
+        (let ((progress (gnosis-review-policy-summary state)))
+          (insert (format "\nFrozen practice target: %d successes; after failure: %d; consecutive: %s; cap: %d effective attempts per thema\n"
+                          (plist-get policy :successes-required)
+                          (plist-get policy :successes-after-failure)
+                          (if (plist-get policy :consecutive) "yes" "no")
+                          (plist-get policy :max-attempts-per-thema))
+                  (format "Targets reached: %d   Attempt limit (target unmet): %d   Unfinished: %d   Excluded: %d\n"
+                          (plist-get progress :target-reached) (plist-get progress :attempt-limit)
+                          (plist-get progress :unfinished) (plist-get progress :excluded)))))
       (gnosis-review-summary-mode))
     (pop-to-buffer buf)))
 
@@ -879,7 +998,7 @@ accepted grades and restores windows.  Cancelling an answer writes no grade."
   "Present STATE in BUF with frozen input policy and restored windows."
   (let ((gnosis-review-basic-input (gnosis-review-state-basic-input state))
         (reviewed (gnosis-review-state-reviewed state))
-        (gnosis-review--running t))
+        (gnosis-review--running (gnosis-review-state-session-id state)))
     (unwind-protect
         (save-window-excursion
           (pop-to-buffer-same-window buf)
@@ -897,6 +1016,14 @@ accepted grades and restores windows.  Cancelling an answer writes no grade."
   (when gnosis-review--running (user-error "Finish the active review first"))
   (let ((state (or (gnosis-review--read-session) (user-error "No study session"))))
     (unless (gnosis-review-state-remaining state) (user-error "Batch is complete"))
+    ;; Invalidate any deferred adapter launch before entering native input.
+    (when (gnosis-review-state-launch-token state)
+      (gnosis-sqlite-with-transaction (gnosis--ensure-db)
+        (unless (equal (gnosis-review--state-data state)
+                       (gnosis-review--state-data (gnosis-review--read-session)))
+          (user-error "Session changed before resume"))
+        (setf (gnosis-review-state-launch-token state) nil)
+        (gnosis-review--save-session state)))
     (let ((buf (gnosis-review--setup-buffer nil)))
       (with-current-buffer buf (setq gnosis-review--state state))
       (gnosis-review--run-state buf state))))
@@ -911,6 +1038,10 @@ accepted grades and restores windows.  Cancelling an answer writes no grade."
       (gnosis-sqlite-with-transaction (gnosis--ensure-db)
         (unless (equal previous (gnosis-get 'data 'study-session '(= id 1)))
           (user-error "Study session changed; inspect it before discarding"))
+        (when-let* ((state (gnosis-review--read-session)))
+          (setf (gnosis-review-state-cancelled-p state) t
+                (gnosis-review-state-launch-token state) nil)
+          (gnosis-review--save-history state))
         (gnosis--delete 'study-session)))))
 
 ;;;###autoload
@@ -964,7 +1095,7 @@ This function initializes the `gnosis-dir' as a Git repository if it is not
 already one.  It then adds the gnosis.db file to the repository and commits
 the changes with a message containing the reviewed number THEMA-NUM."
   (if gnosis-testing
-      (message "Review session finished.  %d themata reviewed." thema-num)
+      (message "Review session finished.  %d review attempts accepted." thema-num)
     (gnosis--ensure-git-repo)
     (gnosis--git-chain
      `(("add" "gnosis.db")
@@ -972,7 +1103,7 @@ the changes with a message containing the reviewed number THEMA-NUM."
         ,(format "Total themata reviewed: %d" thema-num)))
      (lambda ()
        (when gnosis-vc-auto-push (gnosis-vc-push))
-       (message "Review session finished.  %d themata reviewed."
+       (message "Review session finished.  %d review attempts accepted."
 		thema-num)))))
 
 ;;; Review actions

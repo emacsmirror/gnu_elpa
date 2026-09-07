@@ -275,7 +275,7 @@
       (should (equal before (gnosis-select '* 'scheduler-state)))
       (funcall set-version 9)
       (gnosis-db-init)
-      (should (= 10 (gnosis--db-version)))
+      (should (= gnosis-db-version (gnosis--db-version)))
       (should (equal before (gnosis-select '* 'scheduler-state)))
       (should-not (sqlite-select gnosis-db "PRAGMA foreign_key_check"))
       (should (= 1 (gnosis-scheduler-active-config))))))
@@ -723,7 +723,7 @@
       (gnosis-test--create-v9-schema)
       (should (= 9 (gnosis--db-version))))
     (gnosis-db-init)
-    (should (= 10 (gnosis--db-version)))
+    (should (= gnosis-db-version (gnosis--db-version)))
     ;; REPLACE must be rejected without depending on recursive delete triggers.
     (gnosis-sqlite-execute gnosis-db "PRAGMA recursive_triggers = OFF")
     (should (equal '((0)) (gnosis-sqlite-select gnosis-db "PRAGMA recursive_triggers")))

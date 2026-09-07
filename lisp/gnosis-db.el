@@ -60,7 +60,7 @@ Initialized lazily by `gnosis--ensure-db' on first use.")
 (defvar gnosis-testing nil
   "Change this to non-nil when running manual tests.")
 
-(defconst gnosis-db-version 10
+(defconst gnosis-db-version 11
   "Gnosis database version.")
 
 (defvar gnosis--id-cache nil
@@ -292,6 +292,9 @@ Uses `gnosis--id-cache' for O(1) collision checking when bound."
       (:check "lapses_after = lapses_before + CASE rating WHEN 1 THEN 1 ELSE 0 END")
       (:check "new_p IN (0, 1)")
       (:check "new_p = CASE reps_before WHEN 0 THEN 1 ELSE 0 END")))
+    (study-history
+     ([(session-id text :primary-key :not-null)
+       (data text :not-null)]))
     (study-session
      ([(id integer :primary-key :not-null)
        (data text :not-null)]
@@ -942,6 +945,18 @@ Handles both Lisp list dates and already-converted integers."
       (gnosis-db--create-study-guards db)
       (gnosis--db-set-version 10))))
 
+(defun gnosis-db--migrate-v11 ()
+  "Retain session snapshots by identity without replacing practice evidence."
+  (let ((db (gnosis--ensure-db)))
+    (gnosis-sqlite-with-transaction db
+      (gnosis-sqlite-execute db
+        "CREATE TABLE study_history (session_id TEXT PRIMARY KEY NOT NULL, data TEXT NOT NULL)")
+      (when-let* ((data (gnosis-get 'data 'study-session '(= id 1)))
+                  (id (plist-get data :session-id)))
+        (gnosis-sqlite-execute db "INSERT INTO study_history VALUES (?, ?)"
+                               (list id data)))
+      (gnosis--db-set-version 11))))
+
 (defconst gnosis-db--migrations
   `((1 . gnosis-db--migrate-v1)
     (2 . gnosis-db--migrate-v2)
@@ -952,7 +967,8 @@ Handles both Lisp list dates and already-converted integers."
     (7 . gnosis-db--migrate-v7)
     (8 . gnosis-db--migrate-v8)
     (9 . gnosis-db--migrate-v9)
-    (10 . gnosis-db--migrate-v10))
+    (10 . gnosis-db--migrate-v10)
+    (11 . gnosis-db--migrate-v11))
   "Alist of (VERSION . FUNCTION).
 Each migration brings the DB from VERSION-1 to VERSION.")
 

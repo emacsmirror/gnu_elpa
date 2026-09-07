@@ -37,6 +37,7 @@
         ./lisp/gnosis-org.el
         ./lisp/gnosis-review.el
         ./lisp/gnosis-study.el
+        ./lisp/gnosis-agent.el
         ./lisp/gnosis-scheduler.el
         ./lisp/gnosis-sqlite.el
         ./lisp/gnosis-tags.el

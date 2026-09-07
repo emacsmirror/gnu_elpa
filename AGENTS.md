@@ -69,11 +69,16 @@ before adding a second path that writes the same state.
   mutations, and pending rendering must not resurrect removed or stale rows.
 - Persistent Lisp encoding must round-trip independently of display-oriented
   printer settings. Preserve meaningful distinctions between nil and empty text.
+  Route bulk writes and identity preimages through the owned serializer;
+  preserve existing nested-string encodings instead of adding another layer.
 - Validate both the reviewed input and the destination state before applying
   an import. Retry must not silently omit partially imported logical items.
+  Render preview details from the same retained values that apply will consume.
 - Content export is not a backup: it excludes schedules and study history.
-  Reject active-database aliases; build and validate replacement files before
-  replacing an existing destination. Preserve originals on failure or quit.
+  Reject aliases of the active database and its SQLite companions. Refuse
+  single-file replacement when destination companions exist, checking again
+  before rename. Validate the temporary replacement; preserve originals on
+  failure or quit. These checks do not provide cross-process exclusion.
 - Keep irreversible external effects outside retriable transactions. Use
   `unwind-protect` for owned resources; errors and `C-g` must leave safe state.
 

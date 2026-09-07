@@ -3136,7 +3136,7 @@ directory; one of archive, archive-devel."
                             (plist-put (cdr pkg-spec) :internal--html-resources
                                        (cons rootedfile idr))
                             (when destdir (make-directory destdir t))
-                            (copy-file rootedfile destfile)
+                            (copy-file rootedfile destfile t)
                             t))))
                 (goto-char (match-beginning 1))
                 (insert (concat offset docdir)))))))

@@ -3,8 +3,7 @@
 
 ;; Author: Manuel Teodoro <ttm@teoten.me>
 ;; URL: https://codeberg.org/R-for-emacs/r-ts-mode
-;; Version: 1.1.2
-;; Assisted-by: Sonet:4.6
+;; Version: 1.1.3
 ;; Package-Requires: ((emacs "30.1"))
 ;; Created: June, 2026
 
@@ -25,14 +24,20 @@
 ;;; Commentary:
 ;; Functionality to prepare the binaries for R-TS-MODE from the R
 ;; package "treesitter.r"
+;;
+;; Install the R package treesitter.r
+;; (https://cran.r-project.org/web/packages/treesitter.r/index.html) and call
+;; the function `r-ts-mode-prepare-binaries-from-r-library' to move the binaries
+;; to .emacs.d directory (currently supported only for Windows and Linux).
+;; Make sure to check the variable `r-ts-setup-r-program' to allow Emacs find
+;; the R executable.
 
 ;;; Code:
 
 ;; This module is not automatically loaded, thus it has to be required
 
-;;;; =========================================================================
 ;;;; Groups, Custom Variables, General Variables
-;;;; =========================================================================
+;; =============================================================================
 
 (defgroup r-ts-setup nil
   "R's roxygen support for `r-ts-mode'."
@@ -45,15 +50,14 @@
   :group 'r-ts-setup)
 
 (defcustom r-ts-setup-create-treesitter-dir t
-  "When non-nil, automatically create `~/<user-emacs-directory>/tree-sitter/' if
-missing. When nil, signal an error if the target directory does not exist."
+  "When non-nil, automatically create `~/<user-emacs-directory>/tree-sitter/'.
+When nil, signal an error if the target directory does not exist."
   :type 'boolean
   :group 'r-ts-setup)
 
 
-;;;; =========================================================================
 ;;;; Grammar / Binary Preparation — Pure Helpers
-;;;; =========================================================================
+;; =============================================================================
 (defun r-ts-setup--build-r-find-package-command (r-program)
   "Return the shell command that prints the path of the \='treesitter.r\=' R package.
 R-PROGRAM is the executable name or path.  Pure function — no side effects."
@@ -110,7 +114,7 @@ Returns the path string.  Signals an error on failure."
   (let ((found (seq-find #'file-exists-p
                          (r-ts-setup--binary-path-win package-path))))
     (or found
-        (error "treesitter.r.dll not found under %s.  Please report this issue."
+        (error "File treesitter.r.dll not found under %s.  Please report this issue"
                package-path))))
 
 (defun r-ts-setup--resolve-binary-path (package-path)
@@ -131,13 +135,12 @@ otherwise signal an error."
         (error "Directory not found: %s" expanded)))))
 
 
-;;;; =========================================================================
 ;;;; API
-;;;; =========================================================================
+;; =============================================================================
 ;;;###autoload
 (defun r-ts-setup-prepare-binaries-from-r-library (&optional package-path emacs-ts-path)
-  "Copy the tree-sitter R grammar from the \='treesitter.r\=' R package to
-Emacs. Searches for the package in PACKAGE-PATH (or auto-detects via R) and
+  "Copy the tree-sitter R grammar from the \='treesitter.r\=' R package to Emacs.
+Searches for the package in PACKAGE-PATH (or auto-detects via R) and
 copies the compiled binary to EMACS-TS-PATH (default:
 ~/<user-emacs-directory>/tree-sitter/)."
   (interactive)

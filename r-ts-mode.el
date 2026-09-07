@@ -3,8 +3,7 @@
 
 ;; Author: Manuel Teodoro <ttm@teoten.me>
 ;; URL: https://codeberg.org/R-for-emacs/r-ts-mode
-;; Version: 1.1.2
-;; Assisted-by: Sonet:4.6
+;; Version: 1.1.3
 ;; Package-Requires: ((emacs "30.1"))
 ;; Created: 2025-09-05
 
@@ -24,6 +23,12 @@
 
 ;;; Commentary:
 ;; Major mode for editing R code using treesitter.
+;; Provides tree-sitter based syntax highlighting, indentation, imenu support,
+;; and navigation for R source files.
+;;
+;; To use with ESS, set `r-ts-mode-inherit-ess' to true to activate treesitter
+;; within an ESS `r-ts-mode'.  It is important to set this variable before
+;; `r-ts-mode' is loaded.
 
 ;;; Code:
 
@@ -31,9 +36,8 @@
 (declare-function r-ts-mode-parent-mode "r-ts-mode.el")
 
 
-;;;; =========================================================================
 ;;;; Groups, Custom Variables, General Variables
-;;;; =========================================================================
+;; =============================================================================
 (defgroup r-ts nil
   "R support for Emacs using tree-sitter."
   :group 'languages
@@ -54,13 +58,12 @@
   "When non-nil, enable verbose debugging messages.  For development use.")
 
 (defvar r-ts-mode-font-lock-keywords nil
-  "Replacement for ESS variable `ess-R-font-lock-keywords'
-to silence ESS fontification.")
+  "Replacement for ESS variable `ess-R-font-lock-keywords'.
+Intended to silence ESS fontification.")
 
 
-;;;; =========================================================================
 ;;;; Constants and Syntax Table
-;;;; =========================================================================
+;; =============================================================================
 (defvar r-ts-mode-syntax-table
   (let ((table (make-syntax-table prog-mode-syntax-table)))
     ;; Comments
@@ -94,9 +97,8 @@ to silence ESS fontification.")
   "Syntax table for R source code.")
 
 
-;;;; =========================================================================
 ;;;; Faces
-;;;; =========================================================================
+;; =============================================================================
 (defgroup r-ts-mode-faces nil
   "Faces for `r-ts-mode' syntax highlighting."
   :prefix "r-ts-mode-face-"
@@ -178,9 +180,8 @@ to silence ESS fontification.")
    :group 'r-ts-faces)
 
 
-;;;; =========================================================================
 ;;;; Parent Mode (ESS or prog-mode)
-;;;; =========================================================================
+;; =============================================================================
 
 ;; ESS declarations — kept here so the byte-compiler is happy,
 ;; but ESS-specific logic is intentionally left untouched for now.
@@ -247,9 +248,8 @@ to silence ESS fontification.")
     (setq-local comment-end "")))
 
 
-;;;; =========================================================================
 ;;;; Tree-sitter Node Utilities — Pure Predicates and Accessors
-;;;; =========================================================================
+;; =============================================================================
 (defun r-ts-mode--node-is-fun-def-p (node)
   "Return non-nil if the last child of NODE is a `function_definition'."
   (treesit-node-match-p (treesit-node-child node -1) "function_definition"))
@@ -296,9 +296,8 @@ Expected by `treesit-simple-imenu-settings' for non-function objects."
     (r-ts-mode--node-lhs-text node)))
 
 
-;;;; =========================================================================
 ;;;; Node Navigation Utilities
-;;;; =========================================================================
+;; =============================================================================
 (defun r-ts-mode--node-ancestor-matching (node type)
   "Walk up the tree from NODE, returning the first ancestor matching TYPE.
 Returns nil if the `program' root is reached without a match.
@@ -332,8 +331,7 @@ Returns nil if point is not inside an `arguments' or `argument' node."
        (treesit-node-child-by-field-name call-node "function") t))))
 
 (defun r-ts-mode--buffer-function-positions (buffer-or-name)
-  "Return an alist of (name . position) for all function definitions
-in BUFFER-OR-NAME."
+  "Returns alist (name . position) for function definitions in BUFFER-OR-NAME."
   (with-current-buffer buffer-or-name
     (let* ((query (treesit-query-compile 'r '((function_definition name: "function" @val))))
            (ranges (mapcar #'car (treesit-query-range 'r query))))
@@ -347,9 +345,8 @@ in BUFFER-OR-NAME."
                     ranges)))))
 
 
-;;;; =========================================================================
 ;;;; Tree-sitter Font-lock Settings
-;;;; =========================================================================
+;; =============================================================================
 (defvar r-ts-mode--operators
   '("?" ":=" "=" "<-" "<<-" "->" "->>"
     "~" "|>" "||" "|" "&&" "&"
@@ -478,9 +475,8 @@ in BUFFER-OR-NAME."
   "Tree-sitter font-lock rules for `r-ts-mode'.")
 
 
-;;;; =========================================================================
 ;;;; Indentation, Navigation, Imenu Settings
-;;;; =========================================================================
+;; =============================================================================
 (defvar r-ts-mode--indent-rules
   `((r
      ((node-is "}") parent-bol 0)
@@ -516,9 +512,8 @@ object definition."
   (r-ts-mode--walk-to-definition nil))
 
 
-;;;; =========================================================================
 ;;;; Major Mode Definition
-;;;; =========================================================================
+;; =============================================================================
 
 ;;;###autoload
 (define-derived-mode r-ts-mode r-ts-mode-parent-mode "R"

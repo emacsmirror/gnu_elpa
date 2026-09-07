@@ -3,8 +3,7 @@
 
 ;; Author: Manuel Teodoro <ttm@teoten.me>
 ;; URL: https://codeberg.org/R-for-emacs/r-ts-mode
-;; Version: 1.1.2
-;; Assisted-by: Sonet:4.6
+;; Version: 1.1.3
 ;; Package-Requires: ((emacs "30.1"))
 ;; Created: June, 2026
 
@@ -23,13 +22,14 @@
 ;; along with R-TS-MODE. If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
-;; Provides syntax highlighting for Roxygen text within R-TS-MODE
+;; Provides syntax highlighting for Roxygen text within `r-ts-mode'.  This module
+;; is not loaded by default.  Thus, it should be explicitly called after
+;; `r-ts-mode' has been loaded (i.e., with `require').
 
 ;;; Code:
 
-;;;; =========================================================================
 ;;;; Groups, Custom Variables, General Variables
-;;;; =========================================================================
+;; =============================================================================
 (defgroup r-ts-roxygen nil
   "R's roxygen support for `r-ts-mode'."
   :group 'r-ts-mode
@@ -71,9 +71,8 @@ Used to decide highlighting and tag completion."
   "Regexp matching a parameter name, including symbols and commas.")
 
 
-;;;; =========================================================================
 ;;;; Roxygen Supportive Functions
-;;;; =========================================================================
+;; =============================================================================
 (defun r-ts-roxygen--build-keywords ()
   "Return a font-lock keyword list for roxygen comments.
 Pure function — reads only `defcustom' values, produces no side effects."
@@ -136,9 +135,8 @@ Pure function — reads only `defcustom' values, produces no side effects."
                #'r-ts-roxygen-complete-tag t))
 
 
-;;;; =========================================================================
 ;;;; Roxygen Minor Mode
-;;;; =========================================================================
+;; =============================================================================
 
 ;;;###autoload
 (define-minor-mode r-ts-roxygen-mode

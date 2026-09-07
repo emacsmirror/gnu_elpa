@@ -25,6 +25,13 @@
 ;;; Commentary:
 ;; Functionality to prepare the binaries for R-TS-MODE from the R
 ;; package "treesitter.r"
+;;
+;; Install the R package treesitter.r
+;; (https://cran.r-project.org/web/packages/treesitter.r/index.html) and call
+;; the function `r-ts-mode-prepare-binaries-from-r-library' to move the binaries
+;; to .emacs.d directory (currently supported only for Windows and Linux).
+;; Make sure to check the variable `r-ts-setup-r-program' to allow Emacs find
+;; the R executable.
 
 ;;; Code:
 

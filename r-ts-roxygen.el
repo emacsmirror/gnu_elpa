@@ -23,7 +23,9 @@
 ;; along with R-TS-MODE. If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
-;; Provides syntax highlighting for Roxygen text within R-TS-MODE
+;; Provides syntax highlighting for Roxygen text within `r-ts-mode'.  This module
+;; is not loaded by default.  Thus, it should be explicitly called after
+;; `r-ts-mode' has been loaded (i.e., with `require').
 
 ;;; Code:
 

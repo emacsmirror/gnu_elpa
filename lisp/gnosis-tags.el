@@ -25,6 +25,7 @@
 ;;; Code:
 
 (require 'cl-lib)
+(require 'seq)
 (require 'org)
 (require 'gnosis-db)
 (require 'gnosis-sqlite)
@@ -138,63 +139,34 @@ When a thema already has NEW-TAG, the duplicate OLD row is removed."
     (message "Renamed tag '%s' to '%s'" tag new-tag)))
 
 (defun gnosis--tag-rename-batch (pairs)
-  "Rename tags per PAIRS, an alist of (OLD . NEW).
-Pairs where NEW is empty delete those tag rows instead of renaming.
-Uses a temp mapping table so the entire rename is O(1) SQL statements."
-  (let* ((delete-tags (mapcar #'car (cl-remove-if-not
-				     (lambda (p) (string-empty-p (cdr p)))
-				     pairs)))
-	 (rename-pairs (cl-remove-if (lambda (p) (string-empty-p (cdr p)))
-				     pairs))
-	 (db (gnosis--ensure-db))
-	 (max-vars (gnosis-sqlite--max-variable-number db)))
-    (gnosis-sqlite-with-transaction db
-      ;; Delete tags that rename to empty string
-      (when delete-tags
-	(gnosis-sqlite-execute-batch db
-				     "DELETE FROM thema_tag WHERE tag IN (%s)" delete-tags))
-      (when rename-pairs
-	(gnosis-sqlite-execute db
-			       "CREATE TEMP TABLE _tag_map (old_tag TEXT, new_tag TEXT)")
-	;; Bulk-insert pairs, chunked to stay within variable limits
-	(let ((offset 0)
-	      (total (length rename-pairs)))
-	  (while (< offset total)
-	    (let* ((batch-size (/ max-vars 2))
-		   (end (min (+ offset batch-size) total))
-		   (chunk (cl-subseq rename-pairs offset end))
-		   (placeholders (mapconcat (lambda (_) "(?, ?)") chunk ", "))
-		   (params (cl-loop for (old . new) in chunk
-				    append (list old new))))
-	      (gnosis-sqlite-execute db
-				     (format "INSERT INTO _tag_map VALUES %s" placeholders)
-				     params)
-	      (setq offset end))))
-	;; 1) Delete rows where thema already has the target tag
-	(gnosis-sqlite-execute db
-			       "DELETE FROM thema_tag WHERE rowid IN (
-           SELECT tt.rowid FROM thema_tag tt
-           JOIN _tag_map m ON tt.tag = m.old_tag
-           WHERE EXISTS (SELECT 1 FROM thema_tag t2
-                         WHERE t2.thema_id = tt.thema_id
-                           AND t2.tag = m.new_tag))")
-	;; 2) Delete intra-rename duplicates: multiple old tags -> same new tag
-	;;    for the same thema.  Keep the row with the smallest rowid.
-	(gnosis-sqlite-execute db
-			       "DELETE FROM thema_tag WHERE rowid IN (
-           SELECT tt.rowid FROM thema_tag tt
-           JOIN _tag_map m ON tt.tag = m.old_tag
-           WHERE EXISTS (SELECT 1 FROM thema_tag tt2
-                         JOIN _tag_map m2 ON tt2.tag = m2.old_tag
-                         WHERE tt2.thema_id = tt.thema_id
-                           AND m2.new_tag = m.new_tag
-                           AND tt2.rowid < tt.rowid))")
-	;; 3) Rename remaining rows
-	(gnosis-sqlite-execute db
-			       "UPDATE thema_tag SET tag = (
-           SELECT m.new_tag FROM _tag_map m WHERE m.old_tag = thema_tag.tag)
-         WHERE tag IN (SELECT old_tag FROM _tag_map)")
-	(gnosis-sqlite-execute db "DROP TABLE _tag_map")))))
+  "Rename tags simultaneously per PAIRS, an alist of (OLD . NEW).
+An empty NEW deletes the original tag.  Deduplicate only the final
+set, including collisions with unchanged tags.  Batch mapping rows
+to respect SQLite parameter limits; replace affected rows atomically."
+  (when pairs
+    (let* ((db (gnosis--ensure-db))
+           (batch-size (/ (gnosis-sqlite--max-variable-number db) 2)))
+      (gnosis-sqlite-with-transaction db
+        (gnosis-sqlite-execute
+         db "CREATE TEMP TABLE _tag_map (old_tag TEXT PRIMARY KEY, new_tag TEXT)")
+        (dolist (chunk (seq-partition pairs batch-size))
+          (gnosis-sqlite-execute
+           db (concat "INSERT INTO _tag_map VALUES "
+                      (mapconcat (lambda (_) "(?, ?)") chunk ", "))
+           (cl-loop for (old . new) in chunk append (list old new))))
+        ;; Snapshot the mapped set before any source tag is removed.
+        (gnosis-sqlite-execute
+         db "CREATE TEMP TABLE _tag_final AS
+             SELECT DISTINCT tt.thema_id, m.new_tag AS tag
+             FROM thema_tag tt JOIN _tag_map m ON tt.tag = m.old_tag
+             WHERE m.new_tag != ?" (list ""))
+        (gnosis-sqlite-execute
+         db "DELETE FROM thema_tag WHERE tag IN (SELECT old_tag FROM _tag_map)")
+        (gnosis-sqlite-execute
+         db "INSERT OR IGNORE INTO thema_tag (thema_id, tag)
+             SELECT thema_id, tag FROM _tag_final")
+        (gnosis-sqlite-execute db "DROP TABLE _tag_final")
+        (gnosis-sqlite-execute db "DROP TABLE _tag_map")))))
 
 (defun gnosis-modify-thema-tags (ids add-tags remove-tags)
   "Modify tags for thema IDS.  Add ADD-TAGS and remove REMOVE-TAGS.

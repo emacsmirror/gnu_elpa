@@ -388,12 +388,14 @@
   (unwind-protect
       (let* ((gnosis-journal-todo-keywords '("TODO"))
              (gnosis-journal-file nil)
+             (today (format-time-string "%Y-%m-%d"))
              (todo-file (gnosis-test-journal--create-file
                          "tasks.org"
-                         "#+title: Tasks\n\n* TODO Exercise\nSCHEDULED: <2026-03-07>\n"))
+                         (format "#+title: Tasks\n\n* TODO Exercise\nSCHEDULED: <%s>\n" today)))
              (journal-file (gnosis-test-journal--create-file
-                            "2026-03-07.org"
-                            "#+title: 2026-03-07\n\n* Goals\n+ [X] Exercise\n+ [ ] Meditate\n"))
+                            (concat today ".org")
+                            (format "#+title: %s\n\n* Goals\n+ [X] Exercise\n+ [ ] Meditate\n"
+                                    today)))
              (gnosis-journal-todo-files (list todo-file)))
         (gnosis-journal--update-todos journal-file)
         (gnosis-test-journal--kill-file-buffer todo-file)
@@ -473,9 +475,11 @@
   (unwind-protect
       (let* ((gnosis-journal-todo-keywords '("TODO"))
              (gnosis-journal-file nil)
+             (today (format-time-string "%Y-%m-%d"))
              (journal-file (gnosis-test-journal--create-file
-                            "2026-03-07.org"
-                            "#+title: 2026-03-07\n\n* Notes\n+ [X] TaskA\n\n* Goals\n+ [X] TaskB\n"))
+                            (concat today ".org")
+                            (format "#+title: %s\n\n* Notes\n+ [X] TaskA\n\n* Goals\n+ [X] TaskB\n"
+                                    today)))
              (todo-file (gnosis-test-journal--create-file
                          "tasks.org"
                          "#+title: Tasks\n\n* TODO TaskA\n\n* TODO TaskB\n"))

@@ -156,7 +156,9 @@
   "Reject invalid suspension values without changing scheduler state."
   (gnosis-test-with-db
     (let ((id (gnosis-test--add-basic-thema "Q" "A")))
-      (should-error (gnosis-toggle-suspend-themata (list id) 2 t))
+      ;; Emacs 29 assertions can enter the debugger before a condition handler.
+      (let ((debug-on-error nil))
+        (should-error (gnosis-toggle-suspend-themata (list id) 2 t)))
       (should-not (gnosis-suspended-p id))
       (should (member id (gnosis-review-get-due-themata))))))
 

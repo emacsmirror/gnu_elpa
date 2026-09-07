@@ -45,6 +45,7 @@
 (require 'gnosis-monkeytype)
 (require 'gnosis-utils)
 (require 'gnosis-nodes)
+(require 'gnosis-links)
 (require 'keymap-popup)
 
 ;;; Review vars
@@ -529,7 +530,7 @@ Return durable state without displaying a buffer or asking for an answer."
   (let ((policy (gnosis-review-practice-policy policy)))
     (gnosis-sqlite-with-transaction (gnosis--ensure-db)
       (when-let* ((old (gnosis-review--read-session))
-                  (_ (gnosis-review-state-remaining old)))
+                  ((gnosis-review-state-remaining old)))
         (user-error "Resume or discard the unfinished study session first"))
       (let ((state (gnosis-review-state-create
                     :mode 'practice :persistent-p t :database (gnosis--ensure-db)
@@ -1031,7 +1032,7 @@ accepted grades and restores windows.  Cancelling an answer writes no grade."
   (when gnosis-review--running (user-error "Finish the active review first"))
   (unless (memq mode '(nil due practice)) (error "Unknown study mode"))
   (when-let* ((old (gnosis-review--read-session))
-              (_ (gnosis-review-state-remaining old)))
+              ((gnosis-review-state-remaining old)))
     (user-error "Resume or discard the unfinished study session first"))
   (let* ((previous (gnosis-get 'data 'study-session '(= id 1)))
          (themata (seq-filter #'gnosis-study-eligible-p
@@ -1110,7 +1111,7 @@ From a summary, require its original database and unchanged checkpoint."
   "Deliberately select another batch after finishing the current one."
   (interactive)
   (when-let* ((state (gnosis-review--read-session))
-              (_ (gnosis-review-state-remaining state)))
+              ((gnosis-review-state-remaining state)))
     (user-error "Finish, resume or discard the current batch first"))
   (gnosis-review))
 
@@ -1370,35 +1371,6 @@ SELECTION is a (KIND . TAGS) pair from `gnosis-review--read-selection'."
   "Prompt for topic and return its id."
   (let ((candidates (gnosis-study-topic-candidates)))
     (cdr (assoc (gnosis-completing-read "Select topic: " candidates t) candidates))))
-
-(defun gnosis-collect-nodes-at-depth (node-id &optional fwd-depth back-depth)
-  "Collect node IDs reachable from NODE-ID within depth limits.
-FWD-DEPTH is max hops for forward links (default 0).
-BACK-DEPTH is max hops for backlinks (default 0).
-Returns a deduplicated list including NODE-ID itself."
-  (let* ((fwd-depth (or fwd-depth 0))
-	(back-depth (or back-depth 0))
-	(max-depth (max fwd-depth back-depth))
-	(visited (make-hash-table :test 'equal))
-	(queue (list node-id)))
-    (puthash node-id t visited)
-    (dotimes (level max-depth)
-      (when queue
-	(let* ((qvec (vconcat queue))
-	       (neighbors (append
-			   (when (< level fwd-depth)
-			     (gnosis-select 'dest 'node-links
-					    `(in source ,qvec) t))
-			   (when (< level back-depth)
-			     (gnosis-select 'source 'node-links
-					    `(in dest ,qvec) t))))
-	       (next-queue nil))
-	  (dolist (neighbor neighbors)
-	    (unless (gethash neighbor visited)
-	      (puthash neighbor t visited)
-	      (push neighbor next-queue)))
-	  (setq queue next-queue))))
-    (hash-table-keys visited)))
 
 ;;;###autoload
 (defun gnosis-review-topic (&optional node-id fwd-depth back-depth)

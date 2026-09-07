@@ -28,35 +28,38 @@
 (require 'cl-lib)
 (require 'gnosis-utils)
 
-;; Runtime dependency: gnosis-org-format-string lives in gnosis.el,
-;; which requires this file.  Available at call time.
-(declare-function gnosis-org-format-string "gnosis")
-
 (defvar gnosis-face-cloze)
 (defvar gnosis-face-false)
 (defvar gnosis-face-unanswered)
 
 (defvar gnosis-cloze-string "(...)")
 
-(defun gnosis-cloze-create (str clozes &optional cloze-string)
-  "Replace CLOZES in STR with CLOZE-STRING, preserving whitespace pattern."
-  (cl-assert (listp clozes) nil "Adding clozes: Clozes need to be a list.")
-  (let ((cloze-string (or cloze-string gnosis-cloze-string)))
-    (with-temp-buffer
-      (insert (gnosis-org-format-string str))
-      (dolist (cloze clozes)
-        (let* ((cloze-text (gnosis-utils-trim-quotes cloze))
-               (replacement (concat
-                             (and (string-match "^\\s-+" cloze-text)
-				  (match-string 0 cloze-text))
-                             (propertize cloze-string
-                                         'face 'gnosis-face-cloze)
+(defun gnosis-cloze--replace (str clozes cloze-string &optional case-fold)
+  "Replace the first occurrence of each of CLOZES in STR with CLOZE-STRING.
+Process CLOZES in order against the preceding result, trimming enclosing
+quotes and retaining the cloze's leading and trailing whitespace pattern.
+Use standard syntax and case tables; CASE-FOLD enables case-insensitive
+matching.  Preserve text properties outside replaced spans, and give the
+mask `gnosis-face-cloze'.  Return a new string without changing the inputs,
+rendering Org, or opening a buffer."
+  (let ((case-fold-search case-fold)
+        (search-spaces-regexp nil))
+    (with-syntax-table (standard-syntax-table)
+      (with-case-table (standard-case-table)
+        (save-match-data
+          (cl-reduce
+           (lambda (text cloze)
+             (let* ((cloze-text (gnosis-utils-trim-quotes cloze))
+                    (replacement
+                     (concat (and (string-match "^\\s-+" cloze-text)
+                                  (match-string 0 cloze-text))
+                             (propertize cloze-string 'face 'gnosis-face-cloze)
                              (and (string-match "\\s-+$" cloze-text)
-				  (match-string 0 cloze-text)))))
-          (goto-char (point-min))
-          (when (search-forward cloze-text nil t)
-            (replace-match replacement t t))))
-      (buffer-string))))
+                                  (match-string 0 cloze-text)))))
+               (if (string-match (regexp-quote cloze-text) text)
+                   (replace-match replacement t t text)
+                 text)))
+           clozes :initial-value (copy-sequence str)))))))
 
 (defun gnosis-cloze-add-hints (str hints &optional cloze-string)
   "Replace CLOZE-STRING in STR with HINTS, skipping empty hints."

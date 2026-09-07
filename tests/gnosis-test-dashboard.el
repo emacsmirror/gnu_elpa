@@ -18,33 +18,25 @@
 
 (defvar gnosis-dashboard--history)
 
-(load (expand-file-name "gnosis-test-helpers.el"
-			(file-name-directory (or load-file-name buffer-file-name))))
+(require 'gnosis-test-helpers)
 
 ;; ──────────────────────────────────────────────────────────
 ;; Dashboard-specific test helpers
 ;; ──────────────────────────────────────────────────────────
 
-(defmacro gnosis-test-with-clean-cache (&rest body)
-  "Run BODY with fresh dashboard caches.
-Cancels pending timers and resets all dashboard cache state to prevent
-cross-test pollution."
+(defmacro gnosis-test-with-dashboard-state (&rest body)
+  "Run BODY with isolated dashboard selection and navigation state."
   (declare (indent 0) (debug t))
-  `(progn
-     (cancel-function-timers #'gnosis-dashboard--append-chunk)
-     (cancel-function-timers #'gnosis-dashboard--warm-cache-chunk)
-     (let ((gnosis-dashboard--entry-cache (make-hash-table :test 'equal))
-           (gnosis-dashboard--selected-ids nil)
-           (gnosis-dashboard--load-generation 0)
-           (gnosis-dashboard--history nil))
-       ,@body)))
+  `(let ((gnosis-dashboard--selected-ids nil)
+         (gnosis-dashboard--history nil))
+     ,@body))
 
 (defmacro gnosis-test-with-dashboard-buffer (&rest body)
   "Run BODY in a temporary dashboard buffer with tabulated-list-mode.
 Stubs `pop-to-buffer-same-window' so tests work in batch mode.
-Includes `gnosis-test-with-clean-cache' for isolation."
+Includes `gnosis-test-with-dashboard-state' for isolation."
   (declare (indent 0) (debug t))
-  `(gnosis-test-with-clean-cache
+  `(gnosis-test-with-dashboard-state
     (let ((gnosis-dashboard-buffer-name "*Gnosis Dashboard Test*"))
       (get-buffer-create gnosis-dashboard-buffer-name)
       (cl-letf (((symbol-function 'pop-to-buffer-same-window)
@@ -124,7 +116,7 @@ Includes `gnosis-test-with-clean-cache' for isolation."
          (funcall gnosis-dashboard-module-today-stats)
          (funcall gnosis-dashboard-module-average-rev)
          (should (string-search "Reviewed today: 6 (New: 2)" (buffer-string)))
-         (should (string-search "Daily Average: 4.00" (buffer-string)))
+         (should (string-search "Reviews per active day: 4.00" (buffer-string)))
          (should (string-search "Current streak: 2 day(s)" (buffer-string))))
        (unwind-protect
            (cl-letf (((symbol-function 'pop-to-buffer) #'ignore))
@@ -163,7 +155,7 @@ Includes `gnosis-test-with-clean-cache' for isolation."
 (ert-deftest gnosis-test-dashboard-output-themata-basic ()
   "Output-themata returns correctly formatted entries."
   (gnosis-test-with-db
-   (gnosis-test-with-clean-cache
+   (gnosis-test-with-dashboard-state
     (let* ((id1 (gnosis-test--add-basic-thema "What is 2+2?" "4"
                                               '("math")))
            (id2 (gnosis-test--add-basic-thema "Capital?" "Athens"
@@ -185,7 +177,7 @@ Includes `gnosis-test-with-clean-cache' for isolation."
 (ert-deftest gnosis-test-dashboard-output-themata-suspended ()
   "Suspended themata show \"Yes\" in suspend column."
   (gnosis-test-with-db
-   (gnosis-test-with-clean-cache
+   (gnosis-test-with-dashboard-state
     (let* ((id1 (gnosis-test--add-basic-thema "Q?" "A" '("t") nil nil 1))
            (entries (gnosis-dashboard--output-themata (list id1)))
            (e1 (cl-find id1 entries :key #'car))
@@ -193,7 +185,7 @@ Includes `gnosis-test-with-clean-cache' for isolation."
       (should (equal (aref vec1 5) "Yes"))))))
 
 (ert-deftest gnosis-test-dashboard-scheduler-only-themata-remain-visible ()
-  "Read direct and warmed rows without legacy scheduler records."
+  "Read fresh rows without legacy scheduler records."
   (gnosis-test-with-db
     (gnosis-test-with-dashboard-buffer
       (let ((id 9001))
@@ -204,16 +196,14 @@ Includes `gnosis-test-with-clean-cache' for isolation."
                  "Yes"
                  (aref (cadar (gnosis-dashboard--output-themata (list id))) 5)))
         (gnosis-update 'scheduler-state '(= suspended 0) `(= thema-id ,id))
-        (clrhash gnosis-dashboard--entry-cache)
-        (gnosis-dashboard--warm-cache-chunk (list (list id)) 1 0)
-        (should (equal "No" (aref (cadr (gethash id
-                                                  gnosis-dashboard--entry-cache))
-                                        5)))))))
+        (should (equal
+                 "No"
+                 (aref (cadar (gnosis-dashboard--output-themata (list id))) 5)))))))
 
-(ert-deftest gnosis-test-dashboard-suspend-tag-invalidates-entry-cache ()
+(ert-deftest gnosis-test-dashboard-suspend-tag-refreshes-entry ()
   "Suspend-by-tag makes the next formatted entry reflect SQLite state."
   (gnosis-test-with-db
-   (gnosis-test-with-clean-cache
+   (gnosis-test-with-dashboard-state
     (let ((id (gnosis-test--add-basic-thema "Q?" "A" '("math"))))
       (should (equal
                (aref (cadar (gnosis-dashboard--output-themata (list id))) 5)
@@ -230,7 +220,7 @@ Includes `gnosis-test-with-clean-cache' for isolation."
 (ert-deftest gnosis-test-dashboard-output-themata-list-tags ()
   "List-valued tags are joined with commas."
   (gnosis-test-with-db
-   (gnosis-test-with-clean-cache
+   (gnosis-test-with-dashboard-state
     (let* ((id1 (gnosis-test--add-basic-thema "Q?" "A"
                                               '("math" "algebra")))
            (entries (gnosis-dashboard--output-themata (list id1)))
@@ -242,7 +232,7 @@ Includes `gnosis-test-with-clean-cache' for isolation."
 (ert-deftest gnosis-test-dashboard-output-themata-strips-org-links ()
   "Org-mode links in keimenon are simplified to description only."
   (gnosis-test-with-db
-   (gnosis-test-with-clean-cache
+   (gnosis-test-with-dashboard-state
     (let* ((id1 (gnosis-test--add-basic-thema
                  "See [[id:abc-123][My Node]] for details" "A"))
            (entries (gnosis-dashboard--output-themata (list id1)))
@@ -254,7 +244,7 @@ Includes `gnosis-test-with-clean-cache' for isolation."
 (ert-deftest gnosis-test-dashboard-output-themata-strips-newlines ()
   "Newlines in fields are replaced with spaces."
   (gnosis-test-with-db
-   (gnosis-test-with-clean-cache
+   (gnosis-test-with-dashboard-state
     (let* ((id1 (gnosis-test--add-basic-thema "Line1\nLine2" "A"))
            (entries (gnosis-dashboard--output-themata (list id1)))
            (vec (cadr (car entries))))
@@ -1554,10 +1544,7 @@ This is the critical bug fix: (not nil) => t was wrong."
         ;; Manually call append-chunk with stale gen — should be no-op
         (let ((old-count (count-lines (point-min) (point-max))))
           (gnosis-dashboard--append-chunk
-           (current-buffer)
-           (list (list (list id3 ["Q3" "" "" "test" "basic" "No"])))
-           (last tabulated-list-entries)
-           (1- gnosis-dashboard--load-generation))
+           (current-buffer) (1- gnosis-dashboard--load-generation))
           (should (= (count-lines (point-min) (point-max)) old-count))))))))
 
 (ert-deftest gnosis-test-dashboard-progressive-render-stops-after-view-change ()
@@ -1613,35 +1600,24 @@ This is the critical bug fix: (not nil) => t was wrong."
                   (should (equal (buffer-string) expected-text)))))
           (set-marker marker nil)))))))
 
-(ert-deftest gnosis-test-dashboard-stale-idle-render-does-not-replace-view ()
-  "A stale final render callback must not replace a later themata view."
+(ert-deftest gnosis-test-dashboard-stale-render-does-not-replace-view ()
+  "A queued append must not alter a later themata view in the same buffer."
   (gnosis-test-with-db
-   (let ((id1 (gnosis-test--add-basic-thema "Original question" "A1"))
-         (id2 (gnosis-test--add-basic-thema "Second question" "A2")))
-     (gnosis-test-with-dashboard-buffer
-      (gnosis-dashboard-output-themata (list id1))
-      (with-current-buffer gnosis-dashboard-buffer-name
-        (let (idle-callback idle-args)
-          (cl-letf (((symbol-function 'run-with-idle-timer)
-                     (lambda (_seconds _repeat function &rest args)
-                       (setq idle-callback function
-                             idle-args args))))
-            (gnosis-dashboard--append-chunk
-             (current-buffer)
-             (list (list (list id2
-                               ["Second question" "" "" "test"
-                                "basic" "No"])))
-             (last tabulated-list-entries)
-             gnosis-dashboard--load-generation))
-          (let ((inhibit-read-only t))
-            (erase-buffer)
-            (insert "Different dashboard view"))
-          (cl-incf gnosis-dashboard--load-generation)
-          (when idle-callback
-            (apply idle-callback idle-args))
-          (gnosis-dashboard-output-themata (list id1))
-          (goto-char (point-min))
-          (should (search-forward "Original question" nil t))))))))
+    (let ((id1 (gnosis-test--add-basic-thema "Original question" "A1"))
+          (id2 (gnosis-test--add-basic-thema "Second question" "A2"))
+          (gnosis-dashboard-render-chunk-size 1)
+          callback)
+      (gnosis-test-with-dashboard-buffer
+        (cl-letf (((symbol-function 'run-with-timer)
+                   (lambda (_delay _repeat function &rest args)
+                     (setq callback (cons function args))
+                     nil)))
+          (gnosis-dashboard-output-themata (list id1 id2))
+          (gnosis-dashboard-output-themata (list id2))
+          (let ((before (buffer-string)))
+            (apply (car callback) (cdr callback))
+            (should (equal before (buffer-string)))
+            (should (equal (list id2) (mapcar #'car tabulated-list-entries)))))))))
 
 ;; ──────────────────────────────────────────────────────────
 ;; Benchmark tests

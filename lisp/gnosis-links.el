@@ -37,15 +37,49 @@
 ;;; Link extraction
 
 (defun gnosis-extract-id-links (input &optional start)
-  "Extract all link IDs from INPUT string as a list.
-
-START is the search starting position, used internally
-for recursion."
+  "Extract bracketed Org ID links from INPUT in order.
+Handle links with or without descriptions.  START is the optional
+zero-based search starting position."
   (let ((start (or start 0)))
-    (if (string-match "\\[\\[id:\\([^]]+\\)\\]\\[" input start)
-        (cons (match-string 1 input)
-              (gnosis-extract-id-links input (match-end 0)))
-      nil)))
+    (cl-loop while (string-match "\\[\\[id:\\([^]\n]+\\)\\]\\(?:\\[\\|\\]\\)"
+                                 input start)
+             collect (match-string 1 input)
+             do (setq start (match-end 0)))))
+
+;;; Node graph selection
+
+(defun gnosis-collect-nodes-at-depth (node-id &optional fwd-depth back-depth)
+  "Collect node IDs reachable from NODE-ID within depth limits.
+FWD-DEPTH is max hops for forward links (default 0).
+BACK-DEPTH is max hops for backlinks (default 0).
+At each level, both enabled directions expand the same frontier.
+A node reached through a backlink can thus be followed forward at the
+next level, and vice versa, while that direction's budget permits.
+Return a deduplicated list including NODE-ID itself, in the visited
+hash table's key order."
+  (let* ((fwd-depth (or fwd-depth 0))
+	(back-depth (or back-depth 0))
+	(max-depth (max fwd-depth back-depth))
+	(visited (make-hash-table :test 'equal))
+	(queue (list node-id)))
+    (puthash node-id t visited)
+    (dotimes (level max-depth)
+      (when queue
+	(let* ((qvec (vconcat queue))
+	       (neighbors (append
+			   (when (< level fwd-depth)
+			     (gnosis-select 'dest 'node-links
+					    `(in source ,qvec) t))
+			   (when (< level back-depth)
+			     (gnosis-select 'source 'node-links
+					    `(in dest ,qvec) t))))
+	       (next-queue nil))
+	  (dolist (neighbor neighbors)
+	    (unless (gethash neighbor visited)
+	      (puthash neighbor t visited)
+	      (push neighbor next-queue)))
+	  (setq queue next-queue))))
+    (hash-table-keys visited)))
 
 ;;; Bulk link operations
 

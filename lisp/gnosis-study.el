@@ -27,6 +27,7 @@
 
 (require 'gnosis)
 (require 'gnosis-nodes)
+(require 'gnosis-links)
 (require 'gnosis-tags)
 (require 'keymap-popup)
 (require 'tabulated-list)
@@ -34,8 +35,6 @@
 (declare-function gnosis-review-loop "gnosis-review" (collector &optional mode))
 (declare-function gnosis-review-resume "gnosis-review" ())
 (declare-function gnosis-review-undo "gnosis-review" (&optional event-id correction-id))
-(declare-function gnosis-collect-nodes-at-depth "gnosis-review"
-                  (node-id &optional fwd-depth back-depth))
 
 (defun gnosis-study-topic-candidates (&optional ids)
   "Return title-based completion candidates, optionally for IDS.
@@ -81,7 +80,6 @@ Keep Org IDs in the values, not the labels."
   "Return unique eligible themata linked to NODES.
 When DUE is non-nil, exclude not-due items.  FWD and BACK are explicit
 bounded graph depths, both defaulting to zero.  Ignore the daily new limit."
-  (require 'gnosis-review)
   (unless (and (natnump (or fwd 0)) (natnump (or back 0)))
     (user-error "Graph depths must be nonnegative integers"))
   (let* ((nodes (delete-dups

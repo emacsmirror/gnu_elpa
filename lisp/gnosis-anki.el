@@ -52,30 +52,27 @@ Short-circuits when STR contains no HTML markup or entities."
   (if (not (or (string-match-p "[<&]" str)
                (string-match-p "\n\\{3,\\}" str)))
       (string-trim str)
-    (let ((s str))
-      (when (string-match-p "<" s)
-        (setq s (replace-regexp-in-string "<b>\\(.*?\\)</b>" "*\\1*" s))
-        (setq s (replace-regexp-in-string "<i>\\(.*?\\)</i>" "/\\1/" s))
-        (setq s (replace-regexp-in-string "<u>\\(.*?\\)</u>" "_\\1_" s))
-        (setq s (replace-regexp-in-string "<sub>\\(.*?\\)</sub>" "_{\\1}" s))
-        (setq s (replace-regexp-in-string "<sup>\\(.*?\\)</sup>" "^{\\1}" s))
-        (setq s (replace-regexp-in-string
-                 "<a [^>]*href=\"\\([^\"]+\\)\"[^>]*>\\(.*?\\)</a>"
-                 "[[\\1][\\2]]" s))
-        (setq s (replace-regexp-in-string "<br\\s*/?>\\s*" "\n" s))
-        (setq s (replace-regexp-in-string
-                 "<div>\\(.*?\\)</div>" "\\1\n" s))
-        (setq s (replace-regexp-in-string "<[^>]+>" "" s)))
-      (when (string-match-p "&" s)
-        (setq s (replace-regexp-in-string "&nbsp;" " " s))
-        (setq s (replace-regexp-in-string "&amp;" "&" s))
-        (setq s (replace-regexp-in-string "&lt;" "<" s))
-        (setq s (replace-regexp-in-string "&gt;" ">" s))
-        (setq s (replace-regexp-in-string "&quot;" "\"" s)))
-      ;; Strip Anki media references
-      (setq s (replace-regexp-in-string "\\[sound:[^]]*\\]" "" s))
-      (setq s (replace-regexp-in-string "\n\\{3,\\}" "\n\n" s))
-      (string-trim s))))
+    (string-trim
+     (seq-reduce
+      (lambda (text rule)
+        (replace-regexp-in-string (car rule) (cdr rule) text))
+      '(("<b>\\(.*?\\)</b>" . "*\\1*")
+        ("<i>\\(.*?\\)</i>" . "/\\1/")
+        ("<u>\\(.*?\\)</u>" . "_\\1_")
+        ("<sub>\\(.*?\\)</sub>" . "_{\\1}")
+        ("<sup>\\(.*?\\)</sup>" . "^{\\1}")
+        ("<a [^>]*href=\"\\([^\"]+\\)\"[^>]*>\\(.*?\\)</a>" . "[[\\1][\\2]]")
+        ("<br\\(?:[[:space:]][^>]*\\)?/?>" . "\n")
+        ("</?\\(?:div\\|p\\|li\\|tr\\|h[1-6]\\)\\(?:[[:space:]][^>]*\\)?>" . "\n")
+        ("<[^>]+>" . "")
+        ("&nbsp;" . " ")
+        ("&amp;" . "&")
+        ("&lt;" . "<")
+        ("&gt;" . ">")
+        ("&quot;" . "\"")
+        ("\\[sound:[^]]*\\]" . "")
+        ("\n\\{3,\\}" . "\n\n"))
+      str))))
 
 (defun gnosis-anki--strip-emphasis (str)
   "Strip org emphasis markers from STR.
@@ -303,22 +300,28 @@ Try ZSTD first, fall back to 7Z.  Returns path to decompressed DB."
 SEG-CACHE and SEEN are shared tag-parsing caches.
 Returns a list of plists (one per cloze deletion), or nil if skipped."
   (let* ((fields (split-string flds "\x1f"))
-         (text (gnosis-anki--html-to-org (or (nth 0 fields) "")))
+         ;; Parse cloze syntax before HTML introduces literal newlines.
+         (text (or (nth 0 fields) ""))
          (extra (gnosis-anki--html-to-org (or (nth 1 fields) "")))
          (_ (clrhash seen))
          (tags (gnosis-anki--parse-tags tag-str seg-cache seen))
          (contents (gnosis-cloze-extract-contents text))
          (clozes (gnosis-cloze-extract-answers contents))
          (hints (gnosis-cloze-extract-hints contents))
-         (keimenon (gnosis-cloze-remove-tags text)))
+         (keimenon (gnosis-anki--html-to-org (gnosis-cloze-remove-tags text))))
     (when clozes
       (cl-loop for cloze in clozes
                for hint in hints
                collect (list :type "cloze"
                              :keimenon keimenon
-                             :hypothesis hint
+                             :hypothesis (mapcar
+                                          (lambda (text)
+                                            (and text (gnosis-anki--html-to-org text)))
+                                          hint)
                              :answer (mapcar
-                                      #'gnosis-anki--strip-emphasis
+                                      (lambda (answer)
+                                        (gnosis-anki--strip-emphasis
+                                         (gnosis-anki--html-to-org answer)))
                                       cloze)
                              :parathema extra
                              :tags tags)))))
@@ -616,39 +619,68 @@ Returns (SKIPPED . PREPARED) where PREPARED is a list of plists."
      (lambda ()
        (when gnosis-vc-auto-push (gnosis-vc-push))))))
 
+(defun gnosis-anki--import-chunks (items size)
+  "Partition ITEMS into chunks of about SIZE without splitting source notes.
+Group by :guid in first-appearance order.  Items without GUIDs are
+independent.  A note larger than SIZE occupies one chunk, whose SQL
+writes must be bounded separately inside a single transaction."
+  (let* ((by-guid (make-hash-table :test #'equal))
+         (keys (cl-loop for item in items for index from 0
+                        for key = (or (plist-get item :guid) index)
+                        unless (gethash key by-guid) collect key
+                        do (push item (gethash key by-guid))))
+         (groups (mapcar (lambda (key) (nreverse (gethash key by-guid))) keys)))
+    (let ((count 0) chunk chunks)
+      (dolist (group groups)
+        (when (and chunk (> (+ count (length group)) size))
+          (push (apply #'append (nreverse chunk)) chunks)
+          (setq count 0 chunk nil))
+        (push group chunk)
+        (setq count (+ count (length group))))
+      (when chunk (push (apply #'append (nreverse chunk)) chunks))
+      (nreverse chunks))))
+
 (defun gnosis-anki--chunk-insert (db item-chunks id-chunks total skipped
                                      today cleanup-fn
                                      source-file
                                      &optional extra-tag suspend)
   "Insert ITEM-CHUNKS with ID-CHUNKS into DB asynchronously.
-TOTAL and SKIPPED are counts for progress messages.  TODAY is the
-captured logical review day.  CLEANUP-FN is
-called with no args after the last chunk.  SOURCE-FILE is the
-original file path for the git commit message.  EXTRA-TAG and
-SUSPEND are passed through to `gnosis-anki--bulk-insert-chunk'."
+Each chunk commits atomically; SQL writes stay bounded even for a
+large source note.  TOTAL and SKIPPED are progress counts.  TODAY is
+the captured logical review day.  Call CLEANUP-FN with no arguments
+on completion, error or quit.  SOURCE-FILE identifies the import commit.
+Pass EXTRA-TAG and SUSPEND to `gnosis-anki--bulk-insert-chunk'."
   (let ((imported 0))
     (cl-labels
         ((process-next (item-rest id-rest)
-           (if (null item-rest)
-               (progn
-                 (sqlite-execute db "ANALYZE")
-                 (gnosis-anki--commit-import imported source-file)
-                 (when cleanup-fn (funcall cleanup-fn))
-                 (message "Anki import complete: %d imported, %d skipped"
-                          imported skipped))
-             (condition-case err
-                 (progn
-                   (gnosis-anki--bulk-insert-chunk
-                    db (car item-rest) (car id-rest)
-                    today extra-tag suspend)
-                   (setq imported (+ imported (length (car item-rest))))
-                   (message "Importing... %d/%d (%d%%)"
-                            imported total (/ (* 100 imported) total))
-                   (run-with-timer 0.1 nil #'process-next
-                                   (cdr item-rest) (cdr id-rest)))
-               (error
-                (message "Anki import error at chunk %d: %S" imported err)
-                (when cleanup-fn (funcall cleanup-fn)))))))
+           (let (continued)
+             (unwind-protect
+                 (condition-case err
+                     (if (null item-rest)
+                         (progn
+                           (sqlite-execute db "ANALYZE")
+                           (gnosis-anki--commit-import imported source-file)
+                           (message "Anki import complete: %d imported, %d skipped"
+                                    imported skipped))
+                       (gnosis-sqlite-with-transaction db
+                         (cl-loop for items in (seq-partition
+                                                (car item-rest)
+                                                gnosis-anki--chunk-size)
+                                  for ids in (seq-partition
+                                              (car id-rest)
+                                              gnosis-anki--chunk-size)
+                                  do (gnosis-anki--bulk-insert-chunk
+                                      db items ids today extra-tag suspend)))
+                       (setq imported (+ imported (length (car item-rest))))
+                       (message "Importing... %d/%d (%d%%)"
+                                imported total (/ (* 100 imported) total))
+                       (run-with-timer 0.1 nil #'process-next
+                                       (cdr item-rest) (cdr id-rest))
+                       (setq continued t))
+                   (error
+                    (message "Anki import error after %d themata: %S" imported err)))
+               (unless continued
+                 (when cleanup-fn (funcall cleanup-fn)))))))
       (process-next item-chunks id-chunks))))
 
 (defun gnosis-anki--build-guid-cache ()
@@ -667,10 +699,13 @@ Uses raw `sqlite-select' because source_guid is stored without
   "Import notes from Anki database at DB-FILE asynchronously.
 Parses all notes, then bulk-inserts in chunks using timers so
 Emacs stays responsive.  When TMP-P is non-nil, clean up DB-FILE
-and its temp directory after import.  EXTRA-TAG is appended to
-each thema's tags.  SUSPEND imports as suspended.  SOURCE-FILE
-is the original .apkg path for the git commit message."
-  (let* ((parse-result (gnosis-anki--parse-anki-db db-file))
+and its temp directory after parsing, including on failure.
+EXTRA-TAG is appended to each thema's tags.  SUSPEND imports as
+suspended.  SOURCE-FILE is the original .apkg path for the git commit message."
+  (let* ((parse-result (unwind-protect
+                           (gnosis-anki--parse-anki-db db-file)
+                         ;; Prepared notes own all data needed by the timers.
+                         (when tmp-p (gnosis-anki--cleanup-temp db-file))))
          (skipped (car parse-result))
          (prepared (cdr parse-result))
          ;; Filter out duplicates by GUID
@@ -683,25 +718,20 @@ is the original .apkg path for the git commit message."
          (dup-count (- (length prepared) (length deduped)))
          (skipped (+ skipped dup-count))
          (prepared deduped)
-         (total (length prepared))
-         (cleanup-fn (when tmp-p
-                       (lambda () (gnosis-anki--cleanup-temp db-file)))))
+         (total (length prepared)))
     (when (> dup-count 0)
       (message "Skipping %d duplicate notes (already imported)" dup-count))
     (if (zerop total)
-        (progn
-          (when cleanup-fn (funcall cleanup-fn))
-          (message "Anki import: 0 imported, %d skipped" skipped))
+        (message "Anki import: 0 imported, %d skipped" skipped)
       (let* ((gnosis--id-cache (gnosis-anki--build-id-cache))
-             (all-ids (progn (message "Generating %d IDs..." total)
-                             (gnosis-generate-ids total))))
+             (chunks (gnosis-anki--import-chunks prepared gnosis-anki--chunk-size))
+             (id-chunks (mapcar (lambda (chunk)
+                                  (gnosis-generate-ids (length chunk)))
+                                chunks)))
         (gnosis-anki--chunk-insert
-         (gnosis--ensure-db)
-         (seq-partition prepared gnosis-anki--chunk-size)
-         (seq-partition all-ids gnosis-anki--chunk-size)
-         total skipped
+         (gnosis--ensure-db) chunks id-chunks total skipped
          (gnosis--today-int)
-         cleanup-fn
+         nil
          (or source-file db-file)
          extra-tag suspend)))))
 

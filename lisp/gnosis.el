@@ -395,6 +395,19 @@ images using `org-format-latex'."
         (error (message "LaTeX preview: %s" (error-message-string err)))))
     (buffer-string)))
 
+(defun gnosis-cloze-create (str clozes &optional cloze-string)
+  "Render STR as Org and replace CLOZES with CLOZE-STRING.
+Preserve whitespace patterns and replace each cloze's first occurrence.
+CLOZE-STRING defaults to `gnosis-cloze-string'.  Fontification and optional
+LaTeX preview run once, before substitution, as in `gnosis-org-format-string'."
+  (cl-assert (listp clozes) nil "Adding clozes: Clozes need to be a list.")
+  (let ((cloze-string (or cloze-string gnosis-cloze-string))
+        ;; Match the original temporary buffer's default search context,
+        ;; rather than inheriting the calling mode's local search settings.
+        (case-fold (default-value 'case-fold-search)))
+    (gnosis-cloze--replace (gnosis-org-format-string str)
+                          clozes cloze-string case-fold)))
+
 (cl-defun gnosis--prompt (prompt &optional (downcase nil) (split nil))
   "PROMPT user for input until `q' is given.
 

@@ -2294,7 +2294,7 @@ in case of cyclic dependencies."
                           ;; we add a more accurate timestamp here to allow for correct sorting
                           (format-time-string "%FT%T%z" age)
                           (format-time-string "%Y-%m-%d" age)))))
-      (write-region (point-min) (point-max) "table.html"))))
+      (write-region (point-min) (point-max) "table.htm"))))
 
 (defun elpaa-batch-html-make-index ()
   (let* ((ac-file (pop command-line-args-left))

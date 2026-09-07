@@ -56,12 +56,12 @@ readme:
 ########## Updating specific files ############################################
 
 # Apparently `%` can't match the empty string!
-archiv%/table.html: archiv%/archive-contents
+archiv%/table.htm: archiv%/archive-contents
 	$(EMACS) -l admin/elpa-admin.el \
 	         -f elpaa-batch-html-make-index $< $*
 
-archive/index.html: archive/table.html html/_index.html
-archive-devel/index.html: archive-devel/table.html html/_devel.html
+archive/index.html: archive/table.htm html/_index.html
+archive-devel/index.html: archive-devel/table.htm html/_devel.html
 archive/index.html archive-devel/index.html:
 	sed -e "/^<tr></d; /^<tbody>/r $<" $(word 2,$^) > $@
 

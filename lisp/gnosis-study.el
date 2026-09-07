@@ -38,11 +38,33 @@
                   (node-id &optional fwd-depth back-depth))
 
 (defun gnosis-study-topic-candidates (&optional ids)
-  "Return identity-preserving completion candidates, optionally for IDS."
-  (mapcar (lambda (row) (cons (format "%s [id:%s]" (cadr row) (car row))
-                              (car row)))
-          (gnosis-select '[id title] 'nodes
-                         (when ids `(in id ,(vconcat ids))))))
+  "Return title-based completion candidates, optionally for IDS.
+Distinguish duplicate titles by source file, then by an occurrence number.
+Keep Org IDs in the values, not the labels."
+  (let* ((rows (gnosis-select '[id title file] 'nodes))
+         (counts (make-hash-table :test #'equal))
+         (used (make-hash-table :test #'equal)))
+    (dolist (row rows)
+      (puthash (cadr row) (1+ (gethash (cadr row) counts 0)) counts)
+      (puthash (cadr row) t used))
+    (let ((candidates
+           (mapcar
+            (lambda (row)
+              (let* ((title (cadr row))
+                     (label
+                      (if (= 1 (gethash title counts)) title
+                        (let* ((base (format "%s — %s" title (nth 2 row)))
+                               (label (cl-loop for n from 1
+                                               for candidate = (if (= n 1) base
+                                                                 (format "%s <%d>" base n))
+                                               unless (gethash candidate used)
+                                               return candidate)))
+                          (puthash label t used)
+                          label))))
+                (cons label (car row))))
+            rows)))
+      (if ids (seq-filter (lambda (candidate) (member (cdr candidate) ids)) candidates)
+        candidates))))
 
 (defun gnosis-study-read-topics ()
   "Read one or more topic IDs, distinguishing duplicate titles."
@@ -98,16 +120,20 @@ Due and new counts include only active items; new can also be due."
   (require 'gnosis-review)
   (let* ((ids (gnosis-study-topic-ids nodes (eq mode 'due) fwd back))
          (counts (gnosis-study-composition ids))
+         (candidates (gnosis-study-topic-candidates nodes))
          (scope (mapconcat (lambda (id)
-                             (format "%s [id:%s]"
-                                     (gnosis-get 'title 'nodes `(= id ,id)) id))
+                             (or (car (rassoc id candidates)) "Unknown topic"))
                            nodes ", ")))
     (if (null ids) (message "No eligible themata for %s" scope)
       (when (y-or-n-p
-             (format "%s: %s; %d unique, %d new, %d not due; no cap, graph %d/%d; one failed retry.  Start? "
-                     (if (eq mode 'practice) "Practise (no rescheduling)" "Review due (FSRS)")
-                     scope (length ids) (plist-get counts :new)
-                     (plist-get counts :not-due) (or fwd 0) (or back 0)))
+             (format "%s: %s — %d %s (%d new, %d not due).%s Retry missed answers once.  Start? "
+                     (if (eq mode 'practice) "Practise without rescheduling" "Review due (reschedules)")
+                     scope (length ids) (if (= (length ids) 1) "thema" "themata")
+                     (plist-get counts :new)
+                     (plist-get counts :not-due)
+                     (if (or (> (or fwd 0) 0) (> (or back 0) 0))
+                         (format " Link depth: %d forward, %d backward." (or fwd 0) (or back 0))
+                       "")))
         (gnosis-review-loop (gnosis-shuffle ids) mode)))))
 
 ;;;###autoload

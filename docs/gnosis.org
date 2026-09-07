@@ -1103,15 +1103,18 @@ the correct word from a shuffled list via completion.
 
 ~gnosis-practice-topic~ selects one or more topics for practice, including
 new and not-due themata.  ~gnosis-review-due-topic~ selects only due
-linked themata and accepts normal FSRS reviews.  Completion labels
-include Org IDs to distinguish duplicate titles.  Direct links are the
-default.  With =C-u=, either command asks for nonnegative forward and
+linked themata and accepts normal FSRS reviews.  Completion shows topic
+titles, adding source filenames only for duplicate titles and an occurrence
+number when the source is also the same.  Org IDs remain internal.
+Direct links are the default.  With =C-u=, either command asks for
+nonnegative forward and
 backlink depths; graph links do not imply a syllabus or prerequisites.
 
-Before starting, the confirmation prompt shows the mode, source titles
-and IDs, eligible unique count, new and not-due counts, graph depths and
-the once-per-failure retry policy.  Both explicit topic batches have no
-new-item cap.  Multiple links and graph paths do not duplicate a thema.
+Before starting, the confirmation prompt shows the mode, topic titles,
+eligible thema count, new and not-due counts, and the once-per-failure
+retry policy.  Link depths appear only when expanding beyond direct links.
+Both explicit topic batches have no new-item cap.  Multiple links and
+graph paths do not duplicate a thema.
 Deleted and suspended items are excluded; practice never unsuspends
 anything.  Canceling this preview starts no batch and records no grade.
 

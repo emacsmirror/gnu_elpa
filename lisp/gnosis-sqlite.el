@@ -45,10 +45,14 @@
 (defun gnosis-sqlite-open (file)
   "Open SQLite database FILE and return the handle.
 Enables foreign keys and sets a busy timeout."
-  (let ((db (sqlite-open file)))
-    (sqlite-execute db "PRAGMA foreign_keys = ON")
-    (sqlite-execute db "PRAGMA busy_timeout = 5000")
-    db))
+  (let ((db (sqlite-open file)) ready)
+    (unwind-protect
+        (progn
+          (sqlite-execute db "PRAGMA foreign_keys = ON")
+          (sqlite-execute db "PRAGMA busy_timeout = 5000")
+          (setq ready t)
+          db)
+      (unless ready (sqlite-close db)))))
 
 (defun gnosis-sqlite-close (db)
   "Close SQLite database handle DB."

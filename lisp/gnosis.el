@@ -541,10 +541,13 @@ REVIEW-IMAGE is optional image data and GNOSIS-ID is an optional ID."
 	 (review-image (or review-image ""))
          (today (gnosis--today-int)))
     (gnosis-sqlite-with-transaction (gnosis--ensure-db)
-      (gnosis--insert-into 'themata
-			   `([,gnosis-id ,(downcase type)
-					 ,keimenon ,hypothesis
-					 ,answer nil]))
+      ;; Name owned columns so retained archive metadata keeps its default.
+      ;; Store an absent hint as the readable empty list under NOT NULL.
+      (gnosis-sqlite-execute
+       (gnosis--ensure-db)
+       "INSERT INTO themata (id, type, keimenon, hypothesis, answer, source_guid)
+        VALUES (?, ?, ?, COALESCE(?, 'nil'), ?, NULL)"
+       (list gnosis-id (downcase type) keimenon hypothesis answer))
       (gnosis-scheduler-initialize-thema gnosis-id today suspend)
       (gnosis--insert-into 'extras `([,gnosis-id ,parathema ,review-image]))
       (cl-loop for link in links
@@ -567,7 +570,7 @@ When `gnosis--id-cache' is bound, uses hash table for existence check."
 	(gnosis-sqlite-with-transaction (gnosis--ensure-db)
 	  ;; Single multi-column UPDATE for themata
 	  (gnosis-sqlite-execute (gnosis--ensure-db)
-				 "UPDATE themata SET keimenon = ?, hypothesis = ?, answer = ?, type = ? WHERE id = ?"
+				 "UPDATE themata SET keimenon = ?, hypothesis = COALESCE(?, 'nil'), answer = ?, type = ? WHERE id = ?"
 				 (list keimenon hypothesis answer
 				       (or type current-type) id))
 	  ;; Single UPDATE for extras

@@ -76,10 +76,18 @@ Creates `gnosis-dir' and runs schema initialization on first use."
   (unless gnosis-db
     (unless (file-directory-p gnosis-dir)
       (make-directory gnosis-dir))
-    (setq gnosis-db
-	  (gnosis-sqlite-open
-	   (expand-file-name "gnosis.db" gnosis-dir)))
-    (gnosis-db-init))
+    (let ((candidate (gnosis-sqlite-open
+                      (expand-file-name "gnosis.db" gnosis-dir)))
+          ready)
+      (unwind-protect
+          (progn
+            ;; Recursive query helpers see the candidate only during init.
+            ;; Do not publish it to later commands unless all checks succeed.
+            (let ((gnosis-db candidate)) (gnosis-db-init))
+            (setq gnosis-db candidate ready t))
+        (unless ready
+          (setq gnosis-db nil)
+          (gnosis-sqlite-close candidate)))))
   gnosis-db)
 
 ;;; Query wrappers
@@ -972,9 +980,9 @@ Handles both Lisp list dates and already-converted integers."
   "Alist of (VERSION . FUNCTION).
 Each migration brings the DB from VERSION-1 to VERSION.")
 
-(defun gnosis--db-run-migrations (current-version)
+(defun gnosis--db-run-migrations (current-version &optional no-commit)
   "Run all pending migrations from CURRENT-VERSION to `gnosis-db-version'.
-Commits the database after all migrations complete."
+Commit afterwards unless NO-COMMIT defers that until outer validation."
   (let ((migrated nil))
     (cl-loop for (version . func) in gnosis-db--migrations
 	     when (> version current-version)
@@ -983,7 +991,7 @@ Commits the database after all migrations complete."
 		  (funcall func)
 		  (message "Gnosis: migration to v%d complete" version)
 		  (setq migrated version)))
-    (when migrated
+    (when (and migrated (not no-commit))
       (gnosis--commit-migration current-version migrated))))
 
 (defun gnosis--commit-migration (from to)
@@ -998,14 +1006,101 @@ before database initialization continues."
                       "commit" "-m"
                       (format "Migrate database v%d -> v%d" from to))))))
 
+(defconst gnosis-db-min-version 9
+  "Oldest schema accepted by the native database initializer.
+Schema 9 is the FSRS baseline preserved in the historical v9 fixture.
+Earlier legacy migrations remain available for controlled recovery;
+their historical chain is not an automatic upgrade contract.
+Use matching old source and a separate backup to recover older databases.")
+
+(defun gnosis-db--compatible-columns-p (table schema actual)
+  "Check ACTUAL column metadata against TABLE's SCHEMA and retained layouts.
+Keep column order: positional readers and writers rely on it.  Only themata's
+observed nullable archive field, the equivalent composite tag key, and the
+historical text-affinity link source may differ from fresh storage."
+  (let ((expected
+         (mapcar (lambda (column)
+                   (list (gnosis-sqlite--ident (car column))
+                         (upcase (symbol-name (cadr column)))
+                         (if (memq :not-null column) 1 0)
+                         nil (if (memq :primary-key column) 1 0)))
+                 (append (car schema) nil))))
+    (or (equal actual expected)
+        (pcase table
+          ('themata
+           (equal actual (append expected '(("archived_at_us" "INTEGER" 0 nil 0)))))
+          ('thema-tag
+           (equal actual '(("thema_id" "INTEGER" 1 nil 1)
+                           ("tag" "TEXT" 1 nil 2))))
+          ;; a63dbe8 changed the fresh declaration, not existing link tables.
+          ('thema-links
+           (equal actual '(("source" "TEXT" 0 nil 0)
+                           ("dest" "TEXT" 0 nil 0))))))))
+
+(defun gnosis-db--check-schema (db version)
+  "Check required tables, columns and evidence guards of DB at VERSION.
+This is a compatibility check, not an exact DDL fingerprint or a check of
+all application values.  Reject damaged required objects before any writes."
+  (let ((tables (mapcar #'car (sqlite-select db
+                  "SELECT name FROM sqlite_master WHERE type = 'table'")))
+        (triggers (mapcar #'car (sqlite-select db
+                  "SELECT name FROM sqlite_master WHERE type = 'trigger'"))))
+    (pcase-dolist (`(,table ,schema) gnosis-db--schemata)
+      (unless (or (and (< version 11) (eq table 'study-history))
+                  (and (< version 10)
+                       (memq table '(practice-events study-session scheduler-active
+                                     review-voids practice-voids))))
+        (let ((name (gnosis-sqlite--ident table)))
+          (unless (and (member name tables)
+                       (gnosis-db--compatible-columns-p
+                        table schema
+                        (mapcar (lambda (row)
+                                  (list (nth 1 row) (upcase (nth 2 row))
+                                        (nth 3 row) (nth 4 row) (nth 5 row)))
+                                (sqlite-select db (format "PRAGMA table_info(%s)" name)))))
+            (error "Invalid Gnosis schema %d: required table/columns %s" version name)))))
+    (dolist (trigger
+             (append
+              (when (>= version 9)
+                '("scheduler_config_no_replace" "scheduler_config_no_update"
+                "scheduler_config_no_delete" "scheduler_baseline_no_replace"
+                "scheduler_baseline_no_update" "scheduler_baseline_no_direct_delete"
+                "review_events_no_replace" "review_events_no_update"
+                "review_events_no_direct_delete" "review_activity_baseline_no_replace"
+                "review_activity_baseline_no_update" "review_activity_baseline_no_delete"))
+              (when (>= version 10)
+                (cl-loop for table in '("practice_events" "review_voids" "practice_voids")
+                         append (mapcar (lambda (suffix) (concat table suffix))
+                                        '("_no_update" "_no_replace" "_no_direct_delete"))))))
+      (unless (member trigger triggers)
+        (error "Invalid Gnosis schema %d: missing guard %s" version trigger))))
+  (when (and (>= version 9)
+             (not (equal '((1)) (sqlite-select db "SELECT id FROM scheduler_config WHERE id = 1"))))
+    (error "Gnosis database is missing its baseline scheduler configuration"))
+  (when (and (>= version 10)
+             (not (equal '((1)) (sqlite-select db "SELECT id FROM scheduler_active"))))
+    (error "Gnosis database must have one active scheduler configuration"))
+  (unless (equal '(("ok")) (sqlite-select db "PRAGMA quick_check"))
+    (error "Gnosis database integrity check failed"))
+  (when (sqlite-select db "PRAGMA foreign_key_check")
+    (error "Gnosis database has foreign-key violations")))
+
 (defun gnosis-db-init ()
-  "Initialize database: create tables if fresh, run pending migrations."
-  (let ((version (gnosis--db-version)))
+  "Initialize a fresh database or validate and upgrade a supported schema.
+Reject unknown versions and incomplete required schemas without migrating."
+  (let ((version (gnosis--db-version))
+        (db (gnosis--ensure-db)))
     (if (and (zerop version) (not (gnosis--db-has-tables-p)))
-	;; Fresh database: create all tables at current version
-	(gnosis--db-create-tables)
-      ;; Existing database: run any pending migrations
-      (gnosis--db-run-migrations version))))
+        (gnosis--db-create-tables)
+      (unless (<= gnosis-db-min-version version gnosis-db-version)
+        (user-error "Unsupported Gnosis schema %d (supported %d–%d); preserve a backup and use matching source"
+                    version gnosis-db-min-version gnosis-db-version))
+      (gnosis-db--check-schema db version)
+      (gnosis-sqlite-with-transaction db
+        (gnosis--db-run-migrations version t)
+        (gnosis-db--check-schema db gnosis-db-version))
+      (when (< version gnosis-db-version)
+        (gnosis--commit-migration version gnosis-db-version)))))
 
 (provide 'gnosis-db)
 ;;; gnosis-db.el ends here

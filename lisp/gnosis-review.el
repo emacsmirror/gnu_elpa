@@ -538,7 +538,7 @@ Return durable state without displaying a buffer or asking for an answer."
 (defun gnosis-review--advance (state id success &optional skipped)
   "Advance STATE after ID and SUCCESS, or a SKIPPED presentation."
   (let* ((rest (cdr (gnosis-review-state-remaining state)))
-         (tail (and (not skipped) (gnosis-study-eligible-p id)
+         (retry (and (not skipped)
                     (if (gnosis-review-state-policy state)
                         (equal "unfinished"
                                (plist-get
@@ -551,11 +551,15 @@ Return durable state without displaying a buffer or asking for an answer."
                                                 (gnosis-review-state-outcomes state)))))
                                 :reason))
                       (and (not success)
-                           (not (member id (gnosis-review-state-requeued state))))))))
+                           (not (member id (gnosis-review-state-requeued state)))))))
+         (tail (and retry (gnosis-study-eligible-p id))))
     (setf (gnosis-review-state-remaining state) (if tail (append rest (list id)) rest)
           (gnosis-review-state-event-id state) (gnosis-scheduler-event-id))
-    (if skipped
-        (push id (gnosis-review-state-skipped state))
+    ;; Retain why a required continuation was dropped, independently of its
+    ;; accepted grade and of later eligibility changes.
+    (when (or skipped (and retry (not tail)))
+      (push id (gnosis-review-state-skipped state)))
+    (unless skipped
       (push (cons id success) (gnosis-review-state-outcomes state))
       (cl-incf (gnosis-review-state-reviewed state)))
     (when tail
@@ -930,7 +934,7 @@ Return STATE after completion."
                       (plist-get summary :retry-success) (plist-get summary :retry-failure))
               (propertize (format "Last-attempt failures (not manual flags): %d\n" (plist-get summary :needs-work))
                           'face 'warning)
-              (format "Unattempted: %d (deleted/suspended exclusions: %d)\n"
+              (format "Unattempted: %d\nSkipped items (including retries): %d\n"
                       (plist-get summary :unattempted) (plist-get summary :excluded))
               (format "Remaining due backlog: %d\n"
                       (let ((gnosis-new-themata-limit nil))

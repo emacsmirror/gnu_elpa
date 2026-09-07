@@ -178,14 +178,22 @@ until hard thema deletion.  Content exports exclude all study evidence."
 
 ;;;###autoload
 (defun gnosis-backup-db (file)
-  "Write a consistent full database backup to new FILE.
-Retain schedules, review and practice evidence, and indexes.  This is not a
-portable content export.  Restore with Emacs disconnected by replacing the
-closed gnosis.db with this backup; keep Org source files backed up separately."
+  "Write a consistent full database backup to new FILE without upgrading.
+Read the existing gnosis.db independently, even before first Gnosis use;
+never initialize or migrate it.  Retain its schema version, schedules,
+review and practice evidence, and indexes.  This is not a content export.
+Restore with every database owner disconnected, using the matching source
+version.  Back up Org source files and media separately."
   (interactive "FNew full database backup: ")
-  (let ((file (expand-file-name file)))
-    (when (file-exists-p file) (user-error "Backup target already exists"))
-    (sqlite-execute (gnosis--ensure-db) "VACUUM INTO ?" (list file))
+  (let ((file (expand-file-name file))
+        (source (expand-file-name "gnosis.db" gnosis-dir)))
+    (when (or (file-exists-p file) (file-symlink-p file))
+      (user-error "Backup target already exists"))
+    (unless (file-regular-p source) (user-error "No existing Gnosis database"))
+    (let ((db (sqlite-open source)))
+      (unwind-protect
+          (sqlite-execute db "VACUUM INTO ?" (list file))
+        (sqlite-close db)))
     (message "Full database backup: %s" file)))
 
 (defun gnosis-study-flag (id &optional clear)
@@ -304,10 +312,11 @@ With IF-AVAILABLE non-nil, do nothing when no indexed source exists."
   "Topic study"
   :parent tabulated-list-mode-map
   :group "Study"
-  "d" ("Review due" gnosis-study-due)
-  "p" ("Practise (no rescheduling)" gnosis-study-practice)
+  "d" ("Review due" gnosis-study-due :if (lambda () gnosis-study--topic))
+  "p" ("Practise (no rescheduling)" gnosis-study-practice
+       :if (lambda () gnosis-study--topic))
   :group "Author"
-  "c" ("Create thema" gnosis-study-create)
+  "c" ("Create thema" gnosis-study-create :if (lambda () gnosis-study--topic))
   "RET" ("Inspect/edit thema" gnosis-study-edit)
   "v" ("Visit source" gnosis-study-source)
   :group "Repair"
@@ -320,6 +329,7 @@ With IF-AVAILABLE non-nil, do nothing when no indexed source exists."
   "D" ("Desired retention" gnosis-scheduler-set-retention)
   "H" ("History evidence" gnosis-study-history-audit)
   :group "Navigate"
+  "o" ("Open topic" gnosis-study-topic)
   "g" ("Refresh" gnosis-study-refresh)
   "q" ("Quit" quit-window)
   "?" ("Help" gnosis-study-help))

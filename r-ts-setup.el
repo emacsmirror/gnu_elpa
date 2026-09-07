@@ -50,7 +50,7 @@
   :group 'r-ts-setup)
 
 (defcustom r-ts-setup-create-treesitter-dir t
-  "When non-nil, automatically create `~/<user-emacs-directory>/tree-sitter/' if missing.
+  "When non-nil, automatically create `~/<user-emacs-directory>/tree-sitter/'.
 When nil, signal an error if the target directory does not exist."
   :type 'boolean
   :group 'r-ts-setup)

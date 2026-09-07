@@ -58,7 +58,8 @@
   "When non-nil, enable verbose debugging messages.  For development use.")
 
 (defvar r-ts-mode-font-lock-keywords nil
-  "Replacement for ESS variable `ess-R-font-lock-keywords' to silence ESS fontification.")
+  "Replacement for ESS variable `ess-R-font-lock-keywords'.
+Intended to silence ESS fontification.")
 
 
 ;;;; Constants and Syntax Table

@@ -21,10 +21,12 @@ clinical advice, or automatic grading of a learner.
    distinctions, relationships, or predictions, not one card per sentence.
    Separate essential coverage from optional detail. Done: each proposed
    thema has a clear purpose and source-supported answer.
-3. Draft with the rules below. For coauthoring, show the draft and agree its
-   content before saving. Pilot a small batch before scaling a new format.
-   Done: the learner can inspect questions, answers, and supporting context;
-   proposed content is not reported as saved.
+3. Draft with the rules below. For interactive coauthoring, agree the draft
+   before saving. When the learner authorizes autonomous preparation, the
+   supervising agent owns content review, correction, and verified saving;
+   do not return that work to the learner. Pilot new formats when useful.
+   Done: the requested scope is reviewed, and proposed versus saved content
+   remains explicit.
 4. Use the installed version's native editor and supported writers. Inspect
    current source when automating; do not copy old SQLite import schemas or
    assume a historical Org template is current. Round-trip generated drafts
@@ -80,6 +82,23 @@ clinical advice, or automatic grading of a learner.
   never invent IDs or use attachment/file links in place of node identity.
   Links establish association, not proof that every linked source supports
   every sentence. Read each supporting passage.
+
+## Tags and bulk coverage
+
+- Establish shared collection and subject tags before parallel authoring.
+  Reuse the notes repository's vocabulary. Use lowercase Org-compatible
+  tags with underscores, not hyphens or spaces.
+- Use a few stable conceptual tags for useful filtering. Avoid automatic
+  per-topic numbered tags, synonyms, and one-off tags for every card.
+  Source-node links own exact topic membership; tags organize collections.
+- On reuse, add required collection/subject tags without removing unrelated
+  tags or changing review history. Deduplicate identical targets across
+  topics and preserve their multiple source associations.
+- Enumerate every requested syllabus topic and its essential components.
+  Map components to verified new/reused thema IDs. A token card per topic
+  or an arbitrary per-topic quota does not establish coverage. State visual
+  or source limitations separately; do not silently reduce the task to a
+  starter set. The supervising agent reviews worker output before saving.
 
 ## Pitfalls
 

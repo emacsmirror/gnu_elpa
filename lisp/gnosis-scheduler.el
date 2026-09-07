@@ -158,12 +158,13 @@ REVIEWED-AT-US, REVIEW-DAY, and RETENTION complete the evidence."
           db
           "UPDATE scheduler_state
               SET stability = ?, difficulty = ?, last_reviewed_at_us = ?,
-                  last_review_day = ?, due_day = ?, reps = ?, lapses = ?
+                  last_review_day = ?, due_day = ?, reps = ?, lapses = ?, config_id = ?
             WHERE thema_id = ?"
           (list (plist-get result :stability) (plist-get result :difficulty)
                 (plist-get result :reviewed-at-us) (plist-get result :review-day)
                 (plist-get result :due-day) (plist-get result :reps-after)
-                (plist-get result :lapses-after) (plist-get result :thema-id))))
+                (plist-get result :lapses-after) (plist-get result :config-id)
+                (plist-get result :thema-id))))
     (error "Scheduler state projection disappeared")))
 
 (defun gnosis-scheduler--evidence-equal-p (expected actual)
@@ -213,7 +214,8 @@ Each row is (THEMA-ID DUE-DAY SUSPENDED)."
                                  chunk ","))
            (apply #'append
                   (mapcar (lambda (row)
-                            (list (nth 0 row) 1 nil nil nil nil (nth 1 row)
+                            (list (nth 0 row) (gnosis-scheduler-active-config db)
+                                  nil nil nil nil (nth 1 row)
                                   0 0 (nth 2 row)))
                           chunk))))))))
 
@@ -223,7 +225,8 @@ Each row is (THEMA-ID DUE-DAY SUSPENDED)."
   (gnosis-scheduler-initialize-themata
    (list (list thema-id due-day suspended)) db)
   (gnosis-scheduler--state-result
-   thema-id (list 1 nil nil nil nil due-day 0 0 suspended)))
+   thema-id (list (gnosis-scheduler-active-config db)
+                  nil nil nil nil due-day 0 0 suspended)))
 
 (defun gnosis-scheduler-replay (baseline events configs suspended)
   "Replay BASELINE and EVENTS using CONFIGS and current SUSPENDED fact."
@@ -273,6 +276,7 @@ Each row is (THEMA-ID DUE-DAY SUSPENDED)."
                          (list thema-id))))
          (events (gnosis-sqlite-select
                   db "SELECT * FROM review_events WHERE thema_id = ?
+                       AND event_id NOT IN (SELECT event_id FROM review_voids)
                        ORDER BY reviewed_at_us, event_id" (list thema-id)))
          (configs (gnosis-sqlite-select
                    db "SELECT id, desired_retention FROM scheduler_config
@@ -323,9 +327,16 @@ OUTCOME, REVIEWED-AT-US, and REVIEW-DAY complete the review facts."
                      FROM scheduler_state WHERE thema_id = ?"
                (list thema-id)))))
     (unless state (error "Scheduler state does not exist"))
-    (gnosis-scheduler--compute-result
-     event-id thema-id outcome reviewed-at-us review-day state
-     (gnosis-scheduler--config-retention db (nth 0 state)))))
+    (gnosis-scheduler--config-retention db (car state))
+    (let ((latest (caar (gnosis-sqlite-select
+                         db "SELECT MAX(reviewed_at_us) FROM review_events WHERE thema_id = ?"
+                         (list thema-id))))
+          (config (gnosis-scheduler-active-config db)))
+      (when (and latest (<= reviewed-at-us latest))
+        (error "Review precedes retained history, including voids"))
+      (gnosis-scheduler--compute-result
+       event-id thema-id outcome reviewed-at-us review-day (cons config (cdr state))
+       (gnosis-scheduler--config-retention db config)))))
 
 (defun gnosis-scheduler-preview-review
     (event-id thema-id outcome reviewed-at-us review-day)
@@ -337,9 +348,14 @@ OUTCOME, REVIEWED-AT-US, and REVIEW-DAY complete the review facts."
    (gnosis--ensure-db) event-id thema-id outcome reviewed-at-us review-day))
 
 (defun gnosis-scheduler-accept-review
-    (event-id thema-id outcome reviewed-at-us review-day)
+    (event-id thema-id outcome reviewed-at-us review-day
+              &optional config preview)
   "Accept EVENT-ID for THEMA-ID, OUTCOME, REVIEWED-AT-US, and REVIEW-DAY.
-Return event evidence with `:inserted-p' reporting this call's effect."
+Return event evidence with `:inserted-p' reporting this call's effect.
+When CONFIG is non-nil, reject a fresh acceptance if the active
+configuration no longer matches the preview.  PREVIEW also pins
+the scheduling evidence shown before acceptance.
+Retained retries are unchanged."
   (gnosis-scheduler--validate-review
    event-id thema-id outcome reviewed-at-us review-day)
   (let ((db (gnosis--ensure-db))
@@ -349,6 +365,11 @@ Return event evidence with `:inserted-p' reporting this call's effect."
              (car (gnosis-sqlite-select
                    db "SELECT * FROM review_events WHERE event_id = ?"
                    (list event-id)))))
+        (when (gnosis-get 'event-id 'review-voids `(= event-id ,event-id))
+          (error "Review event was voided"))
+        (when (and (not existing) config
+                   (not (= config (gnosis-scheduler-active-config db))))
+          (user-error "Retention changed; cancel and reveal this question again"))
         (if existing
             (append
              (gnosis-scheduler--retained-result
@@ -356,9 +377,71 @@ Return event evidence with `:inserted-p' reporting this call's effect."
              '(:inserted-p nil))
           (let ((result (gnosis-scheduler--fresh-result
                          db event-id thema-id outcome reviewed-at-us review-day)))
+            (when (and preview
+                       (not (equal
+                             (mapcar (lambda (key) (plist-get preview key))
+                                     gnosis-scheduler--event-keys)
+                             (mapcar (lambda (key) (plist-get result key))
+                                     gnosis-scheduler--event-keys))))
+              (user-error "Schedule changed; cancel and reveal this question again"))
             (gnosis-scheduler--insert-event db result)
             (gnosis-scheduler--update-state db result)
             (append result '(:inserted-p t))))))))
+
+(defun gnosis-scheduler-active-config (&optional db)
+  "Return the active immutable configuration identity from DB."
+  (or (caar (gnosis-sqlite-select (or db (gnosis--ensure-db))
+                                 "SELECT config_id FROM scheduler_active WHERE id = 1"))
+      (error "Active scheduler configuration missing")))
+
+;;;###autoload
+(defun gnosis-scheduler-set-retention (retention)
+  "Select user-wide desired RETENTION for future accepted reviews.
+Append an immutable configuration snapshot.  Existing due dates and events
+are unchanged.  This is a workload preference, not measured topic mastery."
+  (interactive "nDesired retention (strictly between 0 and 1): ")
+  ;; The transition validates finite numeric retention without writing.
+  (gnosis-fsrs-transition nil 0 'success retention)
+  (let ((db (gnosis--ensure-db)))
+    (gnosis-sqlite-with-transaction db
+      (let* ((active (gnosis-scheduler-active-config db))
+             (old (gnosis-scheduler--config-retention db active)))
+        (if (= old retention) active
+          (let ((id (1+ (caar (gnosis-sqlite-select db "SELECT MAX(id) FROM scheduler_config")))))
+            (gnosis-sqlite-execute
+             db "INSERT INTO scheduler_config VALUES (?, ?, ?, ?, ?, ?)"
+             (list id gnosis-fsrs--algorithm gnosis-fsrs--model gnosis-fsrs--implementation
+                   retention gnosis-fsrs-default-parameters))
+            (gnosis-sqlite-execute db "UPDATE scheduler_active SET config_id = ? WHERE id = 1"
+                                   (list id))
+            (message "Desired retention applies to future reviews; current due dates unchanged")
+            id))))))
+
+(defun gnosis-scheduler-void-review (correction-id event-id)
+  "Void latest effective EVENT-ID using idempotent CORRECTION-ID.
+Keep original evidence and current suspension.  Reject superseded targets;
+rebuild only from the baseline and effective, non-void review events."
+  (unless (and (gnosis-scheduler--event-id-p correction-id)
+               (gnosis-scheduler--event-id-p event-id))
+    (error "Invalid correction identity"))
+  (let ((db (gnosis--ensure-db)))
+    (gnosis-sqlite-with-transaction db
+      (let* ((retained (gnosis-get 'event-id 'review-voids `(= correction-id ,correction-id)))
+             (event (car (gnosis-select '* 'review-events `(= event-id ,event-id))))
+             (id (nth 1 event)))
+        (cond
+         (retained (unless (equal retained event-id) (error "Correction identity conflict")))
+         ((null event) (user-error "Review no longer exists"))
+         (t
+          (unless (equal event-id
+                         (caar (gnosis-sqlite-select
+                                db "SELECT event_id FROM review_events WHERE thema_id = ?
+                                     AND event_id NOT IN (SELECT event_id FROM review_voids)
+                                     ORDER BY reviewed_at_us DESC, event_id DESC LIMIT 1" (list id))))
+            (user-error "Only the latest effective review can be undone"))
+          (gnosis-sqlite-execute db "INSERT INTO review_voids VALUES (?, ?)" (list correction-id event-id))
+          (gnosis-scheduler-rebuild-state id (gnosis-get 'suspended 'scheduler-state `(= thema-id ,id)) db)))
+        event-id))))
 
 (provide 'gnosis-scheduler)
 ;;; gnosis-scheduler.el ends here

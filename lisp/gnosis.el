@@ -783,9 +783,13 @@ modify or save the source, or replace an existing creation draft."
       (gnosis-add-thema "basic" nil nil answer parathema))))
 
 (defun gnosis-edit-thema (id)
-  "Edit thema with ID."
+  "Edit thema with ID without replacing an unfinished edit."
+  (when (and (get-buffer "*Gnosis Edit*")
+             (buffer-modified-p (get-buffer "*Gnosis Edit*")))
+    (user-error "Finish the existing Gnosis edit first"))
   (window-configuration-to-register :gnosis-edit)
-  (with-current-buffer (pop-to-buffer "*Gnosis Edit*")
+  (pop-to-buffer "*Gnosis Edit*")
+  (with-current-buffer "*Gnosis Edit*"
     (let ((inhibit-read-only 1))
       (erase-buffer))
     (gnosis-edit-mode)

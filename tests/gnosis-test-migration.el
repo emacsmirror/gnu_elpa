@@ -12,6 +12,7 @@
 
 ;;; Code:
 (require 'ert)
+(require 'gnosis-test-schema-v9)
 (require 'gnosis)
 
 (let ((lisp-dir (expand-file-name "../lisp"
@@ -241,11 +242,8 @@ tags and links tables, extras with parathema/review_image."
 (defmacro gnosis-test-with-v8-db (&rest body)
   "Run BODY with a disposable exact v8 database."
   (declare (indent 0) (debug t))
-  `(gnosis-test-with-db
-     (dolist (table '(review-events scheduler-state scheduler-baseline
-                      scheduler-config review-activity-baseline))
-       (gnosis-sqlite-execute
-        gnosis-db (format "DROP TABLE %s" (gnosis-sqlite--ident table))))
+  `(gnosis-test-with-old-db
+     (gnosis-test--create-v9-schema t)
      (gnosis-test--create-legacy-scheduler-tables)
      (gnosis--db-set-version 8)
      ,@body))
@@ -715,8 +713,8 @@ tags and links tables, extras with parathema/review_image."
 		 (lambda (from to) (setq commit-args (list from to)))))
 	(gnosis--db-run-migrations 4))
       ;; Should have been called with from=4, to=9 (last migration run)
-      (should (equal '(4 9) commit-args))
-      (should (= 9 (gnosis--db-version))))))
+      (should (equal (list 4 gnosis-db-version) commit-args))
+      (should (= gnosis-db-version (gnosis--db-version))))))
 
 (ert-deftest gnosis-test-migrate-no-commit-when-up-to-date ()
   "gnosis--db-run-migrations does not commit when no migrations are needed."
@@ -831,6 +829,7 @@ tags and links tables, extras with parathema/review_image."
      (equal '((20260820 8 3) (20260821 4 0))
             (gnosis-sqlite-select
              gnosis-db "SELECT * FROM review_activity_baseline ORDER BY date")))
+    (gnosis-db--migrate-v10)
     (should
      (equal '((20260820 8 3) (20260821 4 0))
             (gnosis-db-review-activity gnosis-db)))
@@ -851,6 +850,7 @@ tags and links tables, extras with parathema/review_image."
     (gnosis-sqlite-execute
      gnosis-db "INSERT INTO activity_log VALUES (?, ?, ?)" '(20260829 3 1))
     (gnosis-db--migrate-v9)
+    (gnosis-db--migrate-v10)
     (should (equal '(1 20260820 2 1)
                    (car (gnosis-sqlite-select
                          gnosis-db "SELECT * FROM scheduler_baseline"))))

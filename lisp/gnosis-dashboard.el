@@ -35,6 +35,8 @@
 (require 'gnosis-nodes)
 (require 'keymap-popup)
 
+(declare-function gnosis-review-resume "gnosis-review" ())
+
 (defface gnosis-face-dashboard-header
   '((t :inherit (bold font-lock-constant-face)))
   "Face for dashboard header.
@@ -1010,6 +1012,11 @@ Translates {n}, {n,}, {n,m} to \\{n\\}, \\{n,\\}, \\{n,m\\}."
   "r" ("Review" gnosis-review)
   "a" ("Add thema" gnosis-add-thema)
   "SPC" ("Search" gnosis-dashboard-search-thema)
+  :group "Study"
+  "s" ("Study topic" gnosis-study-topic)
+  "p" ("Practise topics" gnosis-practice-topic)
+  "w" ("Repair questions" gnosis-study-repair)
+  "R" ("Resume batch" gnosis-review-resume)
   :group "More"
   "x" ("Import/Export" :keymap gnosis-dashboard-import-export-map)
   "!" ("Maintenance" :keymap gnosis-dashboard-maintenance-map))
@@ -1542,6 +1549,23 @@ Moves cursor to the beginning of the buffer after sorting."
 		       (read-number "Forward link depth: " 1)
 		       (read-number "Backlink depth: " 0)))
 
+(defun gnosis-dashboard-nodes-study ()
+  "Open the study view for the node at point."
+  (interactive)
+  (gnosis-study-topic (or (tabulated-list-get-id) (user-error "No topic at point"))))
+
+(defun gnosis-dashboard-nodes-practice ()
+  "Practise marked nodes or the node at point, without rescheduling."
+  (interactive)
+  (gnosis-practice-topic (or gnosis-dashboard--selected-ids
+                             (list (or (tabulated-list-get-id) (user-error "No topic at point"))))))
+
+(defun gnosis-dashboard-nodes-due ()
+  "Review due themata of marked nodes or the node at point."
+  (interactive)
+  (gnosis-review-due-topic (or gnosis-dashboard--selected-ids
+                               (list (or (tabulated-list-get-id) (user-error "No topic at point"))))))
+
 (keymap-popup-define gnosis-dashboard-nodes-mode-map
   "Nodes"
   :parent gnosis-dashboard-common-map
@@ -1565,9 +1589,13 @@ Moves cursor to the beginning of the buffer after sorting."
   "t" ("Show themata links" gnosis-dashboard-nodes-show-themata-links)
   "i" ("Show isolated" gnosis-dashboard-nodes-show-isolated)
   "d" ("Show due" gnosis-dashboard-nodes-show-due)
-  :group "Review"
-  "r" ("Review topic" gnosis-dashboard-nodes-review)
-  "R" ("Review with depth" gnosis-dashboard-nodes-review-with-depth))
+  :group "Study"
+  "S" ("Topic study view" gnosis-dashboard-nodes-study)
+  "r" ("Review due topics" gnosis-dashboard-nodes-due)
+  "p" ("Practise topics" gnosis-dashboard-nodes-practice)
+  :group "Review ahead"
+  "a" ("Reschedule topic" gnosis-dashboard-nodes-review)
+  "R" ("Reschedule with depth" gnosis-dashboard-nodes-review-with-depth))
 
 (define-derived-mode gnosis-dashboard-nodes-mode
   tabulated-list-mode "Gnosis Nodes"

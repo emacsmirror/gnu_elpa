@@ -60,7 +60,7 @@ Initialized lazily by `gnosis--ensure-db' on first use.")
 (defvar gnosis-testing nil
   "Change this to non-nil when running manual tests.")
 
-(defconst gnosis-db-version 9
+(defconst gnosis-db-version 10
   "Gnosis database version.")
 
 (defvar gnosis--id-cache nil
@@ -106,7 +106,8 @@ Optional argument FLATTEN, when non-nil, flattens the result."
            FROM review_activity_baseline
          UNION ALL
          SELECT review_day, COUNT(*), SUM(new_p)
-           FROM review_events GROUP BY review_day)
+           FROM review_events WHERE event_id NOT IN (SELECT event_id FROM review_voids)
+           GROUP BY review_day)
      GROUP BY date ORDER BY date"))
 
 (defun gnosis-table-exists-p (table)
@@ -291,6 +292,40 @@ Uses `gnosis--id-cache' for O(1) collision checking when bound."
       (:check "lapses_after = lapses_before + CASE rating WHEN 1 THEN 1 ELSE 0 END")
       (:check "new_p IN (0, 1)")
       (:check "new_p = CASE reps_before WHEN 0 THEN 1 ELSE 0 END")))
+    (study-session
+     ([(id integer :primary-key :not-null)
+       (data text :not-null)]
+      (:check "id = 1")))
+    (scheduler-active
+     ([(id integer :primary-key :not-null)
+       (config-id integer :not-null)]
+      (:check "id = 1")
+      (:foreign-key [config-id] :references scheduler-config [id])))
+    (review-voids
+     ([(correction-id text :primary-key :not-null)
+       (event-id text :not-null)]
+      (:unique [event-id])
+      (:foreign-key [event-id] :references review-events [event-id]
+                    :on-delete :cascade)))
+    (practice-voids
+     ([(correction-id text :primary-key :not-null)
+       (event-id text :not-null)]
+      (:unique [event-id])
+      (:foreign-key [event-id] :references practice-events [event-id]
+                    :on-delete :cascade)))
+    (practice-events
+     ([(event-id text :primary-key :not-null)
+       (thema-id integer :not-null)
+       (session-id text :not-null)
+       (attempt integer :not-null)
+       (reviewed-at-us integer :not-null)
+       (rating integer :not-null)]
+      (:foreign-key [thema-id] :references themata [id]
+                    :on-delete :cascade)
+      (:unique [session-id attempt])
+      (:check "attempt > 0")
+      (:check "reviewed_at_us > 0")
+      (:check "rating IN (1, 3)")))
     (review-activity-baseline
      ([(date integer :primary-key :not-null)
        (reviewed-total integer :not-null)
@@ -479,6 +514,8 @@ Used for fresh databases only."
 				       (gnosis-sqlite--ident table)
 				       (gnosis-sqlite--compile-schema schema))))
       (gnosis-db--install-default-scheduler-config db)
+      (gnosis-sqlite-execute db "INSERT INTO scheduler_active VALUES (1, 1)")
+      (gnosis-db--create-study-guards db)
       (gnosis--db-create-indexes db)
       (gnosis-db--create-scheduler-guards db)
       (gnosis--db-set-version gnosis-db-version))))
@@ -867,6 +904,44 @@ Handles both Lisp list dates and already-converted integers."
       (gnosis-db--create-scheduler-guards db)
       (gnosis--db-set-version 9))))
 
+(defun gnosis-db--create-study-guards (db)
+  "Protect immutable practice and correction evidence in DB."
+  (dolist (spec '(("practice_events" "themata" "id" "thema_id"
+                   "event_id = NEW.event_id OR (session_id = NEW.session_id AND attempt = NEW.attempt)")
+                  ("review_voids" "review_events" "event_id" "event_id"
+                   "correction_id = NEW.correction_id OR event_id = NEW.event_id")
+                  ("practice_voids" "practice_events" "event_id" "event_id"
+                   "correction_id = NEW.correction_id OR event_id = NEW.event_id")))
+    (pcase-let ((`(,table ,parent ,parent-key ,key ,conflict) spec))
+      (gnosis-sqlite-execute
+       db (format "CREATE TRIGGER %s_no_update BEFORE UPDATE ON %s
+                    BEGIN SELECT RAISE(ABORT, 'immutable study evidence'); END" table table))
+      ;; REPLACE can delete conflicts without firing DELETE triggers.
+      (gnosis-sqlite-execute
+       db (format "CREATE TRIGGER %s_no_replace BEFORE INSERT ON %s
+                    WHEN EXISTS (SELECT 1 FROM %s WHERE %s)
+                    BEGIN SELECT RAISE(ABORT, 'study identity exists'); END"
+                  table table table conflict))
+      (gnosis-sqlite-execute
+       db (format "CREATE TRIGGER %s_no_direct_delete BEFORE DELETE ON %s
+                    WHEN EXISTS (SELECT 1 FROM %s WHERE %s = OLD.%s)
+                    BEGIN SELECT RAISE(ABORT, 'hard deletion required'); END"
+                  table table parent parent-key key)))))
+
+(defun gnosis-db--migrate-v10 ()
+  "Add separate practice evidence atomically, preserving scheduled reviews."
+  (let ((db (gnosis--ensure-db)))
+    (gnosis-sqlite-with-transaction db
+      (dolist (table '(practice-events study-session scheduler-active
+                       review-voids practice-voids))
+        (gnosis-sqlite-execute
+         db (format "CREATE TABLE %s (%s)" (gnosis-sqlite--ident table)
+                    (gnosis-sqlite--compile-schema
+                     (cadr (assq table gnosis-db--schemata))))))
+      (gnosis-sqlite-execute db "INSERT INTO scheduler_active VALUES (1, 1)")
+      (gnosis-db--create-study-guards db)
+      (gnosis--db-set-version 10))))
+
 (defconst gnosis-db--migrations
   `((1 . gnosis-db--migrate-v1)
     (2 . gnosis-db--migrate-v2)
@@ -876,7 +951,8 @@ Handles both Lisp list dates and already-converted integers."
     (6 . gnosis-db--migrate-v6)
     (7 . gnosis-db--migrate-v7)
     (8 . gnosis-db--migrate-v8)
-    (9 . gnosis-db--migrate-v9))
+    (9 . gnosis-db--migrate-v9)
+    (10 . gnosis-db--migrate-v10))
   "Alist of (VERSION . FUNCTION).
 Each migration brings the DB from VERSION-1 to VERSION.")
 

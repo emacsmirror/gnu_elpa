@@ -84,7 +84,7 @@ the interval between reviews based on performance.
 
 Themata support five question types:
 
-- *Basic*: A direct question with a typed answer.
+- *Basic*: A direct question with typed matching or reveal-and-self-grade.
 - *Double*: Two prompts, each with its own answer, presented in sequence.
 - *MCQ* (Multiple Choice Question): The user selects one correct option
   from a list.
@@ -98,10 +98,11 @@ Themata support five question types:
 Themata and nodes are not siloed.  When you write a node about a topic,
 you can create themata whose keimenon or parathema contains an
 =[[id:NODE-UUID]]= org-id link to that node.  Gnosis records these
-relationships so that you can later run ~gnosis-review-topic~ to
-review all themata associated with a particular node.  This is the
-intended workflow: write a note, create questions about it, link the
-questions to the note, then review by topic.
+relationships so that you can later run ~gnosis-review-due-topic~ for
+scheduled review or ~gnosis-practice-topic~ for practice without
+rescheduling.  The legacy ~gnosis-review-topic~ reviews ahead with FSRS.
+The intended workflow is to write a note, create questions about it, link
+the questions to the note, then review by topic.
 
 ** Greek Terminology Reference
 
@@ -708,8 +709,8 @@ Gnosis organises all review material into units called /themata/ (singular:
 /thema/).  The word is Greek for "that which is placed" or "a topic set
 before you," and a thema in gnosis is precisely that: a question or
 prompt placed before you for recall.  Each thema has immutable review
-events and a current scheduler state; FSRS configuration is shared and
-pinned by the package.
+events and a current scheduler state.  FSRS model parameters are pinned
+by the package; desired retention is a versioned user-wide setting.
 
 ** Fields of a Thema
 
@@ -865,19 +866,48 @@ a Git repository for version control.
 Call =M-x gnosis-review= to open the review transient menu.  The menu
 presents several review modes:
 
-- *Due themata*: All due and new themata, looping until none remain.
+- *Due themata*: A finite batch of eligible due and new themata.
 - *Due themata of tag(s)*: Due themata filtered by +include/-exclude tags.
 - *Overdue themata*: Only themata whose scheduled date has passed
   (excludes never-reviewed themata).
 - *Due without overdue*: Today's due themata, excluding overdue ones.
 - *All themata of tag(s)*: All themata for selected tags, ignoring due
   status.
-- *Review node*: All themata linked to a specific node topic.
+- *Review due topic*: Due themata linked to selected source nodes, with
+  normal FSRS updates.
+- *Practise topic (no rescheduling)*: Linked themata, including new and
+  not-due items, with separate practice evidence.
+- *Review ahead topic (FSRS)*: The legacy ~gnosis-review-topic~ command;
+  it changes schedules even for not-due items.
 
-New themata (never reviewed) are interleaved with due ones.  By default
-they are shown first; set =gnosis-review-new-first= to =nil= to review them
-last.  The number of new themata presented per session can be capped with
-=gnosis-new-themata-limit=.
+The all-tags command also changes schedules; it is not practice mode.
+For ordinary due selection, new themata appear first by default; set
+=gnosis-review-new-first= to =nil= to show them last.  The collector's
+new-item cap is =gnosis-new-themata-limit=.  Explicit topic due and
+practice batches ignore this cap and shuffle their first pass.
+
+** Finite Batches and Summaries
+
+A session collects its thema IDs once, removes duplicates and freezes
+membership.  It does not refill itself when the queue empties.  Newly
+created themata wait for another batch.  Before each presentation, Gnosis
+checks that the thema still exists and is not suspended; otherwise it
+skips that presentation.  Each failed thema can return once at the tail,
+with any remaining questions in between.  A second failure does not
+extend the batch again.
+
+The summary distinguishes selected items, unique items attempted and
+accepted attempts.  It reports first-attempt and retry outcomes
+separately.  "Still needing work" counts items whose latest accepted
+attempt failed; this does not automatically add a tag.  Unattempted
+items have no accepted answer in this batch.  Deleted/suspended
+exclusions count unique skipped items, which may include a skipped retry
+of an already attempted item.  The remaining due backlog is independent
+of the completed batch and is shown without the new-item cap.
+
+Session performance is not topic mastery.  Retrying a failure does not
+increase unique topic coverage, and a successful practice session is
+not a prediction of exam performance.
 
 ** Tag Filtering
 
@@ -909,33 +939,103 @@ stages:
    alongside the correct answer, the user's input (when wrong), and the
    parathema if one is present.
 
-4. *Next review date*: FSRS-6 computes and displays the next scheduled
-   review date.
+4. *Preview*: Scheduled review shows the proposed next review date.
+   Practice instead shows "Practice: schedule unchanged".
 
-5. *Action prompt*: The user chooses what to do next via a one-character
-   prompt.  Available actions include advancing to the next thema,
-   overriding the result (useful when the user typed a valid alternative
-   answer), suspending or deleting the thema, editing the thema, viewing
-   linked nodes, or quitting the session.
+5. *Action prompt*: =n= accepts the grade and advances; =q= accepts the
+   grade and quits.  =o= flips the pending binary result, for example
+   when typed matching rejected a valid answer.  =e= edits the thema,
+   =v= visits an identity-selected linked source, =f= adds =needs_work=,
+   and =s= toggles suspension.  These actions return to the pending
+   grade; editing or visiting a source is not successful recall.
+   =d= deletes the thema without accepting its pending grade.
 
-6. *Scheduler update*: After the user confirms the result, gnosis records
-   an immutable review event and updates the current scheduler state in
-   the same database transaction.
+6. *Acceptance*: Scheduled review records an immutable review event and
+   updates FSRS.  Practice records a separate encounter.  Acceptance and
+   saved queue progress commit together.  If a write fails, the retry
+   prompt reuses the same pending grade identity rather than recording
+   another attempt.
 
-During a session, the header line shows the current progress as
-=Reviewed: N/Total=.
+=C-g= before acceptance cancels the pending answer or reveal without
+writing a grade.  It does not undo an explicit edit, flag, suspension or
+any earlier accepted grade.  Unlike =C-g=, =q= at the action prompt
+accepts the current result.  Source windows are hidden for the next
+question, and the previous window layout is restored on leaving review.
+
+During a session, =Reviewed: N/Total= counts accepted attempts, including
+retries; use the summary for unique-item counts.
+
+** Resume, Continue, Discard and Undo
+
+Gnosis retains one batch in the database, including remaining stable
+IDs, accepted outcomes, retry state and its basic input style.  Use
+~gnosis-review-resume~ after interruption, buffer loss or an Emacs
+restart.  It presents the unaccepted question again using current thema
+content; it does not restore a typed answer or an unaccepted reveal.
+Existence and suspension are checked again.  Starting another batch is
+blocked while an unfinished batch remains.
+
+The study summary provides =r= to resume, =c= to continue, =d= to discard
+progress and =u= to undo.  ~gnosis-review-continue~ opens the review menu
+to select another batch; it does not silently repeat the previous scope.
+Finish or discard the current batch first.  ~gnosis-review-discard~ asks
+for confirmation and removes saved progress and its undo slot, but keeps
+accepted evidence and schedules.  Starting a new nonempty batch replaces
+the previous completed batch's saved progress and undo slot.
+
+~gnosis-review-undo~ is a single last-grade correction, available only
+outside active review.  Quit review first, taking care that =q= accepts
+the pending grade whereas =C-g= does not.  Undo retains the original
+event and appends a void record.  For scheduled review it reconstructs
+the thema's schedule from the baseline and effective review events,
+using their historical configuration versions and preserving current
+suspension.  For practice it voids the grade without touching FSRS;
+the exposure remains in the history audit.
+
+After undo, resume to answer the restored question with a fresh attempt
+identity.  There is no multi-step undo history.  Deleted events, stale
+slots and grades superseded by a later effective event of the same kind
+for that thema cannot be undone.  Undo does not restore deleted content,
+reverse edits, remove flags or undo explicit suspension.  Older summaries
+are snapshots: their session commands operate on the currently retained
+batch, not a separate batch owned by that summary buffer.
 
 ** Scheduling and Retention
 
 Gnosis uses the FSRS-6 default parameters pinned from fsrs-rs 6.6.1,
-with desired retention fixed at 90%.  Successful recall maps to /Good/;
-forgotten information maps to /Again/.  Override a result only when the
-automatic answer check misjudged what you actually recalled.
+with desired retention initially set to 90%.  Successful recall maps to
+/Good/; forgotten information maps to /Again/.  Grade what you recalled
+before feedback, not what you recognise after revealing the answer.
 
-FSRS updates each thema's stability and difficulty after a review.
-Gnosis does not currently fit the shared parameters to your review
-history or provide a desired-retention setting.  The 90% target is a
-model prediction, not a measured guarantee of recall or exam performance.
+Use =M-x gnosis-scheduler-set-retention= to set a user-wide target strictly
+between 0 and 1, for example =0.9=.  Each changed value creates an
+immutable configuration version and selects it for future accepted
+scheduled reviews and newly initialised themata.  Selecting the already
+active value creates no new version.  This command does not recalculate
+existing due dates or rewrite old events; those retain their original
+configuration.  It is a database setting, not a per-card option or a
+parameter optimizer.
+
+The next-date display is a preview, not an accepted grade.  If retention
+changes after the preview, fresh acceptance is rejected.  Cancel that
+pending answer and resume to obtain a new preview; repeatedly retrying
+the stale preview cannot accept it under a different configuration.
+
+FSRS updates stability and difficulty after scheduled review.  A higher
+retention target generally means shorter intervals and more work.  The
+target is a model prediction, not measured topic mastery or an exam
+performance guarantee.  Gnosis does not fit model parameters to your
+history.
+
+~gnosis-study-history-audit~ shows aggregate-only baseline reviews,
+effective scheduled events, delayed scheduled events, practice exposures
+(including voided grades), void counts and configuration versions.  Old
+aggregates lack individual review times and outcomes, and content edits
+are not versioned.  Practice exposures are retained but excluded from
+FSRS replay and fitting.  Before evaluating a fitted model, account for
+these gaps, same-day policy and changed questions; evaluate future
+held-out events and workload at matched retention.  The audit performs
+no fitting and promotes no candidate parameters.
 
 A failed thema returns once at the end of the current session unless it
 was suspended or deleted.  Further failure does not keep extending that
@@ -959,6 +1059,28 @@ accounts for a small edit distance (=gnosis-string-difference=).  If the
 answer uses a non-Latin script, gnosis activates the appropriate input
 method from =gnosis-script-input-method-alist=.
 
+For explanations, comparisons or application questions, you can instead
+recall aloud, sketch or write an answer before revealing a checklist:
+
+#+begin_src emacs-lisp
+(setopt gnosis-review-basic-input 'self-grade)
+;; Restore typed matching:
+;; (setopt gnosis-review-basic-input 'typed)
+#+end_src
+
+In self-grade mode, =SPC= reveals the Answer and Parathema, then =y= or
+=n= records your pending judgment of recall.  The ordinary action prompt
+still follows: use =o= to correct the judgment before accepting with
+=n= or =q=.  Revealing alone never accepts a grade.  =C-g= cancels before
+acceptance.  Write a short answer checklist that makes the binary
+judgment meaningful; Gnosis does not infer it from time or confidence.
+
+This option affects basic themata (including independent basic cards
+created by Double) in both due and practice sessions.  Its value is
+frozen when a batch starts and retained for resume.  MCQ, cloze and
+MC-cloze keep their existing input methods.  Self-grade failures do not
+start the monkeytype copying exercise.
+
 *** MCQ
 
 The keimenon is displayed.  The user selects one of the shuffled
@@ -977,27 +1099,57 @@ remaining gaps are highlighted and the card is marked as failed.
 The keimenon is displayed with the single gap replaced.  The user selects
 the correct word from a shuffled list via completion.
 
-** Node-Based Review
+** Topic and Subtree Study
 
-~gnosis-review-topic~ reviews all themata linked to a chosen node.
-With a prefix argument, gnosis additionally prompts for forward and
-backward link depths, allowing review of nodes reachable through the
-link graph:
+~gnosis-practice-topic~ selects one or more topics for practice, including
+new and not-due themata.  ~gnosis-review-due-topic~ selects only due
+linked themata and accepts normal FSRS reviews.  Completion labels
+include Org IDs to distinguish duplicate titles.  Direct links are the
+default.  With =C-u=, either command asks for nonnegative forward and
+backlink depths; graph links do not imply a syllabus or prerequisites.
 
-#+begin_example
-C-u M-x gnosis-review-topic RET
-Forward link depth: 1 RET
-Backlink depth: 0 RET
-#+end_example
+Before starting, the confirmation prompt shows the mode, source titles
+and IDs, eligible unique count, new and not-due counts, graph depths and
+the once-per-failure retry policy.  Both explicit topic batches have no
+new-item cap.  Multiple links and graph paths do not duplicate a thema.
+Deleted and suspended items are excluded; practice never unsuspends
+anything.  Canceling this preview starts no batch and records no grade.
 
-This lets you review not just the selected node's themata, but also
-those of related nodes at the specified distance in the knowledge graph.
+Practice grading writes timestamped binary encounters with session and
+attempt identities.  It does not change FSRS state, due dates, scheduled
+review counts, lapse counts, suspension or whether an item is new.
+Explicit edit, delete and suspension actions still have their normal
+side effects.  Practice can affect memory even though its exposures are
+excluded from scheduler replay and fitting; an unchanged schedule does
+not mean that no learning occurred.
+
+In an Org buffer, ~gnosis-study-subtree~ practises the enclosing source
+node and IDs structurally inside the current subtree.  With =C-u= it
+reviews only due themata instead.  Before the first heading it includes
+IDs in the accessible buffer.  It requires an existing enclosing source
+ID and uses Org structure, not graph traversal.  An ID-less heading
+belongs to its enclosing node, so questions linked to that owner are
+included even if their source passage lies outside that heading.
+
+*** Legacy Review Ahead
+
+~gnosis-review-topic~ retains its schedule-affecting semantics.  It
+selects one node and all its eligible linked themata, including those not
+yet due.  A prefix argument asks for forward and backlink depths.  Use
+this command only when you intend to reschedule; use
+~gnosis-practice-topic~ for cram without rescheduling.  The review menu
+labels the legacy command "Review ahead topic (FSRS)".
+
+There is no automatic sibling burying.  Double and cloze variants do not
+have a retained family relationship, and sharing a source node does not
+make unrelated questions siblings.
 
 ** Activity Logging
 
 Daily activity is a read-only projection over preserved legacy totals and
-immutable review events.  It records total and new themata reviewed per day
-and drives the dashboard's streak display.
+effective (non-voided) immutable review events.  It records total and new
+themata reviewed per day and drives the dashboard's streak display.
+Practice encounters are separate and do not contribute to these totals.
 
 ** Monkeytype
 
@@ -1112,6 +1264,47 @@ you can step back through your browsing path.
   (setopt gnosis-dashboard-nodes-default-sort-ascending nil))
 #+end_src
 
+** Topic Study and Repair Views
+
+Use ~gnosis-study-topic~ to open a topic's linked questions with their
+flags, due/new/suspended status and delayed failures/sample counts.
+Due and new counts overlap: a never-reviewed active item can also be
+due.  A source with no linked questions is an authoring gap candidate,
+not proof that it needs a card.
+
+In this view, =d= reviews due questions, =p= practises without
+rescheduling, =c= opens source-linked basic capture, =RET= opens the
+selected thema editor alongside its source, and =v= visits the source.
+Creation follows the same existing-ID and draft-preservation rules as
+~gnosis-add-thema-from-node~.  =g= refreshes the collection after edits.
+Use =?= for the full command menu, including resume, undo, retention and
+history evidence.
+
+~gnosis-study-repair~ lists themata with the ordinary =needs_work= tag or
+more than one effective delayed scheduled failure.  The evidence column
+shows failures against the number of scheduled events with positive
+elapsed days.  New encounters, same-day retries, practice and voided
+scheduled grades are excluded.  This is a repair filter, not an
+automatic suspension threshold or a calibrated weakness score.
+
+=f= toggles =needs_work= in the topic or repair collection; the review
+action =f= only adds it.  The tag survives ordinary editing and content
+export/import.  Clearing it does not remove delayed failure evidence,
+so an item may remain in the repair list.  =s= explicitly toggles
+suspension.  In the repair view, =v= selects among indexed linked source
+IDs when needed; topic-only create/due/practice actions require opening
+a topic first.
+
+Correcting wording preserves scheduling and does not count as recall.
+If a rewrite tests a different fact, create a new thema rather than
+assuming the old review history describes it.  Gnosis does not retain
+content versions or infer whether two questions test the same fact.
+
+From the dashboard's Nodes view, =S= opens the topic at point; =r= and
+=p= review due or practise marked nodes (or the node at point if none
+are marked).  The separate review-ahead actions =a= and =R= reschedule
+the node at point, with =R= prompting for graph depth.
+
 ** The Tags View
 
 Lists every tag with a count of associated themata.  From this view
@@ -1126,6 +1319,47 @@ suspend all themata carrying a tag, or delete a tag from all themata.
 Gnosis exports and imports themata using SQLite database files (=.gnosis=
 extension).  This is faster and more reliable than text-based formats,
 especially for large collections.
+
+** Database Version 10
+
+On opening an older supported database, Gnosis runs its versioned
+migrations.  The version 9 to 10 migration adds separate practice
+encounters, one retained study session, an active scheduler configuration
+selection and scheduled/practice void records.  It preserves existing
+scheduled events and state and initially selects configuration 1.  The
+migration is transactional: its schema and version change together.
+Earlier databases first pass through the earlier migrations; legacy
+aggregate review totals do not become invented event-level history.
+
+Keep a full database backup before upgrading, as well as separate
+backups of Org sources and referenced media.  A portable content export
+cannot restore schedules or session progress.
+
+** Full Backups Versus Content Exports
+
+=M-x gnosis-backup-db= writes a consistent full SQLite backup using
+=VACUUM INTO=.  Choose a new path; the command refuses to overwrite an
+existing file.  The backup contains thema content, indexes, scheduler
+state and baselines, configuration versions and active selection,
+review/practice evidence and voids, and retained batch/undo progress.
+It does not contain the Org source files or external media.
+
+To restore a full backup, disconnect Gnosis in every Emacs instance
+(close the database, or exit those instances), then replace the closed
+=gnosis.db= with the backup.  Do not replace an open SQLite database or
+use ~gnosis-import-db~ as a full-backup restore command.  Preserve the
+current database before replacement and restore source files separately
+when needed.  Replacing the database replaces its entire history and
+saved progress, rather than merging them.
+
+~gnosis-export-db~ is for portable content.  Its =.gnosis= files omit
+schedules, review/practice events, void records, session progress and
+scheduler configuration history.  Importing new content starts fresh
+scheduling; updating existing content leaves its local history in
+place.  The ordinary =needs_work= tag is content and does transfer.
+Practice evidence has no automatic expiry; hard deletion of its thema
+removes that evidence and associated corrections, as it does scheduled
+review evidence.  Discarding a batch is not history deletion.
 
 ** Exporting
 

@@ -154,6 +154,8 @@
   "Save Vertico session for `vertico-repeat'.
 This function must be registered as `minibuffer-setup-hook'."
   (when (and vertico--input (symbolp this-command))
+    ;; TODO: On Emacs 32 we can likely use `current-minibuffer-command', see
+    ;; Emacs bug#80815.
     (setq vertico-repeat--command this-command)
     (add-hook 'post-command-hook #'vertico-repeat--save-input nil 'local)
     (add-hook 'minibuffer-exit-hook #'vertico-repeat--save-exit nil 'local)))

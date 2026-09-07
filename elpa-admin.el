@@ -1216,8 +1216,12 @@ SPECS is the list of package specifications."
 (defun elpaa---make-one-webpage (pkg-spec destdir)
   (let* ((pkgname (format "%s" (car pkg-spec)))
          (dir (elpaa--pkg-root pkg-spec))
-         (pkgdesc (elpaa--process-multi-file-package
-                   dir (car pkg-spec) 'dont-rename))
+         (metadata (elpaa--metadata dir pkg-spec))
+         (pkgdesc
+          (elpaa--parse-descriptor
+           (elpaa--make-package-descriptor
+            dir pkgname metadata)
+           pkgname))
          (version (package-version-join (aref (cdr pkgdesc) 0)))
          (files (cons (cons version (format "%s.tar" pkgname))
                       (assoc-delete-all
@@ -1645,11 +1649,8 @@ PKG is the name of the package and DIR is the directory where it is."
       (setq plist (cddr plist)))
     alist))
 
-(defun elpaa--process-multi-file-package (dir pkg &optional dont-rename)
-  "Deploy the contents of DIR into the archive as a multi-file package.
-Rename DIR/ to PKG-VERS/, and return the descriptor."
-  (let* ((exp (elpaa--multi-file-package-def dir pkg))
-	 (vers (nth 2 exp))
+(defun elpaa--parse-descriptor (exp pkg)
+  (let* ((vers (nth 2 exp))
          (req-exp (nth 4 exp))
 	 (req (mapcar #'elpaa--convert-require
                       (if (eq 'quote (car-safe req-exp)) (nth 1 req-exp)
@@ -1657,13 +1658,20 @@ Rename DIR/ to PKG-VERS/, and return the descriptor."
                           (error "REQ should be a quoted constant: %S"
                                  req-exp)))))
          (extras (elpaa--plist-args-to-alist (nthcdr 5 exp))))
-    (unless (string-equal (nth 1 exp) pkg)
-      (error (format "Package name %S doesn't match file name %S"
-		     (nth 1 exp) pkg)))
-    (unless dont-rename (rename-file dir (format "%s-%s" pkg vers)))
-    (if (stringp pkg) (setq pkg (intern pkg)))
-    (cons pkg (vector (elpaa--version-to-list vers)
+    (cons (if (stringp pkg) (intern pkg) pkg)
+              (vector (elpaa--version-to-list vers)
                       req (nth 3 exp) 'tar extras))))
+
+(defun elpaa--process-multi-file-package (dir pkg &optional dont-rename)
+  "Deploy the contents of DIR into the archive as a multi-file package.
+Rename DIR/ to PKG-VERS/, and return the descriptor."
+  (let* ((exp (elpaa--multi-file-package-def dir pkg))
+         (vers (nth 2 exp)))
+    (prog1 (elpaa--parse-descriptor exp pkg)
+      (unless (string-equal (nth 1 exp) pkg)
+        (error (format "Package name %S doesn't match file name %S"
+		       (nth 1 exp) pkg)))
+      (unless dont-rename (rename-file dir (format "%s-%s" pkg vers))))))
 
 (defun elpaa--multi-file-package-def (dir pkg)
   "Return the `define-package' form in the file DIR/PKG-pkg.el."
@@ -1672,7 +1680,7 @@ Rename DIR/ to PKG-VERS/, and return the descriptor."
       (error "File not found: %s" pkg-file))
     (elpaa--form-from-file-contents pkg-file)))
 
-(defun elpaa--write-pkg-file (pkg-dir name metadata &optional revision)
+(defun elpaa--make-package-descriptor (pkg-dir name metadata &optional revision)
   (setf (alist-get :commit (nth 4 metadata))
         (or revision
             ;; FIXME: Emacs-26's `vc-git-working-revision' ignores its
@@ -1680,6 +1688,23 @@ Rename DIR/ to PKG-VERS/, and return the descriptor."
             ;; Similar to the kludge in `elpaa--select-revision'.
             (let ((default-directory pkg-dir))
               (vc-working-revision pkg-dir))))
+  ;; FIXME: Use package-generate-description-file!
+  (pcase-let ((`(,version ,desc ,requires ,extras) (cdr metadata)))
+    (nconc
+     (list 'define-package
+           (format "%s" name) ;It's been a string, historically :-(
+           version
+           desc
+           (list 'quote
+                 ;; Turn version lists into string form.
+                 (mapcar
+                  (lambda (elt)
+                    (list (car elt)
+                          (package-version-join (cadr elt))))
+                  requires)))
+     (elpaa--alist-to-plist-args extras))))
+
+(defun elpaa--write-pkg-file (pkg-dir name metadata &optional revision)
   ;; FIXME: Use package-generate-description-file!
   (let ((pkg-file (expand-file-name (format "%s-pkg.el" name) pkg-dir))
 	(print-level nil)
@@ -1696,20 +1721,7 @@ Rename DIR/ to PKG-VERS/, and return the descriptor."
 		         (if (not (and emacs-vers (>= emacs-vers 28)))
 		             ""     ;Need compatibility with Emacs<28.
 		           "mode: lisp-data; ")))
-	       (prin1-to-string
-                (nconc
-                 (list 'define-package
-                       (format "%s" name) ;It's been a string, historically :-(
-                       version
-                       desc
-                       (list 'quote
-                             ;; Turn version lists into string form.
-                             (mapcar
-                              (lambda (elt)
-                                (list (car elt)
-                                      (package-version-join (cadr elt))))
-                              requires)))
-                 (elpaa--alist-to-plist-args extras)))
+	       (prin1-to-string (elpaa--make-package-descriptor pkg-dir name metadata revision))
 	       "\n")
        nil
        pkg-file))))

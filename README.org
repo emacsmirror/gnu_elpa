@@ -49,6 +49,12 @@ interval between reviews based on performance.
 Themata support five question types: basic, double, MCQ, cloze, and
 mc-cloze.
 
+For agent-assisted creation or repair, read the
+[[file:skills/gnosis-themata/SKILL.md][thema authoring skill]] before drafting.  It covers source-backed
+questions, descriptive links, cross-topic reuse, and verified native saves.
+The skill is agent-neutral; load it explicitly or install its directory
+using your agent's skill mechanism.
+
 ** The Link Between Nodes and Themata
 
 When you write a node about a topic, you can create themata whose

@@ -2,10 +2,12 @@
 
 ((name			"GNU")
  (gitrepo		"emacs/elpa.git")
- (url			"https://elpa.gnu.org/packages/")
+ (release-url		"https://elpa.gnu.org/packages/")
  (devel-url		"https://elpa.gnu.org/devel/")
  (branch-prefix		"externals/")
  (release-branch-prefix	"externals-release/")
+ (sister-archive-name	"NonGNU")
+ (sister-archive-url	"https://elpa.nongnu.org/")
  ;; (dependencies-archive-contents ("archive-devel/archive-contents"))
  ;;(specs-file		"elpa-packages")
  ;;(debug		t)

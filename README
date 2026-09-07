@@ -40,7 +40,7 @@ The layout of the =elpa.git= repository is as follows:
 * Getting the source
 
 Start with source that is cloned directly from Savannah
-(See [[https://savannah.gnu.org/git/?group=emacs][the Savannah page]] and look for "ELPA").
+(See [[https://savannah.gnu.org/git/?group=elpa][the Savannah page]] and look for "GNU ELPA").
 Using a clone of a clone might not work.
 
 The repository is large because it contains all the packages, so you
@@ -49,7 +49,7 @@ a large amount of irrelevant data.  More specifically, here is how you
 can get the source and setup the general infrastructure:
 
 #+begin_src shell
-  git clone --single-branch git://git.savannah.gnu.org/emacs/elpa.git
+  git clone --single-branch https://git.savannah.gnu.org/cgit/elpa/gnu.git/
   cd elpa
   make
 #+end_src
@@ -509,7 +509,7 @@ checked out in =$HOME/github/realgud-ipdb=:
 
 #+begin_src shell
    cd $HOME/github/realgud-ipdb
-   git remote add elpa ${USER}@git.sv.gnu.org:/srv/git/emacs/elpa.git
+   git remote add elpa ${USER}@git.savannah.gnu.org:/srv/git/elpa/gnu.git
    git push elpa master:refs/heads/externals/realgud-ipdb
 #+end_src
 

@@ -1,56 +1,93 @@
 <!doctype html>
 <html lang="en" xml:lang="en">
-    <head>
-        <title>GNU Emacs Lisp Package Archive</title>
-        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-        <link rel="shortcut icon" type="image/png" href="favicon.png">
-        <link rel="stylesheet" href="//code.cdn.mozilla.net/fonts/fira.css">
-        <link rel="stylesheet" type="text/css" href="layout.css">
-        <meta name="viewport" content="initial-scale=1.0,maximum-scale=1.0,width=device-width" />
-    </head>
+<head>
+<title>Javascript License Information</title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<link rel="shortcut icon" type="image/png" href="favicon.png" />
+<link rel="stylesheet" type="text/css" href="layout.css" />
+<meta name="viewport" content="initial-scale=1.0,maximum-scale=1.0,width=device-width" />
+</head>
 
-    <body>
-        <div class="wrapper">
-            <header>
-                <div class="container">
-                    <img src="images/elpa.png" alt="ELPA"/>
-                    <a href="index.html"><h1>GNU Emacs Lisp Package Archive</h1></a>
+<body>
+<header>
+<h1>
+<img src="images/logo.svg" alt="GNU ELPA Logo" width="60" height="64" />
+Javascript License Information
+</h1>
 
-                    <p>
-                        The default package repository for
-                        <a href="https://www.gnu.org/software/emacs/">GNU Emacs</a>.
-                    </p>
-                </div>
-            </header>
+<nav>
+<ul>
+<li><a href="packages/">Index</a></li>
+<li><a href="about.html">About</a></li>
+<li><a href="contributing.html">Contribute!</a></li>
+<li class="other"><a href="https://elpa.nongnu.org/">NonGNU ELPA</a></li>
+<li class="other"><a href="devel/">GNU-devel ELPA</a></li>
+</ul>
+</nav>
+</header>
 
-            <main class="container">
-              <table id="jslicense-labels1">
-                <thead>
-                  <tr>
-                    <th>Script</th>
-                    <th>License</th>
-                    <th>Source</th>
-                  </tr>
-                </thead>
-                <tr>
-                  <td><a href="javascript/package-search.js">package-search.js</a></td>
-                  <td><a href="https://www.gnu.org/licenses/gpl-3.0.html">GPL-3.0</a></td>
-                  <td><a href="javascript/package-search.js">package-search.js</a></td>
-                </tr>
-              </table>
-            </main>
+<main>
+<p>
+All Javascript files on this website are naturally free software.
+They progressively enhance the utility of the website if the browser
+supports the files, but otherwise do not break any functionality if
+absent.
+</p>
 
-        <footer>
-            <div class="container">
-                <p>Copyright 2021-2026 <a href="https://fsf.org">Free Software Foundation</a>, Inc.</p>
-                <p>Design provided by <a href="https://nicolas.petton.fr">Nicolas Petton</a></p>
-                <p>
-                    This website is licensed under the
-                    <a href="https://creativecommons.org/licenses/by-nd/4.0/">CC BY-ND 4.0</a>
-                    International License.
-                </p>
-            </div>
-        </footer>
+<p>
+The table on the package index is augmented by two scripts:
+</p>
 
-    </body>
+<table id="jslicense-labels1">
+<thead>
+<tr>
+<th>Script</th>
+<th>License</th>
+<th>Source</th>
+</tr>
+</thead>
+<tr>
+<td><a href="javascript/package-search.js">package-search.js</a></td>
+<td><a href="https://www.gnu.org/licenses/gpl-3.0.html">GPL-3.0</a></td>
+<td><a href="javascript/package-search.js">package-search.js</a></td>
+</tr>
+<tr>
+<td><a href="javascript/package-sort.js">package-sort.js</a></td>
+<td><a href="https://www.gnu.org/licenses/gpl-3.0.html">GPL-3.0</a></td>
+<td><a href="javascript/package-sort.js">package-sort.js</a></td>
+</tr>
+</table>
+
+<dl>
+<dt><a href="javascript/package-search.js">package-search.js</a></dt>
+<dd>
+Adds a search bar above the table that allows the user to
+interactively narrow the contents of the table.  The search query is
+interpreted in an <code>apropos</code>-style, where the words you use
+can occur in any order.  The query doesn&apos;t include any
+meta-characters.  Published
+under <a href="https://www.gnu.org/licenses/gpl-3.0.html">GPL-3.0</a>.
+</dd>
+<dt><a href="javascript/package-sort.js">package-sort.js</a></dt>
+<dd>
+Adds indicators to certain columns that allow dynamic re-sorting of
+the table contents.  An ascending or descending order can be toggled
+by repeated clicking on the header.  Published
+under <a href="https://www.gnu.org/licenses/gpl-3.0.html">GPL-3.0</a>.
+</dd>
+</dl>
+
+</main>
+
+<footer>
+<p>Copyright 2016-2026 <a href="https://fsf.org">Free Software Foundation</a>, Inc.
+This website is licensed under the
+<a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>
+International License.
+</footer>
+</body>
 </html>
+
+<!-- Local Variables: -->
+<!-- sgml-xml-mode: t -->
+<!-- End: -->

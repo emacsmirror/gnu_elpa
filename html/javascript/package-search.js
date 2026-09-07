@@ -1,4 +1,9 @@
-/* This program is free software: you can redistribute it and/or
+/**
+ *
+ * @licstart  The following is the entire license notice for the
+ *  JavaScript code in this page.
+ *
+ * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
@@ -10,7 +15,11 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see
- * <https://www.gnu.org/licenses/>. */
+ * <https://www.gnu.org/licenses/>.
+ *
+ * @licend  The above is the entire license notice
+ * for the JavaScript code in this page.
+ */
 
 "use strict";
 
@@ -20,53 +29,47 @@ function parse_pattern(pattern) { // ala `apropos-parse-pattern'
 	return new RegExp(`((${parts.join("|")}).*)+`, "i");
 }
 
-window.addEventListener("load", function (event) {
-	const table = document.getElementById("packages");
 
-	const search = document.createElement("input");
-	search.setAttribute("placeholder", "Search packages...");
-	search.setAttribute("type", "search");
+const table = document.getElementById("packages");
 
-	let tid = false;			// timeout ID
-	search.addEventListener("input", function(event) {
-		if (tid) clearTimeout(tid);
+const search = document.createElement("input");
+search.setAttribute("placeholder", "Search packages...");
+search.setAttribute("type", "search");
+search.setAttribute("autofocus", "yes");
 
-		tid = setTimeout(function (query) {
-			const pattern = parse_pattern(query);
-			for (let i = 1; i < table.rows.length; i++) {
-				const row = table.rows.item(i);
+let tid = false;			// timeout ID
+search.addEventListener("input", function(event) {
+	if (tid) clearTimeout(tid);
 
-				const name = row.childNodes.item(0);
-				name.classList.remove("alt");
+	tid = setTimeout(function (query) {
+		const pattern = parse_pattern(query);
+		for (let i = 1; i < table.rows.length; i++) {
+			const row = table.rows.item(i);
 
-				const desc = row.childNodes.item(2);
-				desc.classList.remove("alt");
+			const name = row.childNodes.item(0);
+			name.classList.remove("alt");
 
-				if (query) {
-					const name_matches = name.innerText.match(pattern);
-					const desc_matches = desc.innerText.match(pattern);
-					if (name_matches || desc_matches) {
-						row.classList.remove("invisible");
-						if (name_matches) { name.classList.add("alt"); }
-						if (desc_matches) { desc.classList.add("alt"); }
-					} else {
-						row.classList.add("invisible");
-					}
-				} else {
+			const desc = row.childNodes.item(2);
+			desc.classList.remove("alt");
+
+			if (query) {
+				const name_matches = name.innerText.match(pattern);
+				const desc_matches = desc.innerText.match(pattern);
+				if (name_matches || desc_matches) {
 					row.classList.remove("invisible");
+					if (name_matches) { name.classList.add("alt"); }
+					if (desc_matches) { desc.classList.add("alt"); }
+				} else {
+					row.classList.add("invisible");
 				}
+			} else {
+				row.classList.remove("invisible");
 			}
+		}
 
-			tid = false;
-		}, 100, event.target.value.trim());
-	});
-
-	const main = document.querySelector("main");
-	main.prepend(search);
+		tid = false;
+	}, 100, event.target.value.trim());
 });
 
-// Local Variables:
-// indent-tabs-mode: t
-// js-indent-level: 4
-// tab-width: 4
-// End:
+const main = document.querySelector("search");
+main.prepend(search);

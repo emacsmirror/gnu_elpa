@@ -1,4 +1,4 @@
-/* Copyright (C) 2010-2026, 2024, 2026 Free Software Foundation, Inc.
+/* Copyright (C) 2026 Free Software Foundation, Inc.
 
 This file is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -10,354 +10,253 @@ but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details. */
 
-/* Begin of reset */
+:root {
+	font-family: sans-serif;
+	text-rendering: optimizeLegibility;
+	font-variant-ligatures: common-ligatures;
+	font-kerning: auto;
 
-html, body, div, span, applet, object, iframe,
-h1, h2, h3, h4, h5, h6, p, blockquote, pre,
-a, abbr, acronym, address, big, cite, code,
-del, dfn, em, img, ins, kbd, q, s, samp,
-small, strike, strong, sub, sup, tt, var,
-b, u, i, center,
-dl, dt, dd, ol, ul, li,
-fieldset, form, label, legend,
-table, caption, tbody, tfoot, thead, tr, th, td,
-article, aside, canvas, details, embed, 
-figure, figcaption, footer, header, hgroup, 
-menu, nav, output, ruby, section, summary,
-time, mark, audio, video {
-  margin: 0;
-  padding: 0;
-  border: 0;
-  font-size: 100%;
-  font: inherit;
-  vertical-align: baseline;
-}
-/* HTML5 display-role reset for older browsers */
-article, aside, details, figcaption, figure, 
-footer, header, hgroup, menu, nav, section {
-  display: block;
-}
-body {
-  line-height: 1;
-}
-blockquote, q {
-  quotes: none;
-}
-blockquote:before, blockquote:after,
-q:before, q:after {
-  content: '';
-  content: none;
-}
-table {
-  border-collapse: collapse;
-  border-spacing: 0;
-  margin: 1em 0 1em;
+	--primary: #bb3955;
+	--secondary: #973066;
+	--ternary: #c73a6c;
+	--background: #eee;
+	--foreground: #fff;
+	--highlight: #ffd;
+
+	/* TODO: adjust the variables to create an accessible dark theme.
+
+	color-scheme: light;
+	@media (prefers-color-scheme: dark) {
+
+	} */
+
+	/* Note: when changing this variable, please remember to also adjust
+		 the @media rule below.  */
+	--page-width: 100ch;
+	--padding: 1ch;
 }
 
-/* End of reset */
+html {
+	box-sizing: border-box;
+
+	/* Hack to prevent the scroll bar from shifting the content of the
+		 page: https://stackoverflow.com/a/30293718 */
+	padding-left: calc(100vw - 100%);
+}
+*, *::before, *::after { box-sizing: inherit; }
 
 body {
-  font-family: "Fira Sans", sans-serif;
-  line-height: 1.5em;
-  font-size: 1.2em;
-  color: #333;
+	max-width: var(--page-width);
+	margin: auto;
+	padding: var(--padding);
+	background: var(--background);
 }
 
-html, body {
-  height: 100%;
-}
-.wrapper {
-  min-height: 100%;
-  height: auto !important; /* This line and the next line are not necessary unless you need IE6 support */
-  height: 100%;
-  margin: 0 auto -50px; /* the bottom margin is the negative value of the footer's height */
-}
-.push {
-  height: 90px; /* .push must be the same height as .footer */
-}
-
-h1 {
-  font-size: 2.5em;
-  margin: 0.4em;
-}
-
-h2 {
-  font-size: 2em;
-  margin: 1.2em 0px;
-}
-
-h3 {
-  font-size: 1.5em;
-  font-weight: bold;
-  margin: 1.2em 0px;
-}
-h4 {
-  margin: 1em 0px;
-  font-weight: bold;
-}
-h5 {
-  margin: 1em 0px;
-  font-style: italic;
-}
-
-a {
-  color: #c73a6c;
-  text-decoration: none;
-}
-small {
-  font-size: smaller;
-}
-a:hover {
-  color: #973066;
-  text-decoration: underline;
-}
-
-/* FIXME: This is meant for inline `code` but also matches block `code` :-(
-   I tried to use `:not(pre) code` so that it applies to all `code`
-   except those immediately within a `pre` but AFAICT it then did not match
-   anything at all.  So instead I use a separate rule for `pre code` which
-   overrides some of these settings.  */
-tt, code {
-  font-family: "Fira Mono", monospace;
-  background-color: rgb(238, 238, 238);
-  border: 1px solid rgb(187, 187, 187);
-  padding: 0px 6px;
-  border-radius: 4px;
-  white-space: nowrap;
-}
-
-/* FIXME: This overrides the above settings for the non-inline multiline
-   code blocks.  Important for Markdown rendered files which use
-   <pre><code>...</code></pre> for multiline code blocks.  */
-pre code {
-  background: #fafafa;
-  border: 0px solid;
-  white-space: pre;
-  padding: 0px;
-}
-
-pre {
-  font-family: "Fira Mono", monospace;
-  font-size: 14px;
-  background: #fafafa;
-  padding: 1em;
-  border: 0px solid;
-  overflow-y: auto;
-  white-space: pre;
-}
-
-pre .kw {
-  font-weight: bold;
-  color: #4f0f71;
-}
-
-/* Apparently the big "reset" at the beginning makes this necessary.  */
-strong { font-weight: bold; }
-em { font-style: oblique; }
-
-p {
-  margin: 1em 0 1em 0;
-}
-
-p.centered {
-  text-align: center;
-  margin: 3em 0;
-}
-
-dl {
-  margin: 30px 2em;
+code, samp, kbd {
+	/* Hack to not use a smaller font for fixed-width text:
+		 https://github.com/necolas/normalize.css/issues/519#issuecomment-197131966 */
+	font-family: monospace, monospace;
 }
 
 dt {
-  font-weight: bold;
-  margin: 0.25em 0 0 0;
-  vertical-align: top;
+	margin-top: var(--padding);
+	font-weight: bold;
 }
 
-p img {
-  max-width: 100%;
-  margin-left: auto;
-  margin-right: auto;
+a {
+	color: var(--ternary);
+
+	&:visited { color: var(--secondary); }
 }
 
-.button {
-  border: 2px solid;
-  padding: 10px;
-  border-radius: 10px;
-  text-decoration: none;
-  font-weight: bold;
-  font-size: 1.2em;
+:target {
+	background: color-mix(in oklab, 100% white, 50% var(--primary));
+	padding: calc(0.5 * var(--padding));
+	margin: 0 calc(-0.5 * var(--padding));
+	border-radius: calc(0.5 * var(--padding));
 }
 
-.container {
-  padding: 20px;
-  width: 960px;
-  margin: 0 auto;
+header {
+	font-size: large;
+
+	h1 {
+		color: var(--primary);
+
+		img {
+			vertical-align: -40%;
+
+			/* We fix the height to that of images/logo.svg to prevent "bouncing"
+				 when reloading the site */
+			height: 64px;
+		}
+	}
+
+	nav {
+		background: linear-gradient(135deg, var(--primary), var(--ternary), var(--secondary));
+		border-radius: var(--padding);
+		line-height: 1;
+
+		/* We add additional padding on both ends, so that the space around
+			 each element in the navbar appears to be the same as between
+			 the fringe elements and the side of the navbar. */
+		padding: 0 var(--padding);
+
+		ul {
+			padding: 0;
+
+			li {
+				display: inline-block;
+				list-style-type: none;
+
+				a {
+					text-decoration: none;
+					padding: var(--padding);
+					display: inline-block;
+
+					/* The navbar links are not really text-links so we don't want
+						 :visited to change their color. */
+					color: var(--foreground) !important;
+				}
+
+				&.other {
+					float: right;
+				}
+			}
+		}
+	}
 }
 
-.invisible {
-  display: none;
+main {
+	background: var(--foreground);
+	padding: var(--padding) calc(2 * var(--padding));
+	border-radius: var(--padding);
+	position: relative;
+
+	p, li, dd {
+		text-align: justify;
+		hyphens: auto;
+		overflow-wrap: break-word;
+	}
+
+	pre {
+		overflow-x: auto;
+	}
+
+	.fulldescription > img {
+		border: 1px solid;
+	}
+
+	img {
+		max-width: 100%;
+		margin: 0 auto;
+		overflow-x: auto;
+		&[align="right"] {
+			margin-left: var(--padding);
+		}
+	}
+
+	details {
+		summary {
+			padding-bottom: 8px;
+		}
+	}
+
+	search input {
+		margin: var(--padding) auto;
+		display: block;
+		width: min(calc(var(--page-width) / 2), 100%);
+		font-size: larger;
+		padding: calc(var(--padding) / 2);
+	}
+
+	table#packages {
+		font-variant-numeric: tabular-nums;
+		border-collapse: collapse;
+		overflow-x: auto;
+		width: 100%;
+		table-layout: fixed;
+		contain: layout paint style;
+		margin: auto;
+
+		/* javascript/package-search.js uses this class to hide elements when
+			 filtering the table by a search query. */
+		tr.invisible {
+			content-visibility: hidden;
+			display: none;
+		}
+
+		th, td {
+			padding: var(--padding);
+			overflow-wrap: break-word;
+		}
+		td.alt { background-color: var(--highlight); }
+
+		th[data-sort] { cursor: pointer; }
+		th[data-sort]:after {
+			content: "↕";
+			font-family: monospace, monospace;
+		}
+		th[data-order="asc"]:after { content: "↑"; }
+		th[data-order="desc"]:after { content: "↓"; }
+	}
+
+	h2 {
+		color: var(--primary);
+
+		&.package .badge {
+			position: absolute;
+			right: var(--padding);
+			top: 0;
+
+			img {
+				/* Ensure same margin to the right as above the image. */
+				margin-top: var(--padding);
+			}
+		}
+	}
 }
 
-header, .header {
-  color: white;
-  text-align: center;
-  background-color: #bb3955;
-  background:  #bb3955 linear-gradient(135deg, #c73a6c, #bb3955, #973066) repeat scroll 0% 0%;
-  border-bottom: 6px solid #691240;
+footer {
+	font-size: 80%;
+	text-align: center;
 }
 
-header p, .header p {
-  margin: 0;
-}
+@media screen and (max-width: 100ch) { /* see --page-width comment above */
+	body {
+		padding: 0;
 
-header a, .header a {
-  color: rgb(240, 255, 135);
-  text-decoration: none;
-}
+		header {
+			h1 { padding-left: var(--padding); }
+			nav {
+				border-radius: 0;
+				padding-left: var(--padding);
+			}
+			ul {
+				li.other {
+					float: unset;
+				}
+			}
+		}
+	}
 
-header a:hover, .header a:hover {
-  color: rgb(240, 255, 135);
-  text-decoration: underline;
-  background: transparent;
-}
+	main {
+		border-radius: 0;
+		padding: var(--padding);
 
-header.small, .header.small {
-  text-align: left;
-  border-width: 3px;
-}
+		h2.package + dl {
+			display: grid;
+			grid-template-columns: max-content auto;
 
-header.small h1, .header.small h1 {
-  display: inline;
-  font-size: 1.5em;
-  margin: 0;
-  background: url(images/elpa-small.png) center left no-repeat;
-  padding: 10px;
-  padding-left: 120px;
-}
+			dt, dd { padding-top: var(--padding); }
+			dt { grid-column: 1; }
+			dd { grid-column: 2; }
+		}
 
-header.small .container, .header.small .container {
-  padding: 20px;
-}
-
-input[type="search"] {
-  border: 3px solid #ddd;
-  padding: 10px;
-  width: 100%;
-  font-size: 1.1em;
-  background: #fcfcfc;
-}
-
-input[type="search"]:focus {
-  border-color: #bbb;
-  background: #fafafa;
-}
-
-input[type="search"][placeholder] {
-  color: #666;
-}
-
-.filter-table .quick { margin-left: 0.5em; font-size: 0.8em; text-decoration: none; }
-.fitler-table .quick:hover { text-decoration: underline; }
-td.alt { background-color: #ffc; background-color: rgba(255, 255, 0, 0.2); }
-
-td, th {
-  padding: 6px;
-}
-
-th {
-  text-align: left;
-  border-bottom: 2px solid #ddd;
-  background: #fafafa;
-  font-weight: bold;
-}
-
-td {
-  border-bottom: 1px solid #ddd;
-}
-
-td:last-child,
-th:last-child {
-  text-align: right;
-}
-
-footer, .footer {
-  border-top: 1px solid #999;
-  text-align:center;
-  font-size: 0.9em;
-  background-color: #eee;
-  color: #666;
-}
-
-footer .container, .footer .container {
-  padding: 15px 0;
-}
-
-footer p, .footer p {
-  margin: 0;
-  font-size: .8em;
-  padding: 0;
-  line-height: 1.4em;
-}
-
-table {
-  width: 100%;
-}
-
-@media screen and (max-width: 999px) {
-  .container {
-    width: 600px;
-  }
-}
-
-@media screen and (max-width: 639px) {
-  body {
-    font-size: 1em;
-  }
-
-  .container {
-    width: 90%;
-    padding: 40px 5%;
-  }
-
-  h1 {
-    font-size: 1.4em;
-  }
-
-  header img, .header img {
-    width: 300px;
-  }
-
-  td:nth-child(2), th:nth-child(2) {
-    display: none;
-  }
-
-  dd {
-    width: 100%;
-  }
-}
-
-@media screen and (max-width: 439px) {
-
-  header img, .header img {
-    width: 250px;
-  }
-  
-  h1 {
-    font-size: 1.2em;
-  }
-}
-
-ul {
-  list-style-type: circle;
-  margin-left: 1.2em;
-}
-
-li {
-  margin-bottom: 0.25em;
-}
-
-.badge {
-  float: right;
-  display: block;
+		table#packages {
+			width: unset;
+			table-layout: initial;
+			display: block;
+			overflow-x: auto;
+		}
+	}
 }

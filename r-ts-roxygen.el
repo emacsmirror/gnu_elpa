@@ -27,9 +27,8 @@
 
 ;;; Code:
 
-;;;; =========================================================================
 ;;;; Groups, Custom Variables, General Variables
-;;;; =========================================================================
+;; =============================================================================
 (defgroup r-ts-roxygen nil
   "R's roxygen support for `r-ts-mode'."
   :group 'r-ts-mode
@@ -71,9 +70,8 @@ Used to decide highlighting and tag completion."
   "Regexp matching a parameter name, including symbols and commas.")
 
 
-;;;; =========================================================================
 ;;;; Roxygen Supportive Functions
-;;;; =========================================================================
+;; =============================================================================
 (defun r-ts-roxygen--build-keywords ()
   "Return a font-lock keyword list for roxygen comments.
 Pure function — reads only `defcustom' values, produces no side effects."
@@ -136,9 +134,8 @@ Pure function — reads only `defcustom' values, produces no side effects."
                #'r-ts-roxygen-complete-tag t))
 
 
-;;;; =========================================================================
 ;;;; Roxygen Minor Mode
-;;;; =========================================================================
+;; =============================================================================
 
 ;;;###autoload
 (define-minor-mode r-ts-roxygen-mode

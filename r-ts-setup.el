@@ -30,9 +30,8 @@
 
 ;; This module is not automatically loaded, thus it has to be required
 
-;;;; =========================================================================
 ;;;; Groups, Custom Variables, General Variables
-;;;; =========================================================================
+;; =============================================================================
 
 (defgroup r-ts-setup nil
   "R's roxygen support for `r-ts-mode'."
@@ -51,9 +50,8 @@ When nil, signal an error if the target directory does not exist."
   :group 'r-ts-setup)
 
 
-;;;; =========================================================================
 ;;;; Grammar / Binary Preparation — Pure Helpers
-;;;; =========================================================================
+;; =============================================================================
 (defun r-ts-setup--build-r-find-package-command (r-program)
   "Return the shell command that prints the path of the \='treesitter.r\=' R package.
 R-PROGRAM is the executable name or path.  Pure function — no side effects."
@@ -131,9 +129,8 @@ otherwise signal an error."
         (error "Directory not found: %s" expanded)))))
 
 
-;;;; =========================================================================
 ;;;; API
-;;;; =========================================================================
+;; =============================================================================
 ;;;###autoload
 (defun r-ts-setup-prepare-binaries-from-r-library (&optional package-path emacs-ts-path)
   "Copy the tree-sitter R grammar from the \='treesitter.r\=' R package to Emacs.

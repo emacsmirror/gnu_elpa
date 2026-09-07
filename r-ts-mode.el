@@ -31,9 +31,8 @@
 (declare-function r-ts-mode-parent-mode "r-ts-mode.el")
 
 
-;;;; =========================================================================
 ;;;; Groups, Custom Variables, General Variables
-;;;; =========================================================================
+;; =============================================================================
 (defgroup r-ts nil
   "R support for Emacs using tree-sitter."
   :group 'languages
@@ -57,9 +56,8 @@
   "Replacement for ESS variable `ess-R-font-lock-keywords' to silence ESS fontification.")
 
 
-;;;; =========================================================================
 ;;;; Constants and Syntax Table
-;;;; =========================================================================
+;; =============================================================================
 (defvar r-ts-mode-syntax-table
   (let ((table (make-syntax-table prog-mode-syntax-table)))
     ;; Comments
@@ -93,9 +91,8 @@
   "Syntax table for R source code.")
 
 
-;;;; =========================================================================
 ;;;; Faces
-;;;; =========================================================================
+;; =============================================================================
 (defgroup r-ts-mode-faces nil
   "Faces for `r-ts-mode' syntax highlighting."
   :prefix "r-ts-mode-face-"
@@ -177,9 +174,8 @@
    :group 'r-ts-faces)
 
 
-;;;; =========================================================================
 ;;;; Parent Mode (ESS or prog-mode)
-;;;; =========================================================================
+;; =============================================================================
 
 ;; ESS declarations — kept here so the byte-compiler is happy,
 ;; but ESS-specific logic is intentionally left untouched for now.
@@ -246,9 +242,8 @@
     (setq-local comment-end "")))
 
 
-;;;; =========================================================================
 ;;;; Tree-sitter Node Utilities — Pure Predicates and Accessors
-;;;; =========================================================================
+;; =============================================================================
 (defun r-ts-mode--node-is-fun-def-p (node)
   "Return non-nil if the last child of NODE is a `function_definition'."
   (treesit-node-match-p (treesit-node-child node -1) "function_definition"))
@@ -295,9 +290,8 @@ Expected by `treesit-simple-imenu-settings' for non-function objects."
     (r-ts-mode--node-lhs-text node)))
 
 
-;;;; =========================================================================
 ;;;; Node Navigation Utilities
-;;;; =========================================================================
+;; =============================================================================
 (defun r-ts-mode--node-ancestor-matching (node type)
   "Walk up the tree from NODE, returning the first ancestor matching TYPE.
 Returns nil if the `program' root is reached without a match.
@@ -346,9 +340,8 @@ in BUFFER-OR-NAME."   (with-current-buffer buffer-or-name
                     ranges)))))
 
 
-;;;; =========================================================================
 ;;;; Tree-sitter Font-lock Settings
-;;;; =========================================================================
+;; =============================================================================
 (defvar r-ts-mode--operators
   '("?" ":=" "=" "<-" "<<-" "->" "->>"
     "~" "|>" "||" "|" "&&" "&"
@@ -477,9 +470,8 @@ in BUFFER-OR-NAME."   (with-current-buffer buffer-or-name
   "Tree-sitter font-lock rules for `r-ts-mode'.")
 
 
-;;;; =========================================================================
 ;;;; Indentation, Navigation, Imenu Settings
-;;;; =========================================================================
+;; =============================================================================
 (defvar r-ts-mode--indent-rules
   `((r
      ((node-is "}") parent-bol 0)
@@ -515,9 +507,8 @@ object definition."
   (r-ts-mode--walk-to-definition nil))
 
 
-;;;; =========================================================================
 ;;;; Major Mode Definition
-;;;; =========================================================================
+;; =============================================================================
 
 ;;;###autoload
 (define-derived-mode r-ts-mode r-ts-mode-parent-mode "R"

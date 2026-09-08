@@ -1238,13 +1238,15 @@ SPECS is the list of package specifications."
   "Rebuild the website for one particular package."
   (while command-line-args-left
     (let* ((arg (pop command-line-args-left))
+           ;; FIXME: This check won't work if make runs in the wrong
+           ;; directory.
+           (devel (file-in-directory-p arg elpaa--devel-subdir))
+           (elpaa--name (concat elpaa--name (if devel "-devel" "")))
            (pkg (file-name-base arg))
            (pkg-spec (or (elpaa--get-package-spec pkg)
                          (error "Failed to find package %s" pkg)))
            (destdir (file-name-directory arg)))
-      (if (file-exists-p arg)
-          (elpaa---make-one-webpage pkg-spec destdir)
-        (elpaa--message "Cannot regenerate %S, file doesn't exist" arg)))))
+      (elpaa---make-one-webpage pkg-spec destdir))))
 
 (defun elpaa-batch-make-one-tarball (&rest _)
   "Build a tarball for a particular package."

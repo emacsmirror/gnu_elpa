@@ -48,8 +48,8 @@
 @end ifclear
 @c %**end of header
 
-@set UPDATED 16 February 2026
-@set VERSION 2.32
+@set UPDATED 8 September 2026
+@set VERSION 2.33
 
 @ifinfo
 @dircategory Emacs

@@ -23,8 +23,8 @@
 ;; Keywords: i18n gettext
 ;; Created: 1995
 ;; Package-Requires: ((emacs "23"))
-;; Version: 2.32
-(defconst po-mode-version-string "2.32" "Version number of this version of po-mode.el.")
+;; Version: 2.33
+(defconst po-mode-version-string "2.33" "Version number of this version of po-mode.el.")
 
 ;;; Commentary:
 
@@ -49,6 +49,13 @@
 ;;
 ;; You may also adjust some variables, below, by defining them in your
 ;; '.emacs' file, either directly or through command 'M-x customize'.
+
+;; To test, during development:
+;; 1. Run 'emacs -q'.
+;; 2. M-x load-file, specify this file.
+;; 3. Open an existing PO file.
+;; 4. M-x po-mode
+;; 5. Do some editing.
 
 ;; TODO:
 ;; Plural form editing:

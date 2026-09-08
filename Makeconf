@@ -87,7 +87,7 @@ MAKETXT  ?= $(MAKEINFO) --no-validate --plaintext --no-split -o -
 INSTALLDIR ?= mkdir -p
 INSTALL ?= cp -p
 UNINSTALL ?= rm -f
-TEXI2PDF ?= LANG=C texi2dvi --pdf
+TEXI2PDF ?= LANG=C texi2any --pdf
 DOWNLOAD ?= $(shell which wget > /dev/null && echo 'wget -qO -' || which curl)
 INSTALLINFO ?= install-info
 

@@ -1004,14 +1004,6 @@ all reachable through 'M-x customize', in group 'Emacs.Editing.I18n.Po'."
   (run-mode-hooks 'po-mode-hook)
   (message (_"You may type 'h' or '?' for a short PO mode reminder.")))
 
-(define-derived-mode po-subedit-mode text-mode
-  ; The mode name is taken from the menu string in po-subedit-mode-menu-layout.
-  "PO-Edit"
-  "PO subedit mode."
-  :group 'po
-  (easy-menu-define po-subedit-mode-menu po-subedit-mode-map ""
-    po-subedit-mode-menu-layout))
-
 (defvar po-subedit-mode-map
   ;; Use (make-keymap) because (make-sparse-keymap) does not work on Demacs.
   (let ((po-subedit-mode-map (make-keymap)))
@@ -1021,6 +1013,14 @@ all reachable through 'M-x customize', in group 'Emacs.Editing.I18n.Po'."
     (define-key po-subedit-mode-map "\C-c\C-k" 'po-subedit-abort)
     po-subedit-mode-map)
   "Keymap while editing a PO mode entry (or the full PO file).")
+
+(define-derived-mode po-subedit-mode text-mode
+  ; The mode name is taken from the menu string in po-subedit-mode-menu-layout.
+  "PO-Edit"
+  "PO subedit mode."
+  :group 'po
+  (easy-menu-define po-subedit-mode-menu po-subedit-mode-map ""
+    po-subedit-mode-menu-layout))
 
 ;;; Window management.
 

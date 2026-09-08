@@ -7,8 +7,10 @@ module and its callers before changing a contract; the manual is
 
 ## Architecture
 
-Use these boundaries when changing the package; existing mixed responsibilities
-are candidates for focused extraction, not a reason for a wholesale rewrite:
+Sources live in `lisp/`, behavioral ERT tests in `tests/`. These are ownership
+rules for changes, not a claim that every existing caller already follows them.
+Read the affected implementation and callers; extract mixed responsibilities
+only where the task needs it, rather than reorganizing the package:
 
 - `gnosis-fsrs`: pure memory-model calculations. Supply state, elapsed time,
   outcome, and retention explicitly; return values without storage or UI.
@@ -22,9 +24,10 @@ are candidates for focused extraction, not a reason for a wholesale rewrite:
 - `gnosis-org`, `gnosis-nodes`, `gnosis-journal`, and `gnosis-links`: native Org
   interpretation, file operations, and indexes. Org files own node contents;
   indexed titles and links do not replace those files or their IDs.
-- `gnosis-study`: topic selection, repair, and separate practice evidence.
-  `gnosis-review` owns the interactive encounter/session flow.
-  `gnosis-agent` adapts those operations without duplicating study policy.
+- `gnosis-study`: topic selection, repair, and study evidence queries/views.
+  `gnosis-review` owns encounter/session flow, durable practice sessions,
+  and practice success/retry policy. `gnosis-agent` adapts these operations
+  without duplicating study policy.
 - `gnosis-dashboard`: views of application state. Formatting returns display
   values; renderers own buffer changes and pending work. `gnosis-tl` supplies
   generic tabulated-list rendering, not application-state ownership.
@@ -69,18 +72,18 @@ before adding a second path that writes the same state.
   mutations, and pending rendering must not resurrect removed or stale rows.
 - Persistent Lisp encoding must round-trip independently of display-oriented
   printer settings. Preserve meaningful distinctions between nil and empty text.
-  Route bulk writes and identity preimages through the owned serializer;
-  preserve existing nested-string encodings instead of adding another layer.
 - Validate both the reviewed input and the destination state before applying
   an import. Retry must not silently omit partially imported logical items.
   Render preview details from the same retained values that apply will consume.
 - Content export is not a backup: it excludes schedules and study history.
-  Reject aliases of the active database and its SQLite companions. Refuse
-  single-file replacement when destination companions exist, checking again
-  before rename. Validate the temporary replacement; preserve originals on
-  failure or quit. These checks do not provide cross-process exclusion.
+  Preserve active databases and existing destinations on failure or quit.
 - Keep irreversible external effects outside retriable transactions. Use
   `unwind-protect` for owned resources; errors and `C-g` must leave safe state.
+
+Before changing persistent encoding, event identity serialization, imports,
+exports, or database backup, read
+[storage and exchange](docs/storage-and-exchange.md) for compatibility rules,
+replacement hazards, and relevant implementation/tests.
 
 ## Elisp and verification
 
@@ -95,9 +98,19 @@ Include the failure boundary: stale owner, interrupted write, retry, or mutation
 during deferred work. Use small round-trip/invariant tests where examples alone
 miss the contract; avoid assertions about incidental helper structure.
 
-Run `make JOBS=4 dev` for lint, compilation, autoload checks, ERT, and the manual.
+For changed interactive flows, exercise the public command and affected keymap
+in an interactive Emacs with disposable data. Check the visible result, cancel
+path, and refresh/resume behavior where relevant; ERT alone does not establish
+usability. Do not load development code into a learner's session as a test.
+
+Run `make JOBS=4 dev` for lint, compilation, autoload checks, ERT,
+and the manual.
 The Makefile enters the pinned Nix environment when available. Use fresh
 bytecode and disposable HOME/XDG/data directories for manual probes; never
 create test grades or exercise destructive paths on a learner's database.
 Review the complete diff and relevant callers before committing. Keep fixes
 and wider behavior-preserving refactors distinguishable, with matching tests.
+
+Maintain this file when ownership or development commands change. Keep durable
+invariants here, detailed hazards in the linked reference, and individual bug
+cases in regression tests; do not append a new rule for every fix.

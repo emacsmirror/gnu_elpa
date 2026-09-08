@@ -12,6 +12,7 @@ research
 
 *.md
 !/AGENTS.md
+!/docs/storage-and-exchange.md
 !/skills/gnosis-themata/SKILL.md
 *.info
 *.texi

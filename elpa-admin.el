@@ -2185,7 +2185,7 @@ in case of cyclic dependencies."
                     "has not been released yet")
                   ".</dd>\n")
         (let* ((file (cdr (assoc latest files)))
-               (attrs (file-attributes file)))
+               (attrs (file-attributes (file-chase-links (expand-file-name file)))))
           (insert (format "<dt>Latest</dt> <dd><a href=%S>%s</a> (<a href=%S>.sig</a>), %s, %s</dd>\n"
                           file (elpaa--html-quote file) (concat file ".sig")
                           (format-time-string "%Y-%b-%d" (nth 5 attrs))

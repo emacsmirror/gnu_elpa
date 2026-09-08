@@ -533,7 +533,7 @@ msgstr "Hoe een grafiek met labels op de assen te maken."
 #. type: menuentry
 #: emacs-lisp-intro.texi:290
 msgid "Free Software and Free Manuals::"
-msgstr "Vrije software en vrije handleidingen::"
+msgstr "Free Software and Free Manuals::"
 
 #. type: menuentry
 #: emacs-lisp-intro.texi:290
@@ -2906,7 +2906,7 @@ msgstr "Kolommen van een grafiek::"
 #: emacs-lisp-intro.texi:16105 emacs-lisp-intro.texi:16107
 #, no-wrap
 msgid "graph-body-print"
-msgstr "graph-body-print"
+msgstr "grafiek-body-tonen"
 
 #. type: menuentry
 #: emacs-lisp-intro.texi:671 emacs-lisp-intro.texi:15730
@@ -2916,7 +2916,7 @@ msgstr "Hoe de body van een grafiek te tonen."
 #. type: menuentry
 #: emacs-lisp-intro.texi:671 emacs-lisp-intro.texi:15730
 msgid "recursive-graph-body-print::"
-msgstr "recursive-graph-body-print::"
+msgstr "recursieve-grafiek-body-tonen::"
 
 #. type: menuentry
 #: emacs-lisp-intro.texi:671 emacs-lisp-intro.texi:15730
@@ -3325,7 +3325,7 @@ msgstr "De @code{print-Y-axis} functie"
 #. type: menuentry
 #: emacs-lisp-intro.texi:733 emacs-lisp-intro.texi:19384
 msgid "print-Y-axis in Detail::"
-msgstr "print-Y-axis in detail::"
+msgstr "toon-Y-as in detail::"
 
 #. type: node
 #: emacs-lisp-intro.texi:733 emacs-lisp-intro.texi:19384
@@ -3380,7 +3380,7 @@ msgstr "Een lijst van y-as labels genereren."
 #: emacs-lisp-intro.texi:19727
 #, no-wrap
 msgid "print-Y-axis Penultimate"
-msgstr "print-Y-axis enalaatste"
+msgstr "toon-Y-as enalaatste"
 
 #. type: menuentry
 #: emacs-lisp-intro.texi:733 emacs-lisp-intro.texi:19384
@@ -3391,7 +3391,7 @@ msgstr "Nog niet finale versie"
 #: emacs-lisp-intro.texi:735 emacs-lisp-intro.texi:19804
 #, no-wrap
 msgid "The @code{print-X-axis} Function"
-msgstr "De @code{print-X-axis} functie"
+msgstr "De @code{print-X-as} functie"
 
 #. type: node
 #: emacs-lisp-intro.texi:738 emacs-lisp-intro.texi:19837
@@ -3410,7 +3410,7 @@ msgstr "Grotendeels als @code{print-Y-axis}, maar niet helemaal gelijk."
 #: emacs-lisp-intro.texi:19865 emacs-lisp-intro.texi:19866
 #, no-wrap
 msgid "X Axis Tic Marks"
-msgstr "X-as tic marks"
+msgstr "X-as merktekens"
 
 #. type: menuentry
 #: emacs-lisp-intro.texi:738 emacs-lisp-intro.texi:19837
@@ -3421,7 +3421,7 @@ msgstr "Maak tic marks voor de horizontale as."
 #: emacs-lisp-intro.texi:740 emacs-lisp-intro.texi:20155
 #, no-wrap
 msgid "Printing the Whole Graph"
-msgstr "De hele grafiek afdrukken"
+msgstr "De gehele grafiek tonen"
 
 #. type: node
 #: emacs-lisp-intro.texi:748 emacs-lisp-intro.texi:20191
@@ -24632,13 +24632,13 @@ msgid ""
 "     (* (car numbers-list) (car numbers-list))\n"
 "     (square-each (cdr numbers-list))))) ; next-step-expression\n"
 msgstr ""
-"(defun kwadrateer-elke (getallen-lijst)\n"
+"(defun kwadrateer-elke (getallenlijst)\n"
 "  \"Kwadrateer elk van een GETALLEN Lijst, recursief.\"\n"
-"  (if (not getallen-lijst)                ; doe-opnieuw-test\n"
+"  (if (not getallenlijst)                ; doe-opnieuw-test\n"
 "      nil\n"
 "    (cons\n"
-"     (* (car getallen-lijst) (car getallen-lijst))\n"
-"     (kwadrateer-elke (cdr getallen-lijst))))) ; volgende-stap-expressie\n"
+"     (* (car getallenlijst) (car getallenlijst))\n"
+"     (kwadrateer-elke (cdr getallenlijst))))) ; volgende-stap-expressie\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:11434
@@ -24657,7 +24657,7 @@ msgid ""
 "construct a list combining the square of the first number in the list with "
 "the result of the recursive call."
 msgstr ""
-"Wanneer @code{getallen-lijst} leeg is, doe niets. Maar als die inhoud heeft, "
+"Wanneer @code{getallenlijst} leeg is, doe niets. Maar als die inhoud heeft, "
 "construeer een lijst door het kwadraat van het eerste getal te combineren "
 "met een lijst met het resultaat van de recursieve aanroep."
 
@@ -24669,7 +24669,7 @@ msgid ""
 "carries out the action when the numbers' list is not empty.)"
 msgstr ""
 "(Het voorbeeld volgt exact dit patroon: @code{nil} wordt teruggeven wanneer "
-"de getallen-lijst leeg is. In de praktijk schrijf je conditional zo dat het "
+"de getallenlijst leeg is. In de praktijk schrijf je conditional zo dat het "
 "de actie uitvoert wanneer de lijst met getallen niet leeg is.)"
 
 #. type: Plain text
@@ -24805,11 +24805,11 @@ msgid ""
 "      0\n"
 "    (+ (car numbers-list) (add-elements (cdr numbers-list)))))\n"
 msgstr ""
-"(defun sommeer-elementen (getallen-lijst)\n"
-"  \"Tel de elementen van GETALLEN-LIJST bij elkaar op.\"\n"
-"  (if (not getallen-lijst)\n"
+"(defun sommeer-elementen (getallenlijst)\n"
+"  \"Tel de elementen van GETALLENLIJST bij elkaar op.\"\n"
+"  (if (not getallenlijst)\n"
 "      0\n"
-"    (+ (car getallen-lijst) (sommeer-elementen (cdr getallen-lijst)))))\n"
+"    (+ (car getallenlijst) (sommeer-elementen (cdr getallenlijst)))))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:11535
@@ -32762,7 +32762,7 @@ msgid ""
 "determined by the value of that element of the @code{numbers-list}."
 msgstr ""
 "De functie @code{grafiek-body-tonen} voegt een verticale kolom van "
-"sterretjes in voor elk element van de @code{getallen-lijst}. De hoogte van "
+"sterretjes in voor elk element van de @code{getallenlijst}. De hoogte van "
 "elke lijn wordt bepaald door de waarde van dat element in de @code{getallen-"
 "lijst}."
 
@@ -32977,7 +32977,7 @@ msgid ""
 msgstr ""
 "Wij zijn van plan om de kolommen van de grafiek van sterretjes te maken. Het "
 "aantal sterretjes in de kolom is het getal dat gespecificeerd wordt door het "
-"huidige element in de @code{getallen-lijst}. We moeten een lijst van "
+"huidige element in de @code{getallenlijst}. We moeten een lijst van "
 "sterretjes van de juist lengte maken voor elke aanroep van @code{insert-"
 "rectangle}. Wanneer deze lijst uitsluitend uit het aantal vereiste "
 "sterretjes bestaat, dan moeten point precies op het juiste aantal regels "
@@ -33181,7 +33181,7 @@ msgstr ""
 #: emacs-lisp-intro.texi:15949
 #, no-wrap
 msgid "(setq max-graph-height (apply 'max numbers-list))\n"
-msgstr "(setq max-grafiek-hoogte (apply 'max getallen-lijst))\n"
+msgstr "(setq max-grafiek-hoogte (apply 'max getallenlijst))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15956
@@ -33869,8 +33869,8 @@ msgid ""
 "     symbol-width)))\n"
 msgstr ""
 "(defun recursieve-grafiek-body-tonen (getallenlijst)\n"
-"  \"Print a bar graph of the GETALLENLIJST.\n"
-"The getallenlijst consists of the Y-axis values.\"\n"
+"  \"Toon een staafgrafiek van  de GETALLENLIJST.\n"
+"De getallenlijst bestaat uit de Y-as values.\"\n"
 "  (let ((hoogte (apply 'max getallenlijst))\n"
 "        (symboolbreedte (length grafiek-wit))\n"
 "        from-position)\n"
@@ -33911,7 +33911,7 @@ msgid ""
 msgstr ""
 "(defun recursieve-grafiek-body-tonen-intern\n"
 "  (getallenlijst hoogte symboolbreedte)\n"
-"  \"Print a bar graph.\n"
+"  \"Toon een staafgrafiek.\n"
 "Gebruikt in de functie recursieve-grafiek-body-tonen.\"\n"
 
 #. type: group
@@ -34277,7 +34277,7 @@ msgstr ""
 "en een terminal type bestand overschrijven die in je @file{.emacs} bestand. "
 "(Je kunt interferenties tussen het terminal type bestand voorkomen door het "
 "instellen van @code{term-file-prefix} op @code{nil}. "
-"@xref{Eenvoudige uitbreiding, , Een eennvoudige uitbreiding})"
+"@xref{Eenvoudige uitbreiding, , Een eennvoudige uitbreiding}.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16485
@@ -39983,6 +39983,11 @@ msgid ""
 "print the body of a graph.  Here we write the code for printing and labeling "
 "vertical and horizontal axes, along with the body itself."
 msgstr ""
+"Assen helpen je een grafiek te begrijpen. Zij brengen de schaal "
+"over. In een eerder hoofdstuk (@pxref{Een grafiek voorbereiden, , "
+"Een grafiek voorbereiden}), schreven we de code om de body van een "
+"grafiek te tonen. Hier schrijven we de code voor het tonen en "
+"labelen van vertikale en horizontale assen, samen met de body zelf."
 
 #. type: node
 #: emacs-lisp-intro.texi:19220
@@ -39994,7 +39999,7 @@ msgstr "Gelabeld voorbeeld"
 #: emacs-lisp-intro.texi:19221
 #, no-wrap
 msgid "Labeled Example Graph"
-msgstr ""
+msgstr "Gelabeld voorbeeld grafiek"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19228
@@ -40004,31 +40009,35 @@ msgid ""
 "of the graph, and finally the X or horizontal axis.  This sequence lays out "
 "for us the contents of the function:"
 msgstr ""
+"Omdat invoegen een buffer rechts en onder point vult, moet de nieuwe "
+"toon-grafiek functie eerst de Y-as of verticale as tonen, dan de "
+"body van de grafiek en tenslotte de X-as of horizontale as. Deze "
+"volgorde legt de inhoud van de functie voor ons uit:"
 
 #. type: enumerate
 #: emacs-lisp-intro.texi:19232
 msgid "Set up code."
-msgstr ""
+msgstr "Code opzetten"
 
 #. type: enumerate
 #: emacs-lisp-intro.texi:19235
 msgid "Print Y axis."
-msgstr ""
+msgstr "Y-as tonen."
 
 #. type: enumerate
 #: emacs-lisp-intro.texi:19238
 msgid "Print body of graph."
-msgstr ""
+msgstr "Body van de grafiek tonen."
 
 #. type: enumerate
 #: emacs-lisp-intro.texi:19241
 msgid "Print X axis."
-msgstr ""
+msgstr "X-as tonen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19245
 msgid "Here is an example of how a finished graph should look:"
-msgstr ""
+msgstr "Hier is een voorbeeld hoe de uiteindelijke grafiek er uit moet zien:"
 
 #. type: group
 #: emacs-lisp-intro.texi:19260
@@ -40047,6 +40056,18 @@ msgid ""
 "         |   |    |    |\n"
 "         1   5   10   15\n"
 msgstr ""
+"    10 -\n"
+"                  *\n"
+"                  *  *\n"
+"                  *  **\n"
+"                  *  ***\n"
+"     5 -      *   *******\n"
+"            * *** *******\n"
+"            *************\n"
+"          ***************\n"
+"     1 - ****************\n"
+"         |   |    |    |\n"
+"         1   5   10   15\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19267
@@ -40055,6 +40076,9 @@ msgid ""
 "numbers.  However, in some graphs, the horizontal axis is time and would be "
 "better labeled with months, like this:"
 msgstr ""
+"In deze grafiek zijn zowel de vertikale als de horizontale as "
+"gelabeld met getallen. In sommige grafieken is echter de horizontale "
+"as tijd en is die beter gelabeld met maanden, zoals dit:"
 
 #. type: group
 #: emacs-lisp-intro.texi:19277
@@ -40068,6 +40092,13 @@ msgid ""
 "         |    ^      |\n"
 "         Jan  June   Jan\n"
 msgstr ""
+"     5 -      *\n"
+"            * ** *\n"
+"            *******\n"
+"          ********** **\n"
+"     1 - **************\n"
+"         |    ^      |\n"
+"         Jan  Juni   Jan\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19285
@@ -40078,6 +40109,12 @@ msgid ""
 "it is better choose a simple labeling scheme for our first effort, and to "
 "modify or replace it later."
 msgstr ""
+"Met wat nadenken kunnen we gemakkelijk een verscheidenheid aan "
+"vertikale en horizontale labeling-schema's verzinnen. Onze taak kan "
+"gecompliceerd worden. Maar complicaties veroorzaken verwarring. In "
+"plaats van dit toe te staan, is het beter een eenvoudig "
+"labeling-schema voor onze eerste poging te kizen, en die later te "
+"veranderen of te vervangen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19289
@@ -40085,6 +40122,8 @@ msgid ""
 "These considerations suggest the following outline for the @code{print-"
 "graph} function:"
 msgstr ""
+"Deze overwegingen leidden tot de volgende outline voor onze "
+"@code{toon-grafiek} functie:"
 
 #. type: group
 #: emacs-lisp-intro.texi:19296 emacs-lisp-intro.texi:20175
@@ -40095,6 +40134,10 @@ msgid ""
 "  (let ((height  @dots{}\n"
 "        @dots{}))\n"
 msgstr ""
+"(defun toon-grafiek (getallenlijst)\n"
+"  \"@var{documentatie}@dots{}\"\n"
+"  (let ((hoogte  @dots{}\n"
+"        @dots{}))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:19301 emacs-lisp-intro.texi:20180
@@ -40104,6 +40147,9 @@ msgid ""
 "    (graph-body-print numbers-list)\n"
 "    (print-X-axis @dots{} )))\n"
 msgstr ""
+"    (toon-Y-as hoogte @dots{} )\n"
+"    (grafiek-body-tonen getallenlijst)\n"
+"    (toon-X-as @dots{} )))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19306
@@ -40111,18 +40157,20 @@ msgid ""
 "We can work on each part of the @code{print-graph} function definition in "
 "turn."
 msgstr ""
+"We kunnen aan elk deel van de @code{toon-grafiek} functiedefinitie "
+"op zijn beurt werken."
 
 #. type: appendixsec
 #: emacs-lisp-intro.texi:19308
 #, no-wrap
 msgid "The @code{print-graph} Varlist"
-msgstr ""
+msgstr "The @code{toon-grafiek} varlist"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:19309
 #, no-wrap
 msgid "@code{print-graph} varlist"
-msgstr ""
+msgstr "@code{toon-grafiek} varlist"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19315
@@ -40132,6 +40180,10 @@ msgid ""
 "any thoughts about making the function interactive or about the contents of "
 "its documentation string.)"
 msgstr ""
+"Bij het schrijven van de functie @code{toon-grafiek} is de eerste "
+"taak het schrijven van de @code{let} expressie. (We laten op dit "
+"moment de gedachten over het interactief maken van de functie en "
+"over de inhoud van de documentatiestring even achterwege.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19323
@@ -40144,6 +40196,14 @@ msgid ""
 "@code{print-graph-body} from the way we defined it earlier to take advantage "
 "of the calculation."
 msgstr ""
+"De varlist moet verschillende waardes setten. De hoogte van het "
+"label voor de verticale as moet tenmiste de hoogte van de grafiek "
+"zijn, wat betekent dat we die informatie hier moeten verkrijgen. "
+"Merk op dat de functie @code{grafiek-body-tonen} ook deze informatie "
+"nodig heeft. Er is geen reden om de hoogte van de grafiek op twee "
+"verschillende plaatsen te berekenen en daarom moeten we "
+"@code{grafiek-body-tonen} zoals we die eerder definieerden aanpassen "
+"om van deze berekening gebruik te maken."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19329
@@ -40154,6 +40214,11 @@ msgid ""
 "for @code{print-graph-body} from the way we defined it in the previous "
 "chapter."
 msgstr ""
+"Op dezelfde manier moeten zowel de functie voor het tonen van de "
+"X-as als de functie @code{toon-grafiek-body} de waarde van de "
+"breedte van elk symbool weten. We kunnen de berekening hier "
+"uitvoeren en de definitie aanpassen van @code{grafiek-body-tonen} "
+"zoals in het eerdere hoofdstuk beschreven."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19333
@@ -40162,6 +40227,10 @@ msgid ""
 "the graph.  However, this information is used only in the function that "
 "prints the horizontal axis, so it does not need to be calculated here."
 msgstr ""
+"De lengte van het label voor de horizontale as moet minstens zo lang "
+"zijn als de grafiek. Deze informatie wordt echter alleen gebruikt in "
+"de functie die de horizontale as toont, dus die hoeven we hier niet "
+"te berekenen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19336
@@ -40169,6 +40238,8 @@ msgid ""
 "These thoughts lead us directly to the following form for the varlist in the "
 "@code{let} for @code{print-graph}:"
 msgstr ""
+"Deze gedachten leiden ons direct tot de volgende vorm voor de "
+"varlist in de nieuwe @code{let} voor @code{toon-grafiek}."
 
 #. type: group
 #: emacs-lisp-intro.texi:19341
@@ -40177,35 +40248,37 @@ msgid ""
 "(let ((height (apply 'max numbers-list)) ; @r{First version.}\n"
 "      (symbol-width (length graph-blank)))\n"
 msgstr ""
+"(let ((hoogte (apply 'max getallenlijst)) ; @r{Eerste versie..}\n"
+"      (symbol-width (length grafiek-wit)))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19346
 msgid "As we shall see, this expression is not quite right."
-msgstr ""
+msgstr "Zoals we zullen zien is deze expressie niet helemaal juist."
 
 #. type: cindex
 #: emacs-lisp-intro.texi:19350
 #, no-wrap
 msgid "Axis, print vertical"
-msgstr ""
+msgstr "As, verticaal tonen"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:19351
 #, no-wrap
 msgid "Y axis printing"
-msgstr ""
+msgstr "Y-as tonen"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:19352
 #, no-wrap
 msgid "Vertical axis printing"
-msgstr ""
+msgstr "Verticale as tonen"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:19353
 #, no-wrap
 msgid "Print vertical axis"
-msgstr ""
+msgstr "Toon verticale as"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19357
@@ -40213,6 +40286,8 @@ msgid ""
 "The job of the @code{print-Y-axis} function is to print a label for the "
 "vertical axis that looks like this:"
 msgstr ""
+"De taak van de functie @code{toon-Y-as} is een label voor de "
+"vertikale as te tonen die er zo uitziet:"
 
 #. type: group
 #: emacs-lisp-intro.texi:19361
@@ -40221,6 +40296,8 @@ msgid ""
 "    10 -\n"
 "\n"
 msgstr ""
+"    10 -\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:19366
@@ -40229,12 +40306,13 @@ msgid ""
 "     5 -\n"
 "\n"
 msgstr ""
-
+"     5 -\n"
+"\n"
 #. type: group
 #: emacs-lisp-intro.texi:19370
 #, no-wrap
 msgid "     1 -\n"
-msgstr ""
+msgstr "     1 -\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19376
@@ -40242,18 +40320,20 @@ msgid ""
 "The function should be passed the height of the graph, and then should "
 "construct and insert the appropriate numbers and marks."
 msgstr ""
+"De functie moet de hoogte van de grafiek doorgegeven krijgen en moet "
+"dan de passende getallen en markeren construeren en invoegen."
 
 #. type: node
 #: emacs-lisp-intro.texi:19387
 #, no-wrap
 msgid "print-Y-axis in Detail"
-msgstr "print-Y-axis in detail"
+msgstr "toon-Y-as in detail"
 
 #. type: unnumberedsubsec
 #: emacs-lisp-intro.texi:19388
 #, no-wrap
 msgid "The @code{print-Y-axis} Function in Detail"
-msgstr ""
+msgstr "De @code{toon-Y-as} functie in detail"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19401
@@ -40268,12 +40348,23 @@ msgid ""
 "number and a tic on the fifth line from the bottom and on every line that is "
 "a multiple of five."
 msgstr ""
+"Het is makkelijk om in de afbeelding te zien hoe de Y-as label er "
+"uit moet zien. Maar om dat onder woorden te brengen en vervolgens "
+"een functiedefinitie voor die taak te schrijven is een ander "
+"verhaal. Het is niet helemaal waar te zeggen dat we een getal en een "
+"streepje op elke vijf regels willen. Er zijn slechts drie regels "
+"tussen de @samp{1} en de @samp{5} (regels 2, 3 en 4). maar vier "
+"regels tussen de @samp{5} en de @samp{10} (regels 6, 7, 8 en 9). Het "
+"is beter te zeggen dat we een getal en een streepje op de basisregel "
+"(het getal 1) en dan dat we een nummer en een streepje op de vijfde "
+"regel vanaf de onderkant en op elke regel die een meervoud van vijf "
+"is. "
 
 #. type: unnumberedsubsec
 #: emacs-lisp-intro.texi:19404
 #, no-wrap
 msgid "What height should the label be?"
-msgstr ""
+msgstr "Op welke hoogte moet het label zijn?"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19413
@@ -40285,6 +40376,12 @@ msgid ""
 "should the highest label be @code{10 -}, which is a multiple of five, and be "
 "higher than the topmost value of the graph?"
 msgstr ""
+"Het volgende probleem is wat de hoogte van het label moet zijn.  Stel "
+"dat de maximum hoogte van de grootste kolom van de grafiek zeven is. "
+"Moet het hoogste label op de Y-as @samp{5 -} zijn en moet de grafiek "
+"boven het label uitsteken? Of moet het hoogste label @code{10 -} zijn, "
+"wat een veelvoud van vijf is en hoger dan de hoogste waarde van de "
+"grafiek?"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19423
@@ -40298,6 +40395,15 @@ msgid ""
 "whatever is necessary to round up to the nearest multiple of five.  A more "
 "complex expression is required."
 msgstr ""
+"De laatste vorm heeft de voorkeur. De meeste grafieken worden getekend "
+"binnen rechthoeken waarvan de zijden een integraal aantal stappen lang "
+"zijn--5, 10, 15, enzovoorts voor een stapgrootte van vijf. Maar zodra "
+"we besluiten een staphoogte te gebruiken voor de vertikale as "
+"ontdekken we dat de eenvoudige expressie in de varlist om de hoogte "
+"uit te rekenen fout is. De expressie is @code{(apply 'max "
+"numbers-list)}. Dit geeft de exacte hoogte terug, niet de maximum "
+"hoogte plus wat nodig is om af te ronden op het dichtstbijzijnde "
+"meervoud van vijf. Een complexere expressie is nodig."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19426
@@ -40305,6 +40411,9 @@ msgid ""
 "As usual in cases like this, a complex problem becomes simpler if it is "
 "divided into several smaller problems."
 msgstr ""
+"Zoals bij gevallen zoals deze gebruikelijk, wordt een complex "
+"probleem eenvoudiger wanneer het in verschillende kleinere problemen "
+"wordt opgedeeld."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19430
@@ -40313,6 +40422,10 @@ msgid ""
 "multiple of five---when it is 5, 10, 15, or some higher multiple of five.  "
 "We can use this value as the Y axis height."
 msgstr ""
+"Ten eerste, beschouw het geval wanner de hoogste waarde van de "
+"grafiek een integraal meervoud van vijf is---wanneer het 5, 10, 15, "
+"of een hoger meervoud van vijf is. We kunnen deze waarde gebruiken "
+"als de hoogte van de Y-as."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19439
@@ -40326,24 +40439,32 @@ msgid ""
 "five goes into ten twice, with no remainder: ten is an integral multiple of "
 "five."
 msgstr ""
+"Een tamelijk eenvoudige manier om vast te stellen of een getal een "
+"meervoud van vijf is, is het door vijf te delen en te kijken of de "
+"deling een rest heeft. Wanneer er geen rest is, is het getal een "
+"meervoud van vijf. Dus, zeven gedeeld door vijf heeft een rest van "
+"twee, en zeven is geen integraal meervoud van vijf. In een iets "
+"andere taal, meer herinnerend aan het klaslokaal, vijf gaat eenmalig "
+"in zeven, met een rest van twee. Echter vijf gaat twee keer in tien, "
+"zonder rest: tien is een integraal meervoud van vijf."
 
 #. type: appendixsubsec
 #: emacs-lisp-intro.texi:19441
 #, no-wrap
 msgid "Side Trip: Compute a Remainder"
-msgstr ""
+msgstr "Zijspoor: bereken een rest"
 
 #. type: findex
 #: emacs-lisp-intro.texi:19443
 #, no-wrap
 msgid "% @r{(remainder function)}"
-msgstr ""
+msgstr "% @r{(rest functie)}"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:19444
 #, no-wrap
 msgid "Remainder function, @code{%}"
-msgstr ""
+msgstr "Rest functie, @code{%}"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19452
@@ -40356,6 +40477,13 @@ msgid ""
 "@code{%} is to read about it in a book such as this or in the Emacs Lisp "
 "sources."
 msgstr ""
+"In Lisp is de functie om een rest uit te rekenen @code{%}. De "
+"functie geeft de rest terug van het eerste argument gedeeld door het "
+"tweede argument. Toevallig is @code{%} een functie in Emacs Lisp die "
+"je niet kunt ontdekken met @code{apropos}: je vindt niets wanneer je "
+"typt @kbd{M-x apropos @key{RET} remainder @key{RET}}. De enige "
+"manier om het bestaan van @code{%} te ontdekken is door het te lezen "
+"in een boek zoals dit of in de Emacs Lisp broncode."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19455
@@ -40363,6 +40491,8 @@ msgid ""
 "You can try the @code{%} function by evaluating the following two "
 "expressions:"
 msgstr ""
+"Je kunt de functie @code{%} uitproberen door het evalueren van de "
+"volgende twee expressies:"
 
 #. type: group
 #: emacs-lisp-intro.texi:19459
@@ -40371,17 +40501,19 @@ msgid ""
 "(% 7 5)\n"
 "\n"
 msgstr ""
+"(% 7 5)\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:19461
 #, no-wrap
 msgid "(% 10 5)\n"
-msgstr ""
+msgstr "(% 10 5)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19466
-msgid "The first expression returns 2 and the second expression returns 0."
-msgstr ""
+msgid "The first expression returns 2 and he second expression returns 0."
+msgstr "De eerste expressie geeft 2 terug en tweede expressie geeft 0 terug."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19470
@@ -40390,6 +40522,10 @@ msgid ""
 "the @code{zerop} function.  This function returns @code{t} if its argument, "
 "which must be a number, is zero."
 msgstr ""
+"Om te testen of de teruggegeven waarde nul is of een ander getal, "
+"kunnen we de functie @code{zerop} gebruiken. Deze functie geeft "
+"@code{t} terug wanneer het argument, dat een getal moet zijn, nul "
+"is."
 
 #. type: group
 #: emacs-lisp-intro.texi:19475
@@ -40399,6 +40535,9 @@ msgid ""
 "     @result{} nil\n"
 "\n"
 msgstr ""
+"(zerop (% 7 5))\n"
+"     @result{} nil\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:19478
@@ -40407,6 +40546,8 @@ msgid ""
 "(zerop (% 10 5))\n"
 "     @result{} t\n"
 msgstr ""
+"(zerop (% 10 5))\n"
+"     @result{} t\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19483
@@ -40414,12 +40555,14 @@ msgid ""
 "Thus, the following expression will return @code{t} if the height of the "
 "graph is evenly divisible by five:"
 msgstr ""
+"Dus geeft de volgende expressie @code{t} wanneer de hoogte van de "
+"grafiek deelbaar is door vijf:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:19486
 #, no-wrap
 msgid "(zerop (% height 5))\n"
-msgstr ""
+msgstr "(zerop (% hoogte 5))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19491
@@ -40427,6 +40570,8 @@ msgid ""
 "(The value of @code{height}, of course, can be found from @code{(apply 'max "
 "numbers-list)}.)"
 msgstr ""
+"(De waarde van @code{hoogte} kan natuurlijk worden gevonden met "
+"@code{(apply 'max getallenlijst)}.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19502
@@ -40442,23 +40587,34 @@ msgid ""
 "fifteen, which is the next multiple of five that is higher than twelve.  The "
 "Lisp expression for this is:"
 msgstr ""
+"Anderzijds als de waarde van @code{hoogte} niet een meervoud van "
+"vijf is, willen we de waarde zetten op het eerstvolgende veelvoud "
+"van vijf. Dit is eenvoudige rekenkunde met functies waar we al "
+"vertrouwd mee zijn. Eerst deleen we de waarde van @code{hoogte} door "
+"vijf om vast te stellen hoeveel keer vijf in het getal past. Dus, "
+"vijf gaat twee keer in twaalf. Wanneer we één bij dit quotiënt "
+"optellen en met vijf vermenigvuldigen, rijgen we de waarde van het "
+"eerstvolgende meervoud van vijf dat groter dan de hoogte. Vijf gaat "
+"twee keer in twaalf. Tel een bij twee op en vermenigvuldig dat met "
+"met vijf. Het resultaat is vijftien, wat het eerste meervoud van "
+"vijf is dat groter is dan twaalf. De Lisp expressie hiervoor is:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:19505
 #, no-wrap
 msgid "(* (1+ (/ height 5)) 5)\n"
-msgstr ""
+msgstr "(* (1+ (/ hoogte 5)) 5)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19509
 msgid "For example, if you evaluate the following, the result is 15:"
-msgstr ""
+msgstr "Bijvoorbeeld, als je het volgende evalueert, is het resultaat 15:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:19512
 #, no-wrap
 msgid "(* (1+ (/ 12 5)) 5)\n"
-msgstr ""
+msgstr "(* (1+ (/ 12 5)) 5)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19519
@@ -40469,11 +40625,17 @@ msgid ""
 "value.  The best name I can think of for this variable is @code{Y-axis-label-"
 "spacing}."
 msgstr ""
-
+"Gedurende deze discussie hebben we steeds 5 gebruikt als waarde voor "
+"de spatiëring van de labels op de Y-as, maar we willen misschien een "
+"andere waarde gebruiken. Voor algemene toepasbaarheid moeten we 5 "
+"vervangen door een variabele die we een waarde kunnen geven. De "
+"beste naam die ik kan bedenken voor deze variabele is "
+"@code{Y-as-label-spacing}."
+" "
 #. type: Plain text
 #: emacs-lisp-intro.texi:19523
 msgid "Using this term, and an @code{if} expression, we produce the following:"
-msgstr ""
+msgstr "Met deze term en een @code{if} expressie, maken we het volgende: "
 
 #. type: group
 #: emacs-lisp-intro.texi:19531
@@ -40485,6 +40647,11 @@ msgid ""
 "  (* (1+ (/ height Y-axis-label-spacing))\n"
 "     Y-axis-label-spacing))\n"
 msgstr ""
+"(if (zerop (% hoogte Y-as-label-spacing))\n"
+"    hoogte\n"
+"  ;; @r{else}\n"
+"  (* (1+ (/ hoogte Y-as-label-spacing))\n"
+"     Y-as-label-spacing)))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19539
@@ -40494,6 +40661,11 @@ msgid ""
 "computes and returns a value of @code{height} that is equal to the next "
 "higher multiple of the value of the @code{Y-axis-label-spacing}."
 msgstr ""
+"Deze expressie geeft de waarde van @code{hoogte} zelf als de hoogte "
+"een veelvoud van de waarde van @code{Y-as-label-spacing} is, zo niet "
+"dan berekent het een waarde voor @code{hoogte} dat gelijk is aan "
+"eerstvolgende veelvoud van de waarde van de "
+"@code{Y-as-label-spacing} en geeft die waarde terug."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19543
@@ -40502,12 +40674,15 @@ msgid ""
 "@code{print-graph} function (after first setting the value of @code{Y-axis-"
 "label-spacing}):"
 msgstr ""
+"We kunnen nu deze expressie opnemen in de @code{let} expressie van "
+"de functie @code{toon-grafiek} (na eerst de waarde te zetten voor de "
+"@code{Y-as-label-spacing}):"
 
 #. type: vindex
 #: emacs-lisp-intro.texi:19543
 #, no-wrap
 msgid "Y-axis-label-spacing"
-msgstr ""
+msgstr "Y-as-label-spacing"
 
 #. type: group
 #: emacs-lisp-intro.texi:19549 emacs-lisp-intro.texi:20907
@@ -40516,6 +40691,8 @@ msgid ""
 "(defvar Y-axis-label-spacing 5\n"
 "  \"Number of lines from one Y axis label to next.\")\n"
 msgstr ""
+"(defvar Y-as-label-spacing 5\n"
+"  \"Aantal regels van een Y-as label tot de volgende.\")\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:19557
@@ -40527,6 +40704,11 @@ msgid ""
 "        (if (zerop (% height Y-axis-label-spacing))\n"
 "            height\n"
 msgstr ""
+"@dots{}\n"
+"(let* ((hoogte (apply 'max numbers-list))\n"
+"       (hoogte-van-top-line\n"
+"        (if (zerop (% hoogte Y-as-label-spacing))\n"
+"            hoogte\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:19564
@@ -40538,6 +40720,11 @@ msgid ""
 "       (symbol-width (length graph-blank))))\n"
 "@dots{}\n"
 msgstr ""
+"          ;; @r{anders}\n"
+"          (* (1+ (/ hoogte Y-as-label-spacing))\n"
+"             Y-as-label-spacing)))\n"
+"       (symboolbreedte (length grafiek-wit))))\n"
+"@dots{}\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19573
@@ -40548,12 +40735,18 @@ msgid ""
 "@xref{fwd-para let, , The @code{let*} expression}, for more about "
 "@code{let*}.)"
 msgstr ""
+"(Merk het gebruik op van de functie @code{let*}: de initiële waarde "
+"van hoogte wordt een keer berekend door de @code{(apply 'max "
+"getallenlijst)} expressie en daarna wordt de resulterende waarde van "
+"@code{hoogte} gebruikt om de uiteindelijke waarde te bepalen. "
+"@xref{fwd-para let, , De @code{let*} expressie}, voor meer over "
+"@code{let*}.)"
 
 #. type: appendixsubsec
 #: emacs-lisp-intro.texi:19575
 #, no-wrap
 msgid "Construct a Y Axis Element"
-msgstr ""
+msgstr "Construeer een Y-as element"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19583
@@ -40565,12 +40758,18 @@ msgid ""
 "with single digit numbers must include a leading blank space before the "
 "number."
 msgstr ""
+"Wanneer we de vertikale as tonen, willen we elke vijf regels strings "
+"invoegen zoals @w{@samp{5 -}} en @w{@samp{10 - }}. Bovendien willen "
+"de getallen en streepjes netjes uitlijnen, dus moeten spaties aan "
+"kortere getallen voorafgaan. Wanneer sommige strings uit twee "
+"cijfers bestaan, moeten de strings met een eencijferig beginnen met "
+"een spatie voor het getal."
 
 #. type: findex
 #: emacs-lisp-intro.texi:19584
 #, no-wrap
 msgid "number-to-string"
-msgstr ""
+msgstr "number-to-string"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19590
@@ -40580,6 +40779,11 @@ msgid ""
 "So the number has to be converted from being a number to being a string.  "
 "This is done with the @code{number-to-string} function.  For example,"
 msgstr ""
+"Om de lengte van het getal te bepalen wordt de functie @code{length} "
+"gebruikt. Maar de functie @code{length} werkt alleen met een string, "
+"niet met een getal. Het getal moet worden geconverteerd van een "
+"getal naar een string. Dit doet de functie @code{number-to-string}. "
+"Bijvoorbeeld:"
 
 #. type: group
 #: emacs-lisp-intro.texi:19595
@@ -40589,6 +40793,9 @@ msgid ""
 "     @result{} 2\n"
 "\n"
 msgstr ""
+"(length (number-to-string 35))\n"
+"     @result{} 2\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:19598
@@ -40597,6 +40804,8 @@ msgid ""
 "(length (number-to-string 100))\n"
 "     @result{} 3\n"
 msgstr ""
+"(length (number-to-string 100))\n"
+"     @result{} 3\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19604
@@ -40604,6 +40813,8 @@ msgid ""
 "(@code{number-to-string} is also called @code{int-to-string}; you will see "
 "this alternative name in various sources.)"
 msgstr ""
+"(@code{number-to-string} wordt ook @code{int-to-string} genoemd. Je "
+"zult deze alternatieve naam in diverse bronnen tegenkomen.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19608
@@ -40612,12 +40823,15 @@ msgid ""
 "@w{@samp{ - }}, which we will call the @code{Y-axis-tic} marker.  This "
 "variable is defined with @code{defvar}:"
 msgstr ""
+"Verder wordt in elk label elk getal gevolgd door een string zoals "
+"@w{@samp{ - }}, die we het @code{Y-as-tic} merkteken noemen. Deze "
+"variabele wordt gedefinieerd met @code{defvar}:"
 
 #. type: vindex
 #: emacs-lisp-intro.texi:19609
 #, no-wrap
 msgid "Y-axis-tic"
-msgstr ""
+msgstr "Y-as-tic"
 
 #. type: group
 #: emacs-lisp-intro.texi:19614 emacs-lisp-intro.texi:20902
@@ -40626,6 +40840,8 @@ msgid ""
 "(defvar Y-axis-tic \" - \"\n"
 "   \"String that follows number in a Y axis label.\")\n"
 msgstr ""
+"(defvar Y-as-tic  \" - \"\n "
+"   \"String die na een getal volgt in een Y as label.\")\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19619
@@ -40633,12 +40849,14 @@ msgid ""
 "The length of the Y label is the sum of the length of the Y axis tic mark "
 "and the length of the number of the top of the graph."
 msgstr ""
+"De lengte van het Y label is de som van de lengte van het Y-as-tic "
+"merkteken en de lengte van het getal op de top van de grafiek."
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:19622
 #, no-wrap
 msgid "(length (concat (number-to-string height) Y-axis-tic)))\n"
-msgstr ""
+msgstr "(length (concat (number-to-string height) Y-as-tic)))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19627
@@ -40647,6 +40865,10 @@ msgid ""
 "varlist as @code{full-Y-label-width} and passed on.  (Note that we did not "
 "think to include this in the varlist when we first proposed it.)"
 msgstr ""
+"Deze waarde wordt uitgerekend door de functie @code{print-grafiek} in "
+"de varlist als @code{complete-Y-label-breedte} en doorgegeven. (Merk op "
+"date er niet aan dachten dit in de varlist op te nemen toen we die "
+"eerder voorstelden.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19635
@@ -40658,6 +40880,14 @@ msgid ""
 "passed the value of the number for the specific row, and the value of the "
 "width of the top line, which is calculated (just once) by @code{print-graph}."
 msgstr ""
+"Om een complete verticale as label te maken wordt een tic merkteken "
+"aan een getal vastgemaakt en de twee samen kunnen worden "
+"voorafgegaan door een of meer spaties afhankelijk van de lengte van "
+"het getal. Het label bestaat uit drie delen: de (optionele) "
+"inleidende spaties, het getal en het tic merkteken. De functie "
+"krijgt de waarde van het getal voor een specifieke rij doorgegeven, "
+"en de waarde van de breedte van de topregel, die (slechts één keer) "
+"wordt berekend door @code{print-grafiek}."
 
 #. type: group
 #: emacs-lisp-intro.texi:19643 emacs-lisp-intro.texi:21085
@@ -40669,6 +40899,11 @@ msgid ""
 "and is padded as needed so all line up with\n"
 "the element for the largest number.\"\n"
 msgstr ""
+"(defun Y-as-element (getal volle-Y-label-breedte)\n "
+"   \"Construceer een label element met GETAL.\n "
+"Een label element ziet er zo uit `  5 - ',\n "
+"en begint indien nodig met spaties zodat ze allemaal\n "
+"uitlijnen met het element met het grootste getal.\"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:19650 emacs-lisp-intro.texi:21092
@@ -40680,6 +40915,11 @@ msgid ""
 "             (concat (number-to-string number)\n"
 "                     Y-axis-tic)))))\n"
 msgstr ""
+"  (let* ((inleidende-spaties\n"
+"         (- volle-Y-label-breedte\n"
+"            (length\n"
+"             (concat (number-to-string getal)\n"
+"                     Y-as-tic)))))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:19656 emacs-lisp-intro.texi:21098
@@ -40690,6 +40930,10 @@ msgid ""
 "     (number-to-string number)\n"
 "     Y-axis-tic)))\n"
 msgstr ""
+"    (concat\n"
+"     (make-string inleidende-spaties ? )\n"
+"     (number-to-string getal)\n"
+"     Y-as-tic)))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19661
@@ -40697,6 +40941,9 @@ msgid ""
 "The @code{Y-axis-element} function concatenates together the leading spaces, "
 "if any; the number, as a string; and the tic mark."
 msgstr ""
+"De functie @code{Y-as-element} plakt de inleidende spaties, voor "
+"zover die er zijn, het getal, als een string en het merkteken aan "
+"elkaar."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19665
@@ -40705,12 +40952,16 @@ msgid ""
 "subtracts the actual length of the label---the length of the number plus the "
 "length of the tic mark---from the desired label width."
 msgstr ""
+"Om uit te zoeken hoeveel inleidende spaties het label moet krijgen, "
+"trekt de functie de lengte van het label---de lengte van het getal "
+"plus de lengte van het merkteken---van het breedte van het gewenste "
+"label af."
 
 #. type: findex
 #: emacs-lisp-intro.texi:19666
 #, no-wrap
 msgid "make-string"
-msgstr ""
+msgstr "make-string"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19675
@@ -40724,6 +40975,15 @@ msgid ""
 "course, you might want to replace the blank space by some other character "
 "@dots{} You know what to do.)"
 msgstr ""
+"Met de functie @code{make-string} worden de spaties ingevoegd. Deze "
+"functie heeft twee argumenten: het eerste zegt hoe lang de string "
+"moet worden en de tweede is het symbool van het in te voegen "
+"karakter, in een speciaal formaat. Het formaat is een vraagteken "
+"gevold door een spatie, zoals dit, @samp{? }. @xref{Character Type, "
+", Character Type, elisp, The GNU Emacs Lisp Reference Manual}, voor "
+"een beschrijving van de syntax van karakters. (Natuurlijk zou je de "
+"spatie willen vervangen door een ander karakter @dots{} Je weet wat "
+"je doen moet.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19679
@@ -40732,12 +40992,15 @@ msgid ""
 "expression, to convert the number to a string that is concatenated with the "
 "leading spaces and the tic mark."
 msgstr ""
+"De functie @code{number-to-string} wordt gebruik in de concatenation "
+"expressie. om het getal om te zetten in een string die aan de "
+"inleidende spaties en het merkteken geplakt wordt."
 
 #. type: appendixsubsec
 #: emacs-lisp-intro.texi:19681
 #, no-wrap
 msgid "Create a Y Axis Column"
-msgstr ""
+msgstr "De Y-as kolom maken"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19686
@@ -40746,6 +41009,9 @@ msgid ""
 "that generates a list of numbered and blank strings to insert as the label "
 "for the vertical axis:"
 msgstr ""
+"De voorgaande functies leveren alle tool nodig om een functie te "
+"construeren die ene lijst van genummerde en blanco strings genereert "
+"om in te voegen als label voor de verticale as."
 
 #. type: group
 #: emacs-lisp-intro.texi:19694
@@ -40756,6 +41022,10 @@ msgid ""
 "For HEIGHT of line above base and WIDTH-OF-LABEL.\"\n"
 "  (let (Y-axis)\n"
 msgstr ""
+"(defun Y-as-kolom (hoogte breedte-van-label)\n"
+"  \"Construceer lijst van Y-as labels en blanco strings.\n"
+"Voor HOOGTE van line boven de bases en BREEDTE-VAN-LABEL.\"\n"
+"   (let (Y-as)\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:19703
@@ -40769,6 +41039,13 @@ msgid ""
 "                 (Y-axis-element height width-of-label)\n"
 "                 Y-axis))\n"
 msgstr ""
+"    (while (> hoogte 1)\n"
+"      (if (zerop (% hoogte Y-as-label-spacing))\n"
+"          ;; @r{Invoegen label.}\n"
+"          (setq Y-as\n"
+"                (cons\n"
+"                 (Y-as-element hoogte breedte-van-label)\n"
+"                 Y-as))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:19715
@@ -40785,6 +41062,16 @@ msgid ""
 "          (cons (Y-axis-element 1 width-of-label) Y-axis))\n"
 "    (nreverse Y-axis)))\n"
 msgstr ""
+"        ;; @r{Anders, invoegen spaties.}\n"
+"        (setq Y-as\n"
+"              (cons\n"
+"               (make-string breedte-van-label ? )\n"
+"               Y-as)))\n"
+"      (setq hoogte (1- hoogte)))\n"
+"    ;; @r{Invoegen base line.}\n"
+"    (setq Y-as\n"
+"          (cons (Y-as-element 1 breedte-van-label) Y-as))\n"
+"    (nreverse Y-as)))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19725
@@ -40796,12 +41083,18 @@ msgid ""
 "if not, we construct a blank label using the @code{make-string} function.  "
 "The base line consists of the number one followed by a tic mark."
 msgstr ""
+"In deze functie starten we met de waarde van @code{hoogte} en "
+"trekken respectievelijk één van de zijn waarde af. Na elke "
+"aftrekking testen we om te zien of de waarde een integraal meervoud "
+"is van de functie @code{Y-as-label-spacing}. Zo niet, dan "
+"construeren we een blanco regel met de functie @code{make-string}. "
+"De base line bestaat uit het getal één gevold door een merkteken."
 
 #. type: appendixsubsec
 #: emacs-lisp-intro.texi:19728
 #, no-wrap
 msgid "The Not Quite Final Version of @code{print-Y-axis}"
-msgstr ""
+msgstr "De Niet Geheel Finale Versie van @code{toon-Y-as}"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19732
@@ -40809,6 +41102,9 @@ msgid ""
 "The list constructed by the @code{Y-axis-column} function is passed to the "
 "@code{print-Y-axis} function, which inserts the list as a column."
 msgstr ""
+"De door de functie @code{Y-as-kolom} geconstrueerde lijst wordt "
+"doorgegeven aan de functie @code{toon-Y-as}, die de lijst als kolom "
+"invoegt."
 
 #. type: group
 #: emacs-lisp-intro.texi:19742
@@ -40821,6 +41117,12 @@ msgid ""
 ";; Value of height and full-Y-label-width\n"
 ";; are passed by print-graph.\n"
 msgstr ""
+"(defun toon-Y-as (hoogte volle-Y-label-breedte)\n"
+"  \"Voeg Y-as in met HOOGTE en VOLLE-Y-LABEL-BREEDTE.\n"
+"Hoogte moet de maximum hoogte van de grafiek zijn.\n"
+"Volle breedte is de breedte van het hoogte  label element.\"\n"
+";; De waarde van hoogte en volle-Y-label-breedte\n"
+";; worden doorgegeven door toon-grafiek.\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:19751
@@ -40834,6 +41136,13 @@ msgid ""
 "    ;; @r{Move point forward by value of} full-Y-label-width\n"
 "    (forward-char full-Y-label-width)))\n"
 msgstr ""
+"  (let ((start (point)))\n"
+"    (insert-rectangle\n"
+"     (Y-as-kolom hoogte volle-Y-label-breedte))\n"
+"    ;; @r{Zet point klaar om de grafiek in te voegen.}\n"
+"    (goto-char start)\n"
+"    ;; @r{Verplaats point voorwaarts met de waarde van} volle-Y-label-breedte\n"
+"    (forward-char volle-Y-label-breedte)))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19758
@@ -40843,11 +41152,15 @@ msgid ""
 "addition, it places point at the correct position for printing the body of "
 "the graph."
 msgstr ""
+"De @code{toon-Y-as} gebruikt de functie @code{insert-rectangle} om "
+"de Y-as labels in te voegen die zijn gemaakt door de functie "
+"@code{Y-as-kolom}. Ook plaatst die point op de juiste plek om de "
+"body van de grafiek te tonen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19760
 msgid "You can test @code{print-Y-axis}:"
-msgstr ""
+msgstr "Je kunt de @code{toon-Y-as} testen: "
 
 #. type: group
 #: emacs-lisp-intro.texi:19772
@@ -40859,12 +41172,17 @@ msgid ""
 "Y-axis-column\n"
 "print-Y-axis\n"
 msgstr ""
+"Y-as-label-spacing\n"
+"Y-as-tic\n"
+"Y-as-element\n"
+"Y-as-kolom\n"
+"toon-Y-as\n"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:19780
 #, no-wrap
 msgid "(print-Y-axis 12 5)\n"
-msgstr ""
+msgstr "(toon-Y-as 12 5)\n"
 
 #. type: enumerate
 #: emacs-lisp-intro.texi:19785 emacs-lisp-intro.texi:20131
@@ -40873,12 +41191,14 @@ msgid ""
 "Switch to the @file{*scratch*} buffer and place the cursor where you want "
 "the axis labels to start."
 msgstr ""
+"Schakel naar het @file{*scratch*} buffer en plaats de cursor daar "
+"waar je de as labels wilt starten."
 
-#. type: enumerate
+#. Type: enumerate
 #: emacs-lisp-intro.texi:19795 emacs-lisp-intro.texi:20141
 #: emacs-lisp-intro.texi:20377
 msgid "Press @key{RET} to evaluate the expression."
-msgstr ""
+msgstr "Druk op @key{RET} om de expressie te evalueren."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19801
@@ -40893,25 +41213,25 @@ msgstr ""
 #: emacs-lisp-intro.texi:19805
 #, no-wrap
 msgid "Axis, print horizontal"
-msgstr ""
+msgstr "As, horizontaal tonen"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:19806
 #, no-wrap
 msgid "X axis printing"
-msgstr ""
+msgstr "X-as tonen"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:19807
 #, no-wrap
 msgid "Print horizontal axis"
-msgstr ""
+msgstr "Toon horizontale as"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:19808
 #, no-wrap
 msgid "Horizontal axis printing"
-msgstr ""
+msgstr "Horizontale as tonen"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19812
@@ -40919,6 +41239,8 @@ msgid ""
 "X axis labels are much like Y axis labels, except that the ticks are on a "
 "line above the numbers.  Labels should look like this:"
 msgstr ""
+"X-as labes lijken erg op Y as labes, behvale dat de merktekens boven "
+"een regel met getallen staan. De labels moeten er zo uitzien:"
 
 #. type: group
 #: emacs-lisp-intro.texi:19817
@@ -40927,6 +41249,8 @@ msgid ""
 "    |   |    |    |\n"
 "    1   5   10   15\n"
 msgstr ""
+"    |   |    |    |\n"
+"    1   5   10   15\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19824
@@ -40936,6 +41260,11 @@ msgid ""
 "axis labels.  The second, third, fourth, and subsequent ticks are all spaced "
 "equally, according to the value of @code{X-axis-label-spacing}."
 msgstr ""
+"Het eerste merkteken staat onder de eerste kolom van de grafiek en "
+"wordt voorafgegaan door meerdere spatie. Deze spates geven ruimte in "
+"rijen er boven voor de Y-as labels. De tweede, derde ne volgende "
+"merktekens staan op gelijke afstand, overeenkomstig met de waarde "
+"van @code{X-as-label-spacing}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19828
@@ -40944,6 +41273,9 @@ msgid ""
 "spaces and also separated according to the value of the variable @code{X-"
 "axis-label-spacing}."
 msgstr ""
+"De tweede rij van de X-as bestaat uit getallen, voorafgegaan door "
+"meerdere spaties en eveneens gescheiden volgens de waarde van de "
+"variabele @code{X-as-label-spacing}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19833
@@ -40953,12 +41285,17 @@ msgid ""
 "width of the symbols that you are using to print the body of the graph "
 "without changing the ways the graph is labeled."
 msgstr ""
+"De waarde van de variabele @code{X-as-label-spacing} zelf moet "
+"gemeten woorden in eenheden van @code{symbol-width}, omdat je de "
+"breedte van de symbolen die je gebruikt om de grafiek te tonen zou "
+"willen aanpassen zonder de manier waarop de grafiek wordt gelabeld "
+"te veranderen."
 
 #. type: unnumberedsubsec
 #: emacs-lisp-intro.texi:19841
 #, no-wrap
 msgid "Similarities and differences"
-msgstr ""
+msgstr "Overeenkomsten en verschillen"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19849
@@ -40969,23 +41306,30 @@ msgid ""
 "print each line and then combine them within the @code{print-X-axis} "
 "function."
 msgstr ""
+"De functie @code{toon-X-as} wordt min of meer op dezelfde manier "
+"geconstrueerd als de functie @code{toon-Y-as} behalve dat het twee "
+"regels bevat: een regel met merktekens en een met getallen. We "
+"schrijven een aparte functie om elke regel te tonen en combineren "
+"die dan in de @code{toon-X-as}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19851
 msgid "This is a three step process:"
-msgstr ""
+msgstr "Dit is een proces in drie stappen:"
 
 #. type: enumerate
 #: emacs-lisp-intro.texi:19855
 msgid ""
 "Write a function to print the X axis tic marks, @code{print-X-axis-tic-line}."
 msgstr ""
+"Schrijf een functie om de X-as merktekens te tonen, @code{print-X-as-tic-line}."
 
 #. type: enumerate
 #: emacs-lisp-intro.texi:19858
 msgid ""
 "Write a function to print the X numbers, @code{print-X-axis-numbered-line}."
 msgstr ""
+"Schrijf een functie om de X getallen te tonen, @code{print-X-as-genummerd-line}."
 
 #. type: enumerate
 #: emacs-lisp-intro.texi:19863
@@ -40993,6 +41337,8 @@ msgid ""
 "Write a function to print both lines, the @code{print-X-axis} function, "
 "using @code{print-X-axis-tic-line} and @code{print-X-axis-numbered-line}."
 msgstr ""
+"Schrijf een functie die beide regels toont, de functie @code{toon-X-as}, "
+"met @code{print-X-as-tic-line} en @code{print-X-as-genummerd-line}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19870
@@ -41000,6 +41346,8 @@ msgid ""
 "The first function should print the X axis tic marks.  We must specify the "
 "tic marks themselves and their spacing:"
 msgstr ""
+"De eerste functie moet de X-as merktekens tonen. We moeten de "
+"merktekens zelf speicificeren en hun onderlinge afstand."
 
 #. type: group
 #: emacs-lisp-intro.texi:19877 emacs-lisp-intro.texi:20919
@@ -41010,6 +41358,10 @@ msgid ""
 "      (* 5 (length graph-blank)) 5)\n"
 "  \"Number of units from one X axis label to next.\")\n"
 msgstr ""
+"(defvar X-as-label-spacing\n"
+"  (if (boundp 'grafiek-wit)\n"
+"      (* 5 (length grafiek-wit)) 5)\n"
+"  \"Aantal eenheden tussen een X as label tot de volgende.\")\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19888
@@ -41021,11 +41373,18 @@ msgid ""
 "debugger and see an error message saying @samp{@w{Debugger entered--Lisp "
 "error:} @w{(void-variable graph-blank)}}.)"
 msgstr ""
+"(Merk op dat de waarde van @code{grafiek-wit} door een andere "
+"@code{defvar} wordt gezet. Het predicaat @code{boundp} controleert "
+"of het al gezet is, @code{boundp} geeft @code{nil} terug wanneer dat "
+"niet het geval is. Wanneer @code{grafiek-wit} ongebonden zou zijn en "
+"we deze conditionele constructie niet zouden gebruiken, zouden we de "
+"debugger ingaan en een foutboodschap zien die zegt @samp{@w{Debugger "
+"entered--Lisp error:} @w{(void-variable grafiek-wit)}}.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19891
 msgid "Here is the @code{defvar} for @code{X-axis-tic-symbol}:"
-msgstr ""
+msgstr "Hier is de @code{defvar} voor @code{X-as-tic-symbol}:"
 
 #. type: group
 #: emacs-lisp-intro.texi:19896 emacs-lisp-intro.texi:20912
@@ -41034,17 +41393,19 @@ msgid ""
 "(defvar X-axis-tic-symbol \"|\"\n"
 "  \"String to insert to point to a column in X axis.\")\n"
 msgstr ""
+"(defvar X-as-tic-symbol \"|\"\n"
+"  \"String in te voegen die wijst naar een kolom in de X-as.\")\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19901
 msgid "The goal is to make a line that looks like this:"
-msgstr ""
+msgstr "Het doel is een regel te maken zie er zo uit ziet:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:19904
 #, no-wrap
 msgid "       |   |    |    |\n"
-msgstr ""
+msgstr "       |   |    |    |\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19908
@@ -41052,6 +41413,8 @@ msgid ""
 "The first tic is indented so that it is under the first column, which is "
 "indented to provide space for the Y axis labels."
 msgstr ""
+"Het eerste merkteken is ingesprongen zodat die onder de eerste kolom "
+"staat, die ingesprongen is om ruimte te maken voor de Y-as labels."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19912
@@ -41060,6 +41423,10 @@ msgid ""
 "next plus a tic symbol.  The number of blanks is determined by the width of "
 "the tic symbol and the @code{X-axis-label-spacing}."
 msgstr ""
+"Een merkteken bestaat uit spaties van het ene merkteken tot het "
+"volgende plus het merkteken symbool. Het aantal spaties wordt "
+"bepaald door de breedte van het merkteken symbool en de "
+"@code{X-as-label-spacing}."
 
 #. type: group
 #: emacs-lisp-intro.texi:19929
@@ -41077,6 +41444,17 @@ msgid ""
 " X-axis-tic-symbol)\n"
 "@dots{}\n"
 msgstr ""
+";;; X-as-merkteken-element\n"
+"@dots{}\n"
+"(concat\n"
+" (make-string\n"
+"  ;; @r{Maak een string spaties.}\n"
+"  (-  (* symbol-width X-as-label-spacing)\n"
+"      (length X-as-tic-symbol))\n"
+"  ? )\n"
+" ;; @r{Plak spaties aan X-as-tic-symbol.}\n"
+" X-as-tic-symbol)\n"
+"@dots{}\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19935
@@ -41085,11 +41463,15 @@ msgid ""
 "to the first column of the graph.  This uses the value of @code{full-Y-label-"
 "width} passed it by the @code{print-graph} function."
 msgstr ""
+"Hierna stellen we vast hoeveel spaties nodig zijn voor het inspringen "
+"van het eerste merkteken naar de eerste kolom in de grafiek. Dit gebruikt "
+"de waarde van @code{volle-Y-label-breedte} die wordt doorgegeven door "
+"de functie @code{toon-grafiek}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19939
 msgid "The code to make @code{X-axis-leading-spaces} looks like this:"
-msgstr ""
+msgstr "De code om @code{X-as-leading-spaces} te maken ziet er zo uit:"
 
 #. type: group
 #: emacs-lisp-intro.texi:19946
@@ -41100,6 +41482,10 @@ msgid ""
 "(make-string full-Y-label-width ? )\n"
 "@dots{}\n"
 msgstr ""
+";; X-as-leading-spaces\n"
+"@dots{}\n"
+"(make-string volle-Y-label-breedte ? )\n"
+"@dots{}\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19952
@@ -41107,6 +41493,9 @@ msgid ""
 "We also need to determine the length of the horizontal axis, which is the "
 "length of the numbers list, and the number of ticks in the horizontal axis:"
 msgstr ""
+"We moeten ook de lengte van de horizontale as vaststellen, dat is de "
+"lengte van de getallenlijst, en het aantal merktekens in de "
+"horizontale as:"
 
 #. type: group
 #: emacs-lisp-intro.texi:19958
@@ -41116,6 +41505,9 @@ msgid ""
 "@dots{}\n"
 "(length numbers-list)\n"
 msgstr ""
+";; X-lengte\n"
+"@dots{}\n"
+"(length getallenlijst)\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:19964
@@ -41125,6 +41517,9 @@ msgid ""
 "@dots{}\n"
 "(* symbol-width X-axis-label-spacing)\n"
 msgstr ""
+";; merkteken-breedte\n"
+"@dots{}\n"
+"(* symbol-width X-axs-label-spacing)\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:19971
@@ -41135,18 +41530,22 @@ msgid ""
 "    (/ (X-length tic-width))\n"
 "  (1+ (/ (X-length tic-width))))\n"
 msgstr ""
+";; aantal-merktekens\n"
+"(if (zerop (% (X-length tic-width)))\n"
+"    (/ (X-length tic-width))\n"
+"  (1+ (/ (X-length tic-width))))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19976
 msgid ""
 "All this leads us directly to the function for printing the X axis tic line:"
-msgstr ""
+msgstr "Dit alles leidt ons direct naar de functie om de X-as merkteken regel te tonen:"
 
 #. type: findex
 #: emacs-lisp-intro.texi:19977
 #, no-wrap
 msgid "print-X-axis-tic-line"
-msgstr ""
+msgstr "toon-X-as-tic-line"
 
 #. type: group
 #: emacs-lisp-intro.texi:19985 emacs-lisp-intro.texi:21132
@@ -41158,6 +41557,11 @@ msgid ""
 "    (insert X-axis-leading-spaces)\n"
 "    (insert X-axis-tic-symbol)  ; @r{Under first column.}\n"
 msgstr ""
+"(defun toon-X-as-tic-line\n"
+"  (number-of-X-tics X-as-leading-spaces X-as-tic-element)\n"
+"  \"Toon ticks for X as.\"\n"
+"    (insert X-as-leading-spaces)\n"
+"    (insert X-as-tic-symbol)  ; @r{Onder eerste kolom.}\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:19995 emacs-lisp-intro.texi:21142
@@ -41172,7 +41576,14 @@ msgid ""
 "              ? )\n"
 "             X-axis-tic-symbol))\n"
 msgstr ""
-
+"    ;; @r{Voeg tweede merkteken op juiste plaats in.}\n"
+"    (insert (concat\n"
+"             (make-string\n"
+"              (-  (* symbol-width X-as-label-spacing)\n"
+"                  ;; @r{Voeg witte ruimte in naar volgende merkteken.}\n"
+"                  (* 2 (length X-as-tic-symbol)))\n"
+"              ? )\n"
+"             X-as-tic-symbol))\n"
 #. type: group
 #: emacs-lisp-intro.texi:20001 emacs-lisp-intro.texi:21148
 #, no-wrap
@@ -41182,23 +41593,27 @@ msgid ""
 "      (insert X-axis-tic-element)\n"
 "      (setq number-of-X-tics (1- number-of-X-tics))))\n"
 msgstr ""
+"    ;; @r{Voeg resterende merktekens in.}\n"
+"    (while (> number-of-X-tics 1)\n"
+"      (insert X-as-tic-element)\n"
+"      (setq number-of-X-tics (1- number-of-X-tics))))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:20005
 msgid "The line of numbers is equally straightforward:"
-msgstr ""
+msgstr "De regels met getallen en even makkelijk:"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:20008
 msgid ""
 "First, we create a numbered element with blank spaces before each number:"
-msgstr ""
+msgstr "Eerst maken we een genummerd element met spaties voor elk getal:"
 
 #. type: findex
 #: emacs-lisp-intro.texi:20009
 #, no-wrap
 msgid "X-axis-element"
-msgstr ""
+msgstr "X-as-element"
 
 #. type: group
 #: emacs-lisp-intro.texi:20019 emacs-lisp-intro.texi:21160
@@ -41212,6 +41627,13 @@ msgid ""
 "    (concat (make-string leading-spaces ? )\n"
 "            (number-to-string number))))\n"
 msgstr ""
+"(defun X-as-element (getal)\n"
+"  \"Construeer een genummerd X-as element.\"\n"
+"  (let ((leading-spaces\n"
+"         (-  (* symbol-width X-as-label-spacing)\n"
+"             (length (number-to-string getal)))))\n"
+"    (concat (make-string leading-spaces ? )\n"
+"            (number-to-string getal))))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:20024
@@ -41219,12 +41641,14 @@ msgid ""
 "Next, we create the function to print the numbered line, starting with the "
 "number 1 under the first column:"
 msgstr ""
+"Vervolgens creëren we de functie om de genummerde regel te tonen, "
+"beginnend met nummer 1 onder de eerste kolom."
 
 #. type: findex
 #: emacs-lisp-intro.texi:20025
 #, no-wrap
 msgid "print-X-axis-numbered-line"
-msgstr ""
+msgstr "toon-X-as-genummerde-regel "
 
 #. type: group
 #: emacs-lisp-intro.texi:20034
@@ -41237,6 +41661,12 @@ msgid ""
 "    (insert X-axis-leading-spaces)\n"
 "    (insert \"1\")\n"
 msgstr ""
+"(defun toon-X-as-numbered-line\n"
+"  (number-of-X-tics X-as-leading-spaces)\n"
+"  \"Toon regel X-as getallen\"\n"
+"  (let ((getal X-as-label-spacing))\n"
+"    (insert X-as-leading-spaces)\n"
+"    (insert \"1\")\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:20042
@@ -41249,6 +41679,12 @@ msgid ""
 "              ? )\n"
 "             (number-to-string number)))\n"
 msgstr ""
+"    (insert (concat\n"
+"             (make-string\n"
+"              ;; @r{Voeg witte ruimte in tot het volgende getal.}\n"
+"              (-  (* symbol-width X-as-label-spacing) 2)\n"
+"              ? )\n"
+"             (number-to-string getal)))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:20050
@@ -41261,6 +41697,12 @@ msgid ""
 "      (setq number (+ number X-axis-label-spacing))\n"
 "      (setq number-of-X-tics (1- number-of-X-tics)))))\n"
 msgstr ""
+"    ;; @r{Voeg resterende getallen in.}\n"
+"    (setq getal (+ getal X-as-label-spacing))\n"
+"    (while (> number-of-X-tics 1)\n"
+"      (insert (X-as-element getal))\n"
+"      (setq getal(+ getal X-as-label-spacing))\n"
+"      (setq number-of-X-tics (1- number-of-X-tics)))))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:20056
@@ -41268,6 +41710,8 @@ msgid ""
 "Finally, we need to write the @code{print-X-axis} that uses @code{print-X-"
 "axis-tic-line} and @code{print-X-axis-numbered-line}."
 msgstr ""
+"Tenslotte moeten de @code{toon-X-as} schrijven die gebruik maakt van "
+"de @code{toon-X-as-tic-line} en @code{toon-X-as-numbered-line}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:20061
@@ -41277,6 +41721,11 @@ msgid ""
 "it must call them.  Also, it must print the carriage return that separates "
 "the two lines."
 msgstr ""
+"De functie moet de lokale waarden van de variabelen vast stellen die "
+"door zowel @code{toon-X-as-tic-line} als "
+"@code{toon-X-as-numbered-line} gebruikt worden en moeten we ze "
+"aanroepen. Ook met het een einde regelteken tonen, dat de twee "
+"regels van elkaar scheidt."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:20064
@@ -41284,6 +41733,8 @@ msgid ""
 "The function consists of a varlist that specifies five local variables, and "
 "calls to each of the two line printing functions:"
 msgstr ""
+"De functie bestaat uit een varlist die vijf lokale variabelen "
+"specificeert en de twee toon-regel functies aanroept."
 
 #. type: group
 #: emacs-lisp-intro.texi:20072
@@ -41294,6 +41745,10 @@ msgid ""
 "  (let* ((leading-spaces\n"
 "          (make-string full-Y-label-width ? ))\n"
 msgstr ""
+"(defun toon-X-as (getallenlijst)\n"
+"  \"Toon X as labels voor de lengte van GETALLENLIJST.\"\n"
+"  (let* ((leading-spaces\n"
+"          (make-string volle-Y-label-breedte ? ))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:20077
@@ -41303,6 +41758,9 @@ msgid ""
 "       (tic-width (* symbol-width X-axis-label-spacing))\n"
 "       (X-length (length numbers-list))\n"
 msgstr ""
+"       ;; symbol-width @r{wordt verstrekt door} grafiek-body-tonen\n"
+"       (tic-width (* symbol-width X-as-label-spacing))\n"
+"       (X-length (length getallenlijst))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:20082
@@ -41312,6 +41770,9 @@ msgid ""
 "        (concat\n"
 "         (make-string\n"
 msgstr ""
+"       (X-tic\n"
+"        (concat\n"
+"         (make-string\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:20088
@@ -41322,6 +41783,10 @@ msgid ""
 "              (length X-axis-tic-symbol))\n"
 "          ? )\n"
 msgstr ""
+"          ;; @r{Maak een string van spaties.}\n"
+"          (-  (* symbol-width X-as-label-spacing)\n"
+"              (length X-as-tic-symbol))\n"
+"          ? )\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:20092
@@ -41330,6 +41795,8 @@ msgid ""
 "         ;; @r{Concatenate blanks with tic symbol.}\n"
 "         X-axis-tic-symbol))\n"
 msgstr ""
+"         ;; @r{Concatenate spaties met tic symbol.}\n"
+"         X-as-tic-symbol))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:20098
@@ -41349,11 +41816,14 @@ msgid ""
 "    (insert \"\\n\")\n"
 "    (print-X-axis-numbered-line tic-number leading-spaces)))\n"
 msgstr ""
+"    (toon-X-as-tic-line tic-number leading-spaces X-tic)\n"
+"    (insert \"\\n\")\n"
+"    (toon-X-as-numbered-line tic-number leading-spaces)))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:20108
 msgid "You can test @code{print-X-axis}:"
-msgstr ""
+msgstr "Je kunt @code{toon-X-as} testen:"
 
 #. type: enumerate
 #: emacs-lisp-intro.texi:20114
@@ -41362,6 +41832,9 @@ msgid ""
 "axis-tic-line}, as well as @code{X-axis-element}, @code{print-X-axis-"
 "numbered-line}, and @code{print-X-axis}."
 msgstr ""
+"Installeer @code{X-as-tic-symbol}, @code{X-as-label-spacing}, "
+"@code{toon-X-as-tic-line} en @code{X-as-element}, "
+"@code{toon-X-as-genummerde-regel} en @code{toon-X-as}."
 
 #. type: group
 #: emacs-lisp-intro.texi:20125
@@ -41373,17 +41846,23 @@ msgid ""
 "   (print-X-axis\n"
 "    '(1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16))))\n"
 msgstr ""
+"(progn\n"
+" (let ((volle-Y-label-breedte 5)\n"
+"       (symbol-width 1))\n"
+"   (toon-X-as\n"
+"    '(1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16))))\n"
 
 #. type: enumerate
 #: emacs-lisp-intro.texi:20138 emacs-lisp-intro.texi:20374
 msgid ""
 "Yank the test expression into the minibuffer with @kbd{C-y} (@code{yank)}."
 msgstr ""
+"Yank de test expressie in het minibuffer met  @kbd{C-y} (@code{yank)}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:20145
 msgid "Emacs will print the horizontal axis like this:"
-msgstr ""
+msgstr "Emacs toont de horizontale as zoals dit:"
 
 #. type: group
 #: emacs-lisp-intro.texi:20151
@@ -41392,29 +41871,31 @@ msgid ""
 "     |   |    |    |    |\n"
 "     1   5   10   15   20\n"
 msgstr ""
+"     |   |    |    |    |\n"
+"     1   5   10   15   20\n"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:20156
 #, no-wrap
 msgid "Printing the whole graph"
-msgstr ""
+msgstr "De gehele grafiek tonen"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:20157
 #, no-wrap
 msgid "Whole graph printing"
-msgstr ""
+msgstr "Hele grafiek tonen"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:20158
 #, no-wrap
 msgid "Graph, printing all"
-msgstr ""
+msgstr "Grafiek, alles tonen"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:20161
 msgid "Now we are nearly ready to print the whole graph."
-msgstr ""
+msgstr "Nu zijn we bijna klaar om de gehele grafiek te tonen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:20165
@@ -41423,17 +41904,20 @@ msgid ""
 "we created earlier (@pxref{Full Graph, , A Graph with Labeled Axes}), but "
 "with additions."
 msgstr ""
+"De functie om de grafiek met de juiste labels te tonen volgt de "
+"outline de we eerder gemaakt hebben (@pxref{Volledige grafiek, , Een "
+"grafiek met gelabelde assen}), maar met toevoegingen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:20168
 msgid "Here is the outline:"
-msgstr ""
+msgstr "Hier is de outline:"
 
 #. type: unnumberedsubsec
 #: emacs-lisp-intro.texi:20195
 #, no-wrap
 msgid "Changes for the Final Version"
-msgstr ""
+msgstr "Wijzigingen voor de finale versie"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:20203
@@ -41444,6 +41928,12 @@ msgid ""
 "feature turns out to be essential; otherwise, a graph may have more rows "
 "than fit on a display or on a sheet of paper."
 msgstr ""
+"De finale versie wijkt op twee manieren af van wat we hadden "
+"gepland: ten eerste bevat het additionele eenmalig berekende waarden "
+"in de varlist, ten tweede heeft het een optie om de stapgrootte per "
+"regel van de regels te specificeren. Deze laatste eigenschap blijkt "
+"essentieel te zijn, anders zou de grafiek meer regels kunnen hebben "
+"dan op het display of een blad papier passen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:20208
@@ -41451,12 +41941,15 @@ msgid ""
 "This new feature requires a change to the @code{Y-axis-column} function, to "
 "add @code{vertical-step} to it.  The function looks like this:"
 msgstr ""
+"Deze nieuwe eigenschap vereist een verandering in de functie "
+"@code{Y-as-kolom}, om de @code{vertikale-stap} er aan toe te voegen. "
+"De functie ziet er zo uit:"
 
 #. type: findex
 #: emacs-lisp-intro.texi:20209
 #, no-wrap
 msgid "Y-axis-column @r{Final version.}"
-msgstr ""
+msgstr "Y-as-kolom @r{finale versie}"
 
 #. type: group
 #: emacs-lisp-intro.texi:20222
@@ -41473,6 +41966,17 @@ msgid ""
 "for each line.  For example, a step of 5 means\n"
 "that each line is five units of the graph.\"\n"
 msgstr ""
+";;; @r{Finale versie.}\n"
+"(defun Y-as-kolom\n"
+"  (hoogte width-of-label &optional vertical-step)\n"
+"  \"Construeer lijst van labels voor de Y as.\n"
+"HOOGTE is maximum hoogte van de grafiek.\n"
+"WIDTH-OF-LABEL is maximum breedte van label.\n"
+"VERTICAL-STEP, een optie, is een positieve integer\n"
+"die voor elke regel specificeert hoeveel een Y-as label\n"
+"toeneemt.\n"
+"Een stap van vijf bijvoorbeeld betekent dat elke regel\n"
+"vijf eenheden van de grafiek is.\"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:20228
@@ -41483,6 +41987,10 @@ msgid ""
 "    (while (> height 1)\n"
 "      (if (zerop (% height Y-axis-label-spacing))\n"
 msgstr ""
+"  (let (Y-as\n"
+"        (getal-per-regel (or vertical-step 1)))\n"
+"    (while (> hoogte 1)\n"
+"      (if (zerop (% hoogte Y-as-label-spacing))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:20237
@@ -41496,6 +42004,13 @@ msgid ""
 "                  width-of-label)\n"
 "                 Y-axis))\n"
 msgstr ""
+"          ;; @r{Label invoegen.}\n"
+"          (setq Y-as\n"
+"                (cons\n"
+"                 (Y-as-element\n"
+"                  (* hoogte getal-per-regel)\n"
+"                  width-of-label)\n"
+"                 Y-as))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:20245 emacs-lisp-intro.texi:21224
@@ -41508,6 +42023,12 @@ msgid ""
 "               Y-axis)))\n"
 "      (setq height (1- height)))\n"
 msgstr ""
+"        ;; @r{Anders, voeg spaties in.}\n"
+"        (setq Y-as\n"
+"              (cons\n"
+"               (make-string width-of-label ? )\n"
+"               Y-as)))\n"
+"      (setq hoogte (1- hoogte)))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:20253 emacs-lisp-intro.texi:21232
@@ -41520,6 +42041,12 @@ msgid ""
 "                       Y-axis))\n"
 "    (nreverse Y-axis)))\n"
 msgstr ""
+"    ;; @r{Invoegen basis regel.}\n"
+"    (setq Y-as (cons (Y-as-element\n"
+"                        (or vertical-step 1)\n"
+"                        width-of-label)\n"
+"                       Y-as))\n"
+"    (nreverse Y-as)))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:20259
@@ -41528,12 +42055,16 @@ msgid ""
 "computed by @code{print-graph} in its @code{let} expression; so @code{graph-"
 "body-print} must be changed to accept them."
 msgstr ""
+"De waarden voor de maximum hoogte van de grafiek en de breedte van "
+"een symbool worden berekend door @code{toon-grafiek} in de "
+"@code{let} expressie, dus @code{grafiek-body-tonen} moet worden "
+"aangepast om die te accepteren."
 
 #. type: findex
 #: emacs-lisp-intro.texi:20260
 #, no-wrap
 msgid "graph-body-print @r{Final version.}"
-msgstr ""
+msgstr "grafiek-body-tonen  @r{Finale versie.}"
 
 #. type: group
 #: emacs-lisp-intro.texi:20269
@@ -41546,6 +42077,12 @@ msgid ""
 "HEIGHT is maximum height of graph.\n"
 "SYMBOL-WIDTH is number of each column.\"\n"
 msgstr ""
+";;; @r{Finale versie.}\n"
+"(defun grafiek-body-gonen (getallenlijst hoogte symboolbreedte)\n"
+"  \"Toon een staafgrafiek of the NUMBERS-LIST.\n"
+"The numbers-list consists of the Y-as values.\n"
+"HOOGTE is maximum hoogte van de grafiek.\n"
+"SYMBOOLBREEDTE is getal van elke kolom.\"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:20278 emacs-lisp-intro.texi:21179
@@ -41559,6 +42096,13 @@ msgid ""
 "      (goto-char from-position)\n"
 "      (forward-char symbol-width)\n"
 msgstr ""
+"  (let (van-positie)\n"
+"    (while getallenlijst\n"
+"      (setq van-positie (point))\n"
+"      (insert-rectangle\n"
+"       (kolom-van-grafiek hoogte (car getallenlijst)))\n"
+"      (goto-char van-positie)\n"
+"      (forward-char symboolbreedte)\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:20286 emacs-lisp-intro.texi:21187
@@ -41571,17 +42115,23 @@ msgid ""
 "    (forward-line height)\n"
 "    (insert \"\\n\")))\n"
 msgstr ""
+"      ;; @r{Teken grafiek kolom voor kolom.}\n"
+"      (sit-for 0)\n"
+"      (setq getallenlijst (cdr getallenlijst)))\n"
+"    ;; @r{Plaats point voor X as labels.}\n"
+"    (forward-line hoogte)\n"
+"    (insert \"\\n\")))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:20291
 msgid "Finally, the code for the @code{print-graph} function:"
-msgstr ""
+msgstr "Tenslotte de code voor de @code{toon-grafiek} functie: "
 
 #. type: findex
 #: emacs-lisp-intro.texi:20292
 #, no-wrap
 msgid "print-graph @r{Final version.}"
-msgstr ""
+msgstr "toon-grafiek @r{Finale versie.}"
 
 #. type: group
 #: emacs-lisp-intro.texi:20300
@@ -41593,6 +42143,11 @@ msgid ""
 "  \"Print labeled bar graph of the NUMBERS-LIST.\n"
 "The numbers-list consists of the Y-axis values.\n"
 msgstr ""
+";;; @r{Finale versie.}\n"
+"(defun toon-grafiek\n"
+"  (getallenlijst &optional vertical-step)\n"
+"  \"Toon gelabelde staafgrafiek van de GETALLENLIJST.\n"
+"De getallenlijst bestaat uit de Y-as waarden.\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:20307
@@ -41603,6 +42158,10 @@ msgid ""
 "each line.  For example, a step of 5 means that\n"
 "each row is five units.\"\n"
 msgstr ""
+"Optioneel speficieert VERTICAL-STEP, een positieve\n"
+" integer, hoe veel een Y as label toeneemt bij elke\n"
+"regel.  Een stap van 5 bijvoorbeeld betekent dat\n"
+"elke rij vijf eenheden is.\"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:20313
@@ -41613,6 +42172,10 @@ msgid ""
 "         ;; @r{and the number with the most digits.}\n"
 "         (height (apply 'max numbers-list))\n"
 msgstr ""
+"  (let* ((symboolbreedte (length grafiek-wit))\n"
+"         ;; @code{hoogte} @r{is zowel het grootste getal}\n"
+"         ;; @r{en het getal met de meeste cijfers.}\n"
+"         (hoogte (apply 'max getallenlijst))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:20321 emacs-lisp-intro.texi:20849
@@ -41626,6 +42189,12 @@ msgid ""
 "            (* (1+ (/ height Y-axis-label-spacing))\n"
 "               Y-axis-label-spacing)))\n"
 msgstr ""
+"         (hoogte-van-top-line\n"
+"          (if (zerop (% hoogte Y-as-label-spacing))\n"
+"              hoogte\n"
+"            ;; @r{else}\n"
+"            (* (1+ (/ hoogte Y-as-label-spacing))\n"
+"               Y-as-label-spacing)))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:20326
@@ -41635,6 +42204,9 @@ msgid ""
 "         (full-Y-label-width\n"
 "          (length\n"
 msgstr ""
+"         (vertical-step (or vertical-step 1))\n"
+"         (volle-Y-label-breedte"
+"          (length\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:20332
@@ -41645,6 +42217,10 @@ msgid ""
 "             (* height-of-top-line vertical-step))\n"
 "            Y-axis-tic))))\n"
 msgstr ""
+"           (concat\n"
+"            (number-to-string\n"
+"             (* hoogte-van-top-line vertical-step))\n"
+"            Y-as-tic))))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:20337
@@ -41653,6 +42229,8 @@ msgid ""
 "    (print-Y-axis\n"
 "     height-of-top-line full-Y-label-width vertical-step)\n"
 msgstr ""
+"    (toon-Y-as\n"
+"     hoogte-van-top-line volle-Y-label-breedte vertical-step)\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:20342
@@ -41662,18 +42240,21 @@ msgid ""
 "     numbers-list height-of-top-line symbol-width)\n"
 "    (print-X-axis numbers-list)))\n"
 msgstr ""
+"    (grafiek-body-tonen\n"
+"     getallenlijst hoogte-van-top-line symboolbreedte)\n"
+"    (print-X-as getallenlijst)))\n"
 
 #. type: appendixsubsec
 #: emacs-lisp-intro.texi:20346
 #, no-wrap
 msgid "Testing @code{print-graph}"
-msgstr ""
+msgstr "@code{toon-grafiek} testen"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:20350
 msgid ""
 "We can test the @code{print-graph} function with a short list of numbers:"
-msgstr ""
+msgstr "We kunnen de functie @code{toon-grafiek} testen met een korte lijst van getallen:"
 
 #. type: enumerate
 #: emacs-lisp-intro.texi:20356
@@ -41681,17 +42262,19 @@ msgid ""
 "Install the final versions of @code{Y-axis-column}, @code{graph-body-print}, "
 "and @code{print-graph} (in addition to the rest of the code.)"
 msgstr ""
+"Installeer de finale versie van @code{Y-as-kolom}, @code{grafiek-body-tonen}, "
+"en @code{toon-grafiek} (als aanvulling op de rest van de code)."
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:20362
 #, no-wrap
 msgid "(print-graph '(3 2 5 6 7 5 3 4 6 4 3 2 1))\n"
-msgstr ""
+msgstr "(toon-grafiek '(3 2 5 6 7 5 3 4 6 4 3 2 1))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:20381
 msgid "Emacs will print a graph that looks like this:"
-msgstr ""
+msgstr "Emacs toont een grafiek die er zo uit ziet:"
 
 #. type: group
 #: emacs-lisp-intro.texi:20385
@@ -41700,6 +42283,8 @@ msgid ""
 "10 -\n"
 "\n"
 msgstr ""
+"10 -\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:20394
@@ -41714,6 +42299,14 @@ msgid ""
 " 1 - *************\n"
 "\n"
 msgstr ""
+"         *\n"
+"        **   *\n"
+" 5 -   ****  *\n"
+"       **** ***\n"
+"     * *********\n"
+"     ************\n"
+" 1 - *************\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:20397 emacs-lisp-intro.texi:20427
@@ -41722,6 +42315,8 @@ msgid ""
 "     |   |    |    |\n"
 "     1   5   10   15\n"
 msgstr ""
+"     |   |    |    |\n"
+"     1   5   10   15\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:20403
@@ -41729,17 +42324,19 @@ msgid ""
 "On the other hand, if you pass @code{print-graph} a @code{vertical-step} "
 "value of 2, by evaluating this expression:"
 msgstr ""
+"Anderzijds, als je @code{toon-grafiek} een @code{vertical-step} waarde "
+"van 2 doorgeeft, door deze expressie te evalueren:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:20406
 #, no-wrap
 msgid "(print-graph '(3 2 5 6 7 5 3 4 6 4 3 2 1) 2)\n"
-msgstr ""
+msgstr "(toon-grafiek '(3 2 5 6 7 5 3 4 6 4 3 2 1) 2)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:20411
 msgid "The graph looks like this:"
-msgstr ""
+msgstr "De grafiek ziet er zo uit:"
 
 #. type: group
 #: emacs-lisp-intro.texi:20415
@@ -41748,6 +42345,8 @@ msgid ""
 "20 -\n"
 "\n"
 msgstr ""
+"20 -\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:20424
@@ -41762,6 +42361,14 @@ msgid ""
 " 2 - *************\n"
 "\n"
 msgstr ""
+"         *\n"
+"        **   *\n"
+"10 -   ****  *\n"
+"       **** ***\n"
+"     * *********\n"
+"     ************\n"
+" 2 - *************\n"
+"\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:20434
@@ -41770,12 +42377,15 @@ msgid ""
 "feature? If you think it is a bug, and should be a @samp{1} instead, (or "
 "even a @samp{0}), you can modify the sources.)"
 msgstr ""
+"(Een vraag: is de @samp{2} aan de onderkant van de vertikale as een bug "
+"of een feature? Wanneer je denkt dat dit een bug is, en het een @samp{1} "
+"zou moeten zijn (of zelfs @samp{0}), kan je broncode aanpassen.)"
 
 #. type: appendixsubsec
 #: emacs-lisp-intro.texi:20436
 #, no-wrap
 msgid "Graphing Numbers of Words and Symbols"
-msgstr ""
+msgstr "Grafiek met aantallen woorden en symbolen"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:20442
@@ -41785,6 +42395,10 @@ msgid ""
 "many contain between 10 and 19 words and symbols, how many contain between "
 "20 and 29 words and symbols, and so on."
 msgstr ""
+"Nu naar de grafiek waarvoor al deze code is geschreven: een grafiek die "
+"toont hoeveel functiedefinities minder dan 10 woorden en symbolen bevatten, "
+"hoeveel tussen 10 en 19 woorden en symbolen bevatten, en hoeveel "
+"tussen 20 en 29 woorden en symbolen bevatten, enzovoorts."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:20445
@@ -41792,6 +42406,8 @@ msgid ""
 "This is a multi-step process.  First make sure you have loaded all the "
 "requisite code."
 msgstr ""
+"Dit is een meervoudige stappen proces. Verzeker je eerst dat je al de "
+"benodigde code geladen hebt."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:20450
@@ -41799,6 +42415,9 @@ msgid ""
 "It is a good idea to reset the value of @code{top-of-ranges} in case you "
 "have set it to some different value.  You can evaluate the following:"
 msgstr ""
+"Het is een goed idee om de waarde van @code{hoogste-van-ranges} te "
+"resetten, in geval je dat op een of andere waarde gezet hebt. Je "
+"kunt het volgende evalueren:"
 
 #. type: group
 #: emacs-lisp-intro.texi:20460
@@ -41812,16 +42431,23 @@ msgid ""
 "  210 220 230 240 250\n"
 "  260 270 280 290 300)\n"
 msgstr ""
+"(setq hoogste-van-ranges\n"
+" '(10  20  30  40  50\n"
+"   60  70  80  90 100\n"
+"  110 120 130 140 150\n"
+"  160 170 180 190 200\n"
+"  210 220 230 240 250\n"
+"  260 270 280 290 300)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:20465
 msgid "Next create a list of the number of words and symbols in each range."
-msgstr ""
+msgstr "Maak nu een lijst van het aantal woorden in symbolen in elke range."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:20469
 msgid "Evaluate the following:"
-msgstr ""
+msgstr "Evalueer het volgende:"
 
 #. type: group
 #: emacs-lisp-intro.texi:20480
@@ -41836,6 +42462,14 @@ msgid ""
 "          '<)\n"
 "         top-of-ranges))\n"
 msgstr ""
+"(setq lijst-voor-grafiek\n"
+"       (defuns-per-range\n"
+"         (sort\n"
+"          (recursieve-lengte-lijst-veel-bestanden\n"
+"           (directory-files \"/usr/local/emacs/lisp\"\n"
+"                            t \".+el$\"))\n"
+"          '<)\n"
+"         top-of-ranges))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:20487
@@ -41844,6 +42478,9 @@ msgid ""
 "in my copy of Emacs version 19.23.  After all that computing, the @code{list-"
 "for-graph} had this value:"
 msgstr ""
+"Op mijn oude machine duurde dit ongeveer een uur. Het ging door 303 "
+"Lisp bestanden in mijn installatie van Emacs versie 19.23. Na al "
+"daar rekenen, de @code{lijst-voor-grafiek} had deze waarde:"
 
 #. type: group
 #: emacs-lisp-intro.texi:20492
@@ -41852,6 +42489,8 @@ msgid ""
 "(537 1027 955 785 594 483 349 292 224 199 166 120 116 99\n"
 "90 80 67 48 52 45 41 33 28 26 25 20 12 28 11 13 220)\n"
 msgstr ""
+"(537 1027 955 785 594 483 349 292 224 199 166 120 116 99\n"
+"90 80 67 48 52 45 41 33 28 26 25 20 12 28 11 13 220)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:20500
@@ -41861,6 +42500,10 @@ msgid ""
 "words or symbols in them, 955 function definitions with 20 to 29 words or "
 "symbols in them, and so on."
 msgstr ""
+"Dit betekent dat mijn installatie van Emacs 537 functiedefinities "
+"had met minder dan 10 woorden of symbolen, 1.027 functiedefinities "
+"met 10 tot 19 woorden of symbolen, 955 functiedefinities met 20 tot "
+"29 woorden of symbolen, enzovoorts."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:20503
@@ -41868,6 +42511,9 @@ msgid ""
 "Clearly, just by looking at this list we can see that most function "
 "definitions contain ten to thirty words and symbols."
 msgstr ""
+"Door gewoon naar deze lijst te kijken kunnen we duidelijk zijn dat "
+"de meeste functiedefinities tien tot dertig woorden en symbolen "
+"bevatten."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:20508
@@ -41877,6 +42523,11 @@ msgid ""
 "twenty-five lines high.  A graph that height can be displayed on almost any "
 "monitor, and easily printed on a sheet of paper."
 msgstr ""
+"Nu naar het tonen. We willen @emph{geen} grafiek tonen die 1.030 "
+"regels hoog is @dots{} In plaats daarvan zouden we een grafiek tonen "
+"die minder dan vijfentwintig regels hoog is. Een grafiek van die "
+"hoogte kan op vrijwel elke monitor getoond worden en makkelijk op "
+"een vel papier afgedrukt worden."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:20511
@@ -41884,6 +42535,8 @@ msgid ""
 "This means that each value in @code{list-for-graph} must be reduced to one-"
 "fiftieth its present value."
 msgstr ""
+"Dit betekent dat elke waarde in de @code{lijst-voor-grafiek} moet "
+"worden gereduceerd tot een vijftigste van zijn huidige waarde."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:20514
@@ -41891,6 +42544,8 @@ msgid ""
 "Here is a short function to do just that, using two functions we have not "
 "yet seen, @code{mapcar} and @code{lambda}."
 msgstr ""
+"Hier is een korte functie die dat doet, met twee functies die nog "
+"niet gezien hebben, @code{mapcar} en @code{lambda}."
 
 #. type: group
 #: emacs-lisp-intro.texi:20520
@@ -41900,18 +42555,21 @@ msgid ""
 "  \"Return list, each number one-fiftieth of previous.\"\n"
 " (mapcar (lambda (arg) (/ arg 50)) full-range))\n"
 msgstr ""
+"(defun een-vijftigste (full-range)\n"
+"  \"Geef een lijst terug, met elk getal een vijftigste van de eerdere.\"\n"
+" (mapcar (lambda (arg) (/ arg 50)) full-range))\n"
 
 #. type: appendixsubsec
 #: emacs-lisp-intro.texi:20524
 #, no-wrap
 msgid "A @code{lambda} Expression: Useful Anonymity"
-msgstr ""
+msgstr "Een @code{lambda} expressie: nuttige anonimiteit "
 
 #. type: cindex
 #: emacs-lisp-intro.texi:20525
 #, no-wrap
 msgid "Anonymous function"
-msgstr ""
+msgstr "Anonieme functie"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:20531
@@ -41920,12 +42578,15 @@ msgid ""
 "name.  Every time you use an anonymous function, you need to include its "
 "whole body."
 msgstr ""
+"@code{lambda} is het symbool voor een anonieme functie, een functie "
+"zonder een naam. Elke keer dat je een anonieme functie gebruikt, "
+"dien je de gehele body er van op te nemen."
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:20538 emacs-lisp-intro.texi:20633
 #, no-wrap
 msgid "(lambda (arg) (/ arg 50))\n"
-msgstr ""
+msgstr "(lambda (arg) (/ arg 50))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:20543
@@ -41933,6 +42594,8 @@ msgid ""
 "is a function that returns the value resulting from dividing whatever is "
 "passed to it as @code{arg} by 50."
 msgstr ""
+"is een functie die de waarde teruggeeft die het resultaat is van "
+"datgene dat is doorgegeven als @code{arg} gedeeld door 50."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:20549
@@ -41942,55 +42605,59 @@ msgid ""
 "its argument by 50; and, it has no name.  The anonymous equivalent of "
 "@code{multiply-by-seven} is:"
 msgstr ""
+"Eerder bijvoorbeeld hadden we een functie @code{vermenigvuldig-met-zeven}. "
+"Het vermenigvuldigt het argument met 7. Deze functie is vergelijkbaar, "
+"behalve dat die het argument door 50 deelt, en dat die geen naam heeft. "
+"Het anonieme equivalent van @code{vermenigvuldig-met-zeven} is:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:20552
 #, no-wrap
 msgid "(lambda (number) (* 7 number))\n"
-msgstr ""
+msgstr "(lambda (getal) (* 7 getal))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:20556
 msgid "(@xref{defun, , The @code{defun} Macro}.)"
-msgstr ""
+msgstr "(@xref{defun, , De @code{defun} macro}.)"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:20561
 msgid "If we want to multiply 3 by 7, we can write:"
-msgstr ""
+msgstr "Wanneer we 3 met 7 willen vermenigvuldigen, kunnen we schrijven:"
 
 #. type: center
 #: emacs-lisp-intro.texi:20562
 #, no-wrap
 msgid "@image{lambda-1}"
-msgstr ""
+msgstr "@image{lambda-1-nl}"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:20567
 msgid "This expression returns 21."
-msgstr ""
+msgstr "Deze expressie geeft 21 terug."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:20572
 msgid "Similarly, we can write:"
-msgstr ""
+msgstr "Op dezelfde manier kunnen we schrijven:"
 
 #. type: center
 #: emacs-lisp-intro.texi:20573
 #, no-wrap
 msgid "@image{lambda-2}"
-msgstr ""
+msgstr "@image{lambda-2-nl}"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:20580
 msgid "If we want to divide 100 by 50, we can write:"
-msgstr ""
+msgstr "Wanneer we 100 door 50 willen delen, kunnen we schrijven:"
 
 #. type: center
 #: emacs-lisp-intro.texi:20581
 #, no-wrap
 msgid "@image{lambda-3}"
-msgstr ""
+msgstr "@image{lambda-3-nl}"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:20587
@@ -41998,6 +42665,8 @@ msgid ""
 "This expression returns 2.  The 100 is passed to the function, which divides "
 "that number by 50."
 msgstr ""
+"Deze expressie geeft 2 terug. De 100 is doorgegeven aan de functie, "
+"die dat getal deelt door 50."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:20591
@@ -42006,12 +42675,15 @@ msgid ""
 "Reference Manual}, for more about @code{lambda}.  Lisp and lambda "
 "expressions derive from the Lambda Calculus."
 msgstr ""
+"@xref{Lambda Expressions, , Lambda Expressions, elisp, The GNU Emacs Lisp "
+"Reference Manual}, voor meer over @code{lambda}.  Lisp en lambda "
+"expressies zijn afkomstig van de Lambda Calculus."
 
 #. type: appendixsubsec
 #: emacs-lisp-intro.texi:20593
 #, no-wrap
 msgid "The @code{mapcar} Function"
-msgstr ""
+msgstr "De @code{mapcar} function"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:20599
@@ -42019,6 +42691,9 @@ msgid ""
 "@code{mapcar} is a function that calls its first argument with each element "
 "of its second argument, in turn.  The second argument must be a sequence."
 msgstr ""
+"@code{mapcar} is een functie die het eerste argument beurtelings "
+"aanroept met elk element uit het tweede argument. Het tweede "
+"argument moet een reeks zijn."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:20606
@@ -42029,6 +42704,12 @@ msgid ""
 "surveyor walking, one step at a time, over an area he is mapping.  And "
 "@samp{car}, of course, comes from the Lisp notion of the first of a list."
 msgstr ""
+"Het @samp{map} deel van de naam komt van de wiskundige zin ``over "
+"een domein mappen'', wat betekent een functie toepassen op elk van "
+"elementen in een domein. De wiskundige zin is gebaseerd op de "
+"metafoor van een lopende landmeter die, stap voor stap, over een "
+"gebied loopt dat om in kaart te brengen. En @samp{car} komt "
+"natuurlijk van de Lisp notitie van het eerste van een lijst."
 
 #. type: group
 #: emacs-lisp-intro.texi:20615
@@ -42037,6 +42718,8 @@ msgid ""
 "(mapcar '1+ '(2 4 6))\n"
 "     @result{} (3 5 7)\n"
 msgstr ""
+"(mapcar '1+ '(2 4 6))\n"
+"     @result{} (3 5 7)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:20621
@@ -42044,6 +42727,9 @@ msgid ""
 "The function @code{1+} which adds one to its argument, is executed on "
 "@emph{each} element of the list, and a new list is returned."
 msgstr ""
+"De functie @code{1+} die een bij het argument optelt, wordt "
+"uitgevoerd op @emph{elk} element van de lijst, en een nieuwe lijst "
+"wordt teruggegeven."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:20626
@@ -42052,6 +42738,9 @@ msgid ""
 "remaining.  (@xref{Readying a Graph, , Readying a Graph}, for an explanation "
 "of @code{apply}.)"
 msgstr ""
+"Vergelijk dit met @code{apply}, die het eerste argument op alle "
+"resterende toepast. @xref{Een grafiek voorbereiden, , Een grafiek "
+"voorbereiden} voor een uitleg van @code{apply}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:20630
@@ -42059,6 +42748,8 @@ msgid ""
 "In the definition of @code{one-fiftieth}, the first argument is the "
 "anonymous function:"
 msgstr ""
+"In de definitie van @code{een-vijftigste} is het eerste argument de "
+"anonieme functie:"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:20638
@@ -42066,11 +42757,13 @@ msgid ""
 "and the second argument is @code{full-range}, which will be bound to "
 "@code{list-for-graph}."
 msgstr ""
+"en het tweede argument is @code{full-range}, die gebonden wordt aan "
+"@code{lijst-voor-grafiek}."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:20641
 msgid "The whole expression looks like this:"
-msgstr ""
+msgstr "De hele expressie ziet er zo uit:"
 
 #. type: smallexample
 #: emacs-lisp-intro.texi:20644
@@ -42094,6 +42787,9 @@ msgid ""
 "element is one-fiftieth the size of the corresponding element in @code{list-"
 "for-graph}."
 msgstr ""
+"Met de functie @code{een-vijftigste} genereren we een lijst waarin "
+"elk element een vijftigste is van de grootte van het "
+"corresponderende element in de @code{lijst-voor-grafiek}."
 
 #. type: group
 #: emacs-lisp-intro.texi:20657
@@ -42102,11 +42798,13 @@ msgid ""
 "(setq fiftieth-list-for-graph\n"
 "      (one-fiftieth list-for-graph))\n"
 msgstr ""
+"(setq vijftigste-lijst-voor-grafiek\n"
+"      (een-vijftigste lijst-voor-grafiek))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:20662
 msgid "The resulting list looks like this:"
-msgstr ""
+msgstr "De resulterende lijst ziet er zo uit:"
 
 #. type: group
 #: emacs-lisp-intro.texi:20667
@@ -42115,6 +42813,8 @@ msgid ""
 "(10 20 19 15 11 9 6 5 4 3 3 2 2\n"
 "1 1 1 1 0 1 0 0 0 0 0 0 0 0 0 0 0 4)\n"
 msgstr ""
+"(10 20 19 15 11 9 6 5 4 3 3 2 2\n"
+"1 1 1 1 0 1 0 0 0 0 0 0 0 0 0 0 0 4)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:20675
@@ -42124,24 +42824,29 @@ msgid ""
 "many words or symbols---but not necessarily meaning that none had that many "
 "words or symbols.)"
 msgstr ""
+"We zijn bijna klaar om de tonen! (We merken ook het verlies van "
+"informatie op: vele van de hogere ranges zijn 0, wat betekent minder "
+"dan 50 defuns hadden dat aantal woorden of symbolen---maar dat "
+"betekent niet noodzakelijkerwijs dat geen had veel woorden of "
+"symbolen.)"
 
 #. type: appendixsubsec
 #: emacs-lisp-intro.texi:20677
 #, no-wrap
 msgid "Another Bug @dots{} Most Insidious"
-msgstr ""
+msgstr "Weer een bug @dots{} meest verraderlijk"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:20678
 #, no-wrap
 msgid "Bug, most insidious type"
-msgstr ""
+msgstr "Bug, meest verraderlijke type"
 
 #. type: cindex
 #: emacs-lisp-intro.texi:20679
 #, no-wrap
 msgid "Insidious type of bug"
-msgstr ""
+msgstr "Verraderlijk type bug"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:20686
@@ -42152,6 +42857,11 @@ msgid ""
 "from 10 to 300 by tens.  But the @code{print-graph} function will print only "
 "by ones."
 msgstr ""
+"Ik zei ``bijna klaar om te tonen''! Natuurlijk is er een bug in de "
+"functie @code{toon-grafiek} @dots{} Het heeft een optie "
+"@code{vertical-step} maar geen optie @code{horizontal-step}. De "
+"@code{top-of-range} schaal gaat van 10 tot 300 in stappen van tien. "
+"Maar de functie @code{toon-grafiek} toont alleen stappen van 1."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:20695
@@ -42165,6 +42875,14 @@ msgid ""
 "written, @emph{will} be rewritten, if not soon, eventually.  A hard maxim to "
 "follow."
 msgstr ""
+"Dit is een klassiek voorbeeld van wat sommigen als het meest verraderlijke "
+"type bug beschouwen, de bug van weglating. Dit is niet het soort bug dat je "
+"kunt vinden door de code te bestuderen, omdat het niet in de code zit. Het "
+"is een weggelaten eigenschap. De beste acties zijn om je programma vroeg "
+"en vaak te testen en zo veel mogelijk te proberen code te schrijven die "
+"makkelijk te begrijpen en makkelijk te wijzigen is. Probeer je daar waar "
+"mogelijk bewust te zijn dat wat je ook hebt geschreven, @emph{wordt} herschreven, "
+"zo niet snel, dan uiteindelijk. Een belangrijk principe om te volgen."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:20701
@@ -42174,11 +42892,16 @@ msgid ""
 "to be adapted.  Not much needs to be done; there is one nicety: the numbers "
 "ought to line up under the tic marks.  This takes a little thought."
 msgstr ""
+"Het is de functie @code{toon-X-as-numbered-line} die het werk nodig "
+"heeft en de functies @code{toon-X-as} en @code{toon-grafiek} moeten "
+"worden aangepast. Er hoeft niet veel te gebeuren, er is één "
+"aandachtspunt: de getallen horen uitgelijnd onder de merktekens. Dat "
+"vergt wat nadenken."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:20704
 msgid "Here is the corrected @code{print-X-axis-numbered-line}:"
-msgstr ""
+msgstr "Hier is de verbeterde @code{toon-X-as-numbered-line}:"
 
 #. type: group
 #: emacs-lisp-intro.texi:20713 emacs-lisp-intro.texi:21243
@@ -42191,6 +42914,12 @@ msgid ""
 "  (let ((number X-axis-label-spacing)\n"
 "        (horizontal-step (or horizontal-step 1)))\n"
 msgstr ""
+"(defun toon-X-as-numbered-line"
+"  (number-of-X-tics X-as-leading-spaces)\n"
+"   &optional horizontal-step)\n"
+"  \"Toon regel X-as getallen\"\n"
+"  (let ((getal X-as-label-spacing))\n"
+"        (horizontal-step (or horizontal-step 1)))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:20722
@@ -42204,6 +42933,13 @@ msgid ""
 "    (insert (concat\n"
 "             (make-string\n"
 msgstr ""
+"    (insert X-as-leading-spaces)\n"
+"    ;; @r{Verwijder extra inleidende spaties.}\n"
+"    (delete-char\n"
+"     (- (1-\n"
+"         (length (number-to-string horizontal-step)))))\n"
+"    (insert (concat\n"
+"             (make-string\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:20734
@@ -42220,6 +42956,16 @@ msgid ""
 "             (number-to-string\n"
 "              (* number horizontal-step))))\n"
 msgstr ""
+"              ;; @r{Voeg witte ruimte in.}\n"
+"              (-  (* symbol-width\n"
+"                     X-as-label-spacing)\n"
+"                  (1-\n"
+"                   (length\n"
+"                    (number-to-string horizontal-step)))\n"
+"                  2)\n"
+"              ? )\n"
+"             (number-to-string\n"
+"              (* getal horizontal-step))))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:20743
@@ -42233,6 +42979,13 @@ msgid ""
 "      (setq number (+ number X-axis-label-spacing))\n"
 "      (setq number-of-X-tics (1- number-of-X-tics)))))\n"
 msgstr ""
+"    ;; @r{Invoegen resterende getallen.}\n"
+"    (setq getal (+ getal X-as-label-spacing))\n"
+"    (while (> number-of-X-tics 1)\n"
+"      (insert (X-axis-element\n"
+"               (* getal horizontal-step)))\n"
+"      (setq getal (+ getal X-as-label-spacing))\n"
+"      (setq number-of-X-tics (1- number-of-X-tics)))))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:20751
@@ -42242,6 +42995,10 @@ msgid ""
 "printed book, you can see the changed lines here (the full text is too much "
 "to print)."
 msgstr ""
+"Wanneer je dit in Info lees, dan kun je de nieuwe versies van @code{toon-X-as} "
+"en @code{toon-grafiek} bekijken en evalueren. Wanneer je dit in een gedrukt "
+"boek leest, dan zie je de gewijzigde regels hier (de volledige tekst "
+"is te veel om af te drukken.)"
 
 #. type: group
 #: emacs-lisp-intro.texi:20759
@@ -42252,6 +43009,10 @@ msgid ""
 "    (print-X-axis-numbered-line\n"
 "     tic-number leading-spaces horizontal-step))\n"
 msgstr ""
+"(defun toon-X-as (getallenlijst horizontal-step)\n"
+"  @dots{}\n"
+"    (toon-X-as-numbered-line"
+"     tic-number leading-spaces horizontal-step))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:20769
@@ -42263,6 +43024,11 @@ msgid ""
 "  @dots{}\n"
 "    (print-X-axis numbers-list horizontal-step))\n"
 msgstr ""
+"(defun toon-grafiek\n"
+"  (getallenlijst\n"
+"   &optional vertical-step horizontal-step)\n"
+"  @dots{}\n"
+"    (toon-X-as getallenlijst horizontal-step))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:20781 emacs-lisp-intro.texi:21274
@@ -42274,6 +43040,11 @@ msgid ""
 "specifies how much an X  axis label increments for\n"
 "each column.\"\n"
 msgstr ""
+"(defun toon-X-as (getallenlijst horizontal-step)\n"
+"  \"Toon X axis labels op lengte van GETALLENLIJST.\n"
+"Optionally, HORIZONTAL-STEP, een positieve integer,\n"
+"specificeert hoe veel een X as label toeneemt voor\n"
+"elke kolom.\"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:20790
@@ -42287,6 +43058,13 @@ msgid ""
 "       (tic-width (* symbol-width X-axis-label-spacing))\n"
 "       (X-length (length numbers-list))\n"
 msgstr ""
+";; Waarde van symbol-width and volle-Y-label-breedte\n"
+";; worden doorgegeven door toon-grafiek.\n"
+"  (let* ((leading-spaces\n"
+"          (make-string volle-Y-label-breedte ? ))\n"
+"       ;; symbol-width @r{wordt verstrekt door} grafiek-body-tonen\n"
+"       (tic-width (* symbol-width X-as-label-spacing))\n"
+"       (X-length (length getallenlijst))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:20799 emacs-lisp-intro.texi:21292
@@ -42295,9 +43073,9 @@ msgid ""
 "       (X-tic\n"
 "        (concat\n"
 "         (make-string\n"
-"          ;; @r{Make a string of blanks.}\n"
-"          (-  (* symbol-width X-axis-label-spacing)\n"
-"              (length X-axis-tic-symbol))\n"
+"          ;; @r{Maak een string van spaties.}\n"
+"          (-  (* symbol-width X-as-label-spacing)\n"
+"              (length X-as-tic-symbol))\n"
 "          ? )\n"
 msgstr ""
 
@@ -42312,6 +43090,12 @@ msgid ""
 "            (/ X-length tic-width)\n"
 "          (1+ (/ X-length tic-width)))))\n"
 msgstr ""
+"         ;; @r{Concatenate spaties met merkteken symbol.}\n"
+"         X-as-tic-symbol))\n"
+"       (tic-number\n"
+"        (if (zerop (% X-length tic-width))\n"
+"            (/ X-length tic-width)\n"
+"          (1+ (/ X-length tic-width)))))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:20815 emacs-lisp-intro.texi:21308
@@ -42323,6 +43107,11 @@ msgid ""
 "    (print-X-axis-numbered-line\n"
 "     tic-number leading-spaces horizontal-step)))\n"
 msgstr ""
+"    (toon-X-as-tic-line\n"
+"     tic-number leading-spaces X-tic)\n"
+"    (insert \"\\n\")\n"
+"    (toon-X-as-numbered-line\n"
+"     tic-number leading-spaces horizontal-step)))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:20824 emacs-lisp-intro.texi:21325
@@ -42333,6 +43122,10 @@ msgid ""
 "  \"Print labeled bar graph of the NUMBERS-LIST.\n"
 "The numbers-list consists of the Y-axis values.\n"
 msgstr ""
+"(defun toon-grafiek\n"
+"  (getallenlijst &optional vertical-step horizontal-step)\n"
+"  \"Toon gelabelde staafgrafiek van de GETALLENLIJST.\n"
+"De getallenlijst bestaat uit de Y-as waarden.\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:20831 emacs-lisp-intro.texi:21332
@@ -42343,6 +43136,10 @@ msgid ""
 "each line.  For example, a step of 5 means that\n"
 "each row is five units.\n"
 msgstr ""
+"Optioneel specificeert VERTICAL-STEP, een positieve\n"
+"integer, hoeveel een Y-as label toeneemt voor elke\n"
+"regel. Bijvoorbeeld een stap van 5 betekent dat\n"
+"elke rij vijf eenheden is.\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:20841 emacs-lisp-intro.texi:21342
@@ -42356,6 +43153,13 @@ msgid ""
 "         ;; @r{and the number with the most digits.}\n"
 "         (height (apply 'max numbers-list))\n"
 msgstr ""
+"Optioneel specificeert HORIZONTAL-STEP, een\n"
+"positieve integer, hoeveel een X as label toeneemt\n"
+"voor elke kolom.\n"
+"  (let* ((symbol-width (length grafiek-wit))\n"
+"         ;; @code{hoogte} @r{is zowel het grootste getal}\n"
+"         ;; @r{en het getal met de meeste cijfers.}\n"
+"         (hoogte (apply 'max getallenlijst))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:20858 emacs-lisp-intro.texi:21359
@@ -42369,6 +43173,13 @@ msgid ""
 "             (* height-of-top-line vertical-step))\n"
 "            Y-axis-tic))))\n"
 msgstr ""
+"         (vertical-step (or vertical-step 1))\n"
+"         (volle-Y-label-breedte"
+"          (length\n"
+"           (concat\n"
+"            (number-to-string\n"
+"             (* height-of-top-line vertical-step))\n"
+"            Y-ass-tic))))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:20865 emacs-lisp-intro.texi:21367
@@ -42380,6 +43191,11 @@ msgid ""
 "        numbers-list height-of-top-line symbol-width)\n"
 "    (print-X-axis numbers-list horizontal-step)))\n"
 msgstr ""
+"    (toon-Y-as\n"
+"     height-of-top-line volle-Y-label-breedte vertical-step)\n"
+"    (grafiek-body-tonen\n"
+"        getallenlijst height-of-top-line symbol-width)\n"
+"    (print-X-axis numbers-list horizontal-step)))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:20885
@@ -42393,6 +43209,13 @@ msgid ""
 "  210 220 230 240 250)\n"
 " \"List specifying ranges for `defuns-per-range'.\")\n"
 msgstr ""
+"(defvar top-of-ranges\n"
+" '(10  20  30  40  50\n"
+"   60  70  80  90 100\n"
+"  110 120 130 140 150\n"
+"  160 170 180 190 200\n"
+"  210 220 230 240 250)\n"
+" \"Lijst die de ranges voor `defuns-per-range' specificeert.\")\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:20949
@@ -42423,6 +43246,14 @@ msgid ""
 "      (widen)\n"
 "      (goto-char (point-min))\n"
 msgstr ""
+"  (message \"In bewerking `%s' ... \" filename)\n"
+"  (save-excursion\n"
+"    (let ((buffer (find-file-noselect filename))\n"
+"          (lengths-list))\n"
+"      (set-buffer buffer)\n"
+"      (setq buffer-read-only t)\n"
+"      (widen)\n"
+"      (goto-char (point-min))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:20968
@@ -42434,7 +43265,11 @@ msgid ""
 "      (kill-buffer buffer)\n"
 "      lengths-list)))\n"
 msgstr ""
-
+"      (while (re-search-forward \"^(defun\" nil t)\n"
+"        (setq lengths-list\n"
+"              (cons (tel-woorden-in-defun) lengths-list)))\n"
+"      (kill-buffer buffer)\n"
+"      lengths-list)))\n"
 #. type: group
 #: emacs-lisp-intro.texi:20981
 #, no-wrap
@@ -42448,6 +43283,14 @@ msgid ""
 "            (append\n"
 "             lengths-list\n"
 msgstr ""
+"(defun lengte-lijst-veel-bestanden (lijst-met-bestanden)\n"
+"  \"Geef een lijst terug met de lengte van defuns in LIJST-MET-BESTANDEN.\"\n"
+"  (let (lengteslijst)\n"
+";;; @r{true-or-false-test}\n"
+"    (while lijst-met-bestanden\n"
+"      (setq lengteslijst\n"
+"            (append\n"
+"             lengteslijst\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:20990
@@ -42461,6 +43304,13 @@ msgid ""
 ";;; @r{Return final value of lengths' list.}\n"
 "    lengths-list))\n"
 msgstr ""
+";;; @r{Genereer een lengths' list.}\n"
+"             (lengteslijst-file\n"
+"              (expand-file-name (car lijst-met-bestanden)))))\n"
+";;; @r{Maak bestandenlijst korter.}\n"
+"      (setq lijst-met-bestanden (cdr lijst-met-bestanden)))\n"
+";;; @r{Geef finale waarde van lengtesljst terug.}\n"
+"    lengteslijst))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:21005
@@ -42567,6 +43417,13 @@ msgid ""
 "The list will be inserted as one column of a graph.\n"
 "The strings are either graph-blank or graph-symbol.\"\n"
 msgstr ""
+"(defun kolom-van-grafiek (max-grafiek-hoogte actual-height)\n"
+"  \"Geef een lijst terug van MAX-GRAFIEK-HOOGTE strings;\n"
+"ACTUELE-HOOGTE are graph-symbols.\n"
+"De grafiek-symbolen zijn aaneengesloten entries aan het\n"
+"einde van de lijst.\n"
+"De lijst wordt ingevoegd als een kolom van een grafiek.\n"
+"De strings zijn hetzij grafiek-wit dan wel grafiek-symbool.\"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:21059
@@ -42577,6 +43434,10 @@ msgid ""
 "         (- max-graph-height actual-height)))\n"
 "\n"
 msgstr ""
+"  (let ((insert-list nil)\n"
+"        (aantal-bovenste-spaties"
+"         (- max-grafiek-hoogte actuele-hoogte)))\n"
+"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:21109
@@ -42589,6 +43450,12 @@ msgid ""
 "Full width is the width of the highest label element.\n"
 "Optionally, print according to VERTICAL-STEP.\"\n"
 msgstr ""
+"(defun toon-Y-as\n"
+"  (hoogte full-Y-label-width &optional vertical-step)\n"
+"  \"Voeg  Y as in bij HOOGTE en VOLLE-Y-LABEL-BREEDTE.\n"
+"Hoogte moet de  maximum hoogte van de grafiek zijn.\n"
+"Volle breedte is de breedte van het hoogste label element.\n"
+"Toon optioneel overeenkomstig met VERTICAL-STEP.\"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:21116
@@ -42600,6 +43467,11 @@ msgid ""
 "    (insert-rectangle\n"
 "     (Y-axis-column height full-Y-label-width vertical-step))\n"
 msgstr ""
+";; Waarde van hoogte en volle-y-label-breedte\n"
+";; worden doorgegeven door 'toon-grafiek'.\n"
+"  (let ((start (point)))\n"
+"    (insert-rectangle\n"
+"     (Y-as-kolom hoogte volle-y-label-breedte vertical-step))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:21122
@@ -42610,6 +43482,10 @@ msgid ""
 "    ;; @r{Move point forward by value of} full-Y-label-width\n"
 "    (forward-char full-Y-label-width)))\n"
 msgstr ""
+"    ;; @r{Zet point klaar voor invoegen grafiek.}\n"
+"    (goto-char start)\n"
+"    ;; @r{Verplaats point voorwaats met waarde van} volle-y-label-breedte\n"
+"    (forward-char volle-y-label-breedte)))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:21170
@@ -42621,6 +43497,11 @@ msgid ""
 "HEIGHT is maximum height of graph.\n"
 "SYMBOL-WIDTH is number of each column.\"\n"
 msgstr ""
+"(defun grafiek-body-toon (getallenlijst hoogte symbool-breedte)\n"
+"  \"Toon een bar grafiek van de GETALLENLIJST.\n"
+"De getallenlijst bestaat uit de Y-as waarden.\n"
+"HOOGTE is maximum hoogte van grafiek.\n"
+"SYMBOOL-BREEDTE is getal van elke kolom.\"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:21197
@@ -42632,6 +43513,11 @@ msgid ""
 "HEIGHT is maximum height of graph.\n"
 "WIDTH-OF-LABEL is maximum width of label.\n"
 msgstr ""
+"(defun Y-axis-column\n"
+"  (hoogte labelbreedte &optional vertical-step)\n"
+"  \"Construeer lijst van labels voor Y as.\n"
+"HOOGTE is maximum hoogte van grafiek.\n"
+"LABELBREEDTE is maximum breedte van label.\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:21205
@@ -42642,8 +43528,14 @@ msgid ""
 "for each line.  For example, a step of 5 means\n"
 "that each line is five units of the graph.\"\n"
 "  (let (Y-axis\n"
-"        (number-per-line (or vertical-step 1)))\n"
+"        (getal-per-regel (or vertical-step 1)))\n"
 msgstr ""
+"VERTICAL-STEP, een optie, is een positieve integer\n"
+"die specificeert hoeveel een Y as label toeneemt\n"
+"op elke regel.  Bijvoorbeeld een stap van 5 betekent\n"
+"dat elke regel vijf eenheden van de grafiek is.\"\n"
+"  (let (Y-as\n"
+"        (getal-per-regel (or vertical-step 1)))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:21216
@@ -42655,10 +43547,19 @@ msgid ""
 "          (setq Y-axis\n"
 "                (cons\n"
 "                 (Y-axis-element\n"
-"                  (* height number-per-line)\n"
+"                  (* height getal-per-regel)\n"
 "                  width-of-label)\n"
 "                 Y-axis))\n"
 msgstr ""
+"    (while (> hoogte 1)\n"
+"      (if (zerop (% hoogte Y-as-label-spacing))\n"
+"          ;; @r{Insert label.}\n"
+"          (setq Y-as\n"
+"                (cons\n"
+"                 (Y-as-element\n"
+"                  (* hoogte getal-per-regel)\n"
+"                  width-of-label)\n"
+"                 Y-as))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:21256
@@ -42676,6 +43577,17 @@ msgid ""
 "              ? )\n"
 "             (number-to-string (* number horizontal-step))))\n"
 msgstr ""
+"    (insert X-as-leading-spaces)\n"
+"    ;; getal uitlijnen\n"
+"    (delete-char (- (1- (length (number-to-string horizontal-step)))))\n"
+"    (insert (concat\n"
+"             (make-string\n"
+"              ;; @r{Voeg witte ruimte in tot volgende getal.}\n"
+"              (-  (* symbol-width X-as-label-spacing)\n"
+"                  (1- (length (number-to-string horizontal-step)))\n"
+"                  2)\n"
+"              ? )\n"
+"             (number-to-string (* number horizontal-step))))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:21264
@@ -42688,6 +43600,12 @@ msgid ""
 "      (setq number (+ number X-axis-label-spacing))\n"
 "      (setq number-of-X-tics (1- number-of-X-tics)))))\n"
 msgstr ""
+"    ;; @r{Resterende getallen invoegen.}\n"
+"    (setq getal (+ getal X-as-label-spacing))\n"
+"    (while (> number-of-X-tics 1)\n"
+"      (insert (X-as-element (* getal horizontal-step)))\n"
+"      (setq getal (+ getal X-as-label-spacing))\n"
+"      (setq number-of-X-tics (1- number-of-X-tics)))))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:21283
@@ -42701,6 +43619,13 @@ msgid ""
 "       (tic-width (* symbol-width X-axis-label-spacing))\n"
 "       (X-length (length numbers-list))\n"
 msgstr ""
+";; Waarde van symbool-breedte en volle-Y-label-breedte\n"
+";; worden doorgegeven door 'toon-grafiek'.\n"
+"  (let* ((leading-spaces\n"
+"          (make-string volle-Y-label-breedte ? ))\n"
+"       ;; symbool-breedte @r{wordt doorgegeven door} grafiek-body-toon\n"
+"       (tic-width (* symbool-breedte X-axis-label-spacing))\n"
+"       (X-length (length getallenlijst))\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:21316
@@ -42710,12 +43635,15 @@ msgid ""
 "  \"Return list, each number of which is 1/50th previous.\"\n"
 " (mapcar (lambda (arg) (/ arg 50)) full-range))\n"
 msgstr ""
+"(defun een-vijftigste (full-range)\n"
+"  \"Geef lijst terug, elk getal er van is 1/50-ste vorige.\"\n"
+" (mapcar (lambda (arg) (/ arg 50)) full-range))\n"
 
 #. type: appendixsubsec
 #: emacs-lisp-intro.texi:21374
 #, no-wrap
 msgid "The Printed Graph"
-msgstr ""
+msgstr "De getoonde grafiek"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:21378
@@ -42723,17 +43651,19 @@ msgid ""
 "When made and installed, you can call the @code{print-graph} command like "
 "this:"
 msgstr ""
+"Na gemaakt en geïnstalleerd roep je het @code{toon-grafiek} commando aan zoals: "
+"this:"
 
 #. type: group
 #: emacs-lisp-intro.texi:21383
 #, no-wrap
 msgid "(print-graph fiftieth-list-for-graph 50 10)\n"
-msgstr ""
+msgstr "(toon-grafiek een-vijftigste lijst-voor-grafiek 50 10)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:21389
 msgid "Here is the graph:"
-msgstr ""
+msgstr "Hier is de grafiek:"
 
 #. type: group
 #: emacs-lisp-intro.texi:21415
@@ -42762,17 +43692,39 @@ msgid ""
 "       |   |    |    |    |    |    |    |\n"
 "      10  50  100  150  200  250  300  350\n"
 msgstr ""
+"1000 -  *\n"
+"        **\n"
+"        **\n"
+"        **\n"
+"        **\n"
+" 750 -  ***\n"
+"        ***\n"
+"        ***\n"
+"        ***\n"
+"        ****\n"
+" 500 - *****\n"
+"       ******\n"
+"       ******\n"
+"       ******\n"
+"       *******\n"
+" 250 - ********\n"
+"       *********                     *\n"
+"       ***********                   *\n"
+"       *************                 *\n"
+"  50 - ***************** *           *\n"
+"       |   |    |    |    |    |    |    |\n"
+"      10  50  100  150  200  250  300  350\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:21422
 msgid "The largest group of functions contain 10--19 words and symbols each."
-msgstr ""
+msgstr "De grootste groep van functies bevat 10--19 woorden en symbolen elk."
 
 #. type: appendix
 #: emacs-lisp-intro.texi:21423 emacs-lisp-intro.texi:21424
 #, no-wrap
 msgid "Free Software and Free Manuals"
-msgstr "Vrije software en vrije handleidingen"
+msgstr "Free Software and Free Manuals"
 
 #. type: strong{#1}
 #: emacs-lisp-intro.texi:21427

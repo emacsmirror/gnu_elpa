@@ -21,7 +21,6 @@
 
 ;;; Code:
 
-(require 'embark nil t)
 (require 'iso-date)
 
 (with-no-warnings

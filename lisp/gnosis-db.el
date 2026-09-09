@@ -60,7 +60,7 @@ Initialized lazily by `gnosis--ensure-db' on first use.")
 (defvar gnosis-testing nil
   "Change this to non-nil when running manual tests.")
 
-(defconst gnosis-db-version 11
+(defconst gnosis-db-version 12
   "Gnosis database version.")
 
 (defvar gnosis--id-cache nil
@@ -150,11 +150,19 @@ Optional argument FLATTEN, when non-nil, flattens the result."
 (defun gnosis--insert-into (table values &optional or-ignore)
   "Insert VALUES to TABLE.
 When OR-IGNORE is non-nil, use INSERT OR IGNORE to silently skip
-rows that violate a UNIQUE constraint."
-  (let* ((compiled (gnosis-sqlite--compile-values values))
-	 (sql (format "INSERT%s INTO %s VALUES %s"
+rows that violate a UNIQUE constraint.
+Historical six-field thema rows name their original columns in schema 12;
+new metadata keeps its default, including on retained archive layouts."
+  (let* ((rows (if (vectorp values) (list values) values))
+         (columns (if (and (eq table 'themata) rows
+                           (seq-every-p (lambda (row) (and (vectorp row) (= (length row) 6))) rows)
+                           (>= (gnosis--db-version) 12))
+                      " (id, type, keimenon, hypothesis, answer, source_guid)" ""))
+         (compiled (gnosis-sqlite--compile-values values))
+	 (sql (format "INSERT%s INTO %s%s VALUES %s"
 		      (if or-ignore " OR IGNORE" "")
-		      (gnosis-sqlite--ident table) (car compiled))))
+		      (gnosis-sqlite--ident table)
+                      columns (car compiled))))
     (gnosis-sqlite--execute-compiled (gnosis--ensure-db) sql (cdr compiled))))
 
 (defun gnosis-update (table value where)
@@ -239,7 +247,8 @@ Uses `gnosis--id-cache' for O(1) collision checking when bound."
        (keimenon text :not-null)
        (hypothesis text :not-null)
        (answer text :not-null)
-       (source-guid text)]))
+       (source-guid text)
+       (accepted-aliases text)]))
     (scheduler-config
      ([(id integer :primary-key :not-null)
        (algorithm text :not-null)
@@ -968,6 +977,13 @@ Handles both Lisp list dates and already-converted integers."
                                (list id data)))
       (gnosis--db-set-version 11))))
 
+(defun gnosis-db--migrate-v12 ()
+  "Add explicit accepted aliases without rewriting retained content or history."
+  (let ((db (gnosis--ensure-db)))
+    (gnosis-sqlite-with-transaction db
+      (gnosis-sqlite-execute db "ALTER TABLE themata ADD COLUMN accepted_aliases TEXT")
+      (gnosis--db-set-version 12))))
+
 (defconst gnosis-db--migrations
   `((1 . gnosis-db--migrate-v1)
     (2 . gnosis-db--migrate-v2)
@@ -979,7 +995,8 @@ Handles both Lisp list dates and already-converted integers."
     (8 . gnosis-db--migrate-v8)
     (9 . gnosis-db--migrate-v9)
     (10 . gnosis-db--migrate-v10)
-    (11 . gnosis-db--migrate-v11))
+    (11 . gnosis-db--migrate-v11)
+    (12 . gnosis-db--migrate-v12))
   "Alist of (VERSION . FUNCTION).
 Each migration brings the DB from VERSION-1 to VERSION.")
 
@@ -1016,22 +1033,32 @@ Earlier legacy migrations remain available for controlled recovery;
 their historical chain is not an automatic upgrade contract.
 Use matching old source and a separate backup to recover older databases.")
 
-(defun gnosis-db--compatible-columns-p (table schema actual)
+(defun gnosis-db--compatible-columns-p (table schema actual &optional version)
   "Check ACTUAL column metadata against TABLE's SCHEMA and retained layouts.
 Keep column order: positional readers and writers rely on it.  Only themata's
 observed nullable archive field, the equivalent composite tag key, and the
-historical text-affinity link source may differ from fresh storage."
-  (let ((expected
+historical text-affinity link source may differ from fresh storage.
+VERSION defaults to the current schema; older schemas do not yet have aliases."
+  (let* ((version (or version gnosis-db-version))
+         (columns (append (car schema) nil))
+         (columns (if (and (eq table 'themata) (< version 12))
+                      (seq-remove (lambda (column) (eq (car column) 'accepted-aliases)) columns)
+                    columns))
+         (expected
          (mapcar (lambda (column)
                    (list (gnosis-sqlite--ident (car column))
                          (upcase (symbol-name (cadr column)))
                          (if (memq :not-null column) 1 0)
                          nil (if (memq :primary-key column) 1 0)))
-                 (append (car schema) nil))))
+                 columns)))
     (or (equal actual expected)
         (pcase table
           ('themata
-           (equal actual (append expected '(("archived_at_us" "INTEGER" 0 nil 0)))))
+           (or (equal actual (append expected '(("archived_at_us" "INTEGER" 0 nil 0))))
+               (and (>= version 12)
+                    (equal actual (append (butlast expected)
+                                          '(("archived_at_us" "INTEGER" 0 nil 0))
+                                          (last expected))))))
           ('thema-tag
            (equal actual '(("thema_id" "INTEGER" 1 nil 1)
                            ("tag" "TEXT" 1 nil 2))))
@@ -1060,7 +1087,8 @@ all application values.  Reject damaged required objects before any writes."
                         (mapcar (lambda (row)
                                   (list (nth 1 row) (upcase (nth 2 row))
                                         (nth 3 row) (nth 4 row) (nth 5 row)))
-                                (sqlite-select db (format "PRAGMA table_info(%s)" name)))))
+                                (sqlite-select db (format "PRAGMA table_info(%s)" name)))
+                        version))
             (error "Invalid Gnosis schema %d: required table/columns %s" version name)))))
     (dolist (trigger
              (append

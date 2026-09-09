@@ -60,6 +60,47 @@ clinical advice, or automatic grading of a learner.
   distinctions. A text question does not prove structure identification;
   use an actual inspected image when testing visual recognition.
 
+## Typed alternatives and visual targets
+
+- For basic typed responses, image-occlusion and model-name, keep one canonical
+  Answer and put explicitly accepted spellings in `** Accepted aliases`, one
+  `- ` list item per nonempty single-line spelling. Never infer synonyms or
+  move aliases into the Answer list. The ordinary configured text comparator
+  checks canonical or aliases; feedback and input-method choice use canonical.
+  MCQ, clozes, image-region and model Find do not accept aliases. Double
+  authoring applies aliases only to its forward basic question.
+- A saved full draft replaces aliases: an absent/empty section clears them.
+  Programmatic update omission preserves them, explicit nil clears. Verify
+  both canonical and aliases after save/reopen. Schema 12 stores them;
+  portable content format 3 carries them, while formats 1/2 supply none.
+- Use `gnosis-add-image-thema` for visual region/occlusion questions. Group
+  repeated labels under one stable target: select a rectangle and Shift-drag
+  another; ordinary drag creates a new target. Use `n`/`p` to reach overlaps,
+  `r` to reassign, `l` to rename, `d` for one rectangle and `D` for the target.
+  Occlusion's Image resource holds resource, target, then `hide-target` or
+  `hide-all`; old cards default to hide-target. Annotate every answer-bearing
+  label: hide-all masks annotated rectangles, not unannotated text or OCR.
+- Use `gnosis-add-model-thema` for Find and `gnosis-add-model-name-thema` for
+  Name. Whole objects, surface points with explicit original-unit tolerance,
+  and triangle regions are targets, not alternate answer spellings. In native
+  authoring, click a surface, then `p` creates a point, `m` moves it, `g` creates
+  a region, `a` toggles a triangle, `t` selects a target, `e` edits label/tolerance
+  and `d` removes it. `RET` accepts target/view; `q`/`C-g` cancels. Save the normal
+  draft with `C-c C-c`; `C-c C-a` reattaches/reframes. Inspect source anatomy
+  and coordinate units before setting tolerance; do not invent precision.
+- Find Answer is a target ID; its resource field is resource/yaw/pitch/zoom.
+  Name Answer is canonical text; its resource field adds target ID immediately
+  after resource. Name highlights the target without a label; inspection and
+  rotation precede `RET` to type. Clicks never grade. Check for cue leakage and
+  ambiguous overlapping targets before saving either mode.
+- Image and scene edits publish immutable revisions; old cards keep old bytes.
+  Reimport changed geometry and explicitly attach it; do not reuse face indices
+  across changed topology. Content exchange does not bundle managed media,
+  including Name. Back up database plus assets separately from the Org vault.
+  Native image decoding and the optional matched C3D2 canvas backend are
+  capability requirements, not permission to install or activate on a learner.
+  See `docs/gnosis.org` and `optional/canvas-3d/README.md` for setup/support limits.
+
 ## Sources and reuse
 
 - Link sources in **keimenon and/or parathema**. Either field is sufficient;

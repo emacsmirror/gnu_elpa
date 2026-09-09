@@ -43,7 +43,8 @@
                      (cl-incf refreshes))))
           (with-current-buffer owner
             (canvas-3d-mode)
-            (setq canvas-3d--objects '(((id . "model") (label . "Model")))
+            (setq canvas-3d--protocol 2
+                  canvas-3d--objects '(((id . "model") (label . "Model")))
                   canvas-3d--image
                   (list 'image :type 'canvas :id (make-symbol "test")
                         :data-width 512 :data-height 512)

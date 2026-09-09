@@ -159,7 +159,8 @@
       (org-mode)
       (gnosis-export--insert-thema
        "NEW" "basic" nil nil answer "[[id:root][Source]]")
-      (let ((parsed (gnosis-export-parse-themata)))
+      (let ((parsed (condition-case nil (gnosis-export-parse-themata)
+                      (user-error nil))))
         (should-not
          (and (= (length parsed) 1)
               (equal (butlast (car parsed))

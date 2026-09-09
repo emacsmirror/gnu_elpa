@@ -71,6 +71,7 @@
 
 (require 'gnosis-monkeytype)
 (require 'gnosis-utils)
+(require 'gnosis-answer)
 (require 'gnosis-org)
 (require 'gnosis-cloze)
 (require 'gnosis-nodes)
@@ -194,6 +195,7 @@ This is set automatically based on buffer type:
     ("Cloze" . gnosis-add-thema--cloze)
     ("MC-cloze" . gnosis-add-thema--mc-cloze)
     ("Model" . gnosis-model--save)
+    ("Model-name" . gnosis-model--save)
     ("Image-region" . gnosis-image--save)
     ("Image-occlusion" . gnosis-image--save))
   "Mapping of Themata & their respective functions.")
@@ -485,18 +487,9 @@ When VERIFICATION is non-nil, skips `y-or-n-p' prompt."
     (gnosis-completing-read "Answer: " choices)))
 
 (defun gnosis-compare-strings (str1 str2)
-  "Compare STR1 and STR2, ignoring case and whitespace."
-  (let* ((normalized-str1 (downcase
-			   (replace-regexp-in-string "\\s-" ""
-						     (gnosis-utils-trim-quotes str1))))
-         (normalized-str2 (downcase
-			   (replace-regexp-in-string "\\s-" ""
-						     (gnosis-utils-trim-quotes str2))))
-         (max-length (max (length normalized-str1) (length normalized-str2))))
-    (if (> max-length gnosis-string-difference)
-        (<= (string-distance normalized-str1 normalized-str2)
-            gnosis-string-difference)
-      (string= normalized-str1 normalized-str2))))
+  "Compare STR1 and STR2 with the configured typo tolerance.
+Ignore quote wrappers, case and whitespace, preserving short-string rules."
+  (gnosis-answer-match-p str1 str2 nil gnosis-string-difference))
 
 (defun gnosis--read-string-with-input-method (prompt answer)
   "Read string with PROMPT, activating input method matching ANSWER's script.
@@ -542,9 +535,20 @@ When THEMA-IDS is non-nil, restrict to that subset."
                  t))
 
 
+(defun gnosis--validate-accepted-aliases (type answer aliases)
+  "Validate ALIASES for TYPE and canonical ANSWER before a content write."
+  (gnosis-answer-validate-aliases aliases)
+  (when aliases
+    (unless (and (member (downcase type) '("basic" "image-occlusion" "model-name"))
+                 (proper-list-p answer) (= (length answer) 1)
+                 (stringp (car answer))
+                 (not (string-empty-p (string-trim (car answer)))))
+      (user-error "Accepted aliases require one canonical typed answer")))
+  aliases)
+
 (defun gnosis-add-thema-fields (type keimenon hypothesis answer
 				     parathema tags suspend links
-				     &optional review-image gnosis-id)
+				     &optional review-image gnosis-id accepted-aliases)
   "Insert fields for new thema.
 
 TYPE: Thema type e.g \"mcq\"
@@ -557,11 +561,15 @@ PARATHEMA: Parathema information to display after the answer
 TAGS: Tags to organize themata
 SUSPEND: Integer value of 1 or 0, where 1 suspends the card.
 LINKS: List of id links.
-REVIEW-IMAGE is optional image data and GNOSIS-ID is an optional ID."
+REVIEW-IMAGE is optional image data and GNOSIS-ID is an optional ID.
+ACCEPTED-ALIASES is an optional list of explicitly accepted typed spellings."
   (cl-assert (stringp type) nil "Type must be a string")
+  (gnosis--validate-accepted-aliases type answer accepted-aliases)
   (gnosis-image-validate-fields type keimenon hypothesis answer parathema review-image)
   (when (equal (downcase type) "model")
     (gnosis-model-resolve hypothesis answer))
+  (when (equal (downcase type) "model-name")
+    (gnosis-model-fields type hypothesis answer))
   (cl-assert (stringp keimenon) nil "Keimenon must be a string")
   (cl-assert (listp hypothesis) nil "Hypothesis value must be a list")
   (cl-assert (listp answer) nil "Answer value must be a list")
@@ -576,9 +584,9 @@ REVIEW-IMAGE is optional image data and GNOSIS-ID is an optional ID."
       ;; Store an absent hint as the readable empty list under NOT NULL.
       (gnosis-sqlite-execute
        (gnosis--ensure-db)
-       "INSERT INTO themata (id, type, keimenon, hypothesis, answer, source_guid)
-        VALUES (?, ?, ?, COALESCE(?, 'nil'), ?, NULL)"
-       (list gnosis-id (downcase type) keimenon hypothesis answer))
+       "INSERT INTO themata (id, type, keimenon, hypothesis, answer, source_guid, accepted_aliases)
+        VALUES (?, ?, ?, COALESCE(?, 'nil'), ?, NULL, ?)"
+       (list gnosis-id (downcase type) keimenon hypothesis answer accepted-aliases))
       (gnosis-scheduler-initialize-thema gnosis-id today suspend)
       (gnosis--insert-into 'extras `([,gnosis-id ,parathema ,review-image]))
       (cl-loop for link in links
@@ -586,27 +594,33 @@ REVIEW-IMAGE is optional image data and GNOSIS-ID is an optional ID."
       (cl-loop for tag in tags
 	       do (gnosis--insert-into 'thema-tag `([,gnosis-id ,tag]))))))
 
-(defun gnosis-update-thema (id keimenon hypothesis answer parathema tags links
-			       &optional type)
+(cl-defun gnosis-update-thema (id keimenon hypothesis answer parathema tags links
+			       &optional type (accepted-aliases nil aliases-p))
   "Update thema ID with KEIMENON, HYPOTHESIS, ANSWER, and PARATHEMA.
 TAGS and LINKS replace existing associations; TYPE optionally changes type.
+Omitted ACCEPTED-ALIASES preserves stored aliases; explicit nil clears them.
 
 If ID does not exist, TYPE is required to create it anew and issue a warning.
 When `gnosis--id-cache' is bound, uses hash table for existence check."
   (let* ((id (if (stringp id) (string-to-number id) id))
-	 (current-type (gnosis-get 'type 'themata `(= id ,id))))
+	 (current-type (gnosis-get 'type 'themata `(= id ,id)))
+         (accepted-aliases (if aliases-p accepted-aliases
+                             (gnosis-get 'accepted-aliases 'themata `(= id ,id)))))
+    (gnosis--validate-accepted-aliases (or type current-type "") answer accepted-aliases)
     (gnosis-image-validate-fields (or type current-type "") keimenon hypothesis answer parathema)
     (when (equal (downcase (or type current-type "")) "model")
       (gnosis-model-resolve hypothesis answer))
+    (when (equal (downcase (or type current-type "")) "model-name")
+      (gnosis-model-fields (or type current-type) hypothesis answer))
     (if (if gnosis--id-cache
 	    (gethash id gnosis--id-cache)
 	  (member id (gnosis-select 'id 'themata nil t)))
 	(gnosis-sqlite-with-transaction (gnosis--ensure-db)
 	  ;; Single multi-column UPDATE for themata
 	  (gnosis-sqlite-execute (gnosis--ensure-db)
-				 "UPDATE themata SET keimenon = ?, hypothesis = COALESCE(?, 'nil'), answer = ?, type = ? WHERE id = ?"
+				 "UPDATE themata SET keimenon = ?, hypothesis = COALESCE(?, 'nil'), answer = ?, type = ?, accepted_aliases = ? WHERE id = ?"
 				 (list keimenon hypothesis answer
-				       (or type current-type) id))
+				       (or type current-type) accepted-aliases id))
 	  ;; Single UPDATE for extras
 	  (gnosis-update 'extras `(= parathema ,parathema) `(= id ,id))
 	  ;; Re-sync links
@@ -621,7 +635,7 @@ When `gnosis--id-cache' is bound, uses hash table for existence check."
 		       (format "Thema id:%d does not exist, creating anew" id)
 		       :warning)
       (gnosis-add-thema-fields type keimenon hypothesis answer parathema tags
-			       0 links nil id))))
+			       0 links nil id accepted-aliases))))
 
 ;;;;;;;;;;;;;;;;;;;;;; THEMA HELPERS ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; These functions provide assertions depending on the type of thema.
@@ -643,37 +657,43 @@ KEIMENON, TAGS, SUSPEND, and LINKS are validated."
   (cl-assert (and (listp links) (cl-every #'stringp links))
              nil "Links must be a list of strings."))
 
-(defun gnosis-add-thema--dispatch (id type keimenon hypothesis
-				      answer parathema tags suspend links)
+(cl-defun gnosis-add-thema--dispatch (id type keimenon hypothesis
+				      answer parathema tags suspend links
+                                      &optional (accepted-aliases nil aliases-p))
   "Dispatch creation or update for thema ID of TYPE.
 KEIMENON, HYPOTHESIS, ANSWER, PARATHEMA, TAGS, SUSPEND, and LINKS are fields.
 When ID is \"NEW\", create via `gnosis-add-thema-fields'.
-Otherwise, update via `gnosis-update-thema'."
+Otherwise, update via `gnosis-update-thema'.
+Omitted ACCEPTED-ALIASES preserves them on update; explicit nil clears them."
   (if (equal id "NEW")
       (gnosis-add-thema-fields type keimenon (or hypothesis (list ""))
-			       answer parathema tags suspend links)
-    (gnosis-update-thema id keimenon hypothesis answer
-                         parathema tags links type)))
+			       answer parathema tags suspend links nil nil accepted-aliases)
+    (apply #'gnosis-update-thema id keimenon hypothesis answer
+           parathema tags links type (when aliases-p (list accepted-aliases)))))
 
-(defun gnosis-add-thema--basic (id type keimenon hypothesis
-				   answer parathema tags suspend links)
+(cl-defun gnosis-add-thema--basic (id type keimenon hypothesis
+				   answer parathema tags suspend links
+                                   &optional (accepted-aliases nil aliases-p))
   "Add or update basic thema ID of TYPE.
-Use KEIMENON, HYPOTHESIS, ANSWER, PARATHEMA, TAGS, SUSPEND, and LINKS as fields."
+Use KEIMENON, HYPOTHESIS, ANSWER, PARATHEMA, TAGS, SUSPEND, and LINKS as fields.
+ACCEPTED-ALIASES explicitly replaces aliases when supplied."
   (gnosis-add-thema--assert-common keimenon tags suspend links)
   (cl-assert (or (null hypothesis)
 		 (and (listp hypothesis) (= (length hypothesis) 1)))
 	     nil "Hypothesis must be a list of a single item or nil.")
   (cl-assert (and (listp answer) (= (length answer) 1))
 	     nil "Answer must be a list of a single item.")
-  (gnosis-add-thema--dispatch id type keimenon hypothesis
-			      answer parathema tags suspend links))
+  (apply #'gnosis-add-thema--dispatch id type keimenon hypothesis
+         answer parathema tags suspend links (when aliases-p (list accepted-aliases))))
 
-(defun gnosis-add-thema--double (id _type keimenon hypothesis
-				    answer parathema tags suspend links)
+(cl-defun gnosis-add-thema--double (id _type keimenon hypothesis
+				    answer parathema tags suspend links
+                                    &optional (accepted-aliases nil aliases-p))
   "Add or update double thema ID, ignoring _TYPE.
 Use KEIMENON, HYPOTHESIS, ANSWER, PARATHEMA, TAGS, SUSPEND, and LINKS as fields.
 When ID is \"NEW\", create two basic themata with reversed question and answer;
-otherwise update the existing thema."
+otherwise update the existing thema.
+ACCEPTED-ALIASES applies only to the forward answer when supplied."
   (gnosis-add-thema--assert-common keimenon tags suspend links)
   (cl-assert (listp hypothesis) nil "Hypothesis must be a list.")
   (cl-assert (and (listp answer) (= (length answer) 1))
@@ -683,16 +703,18 @@ otherwise update the existing thema."
     (if (equal id "NEW")
 	(progn
 	  (gnosis-add-thema-fields type keimenon hypothesis
-				   answer parathema tags suspend links)
+				   answer parathema tags suspend links nil nil accepted-aliases)
 	  (gnosis-add-thema-fields type (car answer) hypothesis
 				   (list keimenon) parathema tags suspend links))
-      (gnosis-update-thema id keimenon hypothesis answer
-                           parathema tags links type))))
+      (apply #'gnosis-update-thema id keimenon hypothesis answer
+             parathema tags links type (when aliases-p (list accepted-aliases))))))
 
-(defun gnosis-add-thema--mcq (id type keimenon hypothesis
-				 answer parathema tags suspend links)
+(cl-defun gnosis-add-thema--mcq (id type keimenon hypothesis
+				 answer parathema tags suspend links
+                                 &optional (accepted-aliases nil aliases-p))
   "Add or update MCQ thema ID of TYPE.
-Use KEIMENON, HYPOTHESIS, ANSWER, PARATHEMA, TAGS, SUSPEND, and LINKS as fields."
+Use KEIMENON, HYPOTHESIS, ANSWER, PARATHEMA, TAGS, SUSPEND, and LINKS as fields.
+ACCEPTED-ALIASES must be nil for choice-based responses."
   (gnosis-add-thema--assert-common keimenon tags suspend links)
   (cl-assert (string= type "mcq") nil "TYPE must be \"mcq\".")
   (cl-assert (and (listp hypothesis) (> (length hypothesis) 1))
@@ -700,15 +722,18 @@ Use KEIMENON, HYPOTHESIS, ANSWER, PARATHEMA, TAGS, SUSPEND, and LINKS as fields.
   (cl-assert (and (listp answer) (= (length answer) 1)
 		  (member (car answer) hypothesis))
 	     nil "Answer must be a single item, member of hypothesis.")
-  (gnosis-add-thema--dispatch id type keimenon hypothesis
-			      answer parathema tags suspend links))
+  (apply #'gnosis-add-thema--dispatch id type keimenon hypothesis
+         answer parathema tags suspend links (when aliases-p (list accepted-aliases))))
 
-(defun gnosis-add-thema--cloze (id type keimenon hypothesis
-				   answer parathema tags suspend links)
+(cl-defun gnosis-add-thema--cloze (id type keimenon hypothesis
+				   answer parathema tags suspend links
+                                   &optional (accepted-aliases nil aliases-p))
   "Add or update cloze thema ID of TYPE.
-Use KEIMENON, HYPOTHESIS, ANSWER, PARATHEMA, TAGS, SUSPEND, and LINKS as fields."
+Use KEIMENON, HYPOTHESIS, ANSWER, PARATHEMA, TAGS, SUSPEND, and LINKS as fields.
+ACCEPTED-ALIASES must be nil: cloze answers are separate required blanks."
   (gnosis-add-thema--assert-common keimenon tags suspend links)
   (cl-assert (string= type "cloze") nil "TYPE must be \"cloze\".")
+  (gnosis--validate-accepted-aliases type answer accepted-aliases)
   (cl-assert (or (null hypothesis) (>= (length answer) (length hypothesis)))
 	     nil "Hypothesis length must not exceed answer length.")
   (cl-assert (listp answer) nil "Answer must be a list.")
@@ -726,13 +751,15 @@ Use KEIMENON, HYPOTHESIS, ANSWER, PARATHEMA, TAGS, SUSPEND, and LINKS as fields.
 						   parathema tags suspend links)))
 	  (gnosis-add-thema-fields type keimenon-clean (or hypothesis (list ""))
 				   answer parathema tags suspend links))
-      (gnosis-update-thema id keimenon-clean hypothesis
-                           answer parathema tags links type))))
+      (apply #'gnosis-update-thema id keimenon-clean hypothesis
+             answer parathema tags links type (when aliases-p (list accepted-aliases))))))
 
-(defun gnosis-add-thema--mc-cloze (id type keimenon hypothesis
-				      answer parathema tags suspend links)
+(cl-defun gnosis-add-thema--mc-cloze (id type keimenon hypothesis
+				      answer parathema tags suspend links
+                                      &optional (accepted-aliases nil aliases-p))
   "Add or update mc-cloze thema ID of TYPE.
-Use KEIMENON, HYPOTHESIS, ANSWER, PARATHEMA, TAGS, SUSPEND, and LINKS as fields."
+Use KEIMENON, HYPOTHESIS, ANSWER, PARATHEMA, TAGS, SUSPEND, and LINKS as fields.
+ACCEPTED-ALIASES must be nil for choice-based responses."
   (gnosis-add-thema--assert-common keimenon tags suspend links)
   (cl-assert (string= type "mc-cloze") nil "TYPE must be \"mc-cloze\".")
   (cl-assert (and (listp hypothesis) (> (length hypothesis) (length answer)))
@@ -743,20 +770,30 @@ Use KEIMENON, HYPOTHESIS, ANSWER, PARATHEMA, TAGS, SUSPEND, and LINKS as fields.
   (cl-assert (gnosis-cloze-check keimenon answer) nil
 	     "Cloze answers are not part of keimenon.")
   (let ((keimenon-clean (gnosis-cloze-remove-tags keimenon)))
-    (gnosis-add-thema--dispatch id type keimenon-clean hypothesis
-				answer parathema tags suspend links)))
+    (apply #'gnosis-add-thema--dispatch id type keimenon-clean hypothesis
+           answer parathema tags suspend links (when aliases-p (list accepted-aliases)))))
 
 ;;;###autoload
-(defun gnosis-add-thema (type &optional keimenon hypothesis
-			      answer parathema tags example)
+(defun gnosis-add-model-name-thema ()
+  "Create a typed-name thema for a visibly highlighted model target."
+  (interactive)
+  (gnosis-add-model-thema "model-name"))
+
+;;;###autoload
+(cl-defun gnosis-add-thema (type &optional keimenon hypothesis
+			      answer parathema tags example
+                              (accepted-aliases nil aliases-p))
   "Add thema with TYPE and optional KEIMENON, HYPOTHESIS, and fields.
-The remaining optional fields are ANSWER, PARATHEMA, TAGS, and EXAMPLE."
+The remaining optional fields are ANSWER, PARATHEMA, TAGS, EXAMPLE,
+and explicit ACCEPTED-ALIASES."
   (interactive (list
 		(downcase (completing-read "Select type: " gnosis-thema-types))))
-  (if (and (member (downcase type) '("model" "image-region" "image-occlusion"))
+  (if (and (member (downcase type) '("model" "model-name" "image-region" "image-occlusion"))
            (null hypothesis))
-      (if (equal (downcase type) "model") (gnosis-add-model-thema)
-        (gnosis-add-image-thema (downcase type)))
+      (pcase (downcase type)
+        ("model" (gnosis-add-model-thema))
+        ("model-name" (gnosis-add-model-name-thema))
+        (image-type (gnosis-add-image-thema image-type)))
   (when (get-buffer "*Gnosis NEW*")
     (user-error "Finish or cancel the existing *Gnosis NEW* draft first"))
   (window-configuration-to-register :gnosis-edit)
@@ -765,9 +802,9 @@ The remaining optional fields are ANSWER, PARATHEMA, TAGS, and EXAMPLE."
     (let ((inhibit-read-only 1))
       (erase-buffer))
     (gnosis-edit-mode)
-    (gnosis-export--insert-thema "NEW" type keimenon hypothesis
-				 answer parathema tags example))
-  (when (equal (downcase type) "model")
+    (apply #'gnosis-export--insert-thema "NEW" type keimenon hypothesis
+           answer parathema tags example (when aliases-p (list accepted-aliases))))
+  (when (member (downcase type) '("model" "model-name"))
     (use-local-map (copy-keymap (current-local-map)))
     (local-set-key (kbd "C-c C-a") #'gnosis-model-attach))
   (search-backward "keimenon")
@@ -838,7 +875,7 @@ modify or save the source, or replace an existing creation draft."
       (erase-buffer))
     (gnosis-edit-mode)
     (gnosis-export--insert-themata (list id))
-    (when (equal (gnosis-get 'type 'themata `(= id ,id)) "model")
+    (when (member (gnosis-get 'type 'themata `(= id ,id)) '("model" "model-name"))
       (use-local-map (copy-keymap (current-local-map)))
       (local-set-key (kbd "C-c C-a") #'gnosis-model-attach))
     (search-backward "keimenon")

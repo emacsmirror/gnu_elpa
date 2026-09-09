@@ -311,7 +311,7 @@
           (sqlite-close export)))
       (should (gnosis-get 'id 'themata `(= id ,model))))))
 
-(defun gnosis-test-model--canvas (_path _view &optional _size inline)
+(defun gnosis-test-model--canvas (_path _view &optional _size inline _question-target)
   "Create a deterministic stand-in for the optional canvas boundary."
   (let ((load-path (cons (gnosis-model--renderer-directory) load-path)))
     (require 'canvas-3d))
@@ -500,6 +500,13 @@
   (cl-letf (((symbol-function 'window-body-height) (lambda (&rest _) 100)))
     (should-error (gnosis-model--canvas-size) :type 'user-error)))
 
+(defun gnosis-test-model--review-pick (mesh &optional owner)
+  "Deliver a renderer surface hit for MESH belonging to OWNER."
+  (setq-local canvas-3d--selection
+              (list :id mesh :mesh mesh :face 0 :point '(0 0 0)
+                    :frame 1 :owner (or owner canvas-3d--process)))
+  (gnosis-review--model-selection canvas-3d--selection))
+
 (defmacro gnosis-test-model--encounter (&rest input)
   "Run INPUT at the real model encounter's recursive input boundary."
   (declare (indent 0) (debug t))
@@ -513,8 +520,7 @@
                   (setq depth 1)
                   (progn
                     (setq-local canvas-3d-selected-id "triangle")
-                    (gnosis-review--model-selection
-                     (list :id "triangle" :frame 1 :owner canvas-3d--process))
+                    (gnosis-test-model--review-pick "triangle" canvas-3d--process)
                     ,@input))))
        (gnosis-review--display-thema model))))
 
@@ -617,12 +623,10 @@
                  (setq canvas-3d--busy t)
                  (should-error (gnosis-review-model-submit))
                  (setq canvas-3d--busy nil canvas-3d--dirty t)
-                 (gnosis-review--model-selection
-                  (list :id "triangle" :frame 1 :owner canvas-3d--process))
+                 (gnosis-test-model--review-pick "triangle" canvas-3d--process)
                  (setq canvas-3d--dirty nil)
                  (should-error (gnosis-review-model-submit))
-                 (gnosis-review--model-selection
-                  (list :id "triangle" :frame 1 :owner canvas-3d--process))
+                 (gnosis-test-model--review-pick "triangle" canvas-3d--process)
                  (setq canvas-3d--yaw 10)
                  (should-error (gnosis-review-model-submit))
                  (setq canvas-3d--yaw 0)
@@ -756,8 +760,7 @@
               (let* ((display
                       (gnosis-test-model--encounter
                         (setq-local canvas-3d-selected-id "other")
-                        (gnosis-review--model-selection
-                         (list :id "other" :frame 1 :owner canvas-3d--process))
+                        (gnosis-test-model--review-pick "other" canvas-3d--process)
                         (should-not (string-match-p "Other triangle" (gnosis-review--model-header)))
                         (gnosis-review-model-submit)))
                      (pair (cadr display)))
@@ -799,8 +802,7 @@
              (pair (cadr
                     (gnosis-test-model--encounter
                       (setq-local canvas-3d-selected-id target)
-                      (gnosis-review--model-selection
-                       (list :id target :frame 1 :owner canvas-3d--process))
+                      (gnosis-test-model--review-pick target canvas-3d--process)
                       (should (eq (key-binding (kbd "RET")) #'gnosis-review-model-submit))
                       (call-interactively (key-binding (kbd "RET"))))))
              (result (cdr pair)))
@@ -951,7 +953,7 @@
                (delete-process canvas-3d--process)
                (setq successor (make-pipe-process :name "successor" :noquery t)
                      canvas-3d--process successor)
-               (gnosis-review--model-selection (list :id "triangle" :frame 1 :owner successor))
+               (gnosis-test-model--review-pick "triangle" successor)
                (gnosis-review-model-submit)))
              (should (process-live-p successor))
              (should-not (gnosis-select '* 'practice-events)))

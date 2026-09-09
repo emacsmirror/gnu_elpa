@@ -110,31 +110,54 @@ must decode the payload separately.  Limit pixels to 40 million and 16384/axis."
       (user-error "Use a bounded PNG or grayscale/RGB JPEG image"))
     dimensions))
 
-(defun gnosis-image--regions (regions)
-  "Validate and return REGIONS with stable IDs, labels and normalized rectangles."
-  (unless (and (proper-list-p regions) (<= (length regions) 255)
-               (seq-every-p
-                (lambda (region)
-                  (let ((id (alist-get 'id region)) (label (alist-get 'label region))
-                        (rect (alist-get 'rect region)))
-                    (and (stringp id) (string-match-p "\\`[a-zA-Z0-9_-]+\\'" id)
-                         (<= (length id) 80) (stringp label)
-                         (<= 1 (length (string-trim label)) 200)
-                         (proper-list-p rect) (= (length rect) 4)
-                         (seq-every-p (lambda (n) (and (numberp n) (<= 0 n 1))) rect)
-                         (> (nth 2 rect) 0) (> (nth 3 rect) 0)
-                         (<= (+ (nth 0 rect) (nth 2 rect)) 1)
-                         (<= (+ (nth 1 rect) (nth 3 rect)) 1)))) regions)
-               (= (length regions)
-                  (length (delete-dups (mapcar (lambda (r) (alist-get 'id r)) regions)))))
-    (user-error "Image requires unique labelled regions within the image"))
+(defun gnosis-image--region-rectangles (region)
+  "Return rectangles belonging to legacy or plural REGION, without mutation."
+  (if (assq 'rects region) (alist-get 'rects region)
+    (list (alist-get 'rect region))))
+
+(defun gnosis-image--rectangle-p (rect)
+  "Return non-nil if RECT is a bounded normalized rectangle."
+  (and (proper-list-p rect) (= (length rect) 4)
+       (seq-every-p (lambda (n) (and (numberp n) (<= 0 n 1))) rect)
+       (> (nth 2 rect) 0) (> (nth 3 rect) 0)
+       (<= (+ (nth 0 rect) (nth 2 rect)) 1)
+       (<= (+ (nth 1 rect) (nth 3 rect)) 1)))
+
+(defun gnosis-image--regions (regions &optional version)
+  "Validate and return REGIONS, optionally requiring manifest VERSION geometry."
+  (unless
+      (and (proper-list-p regions) (<= (length regions) 255)
+           (seq-every-p
+            (lambda (region)
+              (and (proper-list-p region) (seq-every-p #'consp region)
+                   (let ((id (alist-get 'id region)) (label (alist-get 'label region))
+                         (keys (mapcar #'car region)))
+                     (and (= (length keys) (length (delete-dups (copy-sequence keys))))
+                          (stringp id) (string-match-p "\\`[a-zA-Z0-9_-]+\\'" id)
+                          (<= (length id) 80) (stringp label)
+                          (<= 1 (length (string-trim label)) 200)
+                          (not (eq (not (memq 'rect keys)) (not (memq 'rects keys))))
+                          (pcase version (1 (memq 'rect keys)) (2 (memq 'rects keys)) (_ t))
+                          (let ((rects (gnosis-image--region-rectangles region)))
+                            (and (proper-list-p rects) rects
+                                 (seq-every-p #'gnosis-image--rectangle-p rects))))))) regions)
+           (<= (apply #'+ (mapcar (lambda (r) (length (gnosis-image--region-rectangles r))) regions)) 255)
+           (= (length regions)
+              (length (delete-dups (mapcar (lambda (r) (alist-get 'id r)) regions)))))
+    (user-error "Image requires unique labelled targets and at most 255 rectangles"))
   regions)
+
+(defun gnosis-image-target (scene target)
+  "Return TARGET alist in validated SCENE, or signal an absent target."
+  (or (seq-find (lambda (r) (equal target (alist-get 'id r)))
+                (alist-get 'regions scene))
+      (user-error "Image target is absent from its pinned resource")))
 
 (defun gnosis-image--manifest (manifest directory)
   "Validate MANIFEST and its raster in DIRECTORY; return MANIFEST."
   (let* ((file (gnosis-assets-file directory (alist-get 'file manifest)))
          (dimensions (gnosis-image--dimensions file)))
-    (unless (and (equal (alist-get 'version manifest) 1)
+    (unless (and (memq (alist-get 'version manifest) '(1 2))
                  (equal (alist-get 'width manifest) (car dimensions))
                  (equal (alist-get 'height manifest) (cadr dimensions))
                  (seq-every-p (lambda (key)
@@ -142,7 +165,7 @@ must decode the payload separately.  Limit pixels to 40 million and 16384/axis."
                                   (and (stringp text) (<= (length text) 4000))))
                               '(source attribution)))
       (user-error "Invalid image manifest version, dimensions or metadata"))
-    (gnosis-image--regions (alist-get 'regions manifest))
+    (gnosis-image--regions (alist-get 'regions manifest) (alist-get 'version manifest))
     manifest))
 
 (defun gnosis-image-resolve (reference &optional target)
@@ -173,10 +196,24 @@ Include private `directory' and `path' entries for the verified local payload."
 Metadata is optional and never guessed.  Identical imports share a revision."
   (let* ((file (expand-file-name file))
          (dimensions (gnosis-image--dimensions file))
-         (manifest `((version . 1) (file . ,(file-name-nondirectory file))
+         (plural (seq-some (lambda (r) (assq 'rects r)) (gnosis-image--regions regions)))
+         (regions (if plural
+                      (mapcar (lambda (r)
+                                `((id . ,(alist-get 'id r)) (label . ,(alist-get 'label r))
+                                  (rects . ,(gnosis-image--region-rectangles r)))) regions)
+                    regions))
+         (manifest `((version . ,(if plural 2 1)) (file . ,(file-name-nondirectory file))
                      (width . ,(car dimensions)) (height . ,(cadr dimensions))
                      (source . ,(or source "")) (attribution . ,(or attribution ""))
-                     (regions . ,(vconcat (gnosis-image--regions regions)))))
+                     (regions . ,(vconcat
+                                  (if plural
+                                      (mapcar (lambda (r)
+                                                `((id . ,(alist-get 'id r))
+                                                  (label . ,(alist-get 'label r))
+                                                  (rects . ,(vconcat (mapcar #'vconcat
+                                                                             (alist-get 'rects r))))))
+                                              regions)
+                                    regions)))))
          (json-encoding-pretty-print nil) (json-encoding-separator ",")
          (text (json-encode manifest)))
     (gnosis-image--manifest (cons (cons 'regions regions) (assq-delete-all 'regions (copy-tree manifest)))
@@ -185,11 +222,21 @@ Metadata is optional and never guessed.  Identical imports share a revision."
     (concat (gnosis-assets-import (file-name-directory file) (list (file-name-nondirectory file))
                                   (list (cons "image.json" text))) "/image.json")))
 
+(defun gnosis-image-occlusion-policy (hypothesis)
+  "Return effective visibility policy for occlusion HYPOTHESIS.
+Only one/two-field legacy forms default to hide-target."
+  (unless (and (proper-list-p hypothesis) (memq (length hypothesis) '(1 2 3))
+               (seq-every-p #'stringp hypothesis)
+               (or (< (length hypothesis) 3)
+                   (member (nth 2 hypothesis) '("hide-target" "hide-all"))))
+    (user-error "Invalid image occlusion visibility policy"))
+  (if (= (length hypothesis) 3) (nth 2 hypothesis) "hide-target"))
+
 (defun gnosis-image-occlusion-fields (hypothesis answer)
   "Return canonical occlusion (HYPOTHESIS ANSWER) fields.
 HYPOTHESIS holds resource and stable target; ANSWER holds editable text.
 For historical resource-only hypotheses derive text from the pinned label."
-  (unless (and (proper-list-p hypothesis) (memq (length hypothesis) '(1 2))
+  (unless (and (proper-list-p hypothesis) (memq (length hypothesis) '(1 2 3))
                (seq-every-p #'stringp hypothesis)
                (proper-list-p answer) (= (length answer) 1)
                (stringp (car answer)) (not (string-empty-p (string-trim (car answer)))))
@@ -200,7 +247,7 @@ For historical resource-only hypotheses derive text from the pinned label."
                  (alist-get 'label
                             (seq-find (lambda (r) (equal target (alist-get 'id r)))
                                       (alist-get 'regions scene))))))
-    (list (list (car hypothesis) target) (list text))))
+    (list (list (car hypothesis) target (gnosis-image-occlusion-policy hypothesis)) (list text))))
 
 (defun gnosis-image-validate-fields (type keimenon hypothesis answer parathema
                                           &optional review-image)
@@ -215,12 +262,15 @@ For historical resource-only hypotheses derive text from the pinned label."
       (user-error "Image thema needs one resource and one target"))
     (gnosis-image-resolve (car hypothesis) (car answer))))
 
-(defun gnosis-image--save (id type keimenon hypothesis answer parathema tags suspend links)
+(cl-defun gnosis-image--save (id type keimenon hypothesis answer parathema tags suspend links
+                                  &optional (accepted-aliases nil aliases-p))
   "Save image ID of TYPE with validated content fields.
-Validate KEIMENON, HYPOTHESIS, ANSWER, PARATHEMA, TAGS, SUSPEND and LINKS."
+Validate KEIMENON, HYPOTHESIS, ANSWER, PARATHEMA, TAGS, SUSPEND and LINKS.
+Forward ACCEPTED-ALIASES only when supplied, preserving omitted updates."
   (gnosis-add-thema--assert-common keimenon tags suspend links)
   (gnosis-image-validate-fields type keimenon hypothesis answer parathema)
-  (gnosis-add-thema--dispatch id type keimenon hypothesis answer parathema tags suspend links))
+  (apply #'gnosis-add-thema--dispatch id type keimenon hypothesis answer parathema tags suspend links
+         (when aliases-p (list accepted-aliases))))
 
 (defun gnosis-image--decode (scene)
   "Decode SCENE raster natively, rejecting unsupported or corrupt pixels."
@@ -253,8 +303,10 @@ Validate KEIMENON, HYPOTHESIS, ANSWER, PARATHEMA, TAGS, SUSPEND and LINKS."
               start end)))
     (concat result (substring text start))))
 
-(defun gnosis-image-mask (scene target revealed &optional window)
-  "Return inline SCENE display hiding TARGET unless REVEALED, fitting WINDOW."
+(defun gnosis-image-mask (scene target revealed &optional window policy)
+  "Return SCENE hiding TARGET unless REVEALED, fitting WINDOW using POLICY."
+  (setq policy (gnosis-image-occlusion-policy (list "" target (or policy "hide-target"))))
+  (gnosis-image-target scene target)
   (gnosis-image--decode scene)
   (unless (image-type-available-p 'svg) (user-error "Native SVG support is required"))
   (let* ((scale (min 1.0 (/ (float (max 1 (- (window-body-width window t) 32)))
@@ -263,10 +315,10 @@ Validate KEIMENON, HYPOTHESIS, ANSWER, PARATHEMA, TAGS, SUSPEND and LINKS."
                         (alist-get 'height scene))))
          (width (max 1 (floor (* scale (alist-get 'width scene)))))
          (height (max 1 (floor (* scale (alist-get 'height scene))))))
-    (propertize " " 'gnosis-image-mask (list scene target revealed)
+    (propertize " " 'gnosis-image-mask (list scene target revealed policy)
                 'display (svg-image (gnosis-image--svg
                                      scene (alist-get 'regions scene) width height
-                                     'occlusion target nil revealed) :scale 1.0))))
+                                     'occlusion target nil revealed policy) :scale 1.0))))
 
 (defun gnosis-image-refresh ()
   "Resize inline managed image displays without changing text or point."
@@ -281,8 +333,8 @@ Validate KEIMENON, HYPOTHESIS, ANSWER, PARATHEMA, TAGS, SUSPEND and LINKS."
                 (put-text-property position end 'display
                                    (condition-case nil
                                        (get-text-property 0 'display
-                                                          (apply #'gnosis-image-mask
-                                                                 (append mask (list window))))
+                                                          (gnosis-image-mask (nth 0 mask) (nth 1 mask)
+                                                                             (nth 2 mask) window (nth 3 mask)))
                                      (error "[Image unavailable]")))))
             (setq position end))))
       (let ((position (point-min)))
@@ -303,7 +355,10 @@ Validate KEIMENON, HYPOTHESIS, ANSWER, PARATHEMA, TAGS, SUSPEND and LINKS."
 
 (defvar-local gnosis-image--scene nil "Immutable scene displayed in this buffer.")
 (defvar-local gnosis-image--regions nil "Privately owned editable region list.")
-(defvar-local gnosis-image--selection nil "Selected stable region ID, or nil.")
+(defvar-local gnosis-image--selection nil "Selected stable target ID, or nil.")
+(defvar-local gnosis-image--rectangle 0 "Selected rectangle index in editor.")
+(defvar-local gnosis-image--reserved nil "Target IDs reserved for this edit session.")
+(defvar-local gnosis-image--policy "hide-target" "Owned occlusion visibility policy.")
 (defvar-local gnosis-image--purpose nil "One of edit, region or occlusion.")
 (defvar-local gnosis-image--target nil "Occluded stable target ID.")
 (defvar-local gnosis-image--revealed nil "Non-nil after explicit reveal.")
@@ -312,11 +367,25 @@ Validate KEIMENON, HYPOTHESIS, ANSWER, PARATHEMA, TAGS, SUSPEND and LINKS."
 (defvar-local gnosis-image--accepted nil "Non-nil when explicit input finished.")
 (defvar-local gnosis-image--check nil "Encounter validation function, or nil.")
 
-(defun gnosis-image--svg (scene regions width height purpose target selection revealed)
+(defface gnosis-image-mask '((t (:background "#202020" :foreground "#ffffff")))
+  "Opaque answer coverage and neutral cue text." :group 'gnosis)
+(defface gnosis-image-selected '((t (:inherit match)))
+  "Selected target outline." :group 'gnosis)
+(defface gnosis-image-outline '((t (:inherit shadow)))
+  "Unselected annotation outline." :group 'gnosis)
+
+(defun gnosis-image--color (face attribute)
+  "Return usable SVG color from FACE ATTRIBUTE."
+  (let ((color (face-attribute face (intern (concat ":" (symbol-name attribute))) nil t)))
+    (if (and (stringp color) (not (string-prefix-p "unspecified" color))) color
+      (if (eq attribute 'background) "#202020" "#ffffff"))))
+
+(defun gnosis-image--svg (scene regions width height purpose target selection revealed &optional policy)
   "Build SCENE and REGIONS SVG at WIDTH and HEIGHT.
 PURPOSE is edit, region or occlusion.  Edit shows labels and rectangles;
 region outlines SELECTION.  Occlusion masks TARGET until REVEALED, then
-shows only the source image, without labels or selection outlines."
+shows only the source image, without labels or selection outlines.
+POLICY defaults to hide-target, or hide-all masks every annotated target."
   (let* ((svg (svg-create width height))
          (path (alist-get 'path scene))
          (type (nth 2 (gnosis-image--dimensions path)))
@@ -324,20 +393,42 @@ shows only the source image, without labels or selection outlines."
                                  (insert-file-contents-literally path) (buffer-string))))
     (svg-embed svg data (if (eq type 'png) "image/png" "image/jpeg") t
                :x 0 :y 0 :width width :height height)
-    (dolist (region regions)
-      (pcase-let* ((`(,x ,y ,w ,h) (alist-get 'rect region))
-                   (id (alist-get 'id region))
-                   (hidden (and (eq purpose 'occlusion) (equal id target) (not revealed)))
-                   (visible-label (eq purpose 'edit))
-                   (selected (and (memq purpose '(edit region)) (equal id selection))))
-        (when (or hidden visible-label selected)
-          (svg-rectangle svg (* x width) (* y height) (* w width) (* h height)
-                         :fill (if hidden "#202020" "none") :fill-opacity 1
-                         :stroke (if selected "#4080ff" "#808080") :stroke-width 2)
-          (when visible-label
-            (svg-text svg (alist-get 'label region) :x (+ 3 (* x width))
-                      :y (+ 16 (* y height)) :font-size 14 :fill "#ffffff"
-                      :stroke "#000000" :stroke-width 0.3)))))
+    (unless (and (eq purpose 'occlusion) revealed)
+      (dolist (region regions)
+        (cl-loop for rect in (gnosis-image--region-rectangles region)
+                 for index from 0 do
+                 (pcase-let* ((`(,x ,y ,w ,h) rect)
+                              (id (alist-get 'id region))
+                              (hidden (and (eq purpose 'occlusion)
+                                           (or (equal policy "hide-all") (equal id target))))
+                              (selected (equal id (if (consp selection) (car selection) selection))))
+                   (when (or hidden (eq purpose 'edit) (and (eq purpose 'region) selected))
+                     (svg-rectangle svg (* x width) (* y height) (* w width) (* h height)
+                                    :fill (if hidden (gnosis-image--color 'gnosis-image-mask 'background) "none")
+                                    :fill-opacity 1
+                                    :stroke (gnosis-image--color
+                                             (if selected 'gnosis-image-selected 'gnosis-image-outline) 'foreground)
+                                    :stroke-width (if (equal selection (cons id index)) 4 2))
+                   (when (eq purpose 'edit)
+                     (svg-text svg (alist-get 'label region) :x (+ 3 (* x width))
+                               :y (+ 16 (* y height)) :font-size 14
+                               :stroke (gnosis-image--color 'gnosis-image-mask 'background)
+                               :stroke-width 0.3
+                               :fill (gnosis-image--color 'gnosis-image-mask 'foreground)))))))
+      ;; Paint cues after every opaque rectangle, including overlapping siblings.
+      (when (eq purpose 'occlusion)
+        (dolist (rect (gnosis-image--region-rectangles
+                      (gnosis-image-target `((regions . ,regions)) target)))
+          (pcase-let ((`(,x ,y ,w ,h) rect))
+            (svg-rectangle svg (* x width) (* y height) (* w width) (* h height)
+                           :fill "none" :stroke (gnosis-image--color 'gnosis-image-selected 'foreground)
+                           :stroke-width 3 :stroke-dasharray "5 2")
+            (svg-text svg "?" :x (* (+ x (/ w 2)) width)
+                      :y (* (+ y (/ h 2)) height) :text-anchor "middle"
+                      :dominant-baseline "central" :font-size 16 :font-weight "bold"
+                      :fill (gnosis-image--color 'gnosis-image-mask 'foreground)
+                      :stroke (gnosis-image--color 'gnosis-image-mask 'background)
+                      :stroke-width 0.5)))))
     svg))
 
 (defun gnosis-image--render (&rest _)
@@ -351,19 +442,27 @@ shows only the source image, without labels or selection outlines."
            (height (max 1 (floor (* scale (alist-get 'height scene)))))
            (image (svg-image (gnosis-image--svg scene gnosis-image--regions width height
                                                 gnosis-image--purpose gnosis-image--target
-                                                gnosis-image--selection gnosis-image--revealed)))
+                                                (if (eq gnosis-image--purpose 'edit)
+                                                    (cons gnosis-image--selection gnosis-image--rectangle)
+                                                  gnosis-image--selection)
+                                                gnosis-image--revealed gnosis-image--policy)))
            (inhibit-read-only t))
       (setq gnosis-image--size (cons width height))
       (erase-buffer)
       (when-let* ((prompt (alist-get 'prompt scene))) (insert prompt "\n\n"))
+      (when (and (eq gnosis-image--purpose 'edit) gnosis-image--selection)
+        (let* ((target (gnosis-image-target `((regions . ,gnosis-image--regions)) gnosis-image--selection))
+               (count (length (gnosis-image--region-rectangles target))))
+          (insert (propertize (alist-get 'label target) 'face 'gnosis-image-selected)
+                  (format " — rectangle %d/%d\n\n" (1+ gnosis-image--rectangle) count))))
       (insert-image image)
       (goto-char (point-min))
       (setq header-line-format
             (pcase gnosis-image--purpose
-              ('edit " Drag: draw and label | click: select | d: delete | RET: accept | q: cancel")
+              ('edit " Drag: new | S-drag: add | n/p: rectangle | d/D: remove/target | r: reassign | l: rename | RET: accept | q: cancel")
               ('region " Click to select (neutral) | RET: submit | q: cancel")
               (_ (if gnosis-image--revealed " Answer revealed | RET: continue | q: cancel"
-                   " Recall hidden region | RET: reveal | q: cancel")))))))
+                   " Name the label hidden by the ? masks | RET: reveal | q: cancel")))))))
 
 (defun gnosis-image--position (position)
   "Return normalized coordinates for image event POSITION, or nil."
@@ -375,55 +474,198 @@ shows only the source image, without labels or selection outlines."
       (cons (/ (float (car xy)) (car gnosis-image--size))
             (/ (float (cdr xy)) (cdr gnosis-image--size))))))
 
+(defun gnosis-image--hit-rectangle (regions xy)
+  "Return first (TARGET . INDEX) in REGIONS containing normalized XY."
+  (when xy
+    (cl-loop for r in regions thereis
+             (cl-loop for rect in (gnosis-image--region-rectangles r)
+                      for index from 0
+                      when (pcase-let ((`(,x ,y ,w ,h) rect))
+                             (and (<= x (car xy) (+ x w)) (<= y (cdr xy) (+ y h))))
+                      return (cons (alist-get 'id r) index)))))
+
 (defun gnosis-image--hit (regions xy)
   "Return first stable ID in REGIONS containing normalized XY."
-  (when xy
-    (alist-get 'id
-               (seq-find (lambda (r)
-                           (pcase-let ((`(,x ,y ,w ,h) (alist-get 'rect r)))
-                             (and (<= x (car xy) (+ x w)) (<= y (cdr xy) (+ y h)))))
-                         regions))))
+  (car (gnosis-image--hit-rectangle regions xy)))
 
 (defun gnosis-image-select (event)
-  "Select region at mouse EVENT without grading or revealing labels."
+  "Select target at mouse EVENT without grading or revealing labels."
   (interactive "e")
-  (setq gnosis-image--selection
-        (gnosis-image--hit gnosis-image--regions (gnosis-image--position (event-start event))))
+  (let ((hit (gnosis-image--hit-rectangle gnosis-image--regions
+                                          (gnosis-image--position (event-start event)))))
+    (setq gnosis-image--selection (car hit) gnosis-image--rectangle (or (cdr hit) 0)))
   (gnosis-image--render))
 
-(defun gnosis-image-draw (event)
-  "Draw and label one rectangle from drag EVENT in the region editor."
+(defun gnosis-image--editor-snapshot (&optional selected)
+  "Capture editor ownership, requiring a selection when SELECTED."
+  (unless (and (derived-mode-p 'gnosis-image-mode) (eq gnosis-image--purpose 'edit))
+    (user-error "Not editing image targets"))
+  (when selected
+    (unless (and gnosis-image--selection
+                 (nth gnosis-image--rectangle
+                      (gnosis-image--region-rectangles
+                       (gnosis-image-target `((regions . ,gnosis-image--regions)) gnosis-image--selection))))
+      (user-error "Select a rectangle first")))
+  (list (current-buffer) gnosis-image--regions (copy-tree gnosis-image--regions)
+        gnosis-image--selection gnosis-image--rectangle (copy-sequence gnosis-image--reserved)
+        gnosis-image--scene (copy-tree gnosis-image--scene)))
+
+(defun gnosis-image--editor-check (snapshot)
+  "Reject changed editor ownership or contents since SNAPSHOT."
+  (unless (and (buffer-live-p (car snapshot)) (eq (car snapshot) (current-buffer))
+               (derived-mode-p 'gnosis-image-mode) (eq gnosis-image--purpose 'edit)
+               (eq (nth 1 snapshot) gnosis-image--regions)
+               (equal (nth 2 snapshot) gnosis-image--regions)
+               (equal (nth 3 snapshot) gnosis-image--selection)
+               (equal (nth 4 snapshot) gnosis-image--rectangle)
+               (equal (nth 5 snapshot) gnosis-image--reserved)
+               (eq (nth 6 snapshot) gnosis-image--scene)
+               (equal (nth 7 snapshot) gnosis-image--scene))
+    (user-error "Image editor changed during input")))
+
+(defun gnosis-image--with-rectangles (region rectangles)
+  "Return REGION with plural RECTANGLES, preserving target identity."
+  (append (seq-remove (lambda (entry) (memq (car entry) '(rect rects))) region)
+          (list (cons 'rects rectangles))))
+
+(defun gnosis-image--replace-rectangles (regions id rectangles)
+  "Return REGIONS with ID geometry replaced by RECTANGLES, or removed if empty."
+  (cl-loop for r in regions
+           if (not (equal id (alist-get 'id r))) collect r
+           else when rectangles collect (gnosis-image--with-rectangles r rectangles)))
+
+(defun gnosis-image--editor-apply (snapshot regions id index)
+  "Apply validated REGIONS and selection ID/INDEX to owned SNAPSHOT."
+  (gnosis-image--editor-check snapshot)
+  (gnosis-image--regions regions)
+  (setq gnosis-image--reserved
+        (delete-dups (append gnosis-image--reserved
+                             (mapcar (lambda (r) (alist-get 'id r)) gnosis-image--regions)
+                             (mapcar (lambda (r) (alist-get 'id r)) regions)))
+        gnosis-image--regions regions gnosis-image--selection id
+        gnosis-image--rectangle index)
+  (gnosis-image--render))
+
+(defun gnosis-image--fresh-id ()
+  "Return an ID never used in this editor session."
+  (cl-loop for n from 1 for id = (format "region-%d" n)
+           unless (or (member id gnosis-image--reserved)
+                      (seq-some (lambda (r) (equal id (alist-get 'id r))) gnosis-image--regions))
+           return id))
+
+(defun gnosis-image-draw (event &optional add)
+  "Draw a new labelled target from drag EVENT, or append to selection with ADD."
   (interactive "e")
-  (unless (eq gnosis-image--purpose 'edit) (user-error "Not editing regions"))
-  (let* ((start (gnosis-image--position (event-start event)))
-         (end (gnosis-image--position (event-end event)))
-         (owner (current-buffer)) (regions gnosis-image--regions))
+  (let* ((snapshot (gnosis-image--editor-snapshot add))
+         (start (gnosis-image--position (event-start event)))
+         (end (gnosis-image--position (event-end event))))
     (unless (and start end (> (abs (- (car start) (car end))) 0.002)
                  (> (abs (- (cdr start) (cdr end))) 0.002))
       (user-error "Drag a rectangle inside the image"))
-    (let* ((label (read-string "Region label: "))
-           (id (cl-loop for n from 1 for candidate = (format "region-%d" n)
-                        unless (seq-find (lambda (r) (equal candidate (alist-get 'id r))) regions)
-                        return candidate))
-           (region `((id . ,id) (label . ,label)
-                     (rect . (,(min (car start) (car end)) ,(min (cdr start) (cdr end))
-                              ,(abs (- (car start) (car end))) ,(abs (- (cdr start) (cdr end))))))))
-      (unless (and (buffer-live-p owner) (eq (current-buffer) owner)
-                   (eq regions gnosis-image--regions) (eq gnosis-image--purpose 'edit))
-        (user-error "Image editor changed while labelling"))
-      (setq gnosis-image--regions (gnosis-image--regions (append regions (list region)))
-            gnosis-image--selection id)
-      (gnosis-image--render))))
+    (let* ((rect (list (min (car start) (car end)) (min (cdr start) (cdr end))
+                       (abs (- (car start) (car end))) (abs (- (cdr start) (cdr end)))))
+           (regions gnosis-image--regions)
+           (id (if add gnosis-image--selection (gnosis-image--fresh-id)))
+           (target (and add (gnosis-image-target `((regions . ,regions)) id)))
+           (rects (and add (gnosis-image--region-rectangles target)))
+           (label (unless add (prog1 (read-string "Target label: ")
+                               (gnosis-image--editor-check snapshot)))))
+      (gnosis-image--editor-apply
+       snapshot
+       (if add (gnosis-image--replace-rectangles regions id (append rects (list rect)))
+         (append regions (list `((id . ,id) (label . ,label) (rects . (,rect))))))
+       id (if add (length rects) 0)))))
 
-(defun gnosis-image-delete-region ()
-  "Delete the selected rectangle from this edit, not from published resources."
+(defun gnosis-image-add-rectangle (event)
+  "Append drag EVENT as another rectangle of the selected target."
+  (interactive "e")
+  (gnosis-image-draw event t))
+
+(defun gnosis-image-next-rectangle (&optional backwards)
+  "Select the next rectangle, or previous when BACKWARDS, including overlaps."
   (interactive)
-  (unless (and (eq gnosis-image--purpose 'edit) gnosis-image--selection)
-    (user-error "Select a region in the editor first"))
-  (setq gnosis-image--regions
-        (seq-remove (lambda (r) (equal gnosis-image--selection (alist-get 'id r))) gnosis-image--regions)
-        gnosis-image--selection nil)
-  (gnosis-image--render))
+  (gnosis-image--editor-snapshot)
+  (let* ((choices (cl-loop for r in gnosis-image--regions append
+                           (cl-loop for i below (length (gnosis-image--region-rectangles r))
+                                    collect (cons (alist-get 'id r) i))))
+         (position (cl-position (cons gnosis-image--selection gnosis-image--rectangle) choices :test #'equal))
+         (next (and choices (nth (mod (+ (or position (if backwards 0 -1))
+                                         (if backwards -1 1)) (length choices)) choices))))
+    (setq gnosis-image--selection (car next) gnosis-image--rectangle (or (cdr next) 0))
+    (gnosis-image--render)))
+
+(defun gnosis-image-previous-rectangle ()
+  "Select the previous rectangle, including obscured overlaps."
+  (interactive)
+  (gnosis-image-next-rectangle t))
+
+(defun gnosis-image-delete-region (&optional whole)
+  "Remove selected rectangle, or the WHOLE target, from this new revision."
+  (interactive)
+  (let* ((snapshot (gnosis-image--editor-snapshot t))
+         (id gnosis-image--selection)
+         (rects (gnosis-image--region-rectangles
+                 (gnosis-image-target `((regions . ,gnosis-image--regions)) id))))
+    (when (or (and (not whole) (> (length rects) 1))
+              (prog1 (y-or-n-p "Remove this target from the new image revision? ")
+                (gnosis-image--editor-check snapshot)))
+      (let ((remaining (unless whole
+                         (cl-loop for r in rects for i from 0
+                                  unless (= i gnosis-image--rectangle) collect r))))
+        (gnosis-image--editor-apply snapshot
+                                    (gnosis-image--replace-rectangles gnosis-image--regions id remaining)
+                                    (and remaining id) 0)))))
+
+(defun gnosis-image-delete-target ()
+  "Remove the entire selected target after confirmation."
+  (interactive)
+  (gnosis-image-delete-region t))
+
+(defun gnosis-image--target-choices (regions)
+  "Return collision-free labelled completion choices for REGIONS."
+  (cl-loop for r in regions for n from 1
+           collect (cons (format "%d: %s" n (alist-get 'label r)) (alist-get 'id r))))
+
+(defun gnosis-image-reassign-rectangle ()
+  "Move selected rectangle to an existing or explicitly new target."
+  (interactive)
+  (let* ((snapshot (gnosis-image--editor-snapshot t))
+         (regions gnosis-image--regions) (source gnosis-image--selection)
+         (rects (gnosis-image--region-rectangles (gnosis-image-target `((regions . ,regions)) source)))
+         (choices (cons '("New target" . new) (gnosis-image--target-choices regions)))
+         (choice (cdr (assoc (completing-read "Move rectangle to: " choices nil t) choices))))
+    (gnosis-image--editor-check snapshot)
+    (unless choice (user-error "Choose a target"))
+    (unless (equal choice source)
+      (let* ((id (if (eq choice 'new) (gnosis-image--fresh-id) choice))
+             (label (when (eq choice 'new)
+                      (prog1 (read-string "New target label: ") (gnosis-image--editor-check snapshot))))
+             (destination (unless label (gnosis-image-target `((regions . ,regions)) id)))
+             (existing (and destination (gnosis-image--region-rectangles destination))))
+        (when (or (> (length rects) 1)
+                  (prog1 (y-or-n-p "Moving the last rectangle removes its old target; continue? ")
+                    (gnosis-image--editor-check snapshot)))
+          (let* ((moved (nth gnosis-image--rectangle rects))
+                 (remaining (cl-loop for r in rects for i from 0
+                                     unless (= i gnosis-image--rectangle) collect r))
+                 (without (gnosis-image--replace-rectangles regions source remaining))
+                 (result (if destination
+                             (gnosis-image--replace-rectangles without id (append existing (list moved)))
+                           (append without (list `((id . ,id) (label . ,label) (rects . (,moved))))))))
+            (gnosis-image--editor-apply snapshot result id (length existing))))))))
+
+(defun gnosis-image-rename-target ()
+  "Rename selected target without changing its ID or merging equal labels."
+  (interactive)
+  (let* ((snapshot (gnosis-image--editor-snapshot t))
+         (id gnosis-image--selection)
+         (target (gnosis-image-target `((regions . ,gnosis-image--regions)) id))
+         (label (read-string "Target label: " (alist-get 'label target))))
+    (gnosis-image--editor-apply
+     snapshot (mapcar (lambda (r) (if (equal id (alist-get 'id r))
+                                     (cons (cons 'label label) (assq-delete-all 'label (copy-tree r))) r))
+                      gnosis-image--regions)
+     id gnosis-image--rectangle)))
 
 (defun gnosis-image-submit ()
   "Accept edited regions, submit a selection, or explicitly reveal occlusion."
@@ -449,6 +691,13 @@ shows only the source image, without labels or selection outlines."
   "<down-mouse-1>" #'ignore
   "<mouse-1>" #'gnosis-image-select
   "<drag-mouse-1>" #'gnosis-image-draw
+  "S-<down-mouse-1>" #'ignore
+  "S-<drag-mouse-1>" #'gnosis-image-add-rectangle
+  "n" #'gnosis-image-next-rectangle
+  "p" #'gnosis-image-previous-rectangle
+  "r" #'gnosis-image-reassign-rectangle
+  "l" #'gnosis-image-rename-target
+  "D" #'gnosis-image-delete-target
   "d" #'gnosis-image-delete-region
   "RET" #'gnosis-image-submit
   "q" #'gnosis-image-cancel
@@ -461,9 +710,10 @@ shows only the source image, without labels or selection outlines."
   (add-hook 'kill-buffer-hook #'gnosis-image-cancel nil t)
   (add-hook 'change-major-mode-hook #'gnosis-image-cancel nil t))
 
-(defun gnosis-image-input (scene purpose &optional target check)
+(defun gnosis-image-input (scene purpose &optional target check policy)
   "Present SCENE for PURPOSE and return (REGIONS SELECTION).
-TARGET identifies occlusion.  CHECK revalidates encounter ownership on submit.
+TARGET identifies occlusion.  CHECK revalidates ownership.
+POLICY controls masks.
 Restore the original layout and destroy only the owned viewer on every exit."
   (gnosis-image--decode scene)
   (unless (image-type-available-p 'svg) (user-error "Native SVG support is required"))
@@ -477,6 +727,8 @@ Restore the original layout and destroy only the owned viewer on every exit."
             (setq gnosis-image--scene (copy-tree scene)
                   gnosis-image--regions (copy-tree (alist-get 'regions scene))
                   gnosis-image--purpose purpose gnosis-image--target target
+                  gnosis-image--reserved (mapcar (lambda (r) (alist-get 'id r)) gnosis-image--regions)
+                  gnosis-image--policy (or policy "hide-target")
                   gnosis-image--depth (recursion-depth) gnosis-image--check check)
             (gnosis-image--render)
             (recursive-edit)
@@ -513,20 +765,25 @@ Return immutable managed reference.  Prompts never assign guessed provenance."
     (gnosis-image-resolve pinned)
     (gnosis-image-import (alist-get 'path scene) regions source attribution)))
 
-(defun gnosis-image--read-fields (&optional reference occlusion)
-  "Read graphical fields, reusing REFERENCE, with text for OCCLUSION."
+(defun gnosis-image--read-fields (&optional reference occlusion policy)
+  "Read graphical fields, reusing REFERENCE, with text for OCCLUSION and POLICY."
   (let* ((database (gnosis--ensure-db))
          (reference (gnosis-image--read-resource reference t))
          (regions (alist-get 'regions (gnosis-image-resolve reference)))
-         (choices (mapcar (lambda (r) (cons (format "%s (%s)" (alist-get 'label r) (alist-get 'id r))
-                                            (alist-get 'id r))) regions)))
+         (choices (gnosis-image--target-choices regions)))
     (unless choices (user-error "Draw at least one labelled region"))
     (let ((target (cdr (assoc (completing-read "Expected region: " choices nil t) choices))))
       (unless target (user-error "Choose an expected region"))
       (gnosis-assets-root database)
       (gnosis-image-resolve reference target)
       (if occlusion
-          (gnosis-image-occlusion-fields (list reference) (list target))
+          (let ((policy (completing-read "Label visibility: "
+                                          '(("hide-target") ("hide-all")) nil t nil nil
+                                          (or policy "hide-target"))))
+            (gnosis-assets-root database)
+            (gnosis-image-occlusion-fields
+             (list reference target policy)
+             (list (alist-get 'label (gnosis-image-target (gnosis-image-resolve reference) target)))))
         (list (list reference) (list target))))))
 
 ;;;###autoload
@@ -557,8 +814,16 @@ and database ownership through all prompts and cancellation."
         (unless (member (save-excursion (org-back-to-heading t) (org-get-heading t t t t))
                         '("Keimenon" "Hypothesis" "Answer" "Parathema"))
           (user-error "Attach inside a question, hint, answer or explanation")))
-      (let ((value (if image-p (gnosis-image--read-fields (car (nth 3 thema)) (equal type "image-occlusion"))
-                     (gnosis-image--read-resource))))
+      (let* ((occlusion (equal type "image-occlusion"))
+             (old-fields (and occlusion (gnosis-image-occlusion-fields (nth 3 thema) (nth 4 thema))))
+             (value (if image-p
+                        (if occlusion
+                            (gnosis-image--read-fields (car (nth 3 thema)) t (nth 2 (car old-fields)))
+                          (gnosis-image--read-fields (car (nth 3 thema))))
+                      (gnosis-image--read-resource))))
+        (when (and occlusion (not (equal (cadar old-fields) (cadar value))))
+          (unless (y-or-n-p "Keep the authored answer and aliases for the changed target? ")
+            (user-error "Image attachment cancelled")))
         (gnosis-assets-root database)
         (unless (and (buffer-live-p owner)
                      (with-current-buffer owner
@@ -571,10 +836,8 @@ and database ownership through all prompts and cancellation."
                   (erase-buffer)
                   (gnosis-export--insert-thema (nth 0 thema) type (nth 2 thema)
                                                (mapconcat #'identity (car value) "\n- ")
-                                               (if (and (equal type "image-occlusion")
-                                                        (cdr (nth 3 thema)))
-                                                   (car (nth 4 thema)) (caadr value))
-                                               (nth 5 thema) (nth 6 thema))
+                                               (if occlusion (caadr old-fields) (caadr value))
+                                               (nth 5 thema) (nth 6 thema) nil (nth 8 thema))
                   (goto-char (point-min)))
               (goto-char position)
               (insert (format "[[gnosis-image:%s]]" value)))))))))

@@ -34,7 +34,6 @@ dependencies = [
     { name = "glcontext" },
     { name = "moderngl" },
     { name = "numpy" },
-    { name = "trimesh" },
 ]
 
 [package.metadata]
@@ -42,7 +41,6 @@ requires-dist = [
     { name = "glcontext", specifier = "==3.0.0" },
     { name = "moderngl", specifier = "==5.12.0" },
     { name = "numpy", specifier = "==2.5.3" },
-    { name = "trimesh", specifier = "==5.1.0" },
 ]
 
 [[package]]
@@ -121,16 +119,4 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/25/39/3453afb7119d0449ef11c886874120ff180e2c337760e0e2d88f70f1a945/numpy-2.5.3-cp314-cp314t-win32.whl", hash = "sha256:4c8a6d2ebce6305fd82fbefca827775437147052a976ee7c94b36a0c1b52ac6c", size = 6335421, upload-time = "2026-09-06T16:26:28.175Z" },
     { url = "https://files.pythonhosted.org/packages/99/01/22815d2b19a1a746b1d45205cffebb3fe511a18acb75fba6c88491fc9894/numpy-2.5.3-cp314-cp314t-win_amd64.whl", hash = "sha256:9a37475425b431b4d060f23b4f52cd2f3aef6bc7c654bd760adf0040eec9d435", size = 12896420, upload-time = "2026-09-06T16:26:31.265Z" },
     { url = "https://files.pythonhosted.org/packages/fa/ee/a7cbba67eeaff038dc29ca8b98a88396c8b0cc9c89d4924f4a27a5c9150b/numpy-2.5.3-cp314-cp314t-win_arm64.whl", hash = "sha256:2d8240cb4c16fd831074aa2b2cf9fc54664d826341d61c372245b96a74a49a9a", size = 10857177, upload-time = "2026-09-06T16:26:34.167Z" },
-]
-
-[[package]]
-name = "trimesh"
-version = "5.1.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "numpy" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/21/3f/a13d797349fdd00a8586b60d6b71df849e1766e2002729697a265b27a773/trimesh-5.1.0.tar.gz", hash = "sha256:927aa8748af8b84cb969c8f53270d929e546f2beada77a2bc234b605fddf1454", size = 870501, upload-time = "2026-08-31T18:28:55.464Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/f5/c8/5ede3b786ef58e0076e9ca748b2c1787183f85e5ad8133373715c31248f9/trimesh-5.1.0-py3-none-any.whl", hash = "sha256:0fa85d1d131e321b683c00747c20090200b92071298b905ea588f609eb204c89", size = 750004, upload-time = "2026-08-31T18:28:53.746Z" },
 ]

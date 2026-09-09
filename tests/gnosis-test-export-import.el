@@ -63,7 +63,7 @@
                     ;; Metadata (plain text, not emacsql-encoded)
                     (should (sqlite-select edb
                               "SELECT value FROM gnosis_meta WHERE key = 'exported_at'")))
-                    (should (equal "2" (caar (sqlite-select
+                    (should (equal "3" (caar (sqlite-select
                                                edb
                                                "SELECT value FROM gnosis_meta WHERE key = 'format_version'"))))
                     (should

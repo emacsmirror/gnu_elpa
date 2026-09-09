@@ -42,7 +42,7 @@
   "Insert a new scheduler projection for THEMA-ID with SUSPENDED state."
   (let ((id (or thema-id 1)))
     (gnosis-sqlite-execute
-     gnosis-db "INSERT INTO themata VALUES (?, ?, ?, ?, ?, ?)"
+     gnosis-db "INSERT INTO themata (id, type, keimenon, hypothesis, answer, source_guid) VALUES (?, ?, ?, ?, ?, ?)"
      (list id "basic" "Question" '("") '("Answer") nil))
     (gnosis-sqlite-execute
      gnosis-db "INSERT INTO scheduler_baseline VALUES (?, ?, ?, ?)"

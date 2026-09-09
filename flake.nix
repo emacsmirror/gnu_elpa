@@ -26,6 +26,7 @@
         ./lisp/gnosis-logical-day.el
         ./lisp/gnosis-fsrs.el
         ./lisp/gnosis-anki.el
+        ./lisp/gnosis-answer.el
         ./lisp/gnosis-cloze.el
         ./lisp/gnosis-dashboard.el
         ./lisp/gnosis-db.el

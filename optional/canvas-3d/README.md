@@ -24,7 +24,7 @@ uv sync --locked
 
 The committed `.python-version` selects Python 3.12. `uv sync` creates a local
 `.venv` and can download that Python if needed. It installs only the pinned
-ModernGL, glcontext, NumPy and trimesh dependencies from `uv.lock`; no system
+ModernGL, glcontext and NumPy dependencies from `uv.lock`; no system
 Python installation is modified. Copy this **whole directory**, including
 fixtures and the lockfile, when distributing it independently. Run the same
 install command in the new location; do not copy a virtual environment.
@@ -97,19 +97,53 @@ Gnosis managed-resource imports impose their own stricter provenance/path rules.
 `canvas-3d-open (PATH &optional LABEL INITIAL-VIEW SIZE)` returns a fresh
 viewer buffer. `canvas-3d-selected-id` and `canvas-3d-selection-hook` are local
 to it. The hook runs synchronously from picking with a plist:
-`(:id ID :frame SEQUENCE :owner PROCESS)`. Background ID is nil. Consumers
+`(:mesh ID :face TRIANGLE :point (X Y Z) :id ID :frame SEQUENCE :owner PROCESS)`.
+`canvas-3d--selection` retains this geometry snapshot. Face indices are zero-based
+file-order OBJ fan triangles, not object-index bytes; points use original mesh
+coordinates (float32 wire precision). Background ID and geometry are nil. Consumers
 own interpretation, explicit submission and grading; selecting is not grading.
 `canvas-3d-pick` accepts integer canvas X/Y and an optional retained frame.
 
-The unchanged pipe protocol is newline-delimited JSON requests with `seq`,
-`yaw`, `pitch`, `zoom`, and `selected` (one-based object index, zero for none).
-Responses are `C3D1`, a big-endian uint32 sequence, then tightly packed
-opaque BGRA color bytes and one object-ID byte per pixel, both top-down.
-Color and depth-tested IDs come from the same draw and publish together.
+The pipe protocol is newline-delimited JSON requests with `seq`, `yaw`, `pitch`,
+`zoom`, `selected` (one-based object index, zero for none), and `highlight`
+(null or target geometry). Requests are bounded to 128 KiB. C3D2 responses are:
+
+- `C3D2` and a big-endian uint32 sequence (8 bytes);
+- tightly packed opaque BGRA color (4 bytes/pixel);
+- object indices (1 byte/pixel, zero background);
+- big-endian uint32 triangle index **plus one** (4 bytes/pixel, zero background);
+- original XYZ, three big-endian IEEE float32 values (12 bytes/pixel, zero background).
+
+Every plane is top-down and shares the same depth-tested draw: 8 + 21 × area
+bytes total. Faces above 65535 retain their full identity. The Python
+`frame_pair` API still returns the old color/mesh pair. Elisp buffer-local
+`canvas-3d--protocol` defaults to 1 for legacy packet fixtures; real open/attach
+sets 2. This is not wire negotiation with old renderer installations.
+
+OBJ `v` and `f` are read in file order. Each polygon becomes `(v0, vi, vi+1)`;
+positive position indices and negative indices relative to preceding vertices
+are supported. Texture/normal suffixes, groups and materials never change
+triangle numbering. Invalid indices, nonfinite vertices and degenerate
+triangles fail before rendering. No geometry merging or trimesh parser is used.
+
+A domain may set buffer-local `canvas-3d--question-target` **after** open/attach,
+then call `canvas-3d--request`. This alist has `mesh` (object ID) and `kind`
+(`"object"`, `"point"`, `"region"`). Points add zero-based `face`, three
+`barycentric` weights and positive original-coordinate `tolerance`; regions
+add nonempty `faces`. Rendering colors only that mesh/surface geometry and
+never draws a label. Occluded target surfaces stay occluded. The question
+highlight survives rotation, zoom and reset. Clicks still update the independent
+geometry selection and run selection hooks for native authoring/inspection,
+but never retarget this highlight. Even label reveal stays hidden.
+Grading and scene target validation belong to Gnosis, not this backend.
+
 The receiver validates sequence, ownership and the raw ID byte alphabet;
 it bounds fragment backlog and discards superseded highlights. One request
 is in flight, later camera input coalesces, and timeout/cancel/buffer retirement
-releases the renderer. Picking uses the displayed frame, not a pending camera.
+releases the renderer. Picking uses the displayed frame, not a pending camera,
+and rejects a supplied frame once replaced. Camera redraw carries retained
+geometry to the new frame only if the request's selection snapshot still
+matches and its process owns the selection; it never reinterprets old pixels.
 
 ## Verify locally
 
@@ -117,10 +151,10 @@ After `uv sync --locked`, from this directory:
 
 ```sh
 ./preflight.py
-.venv/bin/python -m unittest -v test_render
-emacs -Q --batch -L . --eval "(require 'canvas-3d-tests)" -f ert-run-tests-batch-and-exit
+.venv/bin/python -m unittest -v test_render test_geometry
+emacs -Q --batch -L . --eval "(progn (require 'canvas-3d-tests) (require 'canvas-3d-geometry-tests))" -f ert-run-tests-batch-and-exit
 emacs -Q --batch -L . --eval '(setq byte-compile-error-on-warn t)' \
-  -f batch-byte-compile canvas-3d.el canvas-3d-tests.el
+  -f batch-byte-compile canvas-3d.el canvas-3d-tests.el canvas-3d-geometry-tests.el
 emacs -Q --batch --eval \
   '(progn (require (quote checkdoc)) (checkdoc-file "canvas-3d.el"))'
 ```

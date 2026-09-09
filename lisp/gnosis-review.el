@@ -426,7 +426,7 @@ EVENT-ID, REVIEWED-AT-US, and REVIEW-DAY may pin deterministic facts."
                     (plist-get result :thema-id) success
                     (plist-get result :event-id) (plist-get result :reviewed-at-us)
                     (plist-get result :review-day))))
-      (dolist (key '(:model :image))
+      (dolist (key '(:model :image :answer))
         (when (plist-member result key)
           (setq pending (plist-put pending key (plist-get result key)))))
       pending)))
@@ -442,6 +442,8 @@ EVENT-ID, REVIEWED-AT-US, and REVIEW-DAY may pin deterministic facts."
 A media result retains (DATABASE THEMA BUFFER STATE SNAPSHOT).  Its owner
 must still match; only the last committed persistent attempt may retry
 after session advancement.  Scheduler acceptance validates retained facts."
+  (when-let* ((owner (plist-get result :answer)))
+    (gnosis-review--answer-check id owner result))
   (dolist (key '(:model :image))
     (when-let* ((model (plist-get result key)))
       (let ((state (nth 3 model))
@@ -459,13 +461,13 @@ after session advancement.  Scheduler acceptance validates retained facts."
       (unless (and (eq (car model) (gnosis--ensure-db))
                    (equal (cadr model)
                           (if (eq key :image) (gnosis-review--image-thema id)
-                            (gnosis-select '[type keimenon hypothesis answer]
-                                           'themata `(= id ,id)))))
+                            (gnosis-review--answer-thema id))))
         (user-error "Media answer belongs to an outdated thema or database"))
       (let ((row (car (cadr model))))
         (if (eq key :image)
-            (apply #'gnosis-image-validate-fields row)
-          (gnosis-model-resolve (nth 2 row) (nth 3 row))))))
+            (gnosis-review--image-validate row)
+          (gnosis--validate-accepted-aliases (nth 0 row) (nth 3 row) (nth 4 row))
+          (gnosis-model-fields (nth 0 row) (nth 2 row) (nth 3 row))))))
   (let ((outcome (if success 'success 'failure)))
     (unless (and (= id (plist-get result :thema-id))
                  (eq outcome (plist-get result :outcome)))
@@ -705,11 +707,13 @@ Read no database or clock and leave STATE and its prior snapshots unchanged."
 
 (defun gnosis-review--model-header ()
   "Return neutral selection and renderer status, never anatomical labels."
-  (format " Model | %s | %s | RET submit, q cancel, ? help"
+  (format " Model | %s | %s | q cancel, ? help"
           (if (process-live-p canvas-3d--process) canvas-3d--status
             (format "Unavailable: %s" canvas-3d--status))
-          (if (plist-get gnosis-review--model-context :selection)
-              "Selection recorded" "Click to select")))
+          (if (eq (plist-get (plist-get gnosis-review--model-context :fields) :response) 'name)
+              "Inspect highlighted target; RET to type its name"
+            (if (plist-get gnosis-review--model-context :selection)
+                "Selection recorded; RET submit" "Click to select; RET submit"))))
 
 (defun gnosis-review--model-detach (context)
   "Detach CONTEXT's exact attachment, even after its renderer stopped."
@@ -753,42 +757,70 @@ Read no database or clock and leave STATE and its prior snapshots unchanged."
     (unless (and (not (plist-get context :cancelled))
                  (not (plist-get context :result))
                  (buffer-live-p owner)
+                 (eq owner (current-buffer))
                  (eq (plist-get context :database) (gnosis--ensure-db))
                  (with-current-buffer owner (eq state gnosis-review--state))
                  (equal (plist-get context :state-data) (gnosis-review--state-data state))
                  (equal id (car (gnosis-review-state-remaining state)))
                  (equal (plist-get context :thema)
-                        (gnosis-select '[type keimenon hypothesis answer]
-                                       'themata `(= id ,id)))
+                        (gnosis-review--answer-thema id))
                  (or (not (gnosis-review-state-persistent-p state))
                      (when-let* ((stored (gnosis-review--read-session)))
                        (equal (plist-get context :state-data)
                               (gnosis-review--state-data stored)))))
       (user-error "Model encounter is outdated; resume the original session"))
-    (gnosis-model-resolve (plist-get context :hypothesis) (plist-get context :answer))))
+    (let ((row (car (plist-get context :thema))))
+      (gnosis--validate-accepted-aliases (nth 0 row) (nth 3 row) (nth 4 row))
+      (gnosis-model-fields (nth 0 row) (nth 2 row) (nth 3 row)))))
+
+(defun gnosis-review--model-ready-p (context)
+  "Return whether CONTEXT's renderer has a current complete owned frame."
+  (and (eq (plist-get context :process) canvas-3d--process)
+       (process-live-p canvas-3d--process)
+       (eq (plist-get canvas-3d--frame :owner) canvas-3d--process)
+       (not canvas-3d--busy) (not canvas-3d--dirty)))
 
 (defun gnosis-review-model-submit ()
-  "Submit the selected model target to the current review encounter.
+  "Submit a picked target, or enter a Name answer, in the current encounter.
 Exploratory clicks never submit.  Wait for a stable view before submitting."
   (interactive)
-  (let* ((context gnosis-review--model-context)
-         (selection (plist-get context :selection))
-         (id (plist-get selection :id)))
+  (let ((context gnosis-review--model-context))
     (unless (and context
                  (= (recursion-depth) (1+ (plist-get context :depth))))
       (user-error "No active model input"))
-    (gnosis-review--model-check context)
-    (unless (and id (equal id canvas-3d-selected-id)
-                 (eq (plist-get context :process) canvas-3d--process)
-                 (process-live-p canvas-3d--process)
-                 (eq (plist-get selection :owner) canvas-3d--process)
-                 (not canvas-3d--busy) (not canvas-3d--dirty)
-                 (equal (plist-get context :view)
-                        (list canvas-3d--yaw canvas-3d--pitch canvas-3d--zoom)))
-      (user-error "Select a target in the current ready view before submitting"))
-    (let* ((success (equal id (car (plist-get context :answer))))
-           (result (with-current-buffer (plist-get context :buffer)
-                     (gnosis-review-algorithm (plist-get context :id) success))))
+    (let ((fields (gnosis-review--model-check context)) success)
+      (unless (gnosis-review--model-ready-p context)
+        (user-error "Wait for the current model view before submitting"))
+      (if (eq (plist-get fields :response) 'name)
+          (let ((input
+                 (condition-case nil
+                     (gnosis--read-string-with-input-method "Name: " (plist-get fields :answer))
+                   (quit
+                    (when (eq gnosis-review--model-context context)
+                      (gnosis-review-model-cancel))
+                    (signal 'quit nil)))))
+            (gnosis-review--model-check context)
+            (unless (gnosis-review--model-ready-p context)
+              (user-error "Model renderer changed while entering the name"))
+            (setf (plist-get context :input) input)
+            (setq success (gnosis-answer-match-p
+                           (plist-get fields :answer) input (plist-get context :aliases)
+                           (plist-get context :tolerance))))
+        (unless (and (plist-get context :selection)
+                     (equal (plist-get context :view)
+                            (list canvas-3d--yaw canvas-3d--pitch canvas-3d--zoom)))
+          (user-error "Click a surface in the current view before submitting"))
+        (let ((selection (gnosis-model-selection fields)))
+          (unless (and selection
+                       (cl-every (lambda (key)
+                                   (equal (plist-get selection key)
+                                          (plist-get (plist-get context :selection) key)))
+                                 '(:mesh :face :point)))
+            (user-error "Select a surface in the current ready view before submitting"))
+          (setf (plist-get context :selection) selection)
+          (setq success (equal (plist-get selection :id) (plist-get fields :target)))))
+      (let ((result (with-current-buffer (plist-get context :buffer)
+                      (gnosis-review-algorithm (plist-get context :id) success))))
       (setq result (plist-put result :model
                               (list (plist-get context :database)
                                     (copy-tree (plist-get context :thema))
@@ -796,40 +828,46 @@ Exploratory clicks never submit.  Wait for a stable view before submitting."
                                     (plist-get context :state)
                                     (copy-tree (plist-get context :state-data)))))
       (setf (plist-get context :result) (cons success result))
-      (exit-recursive-edit))))
+        (exit-recursive-edit)))))
 
 (defun gnosis-review-model (id)
-  "Present model ID through native picking in a review encounter.
+  "Present model ID through native Find or typed Name in a review encounter.
 Return the ordinary pending review result; existing review actions accept it.
 Missing backend/assets and cancelled input cannot produce an incorrect grade."
   (unless gnosis-review--state
     (user-error "Start a review session before answering a model"))
   (let* ((owner (current-buffer))
          (state gnosis-review--state)
-         (thema (gnosis-select '[type keimenon hypothesis answer] 'themata `(= id ,id)))
+         (thema (gnosis-review--answer-thema id))
          (row (car thema))
          (hypothesis (nth 2 row))
          (answer (nth 3 row))
-         (resolved (gnosis-model-resolve hypothesis answer))
-         (objects (alist-get 'objects (gnosis-model--scene (car resolved))))
+         (fields (gnosis-model-fields (car row) hypothesis answer))
+         (scene (gnosis-model--scene (plist-get fields :scene)))
+         (target (gnosis-model-target scene (plist-get fields :target)))
          (context (list :buffer owner :state state :id id :database (gnosis--ensure-db)
                         :state-data (copy-tree (gnosis-review--state-data state))
                         :thema (copy-tree thema) :hypothesis hypothesis :answer answer
+                        :fields fields :aliases (copy-tree (nth 4 row))
+                        :tolerance gnosis-string-difference :input nil
                         :depth (recursion-depth) :result nil :cancelled nil
                         :selection nil :view nil))
          (map (current-local-map))
          (header header-line-format)
          attached)
+    (gnosis-review--model-check context)
     (gnosis-display-keimenon (gnosis-org-format-string (nth 1 row)))
     (unwind-protect
         (progn
           (goto-char (point-max))
           (insert "\n")
-          (gnosis-model-open (car resolved) (cadr resolved)
+          (gnosis-model-open (plist-get fields :scene) (plist-get fields :view)
                              (min (gnosis-model--canvas-size)
                                   (max 128 (- (window-body-height nil t)
                                               (* (+ 5 (count-lines (point-min) (point-max)))
-                                                 (frame-char-height))))) t)
+                                                 (frame-char-height))))) t
+                             (and (eq (plist-get fields :response) 'name)
+                                  (plist-get fields :target)))
           (setq attached t)
           (setf (plist-get context :process) canvas-3d--process
                 (plist-get context :attachment) canvas-3d--image)
@@ -849,13 +887,13 @@ Missing backend/assets and cancelled input cannot produce an incorrect grade."
           (unless (plist-get context :result) (user-error "Model input cancelled"))
           (with-current-buffer owner
             (gnosis-display-basic-answer
-             (alist-get 'label (seq-find (lambda (o) (equal (car answer) (alist-get 'id o))) objects))
+             (or (plist-get fields :answer) (alist-get 'label target))
              (car (plist-get context :result))
-             (or (alist-get 'label
-                            (seq-find
-                             (lambda (o)
-                               (equal (plist-get (plist-get context :selection) :id)
-                                      (alist-get 'id o))) objects)) "Unknown target"))
+             (if (eq (plist-get fields :response) 'name)
+                 (plist-get context :input)
+               (if-let* ((selected (plist-get (plist-get context :selection) :id)))
+                   (alist-get 'label (gnosis-model-target scene selected))
+                 "Unmarked surface")))
             (gnosis-display-parathema (gnosis-get 'parathema 'extras `(= id ,id)))
             (gnosis-display-next-review
              (gnosis-review--result-date (cdr (plist-get context :result)))
@@ -872,22 +910,36 @@ Missing backend/assets and cancelled input cannot produce an incorrect grade."
             (remove-hook 'kill-buffer-hook #'gnosis-review-model-cancel t)
             (remove-hook 'change-major-mode-hook #'gnosis-review-model-cancel t)))))))
 
+(defun gnosis-review-model-name (id)
+  "Review ID by inspecting its highlighted target and typing its name."
+  (unless (equal "model-name" (gnosis-get 'type 'themata `(= id ,id)))
+    (user-error "Thema is not a model-name question"))
+  (gnosis-review-model id))
+
 
 ;;; Image encounters
 
 (defun gnosis-review--image-thema (id)
-  "Return all displayed content for thema ID, including its explanation."
+  "Return ID's type, text, hypothesis, answer, explanation, image and aliases."
   (mapcar (lambda (row)
-            (append row (car (gnosis-select '[parathema review-image] 'extras `(= id ,id)))))
-          (gnosis-select '[type keimenon hypothesis answer] 'themata `(= id ,id))))
+            (append (butlast row)
+                    (car (gnosis-select '[parathema review-image] 'extras `(= id ,id)))
+                    (last row)))
+          (gnosis-select '[type keimenon hypothesis answer accepted-aliases]
+                         'themata `(= id ,id))))
+
+(defun gnosis-review--image-validate (row)
+  "Validate image content and aliases from a retained seven-field ROW."
+  (apply #'gnosis-image-validate-fields (butlast row))
+  (gnosis--validate-accepted-aliases (nth 0 row) (nth 3 row) (nth 6 row)))
 
 (defun gnosis-review--image-owner (id)
   "Validate image content for ID and retain its exact encounter owner, or nil."
   (let* ((thema (gnosis-review--image-thema id)) (row (car thema))
-         (references (gnosis-image-references row)))
+         (references (gnosis-image-references (butlast row))))
     (when (or references (member (downcase (car row)) '("image-region" "image-occlusion")))
       (unless gnosis-review--state (user-error "Start a review session first"))
-      (apply #'gnosis-image-validate-fields row)
+      (gnosis-review--image-validate row)
       ;; Decode hidden answer/explanation images too, without displaying them.
       ;; A broken payload is unavailable, not a failed recall.
       (mapc (lambda (reference) (gnosis-image--decode (gnosis-image-resolve reference))) references)
@@ -906,7 +958,7 @@ Missing backend/assets and cancelled input cannot produce an incorrect grade."
                      (when-let* ((stored (gnosis-review--read-session)))
                        (equal snapshot (gnosis-review--state-data stored)))))
       (user-error "Image encounter is outdated; resume the original session"))
-    (apply #'gnosis-image-validate-fields (car (cadr owner)))))
+    (gnosis-review--image-validate (car (cadr owner)))))
 
 (defun gnosis-review--image (id)
   "Present region thema ID with explicit click and submit."
@@ -942,17 +994,19 @@ Missing backend/assets and cancelled input cannot produce an incorrect grade."
          (row (car (cadr owner)))
          (fields (gnosis-image-occlusion-fields (nth 2 row) (nth 3 row)))
          (target (cadar fields)) (answer (caadr fields))
+         (policy (gnosis-image-occlusion-policy (car fields)))
+         (aliases (nth 6 row)) (tolerance gnosis-string-difference)
          (scene (gnosis-image-resolve (caar fields) target)))
     (gnosis-display-keimenon
      (concat (gnosis-org-format-string (nth 1 row)) "\n\n"
-             (gnosis-image-mask scene target nil)))
+             (gnosis-image-mask scene target nil nil policy)))
     (let ((input (gnosis--read-string-with-input-method "Answer: " answer)))
       (gnosis-review--image-check id owner)
-      (let* ((success (gnosis-compare-strings answer input))
+      (let* ((success (gnosis-answer-match-p answer input aliases tolerance))
              (result (plist-put (gnosis-review-algorithm id success) :image owner)))
         (gnosis-display-keimenon
          (concat (gnosis-org-format-string (nth 1 row)) "\n\n"
-                 (gnosis-image-mask scene target t)))
+                 (gnosis-image-mask scene target t nil policy)))
         (gnosis-display-basic-answer answer success input)
         (gnosis-display-parathema (nth 4 row))
         (gnosis-display-next-review (gnosis-review--result-date result) success)
@@ -977,16 +1031,50 @@ Missing backend/assets and cancelled input cannot produce an incorrect grade."
       (gnosis-display-next-review (gnosis-review--result-date result) success)
       (cons success result))))
 
+(defun gnosis-review--answer-thema (id)
+  "Read ID's typed-response content, including its accepted aliases."
+  (gnosis-select '[type keimenon hypothesis answer accepted-aliases]
+                 'themata `(= id ,id)))
+
+(defun gnosis-review--answer-owner (id)
+  "Capture ID's typed-answer rule and optional encounter owner."
+  (list (gnosis--ensure-db) (copy-tree (gnosis-review--answer-thema id))
+        (current-buffer) gnosis-review--state
+        (and gnosis-review--state
+             (copy-tree (gnosis-review--state-data gnosis-review--state)))))
+
+(defun gnosis-review--answer-check (id owner &optional result)
+  "Reject a changed typed-answer rule or encounter for ID and OWNER.
+RESULT permits an identical retry of the last committed persistent attempt."
+  (let ((state (nth 3 owner)) (snapshot (nth 4 owner))
+        (row (car (nth 1 owner))))
+    (unless (and (eq (car owner) (gnosis--ensure-db))
+                 (buffer-live-p (nth 2 owner)) (eq (current-buffer) (nth 2 owner))
+                 (eq gnosis-review--state state)
+                 (or (null state)
+                     (equal snapshot (gnosis-review--state-data state))
+                     (and result (gnosis-review-state-persistent-p state)
+                          (eq (plist-get snapshot :mode) (gnosis-review-state-mode state))
+                          (equal (plist-get snapshot :session-id)
+                                 (gnosis-review-state-session-id state))
+                          (equal (plist-get result :event-id)
+                                 (gnosis-review-state-last-event state))))
+                 (equal (nth 1 owner) (gnosis-review--answer-thema id)))
+      (user-error "The answer rule or review encounter changed; start again"))
+    (gnosis--validate-accepted-aliases (nth 0 row) (nth 3 row) (nth 4 row))))
+
 (defun gnosis-review-basic (id)
   "Review basic type thema for ID."
-  (let* ((data (car (gnosis-select
-		     '[keimenon hypothesis answer]
-		     'themata `(= id ,id))))
-	 (keimenon (nth 0 data))
-	 (hypothesis (car (nth 1 data)))
-	 (answer (car (nth 2 data)))
+  (let* ((owner (gnosis-review--answer-owner id))
+         (data (car (cadr owner)))
+	 (keimenon (nth 1 data))
+	 (hypothesis (car (nth 2 data)))
+	 (answer (car (nth 3 data)))
+         (aliases (nth 4 data))
+         (tolerance gnosis-string-difference)
 	 (parathema (gnosis-get 'parathema 'extras
 				`(= id ,id))))
+    (gnosis-review--answer-check id owner)
     (gnosis-display-image keimenon)
     (gnosis-display-keimenon (gnosis-org-format-string keimenon))
     (gnosis-display-hint hypothesis)
@@ -1002,8 +1090,10 @@ Missing backend/assets and cancelled input cannot produce an incorrect grade."
                   (gnosis-display-basic-answer answer t "")
                   (gnosis-display-parathema parathema)
                   (= (read-char-choice "Recalled the checklist?  y yes, n no: " '(?y ?n)) ?y))
-              (gnosis-compare-strings answer user-input)))
+              (gnosis-answer-match-p answer user-input aliases tolerance)))
+           (_ (gnosis-review--answer-check id owner))
            (result (gnosis-review-algorithm id success)))
+      (setq result (plist-put result :answer owner))
       (unless (or success self-grade) (setq gnosis-review--monkeytype-text answer))
       (unless self-grade
         (gnosis-display-basic-answer answer success user-input)

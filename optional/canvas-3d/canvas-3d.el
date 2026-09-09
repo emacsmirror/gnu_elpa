@@ -70,19 +70,29 @@ Opening a viewer never installs dependencies."
 (defvar-local canvas-3d--invalid-index-regexp nil
   "Cached (OBJECT-COUNT . REGEXP) matching invalid object-index bytes.")
 (defvar-local canvas-3d--seq 0)
+(defvar-local canvas-3d--protocol 1
+  "Wire version; real viewers use 2, legacy packet fixtures default to 1.")
+(defvar-local canvas-3d--selection nil
+  "Owned geometry plist with :mesh :face :point :id :frame and :owner.")
+(defvar-local canvas-3d--question-target nil
+  "Locked question geometry alist, independent of exploratory selection.")
+(defvar-local canvas-3d--requested-target nil)
+(defvar-local canvas-3d--requested-geometry nil)
 (defvar-local canvas-3d--requested-selection nil)
 (defvar-local canvas-3d--frame nil)
 (defvar-local canvas-3d-selected-id nil
   "Stable ID selected in this viewer, or nil for background.")
 (defvar-local canvas-3d-selection-hook nil
-  "Functions called with selection plist (:id ID :frame SEQ :owner PROCESS).
+  "Functions called with the geometry plist in `canvas-3d--selection'.
+Keys are :mesh :face :point :id :frame and :owner.
 Run synchronously from the picking command, never from the process filter.
 ID is nil for background.  Consumers must not infer a scheduler action.")
 
 (defun canvas-3d--header ()
   "Return the current viewer heading."
   (format " %s | %s | zoom %.2f | ? help"
-          (if canvas-3d--revealed canvas-3d--label "Model (label hidden)")
+          (if (and canvas-3d--revealed (not canvas-3d--question-target))
+              canvas-3d--label "Model (label hidden)")
           canvas-3d--status canvas-3d--zoom))
 
 (defun canvas-3d--stop (&optional status)
@@ -90,7 +100,7 @@ ID is nil for background.  Consumers must not infer a scheduler action.")
   (when (timerp canvas-3d--timer) (cancel-timer canvas-3d--timer))
   (setq canvas-3d--timer nil canvas-3d--busy nil canvas-3d--dirty nil
         canvas-3d--bytes nil canvas-3d--byte-count 0 canvas-3d--frame nil
-        canvas-3d-selected-id nil)
+        canvas-3d-selected-id nil canvas-3d--selection nil)
   (let ((process canvas-3d--process))
     (setq canvas-3d--process nil)
     (when (process-live-p process) (delete-process process)))
@@ -119,7 +129,9 @@ ID is nil for background.  Consumers must not infer a scheduler action.")
   (if canvas-3d--busy
       (setq canvas-3d--dirty t)
     (setq canvas-3d--busy t canvas-3d--dirty nil canvas-3d--status "Rendering"
-          canvas-3d--requested-selection canvas-3d-selected-id)
+          canvas-3d--requested-selection canvas-3d-selected-id
+          canvas-3d--requested-geometry (copy-tree canvas-3d--selection)
+          canvas-3d--requested-target (copy-tree canvas-3d--question-target))
     (let ((owner (current-buffer)) (process canvas-3d--process))
       (setq canvas-3d--timer
             (run-at-time 20 nil
@@ -134,6 +146,11 @@ ID is nil for background.  Consumers must not infer a scheduler action.")
                             (selected . ,(if-let* ((index (seq-position canvas-3d--objects canvas-3d-selected-id
 									(lambda (obj id) (equal (alist-get 'id obj) id)))))
                                              (1+ index) 0))
+                            (highlight . ,(or (seq-filter
+                                               (lambda (pair)
+                                                 (memq (car pair) '(mesh kind face barycentric tolerance faces)))
+                                               canvas-3d--question-target)
+                                              json-null))
                             (yaw . ,canvas-3d--yaw)
                             (pitch . ,canvas-3d--pitch)
                             (zoom . ,canvas-3d--zoom))) "\n")))
@@ -162,7 +179,7 @@ ID is nil for background.  Consumers must not infer a scheduler action.")
       (when (eq process canvas-3d--process)
         (condition-case err
             (let* ((area (* canvas-3d--size canvas-3d--size))
-                   (expected (+ 8 (* 5 area))))
+                   (expected (+ 8 (* (if (= canvas-3d--protocol 2) 21 5) area))))
               (when (> (+ canvas-3d--byte-count (length chunk)) (* 2 expected))
                 (error "Renderer buffer cap exceeded"))
               ;; Retain chunks without copying the growing packet on every read.
@@ -185,18 +202,32 @@ ID is nil for background.  Consumers must not infer a scheduler action.")
                                        for n = (aref packet i) then (+ (* n 256) (aref packet i))
                                        finally return n)))
                     (unless (and canvas-3d--busy (= seq canvas-3d--seq)
-				 (equal (substring packet 0 4) "C3D1"))
+				 (equal (substring packet 0 4)
+                                        (if (= canvas-3d--protocol 2) "C3D2" "C3D1")))
                       (error "Unsolicited or invalid renderer frame"))
                     (let ((frame (list :owner process :seq seq
                                        :color (substring packet 8 (+ 8 (* 4 area)))
-                                       :ids (substring packet (+ 8 (* 4 area))))))
+                                       :ids (substring packet (+ 8 (* 4 area)) (+ 8 (* 5 area)))
+                                       :faces (and (= canvas-3d--protocol 2)
+                                                   (substring packet (+ 8 (* 5 area)) (+ 8 (* 9 area))))
+                                       :points (and (= canvas-3d--protocol 2)
+                                                    (substring packet (+ 8 (* 9 area)))))))
                       (when (canvas-3d--invalid-indices-p
                              (plist-get frame :ids) (length canvas-3d--objects))
 			(error "Invalid object index"))
                       ;; No event-loop yield between display and publication of its ID plane.
-                      (when (equal canvas-3d--requested-selection canvas-3d-selected-id)
-			(canvas-3d--paint frame)
-			(setq canvas-3d--frame frame)))
+                      (when (and (equal canvas-3d--requested-selection canvas-3d-selected-id)
+                                 (equal canvas-3d--requested-geometry canvas-3d--selection)
+                                 (equal canvas-3d--requested-target canvas-3d--question-target))
+                        (canvas-3d--paint frame)
+                        (setq canvas-3d--frame frame)
+                        ;; Carry original geometry, never reinterpret an old pixel.
+                        (when (and canvas-3d--selection
+                                   (eq (plist-get canvas-3d--selection :owner) process)
+                                   (equal (plist-get canvas-3d--selection :id) canvas-3d-selected-id)
+                                   (equal (plist-get canvas-3d--selection :mesh) canvas-3d-selected-id))
+                          (setq canvas-3d--selection
+                                (plist-put (copy-sequence canvas-3d--selection) :frame seq)))))
                     (when (timerp canvas-3d--timer) (cancel-timer canvas-3d--timer))
                     (setq canvas-3d--timer nil
                           canvas-3d--bytes nil canvas-3d--byte-count 0
@@ -205,25 +236,54 @@ ID is nil for background.  Consumers must not infer a scheduler action.")
               (force-mode-line-update))
           (error (canvas-3d--stop (error-message-string err))))))))
 
+(defun canvas-3d--uint32 (bytes offset)
+  "Decode a big-endian uint32 from BYTES at OFFSET."
+  (cl-loop for i from offset below (+ offset 4)
+           for value = (aref bytes i) then (+ (* value 256) (aref bytes i))
+           finally return value))
+
+(defun canvas-3d--float32 (bytes offset)
+  "Decode a finite big-endian IEEE float32 from BYTES at OFFSET."
+  (let* ((bits (canvas-3d--uint32 bytes offset))
+         (exponent (logand (ash bits -23) 255))
+         (fraction (logand bits #x7fffff)))
+    (when (= exponent 255) (error "Non-finite renderer coordinate"))
+    (* (if (zerop (logand bits #x80000000)) 1.0 -1.0)
+       (if (zerop exponent)
+           (* fraction (expt 2.0 -149))
+         (* (+ 1.0 (/ fraction 8388608.0)) (expt 2.0 (- exponent 127)))))))
+
 (defun canvas-3d-pick (x y &optional frame)
-  "Select the object at canvas pixel X, Y, returning its stable ID or nil.
-Use displayed FRAME when supplied; reject retired renderer ownership.
+  "Select geometry at canvas pixel X, Y, returning its mesh ID or nil.
+Use displayed FRAME when supplied; reject retired or replaced frames.
 A click during rendering uses the displayed frame, not the pending camera.
+A locked question target is never changed by picking.
 Run `canvas-3d-selection-hook' synchronously with a plain selection plist."
   (let ((frame (or frame canvas-3d--frame)))
-    (unless (and frame (eq (plist-get frame :owner) canvas-3d--process)
+    (unless (and frame (eq frame canvas-3d--frame)
+                 (eq (plist-get frame :owner) canvas-3d--process)
                  (process-live-p canvas-3d--process))
       (user-error "No live displayed frame"))
     (unless (and (integerp x) (integerp y) (<= 0 x) (< x canvas-3d--size)
                  (<= 0 y) (< y canvas-3d--size))
       (user-error "Pixel outside canvas"))
-    (let* ((index (aref (plist-get frame :ids) (+ x (* y canvas-3d--size))))
-           (id (and (> index 0) (alist-get 'id (nth (1- index) canvas-3d--objects)))))
-      (setq canvas-3d-selected-id id)
+    (let* ((pixel (+ x (* y canvas-3d--size)))
+           (index (aref (plist-get frame :ids) pixel))
+           (id (and (> index 0) (alist-get 'id (nth (1- index) canvas-3d--objects))))
+           (face (and id (plist-get frame :faces)
+                      (1- (canvas-3d--uint32 (plist-get frame :faces) (* 4 pixel)))))
+           (point (and id (plist-get frame :points)
+                       (cl-loop for axis below 3 collect
+                                (canvas-3d--float32 (plist-get frame :points)
+                                                    (+ (* 12 pixel) (* 4 axis)))))))
+      (when (and face (< face 0)) (user-error "Missing renderer face"))
+      (setq canvas-3d-selected-id id
+            canvas-3d--selection
+            (list :mesh id :face face :point point :id id
+                  :frame (plist-get frame :seq) :owner canvas-3d--process))
+      ;; A question highlight is independent of this authoring/inspection hit.
       (canvas-3d--request)
-      (run-hook-with-args 'canvas-3d-selection-hook
-                          (list :id id :frame (plist-get frame :seq)
-                                :owner canvas-3d--process))
+      (run-hook-with-args 'canvas-3d-selection-hook (copy-tree canvas-3d--selection))
       id)))
 
 (defun canvas-3d--pixel (position)
@@ -408,6 +468,8 @@ Only one attachment may own a buffer; use `canvas-3d-detach' when finished."
           (add-hook 'kill-buffer-hook #'canvas-3d--cleanup nil t)
           (add-hook 'change-major-mode-hook #'canvas-3d--cleanup nil t)
           (setq canvas-3d--objects objects
+                canvas-3d--protocol 2 canvas-3d--selection nil
+                canvas-3d--question-target nil canvas-3d-selected-id nil
 		canvas-3d--size (or size 512)
 		canvas-3d--initial-view (copy-sequence initial-view)
 		canvas-3d--yaw (nth 0 initial-view)
@@ -455,7 +517,9 @@ Call `canvas-3d-detach' on completion; the last display remains as feedback."
   "Release this buffer's renderer without killing the buffer or its last image."
   (canvas-3d--cleanup)
   (setq canvas-3d--image nil canvas-3d--stderr nil
-        canvas-3d--revealed nil canvas-3d--seq 0)
+        canvas-3d--revealed nil canvas-3d--seq 0
+        canvas-3d--question-target nil canvas-3d--requested-target nil
+        canvas-3d--requested-geometry nil)
   (remove-hook 'kill-buffer-hook #'canvas-3d--cleanup t)
   (remove-hook 'change-major-mode-hook #'canvas-3d--cleanup t))
 

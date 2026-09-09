@@ -43,19 +43,62 @@ For preview drift and partial-import retry coverage, start with:
 - `tests/gnosis-test-exchange-hardening.el`
 - `tests/gnosis-test-authoring-hardening.el`
 
+## Accepted aliases and content format 3
+
+Schema 12 adds nullable `themata.accepted_aliases` TEXT, exposed as the Lisp
+column `accepted-aliases`. The owned SQL serializer encodes a list of strings;
+NULL/nil means no aliases. Migration uses ALTER TABLE and leaves canonical
+answers, retained extra columns and study evidence intact. `gnosis-answer`
+owns validation, matching and the alias list-section codec; it does not own
+storage or review acceptance. Canonical reveal and input-method selection do
+not use aliases. Only basic, image-occlusion and model-name accept nonempty
+aliases; double authoring puts them on the forward basic thema only.
+
+`gnosis-add-thema-fields` takes trailing optional ACCEPTED-ALIASES after
+REVIEW-IMAGE and GNOSIS-ID. `gnosis-update-thema` takes it after TYPE: omission
+preserves retained aliases, explicit nil clears them. Domain save handlers
+preserve this supplied/omitted distinction. A full native draft is replacement
+content: missing or empty `** Accepted aliases` clears aliases on save. Its
+items use one `- ` marker per single-line spelling, independent of Answer.
+The parser identifies fields by heading and rejects duplicate/unknown fields;
+parsed positions 0–7 retain their old meaning and index 8 carries aliases.
+
+Portable content format 3 carries aliases as an explicit column. Formats 1/2
+remain readable with missing aliases normalized to nil. Alias-only updates and
+clears must appear in preview, and both source and destination snapshots guard
+against alias drift. None of these formats bundles managed media: image types,
+model Find/Name and managed syntax remain refused. Preserve this distinction
+from schema 12 and database-plus-assets backup format 1.
+
+Start with `gnosis-test-answer`, `gnosis-test-aliases-codec` and
+`gnosis-test-media-integration`. The latter retains Name recursive-input faults
+and pending alias drift through scheduled/practice acceptance. Alias snapshots
+must survive outcome overrides; refusal must not create study evidence.
+
 ## Managed images
 
 `gnosis-image` supplies `image.json` and one PNG/JPEG basename to the shared
-asset publisher. The manifest contains version 1, raster dimensions, optional
-source/attribution strings, and labelled regions with unique stable IDs and
-normalized `[x, y, width, height]` rectangles. Region edits publish a new byte
-revision; existing references keep their original raster and regions.
+asset publisher. Both manifest versions retain raster dimensions and optional
+source/attribution strings. Version 1 has labelled regions with unique stable
+IDs and one normalized `[x, y, width, height]` `rect`; version 2 uses a nonempty
+`rects` list per target. Never mix `rect` and `rects` within a target. Legacy
+single-rectangle imports keep version 1; plural input emits version 2 for all
+targets. The manifest is bounded to 128 KiB, 255 targets and 255 total rectangles;
+no targets is valid for an ordinary inline image. IDs and labels belong to the
+target, not its rectangles. Region edits publish a new byte revision; existing
+references keep their original raster and regions.
 
 Ordinary content uses `[[gnosis-image:<revision>/image.json]]` Org links.
 `image-region` uses one resource string in `hypothesis` and one stable target
-string in `answer`. `image-occlusion` uses `(RESOURCE TARGET)` in `hypothesis`
-and `(TEXT)` in `answer`, without a schema change. TEXT is a nonempty editable
-human answer checked with ordinary Gnosis text comparison. Historical
+string in `answer`; all sibling rectangles select that ID. `image-occlusion`
+uses `(RESOURCE TARGET POLICY)` in `hypothesis` and `(TEXT)` in `answer`.
+POLICY is exactly `"hide-target"` or `"hide-all"`; old one/two-field hypotheses
+use hide-target. TEXT is a nonempty editable human answer checked with ordinary
+Gnosis text comparison and its independent accepted aliases. Hide-target masks
+every rectangle of the tested ID; hide-all masks all annotated rectangles.
+Neutral tested-target cues are drawn after opaque masks; neither policy
+provides OCR or protection against unannotated answer text. Reveal displays
+only the original raster, without overlays. Historical
 occlusion rows with `(RESOURCE)` / `(TARGET)` remain valid: the immutable
 manifest's target label supplies the expected text, never the raw stable ID.
 Opening such a native draft exposes the canonical fields; saving that draft
@@ -79,10 +122,25 @@ adjacent `assets` directory together; copying only the database loses media.
 
 ## Model resources
 
-Model themata reuse the existing thema schema and owned Lisp serializer:
-`hypothesis` contains (RESOURCE YAW PITCH ZOOM) strings and `answer` contains
-one stable target ID.  `gnosis-model` validates the version-addressed scene
-and every listed OBJ before saving or using it; no schema migration is needed.
+Find (`model`) retains `(RESOURCE YAW PITCH ZOOM)` strings in `hypothesis`
+and one stable target ID in `answer`. Name (`model-name`) instead stores
+`(RESOURCE TARGET YAW PITCH ZOOM)` in `hypothesis` and one canonical text in
+`answer`; aliases use the independent schema-12 column. `gnosis-model-fields`
+validates both modes against the immutable scene before saving or using them.
+
+Unversioned scenes project object targets in memory without rewriting bytes.
+Version 2 stores explicit targets separate from mesh objects: each has `id`,
+`label`, `mesh` and `kind`. Object targets need no geometry; point targets have
+zero-based `face`, three barycentric weights and positive original-coordinate
+`tolerance`; region targets have distinct nonempty `faces`. OBJ fan-triangle
+identity and original coordinates are shared with the C3D2 renderer, not
+reconstructed from object-index bytes. Points match Euclidean radius on the
+same mesh; regions match faces. Candidate resolution considers the expected
+kind, with nearest-point then stable-ID tie-breaking. Keep topology validation
+and target interpretation in `gnosis-model`; rendering/picking never grades.
+Target authoring publishes a new revision, preserving old cards and hashes.
+The limits are 255 objects, 4096 targets, 64-KiB scene JSON, 100 MB per OBJ and
+two million triangles. No textures/materials or topology editor are supplied.
 Scheduled models use the same atomic event/state acceptance and replay as
 other themata; practice writes no scheduled evidence.  Pending model results
 retain database, encounter and thema identity through outcome overrides and

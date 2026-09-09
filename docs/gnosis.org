@@ -776,6 +776,34 @@ Like cloze, but the user selects the correct word from a list of
 candidates (the hypothesis) rather than typing it.  Only a single gap is
 supported per thema.  The answer must appear verbatim in the sentence.
 
+*** Accepted aliases
+
+Basic typed answers, Image-occlusion and Model-name can accept explicitly
+authored alternative spellings. Keep one canonical Answer and add a separate
+second-level heading in the native draft, for example:
+
+#+begin_example
+** Accepted aliases
+- ATFL
+- Anterior talofibular lig.
+#+end_example
+
+Use one nonempty, single-line list item per alias. Spelling and order are
+preserved; aliases are not inferred synonyms. Canonical text and each alias
+use the same quote trimming, whitespace removal, case folding and configured
+~gnosis-string-difference~ tolerance, including the existing short-string
+exact-match rule. Reveal text and input-method selection still use the
+canonical Answer. Basic self-grading does not perform typed matching.
+Aliases are not supported on MCQ, cloze, MC-cloze, Image-region or Model Find.
+Double creates two basic themata; supplied aliases belong only to the forward
+question, not its reverse.
+
+Save with =C-c C-c= and reopen through the normal edit command to inspect the
+retained field. Removing or emptying the Accepted aliases section in a full
+draft clears the aliases. Duplicate or unknown field headings are rejected;
+do not put aliases in Answer as additional required answers. Changing aliases
+during input or before accepting its pending result requires answering again.
+
 *** Images, regions and occlusion
 
 In an ordinary thema draft, put point in the question, hint, answer or
@@ -788,22 +816,44 @@ previous behavior.
 
 For a region question, run ~gnosis-add-image-thema~ or choose Image-region
 in ~gnosis-add-thema~. Choose an image, drag with the left mouse button to
-draw a rectangle, and enter its label. Click a rectangle to select it;
-=d= deletes the selected rectangle from this edit. =RET= accepts the regions;
+draw a rectangle, and enter its label. Click a rectangle to select it.
+Each target can own several rectangles, for example repeated printed labels:
+
+- =S-drag-mouse-1= adds a rectangle to the selected target; ordinary dragging
+  creates a new target instead.
+- =n= / =p= selects the next/previous rectangle, including obscured overlaps.
+- =r= reassigns the selected rectangle to an existing or new target.
+- =l= renames the target without changing its ID or merging equal labels.
+- =d= removes one rectangle; =D= removes its whole target. Removing a target's
+  last rectangle requires confirmation, including when reassigning it.
+
+=RET= accepts the regions;
 =q= or =C-g= cancels. Choose the expected region, then write the question,
 explanation and tags in the normal draft. No JSON or coordinates are needed.
 =C-c C-a= in an image thema draft lets you reuse or replace the image and
 edit its regions. Published revisions are immutable: editing does not change
-other themata that use the old revision.
+other themata that use the old revision. Reattachment preserves the authored
+occlusion answer, aliases and policy; changing its target asks whether to keep
+the answer and aliases. Check that they still describe the intended target.
+Single-rectangle version 1 manifests remain readable unchanged; grouped
+rectangles use version 2. Both are limited to 255 targets and 255 total
+rectangles within a 128-KiB manifest.
 
 During Image-region review, click the intended region. Selection is neutral
-and does not grade; =RET= submits it. Feedback shows the expected label and,
+and does not grade; =RET= submits it. Every sibling rectangle identifies
+the same stable target. Feedback shows the expected label and,
 for an incorrect selection, the selected label rather than its stored ID.
 Image-occlusion uses the same authoring flow, with an editable text Answer
 initially taken from the region label. The Image resource field holds the
-managed reference and stable target as two list items; Answer is separate
-human-readable text. During review the image appears inline below the keimenon
-in the ordinary Gnosis buffer, with the target covered by an opaque mask.
+managed reference, stable target and visibility policy as three list items;
+Answer is separate human-readable text. Choose the policy at attachment:
+=hide-target= covers every rectangle of the tested target; =hide-all= covers
+all annotated rectangles. Older one/two-field cards default to =hide-target=.
+Both policies mark the tested masks with a neutral outline and =?=, without
+generated answer labels, IDs or aliases. Annotate every answer-bearing printed
+label yourself: masking does not perform OCR or hide unannotated text.
+During review the image appears inline below the keimenon in the ordinary
+Gnosis buffer.
 Type its answer in the minibuffer and press =RET=. Normal Gnosis text matching
 checks the answer, then removes the mask to show the original image without
 region labels or outlines. The expected answer and any incorrect input appear
@@ -831,14 +881,16 @@ with database backups. Content-only SQLite export/import refuses managed
 image content because it does not bundle the assets. TIFF and DICOM are not
 supported; no converter, medical atlas or external image service is required.
 
-*** Model (selection review)
+*** Models: Find and Name
 
-Model themata ask you to select an object in a local 3D scene.  They support
-both scheduled review and non-rescheduling practice.  Due selection, the
-daily new-item limit, topic summaries and overdue counts treat models like
+Model Find asks you to pick a whole object, surface point or surface region
+in a local 3D scene. Model-name highlights a target and asks for its name.
+Both support scheduled review and non-rescheduling practice. Due selection,
+the daily new-item limit, topic summaries and overdue counts treat models like
 ordinary themata; suspension excludes them from both kinds of study.
 
-Run ~gnosis-add-model-thema~, or select Model in ~gnosis-add-thema~.
+Run ~gnosis-add-model-thema~ for Find or ~gnosis-add-model-name-thema~ for
+Name; both types are also available in ~gnosis-add-thema~.
 Choose a local OBJ file, add more objects through the file chooser if
 needed, and give each object a readable label.  Supply the actual
 license/attribution (including required notices) and source/provenance;
@@ -857,6 +909,22 @@ camera, or =q= / =C-g= to cancel.  No thema is created on cancellation.
 The temporary viewer fits the current window and restores the previous
 window arrangement when it closes.
 
+To author landmarks on the imported mesh, click a surface and wait for the
+renderer, then use these authoring controls:
+
+- =p= creates a point with a label and an explicit tolerance in original mesh
+  units; =m= moves the selected point to the clicked surface, retaining its ID
+  and tolerance.
+- =g= creates a region from the clicked triangle; =a= toggles the clicked
+  triangle in the selected region on the same mesh. Its last triangle cannot
+  be removed this way: delete the target instead.
+- =t= selects an existing target by completion; =e= edits its label and, for
+  points, tolerance; =d= removes the target after confirmation.
+
+These changes publish a new scene revision when accepted, not edits to shared
+published bytes. Use =t= to return to an existing object or landmark before
+accepting the target and camera with =RET=.
+
 Fill in the question, explanation and tags in the normal Org authoring
 buffer and save with =C-c C-c=.  In a single Model draft, =C-c C-a= offers
 to reframe its existing scene or attach another one.  Cancellation leaves
@@ -869,9 +937,15 @@ A prefix argument to ~gnosis-add-model-thema~ or =C-c C-a= uses explicit
 target completion and numeric camera input instead of the visual canvas.
 ~gnosis-model-import~ remains a non-graphical manifest import API.
 
-The Model-specific /Resource and starting view/ section holds four list
-items: the managed resource reference, yaw, pitch and zoom.  The Answer
-section holds one stable target ID, not a display label.  Every save
+For Find, /Resource and starting view/ holds four list items: the managed
+resource reference, yaw, pitch and zoom. Answer holds one stable target ID,
+not a display label. For Name, the resource section instead holds five items:
+resource, target ID, yaw, pitch and zoom; Answer holds one editable canonical
+name, initially taken from the target label. Add Accepted aliases separately.
+Reattachment preserves authored name and aliases even when the target changes;
+check that they still describe the new target. Save, close and reopen using
+the ordinary edit flow; both modes retain their resource, target and starting
+view. Every save
 validates these fields against the pinned scene.  Camera values are
 finite numbers; zoom is between 0.25 and 4.  Resource data never occupies
 the review-image field.
@@ -891,6 +965,27 @@ normalizes the whole scene jointly.  For example:
   "source": "Author-provided local example"
 }
 #+end_src
+
+This unversioned scene remains supported with whole-object targets and no
+resource rewrite. Version 2 scenes add ="version": 2= and a =targets= array,
+separate from =objects=. Each target has a unique =id=, =label=, =mesh= object
+ID and =kind= (="object"=, ="point"= or ="region"=). Points add a zero-based
+=face=, three =barycentric= weights summing to one and a positive =tolerance=;
+regions add a nonempty list of distinct =faces=. Faces are file-order OBJ
+fan triangles: a polygon becomes =(v0, vi, vi+1)=. Points use original mesh
+coordinates, not normalized display coordinates. Point matching uses Euclidean
+distance within the authored tolerance on the same mesh; it is not a geodesic
+surface-distance test. Regions match their listed triangle identities.
+Among overlapping eligible targets of the requested kind, the nearest point
+wins; equal distances and overlapping regions resolve by stable ID order.
+Avoid overlapping targets if that tie-breaking would make a question ambiguous.
+
+Scenes allow up to 4096 targets and two million triangles, within a 64-KiB
+manifest and 100-MB limit per OBJ. Native authoring edits targets, not mesh
+topology. Only local OBJ geometry is supported; textures and materials are not
+loaded. Invalid indices, nonfinite vertices and degenerate triangles are
+rejected. Do not transfer face indices to changed topology: reimport and
+explicitly reattach a newly validated revision.
 
 The license string must include the required attribution and license
 notice/URL, not just a guessed identifier.  Source records provenance.
@@ -924,7 +1019,21 @@ checkout.  Prepare its locked, project-local Python environment explicitly:
 
 #+begin_src sh
 uv sync --locked --project /path/to/gnosis/optional/canvas-3d
+/path/to/gnosis/optional/canvas-3d/preflight.py --emacs /path/to/emacs
 #+end_src
+
+The backend supports Python 3.12--3.14 and Linux EGL/OpenGL 3.3; other platforms
+are not verified. The lockfile selects the Python packages, not the system
+GPU driver or Emacs canvas capability. Preflight tests compiled Emacs support,
+Python imports and real EGL frames; it does not prove display in a particular
+graphical session. Install the whole optional directory and recreate its local
+environment rather than copying a virtual environment.
+
+Use matching =canvas-3d.el= and =render.py= from this backend: real viewers
+use the C3D2 frame protocol (sequence, BGRA color, object IDs, full 32-bit
+triangle IDs and original-coordinate XYZ). It does not negotiate with an old
+C3D1 renderer. Geometry and picking belong to the backend; Gnosis owns target
+interpretation and grading.
 
 Gnosis loads the backend only when opening a model.  With
 ~gnosis-model-renderer-directory~ nil, it discovers =canvas-3d.el= on
@@ -942,13 +1051,20 @@ Review reserves space for the question in the same buffer.
 **** Reviewing or practising a model
 
 Start an ordinary due review or practice batch containing the model (for
-example, a linked-topic session).  The interactive canvas appears inline
-below the keimenon, in the ordinary Gnosis review buffer.  Drag to rotate, use the wheel or =+= / =-= to zoom,
-and click to select.  The highlight and neutral selection status do not
+example, a linked-topic session). The interactive canvas appears inline
+below the keimenon, in the ordinary Gnosis review buffer. For Find, drag to
+rotate, use the wheel or =+= / =-= to zoom, and click to select.  The highlight and neutral selection status do not
 reveal anatomical labels.  *Clicks and drags never grade.*  Press =RET=
 when the view is ready to explicitly submit.  The renderer stops, leaving
 its last image beside the question, and feedback reveals the expected target label (and your selection on an
 incorrect answer).  This is a pending result, not an accepted grade.
+For Name, the question target stays highlighted through rotation, zoom and
+reset, without its label. Occluded surfaces remain occluded; rotate to inspect
+them. Exploratory clicks cannot change the question target. Press =RET= to
+enter the name in the minibuffer, then =RET= to submit the typed answer.
+Canonical text or an explicit alias is matched using ordinary text rules;
+feedback reveals the canonical answer. Cancelling typing produces no grade.
+
 The ordinary Gnosis result actions (=n= to accept, =o= to correct the binary
 outcome) apply: correct answers use Good, incorrect answers use Again.
 Scheduled acceptance commits the event and FSRS state together; its preview
@@ -959,8 +1075,8 @@ its status in the heading; =e= opens diagnostics.  Cancel and resume after
 repairing the backend or restoring the exact resource.
 
 Pending input belongs to its original database, session, encounter, thema
-and renderer.  Changed views require a fresh selection; in-flight views
-cannot submit.  Encounter ownership and resource/content validation run
+and renderer. Find validates selection against the displayed frame; in-flight
+views cannot submit.  Encounter ownership and resource/content validation run
 again at acceptance, including after an outcome override.  A changed thema,
 database or resource requires cancelling and answering again.  A failed validation leaves no
 new practice or scheduled-review evidence.
@@ -1526,7 +1642,7 @@ Gnosis exports and imports themata using SQLite database files (=.gnosis=
 extension).  This is faster and more reliable than text-based formats,
 especially for large collections.
 
-** Database Version 10
+** Database Version 12
 
 On opening an older supported database, Gnosis runs its versioned
 migrations.  The version 9 to 10 migration adds separate practice
@@ -1536,6 +1652,14 @@ scheduled events and state and initially selects configuration 1.  The
 migration is transactional: its schema and version change together.
 Earlier databases first pass through the earlier migrations; legacy
 aggregate review totals do not become invented event-level history.
+
+Version 11 retains study-session snapshots by identity in =study_history=.
+Version 12 adds nullable =themata.accepted_aliases= without rewriting existing
+answers or review history; old rows have no aliases. This database version is
+separate from portable content format 3, which carries aliases explicitly.
+Content formats 1 and 2 remain readable and supply no aliases. Alias-only
+changes and clears appear in import preview and participate in drift checks.
+Format 3 is still content-only: it does not bundle managed images or models.
 
 Keep a full database backup before upgrading, as well as separate
 backups of Org sources and referenced media.  A portable content export

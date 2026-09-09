@@ -29,6 +29,8 @@
 (declare-function canvas-3d--request "canvas-3d")
 (defvar canvas-3d--directory)
 (defvar canvas-3d--process)
+(defvar canvas-3d--selection)
+(defvar canvas-3d--question-target)
 (defvar canvas-3d--frame)
 (defvar canvas-3d--busy)
 (defvar canvas-3d--dirty)
@@ -97,6 +99,7 @@ Return the manifest alist; it owns stable targets and provenance."
                    (not (string-empty-p (string-trim (alist-get field scene)))))
         (user-error "Scene requires %s metadata" field)))
     (gnosis-model--view (alist-get 'initial_view scene))
+    (gnosis-model--validate-targets scene directory)
     scene))
 
 (defun gnosis-model--revision (directory)
@@ -150,16 +153,19 @@ stable target ID.  Refuse missing or changed resources, never score them."
               (not (equal revision (gnosis-model--revision directory))))
       (user-error "Model unavailable: revision changed"))
     (unless (seq-find (lambda (o) (equal (car answer) (alist-get 'id o)))
-                      (alist-get 'objects (gnosis-model--scene file)))
+                      (gnosis-model--targets (gnosis-model--scene file)))
       (user-error "Model target is absent from its pinned scene"))
     (list file (gnosis-model--view view))))
 
-(defun gnosis-model--save (id type keimenon hypothesis answer parathema tags suspend links)
+(cl-defun gnosis-model--save (id type keimenon hypothesis answer parathema tags suspend links
+                               &optional (accepted-aliases nil aliases-p))
   "Save model ID of TYPE with validated content fields.
-Validate KEIMENON, HYPOTHESIS, ANSWER, PARATHEMA, TAGS, SUSPEND and LINKS."
+Validate KEIMENON, HYPOTHESIS, ANSWER, PARATHEMA, TAGS, SUSPEND and LINKS.
+Forward ACCEPTED-ALIASES when supplied; omission preserves stored aliases."
   (gnosis-add-thema--assert-common keimenon tags suspend links)
-  (gnosis-model-resolve hypothesis answer)
-  (gnosis-add-thema--dispatch id type keimenon hypothesis answer parathema tags suspend links))
+  (gnosis-model-fields type hypothesis answer)
+  (apply #'gnosis-add-thema--dispatch id type keimenon hypothesis answer parathema tags suspend links
+         (and aliases-p (list accepted-aliases))))
 
 (defun gnosis-model--object-file (file)
   "Return readable local OBJ FILE, rejecting symlinks and directories."
@@ -217,6 +223,10 @@ those names.  Geometry changes create new immutable revisions, not new IDs."
 
 (defun gnosis-model--author-check (context)
   "Reject changed authoring owner or database in CONTEXT."
+  (when (eq context gnosis-model--author-context)
+    (unless (and context (eq (plist-get context :process) canvas-3d--process)
+                 (process-live-p canvas-3d--process))
+      (user-error "Model authoring renderer changed")))
   (let ((owner (plist-get context :buffer)))
     (unless (and (buffer-live-p owner)
                  (eq (plist-get context :database) (gnosis--ensure-db))
@@ -254,7 +264,7 @@ those names.  Geometry changes create new immutable revisions, not new IDs."
 (defun gnosis-model--read-numeric (hypothesis answer)
   "Read advanced target and camera fields from HYPOTHESIS and ANSWER."
   (let* ((resolved (gnosis-model-resolve hypothesis answer))
-         (objects (alist-get 'objects (gnosis-model--scene (car resolved))))
+         (objects (gnosis-model--targets (gnosis-model--scene (car resolved))))
          (choices (mapcar (lambda (o)
                             (cons (format "%s (%s)" (alist-get 'label o) (alist-get 'id o))
                                   (alist-get 'id o))) objects))
@@ -280,7 +290,7 @@ input instead of the canvas.  Import immutable assets before visual input."
                    (scene (gnosis-model--scene
                            (expand-file-name reference (gnosis-assets-root)))))
               (list (cons reference (mapcar #'number-to-string (alist-get 'initial_view scene)))
-                    (list (alist-get 'id (car (alist-get 'objects scene)))))))))
+                    (list (alist-get 'id (car (gnosis-model--targets scene)))))))))
     (gnosis-model--author-check context)
     (apply #'gnosis-model-resolve fields)
     (let ((result (if advanced (apply #'gnosis-model--read-numeric fields)
@@ -296,7 +306,7 @@ input instead of the canvas.  Import immutable assets before visual input."
          (id (plist-get context :target))
          (object (seq-find (lambda (o) (equal id (alist-get 'id o)))
                            (plist-get context :objects))))
-    (format " %s | %s | RET accept, q cancel, ? help"
+    (format " %s | %s | p point, g region, a triangle, t target, e edit, m move, d delete | RET accept, q cancel, ? help"
             (if object (alist-get 'label object) "Click target; drag to frame")
             (if (process-live-p canvas-3d--process) canvas-3d--status
               (concat "Unavailable: " canvas-3d--status)))))
@@ -306,7 +316,14 @@ input instead of the canvas.  Import immutable assets before visual input."
   (when (and gnosis-model--author-context
              (eq (plist-get selection :owner) canvas-3d--process)
              (equal (plist-get selection :frame) (plist-get canvas-3d--frame :seq)))
-    (setf (plist-get gnosis-model--author-context :target) (plist-get selection :id))
+    (unless canvas-3d--question-target
+      (setf (plist-get gnosis-model--author-context :target)
+            (or (alist-get 'id
+                           (seq-find (lambda (target)
+                                       (and (equal (alist-get 'kind target) "object")
+                                            (equal (alist-get 'mesh target) (plist-get selection :id))))
+                                     (plist-get gnosis-model--author-context :objects)))
+                (plist-get selection :id))))
     (force-mode-line-update)))
 
 (defun gnosis-model-author-cancel ()
@@ -327,7 +344,13 @@ input instead of the canvas.  Import immutable assets before visual input."
                  (= (recursion-depth) (1+ (plist-get context :depth))))
       (user-error "No active visual model authoring"))
     (gnosis-model--author-check context)
-    (unless (and target (equal target canvas-3d-selected-id)
+    (unless (and target
+                 (or (equal target canvas-3d-selected-id)
+                     (equal target (alist-get 'id canvas-3d--question-target))
+                     (let ((item (seq-find (lambda (item) (equal target (alist-get 'id item)))
+                                           (plist-get context :objects))))
+                       (and (equal (alist-get 'kind item) "object")
+                            (equal (alist-get 'mesh item) canvas-3d-selected-id))))
                  (process-live-p canvas-3d--process)
                  (eq (plist-get context :process) canvas-3d--process)
                  (eq (plist-get canvas-3d--frame :owner) canvas-3d--process)
@@ -339,7 +362,10 @@ input instead of the canvas.  Import immutable assets before visual input."
                                      (list canvas-3d--yaw canvas-3d--pitch)
                                      (seq-take (plist-get context :view) 2))
                           (list canvas-3d--zoom))))
-           (fields (list (cons (plist-get context :reference) (mapcar #'number-to-string view))
+           (reference (if (plist-get context :changed)
+                          (gnosis-model--publish-scene (plist-get context :scene) (plist-get context :directory))
+                        (plist-get context :reference)))
+           (fields (list (cons reference (mapcar #'number-to-string view))
                          (list target))))
       (apply #'gnosis-model-resolve fields)
       (setf (plist-get context :result) fields)
@@ -356,9 +382,14 @@ input instead of the canvas.  Import immutable assets before visual input."
   "Read target and camera visually from HYPOTHESIS, ANSWER and OWNER context."
   (let* ((resolved (gnosis-model-resolve hypothesis answer))
          (initial (plist-get owner :initial))
+         (scene (gnosis-model--scene (car resolved)))
+         (directory (file-name-directory (car resolved)))
          (context (append owner
                           (list :reference (car hypothesis) :view (cadr resolved) :depth (recursion-depth)
-                                :objects (alist-get 'objects (gnosis-model--scene (car resolved)))
+                                :objects (gnosis-model--targets (gnosis-model--scene (car resolved)))
+                                :scene scene :directory directory :serial (or (alist-get 'target_serial scene) 0)
+                                :geometry (gnosis-model--validate-targets scene directory)
+                                :used-ids (mapcar (lambda (o) (alist-get 'id o)) (gnosis-model--targets scene))
                                 :target (and initial (car answer)) :process nil
                                 :result nil :cancelled nil)))
          viewer)
@@ -373,6 +404,13 @@ input instead of the canvas.  Import immutable assets before visual input."
               (setf (plist-get context :process) canvas-3d--process)
               (use-local-map (copy-keymap (current-local-map)))
               (local-set-key (kbd "RET") #'gnosis-model-author-accept)
+              (local-set-key (kbd "p") #'gnosis-model-author-point)
+              (local-set-key (kbd "m") #'gnosis-model-author-move)
+              (local-set-key (kbd "g") #'gnosis-model-author-region)
+              (local-set-key (kbd "a") #'gnosis-model-author-region-toggle)
+              (local-set-key (kbd "t") #'gnosis-model-author-target)
+              (local-set-key (kbd "e") #'gnosis-model-author-edit)
+              (local-set-key (kbd "d") #'gnosis-model-author-remove)
               (local-set-key (kbd "q") #'gnosis-model-author-cancel)
               (local-set-key (kbd "C-g") #'gnosis-model-author-cancel)
               (setq-local header-line-format '(:eval (gnosis-model--author-header)))
@@ -381,6 +419,7 @@ input instead of the canvas.  Import immutable assets before visual input."
               (add-hook 'change-major-mode-hook #'gnosis-model-author-cancel nil t)
               (when initial
                 (setq canvas-3d-selected-id (car answer))
+                (setq-local canvas-3d--question-target (gnosis-model-target scene (car answer)))
                 (canvas-3d--request))
               (goto-char (point-min)))
             (recursive-edit)
@@ -393,15 +432,22 @@ input instead of the canvas.  Import immutable assets before visual input."
           (kill-buffer viewer))))))
 
 ;;;###autoload
-(defun gnosis-add-model-thema ()
+(defun gnosis-add-model-thema (&optional type)
   "Import objects and visually choose a target and view for a new thema.
+TYPE defaults to \"model\" (Find); \"model-name\" creates a typed Name card.
 With a prefix argument, use advanced numeric input instead of the canvas."
   (interactive)
   (when (get-buffer "*Gnosis NEW*") (user-error "Finish the existing draft first"))
   (pcase-let ((`(,hypothesis ,answer) (gnosis-model--read-fields)))
-    (gnosis-add-thema "model" nil
-                      (mapconcat #'identity hypothesis gnosis-export-separator)
-                      (car answer))))
+    (let* ((type (or type "model"))
+           (fields (gnosis-model-fields "model" hypothesis answer))
+           (target (gnosis-model-target (gnosis-model--scene (plist-get fields :scene)) (car answer))))
+      (unless (member type '("model" "model-name")) (user-error "Invalid model type"))
+      (gnosis-add-thema type nil
+                       (mapconcat #'identity (if (equal type "model-name")
+                                                (cons (car hypothesis) (cons (car answer) (cdr hypothesis)))
+                                              hypothesis) gnosis-export-separator)
+                       (if (equal type "model-name") (alist-get 'label target) (car answer))))))
 
 (defun gnosis-model-attach ()
   "Attach a scene to the single model thema in the current authoring buffer.
@@ -414,12 +460,16 @@ With a prefix argument, use advanced numeric input instead of the canvas."
          (tick (buffer-chars-modified-tick))
          (themata (gnosis-export-parse-themata))
          (thema (car themata)))
-    (unless (and (= (length themata) 1) (equal (downcase (nth 1 thema)) "model"))
+    (unless (and (= (length themata) 1) (member (downcase (nth 1 thema)) '("model" "model-name")))
       (user-error "Attach a scene in a single model thema draft"))
     (pcase-let ((`(,hypothesis ,answer)
                  (gnosis-model--read-fields
-                  (when (= (length (nth 3 thema)) 4)
-                    (list (nth 3 thema) (nth 4 thema))))))
+                  (if (equal (downcase (nth 1 thema)) "model-name")
+                      (let ((fields (gnosis-model-fields "model-name" (nth 3 thema) (nth 4 thema))))
+                        (list (cons (plist-get fields :resource) (cddr (nth 3 thema)))
+                              (list (plist-get fields :target))))
+                    (when (= (length (nth 3 thema)) 4)
+                      (list (nth 3 thema) (nth 4 thema)))))))
       (unless (and (buffer-live-p owner)
                    (with-current-buffer owner
                      (and (eq mode major-mode)
@@ -430,9 +480,12 @@ With a prefix argument, use advanced numeric input instead of the canvas."
           (let ((inhibit-read-only t))
             (erase-buffer)
             (gnosis-export--insert-thema
-             (nth 0 thema) "model" (nth 2 thema)
-             (mapconcat #'identity hypothesis gnosis-export-separator)
-             (car answer) (nth 5 thema) (nth 6 thema))
+             (nth 0 thema) (downcase (nth 1 thema)) (nth 2 thema)
+             (mapconcat #'identity (if (equal (downcase (nth 1 thema)) "model-name")
+                                      (cons (car hypothesis) (cons (car answer) (cdr hypothesis)))
+                                    hypothesis) gnosis-export-separator)
+             (if (equal (downcase (nth 1 thema)) "model-name") (car (nth 4 thema)) (car answer))
+             (nth 5 thema) (nth 6 thema) nil (nth 8 thema))
             (goto-char (point-min))))))))
 
 (defun gnosis-model--renderer-directory ()
@@ -444,11 +497,14 @@ With a prefix argument, use advanced numeric input instead of the canvas."
       (let ((bundled (expand-file-name "../optional/canvas-3d" gnosis-model--directory)))
         (when (file-readable-p (expand-file-name "canvas-3d.el" bundled)) bundled))))
 
-(defun gnosis-model-open (path view &optional size inline)
+(defun gnosis-model-open (path view &optional size inline question-target)
   "Open validated scene PATH at VIEW using the optional canvas backend.
 SIZE defaults to 512 pixels; callers with an owned layout may pass its actual
 available size.  INLINE attaches at point, preserving the current buffer.
-Never install dependencies or use the network on opening."
+Never install dependencies or use the network on opening.
+QUESTION-TARGET locks a label-free target highlight during inspection."
+  (when question-target
+    (gnosis-model-target (gnosis-model--scene path) question-target))
   (let* ((directory (gnosis-model--renderer-directory))
          (load-path (if directory (cons directory load-path) load-path)))
     (when (and directory (file-remote-p directory))
@@ -463,12 +519,381 @@ Never install dependencies or use the network on opening."
         (user-error
          (user-error "Model renderer dependencies missing: run uv sync --locked --project %s (OpenGL/EGL required)"
                      (shell-quote-argument canvas-3d--directory))))
-      (if inline
+      (let ((buffer (if inline
           (progn
             (unless (fboundp 'canvas-3d-attach)
               (user-error "Update the optional canvas backend for inline review"))
             (canvas-3d-attach path "Gnosis model" view (or size 512)))
-        (canvas-3d-open path "Gnosis model" view (or size 512))))))
+        (canvas-3d-open path "Gnosis model" view (or size 512)))))
+        (with-current-buffer buffer
+          (when question-target
+            (setq-local canvas-3d--question-target
+                        (gnosis-model-target (gnosis-model--scene path) question-target))
+            (canvas-3d--request)))
+        buffer))))
+
+(defun gnosis-model--geometry (file)
+  "Return deterministic original-coordinate triangle vector from OBJ FILE."
+  (when (> (file-attribute-size (file-attributes file)) 100000000)
+    (user-error "OBJ exceeds 100 MB"))
+  (with-temp-buffer
+    (insert-file-contents file)
+    (let (vertices faces (count 0))
+      (dolist (line (split-string (buffer-string) "\n" t))
+        (let ((parts (split-string (car (split-string line "#")) "[ \t\r]+" t)))
+          (pcase (car parts)
+            ("v"
+             (unless (>= (length parts) 4) (user-error "OBJ vertex requires three coordinates"))
+             (push (mapcar #'gnosis-model--number (seq-take (cdr parts) 3)) vertices)
+             (cl-incf count))
+            ("f"
+             (unless (>= (length parts) 4) (user-error "OBJ face requires three vertices"))
+             (let ((indices
+                    (mapcar (lambda (part)
+                              (let ((text (car (split-string part "/"))))
+                                (unless (string-match-p "\\`-?[0-9]+\\'" text)
+                                  (user-error "Invalid OBJ index"))
+                                (let* ((n (string-to-number text))
+                                       (i (if (> n 0) (1- n) (+ count n))))
+                                  (unless (and (/= n 0) (<= 0 i) (< i count))
+                                    (user-error "OBJ index outside vertices"))
+                                  i))) (cdr parts))))
+               (cl-loop for rest on (cdr indices) while (cdr rest)
+                        do (push (list (car indices) (car rest) (cadr rest)) faces)))))))
+      (unless (and faces (<= (length faces) 2000000))
+        (user-error "OBJ requires 1..2000000 triangles"))
+      (let ((points (vconcat (nreverse vertices))))
+        (vconcat (mapcar (lambda (face)
+                           (let ((triangle (mapcar (lambda (i) (aref points i)) face)))
+                             (gnosis-model--barycentric (car triangle) triangle)
+                             triangle))
+                         (nreverse faces)))))))
+
+(defun gnosis-model--number (text)
+  "Parse finite numeric TEXT without accepting trailing junk."
+  (unless (and (stringp text)
+               (string-match-p "\\`[-+]?\\(?:[0-9]+\\(?:\\.[0-9]*\\)?\\|\\.[0-9]+\\)\\(?:[eE][-+]?[0-9]+\\)?\\'" text))
+    (user-error "Invalid model number"))
+  (let ((n (string-to-number text)))
+    (unless (<= (abs n) 1000000) (user-error "Model number out of bounds")) n))
+
+(defun gnosis-model--targets (scene)
+  "Return targets from SCENE, projecting legacy objects without mutation."
+  (if (equal (alist-get 'version scene) 2) (alist-get 'targets scene)
+    (mapcar (lambda (o) `((id . ,(alist-get 'id o)) (label . ,(alist-get 'label o))
+                         (mesh . ,(alist-get 'id o)) (kind . "object")))
+            (alist-get 'objects scene))))
+
+(defun gnosis-model-target (scene id)
+  "Return target ID from validated SCENE or signal an error."
+  (or (seq-find (lambda (target) (equal id (alist-get 'id target)))
+                (gnosis-model--targets scene))
+      (user-error "Model target is absent from its pinned scene")))
+
+(defun gnosis-model--validate-targets (scene directory)
+  "Validate SCENE topology and target geometry in DIRECTORY."
+  (unless (or (not (assq 'version scene)) (equal (alist-get 'version scene) 2))
+    (user-error "Unknown model scene version"))
+  (when (assq 'target_serial scene)
+    (unless (and (integerp (alist-get 'target_serial scene))
+                 (<= 0 (alist-get 'target_serial scene) 1000000000))
+      (user-error "Invalid target serial")))
+  (when (and (not (assq 'version scene)) (assq 'targets scene))
+    (user-error "Targets require scene version 2"))
+  (let* ((geometry (mapcar (lambda (o)
+                             (cons (alist-get 'id o)
+                                   (gnosis-model--geometry
+                                    (gnosis-assets-file directory (alist-get 'path o)))))
+                           (alist-get 'objects scene)))
+         (targets (gnosis-model--targets scene)))
+    (when (> (apply #'+ (mapcar (lambda (entry) (length (cdr entry))) geometry)) 2000000)
+      (user-error "Scene exceeds two million triangles"))
+    (unless (and (proper-list-p targets) (<= 1 (length targets) 4096)
+                 (= (length targets) (length (delete-dups
+                                             (mapcar (lambda (o) (alist-get 'id o)) targets)))))
+      (user-error "Scene requires unique targets"))
+    (dolist (target targets)
+      (let* ((mesh (cdr (assoc (alist-get 'mesh target) geometry)))
+             (kind (alist-get 'kind target))
+             (face (alist-get 'face target))
+             (bary (alist-get 'barycentric target))
+             (radius (alist-get 'tolerance target))
+             (faces (alist-get 'faces target)))
+        (unless (and mesh (stringp (alist-get 'id target))
+                     (string-match-p "\\`[[:alnum:]_-]+\\'" (alist-get 'id target))
+                     (stringp (alist-get 'label target))
+                     (not (string-empty-p (string-trim (alist-get 'label target)))))
+          (user-error "Invalid model target identity"))
+        (pcase kind
+          ("object" (when (or face bary radius faces) (user-error "Object target has geometry")))
+          ("point"
+           (unless (and (integerp face) (<= 0 face) (< face (length mesh))
+                        (proper-list-p bary) (= (length bary) 3)
+                        (seq-every-p (lambda (n) (and (numberp n) (<= 0 n 1))) bary)
+                        (< (abs (- (apply #'+ bary) 1)) 0.000001)
+                        (numberp radius) (< 0 radius) (<= radius 1000000) (not faces))
+             (user-error "Invalid surface point or tolerance")))
+          ("region"
+           (unless (and (proper-list-p faces) faces (not face) (not bary) (not radius)
+                        (= (length faces) (length (delete-dups (copy-sequence faces))))
+                        (seq-every-p (lambda (n) (and (integerp n) (<= 0 n) (< n (length mesh)))) faces))
+             (user-error "Invalid surface region")))
+          (_ (user-error "Unknown model target kind")))))
+    geometry))
+
+(defun gnosis-model-fields (type hypothesis answer)
+  "Validate TYPE, HYPOTHESIS and ANSWER and return resolved model fields."
+  (unless (and (member type '("model" "model-name"))
+               (proper-list-p hypothesis) (= (length hypothesis) (if (equal type "model") 4 5))
+               (seq-every-p #'stringp hypothesis)
+               (proper-list-p answer) (= (length answer) 1) (stringp (car answer))
+               (not (string-empty-p (string-trim (car answer)))))
+    (user-error "Invalid model fields"))
+  (let* ((name (equal type "model-name"))
+         (target (if name (nth 1 hypothesis) (car answer)))
+         (legacy (if name (cons (car hypothesis) (cddr hypothesis)) hypothesis))
+         (resolved (gnosis-model-resolve legacy (list target))))
+    (list :resource (car hypothesis) :scene (car resolved) :view (cadr resolved)
+          :target target :response (if name 'name 'find) :answer (and name (car answer)))))
+
+(defun gnosis-model--point (target geometry)
+  "Return original coordinate of point TARGET in GEOMETRY."
+  (apply #'cl-mapcar (lambda (&rest coordinates)
+                      (apply #'+ (cl-mapcar #'* coordinates (alist-get 'barycentric target))))
+         (aref geometry (alist-get 'face target))))
+
+(defun gnosis-model--candidate (scene geometry expected hit)
+  "Resolve HIT against SCENE GEOMETRY using EXPECTED target kind, not grading."
+  (let* ((kind (alist-get 'kind (gnosis-model-target scene expected)))
+         (mesh (plist-get hit :mesh))
+         (point (plist-get hit :point))
+         (face (plist-get hit :face)))
+    (alist-get 'id
+               (car (sort
+                     (seq-filter
+                      (lambda (target)
+                        (and (equal kind (alist-get 'kind target))
+                             (equal mesh (alist-get 'mesh target))
+                             (pcase kind
+                               ("object" t)
+                               ("region" (member face (alist-get 'faces target)))
+                               ("point" (and point
+                                             (<= (apply #'+ (cl-mapcar
+                                                              (lambda (a b) (expt (- a b) 2)) point
+                                                              (gnosis-model--point target (cdr (assoc mesh geometry)))))
+                                                 (expt (alist-get 'tolerance target) 2)))))))
+                      (gnosis-model--targets scene))
+                     (lambda (a b)
+                       (let ((distance
+                              (lambda (target)
+                                (if (equal kind "point")
+                                    (apply #'+ (cl-mapcar
+                                                (lambda (x y) (expt (- x y) 2)) point
+                                                (gnosis-model--point target (cdr (assoc mesh geometry)))))
+                                  0))))
+                         (let ((da (funcall distance a)) (db (funcall distance b)))
+                           (if (= da db) (string< (alist-get 'id a) (alist-get 'id b))
+                             (< da db))))))))))
+
+(defun gnosis-model-selection (fields)
+  "Return current owned surface selection resolved against FIELDS.
+Retain :mesh, :face, :point, :frame and :owner for every valid surface hit.
+Its :id is nil outside eligible targets, so callers may grade a wrong hit.
+Return nil for background; reject stale or in-flight renderer state."
+  (unless (and (process-live-p canvas-3d--process)
+               (eq (plist-get canvas-3d--selection :owner) canvas-3d--process)
+               (eq (plist-get canvas-3d--frame :owner) canvas-3d--process)
+               (equal (plist-get canvas-3d--selection :frame) (plist-get canvas-3d--frame :seq))
+               (not canvas-3d--busy) (not canvas-3d--dirty))
+    (user-error "No current owned model selection"))
+  (let* ((directory (file-name-directory (plist-get fields :scene)))
+         (scene (gnosis-model--scene (plist-get fields :scene)))
+         (geometry (gnosis-model--validate-targets scene directory))
+         (hit (copy-sequence canvas-3d--selection))
+         (mesh (cdr (assoc (plist-get hit :mesh) geometry))))
+    (unless (equal (plist-get fields :resource)
+                   (concat (gnosis-model--revision directory) "/scene.json"))
+      (user-error "Model resource changed during selection"))
+    (when (plist-get hit :mesh)
+      (unless (and mesh (integerp (plist-get hit :face))
+                   (<= 0 (plist-get hit :face)) (< (plist-get hit :face) (length mesh))
+                   (proper-list-p (plist-get hit :point)) (= (length (plist-get hit :point)) 3)
+                   (seq-every-p (lambda (n) (and (numberp n) (<= (abs n) 1000000)))
+                                (plist-get hit :point)))
+        (user-error "Invalid renderer surface hit"))
+      (setf (plist-get hit :id)
+            (gnosis-model--candidate scene geometry (plist-get fields :target) hit))
+      hit)))
+
+(defun gnosis-model--author-hit ()
+  "Return current owned surface hit for the authoring session."
+  (gnosis-model--author-check gnosis-model--author-context)
+  (unless (and (eq (plist-get gnosis-model--author-context :process) canvas-3d--process)
+               (process-live-p canvas-3d--process)
+               (eq (plist-get canvas-3d--selection :owner) canvas-3d--process)
+               (equal (plist-get canvas-3d--selection :frame) (plist-get canvas-3d--frame :seq))
+               (plist-get canvas-3d--selection :mesh)
+               (integerp (plist-get canvas-3d--selection :face))
+               (not canvas-3d--busy) (not canvas-3d--dirty))
+    (user-error "Click a surface and wait for the renderer"))
+  (copy-tree canvas-3d--selection))
+
+(defun gnosis-model--barycentric (point triangle)
+  "Return barycentric coordinates of POINT on TRIANGLE."
+  (let* ((a (nth 0 triangle))
+         (v0 (cl-mapcar #'- (nth 1 triangle) a))
+         (v1 (cl-mapcar #'- (nth 2 triangle) a))
+         (v2 (cl-mapcar #'- point a))
+         (dot (lambda (u v) (apply #'+ (cl-mapcar #'* u v))))
+         (d00 (funcall dot v0 v0)) (d01 (funcall dot v0 v1))
+         (d11 (funcall dot v1 v1)) (d20 (funcall dot v2 v0))
+         (d21 (funcall dot v2 v1))
+         (den (- (* d00 d11) (* d01 d01))))
+    (when (<= den 0) (user-error "Degenerate surface triangle"))
+    (let* ((v (/ (- (* d11 d20) (* d01 d21)) (float den)))
+           (w (/ (- (* d00 d21) (* d01 d20)) (float den)))
+           (values (mapcar (lambda (n) (max 0.0 (min 1.0 n))) (list (- 1 v w) v w)))
+           (sum (apply #'+ values)))
+      (mapcar (lambda (n) (/ n sum)) values))))
+
+(defun gnosis-model--author-change (target &optional remove)
+  "Replace private TARGET, or REMOVE it, without publishing resources."
+  (let* ((context gnosis-model--author-context)
+         (scene (copy-tree (plist-get context :scene)))
+         (targets (seq-remove (lambda (item) (equal (alist-get 'id item) (alist-get 'id target)))
+                              (gnosis-model--targets scene))))
+    (setf (alist-get 'version scene) 2
+          (alist-get 'target_serial scene) (or (plist-get context :serial) 0)
+          (alist-get 'targets scene) (if remove targets (append targets (list target))))
+    (gnosis-model--validate-targets scene (plist-get context :directory))
+    ;; The reader and viewer share this list.  Adding a missing plist key
+    ;; with `plist-put' may replace only the local head, losing the flag.
+    (unless (plist-member context :changed)
+      (nconc context (list :changed nil)))
+    (setf (plist-get context :scene) scene
+          (plist-get context :objects) (gnosis-model--targets scene)
+          (plist-get context :changed) t
+          (plist-get context :target) (unless remove (alist-get 'id target)))
+    (setq canvas-3d-selected-id nil)
+    (setq-local canvas-3d--question-target (unless remove target))
+    (canvas-3d--request)))
+
+(defun gnosis-model-author-point ()
+  "Create a surface point at the last click with explicit world-unit tolerance."
+  (interactive)
+  (let* ((context gnosis-model--author-context)
+         (hit (gnosis-model--author-hit))
+         (label (read-string "Landmark label: "))
+         (tolerance (read-number "Tolerance (original mesh units): "))
+         (geometry (cdr (assoc (plist-get hit :mesh) (plist-get context :geometry))))
+         (id (gnosis-model--author-id context)))
+    (gnosis-model--author-check context)
+    (unless (equal hit (gnosis-model--author-hit)) (user-error "Surface selection changed"))
+    (gnosis-model--author-change
+     `((id . ,id) (label . ,label) (mesh . ,(plist-get hit :mesh)) (kind . "point")
+       (face . ,(plist-get hit :face))
+       (barycentric . ,(gnosis-model--barycentric (plist-get hit :point)
+                                                (aref geometry (plist-get hit :face))))
+       (tolerance . ,tolerance)))))
+
+(defun gnosis-model--author-id (context)
+  "Allocate a non-recycled target ID in private CONTEXT."
+  (let (id)
+    (while (or (not id) (member id (plist-get context :used-ids)))
+      (setf (plist-get context :serial) (1+ (or (plist-get context :serial) 0)))
+      (setq id (format "landmark-%d" (plist-get context :serial))))
+    (push id (plist-get context :used-ids)) id))
+
+(defun gnosis-model-author-move ()
+  "Move the selected point to the clicked surface, retaining its ID and tolerance."
+  (interactive)
+  (let* ((context gnosis-model--author-context)
+         (hit (gnosis-model--author-hit))
+         (target (copy-tree (gnosis-model-target (plist-get context :scene) (plist-get context :target))))
+         (geometry (cdr (assoc (plist-get hit :mesh) (plist-get context :geometry)))))
+    (unless (equal (alist-get 'kind target) "point") (user-error "Select a point target first"))
+    (setf (alist-get 'mesh target) (plist-get hit :mesh)
+          (alist-get 'face target) (plist-get hit :face)
+          (alist-get 'barycentric target)
+          (gnosis-model--barycentric (plist-get hit :point) (aref geometry (plist-get hit :face))))
+    (gnosis-model--author-change target)))
+
+(defun gnosis-model-author-region ()
+  "Create a surface region from the clicked triangle."
+  (interactive)
+  (let* ((context gnosis-model--author-context)
+         (hit (gnosis-model--author-hit))
+         (label (read-string "Region label: ")))
+    (gnosis-model--author-check context)
+    (unless (equal hit (gnosis-model--author-hit)) (user-error "Surface selection changed"))
+    (gnosis-model--author-change
+     `((id . ,(gnosis-model--author-id context)) (label . ,label)
+       (mesh . ,(plist-get hit :mesh)) (kind . "region") (faces . ,(list (plist-get hit :face)))))))
+
+(defun gnosis-model-author-region-toggle ()
+  "Add or remove the clicked triangle from the selected region."
+  (interactive)
+  (let* ((context gnosis-model--author-context)
+         (hit (gnosis-model--author-hit))
+         (target (copy-tree (gnosis-model-target (plist-get context :scene) (plist-get context :target))))
+         (face (plist-get hit :face))
+         (faces (alist-get 'faces target)))
+    (unless (and (equal (alist-get 'kind target) "region")
+                 (equal (alist-get 'mesh target) (plist-get hit :mesh)))
+      (user-error "Select a region on the clicked mesh first"))
+    (when (and (equal faces (list face))) (user-error "Remove the target to delete its last triangle"))
+    (setf (alist-get 'faces target) (if (member face faces) (remove face faces) (append faces (list face))))
+    (gnosis-model--author-change target)))
+
+(defun gnosis-model-author-target ()
+  "Select an existing target without changing its stable ID."
+  (interactive)
+  (let* ((context gnosis-model--author-context)
+         (targets (gnosis-model--targets (plist-get context :scene)))
+         (choices (mapcar (lambda (item) (cons (format "%s (%s)" (alist-get 'label item)
+                                                       (alist-get 'id item)) (alist-get 'id item))) targets))
+         (id (cdr (assoc (completing-read "Target: " choices nil t) choices))))
+    (gnosis-model--author-check context)
+    (setf (plist-get context :target) id)
+    (setq canvas-3d-selected-id nil)
+    (setq-local canvas-3d--question-target (gnosis-model-target (plist-get context :scene) id))
+    (canvas-3d--request)))
+
+(defun gnosis-model-author-edit ()
+  "Edit selected target label and point tolerance, preserving geometry and ID."
+  (interactive)
+  (let* ((context gnosis-model--author-context)
+         (target (copy-tree (gnosis-model-target (plist-get context :scene) (plist-get context :target))))
+         (label (read-string "Target label: " (alist-get 'label target)))
+         (tolerance (when (equal (alist-get 'kind target) "point")
+                      (read-number "Tolerance (original mesh units): " (alist-get 'tolerance target)))))
+    (gnosis-model--author-check context)
+    (setf (alist-get 'label target) label)
+    (when tolerance (setf (alist-get 'tolerance target) tolerance))
+    (gnosis-model--author-change target)))
+
+(defun gnosis-model-author-remove ()
+  "Remove selected target from the private draft, retaining other targets."
+  (interactive)
+  (let* ((context gnosis-model--author-context)
+         (target (gnosis-model-target (plist-get context :scene) (plist-get context :target))))
+    (when (yes-or-no-p "Remove selected target? ")
+      (gnosis-model--author-check context)
+      (gnosis-model--author-change target t))))
+
+(defun gnosis-model--publish-scene (scene directory)
+  "Publish private SCENE with unmodified geometry from DIRECTORY."
+  (let ((stage (make-temp-file "gnosis-model-targets-" t)))
+    (unwind-protect
+        (progn
+          (dolist (object (alist-get 'objects scene))
+            (let ((path (alist-get 'path object)))
+              (copy-file (gnosis-assets-file directory path) (expand-file-name path stage) t)))
+          (let ((coding-system-for-write 'utf-8-unix)
+                (json-encoding-pretty-print nil))
+            (with-temp-file (expand-file-name "scene.json" stage) (insert (json-encode scene))))
+          (gnosis-model-import (expand-file-name "scene.json" stage)))
+      (delete-directory stage t))))
 
 (provide 'gnosis-model)
 ;;; gnosis-model.el ends here

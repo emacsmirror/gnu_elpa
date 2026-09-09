@@ -46,7 +46,7 @@
 
 (ert-deftest gnosis-db-safety-unsupported-and-malformed-retry ()
   "Reject unknown versions and missing required objects, twice, without writes."
-  (dolist (sql '("PRAGMA user_version = 12" "PRAGMA user_version = 8" "PRAGMA user_version = 7"
+  (dolist (sql '("PRAGMA user_version = 13" "PRAGMA user_version = 8" "PRAGMA user_version = 7"
                  "PRAGMA user_version = 1" "PRAGMA user_version = 0"
                  "DROP TABLE study_history"
                  "ALTER TABLE study_history RENAME COLUMN data TO broken"
@@ -94,7 +94,7 @@
 (ert-deftest gnosis-db-safety-initialization-nonlocal-exits ()
   "Close candidates, roll back all migration steps, and retry on errors/quit."
   (dolist (fault '(error quit))
-    (dolist (stage '(gnosis-db--migrate-v11 gnosis-db--check-schema))
+    (dolist (stage '(gnosis-db--migrate-v11 gnosis-db--migrate-v12 gnosis-db--check-schema))
       (gnosis-test-safety
         (gnosis-test-safety-v9)
         (let* ((file (expand-file-name "gnosis.db" gnosis-dir))
@@ -106,8 +106,8 @@
                      (lambda (path) (let ((db (funcall open path))) (push db handles) db)))
                     ((symbol-function stage)
                      (lambda (&rest args)
-                       ;; Postflight fault proves v10 AND v11 roll back to v9.
-                       (if (or (null args) (= (cadr args) 11))
+                       ;; Postflight fault proves all migrations roll back to v9.
+                       (if (or (null args) (= (cadr args) 12))
                            (signal fault '("Injected initialization fault"))
                          (apply original args)))))
             (dotimes (_ 2)
@@ -119,7 +119,7 @@
               (should (equal before (gnosis-test-safety-snapshot file)))))
           (should (= 2 (length handles)))
           (should (gnosis--ensure-db))
-          (should (= 11 (gnosis--db-version))))))))
+          (should (= 12 (gnosis--db-version))))))))
 
 (ert-deftest gnosis-db-safety-fresh-creation-quit-retries ()
   (gnosis-test-safety
@@ -130,7 +130,7 @@
       (should-not gnosis-db)
       (should-error (sqlite-select candidate "SELECT 1"))
       (should (gnosis--ensure-db))
-      (should (= 11 (gnosis--db-version))))))
+      (should (= 12 (gnosis--db-version))))))
 
 (ert-deftest gnosis-db-safety-connection-setup-cleanup ()
   (dolist (fault '(error quit))
@@ -169,9 +169,11 @@
         (should (equal before (gnosis-test-safety-snapshot file)))
         (should (equal before (gnosis-test-safety-snapshot backup)))
         (gnosis--ensure-db)
-        (should (= 11 (gnosis--db-version)))
+        (should (= 12 (gnosis--db-version)))
         (dolist (table (nth 2 before))
-          (should (equal (cdr table)
+          (should (equal (if (equal (car table) "themata")
+                             (mapcar (lambda (row) (append row '(nil))) (cdr table))
+                           (cdr table))
                          (sqlite-select gnosis-db (format "SELECT * FROM %s ORDER BY 1" (car table))))))
         (when (= version 10)
           (should (equal '(:session-id "session" :mode practice)
@@ -264,9 +266,11 @@ attributed to a historical source commit."
     (let ((before (gnosis-test-safety-snapshot
                    (expand-file-name "gnosis.db" gnosis-dir))))
       (gnosis--ensure-db)
-      (should (= 11 (gnosis--db-version)))
+      (should (= 12 (gnosis--db-version)))
       (dolist (table (nth 2 before))
-        (should (equal (cdr table)
+        (should (equal (if (equal (car table) "themata")
+                           (mapcar (lambda (row) (append row '(nil))) (cdr table))
+                         (cdr table))
                        (sqlite-select gnosis-db
                         (format "SELECT * FROM %s ORDER BY 1" (car table))))))
       (gnosis-add-thema-fields "basic" "Synthetic question" nil '("answer")
@@ -340,7 +344,7 @@ attributed to a historical source commit."
       (cl-letf (((symbol-function 'gnosis--git-cmd)
                  (lambda (_args sentinel) (setq callback sentinel))))
         (gnosis-vc-pull))
-      (sqlite-execute old "PRAGMA user_version = 12")
+      (sqlite-execute old "PRAGMA user_version = 13")
       (gnosis-test-safety-finish-pull callback)
       (should-not gnosis-db)
       (should-error (sqlite-select old "SELECT 1"))
@@ -371,7 +375,7 @@ attributed to a historical source commit."
         (should-not gnosis-db)
         (should-error (sqlite-select candidate "SELECT 1"))
         (should (gnosis--ensure-db))
-        (should (= 11 (gnosis--db-version)))))))
+        (should (= 12 (gnosis--db-version)))))))
 
 (ert-deftest gnosis-db-safety-pull-rejects-changed-owner ()
   "A late pull must not close a replacement connection or use another directory."
@@ -413,7 +417,7 @@ attributed to a historical source commit."
       (should-not (file-exists-p (expand-file-name "gnosis.db" gnosis-dir)))
       (gnosis-test-safety-finish-pull (car callbacks))
       (should gnosis-db)
-      (should (= 11 (gnosis--db-version))))))
+      (should (= 12 (gnosis--db-version))))))
 
 (ert-deftest gnosis-db-safety-pull-retains-relative-directory-context ()
   "Successful completion uses the initiating directory, not its current buffer."
@@ -431,7 +435,7 @@ attributed to a historical source commit."
       (should gnosis-db)
       (should-not (eq old gnosis-db))
       (should-error (sqlite-select old "SELECT 1"))
-      (should (= 11 (gnosis--db-version))))))
+      (should (= 12 (gnosis--db-version))))))
 
 (ert-deftest gnosis-db-safety-printer-roundtrip-reopen ()
   "Nested compiled parameters survive a real database close and reopen."

@@ -85,7 +85,7 @@
   (gnosis-test-scheduler--with-fresh-db
     (gnosis-sqlite-execute
      gnosis-db
-     "INSERT INTO themata VALUES (?, ?, ?, ?, ?, ?)"
+     "INSERT INTO themata (id, type, keimenon, hypothesis, answer, source_guid) VALUES (?, ?, ?, ?, ?, ?)"
      '(1 "basic" "Question" ("") ("Answer") nil))
     (gnosis-sqlite-execute
      gnosis-db
@@ -109,7 +109,7 @@
       '(404 20260830 0 0)))
     (gnosis-sqlite-execute
      gnosis-db
-     "INSERT INTO themata VALUES (?, ?, ?, ?, ?, ?)"
+     "INSERT INTO themata (id, type, keimenon, hypothesis, answer, source_guid) VALUES (?, ?, ?, ?, ?, ?)"
      '(1 "basic" "Question" ("") ("Answer") nil))
     (gnosis-sqlite-execute
      gnosis-db
@@ -125,7 +125,7 @@
   "Round-trip a migrated projection with no FSRS memory state."
   (gnosis-test-scheduler--with-fresh-db
     (gnosis-sqlite-execute
-     gnosis-db "INSERT INTO themata VALUES (?, ?, ?, ?, ?, ?)"
+     gnosis-db "INSERT INTO themata (id, type, keimenon, hypothesis, answer, source_guid) VALUES (?, ?, ?, ?, ?, ?)"
      '(1 "basic" "Question" ("") ("Answer") nil))
     (gnosis-sqlite-execute
      gnosis-db "INSERT INTO scheduler_baseline VALUES (?, ?, ?, ?)"
@@ -147,7 +147,7 @@
       "INSERT INTO scheduler_state VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
       '(404 1 nil nil nil nil 20260830 0 0 0)))
     (gnosis-sqlite-execute
-     gnosis-db "INSERT INTO themata VALUES (?, ?, ?, ?, ?, ?)"
+     gnosis-db "INSERT INTO themata (id, type, keimenon, hypothesis, answer, source_guid) VALUES (?, ?, ?, ?, ?, ?)"
      '(1 "basic" "Question" ("") ("Answer") nil))
     (gnosis-sqlite-execute
      gnosis-db "INSERT INTO scheduler_baseline VALUES (?, ?, ?, ?)"
@@ -195,7 +195,7 @@
   "Round-trip one complete immutable review event."
   (gnosis-test-scheduler--with-fresh-db
     (gnosis-sqlite-execute
-     gnosis-db "INSERT INTO themata VALUES (?, ?, ?, ?, ?, ?)"
+     gnosis-db "INSERT INTO themata (id, type, keimenon, hypothesis, answer, source_guid) VALUES (?, ?, ?, ?, ?, ?)"
      '(1 "basic" "Question" ("") ("Answer") nil))
     (gnosis-sqlite-execute
      gnosis-db "INSERT INTO scheduler_baseline VALUES (?, ?, ?, ?)"
@@ -210,7 +210,7 @@
   "Reject malformed evidence and index canonical replay order."
   (gnosis-test-scheduler--with-fresh-db
     (gnosis-sqlite-execute
-     gnosis-db "INSERT INTO themata VALUES (?, ?, ?, ?, ?, ?)"
+     gnosis-db "INSERT INTO themata (id, type, keimenon, hypothesis, answer, source_guid) VALUES (?, ?, ?, ?, ?, ?)"
      '(1 "basic" "Question" ("") ("Answer") nil))
     (should-error (gnosis-test-scheduler--insert-event-fixture gnosis-db))
     (gnosis-sqlite-execute
@@ -237,7 +237,7 @@
   "Reject direct update and deletion of immutable event evidence."
   (gnosis-test-scheduler--with-fresh-db
     (gnosis-sqlite-execute
-     gnosis-db "INSERT INTO themata VALUES (?, ?, ?, ?, ?, ?)"
+     gnosis-db "INSERT INTO themata (id, type, keimenon, hypothesis, answer, source_guid) VALUES (?, ?, ?, ?, ?, ?)"
      '(1 "basic" "Question" ("") ("Answer") nil))
     (gnosis-sqlite-execute
      gnosis-db "INSERT INTO scheduler_baseline VALUES (?, ?, ?, ?)"
@@ -280,7 +280,7 @@
   "Cascade event deletion only when its owning thema is hard deleted."
   (gnosis-test-scheduler--with-fresh-db
     (gnosis-sqlite-execute
-     gnosis-db "INSERT INTO themata VALUES (?, ?, ?, ?, ?, ?)"
+     gnosis-db "INSERT INTO themata (id, type, keimenon, hypothesis, answer, source_guid) VALUES (?, ?, ?, ?, ?, ?)"
      '(1 "basic" "Question" ("") ("Answer") nil))
     (gnosis-sqlite-execute
      gnosis-db "INSERT INTO scheduler_baseline VALUES (?, ?, ?, ?)"
@@ -299,7 +299,7 @@
      '(20260829 5 1 20260830 10 2))
     (dolist (row '((1 "Q1") (2 "Q2")))
       (gnosis-sqlite-execute
-       gnosis-db "INSERT INTO themata VALUES (?, ?, ?, ?, ?, ?)"
+       gnosis-db "INSERT INTO themata (id, type, keimenon, hypothesis, answer, source_guid) VALUES (?, ?, ?, ?, ?, ?)"
        (list (car row) "basic" (cadr row) '("") '("A") nil))
       (gnosis-sqlite-execute
        gnosis-db "INSERT INTO scheduler_baseline VALUES (?, ?, ?, ?)"
@@ -321,7 +321,7 @@
        "INSERT INTO review_activity_baseline VALUES (?, ?, ?), (?, ?, ?)"
        (list yesterday 3 1 today 5 1))
       (gnosis-sqlite-execute
-       gnosis-db "INSERT INTO themata VALUES (?, ?, ?, ?, ?, ?)"
+       gnosis-db "INSERT INTO themata (id, type, keimenon, hypothesis, answer, source_guid) VALUES (?, ?, ?, ?, ?, ?)"
        '(1 "basic" "Q" ("") ("A") nil))
       (gnosis-sqlite-execute
        gnosis-db "INSERT INTO scheduler_baseline VALUES (?, ?, ?, ?)"

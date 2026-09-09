@@ -36,9 +36,9 @@ def emacs_check(emacs: str) -> None:
 def imports_check(python: str) -> None:
     """Check renderer imports without creating an OpenGL context."""
     result = run([python, "-c",
-                  "import moderngl, glcontext, numpy, trimesh; "
+                  "import moderngl, glcontext, numpy; "
                   "print('moderngl=' + moderngl.__version__, "
-                  "'numpy=' + numpy.__version__, 'trimesh=' + trimesh.__version__)"], text=True)
+                  "'numpy=' + numpy.__version__)"], text=True)
     if result.returncode:
         raise RuntimeError(result.stderr.strip())
     print(result.stdout.strip())
@@ -53,15 +53,15 @@ def egl_check(python: str) -> None:
     if result.returncode:
         raise RuntimeError(result.stderr.decode(errors="replace").strip())
     area = size * size
-    length = 8 + 5 * area
+    length = 8 + 21 * area
     if len(result.stdout) != 2 * length:
         raise RuntimeError("Wrong packet length")
     frames = [result.stdout[i * length:(i + 1) * length] for i in range(2)]
     for seq, packet in enumerate(frames, 1):
-        if packet[:8] != b"C3D1" + struct.pack(">I", seq):
+        if packet[:8] != b"C3D2" + struct.pack(">I", seq):
             raise RuntimeError("Wrong packet identity")
     color, marked = [packet[8:8 + 4 * area] for packet in frames]
-    ids, same_ids = [packet[8 + 4 * area:] for packet in frames]
+    ids, same_ids = [packet[8 + 4 * area:8 + 5 * area] for packet in frames]
     if set(ids) != {0, 1, 2} or ids != same_ids or color == marked:
         raise RuntimeError("Picking plane or selected highlight failed")
     for pixel, identity in enumerate(ids):

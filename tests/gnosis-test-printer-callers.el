@@ -42,9 +42,9 @@
        (equal (sqlite-select gnosis-db
                              "SELECT * FROM themata ORDER BY id")
               '((101 "\"cloze\"" "\"Q\nλ\"" "(\"a\" \"b\" \"c\")"
-                     "(\"A\" \"B\" \"C\")" "raw\"guid")
-                (102 "\"cloze\"" "\"Q2\"" "nil" "(\"A2\")" nil)
-                (103 "\"basic\"" "\"Q3\"" "\"\"" "(\"nil\")" ""))))
+                     "(\"A\" \"B\" \"C\")" "raw\"guid" nil)
+                (102 "\"cloze\"" "\"Q2\"" "nil" "(\"A2\")" nil nil)
+                (103 "\"basic\"" "\"Q3\"" "\"\"" "(\"nil\")" "" nil))))
       (should (equal (sqlite-select gnosis-db "SELECT * FROM extras ORDER BY id")
                      '((101 "\"P\nλ\"" "\"\"")
                        (102 "nil" "\"\"") (103 "\"\"" "\"\""))))

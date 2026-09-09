@@ -86,7 +86,7 @@
                 (should-not (sqlite-select db "PRAGMA foreign_key_check"))
                 (should (equal (list (list id)) (sqlite-select db "SELECT id FROM themata")))
                 (should (equal '(("1")) (sqlite-select db "SELECT value FROM gnosis_meta WHERE key = 'thema_count'")))
-                (should (= 2 (gnosis-import--format-version-in-db db "main"))))
+                (should (= 3 (gnosis-import--format-version-in-db db "main"))))
             (sqlite-close db)))
         (should (equal files (directory-files gnosis-dir)))))))
 

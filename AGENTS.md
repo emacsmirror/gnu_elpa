@@ -44,6 +44,9 @@ only where the task needs it, rather than reorganizing the package:
   `gnosis-review` owns image encounter identity, typed occlusion matching and
   binary acceptance; inline
   images in hidden answers and explanations must decode before input starts.
+- `gnosis-answer` owns pure canonical/alias matching, alias validation and the
+  alias list-section codec. Storage belongs to `gnosis-db` and content exchange;
+  `gnosis-review` owns captured answer rules and acceptance after input.
 - `gnosis-tags` owns tag-set operations; `gnosis-cloze` owns cloze transforms.
   Keep their data transformations separate from prompts and Org rendering.
 - `gnosis-anki` and `gnosis-export-import`: parse and normalize input, derive

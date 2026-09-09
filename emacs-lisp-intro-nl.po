@@ -4745,18 +4745,7 @@ msgstr ""
 
 #. type: group
 #: emacs-lisp-intro.texi:1379
-#, fuzzy, no-wrap
-#| msgid ""
-#| "---------- Buffer: *Backtrace* ----------\n"
-#| "Debugger entered--Lisp error: (void-function this)\n"
-#| "  (this is an unquoted list)\n"
-#| "  eval((this is an unquoted list) nil)\n"
-#| "  elisp--eval-last-sexp(nil)\n"
-#| "  eval-last-sexp(nil)\n"
-#| "  funcall-interactively(eval-last-sexp nil)\n"
-#| "  call-interactively(eval-last-sexp nil nil)\n"
-#| "  command-execute(eval-last-sexp)\n"
-#| "---------- Buffer: *Backtrace* ----------\n"
+#, no-wrap
 msgid ""
 "---------- Buffer: *Backtrace* ----------\n"
 "Debugger entered--Lisp error: (void-function this)\n"
@@ -4775,8 +4764,11 @@ msgstr ""
 "---------- Buffer: *Backtrace* ----------\n"
 "Debugger entered--Lisp error: (void-function dit)\n"
 "  (dit is een ongequote lijst)\n"
-"  eval((dit is een ongequote lijst) nil)\n"
+"  (progn (dit is een ongequote lijst))\n"
+"  eval((progn (dit is een ongequote lijst)) t)\n"
 "  elisp--eval-last-sexp(nil)\n"
+"  #f(compiled-function () #<bytecode ...>)()\n"
+"  handler-bind-1(#f(compiled-function () #<bytecode ...>) (error) eval-expression--debug)\n"
 "  eval-last-sexp(nil)\n"
 "  funcall-interactively(eval-last-sexp nil)\n"
 "  call-interactively(eval-last-sexp nil nil)\n"
@@ -5675,18 +5667,7 @@ msgstr "Je maakt een @file{*Backtrace*} buffer dat het volgende toont:"
 
 #. type: group
 #: emacs-lisp-intro.texi:1820
-#, fuzzy, no-wrap
-#| msgid ""
-#| "---------- Buffer: *Backtrace* ----------\n"
-#| "Debugger entered--Lisp error: (void-function fill-column)\n"
-#| "  (fill-column)\n"
-#| "  eval((fill-column) nil)\n"
-#| "  elisp--eval-last-sexp(nil)\n"
-#| "  eval-last-sexp(nil)\n"
-#| "  funcall-interactively(eval-last-sexp nil)\n"
-#| "  call-interactively(eval-last-sexp nil nil)\n"
-#| "  command-execute(eval-last-sexp)\n"
-#| "---------- Buffer: *Backtrace* ----------\n"
+#, no-wrap
 msgid ""
 "---------- Buffer: *Backtrace* ----------\n"
 "Debugger entered--Lisp error: (void-function fill-column)\n"
@@ -5701,11 +5682,12 @@ msgid ""
 "  command-execute(eval-last-sexp)\n"
 "---------- Buffer: *Backtrace* ----------\n"
 msgstr ""
-"---------- Buffer: *Backtrace* ----------\n"
 "Debugger entered--Lisp error: (void-function fill-column)\n"
 "  (fill-column)\n"
 "  eval((fill-column) nil)\n"
 "  elisp--eval-last-sexp(nil)\n"
+"  #f(compiled-function () #<bytecode ...>)()\n"
+"  handler-bind-1(#f(compiled-function () #<bytecode ...>) (error) eval-expression--debug)\n"
 "  eval-last-sexp(nil)\n"
 "  funcall-interactively(eval-last-sexp nil)\n"
 "  call-interactively(eval-last-sexp nil nil)\n"
@@ -5761,17 +5743,7 @@ msgstr ""
 
 #. type: group
 #: emacs-lisp-intro.texi:1860
-#, fuzzy, no-wrap
-#| msgid ""
-#| "---------- Buffer: *Backtrace* ----------\n"
-#| "Debugger entered--Lisp error: (void-variable +)\n"
-#| "  eval(+)\n"
-#| "  elisp--eval-last-sexp(nil)\n"
-#| "  eval-last-sexp(nil)\n"
-#| "  funcall-interactively(eval-last-sexp nil)\n"
-#| "  call-interactively(eval-last-sexp nil nil)\n"
-#| "  command-execute(eval-last-sexp)\n"
-#| "---------- Buffer: *Backtrace* ----------\n"
+#, no-wrap
 msgid ""
 "---------- Buffer: *Backtrace* ----------\n"
 "Debugger entered--Lisp error: (void-variable +)\n"
@@ -5785,10 +5757,11 @@ msgid ""
 "  command-execute(eval-last-sexp)\n"
 "---------- Buffer: *Backtrace* ----------\n"
 msgstr ""
-"---------- Buffer: *Backtrace* ----------\n"
 "Debugger entered--Lisp error: (void-variable +)\n"
-"  eval(+)\n"
+"  eval(+ nil)\n"
 "  elisp--eval-last-sexp(nil)\n"
+"  #f(compiled-function () #<bytecode ...>)()\n"
+"  handler-bind-1(#f(compiled-function () #<bytecode ...>) (error) eval-expression--debug)\n"
 "  eval-last-sexp(nil)\n"
 "  funcall-interactively(eval-last-sexp nil)\n"
 "  call-interactively(eval-last-sexp nil nil)\n"
@@ -6298,19 +6271,7 @@ msgstr "Je maakt en betreedt een @file{*Backtrace*} buffer die toont:"
 
 #. type: group
 #: emacs-lisp-intro.texi:2120
-#, fuzzy, no-wrap
-#| msgid ""
-#| "---------- Buffer: *Backtrace* ----------\n"
-#| "Debugger entered--Lisp error:\n"
-#| "         (wrong-type-argument number-or-marker-p hello)\n"
-#| "  +(2 hello)\n"
-#| "  eval((+ 2 'hello) nil)\n"
-#| "  elisp--eval-last-sexp(t)\n"
-#| "  eval-last-sexp(nil)\n"
-#| "  funcall-interactively(eval-print-last-sexp nil)\n"
-#| "  call-interactively(eval-print-last-sexp nil nil)\n"
-#| "  command-execute(eval-print-last-sexp)\n"
-#| "---------- Buffer: *Backtrace* ----------\n"
+#, no-wrap
 msgid ""
 "---------- Buffer: *Backtrace* ----------\n"
 "Debugger entered--Lisp error: (wrong-type-argument number-or-marker-p hello)\n"
@@ -6326,15 +6287,16 @@ msgid ""
 "---------- Buffer: *Backtrace* ----------\n"
 msgstr ""
 "---------- Buffer: *Backtrace* ----------\n"
-"Debugger entered--Lisp error:\n"
-"         (wrong-type-argument number-or-marker-p hello)\n"
+"Debugger entered--Lisp error: (wrong-type-argument number-or-marker-p hello)\n"
 "  +(2 hello)\n"
 "  eval((+ 2 'hello) nil)\n"
-"  elisp--eval-last-sexp(t)\n"
+"  elisp--eval-last-sexp(nil)\n"
+"  #f(compiled-function () #<bytecode ...>)()\n"
+"  handler-bind-1(#f(compiled-function () #<bytecode ...>) (error) eval-expression--debug)\n"
 "  eval-last-sexp(nil)\n"
-"  funcall-interactively(eval-print-last-sexp nil)\n"
-"  call-interactively(eval-print-last-sexp nil nil)\n"
-"  command-execute(eval-print-last-sexp)\n"
+"  funcall-interactively(eval-last-sexp nil)\n"
+"  call-interactively(eval-last-sexp nil nil)\n"
+"  command-execute(eval-last-sexp)\n"
 "---------- Buffer: *Backtrace* ----------\n"
 
 #. type: Plain text
@@ -18832,15 +18794,6 @@ msgstr ""
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:8433
-#, fuzzy
-#| msgid ""
-#| "The body of the @code{copy-region-as-kill} function starts with an "
-#| "@code{if} clause.  What this clause does is distinguish between two "
-#| "different situations: whether or not this command is executed immediately "
-#| "after a previous @code{kill-region} command.  In the first case, the new "
-#| "region is appended to the previously copied text.  Otherwise, it is "
-#| "inserted into the beginning of the killring as a separate piece of text "
-#| "from the previous piece."
 msgid ""
 "The body of the @code{copy-region-as-kill} function starts with an @code{if} "
 "clause.  What this clause does is distinguish between two different "
@@ -18853,7 +18806,10 @@ msgstr ""
 "De body van de @code{copy-region-as-kill} functie start met een @code{if}-"
 "clausule. Deze clausule maakt onderscheid tussen twee verschillende "
 "situaties: of dit commando wel of niet inmiddelijk achter een voorgaand "
-"@code{kill-region} commando is uitgevoerd."
+"@code{kill-region} commando is uitgevoerd. In het eerste geval wordt de "
+"nieuwe region aan de eerder gekopieerde tekst toegevoegd. In het andere "
+"geval wordt het ingevoegd aan het begin van de kill-ring als een separaat "
+"stuk tekst apart van het vorige stuk."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:8436
@@ -31775,16 +31731,7 @@ msgstr ""
 
 #. type: group
 #: emacs-lisp-intro.texi:15218
-#, fuzzy, no-wrap
-#| msgid ""
-#| "(20615 27034 579989 697000)\n"
-#| "(17905 55681 0 0)\n"
-#| "(20615 26327 734791 805000)@footnote{If @code{current-time-list} is\n"
-#| "@code{nil} the three timestamps are @code{(1351051674579989697\n"
-#| ". 1000000000)}, @code{(1173477761000000000 . 1000000000)}, and\n"
-#| "@code{(1351050967734791805 . 1000000000)}, respectively.}\n"
-#| "13188\n"
-#| "\"-rw-r--r--\"\n"
+#, no-wrap
 msgid ""
 "(1351051674579989697 . 1000000000)\n"
 "(1173477761000000000 . 1000000000)\n"
@@ -31796,12 +31743,13 @@ msgid ""
 "13188\n"
 "\"-rw-r--r--\"\n"
 msgstr ""
-"(20615 27034 579989 697000)\n"
-"(17905 55681 0 0)\n"
-"(20615 26327 734791 805000)@footnote{Wanneer @code{current-time-list} @code{nil} is,\n"
-"zijn de drie timestamps respectievelijk @code{(1351051674579989697\n"
-". 1000000000)}, @code{(1173477761000000000 . 1000000000)} en\n"
-"@code{(1351050967734791805 . 1000000000)}.}\n"
+"(1351051674579989697 . 1000000000)\n"
+"(1173477761000000000 . 1000000000)\n"
+"(1351050967734791805 . 1000000000)@footnote{Wanneer @code{current-time-list} is\n"
+"@code{t} zijn de drie timestamps respectievelijk\n"
+"@code{(20615 27034 579989 697000)},\n"
+"@code{(17905 55681 0 0)}, and\n"
+"@code{(20615 26327 734791 805000)}.}\n"
 "13188\n"
 "\"-rw-r--r--\"\n"
 
@@ -32067,10 +32015,6 @@ msgstr ""
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:15362
-#, fuzzy
-#| msgid ""
-#| "The @code{files-in-below-directory} @code{directory-files} function takes "
-#| "one argument, the name of a directory."
 msgid ""
 "The @code{files-in-below-directory} function takes one argument, the name of "
 "a directory."
@@ -33313,14 +33257,7 @@ msgstr ""
 
 #. type: group
 #: emacs-lisp-intro.texi:15996
-#, fuzzy, no-wrap
-#| msgid ""
-#| "    ;; @r{Fill in @code{graph-blanks}.}\n"
-#| "    (while (> number-of-top-blanks 0)\n"
-#| "      (setq insert-list (cons graph-blank insert-list))\n"
-#| "      (setq number-of-top-blanks\n"
-#| "            (1- number-of-top-blanks)))\n"
-#| "\n"
+#, no-wrap
 msgid ""
 "    ;; @r{Fill in blanks.}\n"
 "    (while (> number-of-top-blanks 0)\n"
@@ -33330,10 +33267,9 @@ msgid ""
 msgstr ""
 "    ;; @r{@code{grafiek-wit} invullen.}\n"
 "    (while (> aantal-bovenste-spaties 0)\n"
-"      (setq invoeglijst (cons grafiek-wit invoeglijst))\n"
+"      (setq invoeglijst (cons \" \" invoeglijst))\n"
 "      (setq aantal-bovenste-spaties\n"
 "            (1- aantal-bovenste-spaties)))\n"
-"\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:16001 emacs-lisp-intro.texi:16090
@@ -35438,21 +35374,15 @@ msgstr ""
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:16995
-#, fuzzy
-#| msgid ""
-#| "These three things, the double quotation marks, the backslash before the "
-#| "@samp{C}, and the single-quote are necessary parts of key binding that I "
-#| "tend to forget.  Fortunately, I have come to remember that I should look "
-#| "at my existing @file{.emacs} file, and adapt what is there."
 msgid ""
 "These two things, the double quotation marks and the single-quote, are "
 "necessary parts of key binding that I tend to forget.  Fortunately, I have "
 "come to remember that I should look at my existing @file{.emacs} file, and "
 "adapt what is there."
 msgstr ""
-"Deze drie dingen, de dubbele aanhalingstekens, de backslash voor de @samp{C} "
-"en de enkele quote zijn noodzakelijke onderdelen van keybindings die ik vaak "
-"vergeet. Gelukkig ben ik me gaan herinneren dat ik moet kijken in mijn "
+"Deze twee dingen, de dubbele aanhalingstekens en de enkele quote "
+"zijn noodzakelijke onderdelen van keybindings die ik vaak vergeet. "
+"Gelukkig ben ik me gaan herinneren dat ik moet kijken in mijn "
 "bestaande @file{.emacs} bestand, en gebruiken wat er in staat."
 
 #. type: Plain text
@@ -37420,17 +37350,7 @@ msgstr "Dit creëert en zet je in een @file{*Backtrace*} buffer met de tekst:"
 
 #. type: group
 #: emacs-lisp-intro.texi:17951
-#, fuzzy, no-wrap
-#| msgid ""
-#| "---------- Buffer: *Backtrace* ----------\n"
-#| "Debugger entered--Lisp error: (void-function 1=)\n"
-#| "  (1= number)\n"
-#| "  (setq number (1= number))\n"
-#| "  (while (> number 0) (setq total (+ total number))\n"
-#| "        (setq number (1= number)))\n"
-#| "  (let ((total 0)) (while (> number 0) (setq total ...)\n"
-#| "    (setq number ...)) total)\n"
-#| "  triangle-bugged(4)\n"
+#, no-wrap
 msgid ""
 "---------- Buffer: *Backtrace* ----------\n"
 "Debugger entered--Lisp error: (void-function 1=)\n"
@@ -37450,24 +37370,14 @@ msgstr ""
 "  (while (> getal 0) (setq totaal (+ totaal getal))\n"
 "        (setq getal (1= getal)))\n"
 "  (let ((totaal 0)) (while (> getal 0) (setq totaal ...)\n"
-"     (setq getal ...)) totaal)\n"
-"  driehoek-met-bug(4)\n"
+"    (setq getal ...)) totaal)\n"
+"  triangle-bugged(4)\n"
+"  eval((driehoek-met-bug 4) nil)\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:17961 emacs-lisp-intro.texi:18065
 #: emacs-lisp-intro.texi:18122
-#, fuzzy, no-wrap
-#| msgid ""
-#| "---------- Buffer: *Backtrace* ----------\n"
-#| "Debugger entered--Lisp error: (void-function fill-column)\n"
-#| "  (fill-column)\n"
-#| "  eval((fill-column) nil)\n"
-#| "  elisp--eval-last-sexp(nil)\n"
-#| "  eval-last-sexp(nil)\n"
-#| "  funcall-interactively(eval-last-sexp nil)\n"
-#| "  call-interactively(eval-last-sexp nil nil)\n"
-#| "  command-execute(eval-last-sexp)\n"
-#| "---------- Buffer: *Backtrace* ----------\n"
+#, no-wrap
 msgid ""
 "  elisp--eval-last-sexp(nil)\n"
 "  #f(compiled-function () #<bytecode ...>)()\n"
@@ -37478,11 +37388,9 @@ msgid ""
 "  command-execute(eval-last-sexp)\n"
 "---------- Buffer: *Backtrace* ----------\n"
 msgstr ""
-"---------- Buffer: *Backtrace* ----------\n"
-"Debugger entered--Lisp error: (void-function fill-column)\n"
-"  (fill-column)\n"
-"  eval((fill-column) nil)\n"
 "  elisp--eval-last-sexp(nil)\n"
+"  #f(compiled-function () #<bytecode ...>)()\n"
+"  handler-bind-1(#f(compiled-function () #<bytecode ...>) (error) eval-expression--debug)\n"
 "  eval-last-sexp(nil)\n"
 "  funcall-interactively(eval-last-sexp nil)\n"
 "  call-interactively(eval-last-sexp nil nil)\n"
@@ -40478,8 +40386,6 @@ msgstr "(% 10 5)\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:19481
-#, fuzzy
-#| msgid "The first expression returns 2 and he second expression returns 0."
 msgid "The first expression returns 2 and the second expression returns 0."
 msgstr "De eerste expressie geeft 2 terug en tweede expressie geeft 0 terug."
 
@@ -43016,12 +42922,7 @@ msgstr ""
 
 #. type: group
 #: emacs-lisp-intro.texi:20814 emacs-lisp-intro.texi:21307
-#, fuzzy, no-wrap
-#| msgid ""
-#| "          ;; @r{Make a string of blanks.}\n"
-#| "          (-  (* symbol-width X-axis-label-spacing)\n"
-#| "              (length X-axis-tic-symbol))\n"
-#| "          ? )\n"
+#, no-wrap
 msgid ""
 "       (X-tic\n"
 "        (concat\n"
@@ -43031,6 +42932,9 @@ msgid ""
 "              (length X-axis-tic-symbol))\n"
 "          ? )\n"
 msgstr ""
+"       (X-tic\n"
+"        (concat\n"
+"         (make-string\n"
 "          ;; @r{Maak een string van spaties.}\n"
 "          (-  (* symbol-width X-as-label-spacing)\n"
 "              (length X-as-tic-symbol))\n"
@@ -43271,10 +43175,7 @@ msgstr ""
 
 #. type: group
 #: emacs-lisp-intro.texi:21020
-#, fuzzy, no-wrap
-#| msgid ""
-#| "    ;; @r{Outer loop.}\n"
-#| "    (while top-of-ranges\n"
+#, no-wrap
 msgid ""
 "    ;; @r{Outer loop.}\n"
 "    (while top-of-ranges\n"
@@ -43285,13 +43186,7 @@ msgstr ""
 
 #. type: group
 #: emacs-lisp-intro.texi:21026
-#, fuzzy, no-wrap
-#| msgid ""
-#| "      ;; @r{Inner loop.}\n"
-#| "      (while (and\n"
-#| "              ;; @r{Need number for numeric test.}\n"
-#| "              (car sorted-lengths)\n"
-#| "              (< (car sorted-lengths) top-of-range))\n"
+#, no-wrap
 msgid ""
 "      ;; @r{Inner loop.}\n"
 "      (while (and\n"
@@ -43477,14 +43372,7 @@ msgstr ""
 
 #. type: group
 #: emacs-lisp-intro.texi:21220
-#, fuzzy, no-wrap
-#| msgid ""
-#| "VERTICAL-STEP, an option, is a positive integer\n"
-#| "that specifies how much a Y axis label increments\n"
-#| "for each line.  For example, a step of 5 means\n"
-#| "that each line is five units of the graph.\"\n"
-#| "  (let (Y-axis\n"
-#| "        (getal-per-regel (or vertical-step 1)))\n"
+#, no-wrap
 msgid ""
 "VERTICAL-STEP, an option, is a positive integer\n"
 "that specifies how much a Y axis label increments\n"
@@ -43502,17 +43390,7 @@ msgstr ""
 
 #. type: group
 #: emacs-lisp-intro.texi:21231
-#, fuzzy, no-wrap
-#| msgid ""
-#| "    (while (> height 1)\n"
-#| "      (if (zerop (% height Y-axis-label-spacing))\n"
-#| "          ;; @r{Insert label.}\n"
-#| "          (setq Y-axis\n"
-#| "                (cons\n"
-#| "                 (Y-axis-element\n"
-#| "                  (* height getal-per-regel)\n"
-#| "                  width-of-label)\n"
-#| "                 Y-axis))\n"
+#, no-wrap
 msgid ""
 "    (while (> height 1)\n"
 "      (if (zerop (% height Y-axis-label-spacing))\n"

@@ -4947,9 +4947,9 @@ commands:
 #+begin_src emacs-lisp
 (defun my-denote--note-has-no-contents-p (file)
   "Return non-nil if FILE is an empty note.
-This means that FILE conforms with `denote-file-is-note-p' and either
+This means that FILE conforms with `denote-file-has-denoted-filename-p' and either
 has no contents or has only the front matter."
-  (and (denote-file-is-note-p file)
+  (and (denote-file-has-denoted-filename-p file)
        (or (denote--file-with-temp-buffer file
              (re-search-forward "^$" nil t)
              (if (re-search-forward "[^\s\t\n\r]+" nil t)
@@ -5040,7 +5040,7 @@ title or keywords fields.
 Add this function to the `after-save-hook'."
   (let ((denote-rename-confirmations nil)
         (denote-save-buffers t)) ; to save again post-rename
-    (when (and buffer-file-name (denote-file-is-note-p buffer-file-name))
+    (when (and buffer-file-name (denote-file-has-denoted-filename-p buffer-file-name))
       (ignore-errors (denote-rename-file-using-front-matter buffer-file-name))
       (message "Buffer saved; Denote file renamed"))))
 
@@ -5759,11 +5759,6 @@ The following sections cover the specifics.
 + Function ~denote-date-identifier-p~ :: Return non-nil if =IDENTIFIER=
   string is a Denote date identifier.
 
-#+findex: denote-file-is-note-p
-+ Function ~denote-file-is-note-p~ :: Return non-nil if =FILE= is an
-  actual Denote note. For our purposes, a note must satisfy
-  ~file-regular-p~ and ~denote-filename-is-note-p~.
-
 #+findex: denote-file-has-identifier-p
 + Function ~denote-file-has-identifier-p~ :: Return non-nil if =FILE=
   has a Denote identifier.
@@ -6047,10 +6042,6 @@ there will be no corresponding prompt.
 #+findex: denote-get-path-by-id
 + Function ~denote-get-path-by-id~ :: Return absolute path of =ID=
   string in ~denote-directory-files~.
-
-#+findex: denote-get-identifier-at-point
-+ Function ~denote-get-identifier-at-point~ :: Return the identifier
-  at point or =POINT=.
 
 #+findex: denote-extract-keywords-from-path
 + Function ~denote-extract-keywords-from-path~ :: Extract keywords
@@ -6412,8 +6403,8 @@ there will be no corresponding prompt.
   an identifier-only link in its context.  The format of such links is
   ~denote-id-only-link-format~.
 
-#+findex: denote-select-linked-file-prompt
-+ Function ~denote-select-linked-file-prompt~ :: Prompt for linked
+#+findex: denote-select-from-files-prompt
++ Function ~denote-select-from-files-prompt~ :: Prompt for linked
   file among =FILES=.
 
 #+findex: denote-get-links
@@ -6445,6 +6436,10 @@ there will be no corresponding prompt.
   This function is useful as the value of the user option
   ~denote-link-description-format~ (which can optionally be bound to a
   function).
+
+#+findex: denote-get-link-identifier-or-query-term-at-point
++ Function ~denote-get-link-identifier-or-query-term-at-point~ :: Return the
+  Denote identifier or query term at point or optional =POSITION=.
 
 ** Xref interface for developers or advanced users
 :PROPERTIES:

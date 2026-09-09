@@ -235,8 +235,7 @@ If nil, reading from, or caching to, a file is disabled."
                (prin1-to-string ranges)
                nil isbn-hyphenation-ranges-cache-file t))
             (setq isbn-hyphenation-ranges-cache ranges)
-            (progress-reporter-done prgrp))
-          (lambda (_status &rest _cbargs)))
+            (progress-reporter-done prgrp)))
       (error (error "Failed to retrieve hyphenation data")))))
 
 ;;;###autoload

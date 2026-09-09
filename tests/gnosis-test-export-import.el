@@ -17,6 +17,23 @@
 (load (expand-file-name "gnosis-test-helpers.el"
        (file-name-directory (or load-file-name buffer-file-name))))
 
+(ert-deftest gnosis-test-export-list-literal-hyphens ()
+  "Remove list markers once, preserving negative and literal field values."
+  (dolist (case '(("- -90\n- --flag\n- - literal\n- alpha-beta"
+                   ("-90" "--flag" "- literal" "alpha-beta"))
+                  ("-90\n- -45" ("-90" "-45"))
+                  ("--flag" ("--flag"))
+                  ("-" (""))
+                  ("- -" ("-"))
+                  ("- ordinary\n- second" ("ordinary" "second"))))
+    (with-temp-buffer
+      (org-mode)
+      (gnosis-export--insert-thema "NEW" "basic" "Question"
+                                   (car case) (car case))
+      (let ((thema (car (gnosis-export-parse-themata))))
+        (should (equal (cadr case) (nth 3 thema)))
+        (should (equal (cadr case) (nth 4 thema)))))))
+
 ;; ---- Group 1: SQLite export ----
 
 (ert-deftest gnosis-test-export-basic ()

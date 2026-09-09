@@ -70,7 +70,8 @@ PARATHEMA: The text where THEMA is derived from.
 TAGS: List of THEMA tags
 EXAMPLE: Boolean value, if non-nil do not add properties for thema."
   (let ((components `(("** Keimenon" . ,keimenon)
-                      ("** Hypothesis" . ,hypothesis)
+                      (,(if (equal (downcase type) "model")
+                            "** Resource and starting view" "** Hypothesis") . ,hypothesis)
                       ("** Answer" . ,answer)
                       ("** Parathema" . ,parathema))))
     (goto-char (point-max))
@@ -128,16 +129,16 @@ SEPARATOR."
                          (processed-text
                           (cond
                            ((and (member child-title
-                                         '("Hypothesis" "Answer"))
+                                         '("Hypothesis" "Resource and starting view" "Answer"))
                                  (not (string-empty-p child-text)))
-                            (mapcar
-                             (lambda (s)
-                               (string-trim
-                                (string-remove-prefix
-                                 "-"
-                                 (string-remove-prefix sep s))))
-                             (split-string
-                              child-text sep t "[ \t\n]+")))
+                            ;; The separator consumes later list markers.
+                            ;; Strip only the first marker, not value hyphens.
+                            (if (equal child-text "-")
+                                '("") ; Preserve the empty list placeholder.
+                              (mapcar #'string-trim
+                                      (split-string
+                                       (string-remove-prefix "- " child-text)
+                                       sep t "[ \t\n]+"))))
                            ((string-empty-p child-text) nil)
                            (t child-text))))
                     (push processed-text entry))))
@@ -285,6 +286,10 @@ Returns nil on success, or an error message string on failure."
   "Return supported content format version from DB SCHEMA."
   (unless (member schema '("main" "import_db"))
     (error "Invalid Gnosis content schema"))
+  (when (gnosis-sqlite-select
+         db (format "SELECT id FROM %s.themata WHERE lower(type) = ?" schema)
+         '("model"))
+    (user-error "Model resource content import is unsupported; assets are not bundled"))
   (let ((objects
          (sqlite-select
           db (format "SELECT type, name FROM %s.sqlite_master
@@ -463,6 +468,11 @@ the export; errors preserve the previous file."
                                 suspended-ids)))
          (count (if selection-p (length ids)
                   (caar (sqlite-select db "SELECT COUNT(*) FROM themata")))))
+    (when (seq-some (lambda (row)
+                      (or (not selection-p) (member (car row) ids)))
+                    (gnosis-sqlite-select db "SELECT id FROM themata WHERE lower(type) = ?"
+                                          '("model")))
+      (user-error "Model resource content export is unsupported; back up DB and assets together"))
     (gnosis-export--check-destination db file)
     (when (called-interactively-p 'any)
       (unless (y-or-n-p (format "Export %d themata to %s? " count file))

@@ -95,23 +95,31 @@ bounded graph depths, both defaulting to zero.  Ignore the daily new limit."
      (lambda (id)
        (and (gnosis-study-eligible-p id)
             (or (not due)
-                (<= (gnosis-get 'due-day 'scheduler-state `(= thema-id ,id))
-                    (gnosis--today-int)))))
+                (and (not (equal (downcase (or (gnosis-get 'type 'themata `(= id ,id)) "")) "model"))
+                     (<= (gnosis-get 'due-day 'scheduler-state `(= thema-id ,id))
+                         (gnosis--today-int))))))
      ids)))
 
 (defun gnosis-study-composition (ids)
   "Return counts for unique IDS as a plist.
-Due and new counts include only active items; new can also be due."
+Due and new counts include only active items; new can also be due.
+Practice-only models count as not due, without changing eligibility or newness."
   (let* ((ids (delete-dups (copy-sequence ids)))
-         (rows (when ids (gnosis-select '[reps due-day suspended]
+         (rows (when ids (gnosis-select '[reps due-day suspended thema-id]
                                          'scheduler-state
                                          `(in thema-id ,(vconcat ids)))))
-         (active (seq-filter (lambda (row) (zerop (nth 2 row))) rows)))
+         (active (seq-filter (lambda (row) (zerop (nth 2 row))) rows))
+         (due (seq-count
+               (lambda (row)
+                 (and (<= (cadr row) (gnosis--today-int))
+                      (not (equal (downcase (or (gnosis-get 'type 'themata
+                                                           `(= id ,(nth 3 row))) ""))
+                                  "model"))))
+               active)))
     (list :total (length rows) :eligible (length active)
           :suspended (- (length rows) (length active))
           :new (seq-count (lambda (row) (zerop (car row))) active)
-          :due (seq-count (lambda (row) (<= (cadr row) (gnosis--today-int))) active)
-          :not-due (seq-count (lambda (row) (> (cadr row) (gnosis--today-int))) active))))
+          :due due :not-due (- (length active) due))))
 
 (defun gnosis-study--start (nodes mode &optional fwd back)
   "Preview and start a finite batch for NODES in MODE using FWD/BACK depths."

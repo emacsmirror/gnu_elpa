@@ -146,7 +146,7 @@
     (should-not register-alist)))
 
 (defconst gnosis-test-from-node--lossy-passages
-  '("Alpha\n- Beta" "Alpha\n- \nBeta" "- Alpha" "-Alpha"
+  '("Alpha\n- Beta" "Alpha\n- \nBeta" "- Alpha"
     "Alpha\n** Nested\nBeta" "Alpha\n** Parathema\nInjected"
     "Alpha\n* Thema\n:PROPERTIES:\n:GNOSIS_ID: NEW\n:GNOSIS_TYPE: basic\n:END:\n** Answer\nInjected"
     "   \n  ")
@@ -233,6 +233,28 @@
                        (list (list answer))))
         (should (equal (gnosis-select 'parathema 'extras nil t)
                        '("[[id:root][Source]]")))))))
+
+(ert-deftest gnosis-test-from-node-leading-hyphen-save-edit ()
+  "Keep negative answers and literal hyphens through creation and editing."
+  (dolist (answer '("-90" "-Alpha" "--flag"))
+    (gnosis-test-with-db
+      (gnosis-test-from-node--with-source ":PROPERTIES:\n:ID: root\n:END:\n"
+        (let ((transient-mark-mode t)
+              (gnosis-save-hook nil))
+          (push-mark (point) t t)
+          (insert answer)
+          (activate-mark)
+          (gnosis-add-thema-from-node)
+          (insert "Question")
+          (call-interactively (key-binding (kbd "C-c C-c")))
+          (let ((id (car (gnosis-select 'id 'themata nil t))))
+            (should (equal (list answer) (gnosis-get 'answer 'themata `(= id ,id))))
+            (unwind-protect
+                (progn
+                  (gnosis-edit-thema id)
+                  (call-interactively (key-binding (kbd "C-c C-c")))
+                  (should (equal (list answer) (gnosis-get 'answer 'themata `(= id ,id)))))
+              (when (get-buffer "*Gnosis Edit*") (kill-buffer "*Gnosis Edit*")))))))))
 
 (provide 'gnosis-test-from-node)
 ;;; gnosis-test-from-node.el ends here

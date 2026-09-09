@@ -33,6 +33,7 @@
         ./lisp/gnosis-journal.el
         ./lisp/gnosis-links.el
         ./lisp/gnosis-monkeytype.el
+        ./lisp/gnosis-model.el
         ./lisp/gnosis-nodes.el
         ./lisp/gnosis-org.el
         ./lisp/gnosis-review.el

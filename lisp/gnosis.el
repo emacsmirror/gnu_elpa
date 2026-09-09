@@ -57,6 +57,7 @@
 (require 'subr-x)
 
 (require 'gnosis-db)
+(require 'gnosis-model)
 (require 'gnosis-scheduler)
 (require 'gnosis-logical-day)
 (require 'gnosis-vc)
@@ -190,7 +191,8 @@ This is set automatically based on buffer type:
     ("MCQ" .  gnosis-add-thema--mcq)
     ("Double" .  gnosis-add-thema--double)
     ("Cloze" . gnosis-add-thema--cloze)
-    ("MC-cloze" . gnosis-add-thema--mc-cloze))
+    ("MC-cloze" . gnosis-add-thema--mc-cloze)
+    ("Model" . gnosis-model--save))
   "Mapping of Themata & their respective functions.")
 
 (defvar gnosis-previous-thema-hint nil
@@ -544,6 +546,8 @@ SUSPEND: Integer value of 1 or 0, where 1 suspends the card.
 LINKS: List of id links.
 REVIEW-IMAGE is optional image data and GNOSIS-ID is an optional ID."
   (cl-assert (stringp type) nil "Type must be a string")
+  (when (equal (downcase type) "model")
+    (gnosis-model-resolve hypothesis answer))
   (cl-assert (stringp keimenon) nil "Keimenon must be a string")
   (cl-assert (listp hypothesis) nil "Hypothesis value must be a list")
   (cl-assert (listp answer) nil "Answer value must be a list")
@@ -577,6 +581,8 @@ If ID does not exist, TYPE is required to create it anew and issue a warning.
 When `gnosis--id-cache' is bound, uses hash table for existence check."
   (let* ((id (if (stringp id) (string-to-number id) id))
 	 (current-type (gnosis-get 'type 'themata `(= id ,id))))
+    (when (equal (downcase (or type current-type "")) "model")
+      (gnosis-model-resolve hypothesis answer))
     (if (if gnosis--id-cache
 	    (gethash id gnosis--id-cache)
 	  (member id (gnosis-select 'id 'themata nil t)))
@@ -732,6 +738,8 @@ Use KEIMENON, HYPOTHESIS, ANSWER, PARATHEMA, TAGS, SUSPEND, and LINKS as fields.
 The remaining optional fields are ANSWER, PARATHEMA, TAGS, and EXAMPLE."
   (interactive (list
 		(downcase (completing-read "Select type: " gnosis-thema-types))))
+  (if (and (equal (downcase type) "model") (null hypothesis))
+      (gnosis-add-model-thema)
   (when (get-buffer "*Gnosis NEW*")
     (user-error "Finish or cancel the existing *Gnosis NEW* draft first"))
   (window-configuration-to-register :gnosis-edit)
@@ -743,7 +751,7 @@ The remaining optional fields are ANSWER, PARATHEMA, TAGS, and EXAMPLE."
     (gnosis-export--insert-thema "NEW" type keimenon hypothesis
 				 answer parathema tags example))
   (search-backward "keimenon")
-  (forward-line))
+  (forward-line)))
 
 (defun gnosis--source-thema-round-trip-p (answer parathema)
   "Return non-nil if ANSWER and PARATHEMA survive the thema Org codec.
@@ -770,7 +778,7 @@ link in Parathema, which is shown only after answering.
 
 Accept copied text only if the Org codec preserves one Answer and the
 source link, apart from trimming outer answer whitespace.  Reject lossy
-selections such as separator lines, headings, or a leading dash before
+selections such as separator lines, headings, or a leading list marker before
 opening the editor.  Select a plain passage instead, or author structured
 content manually in the editor's supported fields.
 
@@ -825,6 +833,7 @@ modify or save the source, or replace an existing creation draft."
 (defvar-keymap gnosis-edit-mode-map
   :doc "gnosis org mode map"
   "C-c C-c" #'gnosis-save
+  "C-c C-a" #'gnosis-model-attach
   "C-c C-q" #'gnosis-tags-prompt
   "C-c C-o" #'gnosis-nodes-goto-id
   "C-c C-k" #'gnosis-edit-quit)

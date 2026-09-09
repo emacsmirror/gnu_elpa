@@ -324,8 +324,9 @@ SUCCESS controls the face used when overriding a previous display."
 (defun gnosis-review-is-due-p (thema-id)
   "Check if thema with value of THEMA-ID for id is due for review.
 
-Check if it's suspended, and if it's due today."
-  (and (not (gnosis-suspended-p thema-id))
+Exclude practice-only models; check suspension and whether it is due today."
+  (and (not (equal (downcase (or (gnosis-get 'type 'themata `(= id ,thema-id)) "")) "model"))
+       (not (gnosis-suspended-p thema-id))
        (gnosis-review-is-due-today-p thema-id)))
 
 (defun gnosis-review-is-due-today-p (id)
@@ -346,12 +347,14 @@ well."
           (gnosis-sqlite-select
            db "SELECT thema_id, due_day FROM scheduler_state
                 WHERE reps > 0 AND suspended = 0 AND due_day <= ?
-                ORDER BY due_day, thema_id" (list today)))
+                  AND thema_id NOT IN (SELECT id FROM themata WHERE lower(type) = ?)
+                ORDER BY due_day, thema_id" (list today "model")))
 	 (new-themata
           (gnosis-sqlite-select
            db "SELECT thema_id, due_day FROM scheduler_state
                 WHERE reps = 0 AND suspended = 0 AND due_day <= ?
-                ORDER BY due_day, thema_id" (list today))))
+                  AND thema_id NOT IN (SELECT id FROM themata WHERE lower(type) = ?)
+                ORDER BY due_day, thema_id" (list today "model"))))
     (let ((limited-new (if gnosis-new-themata-limit
 			   (cl-subseq new-themata 0 (min gnosis-new-themata-limit
 							 (length new-themata)))
@@ -372,7 +375,8 @@ well."
              (gnosis--ensure-db)
              "SELECT thema_id FROM scheduler_state
                WHERE reps > 0 AND suspended = 0 AND due_day < ?
-               ORDER BY due_day, thema_id" (list today)))))
+                 AND thema_id NOT IN (SELECT id FROM themata WHERE lower(type) = ?)
+               ORDER BY due_day, thema_id" (list today "model")))))
 
 (defun gnosis-review-count-overdue ()
   "Return count of overdue themata."
@@ -380,8 +384,9 @@ well."
     (or (caar (gnosis-sqlite-select (gnosis--ensure-db)
 				    "SELECT COUNT(*) FROM scheduler_state
                                       WHERE reps > 0 AND suspended = 0
-                                        AND due_day < ?"
-				    (list today)))
+                                        AND due_day < ?
+                                        AND thema_id NOT IN (SELECT id FROM themata WHERE lower(type) = ?)"
+				    (list today "model")))
 	0)))
 
 ;;; Scheduler bridge
@@ -434,6 +439,15 @@ EVENT-ID, REVIEWED-AT-US, and REVIEW-DAY may pin deterministic facts."
 
 (defun gnosis-review--write-result (id success result)
   "Accept pending RESULT for thema ID and binary SUCCESS."
+  (when-let* ((model (plist-get result :model)))
+    (unless (and (eq (car model) (gnosis--ensure-db))
+                 (eq (plist-get result :mode) 'practice)
+                 (equal (cadr model)
+                        (gnosis-select '[type keimenon hypothesis answer]
+                                       'themata `(= id ,id))))
+      (user-error "Model answer belongs to an outdated thema or database"))
+    (let ((row (car (cadr model))))
+      (gnosis-model-resolve (nth 2 row) (nth 3 row))))
   (let ((outcome (if success 'success 'failure)))
     (unless (and (= id (plist-get result :thema-id))
                  (eq outcome (plist-get result :outcome)))
@@ -652,6 +666,173 @@ Read no database or clock and leave STATE and its prior snapshots unchanged."
     (when gnosis-due-themata-total
       (setq gnosis-due-themata-total (length (gnosis-review-get-due-themata))))
     accepted))
+
+;;; Model encounters
+
+(defvar-local gnosis-review--model-context nil
+  "Owned model encounter context, present only during native input.")
+(defvar canvas-3d-selection-hook)
+(defvar canvas-3d-selected-id)
+(defvar canvas-3d--process)
+(defvar canvas-3d--frame)
+(defvar canvas-3d--busy)
+(defvar canvas-3d--dirty)
+(defvar canvas-3d--yaw)
+(defvar canvas-3d--pitch)
+(defvar canvas-3d--zoom)
+(defvar canvas-3d--status)
+
+(defun gnosis-review--model-header ()
+  "Return neutral selection and renderer status, never anatomical labels."
+  (format " Model | %s | %s | RET submit, q cancel, ? help"
+          (if (process-live-p canvas-3d--process) canvas-3d--status
+            (format "Unavailable: %s" canvas-3d--status))
+          (if (plist-get gnosis-review--model-context :selection)
+              "Selection recorded" "Click to select")))
+
+(defun gnosis-review-model-cancel ()
+  "Cancel model input without accepting an answer."
+  (interactive)
+  (when gnosis-review--model-context
+    (setf (plist-get gnosis-review--model-context :cancelled) t)
+    (when (= (recursion-depth)
+             (1+ (plist-get gnosis-review--model-context :depth)))
+      (abort-recursive-edit))))
+
+(defun gnosis-review--model-selection (selection)
+  "Retain explicit SELECTION for this encounter without grading."
+  (when gnosis-review--model-context
+    (setf (plist-get gnosis-review--model-context :selection) nil
+          (plist-get gnosis-review--model-context :view) nil)
+    ;; Picking requests a highlight frame.  DIRTY means it coalesced behind
+    ;; an already pending view, so its old displayed camera is not current.
+    (when (and (not canvas-3d--dirty)
+               (eq (plist-get selection :owner) canvas-3d--process)
+               (equal (plist-get selection :frame) (plist-get canvas-3d--frame :seq)))
+      (setf (plist-get gnosis-review--model-context :selection)
+            (copy-tree selection)
+            (plist-get gnosis-review--model-context :view)
+            (list canvas-3d--yaw canvas-3d--pitch canvas-3d--zoom)))))
+
+(defun gnosis-review--model-check (context)
+  "Validate CONTEXT against its original encounter and current resource."
+  (let ((owner (plist-get context :buffer))
+        (state (plist-get context :state))
+        (id (plist-get context :id)))
+    (unless (and (not (plist-get context :cancelled))
+                 (not (plist-get context :result))
+                 (buffer-live-p owner)
+                 (eq (plist-get context :database) (gnosis--ensure-db))
+                 (with-current-buffer owner (eq state gnosis-review--state))
+                 (equal (plist-get context :state-data) (gnosis-review--state-data state))
+                 (equal id (car (gnosis-review-state-remaining state)))
+                 (equal (plist-get context :thema)
+                        (gnosis-select '[type keimenon hypothesis answer]
+                                       'themata `(= id ,id)))
+                 (or (not (gnosis-review-state-persistent-p state))
+                     (when-let* ((stored (gnosis-review--read-session)))
+                       (equal (plist-get context :state-data)
+                              (gnosis-review--state-data stored)))))
+      (user-error "Model encounter is outdated; resume the original session"))
+    (gnosis-model-resolve (plist-get context :hypothesis) (plist-get context :answer))))
+
+(defun gnosis-review-model-submit ()
+  "Submit the selected model target to the current practice encounter.
+Exploratory clicks never submit.  Wait for a stable view before submitting."
+  (interactive)
+  (let* ((context gnosis-review--model-context)
+         (selection (plist-get context :selection))
+         (id (plist-get selection :id)))
+    (unless (and context
+                 (= (recursion-depth) (1+ (plist-get context :depth))))
+      (user-error "No active model input"))
+    (gnosis-review--model-check context)
+    (unless (and id (equal id canvas-3d-selected-id)
+                 (process-live-p canvas-3d--process)
+                 (eq (plist-get selection :owner) canvas-3d--process)
+                 (not canvas-3d--busy) (not canvas-3d--dirty)
+                 (equal (plist-get context :view)
+                        (list canvas-3d--yaw canvas-3d--pitch canvas-3d--zoom)))
+      (user-error "Select a target in the current ready view before submitting"))
+    (let* ((success (equal id (car (plist-get context :answer))))
+           (result (with-current-buffer (plist-get context :buffer)
+                     (gnosis-review-algorithm (plist-get context :id) success))))
+      (setq result (plist-put result :model
+                              (list (plist-get context :database)
+                                    (copy-tree (plist-get context :thema)))))
+      (setf (plist-get context :result) (cons success result))
+      (exit-recursive-edit))))
+
+(defun gnosis-review-model (id)
+  "Present model ID through native picking in a practice encounter.
+Return the ordinary pending review result; existing review actions accept it.
+Missing backend/assets and cancelled input cannot produce an incorrect grade."
+  (unless (and gnosis-review--state
+               (eq (gnosis-review-state-mode gnosis-review--state) 'practice))
+    (user-error "Model themata support practice only, not scheduled review"))
+  (let* ((owner (current-buffer))
+         (state gnosis-review--state)
+         (thema (gnosis-select '[type keimenon hypothesis answer] 'themata `(= id ,id)))
+         (row (car thema))
+         (hypothesis (nth 2 row))
+         (answer (nth 3 row))
+         (resolved (gnosis-model-resolve hypothesis answer))
+         (objects (alist-get 'objects (gnosis-model--scene (car resolved))))
+         (context (list :buffer owner :state state :id id :database (gnosis--ensure-db)
+                        :state-data (copy-tree (gnosis-review--state-data state))
+                        :thema (copy-tree thema) :hypothesis hypothesis :answer answer
+                        :depth (recursion-depth) :result nil :cancelled nil
+                        :selection nil :view nil))
+         viewer)
+    (gnosis-display-keimenon (gnosis-org-format-string (nth 1 row)))
+    (save-window-excursion
+      (unwind-protect
+          (progn
+            ;; An encounter temporarily owns this frame's layout.  Opening in
+            ;; an existing half-height window clips the canvas on each retry.
+            (delete-other-windows)
+            (let ((display-buffer-overriding-action
+                   '(display-buffer-same-window)))
+              (setq viewer (apply #'gnosis-model-open resolved)))
+            (with-current-buffer viewer
+              (setq-local gnosis-review--model-context context)
+              (use-local-map (copy-keymap (current-local-map)))
+              (local-set-key (kbd "RET") #'gnosis-review-model-submit)
+              (local-set-key (kbd "SPC") #'ignore)
+              (local-set-key (kbd "q") #'gnosis-review-model-cancel)
+              (local-set-key (kbd "C-g") #'gnosis-review-model-cancel)
+              (setq-local header-line-format '(:eval (gnosis-review--model-header)))
+              (add-hook 'canvas-3d-selection-hook #'gnosis-review--model-selection nil t)
+              (add-hook 'kill-buffer-hook #'gnosis-review-model-cancel nil t)
+              (add-hook 'change-major-mode-hook #'gnosis-review-model-cancel nil t)
+              (goto-char (point-min)))
+            (let ((question (split-window nil (- (max window-min-height 6)) 'below)))
+              (set-window-buffer question owner)
+              (set-window-point question (with-current-buffer owner (point-min)))
+              (set-window-start question (with-current-buffer owner (point-min))))
+            (set-window-start (selected-window) (point-min))
+            (when (and (display-graphic-p)
+                       (< (window-body-height nil t) 512))
+              (user-error "Enlarge the frame to display the full model canvas"))
+            (recursive-edit)
+            (unless (plist-get context :result) (user-error "Model input cancelled"))
+            (with-current-buffer owner
+              (gnosis-display-basic-answer
+               (alist-get 'label (seq-find (lambda (o) (equal (car answer) (alist-get 'id o))) objects))
+               (car (plist-get context :result))
+               (or (alist-get 'label
+                              (seq-find
+                               (lambda (o)
+                                 (equal (plist-get (plist-get context :selection) :id)
+                                        (alist-get 'id o))) objects)) "Unknown target"))
+              (gnosis-display-parathema (gnosis-get 'parathema 'extras `(= id ,id)))
+              (gnosis-display-next-review nil (car (plist-get context :result))))
+            (plist-get context :result))
+        (when (buffer-live-p viewer)
+          (with-current-buffer viewer
+            (setq gnosis-review--model-context nil)
+            (kill-buffer viewer)))))))
+
 
 ;;; Type-specific review
 

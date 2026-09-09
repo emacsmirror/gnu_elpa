@@ -31,6 +31,10 @@ only where the task needs it, rather than reorganizing the package:
 - `gnosis-dashboard`: views of application state. Formatting returns display
   values; renderers own buffer changes and pending work. `gnosis-tl` supplies
   generic tabulated-list rendering, not application-state ownership.
+- `gnosis-model` owns immutable managed scene resources, model field validation
+  and authoring attachment; `gnosis-review` owns selection/submit encounter
+  identity and practice acceptance.  The optional canvas backend owns rendering
+  and picking, never grading.  Asset bytes live beside the database, not in it.
 - `gnosis-tags` owns tag-set operations; `gnosis-cloze` owns cloze transforms.
   Keep their data transformations separate from prompts and Org rendering.
 - `gnosis-anki` and `gnosis-export-import`: parse and normalize input, derive

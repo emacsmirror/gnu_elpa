@@ -26,7 +26,7 @@ TEXI := docs/gnosis.texi
 INFO := docs/gnosis.info
 
 MODULES := gnosis-sqlite gnosis-tl gnosis-utils gnosis-org \
-	gnosis-logical-day gnosis-fsrs gnosis-cloze gnosis-db gnosis-scheduler gnosis-vc \
+	gnosis-logical-day gnosis-fsrs gnosis-cloze gnosis-db gnosis-model gnosis-scheduler gnosis-vc \
 	gnosis-tags gnosis-links gnosis-monkeytype \
 	gnosis-nodes gnosis-journal gnosis gnosis-study gnosis-review gnosis-agent gnosis-dashboard \
 	gnosis-export-import gnosis-anki
@@ -34,7 +34,7 @@ SOURCES := $(addprefix $(LISP_DIR)/,$(addsuffix .el,$(MODULES)))
 PACKAGE_LINT_SOURCES := $(LISP_DIR)/gnosis.el \
 	$(filter-out $(LISP_DIR)/gnosis.el,$(SOURCES))
 
-AUTOLOAD_COMMANDS := gnosis gnosis-add-thema gnosis-add-thema-from-node \
+AUTOLOAD_COMMANDS := gnosis gnosis-add-thema gnosis-add-model-thema gnosis-add-thema-from-node \
 	gnosis-modeline-mode \
 	gnosis-dashboard gnosis-export-db gnosis-import-db gnosis-save \
 	gnosis-import-anki gnosis-journal-find gnosis-journal-insert \

@@ -43,6 +43,25 @@ For preview drift and partial-import retry coverage, start with:
 - `tests/gnosis-test-exchange-hardening.el`
 - `tests/gnosis-test-authoring-hardening.el`
 
+## Model resources
+
+Model themata reuse the existing thema schema and owned Lisp serializer:
+`hypothesis` contains (RESOURCE YAW PITCH ZOOM) strings and `answer` contains
+one stable target ID.  `gnosis-model` validates the version-addressed scene
+and every listed OBJ before saving or using it; no schema migration is needed.
+The new discriminator does not reinterpret historical thema data.  Authoring
+shows a resource/view heading, not a hint.  Assets live at
+`assets/<sha256>/scene.json` beside the actual connected database; the manifest
+owns targets and attribution.  Geometry and manifest bytes define the revision.
+
+Import stages and validates before rename; exact retries share a revision.
+Resources are pinned before target/camera prompts.  Cancelled authoring can
+leave unreferenced immutable assets but no partial thema.  Do not overwrite or
+automatically garbage-collect shared revisions.  Content SQLite export/import
+refuses model resources until a portable bundled format is supported.  Org
+editing preserves the reference but cannot transfer the assets.  Full database
+backup and automatic database Git commits do not include `assets/`.
+
 ## Content export and database backup
 
 `gnosis-export-db` in `lisp/gnosis-export-import.el` exports thema content, not

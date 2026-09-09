@@ -375,5 +375,89 @@
       (when (buffer-live-p viewer) (kill-buffer viewer))
       (delete-file scene))))
 
+
+(ert-deftest canvas-3d-embedded-real-lifecycle-preserves-host ()
+  ;; Native image display alone is stubbed; EGL, packets and process are real.
+  (dolist (retire '(detach mode kill))
+    (let ((host (generate-new-buffer " *canvas host*")) process log)
+      (unwind-protect
+          (with-current-buffer host
+            (text-mode)
+            (insert "Question above\n")
+            (let ((mode major-mode) (map (current-local-map)))
+              (cl-letf (((symbol-function 'display-graphic-p) (lambda (&rest _) t))
+                        ((symbol-function 'canvas-refresh) #'ignore)
+                        ((symbol-function 'image-type-available-p) (lambda (_) t))
+                        ((symbol-function 'pop-to-buffer) (lambda (&rest _) (ert-fail "Separate viewer"))))
+                (should (eq host (canvas-3d-attach
+                                  (expand-file-name "fixtures/pyramid.obj" canvas-3d--directory)
+                                  nil '(0 0 1) 128)))
+                (setq process canvas-3d--process log canvas-3d--stderr)
+                (let ((deadline (+ (float-time) 15)))
+                  (while (and canvas-3d--busy (< (float-time) deadline))
+                    (accept-process-output process 0.05)))
+                (should (equal canvas-3d--status "Ready"))
+                (should (eq major-mode mode))
+                (should (eq (current-local-map) map))
+                (should (string-prefix-p "Question above\n" (buffer-string)))
+                (should-error (canvas-3d-attach
+                               (expand-file-name "fixtures/pyramid.obj" canvas-3d--directory)
+                               nil nil 128))
+                (should (eq process canvas-3d--process))
+                (let ((image canvas-3d--image) (frame canvas-3d--frame))
+                  (pcase retire
+                    ('detach (canvas-3d-detach)
+                             (should (text-property-not-all (point-min) (point-max) 'display nil))
+                             (should (eq (get-text-property (text-property-not-all (point-min) (point-max) 'display nil) 'display) image))
+                             (should (eq (current-local-map) map)))
+                    ('mode (fundamental-mode))
+                    ('kill (kill-buffer host)))
+                  (should-not (process-live-p process))
+                  (should-not (buffer-live-p log))
+                  (when (buffer-live-p host)
+                    (with-current-buffer host
+                      (should-not canvas-3d--process)
+                      (should-not canvas-3d--timer)
+                      (canvas-3d--receive process "stale packet")
+                      (should-not canvas-3d--frame)
+                      (should frame)))))))
+        (when (buffer-live-p host) (kill-buffer host))))))
+
+(ert-deftest canvas-3d-embedded-wheel-and-object-relative-pixel ()
+  (save-window-excursion
+    (with-temp-buffer
+      (switch-to-buffer (current-buffer))
+      (text-mode)
+      (insert "Question\n\n")
+      (setq canvas-3d--image '(image :type canvas) canvas-3d--size 512)
+      (let ((zoom canvas-3d--zoom)
+            (position (list (selected-window) 1 '(164 . 232) 0 nil 1 '(0 . 0)
+                            canvas-3d--image '(64 . 32) '(256 . 256))))
+        (cl-letf (((symbol-function 'canvas-3d--request) #'ignore))
+          (should (equal (canvas-3d--pixel position) '(128 . 64)))
+          (canvas-3d-wheel (list 'wheel-up position))
+          (should (> canvas-3d--zoom zoom)))))))
+
+(ert-deftest canvas-3d-embedded-start-failure-releases-resources ()
+  (with-temp-buffer
+    (text-mode)
+    (insert "Keep question")
+    (let ((map (current-local-map)) log)
+      (cl-letf (((symbol-function 'display-graphic-p) (lambda (&rest _) t))
+                ((symbol-function 'canvas-refresh) #'ignore)
+                ((symbol-function 'image-type-available-p) (lambda (_) t))
+                ((symbol-function 'canvas-3d--python) (lambda () "python"))
+                ((symbol-function 'make-process)
+                 (lambda (&rest _) (setq log canvas-3d--stderr) (error "Startup failure"))))
+        (should-error (canvas-3d-attach
+                       (expand-file-name "fixtures/pyramid.obj" canvas-3d--directory)))
+        (should-not (buffer-live-p log))
+        (should-not canvas-3d--image)
+        (should-not canvas-3d--process)
+        (should-not canvas-3d--timer)
+        (should (eq (current-local-map) map))
+        (should (eq major-mode 'text-mode))
+        (should (string-prefix-p "Keep question" (buffer-string)))))))
+
 (provide 'canvas-3d-tests)
 ;;; canvas-3d-tests.el ends here

@@ -311,11 +311,13 @@
           (sqlite-close export)))
       (should (gnosis-get 'id 'themata `(= id ,model))))))
 
-(defun gnosis-test-model--canvas (_path _view &optional _size)
+(defun gnosis-test-model--canvas (_path _view &optional _size inline)
   "Create a deterministic stand-in for the optional canvas boundary."
-  (let ((buffer (generate-new-buffer " *Gnosis test canvas*")))
+  (let ((load-path (cons (gnosis-model--renderer-directory) load-path)))
+    (require 'canvas-3d))
+  (let ((buffer (if inline (current-buffer) (generate-new-buffer " *Gnosis test canvas*"))))
     (with-current-buffer buffer
-      (special-mode)
+      (unless inline (special-mode))
       (setq-local canvas-3d--process (make-pipe-process :name "gnosis-model-test" :noquery t))
       (setq-local canvas-3d--frame (list :seq 1 :owner canvas-3d--process))
       (setq-local canvas-3d--status "Ready")
@@ -503,6 +505,7 @@
   (declare (indent 0) (debug t))
   `(let ((depth 0))
      (cl-letf (((symbol-function 'gnosis-model-open) #'gnosis-test-model--canvas)
+               ((symbol-function 'gnosis-model--canvas-size) (lambda () 400))
                ((symbol-function 'recursion-depth) (lambda () depth))
                ((symbol-function 'exit-recursive-edit) #'ignore)
                ((symbol-function 'recursive-edit)
@@ -538,7 +541,7 @@
                   (dotimes (_ 2)
                     (gnosis-test-model--encounter
                       (should (= 2 (length (window-list))))
-                      (should (>= (window-body-height nil t) 512))
+                      (should (eq (window-buffer (next-window)) other))
                       (should (eq (window-buffer (selected-window)) (current-buffer)))
                       (should (get-buffer-window buffer))
                       (should (= (window-start) (point-min)))
@@ -916,6 +919,91 @@
           (should (equal before (gnosis-select '* 'scheduler-state)))
           (should-not (gnosis-select '* 'review-events))
           (should-not (gnosis-select '* 'practice-events)))))))
+
+(ert-deftest gnosis-model-inline-retains-review-owner ()
+  (gnosis-test-with-db
+   (save-window-excursion
+     (let* ((model (gnosis-test-model--add))
+            (buffer (gnosis-review--setup-buffer (list model) 'practice)))
+       (unwind-protect
+           (with-current-buffer buffer
+             (let ((mode major-mode) (map (current-local-map)))
+               (gnosis-test-model--encounter
+                (should (eq (current-buffer) buffer))
+                (should (eq major-mode mode))
+                (should (string-match-p "Select triangle" (buffer-string)))
+                (gnosis-review-model-submit))
+               (should (buffer-live-p buffer))
+               (should (eq (current-local-map) map))))
+         (when (buffer-live-p buffer) (kill-buffer buffer)))))))
+
+
+(ert-deftest gnosis-model-inline-replacement-cannot-submit-or-retire-successor ()
+  (gnosis-test-with-db
+   (save-window-excursion
+     (let* ((model (gnosis-test-model--add))
+            (buffer (gnosis-review--setup-buffer (list model) 'practice))
+            successor)
+       (unwind-protect
+           (with-current-buffer buffer
+             (should-error
+              (gnosis-test-model--encounter
+               (delete-process canvas-3d--process)
+               (setq successor (make-pipe-process :name "successor" :noquery t)
+                     canvas-3d--process successor)
+               (gnosis-review--model-selection (list :id "triangle" :frame 1 :owner successor))
+               (gnosis-review-model-submit)))
+             (should (process-live-p successor))
+             (should-not (gnosis-select '* 'practice-events)))
+         (when (process-live-p successor) (delete-process successor))
+         (when (buffer-live-p buffer) (kill-buffer buffer)))))))
+
+(ert-deftest gnosis-model-stopped-attachment-cancel-unwind-and-reentry ()
+  (let ((load-path (cons (gnosis-model--renderer-directory) load-path)))
+    (require 'canvas-3d))
+  (gnosis-test-with-db
+   (save-window-excursion
+     (let* ((model (gnosis-test-model--add))
+            (buffer (gnosis-review--setup-buffer (list model) 'practice))
+            (path (car (gnosis-model-resolve
+                        (gnosis-get 'hypothesis 'themata `(= id ,model)) '("triangle")))))
+       (unwind-protect
+           (with-current-buffer buffer
+             ;; Use real attach/stop/detach, replacing only native display and
+             ;; subprocess transport.  Neither is needed to prove ownership.
+             (cl-letf (((symbol-function 'display-graphic-p) (lambda (&rest _) t))
+                       ((symbol-function 'gnosis-model--canvas-size) (lambda () 400))
+                       ((symbol-function 'image-type-available-p) (lambda (_) t))
+                       ((symbol-function 'canvas-refresh) #'ignore)
+                       ((symbol-function 'canvas-3d--python) (lambda () "unused"))
+                       ((symbol-function 'make-process)
+                        (lambda (&rest _) (make-pipe-process :name "attachment-test" :noquery t)))
+                       ((symbol-function 'canvas-3d--request) #'ignore))
+               (dolist (cancel '(t nil))
+                 (let (image log)
+                   (cl-letf (((symbol-function 'recursive-edit)
+                              (lambda ()
+                                (setq image canvas-3d--image log canvas-3d--stderr)
+                                (canvas-3d--stop "Renderer failed")
+                                (when cancel (gnosis-review-model-cancel))
+                                (user-error "Input ended"))))
+                     (should-error (gnosis-review-model model) :type 'user-error))
+                   (should image)
+                   (should log)
+                   (should-not gnosis-review--model-context)
+                   (should-not canvas-3d--process)
+                   (should-not canvas-3d--image)
+                   (should-not (buffer-live-p log))
+                   (should-not (memq #'canvas-3d--cleanup kill-buffer-hook))
+                   (should-not (memq #'canvas-3d--cleanup change-major-mode-hook))
+                   (should (text-property-any (point-min) (point-max) 'display image))
+                   (goto-char (point-max))
+                   (canvas-3d-attach path nil '(0 0 1) 128)
+                   (should-not (eq image canvas-3d--image))
+                   (should (process-live-p canvas-3d--process))
+                   (canvas-3d-detach))))
+             (should-not (gnosis-select '* 'practice-events)))
+         (when (buffer-live-p buffer) (kill-buffer buffer)))))))
 
 (provide 'gnosis-test-model)
 ;;; gnosis-test-model.el ends here

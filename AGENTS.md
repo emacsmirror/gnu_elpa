@@ -41,7 +41,8 @@ only where the task needs it, rather than reorganizing the package:
   and picking, never grading.  Asset bytes live beside the database, not in it.
 - `gnosis-image` owns raster manifests, inline image formatting and the native
   region editor/viewer. The shared asset layer never interprets rectangles.
-  `gnosis-review` owns image encounter identity and binary acceptance; inline
+  `gnosis-review` owns image encounter identity, typed occlusion matching and
+  binary acceptance; inline
   images in hidden answers and explanations must decode before input starts.
 - `gnosis-tags` owns tag-set operations; `gnosis-cloze` owns cloze transforms.
   Keep their data transformations separate from prompts and Org rendering.

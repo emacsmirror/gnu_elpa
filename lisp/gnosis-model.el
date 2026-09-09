@@ -24,6 +24,7 @@
 (declare-function gnosis-export--insert-thema "gnosis-export-import")
 (declare-function gnosis-export-parse-themata "gnosis-export-import")
 (declare-function canvas-3d-open "canvas-3d")
+(declare-function canvas-3d-attach "canvas-3d")
 (declare-function canvas-3d--python "canvas-3d")
 (declare-function canvas-3d--request "canvas-3d")
 (defvar canvas-3d--directory)
@@ -443,10 +444,11 @@ With a prefix argument, use advanced numeric input instead of the canvas."
       (let ((bundled (expand-file-name "../optional/canvas-3d" gnosis-model--directory)))
         (when (file-readable-p (expand-file-name "canvas-3d.el" bundled)) bundled))))
 
-(defun gnosis-model-open (path view &optional size)
+(defun gnosis-model-open (path view &optional size inline)
   "Open validated scene PATH at VIEW using the optional canvas backend.
 SIZE defaults to 512 pixels; callers with an owned layout may pass its actual
-available size.  Never install dependencies or use the network on opening."
+available size.  INLINE attaches at point, preserving the current buffer.
+Never install dependencies or use the network on opening."
   (let* ((directory (gnosis-model--renderer-directory))
          (load-path (if directory (cons directory load-path) load-path)))
     (when (and directory (file-remote-p directory))
@@ -461,7 +463,12 @@ available size.  Never install dependencies or use the network on opening."
         (user-error
          (user-error "Model renderer dependencies missing: run uv sync --locked --project %s (OpenGL/EGL required)"
                      (shell-quote-argument canvas-3d--directory))))
-      (canvas-3d-open path "Gnosis model" view (or size 512)))))
+      (if inline
+          (progn
+            (unless (fboundp 'canvas-3d-attach)
+              (user-error "Update the optional canvas backend for inline review"))
+            (canvas-3d-attach path "Gnosis model" view (or size 512)))
+        (canvas-3d-open path "Gnosis model" view (or size 512))))))
 
 (provide 'gnosis-model)
 ;;; gnosis-model.el ends here

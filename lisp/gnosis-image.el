@@ -185,12 +185,31 @@ Metadata is optional and never guessed.  Identical imports share a revision."
     (concat (gnosis-assets-import (file-name-directory file) (list (file-name-nondirectory file))
                                   (list (cons "image.json" text))) "/image.json")))
 
+(defun gnosis-image-occlusion-fields (hypothesis answer)
+  "Return canonical occlusion (HYPOTHESIS ANSWER) fields.
+HYPOTHESIS holds resource and stable target; ANSWER holds editable text.
+For historical resource-only hypotheses derive text from the pinned label."
+  (unless (and (proper-list-p hypothesis) (memq (length hypothesis) '(1 2))
+               (seq-every-p #'stringp hypothesis)
+               (proper-list-p answer) (= (length answer) 1)
+               (stringp (car answer)) (not (string-empty-p (string-trim (car answer)))))
+    (user-error "Occlusion needs resource, target and a nonempty text answer"))
+  (let* ((target (if (cdr hypothesis) (cadr hypothesis) (car answer)))
+         (scene (gnosis-image-resolve (car hypothesis) target))
+         (text (if (cdr hypothesis) (car answer)
+                 (alist-get 'label
+                            (seq-find (lambda (r) (equal target (alist-get 'id r)))
+                                      (alist-get 'regions scene))))))
+    (list (list (car hypothesis) target) (list text))))
+
 (defun gnosis-image-validate-fields (type keimenon hypothesis answer parathema
                                           &optional review-image)
   "Validate TYPE, KEIMENON, HYPOTHESIS, ANSWER, PARATHEMA and REVIEW-IMAGE media."
   (mapc #'gnosis-image-resolve
         (gnosis-image-references (list keimenon hypothesis answer parathema review-image)))
-  (when (member (downcase type) '("image-region" "image-occlusion"))
+  (when (equal (downcase type) "image-occlusion")
+    (gnosis-image-occlusion-fields hypothesis answer))
+  (when (equal (downcase type) "image-region")
     (unless (and (proper-list-p hypothesis) (= (length hypothesis) 1)
                  (proper-list-p answer) (= (length answer) 1) (stringp (car answer)))
       (user-error "Image thema needs one resource and one target"))
@@ -208,7 +227,7 @@ Validate KEIMENON, HYPOTHESIS, ANSWER, PARATHEMA, TAGS, SUSPEND and LINKS."
   (let* ((path (alist-get 'path scene))
          (type (nth 2 (gnosis-image--dimensions path)))
          (image (and (display-images-p) (image-type-available-p type)
-                     (create-image path type nil)))
+                     (create-image path type nil :scale 1.0)))
          (size (and image (image-size image t))))
     (unless (and size (equal (car size) (alist-get 'width scene))
                  (equal (cdr size) (alist-get 'height scene)))
@@ -234,10 +253,38 @@ Validate KEIMENON, HYPOTHESIS, ANSWER, PARATHEMA, TAGS, SUSPEND and LINKS."
               start end)))
     (concat result (substring text start))))
 
+(defun gnosis-image-mask (scene target revealed &optional window)
+  "Return inline SCENE display hiding TARGET unless REVEALED, fitting WINDOW."
+  (gnosis-image--decode scene)
+  (unless (image-type-available-p 'svg) (user-error "Native SVG support is required"))
+  (let* ((scale (min 1.0 (/ (float (max 1 (- (window-body-width window t) 32)))
+                            (alist-get 'width scene))
+                     (/ (float (max 1 (- (window-body-height window t) 160)))
+                        (alist-get 'height scene))))
+         (width (max 1 (floor (* scale (alist-get 'width scene)))))
+         (height (max 1 (floor (* scale (alist-get 'height scene))))))
+    (propertize " " 'gnosis-image-mask (list scene target revealed)
+                'display (svg-image (gnosis-image--svg
+                                     scene (alist-get 'regions scene) width height
+                                     'occlusion target nil revealed) :scale 1.0))))
+
 (defun gnosis-image-refresh ()
   "Resize inline managed image displays without changing text or point."
   (when-let* ((window (get-buffer-window (current-buffer))))
     (save-excursion
+      (let ((position (point-min)))
+        (while (< position (point-max))
+          (let* ((end (next-single-property-change position 'gnosis-image-mask nil (point-max)))
+                 (mask (get-text-property position 'gnosis-image-mask)))
+            (when mask
+              (with-silent-modifications
+                (put-text-property position end 'display
+                                   (condition-case nil
+                                       (get-text-property 0 'display
+                                                          (apply #'gnosis-image-mask
+                                                                 (append mask (list window))))
+                                     (error "[Image unavailable]")))))
+            (setq position end))))
       (let ((position (point-min)))
         (while (< position (point-max))
           (let* ((end (next-single-property-change position 'gnosis-image-reference nil (point-max)))
@@ -463,8 +510,8 @@ Return immutable managed reference.  Prompts never assign guessed provenance."
     (gnosis-image-resolve pinned)
     (gnosis-image-import (alist-get 'path scene) regions source attribution)))
 
-(defun gnosis-image--read-fields (&optional reference)
-  "Read graphical image fields, optionally reusing REFERENCE."
+(defun gnosis-image--read-fields (&optional reference occlusion)
+  "Read graphical fields, reusing REFERENCE, with text for OCCLUSION."
   (let* ((database (gnosis--ensure-db))
          (reference (gnosis-image--read-resource reference t))
          (regions (alist-get 'regions (gnosis-image-resolve reference)))
@@ -475,7 +522,9 @@ Return immutable managed reference.  Prompts never assign guessed provenance."
       (unless target (user-error "Choose an expected region"))
       (gnosis-assets-root database)
       (gnosis-image-resolve reference target)
-      (list (list reference) (list target)))))
+      (if occlusion
+          (gnosis-image-occlusion-fields (list reference) (list target))
+        (list (list reference) (list target))))))
 
 ;;;###autoload
 (defun gnosis-add-image-thema (&optional type)
@@ -485,8 +534,8 @@ TYPE is image-region or image-occlusion; interactively choose between them."
   (let ((type (or type (completing-read "Image type: " '("image-region" "image-occlusion") nil t))))
     (unless (member type '("image-region" "image-occlusion")) (user-error "Invalid image type"))
     (when (get-buffer "*Gnosis NEW*") (user-error "Finish the existing draft first"))
-    (pcase-let ((`(,hypothesis ,answer) (gnosis-image--read-fields)))
-      (gnosis-add-thema type nil (car hypothesis) (car answer)))))
+    (pcase-let ((`(,hypothesis ,answer) (gnosis-image--read-fields nil (equal type "image-occlusion"))))
+      (gnosis-add-thema type nil (mapconcat #'identity hypothesis "\n- ") (car answer)))))
 
 (defun gnosis-image-attach ()
   "Attach a managed image at point, or edit a single media thema resource.
@@ -505,7 +554,7 @@ and database ownership through all prompts and cancellation."
         (unless (member (save-excursion (org-back-to-heading t) (org-get-heading t t t t))
                         '("Keimenon" "Hypothesis" "Answer" "Parathema"))
           (user-error "Attach inside a question, hint, answer or explanation")))
-      (let ((value (if image-p (gnosis-image--read-fields (car (nth 3 thema)))
+      (let ((value (if image-p (gnosis-image--read-fields (car (nth 3 thema)) (equal type "image-occlusion"))
                      (gnosis-image--read-resource))))
         (gnosis-assets-root database)
         (unless (and (buffer-live-p owner)
@@ -518,7 +567,11 @@ and database ownership through all prompts and cancellation."
                 (let ((inhibit-read-only t))
                   (erase-buffer)
                   (gnosis-export--insert-thema (nth 0 thema) type (nth 2 thema)
-                                               (caar value) (caadr value) (nth 5 thema) (nth 6 thema))
+                                               (mapconcat #'identity (car value) "\n- ")
+                                               (if (and (equal type "image-occlusion")
+                                                        (cdr (nth 3 thema)))
+                                                   (car (nth 4 thema)) (caadr value))
+                                               (nth 5 thema) (nth 6 thema))
                   (goto-char (point-min)))
               (goto-char position)
               (insert (format "[[gnosis-image:%s]]" value)))))))))

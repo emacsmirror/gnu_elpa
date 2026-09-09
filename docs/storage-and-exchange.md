@@ -52,8 +52,16 @@ normalized `[x, y, width, height]` rectangles. Region edits publish a new byte
 revision; existing references keep their original raster and regions.
 
 Ordinary content uses `[[gnosis-image:<revision>/image.json]]` Org links.
-`image-region` and `image-occlusion` use one resource string in `hypothesis`
-and one stable target string in `answer`, without a schema change. Header
+`image-region` uses one resource string in `hypothesis` and one stable target
+string in `answer`. `image-occlusion` uses `(RESOURCE TARGET)` in `hypothesis`
+and `(TEXT)` in `answer`, without a schema change. TEXT is a nonempty editable
+human answer checked with ordinary Gnosis text comparison. Historical
+occlusion rows with `(RESOURCE)` / `(TARGET)` remain valid: the immutable
+manifest's target label supplies the expected text, never the raw stable ID.
+Opening such a native draft exposes the canonical fields; saving that draft
+persists them. No bulk migration or asset rewrite occurs. New attachments
+prefill text from the region label; reattaching a canonical draft preserves
+its edited answer. The image resource heading uses the normal list codec. Header
 validation permits standard PNG color/depth combinations and 8-bit grayscale
 or RGB JPEG, within size limits; it does not establish compressed-pixel
 validity. Native decoding is additionally required for study. Missing,

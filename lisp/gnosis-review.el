@@ -689,9 +689,12 @@ Read no database or clock and leave STATE and its prior snapshots unchanged."
 
 (defvar-local gnosis-review--model-context nil
   "Owned model encounter context, present only during native input.")
+(declare-function canvas-3d-detach "canvas-3d")
+(defvar canvas-3d-mode-map)
 (defvar canvas-3d-selection-hook)
 (defvar canvas-3d-selected-id)
 (defvar canvas-3d--process)
+(defvar canvas-3d--image)
 (defvar canvas-3d--frame)
 (defvar canvas-3d--busy)
 (defvar canvas-3d--dirty)
@@ -708,11 +711,20 @@ Read no database or clock and leave STATE and its prior snapshots unchanged."
           (if (plist-get gnosis-review--model-context :selection)
               "Selection recorded" "Click to select")))
 
+(defun gnosis-review--model-detach (context)
+  "Detach CONTEXT's exact attachment, even after its renderer stopped."
+  (when (and (fboundp 'canvas-3d-detach)
+             (eq (plist-get context :attachment) canvas-3d--image)
+             (or (null canvas-3d--process)
+                 (eq (plist-get context :process) canvas-3d--process)))
+    (canvas-3d-detach)))
+
 (defun gnosis-review-model-cancel ()
   "Cancel model input without accepting an answer."
   (interactive)
   (when gnosis-review--model-context
     (setf (plist-get gnosis-review--model-context :cancelled) t)
+    (gnosis-review--model-detach gnosis-review--model-context)
     (when (= (recursion-depth)
              (1+ (plist-get gnosis-review--model-context :depth)))
       (abort-recursive-edit))))
@@ -725,6 +737,7 @@ Read no database or clock and leave STATE and its prior snapshots unchanged."
     ;; Picking requests a highlight frame.  DIRTY means it coalesced behind
     ;; an already pending view, so its old displayed camera is not current.
     (when (and (not canvas-3d--dirty)
+               (eq (plist-get gnosis-review--model-context :process) canvas-3d--process)
                (eq (plist-get selection :owner) canvas-3d--process)
                (equal (plist-get selection :frame) (plist-get canvas-3d--frame :seq)))
       (setf (plist-get gnosis-review--model-context :selection)
@@ -766,6 +779,7 @@ Exploratory clicks never submit.  Wait for a stable view before submitting."
       (user-error "No active model input"))
     (gnosis-review--model-check context)
     (unless (and id (equal id canvas-3d-selected-id)
+                 (eq (plist-get context :process) canvas-3d--process)
                  (process-live-p canvas-3d--process)
                  (eq (plist-get selection :owner) canvas-3d--process)
                  (not canvas-3d--busy) (not canvas-3d--dirty)
@@ -803,57 +817,60 @@ Missing backend/assets and cancelled input cannot produce an incorrect grade."
                         :thema (copy-tree thema) :hypothesis hypothesis :answer answer
                         :depth (recursion-depth) :result nil :cancelled nil
                         :selection nil :view nil))
-         viewer)
+         (map (current-local-map))
+         (header header-line-format)
+         attached)
     (gnosis-display-keimenon (gnosis-org-format-string (nth 1 row)))
-    (save-window-excursion
-      (unwind-protect
-          (progn
-            ;; An encounter temporarily owns this frame's layout.  Opening in
-            ;; an existing half-height window clips the canvas on each retry.
-            (delete-other-windows)
-            (let ((display-buffer-overriding-action
-                   '(display-buffer-same-window)))
-              (setq viewer (apply #'gnosis-model-open resolved)))
-            (with-current-buffer viewer
-              (setq-local gnosis-review--model-context context)
-              (use-local-map (copy-keymap (current-local-map)))
-              (local-set-key (kbd "RET") #'gnosis-review-model-submit)
-              (local-set-key (kbd "SPC") #'ignore)
-              (local-set-key (kbd "q") #'gnosis-review-model-cancel)
-              (local-set-key (kbd "C-g") #'gnosis-review-model-cancel)
-              (setq-local header-line-format '(:eval (gnosis-review--model-header)))
-              (add-hook 'canvas-3d-selection-hook #'gnosis-review--model-selection nil t)
-              (add-hook 'kill-buffer-hook #'gnosis-review-model-cancel nil t)
-              (add-hook 'change-major-mode-hook #'gnosis-review-model-cancel nil t)
-              (goto-char (point-min)))
-            (let ((question (split-window nil (- (max window-min-height 6)) 'below)))
-              (set-window-buffer question owner)
-              (set-window-point question (with-current-buffer owner (point-min)))
-              (set-window-start question (with-current-buffer owner (point-min))))
-            (set-window-start (selected-window) (point-min))
-            (when (and (display-graphic-p)
-                       (< (window-body-height nil t) 512))
-              (user-error "Enlarge the frame to display the full model canvas"))
-            (recursive-edit)
-            (unless (plist-get context :result) (user-error "Model input cancelled"))
-            (with-current-buffer owner
-              (gnosis-display-basic-answer
-               (alist-get 'label (seq-find (lambda (o) (equal (car answer) (alist-get 'id o))) objects))
-               (car (plist-get context :result))
-               (or (alist-get 'label
-                              (seq-find
-                               (lambda (o)
-                                 (equal (plist-get (plist-get context :selection) :id)
-                                        (alist-get 'id o))) objects)) "Unknown target"))
-              (gnosis-display-parathema (gnosis-get 'parathema 'extras `(= id ,id)))
-              (gnosis-display-next-review
-               (gnosis-review--result-date (cdr (plist-get context :result)))
-               (car (plist-get context :result))))
-            (plist-get context :result))
-        (when (buffer-live-p viewer)
-          (with-current-buffer viewer
-            (setq gnosis-review--model-context nil)
-            (kill-buffer viewer)))))))
+    (unwind-protect
+        (progn
+          (goto-char (point-max))
+          (insert "\n")
+          (gnosis-model-open (car resolved) (cadr resolved)
+                             (min (gnosis-model--canvas-size)
+                                  (max 128 (- (window-body-height nil t)
+                                              (* (+ 5 (count-lines (point-min) (point-max)))
+                                                 (frame-char-height))))) t)
+          (setq attached t)
+          (setf (plist-get context :process) canvas-3d--process
+                (plist-get context :attachment) canvas-3d--image)
+          (setq-local gnosis-review--model-context context)
+          (use-local-map (make-composed-keymap
+                          (copy-keymap canvas-3d-mode-map) map))
+          (local-set-key (kbd "RET") #'gnosis-review-model-submit)
+          (local-set-key (kbd "SPC") #'ignore)
+          (local-set-key (kbd "q") #'gnosis-review-model-cancel)
+          (local-set-key (kbd "C-g") #'gnosis-review-model-cancel)
+          (setq-local header-line-format '(:eval (gnosis-review--model-header)))
+          (add-hook 'canvas-3d-selection-hook #'gnosis-review--model-selection nil t)
+          (add-hook 'kill-buffer-hook #'gnosis-review-model-cancel nil t)
+          (add-hook 'change-major-mode-hook #'gnosis-review-model-cancel nil t)
+          (goto-char (point-min))
+          (recursive-edit)
+          (unless (plist-get context :result) (user-error "Model input cancelled"))
+          (with-current-buffer owner
+            (gnosis-display-basic-answer
+             (alist-get 'label (seq-find (lambda (o) (equal (car answer) (alist-get 'id o))) objects))
+             (car (plist-get context :result))
+             (or (alist-get 'label
+                            (seq-find
+                             (lambda (o)
+                               (equal (plist-get (plist-get context :selection) :id)
+                                      (alist-get 'id o))) objects)) "Unknown target"))
+            (gnosis-display-parathema (gnosis-get 'parathema 'extras `(= id ,id)))
+            (gnosis-display-next-review
+             (gnosis-review--result-date (cdr (plist-get context :result)))
+             (car (plist-get context :result))))
+          (plist-get context :result))
+      (when (buffer-live-p owner)
+        (with-current-buffer owner
+          ;; A mode change already retired the old buffer-local encounter.
+          (when (eq gnosis-review--model-context context)
+            (when attached (gnosis-review--model-detach context))
+            (setq gnosis-review--model-context nil header-line-format header)
+            (use-local-map map)
+            (remove-hook 'canvas-3d-selection-hook #'gnosis-review--model-selection t)
+            (remove-hook 'kill-buffer-hook #'gnosis-review-model-cancel t)
+            (remove-hook 'change-major-mode-hook #'gnosis-review-model-cancel t)))))))
 
 
 ;;; Image encounters
@@ -891,8 +908,8 @@ Missing backend/assets and cancelled input cannot produce an incorrect grade."
       (user-error "Image encounter is outdated; resume the original session"))
     (apply #'gnosis-image-validate-fields (car (cadr owner)))))
 
-(defun gnosis-review--image (id occlusion)
-  "Present image thema ID, using self-check when OCCLUSION is non-nil."
+(defun gnosis-review--image (id)
+  "Present region thema ID with explicit click and submit."
   (let* ((owner (gnosis-review--image-owner id))
          (row (car (cadr owner)))
          (reference (car (nth 2 row))) (target (car (nth 3 row)))
@@ -902,10 +919,9 @@ Missing backend/assets and cancelled input cannot produce an incorrect grade."
          (input (progn
                   (gnosis-display-keimenon (gnosis-org-format-string (nth 1 row)))
                   (gnosis-image-input (cons (cons 'prompt (gnosis-org-format-string (nth 1 row))) scene)
-                                      (if occlusion 'occlusion 'region) target
+                                      'region target
                                       (lambda () (gnosis-review--image-check id owner)))))
-         (success (if occlusion (y-or-n-p "Recalled the hidden region? ")
-                    (equal target (cadr input)))))
+         (success (equal target (cadr input))))
     (gnosis-review--image-check id owner)
     (let ((result (plist-put (gnosis-review-algorithm id success) :image owner)))
       (gnosis-display-basic-answer
@@ -918,11 +934,29 @@ Missing backend/assets and cancelled input cannot produce an incorrect grade."
 
 (defun gnosis-review-image-region (id)
   "Review image-region thema ID with neutral selection and explicit submit."
-  (gnosis-review--image id nil))
+  (gnosis-review--image id))
 
 (defun gnosis-review-image-occlusion (id)
-  "Review image-occlusion thema ID with explicit reveal and binary self-check."
-  (gnosis-review--image id t))
+  "Review occlusion ID inline with a typed answer, then reveal and give feedback."
+  (let* ((owner (gnosis-review--image-owner id))
+         (row (car (cadr owner)))
+         (fields (gnosis-image-occlusion-fields (nth 2 row) (nth 3 row)))
+         (target (cadar fields)) (answer (caadr fields))
+         (scene (gnosis-image-resolve (caar fields) target)))
+    (gnosis-display-keimenon
+     (concat (gnosis-org-format-string (nth 1 row)) "\n\n"
+             (gnosis-image-mask scene target nil)))
+    (let ((input (gnosis--read-string-with-input-method "Answer: " answer)))
+      (gnosis-review--image-check id owner)
+      (let* ((success (gnosis-compare-strings answer input))
+             (result (plist-put (gnosis-review-algorithm id success) :image owner)))
+        (gnosis-display-keimenon
+         (concat (gnosis-org-format-string (nth 1 row)) "\n\n"
+                 (gnosis-image-mask scene target t)))
+        (gnosis-display-basic-answer answer success input)
+        (gnosis-display-parathema (nth 4 row))
+        (gnosis-display-next-review (gnosis-review--result-date result) success)
+        (cons success result)))))
 
 ;;; Type-specific review
 

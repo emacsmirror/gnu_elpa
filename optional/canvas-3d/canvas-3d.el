@@ -283,7 +283,7 @@ Quit exits tracking; other keyboard events return to the command loop."
   (let ((window (posn-window (event-start event))))
     (when (window-live-p window)
       (with-selected-window window
-        (when (and (derived-mode-p 'canvas-3d-mode)
+        (when (and canvas-3d--image
                    (canvas-3d--pixel (event-start event)))
           (canvas-3d-zoom (if (memq (car event) '(wheel-up mouse-4)) 1.15 (/ 1.0 1.15))))))))
 
@@ -355,13 +355,15 @@ Use \\[canvas-3d-quit] to close the viewer and \\[canvas-3d-log] to show errors.
   (add-hook 'change-major-mode-hook #'canvas-3d--cleanup nil t))
 
 ;;;###autoload
-(defun canvas-3d-open (path &optional label initial-view size)
+(defun canvas-3d-open (path &optional label initial-view size buffer)
   "Open local OBJ or scene JSON PATH in a fresh canvas viewer.
 Use optional LABEL as the hidden title.
 INITIAL-VIEW is a list (YAW PITCH ZOOM), defaulting to (0 0 1.0).
 Reset returns to that view.  The label starts hidden.
 SIZE is an integer from 128 to 768 pixels, defaulting to 512.
-Scene JSON supplies objects and initial_view."
+Scene JSON supplies objects and initial_view.
+When BUFFER is non-nil, attach at its point without changing mode or layout.
+Only one attachment may own a buffer; use `canvas-3d-detach' when finished."
   (interactive "fOBJ or scene JSON: ")
   (unless (and (integerp (or size 512)) (<= 128 (or size 512) 768))
     (user-error "Size must be an integer from 128 to 768"))
@@ -397,9 +399,14 @@ Scene JSON supplies objects and initial_view."
     (when (or (file-remote-p path) (not (file-readable-p path)))
       (user-error "Select a readable local OBJ file"))
     (let ((python (canvas-3d--python)))
-      (let ((buffer (generate-new-buffer "*Canvas 3D*")))
+      (let* ((embedded buffer)
+             (buffer (or buffer (generate-new-buffer "*Canvas 3D*"))))
 	(with-current-buffer buffer
-          (canvas-3d-mode)
+          (when canvas-3d--image
+            (user-error "A canvas already owns this buffer; detach it first"))
+          (unless embedded (canvas-3d-mode))
+          (add-hook 'kill-buffer-hook #'canvas-3d--cleanup nil t)
+          (add-hook 'change-major-mode-hook #'canvas-3d--cleanup nil t)
           (setq canvas-3d--objects objects
 		canvas-3d--size (or size 512)
 		canvas-3d--initial-view (copy-sequence initial-view)
@@ -410,12 +417,12 @@ Scene JSON supplies objects and initial_view."
 		canvas-3d--bytes nil canvas-3d--byte-count 0
 		canvas-3d--stderr (generate-new-buffer " *Canvas 3D log*"))
           (setq canvas-3d--image
-		(list 'image :type 'canvas :id (make-symbol "canvas-3d")
+		(list 'image :type 'canvas :scale 1.0 :id (make-symbol "canvas-3d")
                       :data-width canvas-3d--size :data-height canvas-3d--size
                       :data (make-string (* 4 canvas-3d--size canvas-3d--size) 0)))
           (let ((inhibit-read-only t))
             (insert (propertize " " 'display canvas-3d--image) "\n")
-            (goto-char (point-min)))
+            (unless embedded (goto-char (point-min))))
           (condition-case err
               (progn
 		(setq canvas-3d--process
@@ -427,9 +434,30 @@ Scene JSON supplies objects and initial_view."
                                     :stderr canvas-3d--stderr
                                     :filter #'canvas-3d--receive :sentinel #'canvas-3d--sentinel))
 		(canvas-3d--request))
-            (error (canvas-3d--stop (error-message-string err)))))
-	(pop-to-buffer buffer)
+            (error
+             (if embedded
+                 (progn (canvas-3d-detach) (signal (car err) (cdr err)))
+               (canvas-3d--stop (error-message-string err))))
+            (quit
+             (canvas-3d-detach)
+             (unless embedded (kill-buffer buffer))
+             (signal (car err) (cdr err)))))
+	(unless embedded (pop-to-buffer buffer))
 	buffer))))
+
+(defun canvas-3d-attach (path &optional label initial-view size)
+  "Attach PATH with LABEL, INITIAL-VIEW and SIZE at point in this buffer.
+Preserve its text, major mode, keymap and windows.  The caller owns input keys.
+Call `canvas-3d-detach' on completion; the last display remains as feedback."
+  (canvas-3d-open path label initial-view size (current-buffer)))
+
+(defun canvas-3d-detach ()
+  "Release this buffer's renderer without killing the buffer or its last image."
+  (canvas-3d--cleanup)
+  (setq canvas-3d--image nil canvas-3d--stderr nil
+        canvas-3d--revealed nil canvas-3d--seq 0)
+  (remove-hook 'kill-buffer-hook #'canvas-3d--cleanup t)
+  (remove-hook 'change-major-mode-hook #'canvas-3d--cleanup t))
 
 (provide 'canvas-3d)
 ;;; canvas-3d.el ends here

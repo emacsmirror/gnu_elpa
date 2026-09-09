@@ -69,6 +69,11 @@ ANSWER: The revelation after KEIMENON
 PARATHEMA: The text where THEMA is derived from.
 TAGS: List of THEMA tags
 EXAMPLE: Boolean value, if non-nil do not add properties for thema."
+  (when (and (equal (downcase type) "image-occlusion")
+             hypothesis answer (not (string-match-p "\n- " hypothesis)))
+    (pcase-let ((`(,fields ,text)
+                 (gnosis-image-occlusion-fields (list hypothesis) (list answer))))
+      (setq hypothesis (mapconcat #'identity fields "\n- ") answer (car text))))
   (let ((components `(("** Keimenon" . ,keimenon)
                       (,(cond ((equal (downcase type) "model") "** Resource and starting view")
                               ((member (downcase type) '("image-region" "image-occlusion"))
@@ -160,14 +165,18 @@ generate new thema id."
                              (if (listp id) (car id) id))
                            ids)))
     (dolist (id id-values)
-      (let ((thema-data
-             (append (gnosis-select
+      (let* ((thema-data
+              (append (gnosis-select
                       '[type keimenon hypothesis answer]
                       'themata `(= id ,id) t)
                      (gnosis-select 'parathema 'extras
                                     `(= id ,id) t)))
-            (tags (gnosis-select 'tag 'thema-tag
-                                 `(= thema-id ,id) t)))
+             ;; Resolve legacy fields before native list markers are added.
+             (fields (if (equal (downcase (car thema-data)) "image-occlusion")
+                         (gnosis-image-occlusion-fields (nth 2 thema-data) (nth 3 thema-data))
+                       (list (nth 2 thema-data) (nth 3 thema-data))))
+             (tags (gnosis-select 'tag 'thema-tag
+                                  `(= thema-id ,id) t)))
         (gnosis-export--insert-thema
          (if new-p "NEW" (number-to-string id))
          (nth 0 thema-data)
@@ -175,12 +184,12 @@ generate new thema id."
          (concat (string-remove-prefix
                   "\n" gnosis-export-separator)
                  (mapconcat #'identity
-                            (nth 2 thema-data)
+                            (car fields)
                             gnosis-export-separator))
          (concat (string-remove-prefix
                   "\n" gnosis-export-separator)
                  (mapconcat #'identity
-                            (nth 3 thema-data)
+                            (cadr fields)
                             gnosis-export-separator))
          (nth 4 thema-data)
          tags)))))

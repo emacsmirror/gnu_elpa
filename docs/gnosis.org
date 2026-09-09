@@ -799,10 +799,16 @@ other themata that use the old revision.
 During Image-region review, click the intended region. Selection is neutral
 and does not grade; =RET= submits it. Feedback shows the expected label and,
 for an incorrect selection, the selected label rather than its stored ID.
-Image-occlusion uses the same authoring flow but covers the expected rectangle
-with an opaque mask. Recall its label, press =RET= to reveal it, then =RET=
-to continue to the normal yes/no
-self-check. Cancelling either viewer produces no grade. Both types participate
+Image-occlusion uses the same authoring flow, with an editable text Answer
+initially taken from the region label. The Image resource field holds the
+managed reference and stable target as two list items; Answer is separate
+human-readable text. During review the image appears inline below the keimenon
+in the ordinary Gnosis buffer, with the target covered by an opaque mask.
+Type its answer in the minibuffer and press =RET=. Normal Gnosis text matching
+checks the answer, then reveals the image and feedback; there is no yes/no
+recall prompt. Historical target-only themata use their pinned region label
+as the expected text, and opening their draft exposes the separate fields.
+Cancelling input produces no grade. Both types participate
 in normal scheduled review and non-rescheduling practice, including outcome
 overrides, retries and scheduled undo.
 
@@ -928,18 +934,18 @@ can be selected with ~canvas-3d-python-command~.  Opening or authoring never
 installs dependencies or accesses the network.  Missing capabilities show
 setup diagnostics.  No anatomy atlas is bundled or downloaded.
 
-Visual authoring sizes its canvas to the available window.  Review uses a
-512-pixel canvas and requires enough space for its companion question.
+Visual authoring and review size their canvas to the available window.
+Review reserves space for the question in the same buffer.
 
 **** Reviewing or practising a model
 
 Start an ordinary due review or practice batch containing the model (for
-example, a linked-topic session).  The question remains in a window paired
-with the canvas.  Drag to rotate, use the wheel or =+= / =-= to zoom,
+example, a linked-topic session).  The interactive canvas appears inline
+below the keimenon, in the ordinary Gnosis review buffer.  Drag to rotate, use the wheel or =+= / =-= to zoom,
 and click to select.  The highlight and neutral selection status do not
 reveal anatomical labels.  *Clicks and drags never grade.*  Press =RET=
-when the view is ready to explicitly submit.  The canvas closes and the
-answer view reveals the expected target label (and your selection on an
+when the view is ready to explicitly submit.  The renderer stops, leaving
+its last image beside the question, and feedback reveals the expected target label (and your selection on an
 incorrect answer).  This is a pending result, not an accepted grade.
 The ordinary Gnosis result actions (=n= to accept, =o= to correct the binary
 outcome) apply: correct answers use Good, incorrect answers use Again.

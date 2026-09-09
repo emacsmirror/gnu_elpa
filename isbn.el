@@ -71,8 +71,6 @@
 ;;; Code:
 
 (require 'dom)
-(require 'seq)
-(eval-and-compile (require 'subr-x))
 
 (defgroup isbn nil
   "ISBN library."
@@ -115,20 +113,20 @@ concerning ISBN's validation."
   (if (string-match-p (rx (not (any digit ?X ?x ?-))) isbn)
       (when interactive (user-error "ISBN has invalid characters"))
     (setq isbn (isbn--string->list isbn))
-    (let ((res (pcase (length isbn)
-                 (10 (thread-first
-                       (apply #'+
-                              (seq-map-indexed
-                               (lambda (digit index) (* digit (1+ index)))
-                               isbn))
-                       (mod 11) (eq 0)))
-                 (13 (thread-first
-                       (apply #'+
-                              (seq-map-indexed
-                               (lambda (digit index) (* digit (if (eq (logand index 1) 0) 1 3)))
-                               (butlast isbn)))
-                       (+ (car (last isbn)))
-                       (mod 10) (eq 0))))))
+    (let* ((index 0) (sum 0)
+           ;; ISBNs not of length 10 or 13 are automatically invalid.
+           (res (pcase (length isbn)
+                  (10 (while (< index 10)
+                        (setq
+                         sum (+ sum (* (nth index isbn) (1+ index)))
+                         index (1+ index)))
+                      (= (mod sum 11) 0))
+                  (13 (while (< index 12) ; check digit added separately
+                        (setq
+                         sum (+ sum (* (nth index isbn)
+                                       (if (eq (logand index 1) 0) 1 3)))
+                         index (1+ index)))
+                      (= (mod (+ sum (car (last isbn))) 10) 0)))))
       (when interactive
         (message (if res "ISBN is valid" "ISBN is not valid")))
       res)))

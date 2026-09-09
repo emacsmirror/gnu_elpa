@@ -196,7 +196,6 @@ region with the converted ISBN."
   "File containing a cache of ISBN hyphenation ranges."
   :type 'file
   :group 'isbn
-  :version "30.2"
   :package-version '((isbn . "0.1.0")))
 
 ;; Cache the ranges so that nested operations (hyphenation ->
@@ -213,7 +212,6 @@ ISBN ranges from the International ISBN Agency are updated yearly."
   :type '(choice (integer :tag "Days")
                  (const :tag "Do not update" nil))
   :group 'isbn
-  :version "30.2"
   :package-version '((isbn . "0.1.0")))
 
 ;;;###autoload

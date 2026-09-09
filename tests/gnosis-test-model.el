@@ -144,14 +144,14 @@
       (gnosis--insert-into 'nodes '(["topic" "fixture.org" "Models" "1" nil nil nil]))
       (gnosis--insert-into 'thema-links `([,model "topic"]))
       (should (equal (list model) (gnosis-study-topic-ids '("topic"))))
-      (should-not (gnosis-study-topic-ids '("topic") t))
-      (should (equal '(:total 1 :eligible 1 :suspended 0 :new 1 :due 0 :not-due 1)
+      (should (equal (list model) (gnosis-study-topic-ids '("topic") t)))
+      (should (equal '(:total 1 :eligible 1 :suspended 0 :new 1 :due 1 :not-due 0)
                      (gnosis-study-composition (list model model))))
       (with-temp-buffer
         (gnosis-study-mode)
         (setq-local gnosis-study--topic "topic")
         (gnosis-study-refresh)
-        (should (string-match-p "1 linked, 0 due, 1 new, 0 suspended"
+        (should (string-match-p "1 linked, 1 due, 1 new, 0 suspended"
                                 header-line-format))))))
 
 (ert-deftest gnosis-model-study-composition-mixed ()
@@ -171,28 +171,30 @@
       (gnosis-update 'themata '(= type "Model") `(= id ,model))
       (let ((counts (gnosis-study-composition (cons model ids)))
             (selected (gnosis-study-topic-ids '("topic") t)))
-        (should (equal (list due) selected))
+        (should (equal (sort (list model due) #'<) (sort selected #'<)))
         (should (= (length selected) (plist-get counts :due)))
-        (should (equal '(:total 4 :eligible 3 :suspended 1 :new 3 :due 1 :not-due 2)
+        (should (equal '(:total 4 :eligible 3 :suspended 1 :new 3 :due 2 :not-due 1)
                        counts))
         (should (equal (sort (list model due future) #'<)
                        (sort (gnosis-study-topic-ids '("topic")) #'<)))))))
 
-(ert-deftest gnosis-model-due-exclusion-before-new-limit ()
+(ert-deftest gnosis-model-due-selection-and-new-limit ()
   (gnosis-test-with-db
     (let* ((model (gnosis-test-model--add))
            (basic (gnosis-test--add-basic-thema "Ordinary" "Answer"))
            (gnosis-new-themata-limit 1))
       (should (gnosis-study-eligible-p model))
-      (should-not (gnosis-review-is-due-p model))
-      (should (equal (list basic) (gnosis-review-get-due-themata)))
+      (should (gnosis-review-is-due-p model))
+      (should (equal (list (min model basic)) (gnosis-review-get-due-themata)))
       (gnosis-update 'scheduler-state '(= reps 1) `(= thema-id ,model))
       (gnosis-update 'scheduler-state '(= due-day 20000101) `(= thema-id ,model))
+      (should (equal (list model) (gnosis-review-get-overdue-themata)))
+      (should (= 1 (gnosis-review-count-overdue)))
+      (should (= 2 (length (gnosis-review-get-due-themata))))
+      (gnosis-update 'scheduler-state '(= suspended 1) `(= thema-id ,model))
+      (should-not (gnosis-review-is-due-p model))
       (should-not (gnosis-review-get-overdue-themata))
       (should (= 0 (gnosis-review-count-overdue)))
-      (with-temp-buffer
-        (setq-local gnosis-review--state (gnosis-review-state-create :mode 'due))
-        (should-error (gnosis-review--display-thema model) :type 'user-error))
       (should-not (gnosis-select '* 'practice-events))
       (should-not (gnosis-select '* 'review-events)))))
 
@@ -505,6 +507,149 @@
                               (quit (car err))))))
               (should (= 1 (length (gnosis-select '* 'practice-events)))))
           (kill-buffer buffer))))))
+
+(defmacro gnosis-test-model--session (mode &rest body)
+  "Run BODY in a disposable persistent model session with MODE."
+  (declare (indent 1) (debug t))
+  `(gnosis-test-with-db
+     (save-window-excursion
+       (let* ((model (gnosis-test-model--add))
+              (gnosis-review-buffer-name " *Gnosis scheduled model*")
+              (buffer (gnosis-review--setup-buffer (list model) ,mode)))
+         (unwind-protect
+             (with-current-buffer buffer
+               (setf (gnosis-review-state-persistent-p gnosis-review--state) t)
+               (gnosis-review--save-session gnosis-review--state)
+               ,@body)
+           (kill-buffer buffer))))))
+
+(ert-deftest gnosis-model-scheduled-native-acceptance-and-replay ()
+  (dolist (target '("triangle" "other"))
+    (gnosis-test-model--session 'due
+      (let* ((before (gnosis-select '* 'scheduler-state))
+             (pair (cadr
+                    (gnosis-test-model--encounter
+                      (setq-local canvas-3d-selected-id target)
+                      (gnosis-review--model-selection
+                       (list :id target :frame 1 :owner canvas-3d--process))
+                      (should (eq (key-binding (kbd "RET")) #'gnosis-review-model-submit))
+                      (call-interactively (key-binding (kbd "RET"))))))
+             (result (cdr pair)))
+        (should (eq (car pair) (equal target "triangle")))
+        (should-not (gnosis-select '* 'review-events))
+        (should (equal before (gnosis-select '* 'scheduler-state)))
+        (cl-letf (((symbol-function 'read-char-choice) (lambda (&rest _) ?n)))
+          (should (plist-get (gnosis-review-actions (car pair) model result) :inserted-p)))
+        (let ((events (gnosis-select '* 'review-events))
+              (state (gnosis-select '* 'scheduler-state))
+              (session (gnosis-select '* 'study-session)))
+          (should (= 1 (length events)))
+          (should (= (if (car pair) 3 1) (gnosis-get 'rating 'review-events)))
+          (should (= 1 (gnosis-get 'reps 'scheduler-state)))
+          (should (= (if (car pair) 0 1) (gnosis-get 'lapses 'scheduler-state)))
+          (should-not (equal before state))
+          (should-not (plist-get (gnosis-review-result model (car pair) result) :inserted-p))
+          (should (equal events (gnosis-select '* 'review-events)))
+          (should (equal state (gnosis-select '* 'scheduler-state)))
+          (should (equal session (gnosis-select '* 'study-session)))
+          (should-error (gnosis-review-result model (not (car pair)) result))
+          (gnosis-scheduler-rebuild-state model 0)
+          (should (equal state (gnosis-select '* 'scheduler-state))))
+        (should-not (gnosis-select '* 'practice-events))))))
+
+(ert-deftest gnosis-model-pending-override-retains-resource-guard ()
+  (gnosis-test-model--session 'practice
+    (let* ((pair (cadr (gnosis-test-model--encounter (gnosis-review-model-submit))))
+           (result (append (gnosis-review--pending-result model t)
+                           (list :model (plist-get (cdr pair) :model))))
+           (overridden (gnosis-review--override-result result nil)))
+      (should (equal (plist-get result :model) (plist-get overridden :model))))))
+
+(ert-deftest gnosis-model-scheduled-post-submit-drift-fails-closed ()
+  (dolist (override '(nil t))
+    (dolist (drift '(thema resource database session state mode schedule retention))
+      (gnosis-test-model--session 'due
+        (let* ((pair (cadr (gnosis-test-model--encounter (gnosis-review-model-submit))))
+               (result (if override (gnosis-review--override-result (cdr pair) nil) (cdr pair))))
+          (pcase drift
+            ('thema (gnosis-update 'themata '(= keimenon "Changed") `(= id ,model)))
+            ('resource
+             (delete-file (car (gnosis-model-resolve
+                                (gnosis-get 'hypothesis 'themata `(= id ,model)) '("triangle")))))
+            ('session (setq gnosis-review--state (copy-gnosis-review-state gnosis-review--state)))
+            ('state (setf (gnosis-review-state-event-id gnosis-review--state) "next"))
+            ('mode (setf (gnosis-review-state-mode gnosis-review--state) 'practice))
+            ('schedule (gnosis-update 'scheduler-state '(= lapses 1) `(= thema-id ,model)))
+            ('retention (gnosis-scheduler-set-retention 0.85)))
+          (let ((before (gnosis-select '* 'scheduler-state)))
+            (if (eq drift 'database)
+                (let ((gnosis-db (gnosis-sqlite-open gnosis-test--db-file)))
+                  (unwind-protect (should-error (gnosis-review-result model (not override) result))
+                    (gnosis-sqlite-close gnosis-db)))
+              (should-error (gnosis-review-result model (not override) result)))
+            (should (equal before (gnosis-select '* 'scheduler-state)))
+            (should-not (gnosis-select '* 'review-events))
+            (should-not (gnosis-select '* 'practice-events))))))))
+
+(ert-deftest gnosis-model-scheduled-unavailable-or-unsubmitted-never-grades ()
+  (dolist (failure '(cancel no-submit backend asset))
+    (gnosis-test-model--session 'due
+      (let ((before (gnosis-select '* 'scheduler-state)))
+        (pcase failure
+          ('cancel
+           (cl-letf (((symbol-function 'abort-recursive-edit) (lambda () (signal 'quit nil))))
+             (should (condition-case nil
+                         (gnosis-test-model--encounter (gnosis-review-model-cancel))
+                       (quit t)))))
+          ('no-submit (should-error (gnosis-test-model--encounter nil)))
+          ('backend
+           (cl-letf (((symbol-function 'gnosis-model-open) (lambda (&rest _) (user-error "Unavailable"))))
+             (should-error (gnosis-review--display-thema model))))
+          ('asset
+           (delete-file (car (gnosis-model-resolve
+                              (gnosis-get 'hypothesis 'themata `(= id ,model)) '("triangle"))))
+           (should-error (gnosis-test-model--encounter (gnosis-review-model-submit)))))
+        (should (equal before (gnosis-select '* 'scheduler-state)))
+        (should-not (gnosis-select '* 'review-events))
+        (should-not (gnosis-select '* 'practice-events))))))
+
+(ert-deftest gnosis-model-scheduled-override-binary-policy-and-preview ()
+  (dolist (success '(nil t))
+    (gnosis-test-model--session 'due
+      (let* ((pair (cadr (gnosis-test-model--encounter (gnosis-review-model-submit))))
+             (original (cdr pair))
+             (result (gnosis-review--override-result original success)))
+        (should (equal (plist-get original :event-id) (plist-get result :event-id)))
+        (should (equal (plist-get original :model) (plist-get result :model)))
+        (should (eq (plist-get original :outcome) 'success))
+        (should (equal (if success 3 1) (plist-get (plist-get result :preview) :rating)))
+        (should (string-match-p "Next review:" (buffer-string)))
+        (should-not (string-match-p "Next review:.*nil" (buffer-string)))
+        (should (equal (gnosis-review--result-date original)
+                       (gnosis--int-to-date (plist-get (plist-get original :preview) :due-day))))
+        (gnosis-review-result model success result)
+        (should (= (if success 3 1) (gnosis-get 'rating 'review-events)))
+        (should-not (gnosis-select '* 'practice-events))))))
+
+(ert-deftest gnosis-model-nonpersistent-post-submit-owner-drift ()
+  (dolist (mode '(due practice))
+    (dolist (drift '(buffer state event))
+      (gnosis-test-model--session mode
+        (setf (gnosis-review-state-persistent-p gnosis-review--state) nil)
+        (let* ((before (gnosis-select '* 'scheduler-state))
+               (pair (cadr (gnosis-test-model--encounter (gnosis-review-model-submit)))))
+          (pcase drift
+            ('state (setq gnosis-review--state (copy-gnosis-review-state gnosis-review--state)))
+            ('event (setf (gnosis-review-state-event-id gnosis-review--state) "next")))
+          (if (eq drift 'buffer)
+              (let ((state gnosis-review--state))
+                (with-temp-buffer
+                  (setq-local gnosis-review--state state)
+                  (should-error (gnosis-review-result model t (cdr pair)))))
+            (should-error (gnosis-review-result model t (cdr pair))))
+          (should (equal before (gnosis-select '* 'scheduler-state)))
+          (should-not (gnosis-select '* 'review-events))
+          (should-not (gnosis-select '* 'practice-events)))))))
 
 (provide 'gnosis-test-model)
 ;;; gnosis-test-model.el ends here

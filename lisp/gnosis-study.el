@@ -95,15 +95,13 @@ bounded graph depths, both defaulting to zero.  Ignore the daily new limit."
      (lambda (id)
        (and (gnosis-study-eligible-p id)
             (or (not due)
-                (and (not (equal (downcase (or (gnosis-get 'type 'themata `(= id ,id)) "")) "model"))
-                     (<= (gnosis-get 'due-day 'scheduler-state `(= thema-id ,id))
-                         (gnosis--today-int))))))
+                (<= (gnosis-get 'due-day 'scheduler-state `(= thema-id ,id))
+                    (gnosis--today-int)))))
      ids)))
 
 (defun gnosis-study-composition (ids)
   "Return counts for unique IDS as a plist.
-Due and new counts include only active items; new can also be due.
-Practice-only models count as not due, without changing eligibility or newness."
+Due and new counts include only active items; new can also be due."
   (let* ((ids (delete-dups (copy-sequence ids)))
          (rows (when ids (gnosis-select '[reps due-day suspended thema-id]
                                          'scheduler-state
@@ -111,10 +109,7 @@ Practice-only models count as not due, without changing eligibility or newness."
          (active (seq-filter (lambda (row) (zerop (nth 2 row))) rows))
          (due (seq-count
                (lambda (row)
-                 (and (<= (cadr row) (gnosis--today-int))
-                      (not (equal (downcase (or (gnosis-get 'type 'themata
-                                                           `(= id ,(nth 3 row))) ""))
-                                  "model"))))
+                 (<= (cadr row) (gnosis--today-int)))
                active)))
     (list :total (length rows) :eligible (length active)
           :suspended (- (length rows) (length active))

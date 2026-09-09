@@ -324,9 +324,8 @@ SUCCESS controls the face used when overriding a previous display."
 (defun gnosis-review-is-due-p (thema-id)
   "Check if thema with value of THEMA-ID for id is due for review.
 
-Exclude practice-only models; check suspension and whether it is due today."
-  (and (not (equal (downcase (or (gnosis-get 'type 'themata `(= id ,thema-id)) "")) "model"))
-       (not (gnosis-suspended-p thema-id))
+Check suspension and whether it is due today."
+  (and (not (gnosis-suspended-p thema-id))
        (gnosis-review-is-due-today-p thema-id)))
 
 (defun gnosis-review-is-due-today-p (id)
@@ -347,14 +346,12 @@ well."
           (gnosis-sqlite-select
            db "SELECT thema_id, due_day FROM scheduler_state
                 WHERE reps > 0 AND suspended = 0 AND due_day <= ?
-                  AND thema_id NOT IN (SELECT id FROM themata WHERE lower(type) = ?)
-                ORDER BY due_day, thema_id" (list today "model")))
+                ORDER BY due_day, thema_id" (list today)))
 	 (new-themata
           (gnosis-sqlite-select
            db "SELECT thema_id, due_day FROM scheduler_state
                 WHERE reps = 0 AND suspended = 0 AND due_day <= ?
-                  AND thema_id NOT IN (SELECT id FROM themata WHERE lower(type) = ?)
-                ORDER BY due_day, thema_id" (list today "model"))))
+                ORDER BY due_day, thema_id" (list today))))
     (let ((limited-new (if gnosis-new-themata-limit
 			   (cl-subseq new-themata 0 (min gnosis-new-themata-limit
 							 (length new-themata)))
@@ -375,8 +372,7 @@ well."
              (gnosis--ensure-db)
              "SELECT thema_id FROM scheduler_state
                WHERE reps > 0 AND suspended = 0 AND due_day < ?
-                 AND thema_id NOT IN (SELECT id FROM themata WHERE lower(type) = ?)
-               ORDER BY due_day, thema_id" (list today "model")))))
+               ORDER BY due_day, thema_id" (list today)))))
 
 (defun gnosis-review-count-overdue ()
   "Return count of overdue themata."
@@ -384,9 +380,8 @@ well."
     (or (caar (gnosis-sqlite-select (gnosis--ensure-db)
 				    "SELECT COUNT(*) FROM scheduler_state
                                       WHERE reps > 0 AND suspended = 0
-                                        AND due_day < ?
-                                        AND thema_id NOT IN (SELECT id FROM themata WHERE lower(type) = ?)"
-				    (list today "model")))
+                                        AND due_day < ?"
+				    (list today)))
 	0)))
 
 ;;; Scheduler bridge
@@ -426,10 +421,13 @@ EVENT-ID, REVIEWED-AT-US, and REVIEW-DAY may pin deterministic facts."
   "Return RESULT preview recomputed for binary SUCCESS."
   (if (eq (plist-get result :mode) 'practice)
       (plist-put (copy-sequence result) :outcome (if success 'success 'failure))
-    (gnosis-review--pending-result
-     (plist-get result :thema-id) success
-     (plist-get result :event-id) (plist-get result :reviewed-at-us)
-     (plist-get result :review-day))))
+    (let ((pending (gnosis-review--pending-result
+                    (plist-get result :thema-id) success
+                    (plist-get result :event-id) (plist-get result :reviewed-at-us)
+                    (plist-get result :review-day))))
+      (if (plist-member result :model)
+          (plist-put pending :model (plist-get result :model))
+        pending))))
 
 (defun gnosis-review--result-date (result)
   "Return next review date from pending RESULT."
@@ -438,10 +436,24 @@ EVENT-ID, REVIEWED-AT-US, and REVIEW-DAY may pin deterministic facts."
      (plist-get (plist-get result :preview) :due-day))))
 
 (defun gnosis-review--write-result (id success result)
-  "Accept pending RESULT for thema ID and binary SUCCESS."
+  "Accept pending RESULT for thema ID and binary SUCCESS.
+A model result retains (DATABASE THEMA BUFFER STATE SNAPSHOT).  Its owner
+must still match; only the last committed persistent attempt may retry
+after session advancement.  Scheduler acceptance validates retained facts."
   (when-let* ((model (plist-get result :model)))
+    (let ((state (nth 3 model))
+          (snapshot (nth 4 model)))
+      (unless (and (eq (nth 2 model) (current-buffer))
+                   (eq state gnosis-review--state)
+                   (eq (plist-get snapshot :mode) (gnosis-review-state-mode state))
+                   (or (equal snapshot (gnosis-review--state-data state))
+                       (and (gnosis-review-state-persistent-p state)
+                            (equal (plist-get snapshot :session-id)
+                                   (gnosis-review-state-session-id state))
+                            (equal (plist-get result :event-id)
+                                   (gnosis-review-state-last-event state)))))
+        (user-error "Model answer belongs to an outdated encounter")))
     (unless (and (eq (car model) (gnosis--ensure-db))
-                 (eq (plist-get result :mode) 'practice)
                  (equal (cadr model)
                         (gnosis-select '[type keimenon hypothesis answer]
                                        'themata `(= id ,id))))
@@ -737,7 +749,7 @@ Read no database or clock and leave STATE and its prior snapshots unchanged."
     (gnosis-model-resolve (plist-get context :hypothesis) (plist-get context :answer))))
 
 (defun gnosis-review-model-submit ()
-  "Submit the selected model target to the current practice encounter.
+  "Submit the selected model target to the current review encounter.
 Exploratory clicks never submit.  Wait for a stable view before submitting."
   (interactive)
   (let* ((context gnosis-review--model-context)
@@ -759,17 +771,19 @@ Exploratory clicks never submit.  Wait for a stable view before submitting."
                      (gnosis-review-algorithm (plist-get context :id) success))))
       (setq result (plist-put result :model
                               (list (plist-get context :database)
-                                    (copy-tree (plist-get context :thema)))))
+                                    (copy-tree (plist-get context :thema))
+                                    (plist-get context :buffer)
+                                    (plist-get context :state)
+                                    (copy-tree (plist-get context :state-data)))))
       (setf (plist-get context :result) (cons success result))
       (exit-recursive-edit))))
 
 (defun gnosis-review-model (id)
-  "Present model ID through native picking in a practice encounter.
+  "Present model ID through native picking in a review encounter.
 Return the ordinary pending review result; existing review actions accept it.
 Missing backend/assets and cancelled input cannot produce an incorrect grade."
-  (unless (and gnosis-review--state
-               (eq (gnosis-review-state-mode gnosis-review--state) 'practice))
-    (user-error "Model themata support practice only, not scheduled review"))
+  (unless gnosis-review--state
+    (user-error "Start a review session before answering a model"))
   (let* ((owner (current-buffer))
          (state gnosis-review--state)
          (thema (gnosis-select '[type keimenon hypothesis answer] 'themata `(= id ,id)))
@@ -826,7 +840,9 @@ Missing backend/assets and cancelled input cannot produce an incorrect grade."
                                  (equal (plist-get (plist-get context :selection) :id)
                                         (alist-get 'id o))) objects)) "Unknown target"))
               (gnosis-display-parathema (gnosis-get 'parathema 'extras `(= id ,id)))
-              (gnosis-display-next-review nil (car (plist-get context :result))))
+              (gnosis-display-next-review
+               (gnosis-review--result-date (cdr (plist-get context :result)))
+               (car (plist-get context :result))))
             (plist-get context :result))
         (when (buffer-live-p viewer)
           (with-current-buffer viewer

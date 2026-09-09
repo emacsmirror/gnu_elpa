@@ -776,13 +776,12 @@ Like cloze, but the user selects the correct word from a list of
 candidates (the hypothesis) rather than typing it.  Only a single gap is
 supported per thema.  The answer must appear verbatim in the sentence.
 
-*** Model (selection practice)
+*** Model (selection review)
 
-Model themata ask you to select an object in a local 3D scene.  This first
-slice supports *practice only*: model themata are excluded from automatic
-due selection, including the daily new-item limit and overdue counts.
-Trying to schedule-review one directly reports an unsupported operation;
-it does not accept a grade.  Ordinary thema types are unchanged.
+Model themata ask you to select an object in a local 3D scene.  They support
+both scheduled review and non-rescheduling practice.  Due selection, the
+daily new-item limit, topic summaries and overdue counts treat models like
+ordinary themata; suspension excludes them from both kinds of study.
 
 Run ~gnosis-add-model-thema~, or select Model in ~gnosis-add-thema~.
 Choose a scene JSON file, supply its license/attribution and provenance
@@ -838,7 +837,7 @@ a new revision and explicitly attach it to a thema.
 **** Optional canvas backend
 
 Authoring and ordinary Gnosis study do not require a renderer.  Model
-practice requires a separately supplied =canvas-3d.el=, =render.py= and
+review requires a separately supplied =canvas-3d.el=, =render.py= and
 =requirements.txt= backend implementing scene opening, stable selection
 hooks, and the C3D1 frame protocol.  It is not bundled with Gnosis and this
 experimental feature is not supported by stock Emacs without canvas image
@@ -855,27 +854,32 @@ uv pip install --python .venv/bin/python -r requirements.txt
 Set ~gnosis-model-renderer-directory~ to that directory.  Alternatively,
 put =canvas-3d.el= on =load-path= and leave the option nil; the backend
 then finds =render.py= and =.venv/bin/python= beside itself.  No anatomy
-atlas is bundled or downloaded.  Model practice opens a 512-pixel view.
+atlas is bundled or downloaded.  Model review opens a 512-pixel view.
 
-**** Practising a model
+**** Reviewing or practising a model
 
-Start an ordinary practice batch containing the model (for example, a
-linked-topic practice session).  The question remains in a window paired
+Start an ordinary due review or practice batch containing the model (for
+example, a linked-topic session).  The question remains in a window paired
 with the canvas.  Drag to rotate, use the wheel or =+= / =-= to zoom,
 and click to select.  The highlight and neutral selection status do not
 reveal anatomical labels.  *Clicks and drags never grade.*  Press =RET=
 when the view is ready to explicitly submit.  The canvas closes and the
 answer view reveals the expected target label (and your selection on an
-incorrect answer).  The ordinary Gnosis result actions then accept or override the pending binary outcome; accepted
-practice attempts use the existing session policy without changing FSRS.
+incorrect answer).  This is a pending result, not an accepted grade.
+The ordinary Gnosis result actions (=n= to accept, =o= to correct the binary
+outcome) apply: correct answers use Good, incorrect answers use Again.
+Scheduled acceptance commits the event and FSRS state together; its preview
+shows the next review date.  Accepted practice attempts use the existing
+session policy without changing FSRS.
 Press =q= or =C-g= to cancel with no answer.  An unavailable renderer shows
 its status in the heading; =e= opens diagnostics.  Cancel and resume after
 repairing the backend or restoring the exact resource.
 
 Pending input belongs to its original database, session, encounter, thema
 and renderer.  Changed views require a fresh selection; in-flight views
-cannot submit.  Resource/content validation runs again at acceptance,
-after the ordinary result-action prompt.  A failed validation leaves no
+cannot submit.  Encounter ownership and resource/content validation run
+again at acceptance, including after an outcome override.  A changed thema,
+database or resource requires cancelling and answering again.  A failed validation leaves no
 new practice or scheduled-review evidence.
 
 **** Exchange and backup limits

@@ -49,6 +49,10 @@ Model themata reuse the existing thema schema and owned Lisp serializer:
 `hypothesis` contains (RESOURCE YAW PITCH ZOOM) strings and `answer` contains
 one stable target ID.  `gnosis-model` validates the version-addressed scene
 and every listed OBJ before saving or using it; no schema migration is needed.
+Scheduled models use the same atomic event/state acceptance and replay as
+other themata; practice writes no scheduled evidence.  Pending model results
+retain database, encounter and thema identity through outcome overrides and
+validate the pinned resources again before acceptance.
 The new discriminator does not reinterpret historical thema data.  Authoring
 shows a resource/view heading, not a hint.  Assets live at
 `assets/<sha256>/scene.json` beside the actual connected database; the manifest

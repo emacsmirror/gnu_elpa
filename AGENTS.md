@@ -33,7 +33,8 @@ only where the task needs it, rather than reorganizing the package:
   generic tabulated-list rendering, not application-state ownership.
 - `gnosis-model` owns immutable managed scene resources, model field validation
   and authoring attachment; `gnosis-review` owns selection/submit encounter
-  identity and practice acceptance.  The optional canvas backend owns rendering
+  identity and pending results for scheduled or practice acceptance.  The
+  optional canvas backend owns rendering
   and picking, never grading.  Asset bytes live beside the database, not in it.
 - `gnosis-tags` owns tag-set operations; `gnosis-cloze` owns cloze transforms.
   Keep their data transformations separate from prompts and Org rendering.

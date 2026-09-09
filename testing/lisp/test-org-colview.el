@@ -736,6 +736,22 @@ https://list.orgmode.org/bcced759-fae5-4509-a4af-8a6e41812b0e@gmail.com/T/#u."
 :END:"
       (let ((org-columns-default-format "%A{X%}")) (org-columns))
       (get-char-property (point) 'org-columns-value-modified))))
+  ;; {X/} handles multi-digit cookies.
+  (should
+   (equal
+    "[1/2]"
+    (org-test-with-temp-text
+	"* H
+** S1
+:PROPERTIES:
+:A: [10/10]
+:END:
+** S2
+:PROPERTIES:
+:A: [ ]
+:END:"
+      (let ((org-columns-default-format "%A{X/}")) (org-columns))
+      (get-char-property (point) 'org-columns-value-modified))))
   ;; {min} is the smallest number in column, {max} the largest one.
   ;; {mean} is the arithmetic mean of numbers in column.
   (should

@@ -94,6 +94,15 @@
       (buffer-substring-no-properties (region-beginning) (region-end))
     (read-string "ISBN: ")))
 
+(defun isbn--place-string (string &optional msg)
+  "If there is an active region, replace it with STRING.
+Otherwise, add STRING to the kill ring and send MSG."
+  (if (region-active-p)
+      (replace-region-contents (region-beginning) (region-end) string)
+    (kill-new string)
+    (when msg
+      (message "%s" msg))))
+
 (defun isbn--list->string (isbn)
   "Convert ISBN (list) to a string."
   (mapconcat
@@ -192,10 +201,7 @@ region with the converted ISBN."
                            (if (eq check 10) "X" (int-to-string check))))))
               (_ (error "ISBN is not 10 or 13 digits")))))
     (when interactive
-      (if (region-active-p)
-          (replace-region-contents (region-beginning) (region-end) res)
-        (kill-new res)
-        (message "Converted ISBN added to kill ring")))
+      (isbn--place-string res "Converted ISBN added to kill ring"))
     res))
 
 ;;;; Hyphenation
@@ -319,10 +325,7 @@ Please run `isbn-update-hyphenation-ranges'"))))
 
     (setq isbn (string-join (reverse hyphenated) "-")))
   (when interactive
-    (if (region-active-p)
-        (replace-region-contents (region-beginning) (region-end) isbn)
-      (kill-new isbn)
-      (message "Hyphenated ISBN added to kill ring")))
+    (isbn--place-string isbn "Hyphenated ISBN added to kill ring"))
   isbn)
 
 (provide 'isbn)

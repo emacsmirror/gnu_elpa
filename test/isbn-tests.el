@@ -21,8 +21,14 @@
 ;;; Code:
 
 (require 'ert)
-(require 'ert-x)
 (require 'isbn)
+
+(defmacro isbn-tests--with-temp-cache-file (&rest body)
+  "Execute BODY with a temporary cache file."
+  `(let ((isbn-hyphenation-ranges-cache-file
+          (file-name-concat (make-temp-file "isbn" t) "cache")))
+     (isbn-update-hyphenation-ranges)
+     ,@body))
 
 ;;;; Core
 
@@ -52,22 +58,22 @@
 (ert-deftest isbn-tests-hyphenation-ranges-cache ()
   "Test `isbn-update-hyphenation-ranges' \
 and `isbn-hyphenation-ranges-maybe-prompt-update'."
-  (ert-with-temp-directory dir
-    (let ((isbn-hyphenation-ranges-cache-file (file-name-concat dir "cache")))
-
-      ;; `isbn-update-hyphenation-ranges'
-      (isbn-update-hyphenation-ranges)
-      (should (file-exists-p isbn-hyphenation-ranges-cache-file))
-      (should isbn-hyphenation-ranges-cache))))
+  (isbn-tests--with-temp-cache-file
+   (should (file-exists-p isbn-hyphenation-ranges-cache-file))
+   (should isbn-hyphenation-ranges-cache)))
 
 (ert-deftest isbn-tests-hyphenate ()
   "Test `isbn-hyphenate'."
   (unless (libxml-available-p)
     (ert-skip "libxml2 support is not available"))
-  (let (isbn-hyphenation-ranges-cache-file
-        isbn-hyphenation-ranges-cache)
-    (should-error (isbn-hyphenate "9780983159285")))
-  (should (string= (isbn-hyphenate "9780983159285") "978-0-9831592-8-5")))
+  (isbn-tests--with-temp-cache-file
+   (should (string= (isbn-hyphenate "9780983159285") "978-0-9831592-8-5"))
+   (let (isbn-hyphenation-ranges-cache)
+     ;; If the cache is empty, we should be able to pull the cache
+     ;; from the file.
+     (let (isbn-hyphenation-ranges-cache-file)
+       (should-error (isbn-hyphenate "9780983159285")))
+     (should (isbn-hyphenate "9780983159285")))))
 
 ;;;;; Validation
 

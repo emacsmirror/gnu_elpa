@@ -71,7 +71,7 @@
 ;; which provides a complete set of ISBN hyphenation ranges in XML
 ;; format [1].  Since hyphenation ranges are only updated yearly,
 ;; ranges are cached to `isbn-hyphenation-ranges-cache-file'.  To
-;; cache this file, users must run `isbn-hyphenation-ranges-update' at
+;; cache this file, users must run `isbn-update-hyphenation-ranges' at
 ;; least once before calling any of the functions below.
 
 ;; [1] <https://www.isbn-international.org/range_file_generation>
@@ -218,7 +218,7 @@ If nil, reading from, or caching to, a file is disabled."
   "Cache of all valid ISBN ranges from the International ISBN Agency.")
 
 ;;;###autoload
-(defun isbn-hyphenation-ranges-update ()
+(defun isbn-update-hyphenation-ranges ()
   "Update cache of ISBN hyphenation ranges."
   (interactive)
   (let ((prgrp (make-progress-reporter
@@ -258,7 +258,7 @@ with the hyphenated ISBN."
             (setq isbn-hyphenation-ranges-cache (read (current-buffer))))
           (progress-reporter-done prgrp))
       (error (error "Hyphenation ranges are not cached.  \
-Please run `isbn-hyphenation-ranges-update'"))))
+Please run `isbn-update-hyphenation-ranges'"))))
 
   (setq isbn (isbn-convert isbn 13))
 

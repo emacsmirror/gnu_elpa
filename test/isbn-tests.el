@@ -50,13 +50,13 @@
 ;;;;; Hyphenation
 
 (ert-deftest isbn-tests-hyphenation-ranges-cache ()
-  "Test `isbn-hyphenation-ranges-update' \
+  "Test `isbn-update-hyphenation-ranges' \
 and `isbn-hyphenation-ranges-maybe-prompt-update'."
   (ert-with-temp-directory dir
     (let ((isbn-hyphenation-ranges-cache-file (file-name-concat dir "cache")))
 
-      ;; `isbn-hyphenation-ranges-update'
-      (isbn-hyphenation-ranges-update)
+      ;; `isbn-update-hyphenation-ranges'
+      (isbn-update-hyphenation-ranges)
       (should (file-exists-p isbn-hyphenation-ranges-cache-file))
       (should isbn-hyphenation-ranges-cache))))
 

@@ -58,12 +58,7 @@ and `isbn-hyphenation-ranges-maybe-prompt-update'."
       ;; `isbn-hyphenation-ranges-update'
       (isbn-hyphenation-ranges-update)
       (should (file-exists-p isbn-hyphenation-ranges-cache-file))
-      (should isbn-hyphenation-ranges-cache)
-
-      ;; `isbn-hyphenation-ranges-maybe-prompt-update'
-      (let ((inhibit-interaction t))
-        (should-not (isbn-hyphenation-ranges-maybe-prompt-update))
-        (should     (isbn-hyphenation-ranges-maybe-prompt-update 0))))))
+      (should isbn-hyphenation-ranges-cache))))
 
 (ert-deftest isbn-tests-hyphenate ()
   "Test `isbn-hyphenate'."

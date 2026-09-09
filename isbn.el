@@ -58,10 +58,7 @@
 ;; format [1].  Since hyphenation ranges are only updated yearly,
 ;; ranges are cached to `isbn-hyphenation-ranges-cache-file'.  To
 ;; cache this file, users must run `isbn-hyphenation-ranges-update' at
-;; least once before calling any of the functions below.  Users may
-;; wish to add `isbn-hyphenation-ranges-maybe-prompt-update' to their
-;; `init.el' to check for updates automatically (every 365 days by
-;; default).
+;; least once before calling any of the functions below.
 
 ;; [1] <https://www.isbn-international.org/range_file_generation>
 
@@ -204,16 +201,6 @@ region with the converted ISBN."
 (defvar isbn-hyphenation-ranges-cache nil
   "Cache of all valid ISBN ranges from the International ISBN Agency.")
 
-(defcustom isbn-hyphenation-ranges-update-interval 365
-  "Interval in days (natural number) between update reminders.
-Set to nil to prevent automatic updates.
-
-ISBN ranges from the International ISBN Agency are updated yearly."
-  :type '(choice (natnum :tag "Days")
-                 (const :tag "Do not update" nil))
-  :group 'isbn
-  :package-version '((isbn . "0.1.0")))
-
 ;;;###autoload
 (defun isbn-hyphenation-ranges-update (&optional nofile)
   "Update cache of ISBN hyphenation ranges.
@@ -232,41 +219,12 @@ Optional argument NOFILE, if non-nil, prevents writing to
             (unless ranges (signal 'error))
             (unless nofile
               (write-region
-               (concat ";; TIME: " (prin1-to-string (current-time)) "\n")
-               nil isbn-hyphenation-ranges-cache-file)
-              (write-region
                (prin1-to-string ranges)
                nil isbn-hyphenation-ranges-cache-file t))
             (setq isbn-hyphenation-ranges-cache ranges)
             (progress-reporter-done prgrp))
           (lambda (_status &rest _cbargs)))
       (error (error "Failed to retrieve hyphenation data")))))
-
-(defun isbn-hyphenation-ranges-maybe-prompt-update (&optional time)
-  "Prompt user to update ranges cache if enough time has elapsed.
-The amount of time before prompting is determined by
-`isbn-hyphenation-ranges-update-interval'.
-
-Optional argument TIME, if non-nil, overrides the time recorded within
-`isbn-hyphenation-ranges-cache-file'.
-
-This function returns t if available if enough time has elapsed."
-  (require 'time-date)
-  (when (and isbn-hyphenation-ranges-update-interval
-             (file-exists-p isbn-hyphenation-ranges-cache-file))
-    (setq time (or time (with-temp-buffer
-                          (insert-file-contents isbn-hyphenation-ranges-cache-file nil 0 64)
-                          (goto-char (point-min)) (search-forward "TIME:" (line-end-position))
-                          (read (string-trim (buffer-substring (point) (line-end-position)))))))
-    (when (> (time-to-number-of-days (time-since time)) isbn-hyphenation-ranges-update-interval)
-      (let ((msg "New ISBN hyphenation ranges may be available"))
-        (if inhibit-interaction
-            (message "%s, but interaction is inhibited" msg)
-          (when (yes-or-no-p (concat msg ".  Download them? "))
-            (isbn-hyphenation-ranges-update))))
-      ;; While this return may be useful for users, it's mostly for
-      ;; testing purposes.
-      t)))
 
 ;;;###autoload
 (defun isbn-hyphenate (isbn &optional interactive)

@@ -314,7 +314,9 @@ Validate KEIMENON, HYPOTHESIS, ANSWER, PARATHEMA, TAGS, SUSPEND and LINKS."
 
 (defun gnosis-image--svg (scene regions width height purpose target selection revealed)
   "Build SCENE and REGIONS SVG at WIDTH and HEIGHT.
-PURPOSE, TARGET, SELECTION and REVEALED control neutral or hidden overlays."
+PURPOSE is edit, region or occlusion.  Edit shows labels and rectangles;
+region outlines SELECTION.  Occlusion masks TARGET until REVEALED, then
+shows only the source image, without labels or selection outlines."
   (let* ((svg (svg-create width height))
          (path (alist-get 'path scene))
          (type (nth 2 (gnosis-image--dimensions path)))
@@ -326,11 +328,12 @@ PURPOSE, TARGET, SELECTION and REVEALED control neutral or hidden overlays."
       (pcase-let* ((`(,x ,y ,w ,h) (alist-get 'rect region))
                    (id (alist-get 'id region))
                    (hidden (and (eq purpose 'occlusion) (equal id target) (not revealed)))
-                   (visible-label (or (eq purpose 'edit) revealed)))
-        (when (or hidden visible-label (equal id selection))
+                   (visible-label (eq purpose 'edit))
+                   (selected (and (memq purpose '(edit region)) (equal id selection))))
+        (when (or hidden visible-label selected)
           (svg-rectangle svg (* x width) (* y height) (* w width) (* h height)
                          :fill (if hidden "#202020" "none") :fill-opacity 1
-                         :stroke (if (equal id selection) "#4080ff" "#808080") :stroke-width 2)
+                         :stroke (if selected "#4080ff" "#808080") :stroke-width 2)
           (when visible-label
             (svg-text svg (alist-get 'label region) :x (+ 3 (* x width))
                       :y (+ 16 (* y height)) :font-size 14 :fill "#ffffff"

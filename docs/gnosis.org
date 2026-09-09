@@ -805,8 +805,10 @@ managed reference and stable target as two list items; Answer is separate
 human-readable text. During review the image appears inline below the keimenon
 in the ordinary Gnosis buffer, with the target covered by an opaque mask.
 Type its answer in the minibuffer and press =RET=. Normal Gnosis text matching
-checks the answer, then reveals the image and feedback; there is no yes/no
-recall prompt. Historical target-only themata use their pinned region label
+checks the answer, then removes the mask to show the original image without
+region labels or outlines. The expected answer and any incorrect input appear
+as separate text feedback; there is no yes/no recall prompt.
+Historical target-only themata use their pinned region label
 as the expected text, and opening their draft exposes the separate fields.
 Cancelling input produces no grade. Both types participate
 in normal scheduled review and non-rescheduling practice, including outcome

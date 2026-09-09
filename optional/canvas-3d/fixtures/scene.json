@@ -1,0 +1,21 @@
+{
+  "objects": [
+    {
+      "id": "left",
+      "label": "Left",
+      "path": "left.obj"
+    },
+    {
+      "id": "right",
+      "label": "Right",
+      "path": "right.obj"
+    }
+  ],
+  "initial_view": [
+    0,
+    0,
+    1.0
+  ],
+  "license": "GPL-3.0-or-later",
+  "source": "Original synthetic test geometry distributed with canvas-3d"
+}

@@ -26,7 +26,7 @@ TEXI := docs/gnosis.texi
 INFO := docs/gnosis.info
 
 MODULES := gnosis-sqlite gnosis-tl gnosis-utils gnosis-org \
-	gnosis-logical-day gnosis-fsrs gnosis-cloze gnosis-db gnosis-model gnosis-scheduler gnosis-vc \
+	gnosis-logical-day gnosis-fsrs gnosis-cloze gnosis-db gnosis-assets gnosis-backup gnosis-model gnosis-image gnosis-scheduler gnosis-vc \
 	gnosis-tags gnosis-links gnosis-monkeytype \
 	gnosis-nodes gnosis-journal gnosis gnosis-study gnosis-review gnosis-agent gnosis-dashboard \
 	gnosis-export-import gnosis-anki
@@ -34,7 +34,7 @@ SOURCES := $(addprefix $(LISP_DIR)/,$(addsuffix .el,$(MODULES)))
 PACKAGE_LINT_SOURCES := $(LISP_DIR)/gnosis.el \
 	$(filter-out $(LISP_DIR)/gnosis.el,$(SOURCES))
 
-AUTOLOAD_COMMANDS := gnosis gnosis-add-thema gnosis-add-model-thema gnosis-add-thema-from-node \
+AUTOLOAD_COMMANDS := gnosis gnosis-add-thema gnosis-add-model-thema gnosis-add-image-thema gnosis-add-thema-from-node \
 	gnosis-modeline-mode \
 	gnosis-dashboard gnosis-export-db gnosis-import-db gnosis-save \
 	gnosis-import-anki gnosis-journal-find gnosis-journal-insert \
@@ -45,6 +45,7 @@ AUTOLOAD_COMMANDS := gnosis gnosis-add-thema gnosis-add-model-thema gnosis-add-t
 	gnosis-nodes-db-force-sync gnosis-review gnosis-review-topic \
 	gnosis-practice-topic gnosis-review-due-topic gnosis-study-topic \
 	gnosis-study-repair gnosis-study-subtree gnosis-backup-db \
+	gnosis-backup-data gnosis-backup-verify gnosis-backup-restore \
 	gnosis-review-resume gnosis-review-discard gnosis-review-continue \
 	gnosis-review-undo gnosis-scheduler-set-retention gnosis-study-history-audit \
 	gnosis-monkeytype-start gnosis-vc-push gnosis-vc-pull

@@ -776,6 +776,53 @@ Like cloze, but the user selects the correct word from a list of
 candidates (the hypothesis) rather than typing it.  Only a single gap is
 supported per thema.  The answer must appear verbatim in the sentence.
 
+*** Images, regions and occlusion
+
+In an ordinary thema draft, put point in the question, hint, answer or
+explanation and press =C-c C-a= (~gnosis-image-attach~). Choose a local PNG
+or JPEG and optionally supply its source and attribution. Save with
+=C-c C-c= as usual. Managed links reopen with the thema and display inline
+during study. An answer containing an image uses binary self-grading rather
+than asking you to type a file reference. Existing =file:= links keep their
+previous behavior.
+
+For a region question, run ~gnosis-add-image-thema~ or choose Image-region
+in ~gnosis-add-thema~. Choose an image, drag with the left mouse button to
+draw a rectangle, and enter its label. Click a rectangle to select it;
+=d= deletes the selected rectangle from this edit. =RET= accepts the regions;
+=q= or =C-g= cancels. Choose the expected region, then write the question,
+explanation and tags in the normal draft. No JSON or coordinates are needed.
+=C-c C-a= in an image thema draft lets you reuse or replace the image and
+edit its regions. Published revisions are immutable: editing does not change
+other themata that use the old revision.
+
+During Image-region review, click the intended region. Selection is neutral
+and does not grade; =RET= submits it. Feedback shows the expected label and,
+for an incorrect selection, the selected label rather than its stored ID.
+Image-occlusion uses the same authoring flow but covers the expected rectangle
+with an opaque mask. Recall its label, press =RET= to reveal it, then =RET=
+to continue to the normal yes/no
+self-check. Cancelling either viewer produces no grade. Both types participate
+in normal scheduled review and non-rescheduling practice, including outcome
+overrides, retries and scheduled undo.
+
+Display requires a graphical Emacs with native SVG and PNG/JPEG decoding.
+The image view fits its window; inline review displays refresh on window
+configuration changes. Lines containing images retain their layout rather than
+being trimmed, filled or padded by text centering. Standard PNG color types
+and bit depths, including grayscale, palette and 16-bit PNG, and 8-bit
+grayscale/RGB JPEG are accepted when the native decoder supports them.
+Files are limited to 32 MiB, 16384
+pixels per axis and 40 million pixels. Header acceptance alone is not proof
+of valid compressed pixels: unavailable or corrupt images stop study before
+a grade, including images in hidden answers or explanations.
+
+Gnosis copies images into =assets/<revision>/= beside the connected database;
+the portable Org link uses the =gnosis-image:= scheme. Keep that directory
+with database backups. Content-only SQLite export/import refuses managed
+image content because it does not bundle the assets. TIFF and DICOM are not
+supported; no converter, medical atlas or external image service is required.
+
 *** Model (selection review)
 
 Model themata ask you to select an object in a local 3D scene.  They support
@@ -784,13 +831,35 @@ daily new-item limit, topic summaries and overdue counts treat models like
 ordinary themata; suspension excludes them from both kinds of study.
 
 Run ~gnosis-add-model-thema~, or select Model in ~gnosis-add-thema~.
-Choose a scene JSON file, supply its license/attribution and provenance
-when not already present, then choose the expected target and starting
-yaw, pitch and zoom.  Fill in the question, explanation and tags in the
-normal Org authoring buffer and save with =C-c C-c=.  In a single Model
-draft, =C-c C-a= attaches another scene and selects its target/view.
-Prompt cancellation preserves the draft.  Edit persisted model themata
-with the ordinary edit command; close/reopen does not lose the reference.
+Choose a local OBJ file, add more objects through the file chooser if
+needed, and give each object a readable label.  Supply the actual
+license/attribution (including required notices) and source/provenance;
+Gnosis does not infer them.  The objects must already share coordinates.
+Files may come from different directories, even with identical basenames.
+Gnosis generates safe distinct managed filenames and stable target IDs.
+Reimporting the same source paths retains IDs when geometry changes;
+moving the source files produces different IDs.  The managed scene itself
+does not depend on the source paths after import.
+
+In the canvas, click the expected object, then drag or use arrow keys to
+frame the starting view.  The wheel or =+= / =-= zooms; =r= resets.  The
+heading shows the selected label and renderer status.  *Clicks only
+select.*  Press =RET= when the view is ready to accept the target and
+camera, or =q= / =C-g= to cancel.  No thema is created on cancellation.
+The temporary viewer fits the current window and restores the previous
+window arrangement when it closes.
+
+Fill in the question, explanation and tags in the normal Org authoring
+buffer and save with =C-c C-c=.  In a single Model draft, =C-c C-a= offers
+to reframe its existing scene or attach another one.  Cancellation leaves
+the draft unchanged.  Edit persisted model themata with the ordinary edit
+command; close/reopen preserves the target and starting view.
+
+For advanced import, choose a scene JSON instead of an OBJ in the first
+file chooser.  Blank license/source answers preserve manifest metadata.
+A prefix argument to ~gnosis-add-model-thema~ or =C-c C-a= uses explicit
+target completion and numeric camera input instead of the visual canvas.
+~gnosis-model-import~ remains a non-graphical manifest import API.
 
 The Model-specific /Resource and starting view/ section holds four list
 items: the managed resource reference, yaw, pitch and zoom.  The Answer
@@ -836,25 +905,31 @@ a new revision and explicitly attach it to a thema.
 
 **** Optional canvas backend
 
-Authoring and ordinary Gnosis study do not require a renderer.  Model
-review requires a separately supplied =canvas-3d.el=, =render.py= and
-=requirements.txt= backend implementing scene opening, stable selection
-hooks, and the C3D1 frame protocol.  It is not bundled with Gnosis and this
-experimental feature is not supported by stock Emacs without canvas image
-support.  Use a graphical Emacs with =canvas-refresh= and the =canvas=
-image type, and an OpenGL/EGL-capable environment.
+Ordinary Gnosis and advanced numeric model authoring do not require a
+renderer.  Visual authoring and 3D review require graphical GNU Emacs built
+with native canvas image support (=canvas-refresh= and the =canvas= image
+type), plus an OpenGL/EGL-capable environment.  Stock Emacs without canvas
+support cannot display 3D; ordinary Gnosis remains usable.
 
-In the backend source directory, install its pinned Python dependencies:
+The optional backend is included at =optional/canvas-3d= in the Gnosis
+checkout.  Prepare its locked, project-local Python environment explicitly:
 
 #+begin_src sh
-uv venv .venv
-uv pip install --python .venv/bin/python -r requirements.txt
+uv sync --locked --project /path/to/gnosis/optional/canvas-3d
 #+end_src
 
-Set ~gnosis-model-renderer-directory~ to that directory.  Alternatively,
-put =canvas-3d.el= on =load-path= and leave the option nil; the backend
-then finds =render.py= and =.venv/bin/python= beside itself.  No anatomy
-atlas is bundled or downloaded.  Model review opens a 512-pixel view.
+Gnosis loads the backend only when opening a model.  With
+~gnosis-model-renderer-directory~ nil, it discovers =canvas-3d.el= on
+=load-path= or in =optional/canvas-3d= relative to the installed Gnosis
+library.  Set the option to override discovery.  Distributions that omit
+the optional directory must install it separately.  The renderer uses
+=.venv/bin/python= beside its library; a separately prepared interpreter
+can be selected with ~canvas-3d-python-command~.  Opening or authoring never
+installs dependencies or accesses the network.  Missing capabilities show
+setup diagnostics.  No anatomy atlas is bundled or downloaded.
+
+Visual authoring sizes its canvas to the available window.  Review uses a
+512-pixel canvas and requires enough space for its companion question.
 
 **** Reviewing or practising a model
 
@@ -890,9 +965,10 @@ Filtered exports containing only ordinary themata still work.  Org thema
 editing retains model references, but sharing the text alone does not
 transfer resources and saving fails when its pinned asset is absent.
 ~gnosis-backup-db~ retains the database, including model references, but
-*does not include the assets directory*.  Back up =assets/= separately
-alongside the database, Org files and other media; automatic database Git
-commits do not add those assets.
+*does not include the assets directory*.  Use ~gnosis-backup-data~ for a
+database snapshot with all managed =assets/= bytes.  Back up the Org vault
+and external media separately; automatic database Git commits do not add
+those assets.
 
 ** Creating Themata
 
@@ -1458,6 +1534,46 @@ backups of Org sources and referenced media.  A portable content export
 cannot restore schedules or session progress.
 
 ** Full Backups Versus Content Exports
+
+=M-x gnosis-backup-data= snapshots the *currently connected* database and
+the entire managed =assets/= directory beside it, including unreferenced
+revisions.  Connect Gnosis first, then choose a new local directory whose
+parent already exists.  The command uses SQLite =VACUUM INTO=, so retained
+schedules, review/practice evidence and saved progress stay in the snapshot.
+It does not use a possibly changed ~gnosis-dir~ to locate the source.
+
+The versioned directory contains =database.sqlite=, =assets/= and
+=manifest.json=.  =M-x gnosis-backup-verify= checks it offline: exact
+directory/file inventory, literal byte lengths and SHA256 hashes, SQLite
+integrity and foreign keys.  Missing or extra files, damaged bytes,
+symlinks and unsafe paths are errors.  Verification proves byte completeness,
+not authenticity, application schema compatibility or media semantics.
+Keep the matching Gnosis version available for recovery.
+
+=M-x gnosis-backup-restore= verifies a snapshot and copies it to another
+*new* directory.  It never merges, overwrites, switches connections or
+activates the restored database.  Both commands build and verify a private
+sibling stage before renaming it into place.  Failure or =C-g= removes only
+the unpublished stage; existing destinations and the active database are
+untouched.  Source/destination overlap is refused before staging.  Keep
+filesystem writers quiescent during backup and restore: repeated inventories
+detect observed changes, but do not provide a cross-process lock.  Paths
+must have no symlink ancestry; files must use managed asset basenames.
+The format bounds inventory to 100,000 entries and the manifest to 16 MiB.
+
+Inspect the restored copy before any manual cutover.  Its database is named
+=database.sqlite=, not =gnosis.db=.  For ordinary Gnosis startup, with all
+owners of the restored copy disconnected, rename that file to =gnosis.db=
+in the restored directory and explicitly configure Gnosis to use that new
+directory.  Keep =assets/= beside it and preserve the original snapshot:
+renaming or using the copy changes it, so the old manifest no longer verifies.
+Do not rename or replace an active database or its SQLite companion files.
+
+*The Org notes vault is not included.*  Back up and restore the original
+Org files separately; indexed node content does not replace those files.
+External media outside managed =assets/= also needs a separate backup,
+including legacy =[[file:...]]= links and ~extras.review-image~ files.
+Their stored paths are preserved in the database, but their bytes are not copied.
 
 =M-x gnosis-backup-db= writes a consistent full SQLite backup using
 =VACUUM INTO=.  Choose a new path; the command refuses to overwrite an

@@ -33,6 +33,9 @@
         ./lisp/gnosis-journal.el
         ./lisp/gnosis-links.el
         ./lisp/gnosis-monkeytype.el
+        ./lisp/gnosis-assets.el
+        ./lisp/gnosis-backup.el
+        ./lisp/gnosis-image.el
         ./lisp/gnosis-model.el
         ./lisp/gnosis-nodes.el
         ./lisp/gnosis-org.el
@@ -50,6 +53,8 @@
       testFiles = [
         ./docs/gnosis.org
         ./tests
+        # Discovery tests need the optional backend, not a package dependency.
+        ./optional/canvas-3d
       ];
     in
     {

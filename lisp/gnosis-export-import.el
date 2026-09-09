@@ -70,8 +70,10 @@ PARATHEMA: The text where THEMA is derived from.
 TAGS: List of THEMA tags
 EXAMPLE: Boolean value, if non-nil do not add properties for thema."
   (let ((components `(("** Keimenon" . ,keimenon)
-                      (,(if (equal (downcase type) "model")
-                            "** Resource and starting view" "** Hypothesis") . ,hypothesis)
+                      (,(cond ((equal (downcase type) "model") "** Resource and starting view")
+                              ((member (downcase type) '("image-region" "image-occlusion"))
+                               "** Image resource")
+                              (t "** Hypothesis")) . ,hypothesis)
                       ("** Answer" . ,answer)
                       ("** Parathema" . ,parathema))))
     (goto-char (point-max))
@@ -129,7 +131,7 @@ SEPARATOR."
                          (processed-text
                           (cond
                            ((and (member child-title
-                                         '("Hypothesis" "Resource and starting view" "Answer"))
+                                         '("Hypothesis" "Resource and starting view" "Image resource" "Answer"))
                                  (not (string-empty-p child-text)))
                             ;; The separator consumes later list markers.
                             ;; Strip only the first marker, not value hyphens.
@@ -282,6 +284,18 @@ Returns nil on success, or an error message string on failure."
 (defconst gnosis-export-format-version 2
   "Current SQLite content export format version.")
 
+(defun gnosis-export--image-ids (db schema)
+  "Return IDs with managed images in content DB SCHEMA, including malformed refs."
+  (unless (member schema '("main" "import_db")) (error "Invalid content schema"))
+  (cl-loop for row in (gnosis-sqlite-select
+                      db (format "SELECT t.id, t.type, t.keimenon, t.hypothesis,
+                                         t.answer, e.parathema, e.review_image
+                                  FROM %s.themata t LEFT JOIN %s.extras e ON t.id = e.id"
+                                 schema schema))
+           when (or (member (downcase (nth 1 row)) '("image-region" "image-occlusion"))
+                    (gnosis-image-content-p (cddr row)))
+           collect (car row)))
+
 (defun gnosis-import--format-version-in-db (db schema)
   "Return supported content format version from DB SCHEMA."
   (unless (member schema '("main" "import_db"))
@@ -290,6 +304,8 @@ Returns nil on success, or an error message string on failure."
          db (format "SELECT id FROM %s.themata WHERE lower(type) = ?" schema)
          '("model"))
     (user-error "Model resource content import is unsupported; assets are not bundled"))
+  (when (gnosis-export--image-ids db schema)
+    (user-error "Managed image content import is unsupported; assets are not bundled"))
   (let ((objects
          (sqlite-select
           db (format "SELECT type, name FROM %s.sqlite_master
@@ -473,6 +489,9 @@ the export; errors preserve the previous file."
                     (gnosis-sqlite-select db "SELECT id FROM themata WHERE lower(type) = ?"
                                           '("model")))
       (user-error "Model resource content export is unsupported; back up DB and assets together"))
+    (when (seq-some (lambda (id) (or (not selection-p) (member id ids)))
+                    (gnosis-export--image-ids db "main"))
+      (user-error "Managed image content export is unsupported; back up DB and assets together"))
     (gnosis-export--check-destination db file)
     (when (called-interactively-p 'any)
       (unless (y-or-n-p (format "Export %d themata to %s? " count file))

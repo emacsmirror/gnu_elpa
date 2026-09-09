@@ -146,6 +146,7 @@ Returns the buffer.  MODE defaults to due; practice never reschedules."
              :reviewed 0
 	     :total (length themata)
 	     :remaining (copy-sequence themata)))
+      (add-hook 'window-configuration-change-hook #'gnosis-image-refresh nil t)
       (setq header-line-format '(:eval (gnosis-review--header-line))))
     buf))
 
@@ -187,7 +188,7 @@ When SUCCESS nil, display USER-INPUT as well"
     (insert "\n\n"
 	    (propertize "Answer:" 'face 'gnosis-face-directions)
 	    " "
-	    (propertize answer 'face 'gnosis-face-correct))
+	    (propertize (gnosis-image-format-string answer) 'face 'gnosis-face-correct))
     (when gnosis-center-content
       (gnosis-center-current-line))
     ;; Insert user wrong answer
@@ -425,9 +426,10 @@ EVENT-ID, REVIEWED-AT-US, and REVIEW-DAY may pin deterministic facts."
                     (plist-get result :thema-id) success
                     (plist-get result :event-id) (plist-get result :reviewed-at-us)
                     (plist-get result :review-day))))
-      (if (plist-member result :model)
-          (plist-put pending :model (plist-get result :model))
-        pending))))
+      (dolist (key '(:model :image))
+        (when (plist-member result key)
+          (setq pending (plist-put pending key (plist-get result key)))))
+      pending)))
 
 (defun gnosis-review--result-date (result)
   "Return next review date from pending RESULT."
@@ -437,29 +439,33 @@ EVENT-ID, REVIEWED-AT-US, and REVIEW-DAY may pin deterministic facts."
 
 (defun gnosis-review--write-result (id success result)
   "Accept pending RESULT for thema ID and binary SUCCESS.
-A model result retains (DATABASE THEMA BUFFER STATE SNAPSHOT).  Its owner
+A media result retains (DATABASE THEMA BUFFER STATE SNAPSHOT).  Its owner
 must still match; only the last committed persistent attempt may retry
 after session advancement.  Scheduler acceptance validates retained facts."
-  (when-let* ((model (plist-get result :model)))
-    (let ((state (nth 3 model))
-          (snapshot (nth 4 model)))
-      (unless (and (eq (nth 2 model) (current-buffer))
-                   (eq state gnosis-review--state)
-                   (eq (plist-get snapshot :mode) (gnosis-review-state-mode state))
-                   (or (equal snapshot (gnosis-review--state-data state))
-                       (and (gnosis-review-state-persistent-p state)
-                            (equal (plist-get snapshot :session-id)
-                                   (gnosis-review-state-session-id state))
-                            (equal (plist-get result :event-id)
-                                   (gnosis-review-state-last-event state)))))
-        (user-error "Model answer belongs to an outdated encounter")))
-    (unless (and (eq (car model) (gnosis--ensure-db))
-                 (equal (cadr model)
-                        (gnosis-select '[type keimenon hypothesis answer]
-                                       'themata `(= id ,id))))
-      (user-error "Model answer belongs to an outdated thema or database"))
-    (let ((row (car (cadr model))))
-      (gnosis-model-resolve (nth 2 row) (nth 3 row))))
+  (dolist (key '(:model :image))
+    (when-let* ((model (plist-get result key)))
+      (let ((state (nth 3 model))
+            (snapshot (nth 4 model)))
+        (unless (and (eq (nth 2 model) (current-buffer))
+                     (eq state gnosis-review--state)
+                     (eq (plist-get snapshot :mode) (gnosis-review-state-mode state))
+                     (or (equal snapshot (gnosis-review--state-data state))
+                         (and (gnosis-review-state-persistent-p state)
+                              (equal (plist-get snapshot :session-id)
+                                     (gnosis-review-state-session-id state))
+                              (equal (plist-get result :event-id)
+                                     (gnosis-review-state-last-event state)))))
+          (user-error "Media answer belongs to an outdated encounter")))
+      (unless (and (eq (car model) (gnosis--ensure-db))
+                   (equal (cadr model)
+                          (if (eq key :image) (gnosis-review--image-thema id)
+                            (gnosis-select '[type keimenon hypothesis answer]
+                                           'themata `(= id ,id)))))
+        (user-error "Media answer belongs to an outdated thema or database"))
+      (let ((row (car (cadr model))))
+        (if (eq key :image)
+            (apply #'gnosis-image-validate-fields row)
+          (gnosis-model-resolve (nth 2 row) (nth 3 row))))))
   (let ((outcome (if success 'success 'failure)))
     (unless (and (= id (plist-get result :thema-id))
                  (eq outcome (plist-get result :outcome)))
@@ -850,6 +856,74 @@ Missing backend/assets and cancelled input cannot produce an incorrect grade."
             (kill-buffer viewer)))))))
 
 
+;;; Image encounters
+
+(defun gnosis-review--image-thema (id)
+  "Return all displayed content for thema ID, including its explanation."
+  (mapcar (lambda (row)
+            (append row (car (gnosis-select '[parathema review-image] 'extras `(= id ,id)))))
+          (gnosis-select '[type keimenon hypothesis answer] 'themata `(= id ,id))))
+
+(defun gnosis-review--image-owner (id)
+  "Validate image content for ID and retain its exact encounter owner, or nil."
+  (let* ((thema (gnosis-review--image-thema id)) (row (car thema))
+         (references (gnosis-image-references row)))
+    (when (or references (member (downcase (car row)) '("image-region" "image-occlusion")))
+      (unless gnosis-review--state (user-error "Start a review session first"))
+      (apply #'gnosis-image-validate-fields row)
+      ;; Decode hidden answer/explanation images too, without displaying them.
+      ;; A broken payload is unavailable, not a failed recall.
+      (mapc (lambda (reference) (gnosis-image--decode (gnosis-image-resolve reference))) references)
+      (list (gnosis--ensure-db) (copy-tree thema) (current-buffer)
+            gnosis-review--state (copy-tree (gnosis-review--state-data gnosis-review--state))))))
+
+(defun gnosis-review--image-check (id owner)
+  "Validate image encounter OWNER for ID before producing a pending result."
+  (let ((buffer (nth 2 owner)) (state (nth 3 owner)) (snapshot (nth 4 owner)))
+    (unless (and (eq (car owner) (gnosis--ensure-db)) (buffer-live-p buffer)
+                 (with-current-buffer buffer (eq gnosis-review--state state))
+                 (equal snapshot (gnosis-review--state-data state))
+                 (equal id (car (gnosis-review-state-remaining state)))
+                 (equal (cadr owner) (gnosis-review--image-thema id))
+                 (or (not (gnosis-review-state-persistent-p state))
+                     (when-let* ((stored (gnosis-review--read-session)))
+                       (equal snapshot (gnosis-review--state-data stored)))))
+      (user-error "Image encounter is outdated; resume the original session"))
+    (apply #'gnosis-image-validate-fields (car (cadr owner)))))
+
+(defun gnosis-review--image (id occlusion)
+  "Present image thema ID, using self-check when OCCLUSION is non-nil."
+  (let* ((owner (gnosis-review--image-owner id))
+         (row (car (cadr owner)))
+         (reference (car (nth 2 row))) (target (car (nth 3 row)))
+         (scene (gnosis-image-resolve reference target))
+         (label (alist-get 'label (seq-find (lambda (r) (equal target (alist-get 'id r)))
+                                          (alist-get 'regions scene))))
+         (input (progn
+                  (gnosis-display-keimenon (gnosis-org-format-string (nth 1 row)))
+                  (gnosis-image-input (cons (cons 'prompt (gnosis-org-format-string (nth 1 row))) scene)
+                                      (if occlusion 'occlusion 'region) target
+                                      (lambda () (gnosis-review--image-check id owner)))))
+         (success (if occlusion (y-or-n-p "Recalled the hidden region? ")
+                    (equal target (cadr input)))))
+    (gnosis-review--image-check id owner)
+    (let ((result (plist-put (gnosis-review-algorithm id success) :image owner)))
+      (gnosis-display-basic-answer
+       label success
+       (or (alist-get 'label (seq-find (lambda (r) (equal (cadr input) (alist-get 'id r)))
+                                      (alist-get 'regions scene))) ""))
+      (gnosis-display-parathema (nth 4 row))
+      (gnosis-display-next-review (gnosis-review--result-date result) success)
+      (cons success result))))
+
+(defun gnosis-review-image-region (id)
+  "Review image-region thema ID with neutral selection and explicit submit."
+  (gnosis-review--image id nil))
+
+(defun gnosis-review-image-occlusion (id)
+  "Review image-occlusion thema ID with explicit reveal and binary self-check."
+  (gnosis-review--image id t))
+
 ;;; Type-specific review
 
 (defun gnosis-review-mcq (id)
@@ -882,7 +956,8 @@ Missing backend/assets and cancelled input cannot produce an incorrect grade."
     (gnosis-display-image keimenon)
     (gnosis-display-keimenon (gnosis-org-format-string keimenon))
     (gnosis-display-hint hypothesis)
-    (let* ((self-grade (eq gnosis-review-basic-input 'self-grade))
+    (let* ((self-grade (or (eq gnosis-review-basic-input 'self-grade)
+                            (gnosis-image-content-p answer)))
            (user-input
             (unless self-grade
               (gnosis--read-string-with-input-method "Answer: " answer)))
@@ -1027,7 +1102,12 @@ Returns (TYPE (SUCCESS . ALGORITHM-RESULT))."
     (if (fboundp func-name)
         (progn
 	  (window-configuration-to-register :gnosis-pre-image)
-          (list type (funcall func-name id)))
+          (let* ((image-owner (gnosis-review--image-owner id))
+                 (answer (funcall func-name id)))
+            (when image-owner
+              (gnosis-review--image-check id image-owner)
+              (setcdr answer (plist-put (cdr answer) :image image-owner)))
+            (list type answer)))
       (error "Malformed thema type: '%s'" type))))
 
 (defun gnosis-review--failed-disposition-p (disposition)

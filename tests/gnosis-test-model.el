@@ -30,7 +30,8 @@
   (gnosis-test-with-db
     (save-window-excursion
       (let ((scene (gnosis-test-model--scene))
-            (gnosis-save-hook nil))
+            (gnosis-save-hook nil)
+            (current-prefix-arg '(4)))
         (unwind-protect
             (progn
               (cl-letf (((symbol-function 'read-file-name) (lambda (&rest _) scene))
@@ -73,6 +74,101 @@
                 (should (equal "" (gnosis-get 'review-image 'extras `(= id ,id))))))
           (dolist (name '("*Gnosis NEW*" "*Gnosis Edit*"))
             (when (get-buffer name) (kill-buffer name))))))))
+
+(ert-deftest gnosis-model-local-objects-stable-names-and-provenance ()
+  (gnosis-test-with-db
+    (let* ((source (file-name-directory (gnosis-test-model--scene)))
+           (first (expand-file-name "one/shared.obj" source))
+           (second (expand-file-name "two/shared.obj" source))
+           (inputs (list (cons first "First object") (cons second "Second object"))))
+      (dolist (file (list first second))
+        (make-directory (file-name-directory file) t)
+        (copy-file (expand-file-name "triangle.obj" source) file))
+      (let* ((before (copy-tree inputs))
+             (reference (gnosis-model-import-objects inputs "CC0; Test author" "Original test"))
+             (scene (gnosis-model--scene (expand-file-name reference (gnosis-assets-root))))
+             (objects (alist-get 'objects scene)))
+        (should (equal before inputs))
+        (should (equal "CC0; Test author" (alist-get 'license scene)))
+        (should (equal "Original test" (alist-get 'source scene)))
+        (should (= 2 (length (delete-dups (mapcar (lambda (o) (alist-get 'path o)) objects)))))
+        (should (equal reference (gnosis-model-import-objects (reverse inputs)
+                                                             "CC0; Test author" "Original test")))
+        (with-temp-file first (insert "v 0 0 0\nv 2 0 0\nv 0 1 0\nf 1 2 3\n"))
+        (let* ((changed (gnosis-model-import-objects inputs "CC0; Test author" "Original test"))
+               (next (gnosis-model--scene (expand-file-name changed (gnosis-assets-root)))))
+          (should-not (equal reference changed))
+          (should (equal objects (alist-get 'objects next))))))))
+
+(ert-deftest gnosis-model-obj-author-command-save-reopen ()
+  (gnosis-test-with-db
+    (save-window-excursion
+      (let* ((file (expand-file-name "triangle.obj" (file-name-directory (gnosis-test-model--scene))))
+             (answers '("Visible object" "CC0; Original author" "Original geometry"))
+             (gnosis-save-hook nil)
+             saved-fields)
+        (unwind-protect
+            (progn
+              (cl-letf (((symbol-function 'read-file-name) (lambda (&rest _) file))
+                        ((symbol-function 'y-or-n-p) (lambda (&rest _) nil))
+                        ((symbol-function 'read-string) (lambda (&rest _) (pop answers)))
+                        ((symbol-function 'gnosis-model--read-visual)
+                         (lambda (hypothesis answer _context)
+                           (let* ((path (car (gnosis-model-resolve hypothesis answer)))
+                                  (scene (gnosis-model--scene path)))
+                             (should (equal "Visible object" (alist-get 'label (car (alist-get 'objects scene)))))
+                             (should (equal "CC0; Original author" (alist-get 'license scene)))
+                             (should (equal "Original geometry" (alist-get 'source scene)))
+                             (setq saved-fields (list (list (car hypothesis) "-20" "-30" "1.5") answer))))))
+                (call-interactively #'gnosis-add-model-thema))
+              (insert "Select this object")
+              (call-interactively (key-binding (kbd "C-c C-c")))
+              (let ((id (car (gnosis-select 'id 'themata nil t))))
+                (gnosis-sqlite-close gnosis-db)
+                (setq gnosis-db (gnosis-db--open gnosis-dir))
+                (should (equal saved-fields
+                               (list (gnosis-get 'hypothesis 'themata `(= id ,id))
+                                     (gnosis-get 'answer 'themata `(= id ,id)))))
+                (gnosis-edit-thema id)
+                (should (string-match-p "-20\n- -30\n- 1.5" (buffer-string)))
+                (call-interactively (key-binding (kbd "C-c C-c")))))
+          (dolist (name '("*Gnosis NEW*" "*Gnosis Edit*"))
+            (when (get-buffer name) (kill-buffer name))))))))
+
+(ert-deftest gnosis-model-objects-reject-invalid-input-and-clean-stage ()
+  (gnosis-test-with-db
+    (let* ((file (expand-file-name "triangle.obj" (file-name-directory (gnosis-test-model--scene))))
+           (objects (list (cons file "Triangle")))
+           stage
+           (make-temp (symbol-function 'make-temp-file)))
+      (should-error (gnosis-model-import-objects objects "" "Source") :type 'user-error)
+      (should-error (gnosis-model-import-objects objects "CC0" " ") :type 'user-error)
+      (should-error (gnosis-model-import-objects (append objects objects) "CC0" "Source") :type 'user-error)
+      (dolist (condition '(quit error))
+        (cl-letf (((symbol-function 'make-temp-file)
+                   (lambda (&rest args) (setq stage (apply make-temp args))))
+                  ((symbol-function 'copy-file) (lambda (&rest _) (signal condition nil))))
+          (should (eq condition
+                      (condition-case err (gnosis-model-import-objects objects "CC0" "Source")
+                        ((error quit) (car err))))))
+        (should-not (file-exists-p stage)))
+      (should-not (file-exists-p (gnosis-assets-root))))))
+
+(ert-deftest gnosis-model-authoring-default-is-visual-and-pinned ()
+  (gnosis-test-with-db
+    (let* ((file (gnosis-test-model--scene))
+           (reference (gnosis-model-import file)))
+      (cl-letf (((symbol-function 'read-file-name) (lambda (&rest _) file))
+                ((symbol-function 'read-string) (lambda (&rest _) ""))
+                ((symbol-function 'gnosis-model--read-visual)
+                 (lambda (hypothesis answer _context)
+                   (should (equal reference (car hypothesis)))
+                   (should (gnosis-model-resolve hypothesis answer))
+                   (list (list reference "-12.5" "-45" "1.25") '("other"))))
+                ((symbol-function 'read-number) (lambda (&rest _) (ert-fail "Numeric default")))
+                ((symbol-function 'completing-read) (lambda (&rest _) (ert-fail "Target text default"))))
+        (should (equal (list (list reference "-12.5" "-45" "1.25") '("other"))
+                       (gnosis-model--read-fields)))))))
 
 (ert-deftest gnosis-model-import-idempotent-and-printer-independent ()
   (gnosis-test-with-db
@@ -215,7 +311,7 @@
           (sqlite-close export)))
       (should (gnosis-get 'id 'themata `(= id ,model))))))
 
-(defun gnosis-test-model--canvas (_path _view)
+(defun gnosis-test-model--canvas (_path _view &optional _size)
   "Create a deterministic stand-in for the optional canvas boundary."
   (let ((buffer (generate-new-buffer " *Gnosis test canvas*")))
     (with-current-buffer buffer
@@ -234,6 +330,173 @@
                              (delete-process canvas-3d--process))) nil t))
     (pop-to-buffer buffer)
     buffer))
+
+(defmacro gnosis-test-model--author-input (&rest input)
+  "Run INPUT through visual authoring with only rendering and input stubbed."
+  (declare (indent 0) (debug t))
+  `(let ((depth 0))
+     (cl-letf (((symbol-function 'gnosis-model-open) #'gnosis-test-model--canvas)
+               ((symbol-function 'gnosis-model--canvas-size) (lambda () 400))
+               ((symbol-function 'canvas-3d--request) #'ignore)
+               ((symbol-function 'recursion-depth) (lambda () depth))
+               ((symbol-function 'exit-recursive-edit) #'ignore)
+               ((symbol-function 'abort-recursive-edit) (lambda () (signal 'quit nil)))
+               ((symbol-function 'recursive-edit)
+                (lambda () (setq depth 1) ,@input)))
+       (gnosis-model--read-fields))))
+
+(defun gnosis-test-model--author-pick ()
+  "Select a target through the authoring callback, without accepting it."
+  (setq-local canvas-3d-selected-id "other")
+  (run-hook-with-args 'canvas-3d-selection-hook
+                      (list :id "other" :frame 1 :owner canvas-3d--process)))
+
+(ert-deftest gnosis-model-visual-target-frame-explicit-accept ()
+  (gnosis-test-with-db
+    (save-window-excursion
+      (let* ((file (gnosis-test-model--scene))
+             (reference (gnosis-model-import file))
+             (before (current-window-configuration)))
+        (cl-letf (((symbol-function 'read-file-name) (lambda (&rest _) file))
+                  ((symbol-function 'read-string) (lambda (&rest _) "")))
+          (let ((fields
+                 (gnosis-test-model--author-input
+                   (should-error (gnosis-model-author-accept) :type 'user-error)
+                   (gnosis-test-model--author-pick)
+                   (should-not (plist-get gnosis-model--author-context :result))
+                   (should (string-match-p "Other triangle" (gnosis-model--author-header)))
+                   ;; Unlike grading, authors may frame after picking.
+                   (setq canvas-3d--yaw 347.5 canvas-3d--pitch 315 canvas-3d--zoom 1.25)
+                   (call-interactively (key-binding (kbd "RET")))
+                   (should-error (gnosis-model-author-accept) :type 'user-error))))
+            (should (equal fields (list (list reference "-12.5" "-45" "1.25") '("other"))))))
+        (should (compare-window-configurations before (current-window-configuration)))
+        (should-not (gnosis-select '* 'themata))))))
+
+(ert-deftest gnosis-model-visual-cancel-preserves-owner-and-other-buffers ()
+  (gnosis-test-with-db
+    (save-window-excursion
+      (let ((file (gnosis-test-model--scene))
+            (other (generate-new-buffer "*Canvas 3D*")))
+        (unwind-protect
+            (with-temp-buffer
+              (insert "Previous draft")
+              (let ((owner (current-buffer)))
+                (cl-letf (((symbol-function 'read-file-name) (lambda (&rest _) file))
+                          ((symbol-function 'read-string) (lambda (&rest _) "")))
+                  (dolist (key '("q" "C-g"))
+                    (should (eq 'quit
+                                (condition-case err
+                                    (gnosis-test-model--author-input
+                                      (gnosis-test-model--author-pick)
+                                      (call-interactively (key-binding (kbd key))))
+                                  (quit (car err)))))
+                    (should (buffer-live-p other))
+                    (should (equal "Previous draft" (with-current-buffer owner (buffer-string))))))))
+          (kill-buffer other))))))
+
+(ert-deftest gnosis-model-visual-rejects-drift-and-inflight ()
+  (gnosis-test-with-db
+    (save-window-excursion
+      (let* ((file (gnosis-test-model--scene))
+             (owner (current-buffer)))
+        (cl-letf (((symbol-function 'read-file-name) (lambda (&rest _) file))
+                  ((symbol-function 'read-string) (lambda (&rest _) "")))
+          (should-error
+           (gnosis-test-model--author-input
+             (gnosis-test-model--author-pick)
+             (setq canvas-3d--busy t)
+             (should-error (gnosis-model-author-accept) :type 'user-error)
+             (setq canvas-3d--busy nil canvas-3d--dirty t)
+             (should-error (gnosis-model-author-accept) :type 'user-error)
+             (setq canvas-3d--dirty nil)
+             (with-current-buffer owner (insert "Changed while framing"))
+             (gnosis-model-author-accept)) :type 'user-error)
+          (should-not (gnosis-select '* 'themata)))))))
+
+(ert-deftest gnosis-model-source-input-drift-refuses-before-import ()
+  (gnosis-test-with-db
+    (with-temp-buffer
+      (let ((file (gnosis-test-model--scene))
+            (owner (current-buffer)))
+        (cl-letf (((symbol-function 'read-file-name) (lambda (&rest _) file))
+                  ((symbol-function 'read-string)
+                   (lambda (&rest _) (with-current-buffer owner (insert "Edited")) "")))
+          (should-error (gnosis-model--read-fields) :type 'user-error)
+          (should-not (file-exists-p (gnosis-assets-root))))))))
+
+(ert-deftest gnosis-model-visual-corrupt-resource-and-database-refuse ()
+  (gnosis-test-with-db
+    (save-window-excursion
+      (let ((file (gnosis-test-model--scene))
+            (original gnosis-db))
+        (cl-letf (((symbol-function 'read-file-name) (lambda (&rest _) file))
+                  ((symbol-function 'read-string) (lambda (&rest _) "")))
+          (should-error
+           (gnosis-test-model--author-input
+             (gnosis-test-model--author-pick)
+             (let ((gnosis-db nil))
+               (cl-letf (((symbol-function 'gnosis--ensure-db) (lambda () nil)))
+                 (should-error (gnosis-model-author-accept) :type 'user-error)))
+             (should (eq original gnosis-db))
+             (delete-file (expand-file-name (plist-get gnosis-model--author-context :reference)
+                                           (gnosis-assets-root)))
+             (gnosis-model-author-accept)) :type 'error)
+          (should-not (gnosis-select '* 'themata)))))))
+
+(ert-deftest gnosis-model-visual-attach-reframes-existing-and-preserves-content ()
+  (gnosis-test-with-db
+    (save-window-excursion
+      (let* ((reference (gnosis-model-import (gnosis-test-model--scene)))
+             (fields (list (list reference "-12.5" "-45" "1.25") '("triangle"))))
+        (with-temp-buffer
+          (gnosis-edit-mode)
+          (gnosis-export--insert-thema "NEW" "model" "Question"
+                                       (mapconcat #'identity (car fields) gnosis-export-separator)
+                                       "triangle" "Explanation" '("tag"))
+          (let ((original (gnosis-export-parse-themata)))
+            (cl-letf (((symbol-function 'y-or-n-p) (lambda (&rest _) t))
+                      ((symbol-function 'gnosis-model--read-source)
+                       (lambda (&rest _) (ert-fail "Reimported existing scene")))
+                      ((symbol-function 'gnosis-model--read-visual)
+                       (lambda (hypothesis answer context)
+                         (should (equal fields (list hypothesis answer)))
+                         (should (equal fields (plist-get context :initial)))
+                         (list (list reference "-30" "-50" "1.5") '("other")))))
+              (call-interactively #'gnosis-model-attach))
+            (let ((after (car (gnosis-export-parse-themata))))
+              (dolist (index '(0 1 2 5 6))
+                (should (equal (nth index (car original)) (nth index after)))))))))))
+
+(ert-deftest gnosis-model-backend-discovery-and-actionable-diagnostics ()
+  (let ((gnosis-model-renderer-directory nil))
+    (cl-letf (((symbol-function 'locate-library) (lambda (&rest _) nil)))
+      (should (file-exists-p (expand-file-name "render.py" (gnosis-model--renderer-directory)))))
+    (cl-letf (((symbol-function 'locate-library) (lambda (&rest _) "/standard/canvas-3d.el")))
+      (should (equal "/standard/" (gnosis-model--renderer-directory)))
+      (let ((gnosis-model-renderer-directory "/override/"))
+        (should (equal "/override/" (gnosis-model--renderer-directory)))))
+    (cl-letf (((symbol-function 'require) (lambda (&rest _) t))
+              ((symbol-function 'display-graphic-p) (lambda (&rest _) nil)))
+      (should (string-match-p "GNU Emacs.*native canvas"
+                              (condition-case err (gnosis-model-open "/unused" '(0 0 1))
+                                (user-error (error-message-string err))))))
+    (cl-letf (((symbol-function 'require) (lambda (&rest _) t))
+              ((symbol-function 'display-graphic-p) (lambda (&rest _) t))
+              ((symbol-function 'canvas-refresh) #'ignore)
+              ((symbol-function 'image-type-available-p) (lambda (&rest _) t))
+              ((symbol-function 'canvas-3d--python) (lambda () (user-error "Missing"))))
+      (should (string-match-p "uv sync --locked --project .*optional/canvas-3d"
+                              (condition-case err (gnosis-model-open "/unused" '(0 0 1))
+                                (user-error (error-message-string err))))))))
+
+(ert-deftest gnosis-model-canvas-fits-actual-body ()
+  (cl-letf (((symbol-function 'window-body-width) (lambda (&rest _) 450))
+            ((symbol-function 'window-body-height) (lambda (&rest _) 300))
+            ((symbol-function 'frame-char-height) (lambda (&rest _) 20)))
+    (should (= 260 (gnosis-model--canvas-size))))
+  (cl-letf (((symbol-function 'window-body-height) (lambda (&rest _) 100)))
+    (should-error (gnosis-model--canvas-size) :type 'user-error)))
 
 (defmacro gnosis-test-model--encounter (&rest input)
   "Run INPUT at the real model encounter's recursive input boundary."
@@ -385,7 +648,8 @@
 
 (ert-deftest gnosis-model-authoring-pins-before-target-prompts ()
   (gnosis-test-with-db
-    (let* ((file (gnosis-test-model--scene))
+    (let* ((current-prefix-arg '(4))
+           (file (gnosis-test-model--scene))
            (original (gnosis-model-import file)))
       (cl-letf (((symbol-function 'read-file-name) (lambda (&rest _) file))
                 ((symbol-function 'read-string) (lambda (&rest _) ""))
@@ -402,7 +666,8 @@
 
 (ert-deftest gnosis-model-authoring-corrupt-managed-prompt-refuses ()
   (gnosis-test-with-db
-    (let* ((file (gnosis-test-model--scene))
+    (let* ((current-prefix-arg '(4))
+           (file (gnosis-test-model--scene))
            (reference (gnosis-model-import file)))
       (cl-letf (((symbol-function 'read-file-name) (lambda (&rest _) file))
                 ((symbol-function 'read-string) (lambda (&rest _) ""))
@@ -459,7 +724,8 @@
 
 (ert-deftest gnosis-model-authoring-attach-roundtrip ()
   (gnosis-test-with-db
-    (let ((file (gnosis-test-model--scene)))
+    (let ((current-prefix-arg '(4))
+          (file (gnosis-test-model--scene)))
       (with-temp-buffer
         (gnosis-edit-mode)
         (gnosis-export--insert-thema "NEW" "model" "Preserved question" nil nil "Preserved note")

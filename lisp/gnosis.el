@@ -58,6 +58,7 @@
 
 (require 'gnosis-db)
 (require 'gnosis-model)
+(require 'gnosis-image)
 (require 'gnosis-scheduler)
 (require 'gnosis-logical-day)
 (require 'gnosis-vc)
@@ -192,7 +193,9 @@ This is set automatically based on buffer type:
     ("Double" .  gnosis-add-thema--double)
     ("Cloze" . gnosis-add-thema--cloze)
     ("MC-cloze" . gnosis-add-thema--mc-cloze)
-    ("Model" . gnosis-model--save))
+    ("Model" . gnosis-model--save)
+    ("Image-region" . gnosis-image--save)
+    ("Image-occlusion" . gnosis-image--save))
   "Mapping of Themata & their respective functions.")
 
 (defvar gnosis-previous-thema-hint nil
@@ -306,23 +309,32 @@ History is disabled."
                            'face 'gnosis-face-separator)))
 
 (defun gnosis-center-current-line ()
-  "Centers text in the current line ignoring leading spaces."
+  "Center the current text line, ignoring leading spaces.
+Leave display-bearing lines intact; their widths are not character counts."
   (let* ((start (line-beginning-position))
          (end (line-end-position))
          (text (string-trim (buffer-substring start end)))
          (padding (max (/ (- (window-width) (length text)) 2) 0)))
-    (delete-region start end)
-    (insert (make-string padding ? ) text)))
+    ;; Display objects have pixel widths, not the width of their backing text.
+    (unless (text-property-not-all start end 'display nil)
+      (delete-region start end)
+      (insert (make-string padding ? ) text))))
 
 (defun gnosis-center-string (str)
-  "Center each line of STR in current window width.
-Replaces links `[[source][description]]' with `description'."
+  "Center each text line of STR in current window width.
+Replace links `[[source][description]]' with `description'.
+Leave display-bearing lines unfilled and unpadded, preserving their properties."
   (let* ((width (window-width))
          (lines (split-string str "\n")))
     (mapconcat
      (lambda (line)
-       (if (string-blank-p line)
-           ""  ;; Preserve blank lines
+       (cond
+        ;; Do not trim/fill image-bearing spaces or pad by character width.
+        ((text-property-not-all 0 (length line) 'display nil line)
+         (replace-regexp-in-string
+          "\\[\\[\\([^]]+\\)\\]\\[\\([^]]+\\)\\]\\]" "\\2" line))
+        ((string-blank-p line) "")
+        (t
          (let* ((trimmed (string-trim line))
                 ;; Replace links with just the description part
                 (processed (replace-regexp-in-string
@@ -342,7 +354,7 @@ Replaces links `[[source][description]]' with `description'."
 	      (let ((padding (max 0 (/ (- width (string-width wline)) 2))))
                 (concat (make-string padding ?\s) wline)))
 	    wrapped-lines
-	    "\n"))))
+	    "\n")))))
      lines
      "\n")))
 
@@ -351,6 +363,7 @@ Replaces links `[[source][description]]' with `description'."
 
 When `gnosis-center-content' is non-nil, centers the text.
 Otherwise, just processes org-links without centering."
+  (setq str (gnosis-image-format-string str))
   (if gnosis-center-content
       (gnosis-center-string str)
     (replace-regexp-in-string
@@ -395,7 +408,7 @@ images using `org-format-latex'."
                                    'display display)
                 (delete-overlay ov))))
         (error (message "LaTeX preview: %s" (error-message-string err)))))
-    (buffer-string)))
+    (gnosis-image-format-string (buffer-string))))
 
 (defun gnosis-cloze-create (str clozes &optional cloze-string)
   "Render STR as Org and replace CLOZES with CLOZE-STRING.
@@ -546,6 +559,7 @@ SUSPEND: Integer value of 1 or 0, where 1 suspends the card.
 LINKS: List of id links.
 REVIEW-IMAGE is optional image data and GNOSIS-ID is an optional ID."
   (cl-assert (stringp type) nil "Type must be a string")
+  (gnosis-image-validate-fields type keimenon hypothesis answer parathema review-image)
   (when (equal (downcase type) "model")
     (gnosis-model-resolve hypothesis answer))
   (cl-assert (stringp keimenon) nil "Keimenon must be a string")
@@ -581,6 +595,7 @@ If ID does not exist, TYPE is required to create it anew and issue a warning.
 When `gnosis--id-cache' is bound, uses hash table for existence check."
   (let* ((id (if (stringp id) (string-to-number id) id))
 	 (current-type (gnosis-get 'type 'themata `(= id ,id))))
+    (gnosis-image-validate-fields (or type current-type "") keimenon hypothesis answer parathema)
     (when (equal (downcase (or type current-type "")) "model")
       (gnosis-model-resolve hypothesis answer))
     (if (if gnosis--id-cache
@@ -738,8 +753,10 @@ Use KEIMENON, HYPOTHESIS, ANSWER, PARATHEMA, TAGS, SUSPEND, and LINKS as fields.
 The remaining optional fields are ANSWER, PARATHEMA, TAGS, and EXAMPLE."
   (interactive (list
 		(downcase (completing-read "Select type: " gnosis-thema-types))))
-  (if (and (equal (downcase type) "model") (null hypothesis))
-      (gnosis-add-model-thema)
+  (if (and (member (downcase type) '("model" "image-region" "image-occlusion"))
+           (null hypothesis))
+      (if (equal (downcase type) "model") (gnosis-add-model-thema)
+        (gnosis-add-image-thema (downcase type)))
   (when (get-buffer "*Gnosis NEW*")
     (user-error "Finish or cancel the existing *Gnosis NEW* draft first"))
   (window-configuration-to-register :gnosis-edit)
@@ -750,6 +767,9 @@ The remaining optional fields are ANSWER, PARATHEMA, TAGS, and EXAMPLE."
     (gnosis-edit-mode)
     (gnosis-export--insert-thema "NEW" type keimenon hypothesis
 				 answer parathema tags example))
+  (when (equal (downcase type) "model")
+    (use-local-map (copy-keymap (current-local-map)))
+    (local-set-key (kbd "C-c C-a") #'gnosis-model-attach))
   (search-backward "keimenon")
   (forward-line)))
 
@@ -818,6 +838,9 @@ modify or save the source, or replace an existing creation draft."
       (erase-buffer))
     (gnosis-edit-mode)
     (gnosis-export--insert-themata (list id))
+    (when (equal (gnosis-get 'type 'themata `(= id ,id)) "model")
+      (use-local-map (copy-keymap (current-local-map)))
+      (local-set-key (kbd "C-c C-a") #'gnosis-model-attach))
     (search-backward "keimenon")
     (forward-line)))
 
@@ -833,7 +856,7 @@ modify or save the source, or replace an existing creation draft."
 (defvar-keymap gnosis-edit-mode-map
   :doc "gnosis org mode map"
   "C-c C-c" #'gnosis-save
-  "C-c C-a" #'gnosis-model-attach
+  "C-c C-a" #'gnosis-image-attach
   "C-c C-q" #'gnosis-tags-prompt
   "C-c C-o" #'gnosis-nodes-goto-id
   "C-c C-k" #'gnosis-edit-quit)

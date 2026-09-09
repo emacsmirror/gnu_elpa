@@ -99,7 +99,7 @@
   "Convert ISBN (string) to a list of numbers."
   (mapcar
    (lambda (digit)
-     (if (eq digit 88) 10
+     (if (eq digit ?X) 10
        (string-to-number (char-to-string digit))))
    (upcase (string-replace "-" "" isbn))))
 

@@ -205,11 +205,11 @@ region with the converted ISBN."
   "Cache of all valid ISBN ranges from the International ISBN Agency.")
 
 (defcustom isbn-hyphenation-ranges-update-interval 365
-  "Interval in days (integer) which must elapse before updating ranges.
+  "Interval in days (natural number) between update reminders.
 Set to nil to prevent automatic updates.
 
 ISBN ranges from the International ISBN Agency are updated yearly."
-  :type '(choice (integer :tag "Days")
+  :type '(choice (natnum :tag "Days")
                  (const :tag "Do not update" nil))
   :group 'isbn
   :package-version '((isbn . "0.1.0")))

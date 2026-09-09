@@ -108,7 +108,7 @@ Optional argument INTERACTIVE, when non-nil, displays a message
 concerning ISBN's validation."
   (interactive (list (isbn--get-interactively) t))
   (if (string-match-p (rx (not (any digit ?X ?x ?-))) isbn)
-      (when interactive (user-error "ISBN has invalid characters"))
+      (error "ISBN has invalid characters")
     (setq isbn (isbn--string->list isbn))
     (let* ((index 0) (sum 0)
            ;; ISBNs not of length 10 or 13 are automatically invalid.
@@ -156,7 +156,7 @@ the kill ring or, when there is an active region, replaces the active
 region with the converted ISBN."
   (interactive (list (isbn--get-interactively) nil t))
   (unless (isbn-valid-p isbn)
-    (user-error "ISBN is invalid"))
+    (error "ISBN is invalid"))
   (setq isbn (string-replace "-" "" isbn))
   (let ((res (cond
               ((isbn-10-p isbn)
@@ -170,7 +170,7 @@ region with the converted ISBN."
               ((isbn-13-p isbn)
                (if (eq format 13) isbn
                  (unless (string-prefix-p "978" isbn)
-                   (user-error "ISBN does not start with `978'"))
+                   (error "ISBN does not start with `978'"))
                  (let* ((isbn (string-remove-prefix "978" isbn))
                         (checkint (seq-map-indexed
                                    (lambda (digit index) (* digit (1+ index)))
@@ -178,7 +178,7 @@ region with the converted ISBN."
                         (check (mod (apply #'+ checkint) 11)))
                    (concat (substring isbn 0 -1)
                            (if (eq check 10) "X" (int-to-string check))))))
-              (_ (user-error "ISBN is not 10 or 13 digits")))))
+              (_ (error "ISBN is not 10 or 13 digits")))))
     (when interactive
       (if (region-active-p)
           (replace-region-contents (region-beginning) (region-end) res)
@@ -236,7 +236,7 @@ with the hyphenated ISBN."
   (interactive (list (isbn--get-interactively) t))
 
   (unless (libxml-available-p)
-    (user-error "Hyphenation requires libxml2 support"))
+    (error "Hyphenation requires libxml2 support"))
 
   (unless isbn-hyphenation-ranges-cache
     (let ((prgrp (make-progress-reporter "Loading hyphenation ranges from cache...")))

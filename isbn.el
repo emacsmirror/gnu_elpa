@@ -204,8 +204,10 @@ region with the converted ISBN."
 
 (defcustom isbn-hyphenation-ranges-cache-file
   (file-name-concat user-emacs-directory "isbn-hyphenation-ranges.eld")
-  "File containing a cache of ISBN hyphenation ranges."
-  :type 'file
+  "File containing a cache of ISBN hyphenation ranges.
+If nil, reading from, or caching to, a file is disabled."
+  :type '(choice (file :tag "File")
+                 (const :tag "Disabled" nil))
   :group 'isbn
   :package-version '((isbn . "0.1.0")))
 
@@ -216,11 +218,8 @@ region with the converted ISBN."
   "Cache of all valid ISBN ranges from the International ISBN Agency.")
 
 ;;;###autoload
-(defun isbn-hyphenation-ranges-update (&optional nofile)
-  "Update cache of ISBN hyphenation ranges.
-
-Optional argument NOFILE, if non-nil, prevents writing to
-`isbn-hyphenation-ranges-cache-file'."
+(defun isbn-hyphenation-ranges-update ()
+  "Update cache of ISBN hyphenation ranges."
   (interactive)
   (let ((prgrp (make-progress-reporter
                 "Fetching hyphenation ranges from `www.isbn-international.org'...")))
@@ -231,7 +230,7 @@ Optional argument NOFILE, if non-nil, prevents writing to
              t t 5)
           (let* ((ranges (libxml-parse-xml-region (point))))
             (unless ranges (signal 'error))
-            (unless nofile
+            (when isbn-hyphenation-ranges-cache-file
               (write-region
                (prin1-to-string ranges)
                nil isbn-hyphenation-ranges-cache-file t))
@@ -253,14 +252,14 @@ with the hyphenated ISBN."
     (error "Hyphenation requires libxml2 support"))
 
   (unless isbn-hyphenation-ranges-cache
-    (let ((prgrp (make-progress-reporter "Loading hyphenation ranges from cache...")))
-      (with-temp-buffer
-        (condition-case nil
+    (if isbn-hyphenation-ranges-cache-file
+        (let ((prgrp (make-progress-reporter "Loading hyphenation ranges from cache...")))
+          (with-temp-buffer
             (insert-file-contents isbn-hyphenation-ranges-cache-file)
-          (error (error "Hyphenation ranges are not cached.  \
-Please run `isbn-hyphenation-ranges-update'")))
-        (setq isbn-hyphenation-ranges-cache (read (current-buffer))))
-      (progress-reporter-done prgrp)))
+            (setq isbn-hyphenation-ranges-cache (read (current-buffer))))
+          (progress-reporter-done prgrp))
+      (error (error "Hyphenation ranges are not cached.  \
+Please run `isbn-hyphenation-ranges-update'"))))
 
   (setq isbn (isbn-convert isbn 13))
 

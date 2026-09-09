@@ -64,7 +64,7 @@ and `isbn-hyphenation-ranges-maybe-prompt-update'."
   "Test `isbn-hyphenate'."
   (unless (libxml-available-p)
     (ert-skip "libxml2 support is not available"))
-  (let ((isbn-hyphenation-ranges-cache-file nil)
+  (let (isbn-hyphenation-ranges-cache-file
         isbn-hyphenation-ranges-cache)
     (should-error (isbn-hyphenate "9780983159285")))
   (should (string= (isbn-hyphenate "9780983159285") "978-0-9831592-8-5")))

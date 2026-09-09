@@ -30,6 +30,20 @@
 ;; Manage ISBNs via elisp.  Currently it is possible to validate,
 ;; convert and hyphenate ISBNs.
 
+;;;; Definition
+
+;; An 'International Standard Book Number' (ISBN) is a sequence of 10
+;; or 13 digits (hereafter called 'ISBN-10' and 'ISBN-13'
+;; respectively) composed of the following pieces of information:
+;;
+;;   <group><publisher><title><check digit>.
+;;
+;; For ISBN-13s, an additional three digits (often referred to as an
+;; 'EAN') are prepended to the sequence.
+
+;; In this library, an 'ISBN' is a string consisting of digits
+;; (including ISBN-10's 'X') and optionally hyphens.
+
 ;;;; API
 
 ;; In addition to programmatic invocation, each API function can be

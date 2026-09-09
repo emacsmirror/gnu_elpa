@@ -161,27 +161,27 @@ region with the converted ISBN."
   (unless (isbn-valid-p isbn)
     (user-error "ISBN is invalid"))
   (setq isbn (string-replace "-" "" isbn))
-  (let ((res (pcase isbn
-               ((pred isbn-10-p)
-                (if (eq format 10) isbn
-                  (let* ((isbn (concat "978" (substring isbn 0 -1)))
-                         (checkint (seq-map-indexed
-                                    (lambda (digit index) (* digit (if (eq (logand index 1) 0) 1 3)))
-                                    (isbn--string->list isbn)))
-                         (check (- 10 (mod (apply #'+ checkint) 10))))
-                    (format "%s%i" isbn check))))
-               ((pred isbn-13-p)
-                (if (eq format 13) isbn
-                  (unless (string-prefix-p "978" isbn)
-                    (user-error "ISBN does not start with `978'"))
-                  (let* ((isbn (string-remove-prefix "978" isbn))
-                         (checkint (seq-map-indexed
-                                    (lambda (digit index) (* digit (1+ index)))
-                                    (isbn--string->list (substring isbn 0 -1))))
-                         (check (mod (apply #'+ checkint) 11)))
-                    (concat (substring isbn 0 -1)
-                            (if (eq check 10) "X" (int-to-string check))))))
-               (_ (user-error "ISBN is not 10 or 13 digits")))))
+  (let ((res (cond
+              ((isbn-10-p isbn)
+               (if (eq format 10) isbn
+                 (let* ((isbn (concat "978" (substring isbn 0 -1)))
+                        (checkint (seq-map-indexed
+                                   (lambda (digit index) (* digit (if (eq (logand index 1) 0) 1 3)))
+                                   (isbn--string->list isbn)))
+                        (check (- 10 (mod (apply #'+ checkint) 10))))
+                   (format "%s%i" isbn check))))
+              ((isbn-13-p isbn)
+               (if (eq format 13) isbn
+                 (unless (string-prefix-p "978" isbn)
+                   (user-error "ISBN does not start with `978'"))
+                 (let* ((isbn (string-remove-prefix "978" isbn))
+                        (checkint (seq-map-indexed
+                                   (lambda (digit index) (* digit (1+ index)))
+                                   (isbn--string->list (substring isbn 0 -1))))
+                        (check (mod (apply #'+ checkint) 11)))
+                   (concat (substring isbn 0 -1)
+                           (if (eq check 10) "X" (int-to-string check))))))
+              (_ (user-error "ISBN is not 10 or 13 digits")))))
     (when interactive
       (if (region-active-p)
           (replace-region-contents (region-beginning) (region-end) res)

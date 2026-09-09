@@ -227,16 +227,16 @@ Optional argument NOFILE, if non-nil, prevents writing to
         (with-current-buffer
             (url-retrieve-synchronously
              "https://www.isbn-international.org/export_rangemessage.xml"
-             :silent :inhibit-cookies 5)
+             t t 5)
           (let* ((ranges (libxml-parse-xml-region (point))))
             (unless ranges (signal 'error))
             (unless nofile
               (write-region
                (concat ";; TIME: " (prin1-to-string (current-time)) "\n")
-               :ignored isbn-hyphenation-ranges-cache-file)
+               nil isbn-hyphenation-ranges-cache-file)
               (write-region
-               (prin1-to-string ranges) :ignored
-               isbn-hyphenation-ranges-cache-file :append))
+               (prin1-to-string ranges)
+               nil isbn-hyphenation-ranges-cache-file t))
             (setq isbn-hyphenation-ranges-cache ranges)
             (progress-reporter-done prgrp))
           (lambda (_status &rest _cbargs)))

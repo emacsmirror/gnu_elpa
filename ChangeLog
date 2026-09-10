@@ -27,6 +27,12 @@
 
 * man/.dir-locals.el: Set before-save-hook to a list.
 
+2026-09-07  Bob Weiner  <rsw@gnu.org>
+
+* test/hy-string-tests.el (insert-output-string, insert-highlighted-string): Add.
+                          (debug-in-string): Improve calling above functions and
+    and highlight any mismatches.
+
 2026-08-30  Bob Weiner  <rsw@gnu.org>
 
 * test/hywiki-tests.el (hywiki-tests--preserve-hywiki-mode): Call

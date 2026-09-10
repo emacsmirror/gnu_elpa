@@ -503,9 +503,9 @@ SIZE defaults to 512 pixels; callers with an owned layout may pass its actual
 available size.  INLINE attaches at point, preserving the current buffer.
 Never install dependencies or use the network on opening.
 QUESTION-TARGET locks a label-free target highlight during inspection."
-  (when question-target
-    (gnosis-model-target (gnosis-model--scene path) question-target))
-  (let* ((directory (gnosis-model--renderer-directory))
+  (let* ((target (when question-target
+                   (gnosis-model-target (gnosis-model--scene path) question-target)))
+         (directory (gnosis-model--renderer-directory))
          (load-path (if directory (cons directory load-path) load-path)))
     (when (and directory (file-remote-p directory))
       (user-error "The model renderer must be installed locally"))
@@ -527,8 +527,7 @@ QUESTION-TARGET locks a label-free target highlight during inspection."
         (canvas-3d-open path "Gnosis model" view (or size 512)))))
         (with-current-buffer buffer
           (when question-target
-            (setq-local canvas-3d--question-target
-                        (gnosis-model-target (gnosis-model--scene path) question-target))
+            (setq-local canvas-3d--question-target target)
             (canvas-3d--request)))
         buffer))))
 

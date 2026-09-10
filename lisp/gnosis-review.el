@@ -134,6 +134,7 @@ Returns the buffer.  MODE defaults to due; practice never reschedules."
         (user-error "Review buffer contains unrelated content; rename it first"))
       (unless (eq major-mode 'gnosis-mode)
 	(gnosis-mode))
+      (gnosis-review--lookahead-cancel)
       (setq gnosis-review--state
 	    (gnosis-review-state-create
 	     :mode (or mode 'due)
@@ -158,7 +159,12 @@ Returns the buffer.  MODE defaults to due; practice never reschedules."
     (erase-buffer)
     (insert "\n" (gnosis-format-string str))
     (gnosis-insert-separator)
-    (gnosis-apply-center-buffer-overlay)))
+    (gnosis-apply-center-buffer-overlay)
+    (when (and gnosis-review--running gnosis-review--state
+               (not (member (gnosis-get 'type 'themata
+                                        `(= id ,(car (gnosis-review-state-remaining gnosis-review--state))))
+                            '("model" "model-name"))))
+      (gnosis-review--lookahead-start))))
 
 (defun gnosis-display-image (keimenon)
   "Display image link from KEIMENON in new window."
@@ -692,6 +698,130 @@ Read no database or clock and leave STATE and its prior snapshots unchanged."
 
 ;;; Model encounters
 
+(defvar-local gnosis-review--lookahead nil
+  "One owned next-card preparation, never a renderer or review result.
+The private plist retains buffer, state/checkpoint, database, thema, child,
+poll timer and either prepared fields or a transferred foreground context.")
+
+(defun gnosis-review--lookahead-cancel ()
+  "Retire the review buffer's speculative preparation and pending delivery."
+  (when-let* ((slot gnosis-review--lookahead))
+    (setq gnosis-review--lookahead nil)
+    (when (timerp (plist-get slot :timer))
+      (cancel-timer (plist-get slot :timer)))
+    (gnosis-model-cancel-preparation (plist-get slot :job))
+    (setf (plist-get slot :fields) nil)))
+
+(defun gnosis-review--lookahead-valid-p (slot &optional checkpoint)
+  "Return non-nil if SLOT still owns its exact next card and session.
+CHECKPOINT supplies the pre-acceptance state during an authorized advancement."
+  (let ((state gnosis-review--state)
+        (id (plist-get slot :id)))
+    (and (eq slot gnosis-review--lookahead)
+         (eq (plist-get slot :buffer) (current-buffer))
+         (eq (plist-get slot :database) gnosis-db)
+         (eq (plist-get slot :state) state)
+         (equal gnosis-review--running (gnosis-review-state-session-id state))
+         (equal (plist-get slot :checkpoint)
+                (or checkpoint (gnosis-review--state-data state)))
+         (or checkpoint
+             (equal id (if (plist-get slot :advanced)
+                           (car (gnosis-review-state-remaining state))
+                         (cadr (gnosis-review-state-remaining state)))))
+         (gnosis-study-eligible-p id)
+         (equal (plist-get slot :thema) (gnosis-review--content-thema id))
+         (or (not (gnosis-review-state-persistent-p state))
+             (equal (gnosis-review--state-data state)
+                    (when-let* ((stored (gnosis-review--read-session)))
+                      (gnosis-review--state-data stored)))))))
+
+(defun gnosis-review--lookahead-poll (slot)
+  "Retire stale SLOT without parsing assets."
+  (when (buffer-live-p (plist-get slot :buffer))
+    (with-current-buffer (plist-get slot :buffer)
+      (when (and (eq slot gnosis-review--lookahead)
+                 (not (condition-case nil (gnosis-review--lookahead-valid-p slot)
+                        (error nil))))
+        (gnosis-review--lookahead-cancel)))))
+
+(defun gnosis-review--lookahead-delivered (slot fields failure)
+  "Retain SLOT's FIELDS without displaying them, or discard FAILURE.
+After transfer, deliver through the ordinary foreground ownership checks."
+  (if-let* ((context (plist-get slot :foreground)))
+      (gnosis-review--model-prepared context fields failure)
+    (when (buffer-live-p (plist-get slot :buffer))
+      (with-current-buffer (plist-get slot :buffer)
+        (gnosis-review--lookahead-poll slot)
+        (when (eq slot gnosis-review--lookahead)
+          (if failure (gnosis-review--lookahead-cancel)
+            (setf (plist-get slot :fields) fields)))))))
+
+(defun gnosis-review--lookahead-start ()
+  "Prepare only the next queued model after the current question is displayed.
+Do not grade, display future content, or start a renderer.  Speculation errors
+are silent; the actual encounter retains its normal responsive loading path."
+  (when (and gnosis-review--running gnosis-review--state
+             (not gnosis-review--lookahead))
+    (condition-case nil
+        (when-let* ((id (cadr (gnosis-review-state-remaining gnosis-review--state)))
+                    (eligible (gnosis-study-eligible-p id))
+                    (thema (gnosis-review--content-thema id))
+                    (row (car thema))
+                    (model (member (car row) '("model" "model-name"))))
+          (let ((slot (list :buffer (current-buffer) :state gnosis-review--state
+                            :database (gnosis--ensure-db) :id id :thema (copy-tree thema)
+                            :checkpoint (copy-tree (gnosis-review--state-data gnosis-review--state))
+                            :advanced nil :job nil :timer nil :fields nil :foreground nil)))
+            (setq gnosis-review--lookahead slot)
+            (add-hook 'kill-buffer-hook #'gnosis-review--lookahead-cancel nil t)
+            (add-hook 'change-major-mode-hook #'gnosis-review--lookahead-cancel nil t)
+            (setf (plist-get slot :timer)
+                  (run-at-time 0.5 0.5 #'gnosis-review--lookahead-poll slot)
+                  (plist-get slot :job)
+                  (gnosis-model-prepare
+                   (car row) (nth 2 row) (nth 3 row)
+                   (lambda (fields failure)
+                     (gnosis-review--lookahead-delivered slot fields failure))))))
+      (error (gnosis-review--lookahead-cancel)))))
+
+(defun gnosis-review--lookahead-advance (checkpoint)
+  "Transfer CHECKPOINT's speculation across ordinary queue advancement.
+Only the captured tail, optionally followed by the current card's retry, is
+eligible; arbitrary queue replacement must load afresh."
+  (when-let* ((slot gnosis-review--lookahead))
+    (let* ((old (plist-get checkpoint :remaining))
+           (remaining (gnosis-review-state-remaining gnosis-review--state)))
+      (if (and (condition-case nil (gnosis-review--lookahead-valid-p slot checkpoint)
+                 (error nil))
+               (equal (plist-get slot :id) (car remaining))
+               (or (equal remaining (cdr old))
+                   (equal remaining (append (cdr old) (list (car old))))))
+          (setf (plist-get slot :advanced) t
+                (plist-get slot :checkpoint)
+                (copy-tree (gnosis-review--state-data gnosis-review--state)))
+        (gnosis-review--lookahead-cancel)))))
+
+(defun gnosis-review--lookahead-take (context)
+  "Move a matching pending or ready preparation into foreground CONTEXT.
+Return non-nil on transfer.  The existing foreground checks validate literal
+asset bytes before attachment; pending delivery follows the same path."
+  (when-let* ((slot gnosis-review--lookahead))
+    (gnosis-review--lookahead-poll slot)
+    (if (and (eq slot gnosis-review--lookahead)
+             (plist-get slot :advanced)
+             (equal (plist-get context :id) (plist-get slot :id)))
+        (progn
+          (setq gnosis-review--lookahead nil)
+          (cancel-timer (plist-get slot :timer))
+          (setf (plist-get slot :foreground) context
+                (plist-get context :preparation) (plist-get slot :job))
+          (when-let* ((fields (plist-get slot :fields)))
+            (setf (plist-get slot :fields) nil)
+            (gnosis-review--model-prepared context fields nil))
+          t)
+      (gnosis-review--lookahead-cancel)
+      nil)))
+
 (defvar-local gnosis-review--model-context nil
   "Owned model encounter context, present only during native input.")
 (declare-function canvas-3d-detach "canvas-3d")
@@ -736,6 +866,7 @@ Read no database or clock and leave STATE and its prior snapshots unchanged."
 (defun gnosis-review-model-cancel ()
   "Cancel model input without accepting an answer."
   (interactive)
+  (gnosis-review--lookahead-cancel)
   (when gnosis-review--model-context
     (setf (plist-get gnosis-review--model-context :cancelled) t)
     (gnosis-model-cancel-preparation (plist-get gnosis-review--model-context :preparation))
@@ -891,7 +1022,8 @@ Defer attachment while the encounter is hidden; never select another buffer."
                     (use-local-map
                      (gnosis-review--model-input-map
                       (make-composed-keymap (copy-keymap canvas-3d-mode-map)
-                                            (plist-get context :map)))))
+                                            (plist-get context :map))))
+                    (gnosis-review--lookahead-start))
                 (setf (plist-get context :display-timer)
                       (run-at-time 0.2 nil #'gnosis-review--model-prepared
                                    context fields nil))))
@@ -934,10 +1066,11 @@ Missing assets and cancellation never produce a grade."
           (add-hook 'kill-buffer-hook #'gnosis-review-model-cancel nil t)
           (add-hook 'change-major-mode-hook #'gnosis-review-model-cancel nil t)
           (goto-char (point-min))
-          (setf (plist-get context :preparation)
-                (gnosis-model-prepare
-                 (car row) (nth 2 row) (nth 3 row)
-                 (lambda (fields failure) (gnosis-review--model-prepared context fields failure))))
+          (unless (gnosis-review--lookahead-take context)
+            (setf (plist-get context :preparation)
+                  (gnosis-model-prepare
+                   (car row) (nth 2 row) (nth 3 row)
+                   (lambda (fields failure) (gnosis-review--model-prepared context fields failure)))))
           (recursive-edit)
           (when (plist-get context :error) (user-error "%s" (plist-get context :error)))
           (unless (plist-get context :result) (user-error "Model input cancelled"))
@@ -1324,7 +1457,8 @@ Displays the thema, processes the review result, advances the bounded
 remaining queue, and forces header redisplay.  Return STATE.
 
 This is a helper function for `gnosis-review-session'."
-  (let ((remaining (gnosis-review-state-remaining state)))
+  (let ((remaining (gnosis-review-state-remaining state))
+        (checkpoint (copy-tree (gnosis-review--state-data state))))
     (unless (equal thema (car remaining))
       (error "Review queue is out of order"))
     (pcase-let* ((gnosis-review--monkeytype-text nil)
@@ -1361,6 +1495,7 @@ This is a helper function for `gnosis-review-session'."
                 (if requeue-p (append rest (list thema)) rest)
                 (gnosis-review-state-requeued state)
                 (if requeue-p (cons thema requeued) requeued)))))
+    (gnosis-review--lookahead-advance checkpoint)
     (force-mode-line-update)
     state)))
 
@@ -1537,6 +1672,8 @@ accepted grades and restores windows.  Cancelling an answer writes no grade."
           (catch 'review-loop (gnosis-review-session state))
           (when (> (gnosis-review-state-reviewed state) reviewed)
             (gnosis-review-commit (- (gnosis-review-state-reviewed state) reviewed))))
+      (when (buffer-live-p buf)
+        (with-current-buffer buf (gnosis-review--lookahead-cancel)))
       (gnosis-review--show-summary state)))
   state)
 

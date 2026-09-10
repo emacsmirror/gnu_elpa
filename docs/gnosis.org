@@ -906,6 +906,12 @@ a child Emacs process, and the encounter retains only the verified scene and
 picking data it needs. Submission and acceptance recheck asset bytes without
 reparsing topology. Changed or unavailable assets cannot be graded.
 
+While you answer, Gnosis prepares at most the next queued model in the
+background, without displaying it or recording an attempt. Advancing to
+that same unchanged card reuses ready or pending preparation. A changed
+queue, card or session discards the speculative work; quitting cancels it.
+Advancing before preparation finishes still uses the responsive loading view.
+
 Due selection, the daily new-item limit, topic summaries and overdue counts
 treat models like
 ordinary themata; suspension excludes them from both kinds of study.

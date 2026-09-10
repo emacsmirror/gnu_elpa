@@ -4,8 +4,8 @@
 
 ;; Author: Enrico Flor <enrico@eflor.net>
 ;; Maintainer: Enrico Flor <enrico@eflor.net>
-;; URL: https://github.com/enricoflor/typewriter-mode
-;; Version: 0.9.0
+;; URL: https://github.com/enricoflor/typewriter.el
+;; Version: 1.0.0
 ;; Keywords: wp
 
 ;; Package-Requires: ((emacs "30.1"))
@@ -28,12 +28,12 @@
 
 ;;; Commentary:
 
-;; This package provides a small minor mode that deliberately
-;; handicaps Emacs to an extreme degree in order to provide something
-;; as close as possible to the strict forward-only typewriter
-;; experience.  Some find that the lack of editing facilities fosters
-;; a state of concentration and focus that makes certain types of
-;; creative writing more satisfying.
+;; This package provides typewriter-mode, a small minor mode that
+;; deliberately handicaps Emacs to an extreme degree in order to
+;; provide something as close as possible to the strict forward-only
+;; typewriter experience.  Some find that the lack of editing
+;; facilities fosters a state of concentration and focus that makes
+;; certain types of creative writing more satisfying.
 ;;
 ;; The package has several configuration options (M-x customize-group
 ;; RET typewriter).
@@ -50,7 +50,7 @@
   "Configuration options for `typewriter-mode'."
   :prefix "typewriter-"
   :link '(url-link :tag "Website for typewriter-mode"
-                   "https://github.com/enricoflor/typewriter-mode")
+                   "https://github.com/enricoflor/typewriter.el")
   :group 'wp)
 
 (defcustom typewriter-preserve-undo-history t
@@ -91,7 +91,9 @@ to visually separate the counter from preceding items in the modeline."
   :type 'string)
 
 (defcustom typewriter-tab-width 8
-  "The number of columns a tab key advances the carriage."
+  "The number of columns a tab key advances the carriage.
+
+If 0, `typewriter-tab' is disabled."
   :type 'natnum)
 
 (defcustom typewriter-keystroke-hook nil
@@ -129,7 +131,10 @@ Returns the empty string outside `typewriter-mode', or when
       (message "Carriage is at the left margin!"))))
 
 (defun typewriter-tab ()
-  "Glide the carriage to the next tab stop without erasing existing ink."
+  "Glide the carriage to the next tab stop without erasing existing ink.
+
+If `typewriter-tab-width' is not positive, does nothing except message
+the user."
   (interactive)
   (if (> typewriter-tab-width 0)
       (let* ((col (current-column))
@@ -185,7 +190,7 @@ when point is `typewriter-warning-bell-offset' columns short of
     (ding)))
 
 (defun typewriter--pre-command ()
-  "Prepare buffer for typing, enforcing margins and ink permanence."
+  "Enforce margins and ink permanence for the pending keystroke."
   (when (memq this-command '(typewriter-self-insert
                              typewriter-newline
                              typewriter-tab
@@ -198,7 +203,7 @@ when point is `typewriter-warning-bell-offset' columns short of
                                 (line-beginning-position)))))
       (goto-char (point-max)))
 
-    (let* ((col (current-column)))
+    (let ((col (current-column)))
       (cond
        ((and (eq this-command 'typewriter-self-insert)
              (not (eobp))
@@ -216,7 +221,9 @@ when point is `typewriter-warning-bell-offset' columns short of
         ;; we're at the margin
         (typewriter--bell-ring t)
         (typewriter--bell-ring)
-        (message "Margin reached! Press RET to return the carriage.")
+        (message
+         (substitute-command-keys
+          "Margin reached!  Press \\[typewriter-newline] to return the carriage."))
         (setq this-command 'ignore))
 
        (t
@@ -233,7 +240,10 @@ when point is `typewriter-warning-bell-offset' columns short of
             (delete-char 1))))))))
 
 (defun typewriter--post-command ()
-  "Run configured hooks after a keystroke or carriage return."
+  "Run configured hooks after a keystroke or carriage return.
+
+Also, refresh the mode line if `typewriter-show-chars-remaining' is
+non-nil."
   (cond ((eq this-command 'typewriter-self-insert)
          (run-hooks 'typewriter-keystroke-hook))
         ((eq this-command 'typewriter-newline)
@@ -253,12 +263,8 @@ when point is `typewriter-warning-bell-offset' columns short of
 (defvar-keymap typewriter-mode-map
   :doc "Keymap for `typewriter-mode'."
   "RET" #'typewriter-newline
-  "<return>" #'typewriter-newline
   "TAB" #'typewriter-tab
-  "<tab>" #'typewriter-tab
   "DEL" #'typewriter-backward-char
-  "<delete>" #'typewriter-backward-char
-  "<backspace>" #'typewriter-backward-char
   "<remap> <self-insert-command>" #'typewriter-self-insert)
 
 (defconst typewriter--overridden-variables '(buffer-read-only

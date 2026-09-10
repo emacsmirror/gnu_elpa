@@ -8,6 +8,82 @@
 (require 'gnosis-review)
 (require 'gnosis-export-import)
 
+(ert-deftest gnosis-model-header-name-and-find ()
+  (with-temp-buffer
+    (setq-local canvas-3d--process 'renderer
+                canvas-3d--status "Ready")
+    (cl-letf (((symbol-function 'process-live-p)
+               (lambda (process) (eq process 'renderer))))
+      (dolist (case '((name nil "Ready" "RET Answer")
+                      (find nil "Select" "RET Submit")
+                      (find (:id "Secret anatomy") "Selected" "RET Submit")))
+        (setq-local gnosis-review--model-context
+                    (list :attachment t :fields (list :response (car case)
+                                                     :answer "Secret anatomy")
+                          :selection (cadr case)))
+        (let* ((header (gnosis-review--model-header))
+               (selection (nth 2 case))
+               (action (nth 3 case)))
+          (should (equal (substring-no-properties header)
+                         (concat " Model  Ready    "
+                                 (unless (eq (car case) 'name)
+                                   (concat selection "    "))
+                                 action "    q Cancel    ? Help")))
+          (should-not (string-match-p "Secret anatomy" header))
+          (dolist (part `(("Model" . font-lock-type-face)
+                          ("Ready" . success)
+                          ("RET" . help-key-binding)
+                          ("q" . help-key-binding)
+                          ("?" . help-key-binding)
+                          (,selection . ,(pcase selection
+                                           ("Ready" 'success)
+                                           ("Select" 'warning)
+                                           (_ 'match)))))
+            (should (eq (get-text-property
+                         (string-match (regexp-quote (car part)) header) 'face header)
+                        (cdr part))))
+          (should-not (get-text-property (string-match "Cancel" header) 'face header)))))))
+
+(ert-deftest gnosis-model-header-loading-and-error ()
+  (with-temp-buffer
+    ;; Preparation has no renderer variables or attachment yet.
+    (dolist (failure '(nil "Missing model asset: private/path"))
+      (setq-local gnosis-review--model-context (list :error failure))
+      (let* ((header (gnosis-review--model-header))
+             (status (if failure "Unavailable" "Loading…"))
+             (start (string-match status header)))
+        (should (equal (substring-no-properties header)
+                       (concat " Model  " status
+                               (when failure "    RET Details")
+                               "    q Cancel    ? Help")))
+        (should (eq (get-text-property start 'face header)
+                    (if failure 'error 'warning)))
+        (should (equal (get-text-property start 'help-echo header) failure))
+        (should-not (string-match-p "private/path" header))))))
+
+(ert-deftest gnosis-model-header-rendering-and-dead ()
+  (with-temp-buffer
+    (setq-local gnosis-review--model-context
+                '(:attachment t :fields (:response name)))
+    (dolist (case '((renderer "Rendering" "Rendering" warning)
+                    (renderer "Picking" "Picking" warning)
+                    (nil "Injected renderer failure" "Unavailable" error)
+                    (nil "Ready" "Unavailable" error)))
+      (setq-local canvas-3d--process (car case)
+                  canvas-3d--status (cadr case))
+      (cl-letf (((symbol-function 'process-live-p)
+                 (lambda (process) (eq process 'renderer))))
+        (let* ((header (gnosis-review--model-header))
+               (status (nth 2 case))
+               (start (string-match status header)))
+          (should (equal (substring-no-properties header)
+                         (concat " Model  " status
+                                 (when (car case) "    RET Answer")
+                                 "    q Cancel    ? Help")))
+          (should (eq (get-text-property start 'face header) (nth 3 case)))
+          (should (equal (get-text-property start 'help-echo header) (cadr case)))
+          (should-not (string-match-p "Injected renderer failure" header)))))))
+
 (defun gnosis-test-model--scene ()
   "Create a tiny licensed source scene in the current disposable directory."
   (let ((dir (expand-file-name "source" gnosis-dir)))
@@ -823,8 +899,11 @@
                  (should-not (string-match-p "Triangle" (gnosis-review--model-header)))
                  (delete-process canvas-3d--process)
                  (setq-local canvas-3d--status "Injected renderer failure")
-                 (should (string-match-p "Unavailable.*Injected renderer failure"
-                                         (gnosis-review--model-header)))
+                 (let* ((header (gnosis-review--model-header))
+                        (status (string-match "Unavailable" header)))
+                   (should status)
+                   (should (equal (get-text-property status 'help-echo header)
+                                  "Injected renderer failure")))
                  (should-error (gnosis-review-model-submit))))
               (should-error
                (gnosis-test-model--encounter

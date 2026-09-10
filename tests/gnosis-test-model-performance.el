@@ -62,7 +62,7 @@
                                      job (plist-get context :preparation))
                                (should (process-live-p (plist-get job :process)))
                                (should (integerp (process-id (plist-get job :process))))
-                               (should (string-match-p "Loading model" (gnosis-review--model-header)))
+                               (should (string-match-p "Model  Loading…" (gnosis-review--model-header)))
                                (let ((case-fold-search nil))
                                  (should-not (string-match-p "Triangle" (buffer-string))))
                                (should-error (gnosis-review-model-submit) :type 'user-error)

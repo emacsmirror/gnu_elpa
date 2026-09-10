@@ -840,17 +840,39 @@ asset bytes before attachment; pending delivery follows the same path."
 
 (defun gnosis-review--model-header ()
   "Return neutral selection and renderer status, never anatomical labels."
-  (if (not (plist-get gnosis-review--model-context :attachment))
-      (if (plist-get gnosis-review--model-context :error)
-          " Model unavailable | q or C-g cancel; RET details"
-        " Loading model… | q or C-g cancel")
-    (format " Model | %s | %s | q cancel, ? help"
-          (if (process-live-p canvas-3d--process) canvas-3d--status
-            (format "Unavailable: %s" canvas-3d--status))
-          (if (eq (plist-get (plist-get gnosis-review--model-context :fields) :response) 'name)
-              "Inspect highlighted target; RET to type its name"
-            (if (plist-get gnosis-review--model-context :selection)
-                "Selection recorded; RET submit" "Click to select; RET submit")))))
+  (let* ((context gnosis-review--model-context)
+         (attached (plist-get context :attachment))
+         (failure (plist-get context :error))
+         (live (and attached (process-live-p canvas-3d--process)))
+         (name (eq (plist-get (plist-get context :fields) :response) 'name))
+         (status (cond (failure "Unavailable")
+                       ((not attached) "Loading…")
+                       ((not live) "Unavailable")
+                       (t canvas-3d--status)))
+         (face (cond ((or failure (and attached (not live))) 'error)
+                     ((equal status "Ready") 'success)
+                     (t 'warning)))
+         (action (cond (failure "Details")
+                       (live (if name "Answer" "Submit")))))
+    (concat
+     " "
+     (mapconcat
+      #'identity
+      (delq nil
+            (list (concat (propertize "Model" 'face 'font-lock-type-face)
+                          "  "
+                          (propertize status 'face face 'help-echo
+                                      (or failure (and attached canvas-3d--status))))
+                  (when (and live (not failure) (not name))
+                    (if (plist-get context :selection)
+                        (propertize "Selected" 'face 'match)
+                      (propertize "Select" 'face 'warning)))
+                  (when action
+                    (concat (propertize "RET" 'face 'help-key-binding)
+                            " " action))
+                  (concat (propertize "q" 'face 'help-key-binding) " Cancel")
+                  (concat (propertize "?" 'face 'help-key-binding) " Help")))
+      "    "))))
 
 (defun gnosis-review--model-detach (context)
   "Detach CONTEXT's exact attachment, even after its renderer stopped."

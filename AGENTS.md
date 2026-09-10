@@ -85,6 +85,10 @@ layouts require separately verified conversion, never automatic relabelling.
 
 ## State and preservation
 
+- Normal thema deletion physically removes the selected cards and their
+  dependent rows; do not replace it with archive, suspension, or refusal.
+  Preserve unrelated content, schedules, history, Org files, and managed assets.
+  Private development database cleanup stays outside product migrations.
 - SQLite owns scheduling and study history. Scheduled acceptance is atomic;
   duplicate event identity must agree with retained facts. Practice never
   writes FSRS grades, scheduler state, or scheduled-review replay.

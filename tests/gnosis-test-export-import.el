@@ -177,20 +177,23 @@
 (ert-deftest gnosis-test-save-rolls-back-all-fields-on-link-error ()
   "A failed save leaves no partially inserted thema rows."
   (gnosis-test-with-db
-    (with-temp-buffer
-      (org-mode)
-      (insert "* Thema :probe:\n"
-              ":PROPERTIES:\n"
-              ":GNOSIS_ID: 123456789012345678\n"
-              ":GNOSIS_TYPE: Basic\n"
-              ":END:\n"
-              "** Keimenon\n"
-              "Q [[id:node-x][X]] [[id:node-x][X]]\n"
-              "** Hypothesis\n- hint\n"
-              "** Answer\n- A\n"
-              "** Parathema\n")
-      (should-error (gnosis-save) :type 'user-error))
-    (dolist (table '(themata review review-log extras thema-links thema-tag))
+    (let ((gnosis-save-hook nil))
+      (save-window-excursion
+        (unwind-protect
+            (progn
+              (gnosis-add-thema "basic" "Q [[id:node-x][X]] [[id:node-x][X]]"
+                                "hint" "A" nil '("probe"))
+              (let ((text (buffer-string))
+                    (err (should-error
+                          (call-interactively (key-binding (kbd "C-c C-c")))
+                          :type 'user-error)))
+                (should (string-match-p "UNIQUE constraint failed: thema_links"
+                                        (error-message-string err)))
+                (should (equal text (buffer-string)))
+                (should (get-buffer "*Gnosis NEW*"))))
+          (when (get-buffer "*Gnosis NEW*") (kill-buffer "*Gnosis NEW*")))))
+    (dolist (table '(themata scheduler-baseline scheduler-state
+                     extras thema-links thema-tag))
       (should (= 0 (caar (gnosis-sqlite-select
                           gnosis-db
                           (format "SELECT COUNT(*) FROM %s"

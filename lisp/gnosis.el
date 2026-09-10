@@ -247,12 +247,16 @@ Each function is called with the saved thema ID (integer).")
 (defun gnosis-delete-thema (id &optional verification)
   "Delete thema with ID.
 
-When VERIFICATION is non-nil, skip `y-or-n-p' prompt."
+When VERIFICATION is non-nil, skip `y-or-n-p' prompt.
+Return t when deletion completes, or nil when confirmation is declined.
+Errors and quits propagate without reporting completion."
   (when (or verification (y-or-n-p "Delete thema?"))
     (gnosis-delete-themata (list id))))
 
 (defun gnosis-delete-themata (ids)
-  "Delete themata with IDS, batched to stay within SQL variable limits."
+  "Delete themata with IDS, batched to stay within SQL variable limits.
+Return t after the transaction completes, including for already absent IDs.
+Errors and quits roll back the transaction and propagate to the caller."
   (let ((db (gnosis--ensure-db)))
     (gnosis-sqlite-with-transaction db
       (dolist (table '("thema_tag" "thema_links" "extras" "themata"))
@@ -261,7 +265,8 @@ When VERIFICATION is non-nil, skip `y-or-n-p' prompt."
 					     table
 					     (if (string= table "thema_tag") "thema_id"
 					       (if (string= table "thema_links") "source" "id")))
-				     ids)))))
+				     ids)))
+    t))
 
 
 (defun gnosis-review-activity (&optional date)
@@ -779,6 +784,52 @@ ACCEPTED-ALIASES must be nil for choice-based responses."
   (interactive)
   (gnosis-add-model-thema "model-name"))
 
+(defvar-local gnosis--draft-db nil
+  "Database connection that owns the current native draft.")
+
+(defvar-local gnosis--draft-original nil
+  "Original edit content as (ID . SNAPSHOT), or nil for a creation draft.")
+
+(defun gnosis--draft-content (db id)
+  "Return the retained content of thema ID on DB, excluding study state."
+  (mapcar (lambda (sql) (sqlite-select db sql (list id)))
+          '("SELECT type, keimenon, hypothesis, answer, accepted_aliases
+               FROM themata WHERE id = ?"
+            "SELECT parathema, review_image FROM extras WHERE id = ?"
+            "SELECT tag FROM thema_tag WHERE thema_id = ? ORDER BY tag"
+            "SELECT dest FROM thema_links WHERE source = ? ORDER BY dest")))
+
+(defun gnosis--draft-check-owner ()
+  "Refuse saving a draft without its original live database connection."
+  (unless (and gnosis--draft-db (eq gnosis-db gnosis--draft-db)
+               (condition-case nil
+                   (sqlite-select gnosis--draft-db "SELECT 1")
+                 (error nil)))
+    (user-error
+     (concat "Draft database closed or changed; copy your draft text, "
+             "cancel, then reopen it in the intended database and reconcile"))))
+
+(defun gnosis--draft-validate (themata)
+  "Validate parsed THEMATA against the draft owner and original content.
+Call inside the save transaction, before any thema writes."
+  (gnosis--draft-check-owner)
+  (when (and gnosis--draft-original
+             (not (equal (cdr gnosis--draft-original)
+                         (gnosis--draft-content
+                          gnosis--draft-db (car gnosis--draft-original)))))
+    (user-error
+     (concat "Thema changed or was deleted; copy your draft text, cancel, "
+             "then reopen the current thema and reconcile your edits")))
+  (unless (cl-every (lambda (thema)
+                      (or (equal (car thema) "NEW")
+                          (and gnosis--draft-original
+                               (equal (car thema)
+                                      (number-to-string
+                                       (car gnosis--draft-original))))))
+                    themata)
+    (user-error
+     "Draft target changed; copy your text and reopen the intended thema")))
+
 ;;;###autoload
 (cl-defun gnosis-add-thema (type &optional keimenon hypothesis
 			      answer parathema tags example
@@ -794,21 +845,23 @@ and explicit ACCEPTED-ALIASES."
         ("model" (gnosis-add-model-thema))
         ("model-name" (gnosis-add-model-name-thema))
         (image-type (gnosis-add-image-thema image-type)))
-  (when (get-buffer "*Gnosis NEW*")
-    (user-error "Finish or cancel the existing *Gnosis NEW* draft first"))
-  (window-configuration-to-register :gnosis-edit)
-  (pop-to-buffer "*Gnosis NEW*")
-  (with-current-buffer "*Gnosis NEW*"
-    (let ((inhibit-read-only 1))
-      (erase-buffer))
-    (gnosis-edit-mode)
-    (apply #'gnosis-export--insert-thema "NEW" type keimenon hypothesis
-           answer parathema tags example (when aliases-p (list accepted-aliases))))
-  (when (member (downcase type) '("model" "model-name"))
-    (use-local-map (copy-keymap (current-local-map)))
-    (local-set-key (kbd "C-c C-a") #'gnosis-model-attach))
-  (search-backward "keimenon")
-  (forward-line)))
+    (when (get-buffer "*Gnosis NEW*")
+      (user-error "Finish or cancel the existing *Gnosis NEW* draft first"))
+    (let ((owner (gnosis--ensure-db)))
+      (window-configuration-to-register :gnosis-edit)
+      (pop-to-buffer "*Gnosis NEW*")
+      (with-current-buffer "*Gnosis NEW*"
+        (let ((inhibit-read-only 1))
+          (erase-buffer))
+        (gnosis-edit-mode)
+        (setq gnosis--draft-db owner)
+        (apply #'gnosis-export--insert-thema "NEW" type keimenon hypothesis
+               answer parathema tags example (when aliases-p (list accepted-aliases))))
+      (when (member (downcase type) '("model" "model-name"))
+        (use-local-map (copy-keymap (current-local-map)))
+        (local-set-key (kbd "C-c C-a") #'gnosis-model-attach))
+      (search-backward "keimenon")
+      (forward-line))))
 
 (defun gnosis--source-thema-round-trip-p (answer parathema)
   "Return non-nil if ANSWER and PARATHEMA survive the thema Org codec.
@@ -868,18 +921,24 @@ modify or save the source, or replace an existing creation draft."
   (when (and (get-buffer "*Gnosis Edit*")
              (buffer-modified-p (get-buffer "*Gnosis Edit*")))
     (user-error "Finish the existing Gnosis edit first"))
-  (window-configuration-to-register :gnosis-edit)
-  (pop-to-buffer "*Gnosis Edit*")
-  (with-current-buffer "*Gnosis Edit*"
-    (let ((inhibit-read-only 1))
-      (erase-buffer))
-    (gnosis-edit-mode)
-    (gnosis-export--insert-themata (list id))
-    (when (member (gnosis-get 'type 'themata `(= id ,id)) '("model" "model-name"))
-      (use-local-map (copy-keymap (current-local-map)))
-      (local-set-key (kbd "C-c C-a") #'gnosis-model-attach))
-    (search-backward "keimenon")
-    (forward-line)))
+  (let* ((owner (gnosis--ensure-db))
+         (original (gnosis--draft-content owner id)))
+    (unless (car original)
+      (user-error "Thema no longer exists; reopen the collection"))
+    (window-configuration-to-register :gnosis-edit)
+    (pop-to-buffer "*Gnosis Edit*")
+    (with-current-buffer "*Gnosis Edit*"
+      (let ((inhibit-read-only 1))
+        (erase-buffer))
+      (gnosis-edit-mode)
+      (setq gnosis--draft-db owner
+            gnosis--draft-original (cons id original))
+      (gnosis-export--insert-themata (list id))
+      (when (member (gnosis-get 'type 'themata `(= id ,id)) '("model" "model-name"))
+        (use-local-map (copy-keymap (current-local-map)))
+        (local-set-key (kbd "C-c C-a") #'gnosis-model-attach))
+      (search-backward "keimenon")
+      (forward-line))))
 
 (defun gnosis-edit-quit ()
   "Quit recrusive edit & kill current buffer."

@@ -426,7 +426,7 @@ EVENT-ID, REVIEWED-AT-US, and REVIEW-DAY may pin deterministic facts."
                     (plist-get result :thema-id) success
                     (plist-get result :event-id) (plist-get result :reviewed-at-us)
                     (plist-get result :review-day))))
-      (dolist (key '(:model :image :answer))
+      (dolist (key '(:model :image :content))
         (when (plist-member result key)
           (setq pending (plist-put pending key (plist-get result key)))))
       pending)))
@@ -442,8 +442,8 @@ EVENT-ID, REVIEWED-AT-US, and REVIEW-DAY may pin deterministic facts."
 A media result retains (DATABASE THEMA BUFFER STATE SNAPSHOT).  Its owner
 must still match; only the last committed persistent attempt may retry
 after session advancement.  Scheduler acceptance validates retained facts."
-  (when-let* ((owner (plist-get result :answer)))
-    (gnosis-review--answer-check id owner result))
+  (when-let* ((owner (plist-get result :content)))
+    (gnosis-review--content-check id owner result))
   (dolist (key '(:model :image))
     (when-let* ((model (plist-get result key)))
       (let ((state (nth 3 model))
@@ -1016,15 +1016,17 @@ Missing backend/assets and cancelled input cannot produce an incorrect grade."
 
 (defun gnosis-review-mcq (id)
   "Review MCQ thema with ID."
-  (let* ((data (car (gnosis-select '[keimenon answer] 'themata `(= id ,id))))
-	 (keimenon (nth 0 data))
-	 (answer (car (nth 1 data)))
-	 (parathema (gnosis-get 'parathema 'extras `(= id ,id))))
+  (let* ((owner (gnosis-review--content-owner id))
+         (data (car (cadr owner)))
+         (keimenon (nth 1 data))
+         (answer (car (nth 3 data)))
+         (parathema (nth 5 data)))
     (gnosis-display-image keimenon)
     (gnosis-display-keimenon (gnosis-org-format-string keimenon))
     (let* ((user-choice (gnosis-mcq-answer id))
+           (_ (gnosis-review--content-check id owner))
 	   (success (string= answer user-choice))
-	   (result (gnosis-review-algorithm id success)))
+           (result (plist-put (gnosis-review-algorithm id success) :content owner)))
       (unless success (setq gnosis-review--monkeytype-text answer))
       (gnosis-display-correct-answer-mcq answer user-choice)
       (gnosis-display-parathema parathema)
@@ -1036,15 +1038,24 @@ Missing backend/assets and cancelled input cannot produce an incorrect grade."
   (gnosis-select '[type keimenon hypothesis answer accepted-aliases]
                  'themata `(= id ,id)))
 
-(defun gnosis-review--answer-owner (id)
-  "Capture ID's typed-answer rule and optional encounter owner."
-  (list (gnosis--ensure-db) (copy-tree (gnosis-review--answer-thema id))
+(defun gnosis-review--content-owner (id)
+  "Capture ID's content and optional encounter owner before input."
+  (list (gnosis--ensure-db) (copy-tree (gnosis-review--content-thema id))
         (current-buffer) gnosis-review--state
         (and gnosis-review--state
              (copy-tree (gnosis-review--state-data gnosis-review--state)))))
 
-(defun gnosis-review--answer-check (id owner &optional result)
-  "Reject a changed typed-answer rule or encounter for ID and OWNER.
+(defun gnosis-review--content-thema (id)
+  "Read ID's response rules and presentation, excluding scheduling and tags."
+  (mapcar (lambda (row)
+            (append row (car (gnosis-select '[parathema review-image]
+                                            'extras `(= id ,id)))))
+          (gnosis-review--answer-thema id)))
+
+(define-error 'gnosis-review-content-changed "Review content changed" 'user-error)
+
+(defun gnosis-review--content-check (id owner &optional result)
+  "Reject changed content or encounter for ID and OWNER.
 RESULT permits an identical retry of the last committed persistent attempt."
   (let ((state (nth 3 owner)) (snapshot (nth 4 owner))
         (row (car (nth 1 owner))))
@@ -1059,13 +1070,14 @@ RESULT permits an identical retry of the last committed persistent attempt."
                                  (gnosis-review-state-session-id state))
                           (equal (plist-get result :event-id)
                                  (gnosis-review-state-last-event state))))
-                 (equal (nth 1 owner) (gnosis-review--answer-thema id)))
-      (user-error "The answer rule or review encounter changed; start again"))
+                 (equal (nth 1 owner) (gnosis-review--content-thema id)))
+      (signal 'gnosis-review-content-changed
+              '("The content or encounter changed; resume the batch to answer again")))
     (gnosis--validate-accepted-aliases (nth 0 row) (nth 3 row) (nth 4 row))))
 
 (defun gnosis-review-basic (id)
   "Review basic type thema for ID."
-  (let* ((owner (gnosis-review--answer-owner id))
+  (let* ((owner (gnosis-review--content-owner id))
          (data (car (cadr owner)))
 	 (keimenon (nth 1 data))
 	 (hypothesis (car (nth 2 data)))
@@ -1074,7 +1086,7 @@ RESULT permits an identical retry of the last committed persistent attempt."
          (tolerance gnosis-string-difference)
 	 (parathema (gnosis-get 'parathema 'extras
 				`(= id ,id))))
-    (gnosis-review--answer-check id owner)
+    (gnosis-review--content-check id owner)
     (gnosis-display-image keimenon)
     (gnosis-display-keimenon (gnosis-org-format-string keimenon))
     (gnosis-display-hint hypothesis)
@@ -1091,9 +1103,9 @@ RESULT permits an identical retry of the last committed persistent attempt."
                   (gnosis-display-parathema parathema)
                   (= (read-char-choice "Recalled the checklist?  y yes, n no: " '(?y ?n)) ?y))
               (gnosis-answer-match-p answer user-input aliases tolerance)))
-           (_ (gnosis-review--answer-check id owner))
+           (_ (gnosis-review--content-check id owner))
            (result (gnosis-review-algorithm id success)))
-      (setq result (plist-put result :answer owner))
+      (setq result (plist-put result :content owner))
       (unless (or success self-grade) (setq gnosis-review--monkeytype-text answer))
       (unless self-grade
         (gnosis-display-basic-answer answer success user-input)
@@ -1140,17 +1152,15 @@ Returns (NEW-UNREVEALED NEW-HINTS NEW-REVEALED)."
 
 (defun gnosis-review-cloze (id)
   "Review cloze type thema for ID."
-  (let* ((data (car (gnosis-select
-		     '[keimenon answer hypothesis]
-		     'themata `(= id ,id))))
-	 (keimenon (nth 0 data))
-	 (all-clozes (nth 1 data))
+  (let* ((owner (gnosis-review--content-owner id))
+         (data (car (cadr owner)))
+	 (keimenon (nth 1 data))
+	 (all-clozes (nth 3 data))
 	 (all-hints (nth 2 data))
 	 (revealed-clozes '())
 	 (unrevealed-clozes all-clozes)
 	 (unrevealed-hints all-hints)
-	 (parathema (gnosis-get 'parathema 'extras
-				`(= id ,id)))
+	 (parathema (nth 5 data))
 	 (success t))
     (gnosis-display-cloze-string
      keimenon unrevealed-clozes unrevealed-hints nil nil)
@@ -1159,6 +1169,7 @@ Returns (NEW-UNREVEALED NEW-HINTS NEW-REVEALED)."
 	(let* ((input (gnosis-review-cloze--input
 		       unrevealed-clozes))
 	       (position (car input)))
+          (gnosis-review--content-check id owner)
 	  (if position
 	      (pcase-let ((`(,new-unrev ,new-hints ,new-rev)
 			   (gnosis-review-cloze--update-state
@@ -1179,26 +1190,26 @@ Returns (NEW-UNREVEALED NEW-HINTS NEW-REVEALED)."
 		  gnosis-review--monkeytype-text
 		  (car unrevealed-clozes))
 	    (throw 'done nil)))))
-    (let ((result (gnosis-review-algorithm id success)))
+    (gnosis-review--content-check id owner)
+    (let ((result (plist-put (gnosis-review-algorithm id success) :content owner)))
       (gnosis-display-parathema parathema)
       (gnosis-display-next-review (gnosis-review--result-date result) success)
       (cons success result))))
 
 (defun gnosis-review-mc-cloze (id)
   "Review mc-cloze type thema for ID."
-  (let* ((data (car (gnosis-select
-		     '[keimenon answer hypothesis]
-		     'themata `(= id ,id))))
-	 (keimenon (nth 0 data))
-	 (cloze (nth 1 data))
+  (let* ((owner (gnosis-review--content-owner id))
+         (data (car (cadr owner)))
+	 (keimenon (nth 1 data))
+	 (cloze (nth 3 data))
 	 (options (nth 2 data))
-	 (parathema (gnosis-get 'parathema 'extras
-				`(= id ,id)))
+	 (parathema (nth 5 data))
 	 (user-input)
 	 (success))
     (gnosis-display-cloze-string keimenon cloze nil nil nil)
     (setq user-input (gnosis-completing-read "Select answer: "
-					     (gnosis-shuffle options)))
+					     (copy-sequence options)))
+    (gnosis-review--content-check id owner)
     (if (string= user-input (car cloze))
 	(progn
 	  (gnosis-display-cloze-string keimenon nil nil cloze nil)
@@ -1206,7 +1217,8 @@ Returns (NEW-UNREVEALED NEW-HINTS NEW-REVEALED)."
       (gnosis-display-cloze-string keimenon nil nil nil cloze)
       (gnosis-display-correct-answer-mcq (car cloze) user-input)
       (setq gnosis-review--monkeytype-text (car cloze)))
-    (let ((result (gnosis-review-algorithm id success)))
+    (gnosis-review--content-check id owner)
+    (let ((result (plist-put (gnosis-review-algorithm id success) :content owner)))
       (gnosis-display-parathema parathema)
       (gnosis-display-next-review (gnosis-review--result-date result) success)
       (cons success result))))
@@ -1577,14 +1589,14 @@ the changes with a message containing the reviewed number THEMA-NUM."
 (defun gnosis-review-action--edit (success thema result)
   "Edit THEMA during review.
 
-Save current contents of *gnosis-edit* buffer, if any, and start
-editing THEMA with its new contents.
-RESULT is the algorithm result to thread through.
-
-After done editing, call `gnosis-review-actions' with SUCCESS THEMA."
+RESULT is the pending outcome for SUCCESS and THEMA.
+After an unchanged save or cancel, return to `gnosis-review-actions'.
+Changed content invalidates RESULT; resume the batch to answer it again."
   (gnosis-edit-thema thema)
   (setf gnosis-review-editing-p t)
   (recursive-edit)
+  (when-let* ((owner (plist-get result :content)))
+    (gnosis-review--content-check thema owner))
   (gnosis-review-actions success thema result))
 
 (defun gnosis-review-action--quit (success thema result)
@@ -1641,6 +1653,7 @@ RESULT is the algorithm result to thread through."
     (while t
       (condition-case err
           (throw 'accepted (gnosis-review-result id success result))
+        (gnosis-review-content-changed (signal (car err) (cdr err)))
         (error
          (unless (y-or-n-p (format "%s; retry this grade? " (error-message-string err)))
            (signal (car err) (cdr err))))))))
@@ -1651,6 +1664,9 @@ RESULT is the algorithm result to thread through."
 SUCCESS: Review result.
 ID: Thema ID.
 RESULT: Return value of `gnosis-review-algorithm'.
+
+Return :deleted only after confirmed deletion completes.  Declining
+deletion returns to the action prompt with the same pending result.
 
 To customize the keybindings, adjust `gnosis-review-keybindings'."
   (let* ((prompt
@@ -1667,7 +1683,9 @@ To customize the keybindings, adjust `gnosis-review-keybindings'."
       (?n (gnosis-review--accept id success result))
       (?o (gnosis-review-action--override success id result))
       (?s (gnosis-review-action--suspend success id result))
-      (?d (gnosis-delete-thema id) :deleted)
+      (?d (if (gnosis-delete-thema id)
+              :deleted
+            (gnosis-review-actions success id result)))
       (?f (gnosis-study-flag id)
           (gnosis-review-actions success id result))
       (?e (gnosis-review-action--edit success id result))

@@ -471,6 +471,20 @@ C-u M-x gnosis-nodes-db-sync
 ~gnosis-nodes-db-force-sync~ provides a dedicated command for the full
 rebuild case, with a confirmation prompt before proceeding.
 
+** Deleting a Node File
+
+Use =M-x gnosis-nodes-delete-file= in the file to remove it and its node
+index after confirmation.  Lisp callers may supply an explicit file; that
+file, not the current buffer's file, is the deletion target.
+
+Filesystem deletion and index cleanup are separate effects.  If deletion
+fails before the file is removed, its index remains intact.  If the file is
+gone but index cleanup fails, the command reports the unfinished cleanup.
+Retry ~gnosis-nodes-delete-file~ from the retained buffer, or supply the
+same filename explicitly, to confirm index-only reconciliation.  A retained
+buffer is detached from the deleted filename so an ordinary save cannot
+silently recreate it.  This recovery does not restore deleted file bytes.
+
 ** Links Between Nodes
 
 Gnosis uses standard org-mode =[[id:UUID][description]]= link syntax for
@@ -1138,6 +1152,13 @@ during a review session.  The same edit buffer is used, this time
 populated with the existing values.  Saving updates the record in
 place, re-synchronising both tags and node links.
 
+A native creation or edit draft belongs to the database connection that
+opened it.  Saving refuses a replaced or reopened connection, and an edit
+also refuses changes to the original content made while the draft was open.
+The refused draft remains available; copy any work you want to keep, cancel
+the stale draft, then reopen the current thema and reconcile your changes.
+Do not change database connections to redirect an existing draft.
+
 ** Tags on Themata
 
 Tags are free-form strings used to organise themata.  During review,
@@ -1265,8 +1286,9 @@ stages:
    grade and quits.  =o= flips the pending binary result, for example
    when typed matching rejected a valid answer.  =e= edits the thema,
    =v= visits an identity-selected linked source, =f= adds =needs_work=,
-   and =s= toggles suspension.  These actions return to the pending
-   grade; editing or visiting a source is not successful recall.
+   and =s= toggles suspension.  Editing or visiting a source is not
+   successful recall.  An unchanged edit returns to the pending grade;
+   changing the question or answer rules requires answering again.
    =d= deletes the thema without accepting its pending grade.
 
 6. *Acceptance*: Scheduled review records an immutable review event and

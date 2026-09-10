@@ -163,6 +163,21 @@ When NODE-IDS is non-nil, return only IDs in that list."
         (gnosis-org-get-buffer-info))
     (gnosis-org-get-file-info file)))
 
+(defvar-local gnosis-nodes--deleted-file nil
+  "File and database of a deleted node retained in this recovery buffer.
+The value is (FILE DATABASE).  The buffer no longer visits FILE, so an
+ordinary save cannot silently recreate the deleted file.")
+
+(defun gnosis-nodes--file-buffer (file)
+  "Return FILE's visiting buffer or its detached deletion recovery buffer."
+  (or (get-file-buffer file)
+      (seq-find (lambda (buffer)
+                  (with-current-buffer buffer
+                    (and (not buffer-file-name)
+                         (equal gnosis-nodes--deleted-file
+                                (list (expand-file-name file) gnosis-db)))))
+                (buffer-list))))
+
 (defun gnosis-nodes--legacy-journal-ids (file ids)
   "Return legacy node IDs owned by journal FILE containing current IDS.
 Legacy rows store only a basename and the hash of their whole file.
@@ -173,10 +188,12 @@ snapshot has no unambiguous owner, require an index-only full rebuild."
          (rows (gnosis-nodes-select '[id hash] 'nodes `(= file ,basename)))
          (other-file (expand-file-name basename gnosis-nodes-dir)))
     (when rows
-      (let* ((other-info (when (and (file-exists-p other-file)
+      (let* ((other-info (when (and (or (gnosis-nodes--file-buffer other-file)
+                                         (file-exists-p other-file))
+                                    (not (equal (expand-file-name file) other-file))
                                     (not (file-equal-p file other-file)))
                            (gnosis-nodes--file-info
-                            other-file (get-file-buffer other-file))))
+                            other-file (gnosis-nodes--file-buffer other-file))))
              (other-ids (mapcar (lambda (item) (plist-get item :id))
                                 (butlast other-info 2)))
              (hashes (delete-dups
@@ -233,10 +250,10 @@ refuse ambiguous ownership without changing the index."
                   (rows (gnosis-nodes-select
                          'id 'nodes `(= file ,(file-name-nondirectory journal-file)))))
         (let* ((journal-info (or (and journal-p info)
-                                 (when (or (get-file-buffer journal-file)
+                                 (when (or (gnosis-nodes--file-buffer journal-file)
                                            (file-exists-p journal-file))
                                    (gnosis-nodes--file-info
-                                    journal-file (get-file-buffer journal-file)))))
+                                    journal-file (gnosis-nodes--file-buffer journal-file)))))
                (ids (mapcar (lambda (item) (plist-get item :id))
                             (butlast journal-info 2)))
                (legacy (gnosis-nodes--legacy-journal-ids journal-file ids)))
@@ -249,7 +266,7 @@ refuse ambiguous ownership without changing the index."
             (when legacy
               ;; Use the index operation, never the journal's TODO save hook.
               (gnosis-nodes--update-file
-               journal-file t (get-file-buffer journal-file))))))
+               journal-file t (gnosis-nodes--file-buffer journal-file))))))
       ;; Resolve rows only after adoption, so an ordinary namesake cannot
       ;; delete the journal rows or their surviving incoming links.
       (dolist (node (gnosis-nodes-select
@@ -273,20 +290,89 @@ When INDEX-ONLY is non-nil, do not complete TODOs from journal checkboxes."
     (when (and journal-p file (not index-only))
       (gnosis-journal--update-todos file))))
 
+(defun gnosis-nodes--check-delete-ownership (file)
+  "Validate legacy journal ownership before physically deleting FILE."
+  (when-let* ((journal-file
+               (if (gnosis-nodes--journal-file-p file) file
+                 (when (and gnosis-journal-file
+                            (equal (file-name-nondirectory file)
+                                   (file-name-nondirectory gnosis-journal-file)))
+                   gnosis-journal-file)))
+              (rows (gnosis-nodes-select
+                     'id 'nodes `(= file ,(file-name-nondirectory journal-file)))))
+    (let ((info (when (or (gnosis-nodes--file-buffer journal-file)
+                          (file-exists-p journal-file))
+                  (gnosis-nodes--file-info
+                   journal-file (gnosis-nodes--file-buffer journal-file)))))
+      (gnosis-nodes--legacy-journal-ids
+       journal-file (mapcar (lambda (item) (plist-get item :id))
+                           (butlast info 2))))))
+
 ;;;###autoload
 (defun gnosis-nodes-delete-file (&optional file)
-  "Delete FILE.
-Delete file contents in database & file."
+  "Confirm and delete FILE and its node index, then close its buffer.
+Default FILE to the current buffer's file.  Explicit FILE need not be
+visited or current.  Other files and their buffers are not deleted.
+Filesystem deletion precedes the index transaction: these are not atomic.
+A file error or quit before deletion leaves the index intact.  If the file
+is gone but index cleanup fails, retain its buffer and report reconciliation
+instructions.  Detach retained buffers from FILE so saving cannot silently
+recreate it.  Calling again from that buffer or for the missing FILE
+confirms index-only cleanup; a replacement file needs new confirmation."
   (interactive)
-  (let ((file (or file (buffer-file-name))))
-    (if (or (file-in-directory-p (buffer-file-name) gnosis-nodes-dir)
-            (gnosis-nodes--journal-buffer-p))
-	(progn
-	  (when (y-or-n-p (format "Delete file: %s?" file))
-	    (gnosis-nodes--delete-file file)
-	    (delete-file (buffer-file-name))
-	    (kill-buffer (buffer-name))))
-      (error "%s is not a gnosis node file" file))))
+  (let* ((recovery (and (not file) (not (buffer-file-name))
+                        gnosis-nodes--deleted-file))
+         (target (or file (buffer-file-name) (car recovery)))
+         (file (and target (expand-file-name target))))
+    (unless (and file
+                 (or (file-in-directory-p file gnosis-nodes-dir)
+                     (gnosis-nodes--journal-file-p file)))
+      (user-error "%s is not a gnosis node file" target))
+    (when (file-directory-p file)
+      (user-error "%s is a directory, not a node file" file))
+    (let ((gnosis-db (gnosis--ensure-db))
+          (exists (or (file-exists-p file) (file-symlink-p file))))
+      (when (and recovery (not (eq (cadr recovery) gnosis-db)))
+        (user-error "Deletion recovery belongs to another database"))
+      (when (memq gnosis-db gnosis-sqlite--transaction-dbs)
+        (user-error "Cannot delete a node file inside a database transaction"))
+      (when (y-or-n-p (if exists (format "Delete file: %s? " file)
+                       (format "File missing; reconcile index for %s? " file)))
+        ;; Retain source evidence for legacy ownership and recovery until the
+        ;; index commits, including when FILE was not previously visited.
+        (let ((buffer (or (gnosis-nodes--file-buffer file)
+                          (and exists (find-file-noselect file)))))
+          (gnosis-nodes--check-delete-ownership file)
+          (unless (equal exists (or (file-exists-p file) (file-symlink-p file)))
+            (user-error "File existence changed; retry deletion of %s" file))
+          (unwind-protect
+              (condition-case err
+                  (progn
+                    (when exists (delete-file file))
+                    (gnosis-nodes--delete-file file))
+                ((error quit)
+                 (if (or (file-exists-p file) (file-symlink-p file))
+                     (signal (car err) (cdr err))
+                   (if (eq (car err) 'quit)
+                       (progn
+                         (message "File %s is gone; reconcile its index by retrying gnosis-nodes-delete-file" file)
+                         (signal (car err) (cdr err)))
+                     (error "File %s is gone; reconcile its index by retrying gnosis-nodes-delete-file: %s"
+                            file (error-message-string err))))))
+            (when (and (buffer-live-p buffer)
+                       (eq buffer (gnosis-nodes--file-buffer file))
+                       (not (or (file-exists-p file) (file-symlink-p file))))
+              (with-current-buffer buffer
+                (let ((inhibit-quit t)
+                      (change-major-mode-with-file-name nil))
+                  (when (buffer-file-name)
+                    (set-visited-file-name nil t))
+                  (setq gnosis-nodes--deleted-file (list file gnosis-db))))))
+          (if (and (buffer-live-p buffer)
+                   (eq buffer (gnosis-nodes--file-buffer file))
+                   (not (kill-buffer buffer)))
+              (message "Deleted node file and index: %s; detached buffer retained" file)
+            (message "Deleted node file and index: %s" file)))))))
 
 ;;; Find/create operations
 

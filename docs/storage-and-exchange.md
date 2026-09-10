@@ -22,6 +22,47 @@ Legacy algorithm internals are not FSRS memory, and no historical grades are
 invented. The old review/activity tables are removed only inside the same
 transaction. Errors and quits restore the complete source schema and rows.
 
+## Physical thema deletion
+
+`gnosis-delete-themata` deletes selected cards in one transaction, including
+their tags, links, extras, scheduler baseline/state and cascading scheduled
+and practice events/voids. This is intentional deletion, not archival or
+suspension. Preserve unrelated cards and evidence, retained session summaries,
+Org files and managed asset bytes. Shared assets are not garbage-collected.
+Declined confirmation writes nothing; errors and quits roll back incomplete
+deletion. Review must not skip or grade a card merely because deletion was
+offered and declined. See `tests/gnosis-test-deletion.el`.
+
+Singleton development cleanup is private tooling, not a public migration or
+a reason to disable normal deletion. The 8-to-9 release boundary above remains
+in force until 0.11.0 publication.
+
+## Node-file deletion
+
+Resolve one explicit filename for confirmation, physical deletion, index
+cleanup and buffer closure. Delete bytes outside database transactions before
+committing index removal. A filesystem error/quit before deletion must retain
+the index. If deletion completes but index cleanup fails, report that boundary
+and allow an explicit index-only retry for the missing file. Detach retained
+buffers from the deleted filename, preserving their contents without silently
+recreating the source on save. This is reconciliation, not filesystem/SQLite
+atomicity or a file archive.
+
+## Native drafts and pending answers
+
+Creation/edit drafts belong to the connection that opened them. Before any
+save writes, validate the connection and the content originally read for an
+edit; retain the draft on refusal so the user can reconcile it with a freshly
+opened thema. Do not silently redirect an existing draft after connection
+replacement or accept a stale draft over intervening content changes.
+
+Review response kinds retain the encountered question and answer rules
+through input, outcome overrides and final acceptance. Material edits require
+a fresh answer, never acceptance of the pre-edit result. Scheduled acceptance
+and queue progress remain one transaction; practice evidence remains separate
+from scheduling. These snapshots protect a pending interaction, not retained
+content versions or an archive.
+
 ## Lisp encoding
 
 `lisp/gnosis-sqlite.el` owns Lisp/SQL encoding. Its

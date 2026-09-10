@@ -249,8 +249,11 @@ Returns nil on success, or an error message string on failure."
 
 ;;;###autoload
 (defun gnosis-save ()
-  "Save themata in current buffer."
+  "Save themata in the current native draft.
+Refuse changed database ownership or original content without discarding
+the draft.  Copy its text before cancelling and reopening to reconcile."
   (interactive nil gnosis-edit-mode)
+  (gnosis--draft-check-owner)
   (let* ((gc-cons-threshold most-positive-fixnum)
          (themata (gnosis-export-parse-themata))
          (gnosis--id-cache
@@ -260,7 +263,8 @@ Returns nil on success, or an error message string on failure."
          (errors nil)
          (edited-id (string-to-number (caar themata))))
     (catch 'gnosis-save-failed
-      (gnosis-sqlite-with-transaction (gnosis--ensure-db)
+      (gnosis-sqlite-with-transaction gnosis--draft-db
+        (gnosis--draft-validate themata)
         (cl-loop for thema in themata
                  for err = (gnosis-save-thema thema)
                  when err do (push err errors))

@@ -441,7 +441,7 @@
                (setq width 750)
                (run-hooks 'window-configuration-change-hook)
                (should (memq #'gnosis-image-refresh window-configuration-change-hook))
-               (should (= 718 (plist-get (cdr (get-text-property 3 'display)) :max-width)))
+               (should (= 16 (plist-get (cdr (get-text-property 3 'display)) :width)))
                (should (equal content (buffer-substring-no-properties (point-min) (point-max))))
                (should (= position (point)))
                (should-not (buffer-modified-p)))

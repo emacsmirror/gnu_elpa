@@ -284,6 +284,15 @@ Forward ACCEPTED-ALIASES only when supplied, preserving omitted updates."
       (user-error "Image unavailable: native PNG/JPEG decoding requires a graphical frame"))
     image))
 
+(defun gnosis-image--display-size (width height &optional window)
+  "Return proportional display size for WIDTH and HEIGHT in WINDOW.
+Reserve space for the question and input; enlarge small images at most twice."
+  (let ((scale (min 2.0
+                    (/ (float (min 720 (max 1 (- (window-body-width window t) 32)))) width)
+                    (/ (float (min 720 (max 1 (floor (* 0.6 (window-body-height window t))))))
+                       height))))
+    (cons (max 1 (floor (* scale width))) (max 1 (floor (* scale height))))))
+
 (defun gnosis-image-format-string (text &optional window)
   "Return TEXT with managed image displays fitted to WINDOW, default selected."
   (let ((start 0) (result ""))
@@ -293,11 +302,11 @@ Forward ACCEPTED-ALIASES only when supplied, preserving omitted updates."
              (reference (match-string 1 text))
              (scene (gnosis-image-resolve reference))
              (image (gnosis-image--decode scene))
-             (width (max 1 (- (window-body-width window t) 32))))
+             (size (gnosis-image--display-size
+                    (alist-get 'width scene) (alist-get 'height scene) window)))
         (setq image (copy-tree image))
-        (setcdr image (plist-put (cdr image) :max-width width))
-        (setcdr image (plist-put (cdr image) :max-height
-                                 (max 1 (- (window-body-height window t) 80))))
+        (setcdr image (plist-put (cdr image) :width (car size)))
+        (setcdr image (plist-put (cdr image) :height (cdr size)))
         (setq result (concat result (substring text start begin)
                              (propertize " " 'display image 'gnosis-image-reference reference))
               start end)))
@@ -309,12 +318,9 @@ Forward ACCEPTED-ALIASES only when supplied, preserving omitted updates."
   (gnosis-image-target scene target)
   (gnosis-image--decode scene)
   (unless (image-type-available-p 'svg) (user-error "Native SVG support is required"))
-  (let* ((scale (min 1.0 (/ (float (max 1 (- (window-body-width window t) 32)))
-                            (alist-get 'width scene))
-                     (/ (float (max 1 (- (window-body-height window t) 160)))
-                        (alist-get 'height scene))))
-         (width (max 1 (floor (* scale (alist-get 'width scene)))))
-         (height (max 1 (floor (* scale (alist-get 'height scene))))))
+  (let* ((size (gnosis-image--display-size
+                (alist-get 'width scene) (alist-get 'height scene) window))
+         (width (car size)) (height (cdr size)))
     (propertize " " 'gnosis-image-mask (list scene target revealed policy)
                 'display (svg-image (gnosis-image--svg
                                      scene (alist-get 'regions scene) width height

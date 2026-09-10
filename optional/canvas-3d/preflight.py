@@ -45,31 +45,34 @@ def imports_check(python: str) -> None:
 
 
 def egl_check(python: str) -> None:
-    """Render paired color/ID frames and verify depth-tested highlight."""
+    """Render color-only frames and verify compact background/stale replies."""
     size = 128
-    request = b'{"seq":1}\n{"seq":2,"selected":1}\n'
+    request = (b'{"seq":1}\n{"seq":2,"selected":1}\n'
+               b'{"op":"pick","seq":3,"frame":2,"x":0,"y":0}\n'
+               b'{"op":"pick","seq":4,"frame":1,"x":0,"y":0}\n')
     result = run([python, str(ROOT / "render.py"),
                   str(ROOT / "fixtures/scene.json"), "--size", str(size)], input=request)
     if result.returncode:
         raise RuntimeError(result.stderr.decode(errors="replace").strip())
     area = size * size
-    length = 8 + 21 * area
-    if len(result.stdout) != 2 * length:
+    length = 8 + 4 * area
+    if len(result.stdout) != 2 * length + 64:
         raise RuntimeError("Wrong packet length")
     frames = [result.stdout[i * length:(i + 1) * length] for i in range(2)]
     for seq, packet in enumerate(frames, 1):
-        if packet[:8] != b"C3D2" + struct.pack(">I", seq):
+        if packet[:8] != b"C3D3" + struct.pack(">I", seq):
             raise RuntimeError("Wrong packet identity")
-    color, marked = [packet[8:8 + 4 * area] for packet in frames]
-    ids, same_ids = [packet[8 + 4 * area:8 + 5 * area] for packet in frames]
-    if set(ids) != {0, 1, 2} or ids != same_ids or color == marked:
-        raise RuntimeError("Picking plane or selected highlight failed")
-    for pixel, identity in enumerate(ids):
-        if identity != 1 and color[4 * pixel:4 * pixel + 4] != marked[4 * pixel:4 * pixel + 4]:
-            raise RuntimeError("Highlight changed an unselected pixel")
+    color, marked = [packet[8:] for packet in frames]
+    if color == marked:
+        raise RuntimeError("Selected highlight failed")
+    background = struct.unpack(">4sIIIIfff", result.stdout[2 * length:2 * length + 32])
+    stale = struct.unpack(">4sIIIIfff", result.stdout[2 * length + 32:])
+    if background != (b"C3P3", 3, 2, 0, 0, 0, 0, 0):
+        raise RuntimeError("Wrong compact background pick")
+    if stale != (b"C3P3", 4, 1, 0xffffffff, 0, 0, 0, 0):
+        raise RuntimeError("Stale frame was not refused")
     print(result.stderr.decode(errors="replace").strip())
-    print(json.dumps({"packets": 2, "bytes": len(result.stdout),
-                      "ids": sorted(set(ids)), "picked_id": "left",
+    print(json.dumps({"frames": 2, "picks": 2, "bytes": len(result.stdout),
                       "color_sha256": hashlib.sha256(color).hexdigest(),
                       "highlight_sha256": hashlib.sha256(marked).hexdigest()}))
 

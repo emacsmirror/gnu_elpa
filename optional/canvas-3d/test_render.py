@@ -44,7 +44,7 @@ class RenderTests(unittest.TestCase):
         result = subprocess.run([sys.executable, "render.py", str(MODEL), "--size", "64"],
                                 input=b'{"seq":1}\n{"seq":2,"yaw":90}\n', capture_output=True, timeout=20)
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(len(result.stdout), 2 * (8 + 64 * 64 * 21))
+        self.assertEqual(len(result.stdout), 2 * (8 + 64 * 64 * 4))
         a, b = np.frombuffer(result.stdout, dtype=np.uint8).reshape(2, -1)
         self.assertFalse(np.array_equal(a, b))
 

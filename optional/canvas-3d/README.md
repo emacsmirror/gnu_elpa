@@ -30,7 +30,7 @@ fixtures and the lockfile, when distributing it independently. Run the same
 install command in the new location; do not copy a virtual environment.
 
 `preflight.py` uses only the standard library in its launcher. It checks the
-specified Emacs binary, Python imports, and actual EGL color/ID frame output
+specified Emacs binary, Python imports, and actual EGL color frames and compact picking output
 independently, reports each failure, and exits nonzero if any check fails:
 
 ```sh
@@ -40,7 +40,7 @@ independently, reports each failure, and exits nonzero if any check fails:
 The batch Emacs check proves compiled canvas capability, **not** that a
 particular graphical frame can display the image. Opening a viewer checks the
 actual session. The EGL check renders original synthetic fixtures twice and
-verifies packet identities, picking IDs and selection-only highlight changes.
+verifies packet identities, background/stale picks and a changed highlight.
 
 ## Load and use
 
@@ -67,7 +67,7 @@ the default is 512. Choose a size that fits the intended window before opening.
 The viewer does not automatically resize or replace its renderer on window
 changes. Larger sizes cost more pipe transfer and Emacs allocation.
 
-- Drag with mouse button 1 or use arrows / `h j k l` to rotate.
+- Drag with mouse button 1 or use arrows / `n p f b` to rotate.
 - Click to select a visible object; background clears selection.
 - Wheel or `+` / `-` zooms; `r` restores the initial camera.
 - `SPC` toggles the initially hidden model label; `?` shows mode help.
@@ -96,7 +96,7 @@ Gnosis managed-resource imports impose their own stricter provenance/path rules.
 
 `canvas-3d-open (PATH &optional LABEL INITIAL-VIEW SIZE)` returns a fresh
 viewer buffer. `canvas-3d-selected-id` and `canvas-3d-selection-hook` are local
-to it. The hook runs synchronously from picking with a plist:
+to it. The hook runs after asynchronous picking delivery with a plist:
 `(:mesh ID :face TRIANGLE :point (X Y Z) :id ID :frame SEQUENCE :owner PROCESS)`.
 `canvas-3d--selection` retains this geometry snapshot. Face indices are zero-based
 file-order OBJ fan triangles, not object-index bytes; points use original mesh
@@ -106,19 +106,24 @@ own interpretation, explicit submission and grading; selecting is not grading.
 
 The pipe protocol is newline-delimited JSON requests with `seq`, `yaw`, `pitch`,
 `zoom`, `selected` (one-based object index, zero for none), and `highlight`
-(null or target geometry). Requests are bounded to 128 KiB. C3D2 responses are:
+(null or target geometry). Requests are bounded to 128 KiB. View responses are
+`C3D3`, a big-endian uint32 sequence, and tightly packed opaque top-down BGRA
+color: 8 + 4 × area bytes. The renderer retains the matching depth-tested
+object, face and original-coordinate planes; they are not sent with the image.
 
-- `C3D2` and a big-endian uint32 sequence (8 bytes);
-- tightly packed opaque BGRA color (4 bytes/pixel);
-- object indices (1 byte/pixel, zero background);
-- big-endian uint32 triangle index **plus one** (4 bytes/pixel, zero background);
-- original XYZ, three big-endian IEEE float32 values (12 bytes/pixel, zero background).
+A pick request has `op: "pick"`, its own `seq`, the displayed `frame` sequence,
+and integer pixel `x` and `y`. Its 32-byte response contains:
 
-Every plane is top-down and shares the same depth-tested draw: 8 + 21 × area
-bytes total. Faces above 65535 retain their full identity. The Python
-`frame_pair` API still returns the old color/mesh pair. Elisp buffer-local
-`canvas-3d--protocol` defaults to 1 for legacy packet fixtures; real open/attach
-sets 2. This is not wire negotiation with old renderer installations.
+- `C3P3`, request sequence, requested frame sequence (12 bytes);
+- big-endian uint32 object index and triangle index **plus one** (8 bytes);
+- original XYZ, three finite big-endian IEEE float32 values (12 bytes).
+
+Zero object/face/coordinates mean background. Object index `0xffffffff` means
+the renderer no longer retains the requested frame, not background. Faces above
+65535 retain their full identity. Python `frame_pair` still returns color/mesh
+planes locally. Existing Elisp protocol 1/2 fixture paths remain for transport
+regressions; real open/attach always sets 3. There is no wire negotiation or
+fallback to old renderer installations.
 
 OBJ `v` and `f` are read in file order. Each polygon becomes `(v0, vi, vi+1)`;
 positive position indices and negative indices relative to preceding vertices
@@ -137,11 +142,14 @@ geometry selection and run selection hooks for native authoring/inspection,
 but never retarget this highlight. Even label reveal stays hidden.
 Grading and scene target validation belong to Gnosis, not this backend.
 
-The receiver validates sequence, ownership and the raw ID byte alphabet;
-it bounds fragment backlog and discards superseded highlights. One request
-is in flight, later camera input coalesces, and timeout/cancel/buffer retirement
-releases the renderer. Picking uses the displayed frame, not a pending camera,
-and rejects a supplied frame once replaced. Camera redraw carries retained
+The receiver validates sequences, ownership, object indices and finite surface
+coordinates; it bounds fragment backlog and discards superseded highlights.
+Views and picks share one serialized request stream, later camera input coalesces,
+and timeout/cancel/buffer retirement releases the renderer. Picking is refused
+while a view is pending and rejects a supplied frame once replaced. A camera
+change supersedes a pending pick. Selection hooks run asynchronously after hit
+validation, outside the process filter; `canvas-3d-pick` returns nil immediately.
+Camera redraw carries retained
 geometry to the new frame only if the request's selection snapshot still
 matches and its process owns the selection; it never reinterprets old pixels.
 
@@ -151,10 +159,10 @@ After `uv sync --locked`, from this directory:
 
 ```sh
 ./preflight.py
-.venv/bin/python -m unittest -v test_render test_geometry
-emacs -Q --batch -L . --eval "(progn (require 'canvas-3d-tests) (require 'canvas-3d-geometry-tests))" -f ert-run-tests-batch-and-exit
+.venv/bin/python -m unittest -v test_protocol test_render test_geometry
+emacs -Q --batch -L . --eval "(progn (require 'canvas-3d-tests) (require 'canvas-3d-geometry-tests) (require 'canvas-3d-pick-tests))" -f ert-run-tests-batch-and-exit
 emacs -Q --batch -L . --eval '(setq byte-compile-error-on-warn t)' \
-  -f batch-byte-compile canvas-3d.el canvas-3d-tests.el canvas-3d-geometry-tests.el
+  -f batch-byte-compile canvas-3d.el canvas-3d-tests.el canvas-3d-geometry-tests.el canvas-3d-pick-tests.el
 emacs -Q --batch --eval \
   '(progn (require (quote checkdoc)) (checkdoc-file "canvas-3d.el"))'
 ```

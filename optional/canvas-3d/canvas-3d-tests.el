@@ -43,7 +43,7 @@
                      (cl-incf refreshes))))
           (with-current-buffer owner
             (canvas-3d-mode)
-            (setq canvas-3d--protocol 2
+            (setq canvas-3d--protocol 3
                   canvas-3d--objects '(((id . "model") (label . "Model")))
                   canvas-3d--image
                   (list 'image :type 'canvas :id (make-symbol "test")
@@ -72,15 +72,16 @@
             (should (= (length (plist-get (cdr image) :data)) (* 512 512 4)))
             (should-not (multibyte-string-p (plist-get (cdr image) :data)))
             (let* ((frame canvas-3d--frame)
-                   (pixel (seq-position (plist-get frame :ids) 1))
+                   (pixel (+ 256 (* 256 512)))
                    (color (plist-get frame :color)))
               (should pixel)
-              (should (equal (canvas-3d-pick (% pixel 512) (/ pixel 512)) "model"))
+              (should-not (canvas-3d-pick (% pixel 512) (/ pixel 512)))
               (let ((deadline (+ (float-time) 15)))
                 (while (and canvas-3d--busy (< (float-time) deadline))
                   (accept-process-output process 0.05)))
               (should (equal canvas-3d--status "Ready"))
-              (should (equal (plist-get frame :ids) (plist-get canvas-3d--frame :ids)))
+              (should-not (plist-get canvas-3d--frame :ids))
+              (should (equal canvas-3d-selected-id "model"))
               (should-not (equal color (plist-get canvas-3d--frame :color))))
             (canvas-3d-cancel)
             (should-not (process-live-p process))
@@ -270,7 +271,7 @@
         (cl-letf (((symbol-function 'display-graphic-p) (lambda (&rest _) t))
                   ((symbol-function 'canvas-refresh) #'ignore)
                   ((symbol-function 'image-type-available-p) (lambda (_) t))
-                  ((symbol-function 'file-executable-p) (lambda (_) t))
+                  ((symbol-function 'canvas-3d--python) (lambda () "python"))
                   ((symbol-function 'canvas-3d--request) #'ignore)
                   ((symbol-function 'pop-to-buffer) (lambda (buffer &rest _) buffer))
                   ((symbol-function 'make-process)

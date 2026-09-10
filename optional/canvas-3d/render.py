@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Copyright (C) 2026 Thanos Apollo
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""Local deterministic OBJ scenes -> EGL -> C3D2 geometry picking frames."""
+"""Local deterministic OBJ scenes -> EGL -> C3D3 color frames and frame-pinned compact picks."""
 import argparse
 import json
 import math
@@ -257,7 +257,35 @@ class Renderer:
     def packet(self, seq, **view):
         if type(seq) is not int or not 1 <= seq <= 0xffffffff:
             raise ValueError("Sequence must be uint32 > 0")
-        return b"C3D2" + struct.pack(">I", seq) + b"".join(self.frame_geometry(**view))
+        color, ids, faces, points = self.frame_geometry(**view)
+        self.latest = (seq, ids, faces, points)
+        return b"C3D3" + struct.pack(">I", seq) + color
+
+    def pick(self, seq, frame, x, y):
+        """Return a compact hit from exactly FRAME, never a newer camera."""
+        if (type(seq) is not int or not 1 <= seq <= 0xffffffff
+                or type(frame) is not int or not 1 <= frame <= 0xffffffff
+                or type(x) is not int or type(y) is not int
+                or not 0 <= x < self.size or not 0 <= y < self.size):
+            raise ValueError("Invalid pick request")
+        latest = getattr(self, "latest", None)
+        index, face, point = 0xffffffff, 0, (0, 0, 0)
+        if latest is not None and latest[0] == frame:
+            _, ids, faces, points = latest
+            pixel = y * self.size + x
+            index = ids[pixel]
+            if index:
+                face = struct.unpack_from(">I", faces, pixel * 4)[0]
+                point = struct.unpack_from(">fff", points, pixel * 12)
+        return struct.pack(">4sIIIIfff", b"C3P3", seq, frame, index, face, *point)
+
+    def request(self, seq, op="view", **request):
+        """Dispatch bounded view/pick requests; neither operation grades."""
+        if op == "view":
+            return self.packet(seq, **request)
+        if op == "pick":
+            return self.pick(seq, **request)
+        raise ValueError("Unknown renderer operation")
 
     def close(self):
         self.ctx.release()
@@ -282,7 +310,7 @@ def main():
             while line := sys.stdin.buffer.readline(limit + 1):
                 if len(line) > limit or not line.endswith(b"\n"):
                     raise ValueError("Invalid or oversized request")
-                sys.stdout.buffer.write(renderer.packet(**json.loads(line)))
+                sys.stdout.buffer.write(renderer.request(**json.loads(line)))
                 sys.stdout.buffer.flush()
     finally:
         renderer.close()

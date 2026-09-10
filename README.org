@@ -55,6 +55,40 @@ questions, descriptive links, cross-topic reuse, and verified native saves.
 The skill is agent-neutral; load it explicitly or install its directory
 using your agent's skill mechanism.
 
+** Optional 3D support
+
+Gnosis works without Python or a 3D renderer.  Model themata use the
+optional =canvas-3d= backend, which is not included in the ELPA package.
+Install it separately from a matching Gnosis source checkout; keep the
+whole =optional/canvas-3d/= directory, not just its Lisp file.
+
+The backend requires a graphical Emacs with =canvas-refresh= and the
+=canvas= image type (Emacs 32 development builds), Python 3.12–3.14,
+and a working EGL/OpenGL 3.3 driver.  Only Linux EGL is currently
+verified.  Installing Python dependencies does not add canvas support
+to an older Emacs.
+
+Install [[https://docs.astral.sh/uv/getting-started/installation/][uv]], then prepare and check the backend:
+
+#+begin_src sh
+cd /path/to/gnosis/optional/canvas-3d
+uv sync --locked
+./preflight.py
+#+end_src
+
+Point Gnosis at that directory in your Emacs configuration:
+
+#+begin_src emacs-lisp
+(with-eval-after-load 'gnosis
+  (setq gnosis-model-renderer-directory
+        "/path/to/gnosis/optional/canvas-3d/"))
+#+end_src
+
+The renderer loads only when needed.  Opening a model never installs
+software or downloads dependencies.  See the
+[[file:optional/canvas-3d/README.md][canvas-3d setup guide]] for preflight options, a standalone test scene,
+and renderer configuration.  Anatomical models are not bundled.
+
 ** The Link Between Nodes and Themata
 
 When you write a node about a topic, you can create themata whose

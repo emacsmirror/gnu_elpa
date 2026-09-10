@@ -3,7 +3,7 @@
 (require 'ert)
 (require 'gnosis-study)
 (require 'gnosis-review)
-(require 'gnosis-test-schema-v9)
+(require 'gnosis-test-schema-v8)
 
 (defmacro gnosis-test-safety (&rest body)
   "Run BODY without a published connection, in a disposable directory."
@@ -17,20 +17,23 @@
        (when gnosis-db (sqlite-close gnosis-db))
        (delete-directory gnosis-dir t))))
 
-(defun gnosis-test-safety-v9 ()
-  "Create a closed historical v9 database with nonempty retained facts."
+(defun gnosis-test-safety-v8 ()
+  "Create a closed released v8 database with nonempty retained facts."
   (let ((gnosis-db (gnosis-sqlite-open (expand-file-name "gnosis.db" gnosis-dir))))
     (unwind-protect
         (progn
-          (gnosis-test--create-v9-schema)
+          (gnosis-test--create-v8-schema)
           (gnosis--insert-into 'themata '([1 "basic" "Question λ" ("") ("Answer") "source"]))
           (gnosis--insert-into 'extras '([1 "Context" "image.png"]))
           (gnosis--insert-into 'thema-tag '([1 "needs_work"]))
           (gnosis--insert-into 'thema-links '([1 "source-id"]))
           (gnosis--insert-into 'nodes '(["source-id" "source.org" "Topic" "1" nil nil nil]))
-          (gnosis--insert-into 'scheduler-baseline '([1 20260907 3 1]))
-          (gnosis--insert-into 'scheduler-state '([1 1 nil nil nil nil 20260907 3 1 0]))
-          (gnosis--insert-into 'review-activity-baseline '([20260906 3 1])))
+          (gnosis--insert-into 'journal '(["journal-id" "journal.org" "Journal" "1" nil nil nil]))
+          (gnosis--insert-into 'node-tag '(["source-id" "topic"]))
+          (gnosis--insert-into 'node-links '(["source-id" "journal-id"]))
+          (gnosis--insert-into 'review '([1 1 1]))
+          (gnosis--insert-into 'review-log '([1 20260906 20260907 1 2 0 1 0 3]))
+          (gnosis--insert-into 'activity-log '([20260906 3 1])))
       (sqlite-close gnosis-db))))
 
 (defun gnosis-test-safety-snapshot (file)
@@ -94,9 +97,9 @@
 (ert-deftest gnosis-db-safety-initialization-nonlocal-exits ()
   "Close candidates, roll back all migration steps, and retry on errors/quit."
   (dolist (fault '(error quit))
-    (dolist (stage '(gnosis-db--migrate-v11 gnosis-db--migrate-v12 gnosis-db--check-schema))
+    (dolist (stage '(gnosis-db--create-study-guards gnosis--db-set-version gnosis-db--check-schema))
       (gnosis-test-safety
-        (gnosis-test-safety-v9)
+        (gnosis-test-safety-v8)
         (let* ((file (expand-file-name "gnosis.db" gnosis-dir))
                (before (gnosis-test-safety-snapshot file))
                (open (symbol-function 'gnosis-sqlite-open))
@@ -106,8 +109,9 @@
                      (lambda (path) (let ((db (funcall open path))) (push db handles) db)))
                     ((symbol-function stage)
                      (lambda (&rest args)
-                       ;; Postflight fault proves all migrations roll back to v9.
-                       (if (or (null args) (= (cadr args) 12))
+                       ;; Postflight faults must roll the complete change back to v8.
+                       (if (or (not (eq stage 'gnosis-db--check-schema))
+                               (= (cadr args) 9))
                            (signal fault '("Injected initialization fault"))
                          (apply original args)))))
             (dotimes (_ 2)
@@ -119,7 +123,7 @@
               (should (equal before (gnosis-test-safety-snapshot file)))))
           (should (= 2 (length handles)))
           (should (gnosis--ensure-db))
-          (should (= 12 (gnosis--db-version))))))))
+          (should (= 9 (gnosis--db-version))))))))
 
 (ert-deftest gnosis-db-safety-fresh-creation-quit-retries ()
   (gnosis-test-safety
@@ -130,7 +134,7 @@
       (should-not gnosis-db)
       (should-error (sqlite-select candidate "SELECT 1"))
       (should (gnosis--ensure-db))
-      (should (= 12 (gnosis--db-version))))))
+      (should (= 9 (gnosis--db-version))))))
 
 (ert-deftest gnosis-db-safety-connection-setup-cleanup ()
   (dolist (fault '(error quit))
@@ -148,17 +152,9 @@
 
 (ert-deftest gnosis-db-safety-backup-before-upgrade-and-restore ()
   "Preserve the historical source DB and all facts through backup and upgrade."
-  (dolist (version '(9 10))
+  (progn
     (gnosis-test-safety
-      (gnosis-test-safety-v9)
-      (when (= version 10)
-        (let ((gnosis-db (gnosis-sqlite-open (expand-file-name "gnosis.db" gnosis-dir))))
-          (unwind-protect
-              (progn
-                (gnosis-db--migrate-v10)
-                (gnosis--insert-into 'practice-events '(["exposure" 1 "session" 1 1000 1]))
-                (gnosis--insert-into 'study-session '([1 (:session-id "session" :mode practice)])))
-            (sqlite-close gnosis-db))))
+      (gnosis-test-safety-v8)
       (let* ((file (expand-file-name "gnosis.db" gnosis-dir))
              (backup (expand-file-name "before.db" gnosis-dir))
              (before (gnosis-test-safety-snapshot file)))
@@ -169,15 +165,15 @@
         (should (equal before (gnosis-test-safety-snapshot file)))
         (should (equal before (gnosis-test-safety-snapshot backup)))
         (gnosis--ensure-db)
-        (should (= 12 (gnosis--db-version)))
-        (dolist (table (nth 2 before))
+        (should (= 9 (gnosis--db-version)))
+        (dolist (table (seq-remove
+                       (lambda (entry) (member (car entry)
+                         '("review" "review_log" "activity_log")))
+                       (nth 2 before)))
           (should (equal (if (equal (car table) "themata")
                              (mapcar (lambda (row) (append row '(nil))) (cdr table))
                            (cdr table))
                          (sqlite-select gnosis-db (format "SELECT * FROM %s ORDER BY 1" (car table))))))
-        (when (= version 10)
-          (should (equal '(:session-id "session" :mode practice)
-                         (gnosis-get 'data 'study-history '(= session-id "session")))))
         (sqlite-close gnosis-db)
         (setq gnosis-db nil)
         ;; Restore only with the database closed; no new-code open of rollback.
@@ -211,7 +207,7 @@
           (backup (expand-file-name "before.db" gnosis-dir)))
       (should-error (gnosis-backup-db backup))
       (should-not (file-exists-p file))
-      (gnosis-test-safety-v9)
+      (gnosis-test-safety-v8)
       (dolist (fault '(error quit))
         (let ((open (symbol-function 'sqlite-open)) candidate)
           (cl-letf (((symbol-function 'sqlite-open)
@@ -224,12 +220,12 @@
           (should-not gnosis-db)
           (should-error (sqlite-select candidate "SELECT 1")))))))
 
-(defun gnosis-test-safety-retained-v9 ()
-  "Create synthetic v9 data with the observed retained content layout.
+(defun gnosis-test-safety-retained-v8 ()
+  "Create synthetic v8 data with the observed retained content layout.
 Only schema metadata, never learner rows, was used to build this fixture.
 The extra archive column and composite tag key are observed variants, not
 attributed to a historical source commit."
-  (gnosis-test-safety-v9)
+  (gnosis-test-safety-v8)
   (let ((db (sqlite-open (expand-file-name "gnosis.db" gnosis-dir))))
     (unwind-protect
         (progn
@@ -262,12 +258,15 @@ attributed to a historical source commit."
 (ert-deftest gnosis-db-safety-retained-layout-upgrade-and-authoring ()
   "Preserve retained rows, then create/edit/practice with an absent hint."
   (gnosis-test-safety
-    (gnosis-test-safety-retained-v9)
+    (gnosis-test-safety-retained-v8)
     (let ((before (gnosis-test-safety-snapshot
                    (expand-file-name "gnosis.db" gnosis-dir))))
       (gnosis--ensure-db)
-      (should (= 12 (gnosis--db-version)))
-      (dolist (table (nth 2 before))
+      (should (= 9 (gnosis--db-version)))
+      (dolist (table (seq-remove
+                       (lambda (entry) (member (car entry)
+                         '("review" "review_log" "activity_log")))
+                       (nth 2 before)))
         (should (equal (if (equal (car table) "themata")
                            (mapcar (lambda (row) (append row '(nil))) (cdr table))
                          (cdr table))
@@ -316,7 +315,7 @@ attributed to a historical source commit."
                  "DROP TABLE thema_links;
                   CREATE TABLE thema_links (dest TEXT, source TEXT)"))
     (gnosis-test-safety
-      (gnosis-test-safety-retained-v9)
+      (gnosis-test-safety-retained-v8)
       (let* ((file (expand-file-name "gnosis.db" gnosis-dir))
              (db (sqlite-open file)))
         (unwind-protect
@@ -375,7 +374,7 @@ attributed to a historical source commit."
         (should-not gnosis-db)
         (should-error (sqlite-select candidate "SELECT 1"))
         (should (gnosis--ensure-db))
-        (should (= 12 (gnosis--db-version)))))))
+        (should (= 9 (gnosis--db-version)))))))
 
 (ert-deftest gnosis-db-safety-pull-rejects-changed-owner ()
   "A late pull must not close a replacement connection or use another directory."
@@ -417,7 +416,7 @@ attributed to a historical source commit."
       (should-not (file-exists-p (expand-file-name "gnosis.db" gnosis-dir)))
       (gnosis-test-safety-finish-pull (car callbacks))
       (should gnosis-db)
-      (should (= 12 (gnosis--db-version))))))
+      (should (= 9 (gnosis--db-version))))))
 
 (ert-deftest gnosis-db-safety-pull-retains-relative-directory-context ()
   "Successful completion uses the initiating directory, not its current buffer."
@@ -435,7 +434,7 @@ attributed to a historical source commit."
       (should gnosis-db)
       (should-not (eq old gnosis-db))
       (should-error (sqlite-select old "SELECT 1"))
-      (should (= 12 (gnosis--db-version))))))
+      (should (= 9 (gnosis--db-version))))))
 
 (ert-deftest gnosis-db-safety-printer-roundtrip-reopen ()
   "Nested compiled parameters survive a real database close and reopen."

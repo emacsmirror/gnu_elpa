@@ -76,6 +76,13 @@ before adding a second path that writes the same state.
 - Use bounded iteration where needed; Emacs Lisp has no tail-call guarantee.
   Measure before adding caches or optimizing a pure pipeline into a fused loop.
 
+## Release boundary
+
+Until 0.11.0 is published, the only supported migration is released
+0.10.6 (schema 8) directly to the complete schema 9. Extend that one migration
+and fresh schema together; do not add development-version migrations. Private
+layouts require separately verified conversion, never automatic relabelling.
+
 ## State and preservation
 
 - SQLite owns scheduling and study history. Scheduled acceptance is atomic;

@@ -71,7 +71,7 @@ clinical advice, or automatic grading of a learner.
   authoring applies aliases only to its forward basic question.
 - A saved full draft replaces aliases: an absent/empty section clears them.
   Programmatic update omission preserves them, explicit nil clears. Verify
-  both canonical and aliases after save/reopen. Schema 12 stores them;
+  both canonical and aliases after save/reopen. Schema 9 stores them;
   portable content format 3 carries them, while formats 1/2 supply none.
 - Use `gnosis-add-image-thema` for visual region/occlusion questions. Group
   repeated labels under one stable target: select a rectangle and Shift-drag

@@ -4,7 +4,7 @@
 (require 'json)
 (require 'gnosis-agent)
 (require 'gnosis-test-helpers)
-(require 'gnosis-test-schema-v9)
+(require 'gnosis-test-schema-v8)
 
 (defmacro gnosis-test-agent (&rest body)
   "Run BODY with isolated data, UI and deterministically captured timers."
@@ -265,14 +265,13 @@
         (should (eq t (plist-get (aref (plist-get result :items) 0) :deleted)))
         (should (equal [] (plist-get (aref (plist-get result :items) 0) :events)))))))
 
-(ert-deftest gnosis-agent-v10-migration-retains-checkpoint-and-events ()
+(ert-deftest gnosis-agent-reopen-retains-checkpoint-and-events ()
   (let* ((dir (make-temp-file "gnosis-agent-migrate-" t))
          (gnosis-dir dir) (gnosis-testing t)
          (gnosis-db (gnosis-sqlite-open (expand-file-name "gnosis.db" dir))))
     (unwind-protect
         (progn
-          (gnosis-test--create-v9-schema)
-          (gnosis-db--migrate-v10)
+          (gnosis-db-init)
           (gnosis-test--add-basic-thema "A" "a" nil nil 101)
           (let ((data '(:version 1 :session-id "old-session" :mode practice
                                  :initial 1 :total 2 :reviewed 1 :remaining (101)
@@ -281,8 +280,12 @@
             (gnosis-sqlite-execute gnosis-db "INSERT INTO practice_events VALUES (?, ?, ?, ?, ?, ?)"
                                    '("old-event" 101 "old-session" 1 1000000 1))
             (let ((before (gnosis-select '* 'practice-events)))
-              (gnosis-db--migrate-v11)
-              (should (= 11 (gnosis--db-version)))
+              (gnosis-sqlite-execute gnosis-db "INSERT INTO study_history VALUES (?, ?)"
+                                     (list "old-session" data))
+              (gnosis-sqlite-close gnosis-db)
+              (setq gnosis-db (gnosis-sqlite-open (expand-file-name "gnosis.db" dir)))
+              (gnosis-db-init)
+              (should (= 9 (gnosis--db-version)))
               (should (equal data (gnosis-get 'data 'study-history '(= session-id "old-session"))))
               (should (equal data (gnosis-get 'data 'study-session '(= id 1))))
               (should (equal before (gnosis-select '* 'practice-events)))
@@ -324,28 +327,6 @@
         (should (equal "unfinished" (plist-get (gnosis-agent-resume session) :status))))
       (should-not gnosis-agent--launches)
       (should-not (gnosis-select '* 'practice-events)))))
-
-(ert-deftest gnosis-agent-v11-migration-fault-rolls-back-schema-and-checkpoint ()
-  (let* ((dir (make-temp-file "gnosis-agent-migrate-" t))
-         (gnosis-dir dir) (gnosis-testing t)
-         (gnosis-db (gnosis-sqlite-open (expand-file-name "gnosis.db" dir))))
-    (unwind-protect
-        (progn
-          (gnosis-test--create-v9-schema)
-          (gnosis-db--migrate-v10)
-          (gnosis-sqlite-execute gnosis-db "INSERT INTO study_session VALUES (1, ?)"
-                                 '((:version 1 :session-id "retained" :remaining (101))))
-          (let ((before (gnosis-select '* 'study-session)))
-            (cl-letf (((symbol-function 'gnosis--db-set-version)
-                       (lambda (_) (error "Version write fault"))))
-              (should-error (gnosis-db--migrate-v11)))
-            (should (= 10 (gnosis--db-version)))
-            (should-not (gnosis-table-exists-p 'study-history))
-            (should (equal before (gnosis-select '* 'study-session)))
-            (gnosis-db--migrate-v11)
-            (should (= 11 (gnosis--db-version)))))
-      (gnosis-sqlite-close gnosis-db)
-      (delete-directory dir t))))
 
 (ert-deftest gnosis-agent-native-suspend-settles-required-continuation ()
   (dolist (case '(("wrong" nil "excluded")

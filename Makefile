@@ -51,7 +51,7 @@ AUTOLOAD_COMMANDS := gnosis gnosis-add-thema gnosis-add-model-thema gnosis-add-m
 	gnosis-monkeytype-start gnosis-vc-push gnosis-vc-pull
 
 TEST_SUPPORT := $(TEST_DIR)/gnosis-test-db.el \
-	$(TEST_DIR)/gnosis-test-helpers.el $(TEST_DIR)/gnosis-test-schema-v9.el
+	$(TEST_DIR)/gnosis-test-helpers.el $(TEST_DIR)/gnosis-test-schema-v8.el
 TESTS := $(filter-out $(TEST_SUPPORT), \
 	$(wildcard $(TEST_DIR)/gnosis-test-*.el))
 TEST_STAMPS := $(patsubst tests/%.el,$(TEST_RESULTS)/%.stamp,$(TESTS))

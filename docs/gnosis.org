@@ -1642,21 +1642,25 @@ Gnosis exports and imports themata using SQLite database files (=.gnosis=
 extension).  This is faster and more reliable than text-based formats,
 especially for large collections.
 
-** Database Version 12
+** Database Version 9
 
-On opening an older supported database, Gnosis runs its versioned
-migrations.  The version 9 to 10 migration adds separate practice
-encounters, one retained study session, an active scheduler configuration
-selection and scheduled/practice void records.  It preserves existing
-scheduled events and state and initially selects configuration 1.  The
-migration is transactional: its schema and version change together.
-Earlier databases first pass through the earlier migrations; legacy
-aggregate review totals do not become invented event-level history.
+Gnosis upgrades released 0.10.6 databases (version 8) directly to version 9.
+Until 0.11.0 is published, this is the only supported migration. Unknown or
+private development versions are refused; preserve a backup and use matching
+source or a separately verified conversion rather than changing the version.
 
-Version 11 retains study-session snapshots by identity in =study_history=.
-Version 12 adds nullable =themata.accepted_aliases= without rewriting existing
-answers or review history; old rows have no aliases. This database version is
-separate from portable content format 3, which carries aliases explicitly.
+The migration creates the complete FSRS and study storage in one transaction:
+scheduler baselines and state, scheduled events, separate practice encounters,
+a retained study session, session snapshots by identity in =study_history=,
+active configuration selection and scheduled/practice void records. It
+initially selects configuration 1. Known legacy due dates, repetition/lapse
+counts, suspension and aggregate activity are retained. Legacy algorithm
+values do not become FSRS memory or invented event-level history.
+
+Version 9 also adds nullable =themata.accepted_aliases= without rewriting
+existing answers; old rows have no aliases. Schema, data and version changes
+roll back together on error or quit. This database version is separate from
+portable content format 3, which carries aliases explicitly.
 Content formats 1 and 2 remain readable and supply no aliases. Alias-only
 changes and clears appear in import preview and participate in drift checks.
 Format 3 is still content-only: it does not bundle managed images or models.

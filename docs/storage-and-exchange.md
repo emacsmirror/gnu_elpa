@@ -5,6 +5,23 @@ imports, exports, or database backup. These are preservation requirements;
 inspect the named implementations and their callers before changing a contract.
 Use disposable databases for all probes, including failure and retry tests.
 
+## Database release boundary
+
+Until 0.11.0 is published, released 0.10.6/schema 8 is the only migration
+source. Fresh databases use schema 9; the single 8-to-9 transaction creates
+the complete FSRS, practice, session-history and accepted-alias layout.
+Extend this migration and fresh creation together, not a chain of private
+schema versions. Unknown/private layouts fail closed and need a separately
+verified conversion; changing `user_version` is not migration validation.
+
+The released fixture in `tests/gnosis-test-schema-v8.el` copies the actual
+0.10.6 declarations. Migration retains content (including known archive
+columns), links, tags and node rows. Known due dates, repetitions, lapses and
+suspension become scheduler baselines/state; daily activity is aggregated.
+Legacy algorithm internals are not FSRS memory, and no historical grades are
+invented. The old review/activity tables are removed only inside the same
+transaction. Errors and quits restore the complete source schema and rows.
+
 ## Lisp encoding
 
 `lisp/gnosis-sqlite.el` owns Lisp/SQL encoding. Its
@@ -45,7 +62,7 @@ For preview drift and partial-import retry coverage, start with:
 
 ## Accepted aliases and content format 3
 
-Schema 12 adds nullable `themata.accepted_aliases` TEXT, exposed as the Lisp
+Schema 9 adds nullable `themata.accepted_aliases` TEXT, exposed as the Lisp
 column `accepted-aliases`. The owned SQL serializer encodes a list of strings;
 NULL/nil means no aliases. Migration uses ALTER TABLE and leaves canonical
 answers, retained extra columns and study evidence intact. `gnosis-answer`
@@ -68,7 +85,7 @@ remain readable with missing aliases normalized to nil. Alias-only updates and
 clears must appear in preview, and both source and destination snapshots guard
 against alias drift. None of these formats bundles managed media: image types,
 model Find/Name and managed syntax remain refused. Preserve this distinction
-from schema 12 and database-plus-assets backup format 1.
+from schema 9 and database-plus-assets backup format 1.
 
 Start with `gnosis-test-answer`, `gnosis-test-aliases-codec` and
 `gnosis-test-media-integration`. The latter retains Name recursive-input faults
@@ -125,7 +142,7 @@ adjacent `assets` directory together; copying only the database loses media.
 Find (`model`) retains `(RESOURCE YAW PITCH ZOOM)` strings in `hypothesis`
 and one stable target ID in `answer`. Name (`model-name`) instead stores
 `(RESOURCE TARGET YAW PITCH ZOOM)` in `hypothesis` and one canonical text in
-`answer`; aliases use the independent schema-12 column. `gnosis-model-fields`
+`answer`; aliases use the independent schema-9 column. `gnosis-model-fields`
 validates both modes against the immutable scene before saving or using them.
 
 Unversioned scenes project object targets in memory without rewriting bytes.

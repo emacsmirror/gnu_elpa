@@ -4,20 +4,21 @@
 (require 'gnosis-test-db-safety)
 (require 'gnosis-test-helpers)
 
-(defun gnosis-test-media--old-database (version &optional archive)
-  "Create historical VERSION storage, optionally retaining ARCHIVE metadata."
-  (gnosis-test-safety-v9)
+(defun gnosis-test-media--old-database (&optional archive)
+  "Create released schema 8, optionally retaining ARCHIVE metadata."
+  (gnosis-test-safety-v8)
   (let ((gnosis-db (gnosis-sqlite-open (expand-file-name "gnosis.db" gnosis-dir))))
     (unwind-protect
         (progn
-          (when (>= version 10) (gnosis-db--migrate-v10))
-          (when (>= version 11) (gnosis-db--migrate-v11))
           (when archive
             (sqlite-execute gnosis-db "ALTER TABLE themata ADD COLUMN archived_at_us INTEGER")
             (sqlite-execute gnosis-db "UPDATE themata SET archived_at_us = 42 WHERE id = 1"))
           (sqlite-execute gnosis-db
             "CREATE TABLE retained_labels (id TEXT PRIMARY KEY, value TEXT) WITHOUT ROWID")
-          (sqlite-execute gnosis-db "INSERT INTO retained_labels VALUES ('a', 'kept')"))
+          (sqlite-execute gnosis-db "INSERT INTO retained_labels VALUES ('a', 'kept')")
+          (sqlite-execute gnosis-db
+            "CREATE TRIGGER retained_labels_no_update BEFORE UPDATE ON retained_labels
+             BEGIN SELECT RAISE(ABORT, 'retained label'); END"))
       (sqlite-close gnosis-db))))
 
 (defun gnosis-test-media--rows (db)
@@ -33,7 +34,7 @@
 (ert-deftest gnosis-media-schema-fresh-alias-column-and-old-writer ()
   (gnosis-test-safety
     (gnosis--ensure-db)
-    (should (= 12 (gnosis--db-version)))
+    (should (= 9 (gnosis--db-version)))
     (should (equal '("accepted_aliases" "TEXT" 0 nil 0)
                    (cdr (assoc 6 (sqlite-select gnosis-db "PRAGMA table_info(themata)")))))
     (gnosis--insert-into 'themata '([900 "basic" "Q" ("") ("A") "source"]))
@@ -41,42 +42,49 @@
     (should (equal "source" (gnosis-get 'source-guid 'themata '(= id 900))))))
 
 (ert-deftest gnosis-media-schema-upgrade-preserves-all-retained-columns ()
-  (dolist (version '(9 10 11))
+  (progn
     (dolist (archive '(nil t))
       (gnosis-test-safety
-        (gnosis-test-media--old-database version archive)
+        (gnosis-test-media--old-database archive)
         (let* ((file (expand-file-name "gnosis.db" gnosis-dir))
                (raw (sqlite-open file))
+               (trigger (sqlite-select raw
+                         "SELECT sql FROM sqlite_master WHERE name = 'retained_labels_no_update'"))
                (before (unwind-protect (gnosis-test-media--rows raw) (sqlite-close raw))))
           (gnosis--ensure-db)
-          (should (= 12 (gnosis--db-version)))
-          (dolist (entry before)
+          (should (= 9 (gnosis--db-version)))
+          (dolist (entry (seq-remove
+                          (lambda (row) (member (car row)
+                            '("review" "review_log" "activity_log"))) before))
             (should (equal (nth 2 entry)
                            (sqlite-select gnosis-db
                              (format "SELECT %s FROM %s ORDER BY 1" (nth 1 entry) (car entry))))))
+          (should (equal trigger (sqlite-select gnosis-db
+                                  "SELECT sql FROM sqlite_master WHERE name = 'retained_labels_no_update'")))
+          (should-error (sqlite-execute gnosis-db "UPDATE retained_labels SET value = 'lost'"))
           (should-not (gnosis-get 'accepted-aliases 'themata '(= id 1)))
           (when archive (should (= 42 (gnosis-get 'archived-at-us 'themata '(= id 1)))))
           (sqlite-close gnosis-db)
           (setq gnosis-db nil)
           (should (gnosis--ensure-db)))))))
 
-(ert-deftest gnosis-media-schema-v12-failure-is-atomic ()
+(ert-deftest gnosis-media-schema-v8-upgrade-failure-is-atomic ()
   (dolist (fault '(error quit))
     (gnosis-test-safety
-      (gnosis-test-media--old-database 11 t)
+      (gnosis-test-media--old-database t)
       (let* ((file (expand-file-name "gnosis.db" gnosis-dir))
              (before (gnosis-test-safety-snapshot file))
              (setter (symbol-function 'gnosis--db-set-version)))
         (cl-letf (((symbol-function 'gnosis--db-set-version)
                    (lambda (version)
-                     (if (= version 12) (signal fault '("after ALTER"))
+                     (if (= version 9) (signal fault '("after ALTER"))
                        (funcall setter version)))))
           (should (condition-case nil (progn (gnosis--ensure-db) nil)
                     ((error quit) t))))
         (should-not gnosis-db)
         (should (equal before (gnosis-test-safety-snapshot file)))
         (should (gnosis--ensure-db))
-        (should (= 12 (gnosis--db-version)))))))
+        (should (= 9 (gnosis--db-version)))))))
 
 (ert-deftest gnosis-media-schema-rejects-alias-column-drift-before-writes ()
   (gnosis-test-safety

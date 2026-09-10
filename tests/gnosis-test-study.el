@@ -5,7 +5,7 @@
 (require 'gnosis-study)
 (require 'gnosis-export-import)
 (require 'gnosis-test-helpers)
-(require 'gnosis-test-schema-v9)
+(require 'gnosis-test-schema-v8)
 
 (defmacro gnosis-test-study (&rest body)
   "Run BODY with real writers and disposable buffers and database."
@@ -283,27 +283,6 @@
         (gnosis-sqlite-close gnosis-db)
         (setq gnosis-db (gnosis-sqlite-open gnosis-test--db-file))
         (should (= 0.8 (gnosis-scheduler--config-retention gnosis-db (gnosis-scheduler-active-config))))))))
-
-(ert-deftest gnosis-study-v9-migration-and-rollback ()
-  (gnosis-test-with-old-db
-    (gnosis-test--create-v9-schema)
-    (gnosis--insert-into 'themata '([1 "basic" "Q" ("") ("A") nil]))
-    (gnosis--insert-into 'scheduler-baseline '([1 20260907 3 1]))
-    (gnosis--insert-into 'scheduler-state '([1 1 nil nil nil nil 20260907 3 1 0]))
-    (let ((before (gnosis-select '* 'scheduler-state))
-          (set-version (symbol-function 'gnosis--db-set-version)))
-      (cl-letf (((symbol-function 'gnosis--db-set-version)
-                 (lambda (_) (error "Injected final migration failure"))))
-        (should-error (gnosis-db--migrate-v10)))
-      (should (= 9 (gnosis--db-version)))
-      (should-not (gnosis-table-exists-p 'practice-events))
-      (should (equal before (gnosis-select '* 'scheduler-state)))
-      (funcall set-version 9)
-      (gnosis-db-init)
-      (should (= gnosis-db-version (gnosis--db-version)))
-      (should (equal before (gnosis-select '* 'scheduler-state)))
-      (should-not (sqlite-select gnosis-db "PRAGMA foreign_key_check"))
-      (should (= 1 (gnosis-scheduler-active-config))))))
 
 (ert-deftest gnosis-study-backup-keeps-evidence-content-export-does-not ()
   (gnosis-test-study
@@ -745,8 +724,8 @@
   "Check TABLE alternate-key replacement and hard deletion after MIGRATED setup."
   (gnosis-test-with-old-db
     (when migrated
-      (gnosis-test--create-v9-schema)
-      (should (= 9 (gnosis--db-version))))
+      (gnosis-test--create-v8-schema)
+      (should (= 8 (gnosis--db-version))))
     (gnosis-db-init)
     (should (= gnosis-db-version (gnosis--db-version)))
     ;; REPLACE must be rejected without depending on recursive delete triggers.
@@ -794,19 +773,19 @@
 (ert-deftest gnosis-study-practice-event-alternate-replacement-fresh ()
   (gnosis-test-study-reject-alternate-replacement 'practice_events nil))
 
-(ert-deftest gnosis-study-practice-event-alternate-replacement-v9 ()
+(ert-deftest gnosis-study-practice-event-alternate-replacement-from-v8 ()
   (gnosis-test-study-reject-alternate-replacement 'practice_events t))
 
 (ert-deftest gnosis-study-practice-void-alternate-replacement-fresh ()
   (gnosis-test-study-reject-alternate-replacement 'practice_voids nil))
 
-(ert-deftest gnosis-study-practice-void-alternate-replacement-v9 ()
+(ert-deftest gnosis-study-practice-void-alternate-replacement-from-v8 ()
   (gnosis-test-study-reject-alternate-replacement 'practice_voids t))
 
 (ert-deftest gnosis-study-review-void-alternate-replacement-fresh ()
   (gnosis-test-study-reject-alternate-replacement 'review_voids nil))
 
-(ert-deftest gnosis-study-review-void-alternate-replacement-v9 ()
+(ert-deftest gnosis-study-review-void-alternate-replacement-from-v8 ()
   (gnosis-test-study-reject-alternate-replacement 'review_voids t))
 
 (ert-deftest gnosis-study-summary-skipped-retry-is-not-unattempted ()

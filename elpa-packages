@@ -726,6 +726,7 @@
   :ignored-files ("LICENSE.md"))
  (quarter-plane		:url nil)
  (queue			:url nil) ;"http://www.dr-qubit.org/git/predictive.git"
+ (r-ts-mode		:url "https://codeberg.org/R-for-emacs/r-ts-mode")
  ;; (rails-routes	:url "https://github.com/otavioschwanck/emacs-rails-routes")
  (rainbow-mode		:url nil)
  (rbit			:url nil)

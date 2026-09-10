@@ -3,9 +3,11 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Local deterministic OBJ scenes -> EGL -> C3D3 color frames and frame-pinned compact picks."""
 import argparse
+import os
+import re
+import stat
 import json
 import math
-import os
 from pathlib import Path
 import struct
 import sys
@@ -168,6 +170,8 @@ class Renderer:
         self.points = self.ctx.texture((size, size), 3, dtype="f4")
         self.framebuffer = self.ctx.framebuffer([self.color, self.identity, self.faces, self.points],
                                                self.ctx.depth_renderbuffer((size, size)))
+        self.latest = None
+        self.rendered_size = size
         self.ctx.enable(moderngl.DEPTH_TEST)
         print(json.dumps({"renderer": self.ctx.info["GL_RENDERER"],
                           "triangles": sum(len(f) for _, f in self.meshes), "size": size}),
@@ -217,8 +221,9 @@ class Renderer:
             self.mark_buffers[index].write(np.repeat(marks, 3).tobytes())
         return mesh
 
-    def frame_geometry(self, yaw=0, pitch=0, zoom=1, selected=0, highlight=None):
-        """Return top-down BGRA, mesh bytes, BE uint32 faces+1 and BE xyz floats."""
+    def _draw(self, size, yaw=0, pitch=0, zoom=1, selected=0, highlight=None):
+        """Draw attachments, invalidating any previously published frame."""
+        self.latest = None
         if type(selected) is not int or not 0 <= selected <= len(self.objects):
             raise ValueError("Invalid selected index")
         self.program["selected"].value = selected
@@ -238,13 +243,31 @@ class Renderer:
             self.program["object_index"].value = index
             self.program["highlight_mesh"].value = index - 1 == highlighted_mesh
             vao.render(moderngl.TRIANGLES)
-        rgba = np.frombuffer(self.color.read(alignment=1), dtype=np.uint8).reshape(self.size, self.size, 4)[::-1]
+
+    def _color_bytes(self):
+        """Pack top-down BGRA without NumPy's advanced-indexing copy."""
+        size = self.rendered_size
+        rgba = np.frombuffer(self.color.read(alignment=1), dtype=np.uint8).reshape(size, size, 4)[::-1]
+        bgra = np.empty((size, size, 4), dtype=np.uint8)
+        bgra[:, :, 0] = rgba[:, :, 2]
+        bgra[:, :, 1] = rgba[:, :, 1]
+        bgra[:, :, 2] = rgba[:, :, 0]
+        bgra[:, :, 3] = rgba[:, :, 3]
+        return bgra.tobytes()
+
+    def frame_geometry(self, yaw=0, pitch=0, zoom=1, selected=0, highlight=None):
+        """Return full-size BGRA, mesh bytes, BE uint32 faces+1 and BE xyz floats.
+
+        This legacy readback API draws anew and invalidates packet picking.
+        """
+        self._draw(self.size, yaw, pitch, zoom, selected, highlight)
+        color = self._color_bytes()
         ids = np.frombuffer(self.identity.read(alignment=1), dtype=np.uint8).reshape(self.size, self.size)[::-1]
         faces = np.frombuffer(self.faces.read(alignment=1), dtype="u4").reshape(self.size, self.size)[::-1].copy()
         points = np.frombuffer(self.points.read(alignment=1), dtype="f4").reshape(self.size, self.size, 3)[::-1].copy()
         # Explicitly canonicalize background for all attachment clear formats.
         faces[ids == 0], points[ids == 0] = 0, 0
-        return (rgba[:, :, [2, 1, 0, 3]].tobytes(), ids.tobytes(),
+        return (color, ids.tobytes(),
                 faces.astype(">u4").tobytes(), points.astype(">f4").tobytes())
 
     def frame_pair(self, yaw=0, pitch=0, zoom=1, selected=0):
@@ -254,29 +277,38 @@ class Renderer:
     def frame(self, yaw=0, pitch=0, zoom=1):
         return self.frame_pair(yaw, pitch, zoom)[0]
 
-    def packet(self, seq, **view):
+    def packet(self, seq, size=None, **view):
+        """Return full-resolution C3D3 color, retaining GPU pick attachments.
+
+        Optional SIZE must match the configured size.
+        Only the latest successful packet is pickable until another draw.
+        """
         if type(seq) is not int or not 1 <= seq <= 0xffffffff:
             raise ValueError("Sequence must be uint32 > 0")
-        color, ids, faces, points = self.frame_geometry(**view)
-        self.latest = (seq, ids, faces, points)
-        return b"C3D3" + struct.pack(">I", seq) + color
+        if size is not None and (type(size) is not int or size != self.size):
+            raise ValueError("Requested size must match configured size")
+        self._draw(self.size if size is None else size, **view)
+        packet = b"C3D3" + struct.pack(">I", seq) + self._color_bytes()
+        self.latest = seq
+        return packet
 
     def pick(self, seq, frame, x, y):
         """Return a compact hit from exactly FRAME, never a newer camera."""
         if (type(seq) is not int or not 1 <= seq <= 0xffffffff
                 or type(frame) is not int or not 1 <= frame <= 0xffffffff
                 or type(x) is not int or type(y) is not int
-                or not 0 <= x < self.size or not 0 <= y < self.size):
+                or not 0 <= x < self.rendered_size or not 0 <= y < self.rendered_size):
             raise ValueError("Invalid pick request")
-        latest = getattr(self, "latest", None)
         index, face, point = 0xffffffff, 0, (0, 0, 0)
-        if latest is not None and latest[0] == frame:
-            _, ids, faces, points = latest
-            pixel = y * self.size + x
-            index = ids[pixel]
+        if self.latest == frame:
+            viewport = (x, self.rendered_size - 1 - y, 1, 1)
+            index = self.framebuffer.read(viewport=viewport, components=1,
+                                          attachment=1, alignment=1, dtype="f1")[0]
             if index:
-                face = struct.unpack_from(">I", faces, pixel * 4)[0]
-                point = struct.unpack_from(">fff", points, pixel * 12)
+                face = struct.unpack("=I", self.framebuffer.read(
+                    viewport=viewport, components=1, attachment=2, alignment=1, dtype="u4"))[0]
+                point = struct.unpack("=fff", self.framebuffer.read(
+                    viewport=viewport, components=3, attachment=3, alignment=1, dtype="f4"))
         return struct.pack(">4sIIIIfff", b"C3P3", seq, frame, index, face, *point)
 
     def request(self, seq, op="view", **request):
@@ -291,6 +323,60 @@ class Renderer:
         self.ctx.release()
 
 
+class FrameOutput:
+    """Publish bounded BGRA files in a private directory owned by the caller.
+
+    Hold an open directory descriptor: retirement cannot recreate a directory
+    or redirect later publication to a replacement pathname.  The caller moves
+    the sequence-qualified pending file away before the next view.  Never accept paths in
+    requests or return them in responses.
+    """
+
+    def __init__(self, directory, identity):
+        if not re.fullmatch(r"[0-9a-f]{16}", identity or ""):
+            raise ValueError("File identity must be 16 lowercase hex digits")
+        self.identity = identity.encode("ascii")
+        self.pending = None
+        self.fd = os.open(directory, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+        info = os.fstat(self.fd)
+        if info.st_uid != os.getuid() or stat.S_IMODE(info.st_mode) != 0o700:
+            self.close()
+            raise ValueError("Frame directory must be private and owned by this user")
+
+    def publish(self, packet):
+        if packet[:4] != b"C3D3" or not 8 < len(packet) <= 8 + 4 * 768 * 768:
+            raise ValueError("Invalid color packet")
+        # Exclusive temporary creation rejects unexpected files/symlinks.  An
+        # unacknowledged pending frame must not be silently overwritten either.
+        if self.pending:
+            try:
+                os.stat(self.pending, dir_fd=self.fd, follow_symlinks=False)
+            except FileNotFoundError:
+                pass
+            else:
+                raise ValueError("Previous frame has not been consumed")
+        seq = struct.unpack(">I", packet[4:8])[0]
+        pending = f"pending-{seq}.bgra"
+        fd = os.open("writing.bgra", os.O_WRONLY | os.O_CREAT | os.O_EXCL
+                     | os.O_NOFOLLOW, 0o600, dir_fd=self.fd)
+        try:
+            with os.fdopen(fd, "wb") as stream:
+                stream.write(memoryview(packet)[8:])
+            # The new sequence pathname must not already name a publication.
+            os.link("writing.bgra", pending, src_dir_fd=self.fd,
+                    dst_dir_fd=self.fd, follow_symlinks=False)
+            self.pending = pending
+        finally:
+            try:
+                os.unlink("writing.bgra", dir_fd=self.fd)
+            except FileNotFoundError:
+                pass
+        return b"C3D4" + packet[4:8] + self.identity
+
+    def close(self):
+        os.close(self.fd)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("model")
@@ -299,9 +385,15 @@ def main():
     parser.add_argument("--yaw", type=float, default=0)
     parser.add_argument("--pitch", type=float, default=0)
     parser.add_argument("--zoom", type=float, default=1)
+    parser.add_argument("--frame-directory", help="Existing private directory for native BGRA")
+    parser.add_argument("--frame-identity", help="Caller-owned file transport identity")
     args = parser.parse_args()
-    renderer = Renderer(args.model, args.size)
+    if bool(args.frame_directory) != bool(args.frame_identity) or (args.output and args.frame_directory):
+        parser.error("File transport needs both directory and identity, without --output")
+    output = FrameOutput(args.frame_directory, args.frame_identity) if args.frame_directory else None
+    renderer = None
     try:
+        renderer = Renderer(args.model, args.size)
         if args.output:
             Path(args.output).write_bytes(renderer.frame(args.yaw, args.pitch, args.zoom))
         else:
@@ -310,10 +402,16 @@ def main():
             while line := sys.stdin.buffer.readline(limit + 1):
                 if len(line) > limit or not line.endswith(b"\n"):
                     raise ValueError("Invalid or oversized request")
-                sys.stdout.buffer.write(renderer.request(**json.loads(line)))
+                packet = renderer.request(**json.loads(line))
+                if output and packet[:4] == b"C3D3":
+                    packet = output.publish(packet)
+                sys.stdout.buffer.write(packet)
                 sys.stdout.buffer.flush()
     finally:
-        renderer.close()
+        if renderer:
+            renderer.close()
+        if output:
+            output.close()
 
 
 if __name__ == "__main__":

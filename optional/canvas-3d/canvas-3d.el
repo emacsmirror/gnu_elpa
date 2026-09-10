@@ -18,6 +18,7 @@
 (require 'json)
 (require 'seq)
 (require 'image)
+(require 'map)
 (require 'cl-lib)
 (require 'regexp-opt)
 
@@ -65,13 +66,17 @@ Opening a viewer never installs dependencies."
 (defvar-local canvas-3d--revealed nil)
 (defvar-local canvas-3d--status "Starting")
 (defvar-local canvas-3d--stderr nil)
-(defvar-local canvas-3d--size 512 "Canvas side length in pixels.")
+(defvar-local canvas-3d--size 512 "Displayed canvas side length in pixels.")
+(defvar-local canvas-3d--requested-size nil "Raw side length of the pending view.")
+(defvar-local canvas-3d--frame-directory nil "Private native publication directory.")
+(defvar-local canvas-3d--file-identity nil "Process-qualified publication identity.")
+(defvar-local canvas-3d--current-file nil "Backing file retained until image retirement.")
 (defvar-local canvas-3d--objects nil)
 (defvar-local canvas-3d--invalid-index-regexp nil
   "Cached (OBJECT-COUNT . REGEXP) matching invalid object-index bytes.")
 (defvar-local canvas-3d--seq 0)
 (defvar-local canvas-3d--protocol 1
-  "Wire version; real viewers use 3, legacy packet fixtures default to 1.")
+  "Wire version; real viewers use 4, legacy packet fixtures default to 1.")
 (defvar-local canvas-3d--selection nil
   "Owned geometry plist with :mesh :face :point :id :frame and :owner.")
 (defvar-local canvas-3d--question-target nil
@@ -95,6 +100,45 @@ ID is nil for background.  Consumers must not infer a scheduler action.")
               canvas-3d--label "Model (label hidden)")
           canvas-3d--status canvas-3d--zoom))
 
+(defun canvas-3d--valid-file-p (file bytes)
+  "Return non-nil if FILE is an owned private regular file of exactly BYTES."
+  (let ((attrs (file-attributes file)))
+    (and attrs (null (file-attribute-type attrs))
+         (= (file-attribute-user-id attrs) (user-uid))
+         (= (file-attribute-link-number attrs) 1)
+         (= (file-modes file) #o600)
+         (= (file-attribute-size attrs) bytes))))
+
+(defun canvas-3d--release-files ()
+  "Retain the last image in memory, then remove owned publication files.
+This one-time copy allows redisplay after cancel or detach without retaining
+files for the lifetime of old feedback images.  Motion never copies BGRA
+through Lisp.  Call only after retiring the renderer."
+  (when canvas-3d--frame-directory
+    (unwind-protect
+        (when (and canvas-3d--current-file canvas-3d--image)
+          (let* ((file canvas-3d--current-file)
+                 (length (* 4 canvas-3d--size canvas-3d--size))
+                 bytes)
+            (unwind-protect
+                (progn
+                  (unless (canvas-3d--valid-file-p file length)
+                    (error "Last canvas frame is unavailable; clearing retired image"))
+                  (setq bytes (with-temp-buffer
+                                (set-buffer-multibyte nil)
+                                (insert-file-contents-literally file nil 0 length)
+                                (unless (= (buffer-size) length)
+                                  (error "Last canvas frame became incomplete"))
+                                (buffer-string))))
+              ;; Never leave a retired image pointing at deleted storage, even
+              ;; when its pixels were lost.  Do not refresh the native cache.
+              (setcdr canvas-3d--image
+                      (plist-put (map-delete (cdr canvas-3d--image) :file)
+                                 :data (or bytes (make-string length 0)))))))
+      (delete-directory canvas-3d--frame-directory t)
+      (setq canvas-3d--frame-directory nil canvas-3d--file-identity nil
+            canvas-3d--current-file nil))))
+
 (defun canvas-3d--stop (&optional status)
   "Retire the renderer and any pending frame, displaying STATUS."
   (when (timerp canvas-3d--timer) (cancel-timer canvas-3d--timer))
@@ -104,6 +148,9 @@ ID is nil for background.  Consumers must not infer a scheduler action.")
   (let ((process canvas-3d--process))
     (setq canvas-3d--process nil)
     (when (process-live-p process) (delete-process process)))
+  (condition-case err
+      (canvas-3d--release-files)
+    (error (message "Canvas cleanup: %s" (error-message-string err))))
   (when status (setq canvas-3d--status status))
   (force-mode-line-update))
 
@@ -129,6 +176,7 @@ ID is nil for background.  Consumers must not infer a scheduler action.")
   (if canvas-3d--busy
       (setq canvas-3d--dirty t)
     (setq canvas-3d--busy t canvas-3d--dirty nil canvas-3d--status "Rendering"
+          canvas-3d--requested-size canvas-3d--size
           canvas-3d--requested-selection canvas-3d-selected-id
           canvas-3d--requested-geometry (copy-tree canvas-3d--selection)
           canvas-3d--requested-target (copy-tree canvas-3d--question-target))
@@ -154,15 +202,53 @@ ID is nil for background.  Consumers must not infer a scheduler action.")
                                                  (memq (car pair) '(mesh kind face barycentric tolerance faces)))
                                                canvas-3d--question-target)
                                               json-null))
+                            (size . ,canvas-3d--requested-size)
                             (yaw . ,canvas-3d--yaw)
                             (pitch . ,canvas-3d--pitch)
                             (zoom . ,canvas-3d--zoom))) "\n")))
   (force-mode-line-update))
 
+(defun canvas-3d--published-file (packet size)
+  "Validate PACKET publication identity and exact SIZE before native loading."
+  (unless (and canvas-3d--frame-directory
+               (equal (substring packet 8) canvas-3d--file-identity))
+    (error "Invalid native frame identity"))
+  (let ((file (expand-file-name (format "pending-%d.bgra" canvas-3d--seq)
+                               canvas-3d--frame-directory)))
+    ;; canvas-refresh may merely log a native file error.  Its return value
+    ;; cannot establish successful publication; validate before calling it.
+    (unless (canvas-3d--valid-file-p file (* 4 size size))
+      (error "Incomplete or invalid native frame file"))
+    file))
+
 (defun canvas-3d--paint (frame)
   "Display FRAME with its exact renderer identity."
-  (setf (plist-get (cdr canvas-3d--image) :data) (plist-get frame :color))
-  (canvas-refresh canvas-3d--image t))
+  (let* ((size (or (plist-get frame :size) canvas-3d--size))
+         (pending (plist-get frame :file))
+         (old-spec (copy-sequence (cdr canvas-3d--image)))
+         (previous canvas-3d--current-file)
+         (file (and pending (expand-file-name
+                             (format "frame-%d.bgra" (plist-get frame :seq))
+                             canvas-3d--frame-directory)))
+         (complete nil))
+    (unwind-protect
+        (progn
+          (when pending (rename-file pending file))
+          (setcdr canvas-3d--image
+                  (if file
+                      (plist-put (map-delete (copy-sequence old-spec) :data) :file file)
+                    (plist-put (map-delete (copy-sequence old-spec) :file)
+                               :data (plist-get frame :color))))
+          (setf (plist-get (cdr canvas-3d--image) :data-width) size
+                (plist-get (cdr canvas-3d--image) :data-height) size
+                (plist-get (cdr canvas-3d--image) :scale) (/ (float canvas-3d--size) size))
+          (canvas-refresh canvas-3d--image t)
+          (when file (setf (plist-get frame :file) file))
+          (setq canvas-3d--current-file file complete t)
+          (when previous (delete-file previous)))
+      (unless complete
+        (setcdr canvas-3d--image old-spec)
+        (when (and file (file-exists-p file)) (delete-file file))))))
 
 (defun canvas-3d--invalid-indices-p (ids count)
   "Return non-nil if IDS contains a byte above object COUNT."
@@ -181,8 +267,10 @@ ID is nil for background.  Consumers must not infer a scheduler action.")
     (with-current-buffer owner
       (when (eq process canvas-3d--process)
         (condition-case err
-            (let* ((area (* canvas-3d--size canvas-3d--size))
-                   (expected (+ 8 (* (pcase canvas-3d--protocol (3 4) (2 21) (_ 5)) area))))
+            (let* ((size (or canvas-3d--requested-size canvas-3d--size))
+                   (area (* size size))
+                   (expected (if (= canvas-3d--protocol 4) 24
+                               (+ 8 (* (pcase canvas-3d--protocol (3 4) (2 21) (_ 5)) area)))))
               (when (> (+ canvas-3d--byte-count (length chunk)) (* 2 expected))
                 (error "Renderer buffer cap exceeded"))
               ;; Retain chunks without copying the growing packet on every read.
@@ -208,8 +296,11 @@ ID is nil for background.  Consumers must not infer a scheduler action.")
 				 (equal (substring packet 0 4)
                                         (format "C3D%d" canvas-3d--protocol)))
                       (error "Unsolicited or invalid renderer frame"))
-                    (let ((frame (list :owner process :seq seq
-                                       :color (substring packet 8 (+ 8 (* 4 area)))
+                    (let ((frame (list :owner process :seq seq :size size
+                                       :file (and (= canvas-3d--protocol 4)
+                                                  (canvas-3d--published-file packet size))
+                                       :color (and (< canvas-3d--protocol 4)
+                                                   (substring packet 8 (+ 8 (* 4 area))))
                                        :ids (and (< canvas-3d--protocol 3)
                                                  (substring packet (+ 8 (* 4 area)) (+ 8 (* 5 area))))
                                        :faces (and (= canvas-3d--protocol 2)
@@ -233,6 +324,10 @@ ID is nil for background.  Consumers must not infer a scheduler action.")
                                    (equal (plist-get canvas-3d--selection :mesh) canvas-3d-selected-id))
                           (setq canvas-3d--selection
                                 (plist-put (copy-sequence canvas-3d--selection) :frame seq)))))
+                    (when (= canvas-3d--protocol 4)
+                      (let ((pending (expand-file-name (format "pending-%d.bgra" canvas-3d--seq)
+                                canvas-3d--frame-directory)))
+                        (when (file-exists-p pending) (delete-file pending))))
                     (when (timerp canvas-3d--timer) (cancel-timer canvas-3d--timer))
                     (setq canvas-3d--timer nil
                           canvas-3d--bytes nil canvas-3d--byte-count 0
@@ -323,7 +418,10 @@ supersedes a pending hit.  Picking never accepts an answer or changes a target."
         (process-send-string
          process (concat (json-encode `((op . "pick") (seq . ,seq)
                                        (frame . ,(plist-get frame :seq))
-                                       (x . ,x) (y . ,y))) "\n")))
+                                       (x . ,(floor (* x (or (plist-get frame :size) canvas-3d--size))
+                                                    canvas-3d--size))
+                                       (y . ,(floor (* y (or (plist-get frame :size) canvas-3d--size))
+                                                    canvas-3d--size)))) "\n")))
       (force-mode-line-update)
       nil)))
 
@@ -572,7 +670,7 @@ Only one attachment may own a buffer; use `canvas-3d-detach' when finished."
           (add-hook 'kill-buffer-hook #'canvas-3d--cleanup nil t)
           (add-hook 'change-major-mode-hook #'canvas-3d--cleanup nil t)
           (setq canvas-3d--objects objects
-                canvas-3d--protocol 3 canvas-3d--selection nil
+                canvas-3d--protocol 4 canvas-3d--selection nil
                 canvas-3d--question-target nil canvas-3d-selected-id nil
 		canvas-3d--size (or size 512)
 		canvas-3d--initial-view (copy-sequence initial-view)
@@ -591,14 +689,21 @@ Only one attachment may own a buffer; use `canvas-3d-detach' when finished."
             (unless embedded (goto-char (point-min))))
           (condition-case err
               (progn
+                (setq canvas-3d--frame-directory (make-temp-file "canvas-3d-" t)
+                      canvas-3d--file-identity
+                      (substring (secure-hash 'sha256 canvas-3d--frame-directory) 0 16))
+                (set-file-modes canvas-3d--frame-directory #o700)
 		(setq canvas-3d--process
-                      (make-process :name "canvas-3d" :buffer buffer
+                      (let ((read-process-output-max 65536))
+                        (make-process :name "canvas-3d" :buffer buffer
                                     :command (list python (expand-file-name "render.py" canvas-3d--directory)
                                                    (expand-file-name path) "--size"
-                                                   (number-to-string canvas-3d--size))
+                                                   (number-to-string canvas-3d--size)
+                                                   "--frame-directory" canvas-3d--frame-directory
+                                                   "--frame-identity" canvas-3d--file-identity)
                                     :connection-type 'pipe :coding 'binary :noquery t
                                     :stderr canvas-3d--stderr
-                                    :filter #'canvas-3d--receive :sentinel #'canvas-3d--sentinel))
+                                    :filter #'canvas-3d--receive :sentinel #'canvas-3d--sentinel)))
 		(canvas-3d--request))
             (error
              (if embedded

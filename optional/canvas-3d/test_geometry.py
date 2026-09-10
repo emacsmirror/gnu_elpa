@@ -48,9 +48,9 @@ class GeometryTests(unittest.TestCase):
                 self.assertEqual(packet[:8], b"C3D3" + struct.pack(">I", 0x12345678))
                 self.assertEqual(len(packet), 8 + 4 * 64 * 64)
                 for seq, (yaw, pitch, zoom) in enumerate(((0, 0, 1), (25, 15, 1.4), (180, 0, 1)), 1):
-                    renderer.packet(seq, yaw=yaw, pitch=pitch, zoom=zoom)
-                    _, raw_ids, raw_faces, raw_points = renderer.latest
-                    _, ids, faces, points = self.decode((bytes(4 * 64 * 64), raw_ids, raw_faces, raw_points), 64)
+                    geometry = renderer.frame_geometry(yaw=yaw, pitch=pitch, zoom=zoom)
+                    _, ids, faces, points = self.decode(geometry, 64)
+                    self.assertEqual(renderer.packet(seq, yaw=yaw, pitch=pitch, zoom=zoom)[8:], geometry[0])
                     picked = struct.unpack(">4sIIIIfff", renderer.pick(seq + 100, seq, 32, 32))
                     self.assertEqual(picked[:5], (b"C3P3", seq + 100, seq, int(ids[32, 32]), int(faces[32, 32])))
                     np.testing.assert_allclose(picked[5:], points[32, 32])

@@ -64,8 +64,24 @@ network request occurs when a viewer opens.
 
 The optional size argument is a fixed square side from 128 to 768 pixels;
 the default is 512. Choose a size that fits the intended window before opening.
-The viewer does not automatically resize or replace its renderer on window
-changes. Larger sizes cost more pipe transfer and Emacs allocation.
+The displayed dimensions remain fixed across window changes. Rotation and zoom
+always use that full resolution; there is no moving-image blur or delayed
+refinement. Choose a smaller fixed size when needed on a lower-powered host.
+Geometry is never simplified. Picks use the exact displayed frame; a pending
+newer view still prevents picking.
+
+Real viewers transfer BGRA through native canvas `:file`, not bulk Lisp strings.
+Each renderer has a caller-created private temporary directory. Complete files
+are atomically published under sequence-qualified names before a 24-byte pipe
+notification. The receiver checks process, sequence, directory identity, file
+ownership/type/mode and exact size before native loading. No renderer-supplied
+path is accepted. Only the current backing file and one pending publication
+(with a bounded writing file) are retained. Cancel, process death, timeout or
+detach copies the last image into memory once and removes the directory; old
+feedback remains redisplayable, without retaining publication files. If the last
+backing file is missing or invalid, cleanup reports the loss and installs blank
+in-memory pixels instead of reading unbounded data or retaining a dead filename.
+Killing or changing the owning buffer mode also releases these resources.
 
 - Drag with mouse button 1 or use arrows / `n p f b` to rotate.
 - Click to select a visible object; background clears selection.
@@ -106,13 +122,21 @@ own interpretation, explicit submission and grading; selecting is not grading.
 
 The pipe protocol is newline-delimited JSON requests with `seq`, `yaw`, `pitch`,
 `zoom`, `selected` (one-based object index, zero for none), and `highlight`
-(null or target geometry). Requests are bounded to 128 KiB. View responses are
-`C3D3`, a big-endian uint32 sequence, and tightly packed opaque top-down BGRA
-color: 8 + 4 × area bytes. The renderer retains the matching depth-tested
-object, face and original-coordinate planes; they are not sent with the image.
+(null or target geometry). Requests are bounded to 128 KiB. An optional request
+`size` must equal the configured fixed size. Native file mode is selected at
+startup with `--frame-directory` and a 16-digit lowercase hex `--frame-identity`.
+Its view notification is `C3D4`, a big-endian uint32 sequence and the 16 ASCII
+identity bytes. The corresponding `pending-SEQUENCE.bgra` contains exactly
+4 × area opaque, top-down BGRA bytes. Emacs gives displayed files a separate
+sequence-qualified name and deletes the previous one only after refresh.
+Standalone script users omitting the file flags receive `C3D3`, a big-endian
+uint32 sequence and tightly packed BGRA color (8 + 4 × area bytes).
+The renderer retains the matching depth-tested object, face and
+original-coordinate GPU attachments; only the clicked pixel is read back
+on a pick, and no geometry planes travel with the image.
 
 A pick request has `op: "pick"`, its own `seq`, the displayed `frame` sequence,
-and integer pixel `x` and `y`. Its 32-byte response contains:
+and integer raw-frame pixel `x` and `y`. Its 32-byte response contains:
 
 - `C3P3`, request sequence, requested frame sequence (12 bytes);
 - big-endian uint32 object index and triangle index **plus one** (8 bytes);
@@ -122,7 +146,7 @@ Zero object/face/coordinates mean background. Object index `0xffffffff` means
 the renderer no longer retains the requested frame, not background. Faces above
 65535 retain their full identity. Python `frame_pair` still returns color/mesh
 planes locally. Existing Elisp protocol 1/2 fixture paths remain for transport
-regressions; real open/attach always sets 3. There is no wire negotiation or
+regressions; real open/attach always sets 4. There is no wire negotiation or
 fallback to old renderer installations.
 
 OBJ `v` and `f` are read in file order. Each polygon becomes `(v0, vi, vi+1)`;

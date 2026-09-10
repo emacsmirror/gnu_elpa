@@ -67,6 +67,7 @@
               (while (and canvas-3d--busy (< (float-time) deadline))
                 (accept-process-output process 0.05)))
             (should (= refreshes 2))
+            (should (= (plist-get canvas-3d--frame :size) 512))
             (should (equal canvas-3d--status "Ready"))
             (should-not canvas-3d--timer)
             (should (= (length (plist-get (cdr image) :data)) (* 512 512 4)))
@@ -307,7 +308,7 @@
     (should-error (canvas-3d-open "unavailable.obj" nil nil size)
                   :type 'user-error))
   (dolist (size '(128 320 768))
-    (let (viewer)
+    (let (viewer command process)
       (unwind-protect
           (cl-letf (((symbol-function 'display-graphic-p) (lambda (&rest _) t))
                     ((symbol-function 'canvas-refresh) #'ignore)
@@ -317,14 +318,21 @@
                     ((symbol-function 'pop-to-buffer) (lambda (buffer &rest _) buffer))
                     ((symbol-function 'make-process)
                      (lambda (&rest args)
-                       (should (equal (car (last (plist-get args :command)))
-                                      (number-to-string size)))
-                       (make-pipe-process :name "canvas-size" :noquery t
-                                          :buffer (plist-get args :buffer)))))
+                       (setq command (plist-get args :command)
+                             process (make-pipe-process
+                                      :name "canvas-size" :noquery t
+                                      :buffer (plist-get args :buffer))))))
             (setq viewer (canvas-3d-open
                           (expand-file-name "fixtures/pyramid.obj" canvas-3d--directory)
                           nil nil size))
+            ;; Startup catches errors, so assert only after it returns.
+            (should (equal (cadr (member "--size" command))
+                           (number-to-string size)))
             (with-current-buffer viewer
+              (should (process-live-p process))
+              (should (eq canvas-3d--process process))
+              (should (eq (process-buffer process) viewer))
+              (should (equal canvas-3d--status "Starting"))
               (should (= canvas-3d--size size))
               (should (= (length (plist-get (cdr canvas-3d--image) :data))
                          (* 4 size size)))))

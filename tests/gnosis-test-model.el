@@ -311,7 +311,7 @@
           (sqlite-close export)))
       (should (gnosis-get 'id 'themata `(= id ,model))))))
 
-(defun gnosis-test-model--canvas (_path _view &optional _size inline _question-target)
+(defun gnosis-test-model--canvas (_path _view &optional _size inline _question-target _verified)
   "Create a deterministic stand-in for the optional canvas boundary."
   (let ((load-path (cons (gnosis-model--renderer-directory) load-path)))
     (require 'canvas-3d))
@@ -319,6 +319,7 @@
     (with-current-buffer buffer
       (unless inline (special-mode))
       (setq-local canvas-3d--process (make-pipe-process :name "gnosis-model-test" :noquery t))
+      (setq-local canvas-3d--image (list 'image :type 'canvas))
       (setq-local canvas-3d--frame (list :seq 1 :owner canvas-3d--process))
       (setq-local canvas-3d--status "Ready")
       (setq-local canvas-3d--busy nil)
@@ -528,7 +529,8 @@
                         ((symbol-function 'canvas-3d--request)
                          (lambda ()
                            (should (eq (current-buffer) owner))
-                           (should (eq canvas-3d--question-target retained))
+                           (should (equal canvas-3d--question-target retained))
+                           (should-not (eq canvas-3d--question-target retained))
                            (setq requested t))))
                 (should (eq owner (gnosis-model-open path '(0 -90 1)
                                                      nil inline question-target)))
@@ -593,6 +595,21 @@
                     :frame 1 :owner (or owner canvas-3d--process)))
   (gnosis-review--model-selection canvas-3d--selection))
 
+(defun gnosis-test-model--wait-for-preparation ()
+  "Wait for the real owned child in a mocked batch recursive input loop."
+  ;; Batch callers create an encounter without the public window display.
+  ;; Supply that display too: hidden encounters now defer attachment.
+  (set-window-buffer (selected-window) (current-buffer))
+  (let ((deadline (+ (float-time) 15)))
+    (while (and gnosis-review--model-context
+                (not (plist-get gnosis-review--model-context :fields))
+                (not (plist-get gnosis-review--model-context :error))
+                (< (float-time) deadline))
+      (accept-process-output nil 0.01))
+    (unless (plist-get gnosis-review--model-context :fields)
+      (error "%s" (or (plist-get gnosis-review--model-context :error)
+                      "Model preparation timed out")))))
+
 (defmacro gnosis-test-model--encounter (&rest input)
   "Run INPUT at the real model encounter's recursive input boundary."
   (declare (indent 0) (debug t))
@@ -604,6 +621,7 @@
                ((symbol-function 'recursive-edit)
                 (lambda ()
                   (setq depth 1)
+                  (gnosis-test-model--wait-for-preparation)
                   (progn
                     (setq-local canvas-3d-selected-id "triangle")
                     (gnosis-test-model--review-pick "triangle" canvas-3d--process)
@@ -659,7 +677,8 @@
                   (should (compare-window-configurations
                            configuration (current-window-configuration)))
                   (cl-letf (((symbol-function 'gnosis-model-open)
-                             (lambda (&rest _) (error "Backend unavailable"))))
+                             (lambda (&rest _) (error "Backend unavailable")))
+                            ((symbol-function 'recursive-edit) #'gnosis-test-model--wait-for-preparation))
                     (should-error (gnosis-review--display-thema model)))
                   (should (compare-window-configurations
                            configuration (current-window-configuration))))))
@@ -960,7 +979,8 @@
                        (quit t)))))
           ('no-submit (should-error (gnosis-test-model--encounter nil)))
           ('backend
-           (cl-letf (((symbol-function 'gnosis-model-open) (lambda (&rest _) (user-error "Unavailable"))))
+           (cl-letf (((symbol-function 'gnosis-model-open) (lambda (&rest _) (user-error "Unavailable")))
+                      ((symbol-function 'recursive-edit) #'gnosis-test-model--wait-for-preparation))
              (should-error (gnosis-review--display-thema model))))
           ('asset
            (delete-file (car (gnosis-model-resolve
@@ -1054,7 +1074,8 @@
      (let* ((model (gnosis-test-model--add))
             (buffer (gnosis-review--setup-buffer (list model) 'practice))
             (path (car (gnosis-model-resolve
-                        (gnosis-get 'hypothesis 'themata `(= id ,model)) '("triangle")))))
+                        (gnosis-get 'hypothesis 'themata `(= id ,model)) '("triangle"))))
+            (make-process-function (symbol-function 'make-process)))
        (unwind-protect
            (with-current-buffer buffer
              ;; Use real attach/stop/detach, replacing only native display and
@@ -1065,12 +1086,16 @@
                        ((symbol-function 'canvas-refresh) #'ignore)
                        ((symbol-function 'canvas-3d--python) (lambda () "unused"))
                        ((symbol-function 'make-process)
-                        (lambda (&rest _) (make-pipe-process :name "attachment-test" :noquery t)))
+                        (lambda (&rest args)
+                          (if (equal (plist-get args :name) "gnosis-model-prepare")
+                              (apply make-process-function args)
+                            (make-pipe-process :name "attachment-test" :noquery t))))
                        ((symbol-function 'canvas-3d--request) #'ignore))
                (dolist (cancel '(t nil))
                  (let (image log)
                    (cl-letf (((symbol-function 'recursive-edit)
                               (lambda ()
+                                (gnosis-test-model--wait-for-preparation)
                                 (setq image canvas-3d--image log canvas-3d--stderr)
                                 (canvas-3d--stop "Renderer failed")
                                 (when cancel (gnosis-review-model-cancel))

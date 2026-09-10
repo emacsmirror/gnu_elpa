@@ -297,7 +297,7 @@
               (let ((gnosis-string-difference 0) (depth 0) shown
                     (before (sqlite-select gnosis-db "SELECT * FROM scheduler_state ORDER BY thema_id")))
                 (cl-letf (((symbol-function 'gnosis-model-open)
-                           (lambda (path view &optional size inline question-target)
+                           (lambda (path view &optional size inline question-target _verified)
                              (setq shown question-target)
                              (gnosis-test-model--canvas path view size inline)))
                           ((symbol-function 'gnosis-model--canvas-size) (lambda () 400))
@@ -309,6 +309,7 @@
                           ((symbol-function 'recursive-edit)
                            (lambda ()
                              (setq depth 1)
+                             (gnosis-test-model--wait-for-preparation)
                              (if name
                                  (progn
                                    (should (equal shown target))
@@ -385,7 +386,9 @@
                                           canvas-3d--process successor)))
                                  "Alias"))
                               ((symbol-function 'recursive-edit)
-                               (lambda () (setq depth 1) (gnosis-review-model-submit))))
+                               (lambda () (setq depth 1)
+                                  (gnosis-test-model--wait-for-preparation)
+                                  (gnosis-review-model-submit))))
                       (should (condition-case nil (progn (gnosis-review-model-name 900) nil)
                                 ((error quit) t))))
                     ;; Assert outside the expected-error boundary: an early
@@ -426,7 +429,9 @@
                       ((symbol-function 'recursion-depth) (lambda () depth))
                       ((symbol-function 'exit-recursive-edit) #'ignore)
                       ((symbol-function 'gnosis--read-string-with-input-method) (lambda (&rest _) "Alias"))
-                      ((symbol-function 'recursive-edit) (lambda () (setq depth 1) (gnosis-review-model-submit))))
+                      ((symbol-function 'recursive-edit) (lambda () (setq depth 1)
+                                  (gnosis-test-model--wait-for-preparation)
+                                  (gnosis-review-model-submit))))
               (let* ((answer (cadr (gnosis-review--display-thema 900)))
                      (result (gnosis-review--override-result (cdr answer) nil)))
                 (should (car answer))

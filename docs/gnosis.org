@@ -899,8 +899,15 @@ supported; no converter, medical atlas or external image service is required.
 
 Model Find asks you to pick a whole object, surface point or surface region
 in a local 3D scene. Model-name highlights a target and asks for its name.
-Both support scheduled review and non-rescheduling practice. Due selection,
-the daily new-item limit, topic summaries and overdue counts treat models like
+Both support scheduled review and non-rescheduling practice. During scene
+preparation, the review buffer shows /Loading model/ and remains responsive;
+=q= or =C-g= cancels without recording an answer. Geometry validation runs in
+a child Emacs process, and the encounter retains only the verified scene and
+picking data it needs. Submission and acceptance recheck asset bytes without
+reparsing topology. Changed or unavailable assets cannot be graded.
+
+Due selection, the daily new-item limit, topic summaries and overdue counts
+treat models like
 ordinary themata; suspension excludes them from both kinds of study.
 
 Run ~gnosis-add-model-thema~ for Find or ~gnosis-add-model-name-thema~ for

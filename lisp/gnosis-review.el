@@ -439,8 +439,9 @@ EVENT-ID, REVIEWED-AT-US, and REVIEW-DAY may pin deterministic facts."
 
 (defun gnosis-review--write-result (id success result)
   "Accept pending RESULT for thema ID and binary SUCCESS.
-A media result retains (DATABASE THEMA BUFFER STATE SNAPSHOT).  Its owner
-must still match; only the last committed persistent attempt may retry
+A media result retains (DATABASE THEMA BUFFER STATE SNAPSHOT), followed
+by verified fields for models.  Its owner must still match; only the last
+committed persistent attempt may retry
 after session advancement.  Scheduler acceptance validates retained facts."
   (when-let* ((owner (plist-get result :content)))
     (gnosis-review--content-check id owner result))
@@ -467,7 +468,9 @@ after session advancement.  Scheduler acceptance validates retained facts."
         (if (eq key :image)
             (gnosis-review--image-validate row)
           (gnosis--validate-accepted-aliases (nth 0 row) (nth 3 row) (nth 4 row))
-          (gnosis-model-fields (nth 0 row) (nth 2 row) (nth 3 row))))))
+          (if (nth 5 model)
+              (gnosis-model-check-fields (nth 5 model))
+            (gnosis-model-fields (nth 0 row) (nth 2 row) (nth 3 row)))))))
   (let ((outcome (if success 'success 'failure)))
     (unless (and (= id (plist-get result :thema-id))
                  (eq outcome (plist-get result :outcome)))
@@ -707,17 +710,24 @@ Read no database or clock and leave STATE and its prior snapshots unchanged."
 
 (defun gnosis-review--model-header ()
   "Return neutral selection and renderer status, never anatomical labels."
-  (format " Model | %s | %s | q cancel, ? help"
+  (if (not (plist-get gnosis-review--model-context :attachment))
+      (if (plist-get gnosis-review--model-context :error)
+          " Model unavailable | q or C-g cancel; RET details"
+        " Loading model… | q or C-g cancel")
+    (format " Model | %s | %s | q cancel, ? help"
           (if (process-live-p canvas-3d--process) canvas-3d--status
             (format "Unavailable: %s" canvas-3d--status))
           (if (eq (plist-get (plist-get gnosis-review--model-context :fields) :response) 'name)
               "Inspect highlighted target; RET to type its name"
             (if (plist-get gnosis-review--model-context :selection)
-                "Selection recorded; RET submit" "Click to select; RET submit"))))
+                "Selection recorded; RET submit" "Click to select; RET submit")))))
 
 (defun gnosis-review--model-detach (context)
   "Detach CONTEXT's exact attachment, even after its renderer stopped."
-  (when (and (fboundp 'canvas-3d-detach)
+  (when (timerp (plist-get context :display-timer))
+    (cancel-timer (plist-get context :display-timer)))
+  (when (and (plist-get context :attachment)
+             (fboundp 'canvas-3d-detach)
              (eq (plist-get context :attachment) canvas-3d--image)
              (or (null canvas-3d--process)
                  (eq (plist-get context :process) canvas-3d--process)))
@@ -728,6 +738,7 @@ Read no database or clock and leave STATE and its prior snapshots unchanged."
   (interactive)
   (when gnosis-review--model-context
     (setf (plist-get gnosis-review--model-context :cancelled) t)
+    (gnosis-model-cancel-preparation (plist-get gnosis-review--model-context :preparation))
     (gnosis-review--model-detach gnosis-review--model-context)
     (when (= (recursion-depth)
              (1+ (plist-get gnosis-review--model-context :depth)))
@@ -749,8 +760,9 @@ Read no database or clock and leave STATE and its prior snapshots unchanged."
             (plist-get gnosis-review--model-context :view)
             (list canvas-3d--yaw canvas-3d--pitch canvas-3d--zoom)))))
 
-(defun gnosis-review--model-check (context)
-  "Validate CONTEXT against its original encounter and current resource."
+(defun gnosis-review--model-check (context &optional preparing)
+  "Validate CONTEXT against its original encounter and current resource.
+PREPARING checks only ownership, before verified fields have arrived."
   (let ((owner (plist-get context :buffer))
         (state (plist-get context :state))
         (id (plist-get context :id)))
@@ -771,7 +783,10 @@ Read no database or clock and leave STATE and its prior snapshots unchanged."
       (user-error "Model encounter is outdated; resume the original session"))
     (let ((row (car (plist-get context :thema))))
       (gnosis--validate-accepted-aliases (nth 0 row) (nth 3 row) (nth 4 row))
-      (gnosis-model-fields (nth 0 row) (nth 2 row) (nth 3 row)))))
+      (unless preparing
+        (unless (plist-get context :fields)
+          (user-error "%s" (or (plist-get context :error) "Wait for model preparation")))
+        (gnosis-model-check-fields (plist-get context :fields))))))
 
 (defun gnosis-review--model-ready-p (context)
   "Return whether CONTEXT's renderer has a current complete owned frame."
@@ -826,84 +841,131 @@ Exploratory clicks never submit.  Wait for a stable view before submitting."
                                     (copy-tree (plist-get context :thema))
                                     (plist-get context :buffer)
                                     (plist-get context :state)
-                                    (copy-tree (plist-get context :state-data)))))
+                                    (copy-tree (plist-get context :state-data))
+                                    (plist-get context :fields))))
       (setf (plist-get context :result) (cons success result))
         (exit-recursive-edit)))))
+
+(defun gnosis-review--model-input-map (parent)
+  "Return a fresh model input map inheriting PARENT, including loading input."
+  (let ((map (make-sparse-keymap)))
+    (set-keymap-parent map parent)
+    (define-key map (kbd "RET") #'gnosis-review-model-submit)
+    (define-key map (kbd "SPC") #'ignore)
+    (define-key map (kbd "q") #'gnosis-review-model-cancel)
+    (define-key map (kbd "C-g") #'gnosis-review-model-cancel)
+    map))
+
+(defun gnosis-review--model-prepared (context fields failure)
+  "Install prepared FIELDS or FAILURE only in CONTEXT's still-owned encounter.
+Defer attachment while the encounter is hidden; never select another buffer."
+  (when (timerp (plist-get context :display-timer))
+    (cancel-timer (plist-get context :display-timer))
+    (setf (plist-get context :display-timer) nil))
+  (when (buffer-live-p (plist-get context :buffer))
+    (with-current-buffer (plist-get context :buffer)
+      (when (and (eq gnosis-review--model-context context)
+                 (not (plist-get context :cancelled))
+                 (not (plist-get context :fields))
+                 (not (plist-get context :error)))
+        (condition-case err
+            (progn
+              (gnosis-review--model-check context t)
+              (when failure (user-error "%s" failure))
+              (if-let* ((window (get-buffer-window (current-buffer) t)))
+                  (with-selected-window window
+                    (gnosis-model-check-fields fields)
+                    (save-excursion
+                      (goto-char (point-max))
+                      (gnosis-model-open
+                       (plist-get fields :scene) (plist-get fields :view)
+                       (min (gnosis-model--canvas-size)
+                            (max 128 (- (window-body-height nil t)
+                                        (* (+ 5 (count-lines (point-min) (point-max)))
+                                           (frame-char-height))))) t
+                       (and (eq (plist-get fields :response) 'name) (plist-get fields :target))
+                       (plist-get fields :verified)))
+                    (setf (plist-get context :fields) fields
+                          (plist-get context :process) canvas-3d--process
+                          (plist-get context :attachment) canvas-3d--image)
+                    (use-local-map
+                     (gnosis-review--model-input-map
+                      (make-composed-keymap (copy-keymap canvas-3d-mode-map)
+                                            (plist-get context :map)))))
+                (setf (plist-get context :display-timer)
+                      (run-at-time 0.2 nil #'gnosis-review--model-prepared
+                                   context fields nil))))
+          (error (setf (plist-get context :error) (error-message-string err)))
+          (quit (gnosis-review-model-cancel)))
+        (force-mode-line-update)))))
 
 (defun gnosis-review-model (id)
   "Present model ID through native Find or typed Name in a review encounter.
 Return the ordinary pending review result; existing review actions accept it.
-Missing backend/assets and cancelled input cannot produce an incorrect grade."
+Preparation runs in a child process while native input remains available;
+Use `gnosis-review-model-cancel' to cancel preparation or input.
+Missing assets and cancellation never produce a grade."
   (unless gnosis-review--state
     (user-error "Start a review session before answering a model"))
   (let* ((owner (current-buffer))
          (state gnosis-review--state)
          (thema (gnosis-review--answer-thema id))
          (row (car thema))
-         (hypothesis (nth 2 row))
-         (answer (nth 3 row))
-         (fields (gnosis-model-fields (car row) hypothesis answer))
-         (scene (gnosis-model--scene (plist-get fields :scene)))
-         (target (gnosis-model-target scene (plist-get fields :target)))
-         (context (list :buffer owner :state state :id id :database (gnosis--ensure-db)
-                        :state-data (copy-tree (gnosis-review--state-data state))
-                        :thema (copy-tree thema) :hypothesis hypothesis :answer answer
-                        :fields fields :aliases (copy-tree (nth 4 row))
-                        :tolerance gnosis-string-difference :input nil
-                        :depth (recursion-depth) :result nil :cancelled nil
-                        :selection nil :view nil))
          (map (current-local-map))
          (header header-line-format)
-         attached)
-    (gnosis-review--model-check context)
+         (context (list :buffer owner :state state :id id :database (gnosis--ensure-db)
+                        :state-data (copy-tree (gnosis-review--state-data state))
+                        :thema (copy-tree thema) :fields nil :map map
+                        :aliases (copy-tree (nth 4 row)) :error nil :preparation nil
+                        :display-timer nil
+                        :tolerance gnosis-string-difference :input nil
+                        :depth (recursion-depth) :result nil :cancelled nil
+                        :process nil :attachment nil :selection nil :view nil)))
+    (gnosis-review--model-check context t)
     (gnosis-display-keimenon (gnosis-org-format-string (nth 1 row)))
     (unwind-protect
         (progn
           (goto-char (point-max))
           (insert "\n")
-          (gnosis-model-open (plist-get fields :scene) (plist-get fields :view)
-                             (min (gnosis-model--canvas-size)
-                                  (max 128 (- (window-body-height nil t)
-                                              (* (+ 5 (count-lines (point-min) (point-max)))
-                                                 (frame-char-height))))) t
-                             (and (eq (plist-get fields :response) 'name)
-                                  (plist-get fields :target)))
-          (setq attached t)
-          (setf (plist-get context :process) canvas-3d--process
-                (plist-get context :attachment) canvas-3d--image)
           (setq-local gnosis-review--model-context context)
-          (use-local-map (make-composed-keymap
-                          (copy-keymap canvas-3d-mode-map) map))
-          (local-set-key (kbd "RET") #'gnosis-review-model-submit)
-          (local-set-key (kbd "SPC") #'ignore)
-          (local-set-key (kbd "q") #'gnosis-review-model-cancel)
-          (local-set-key (kbd "C-g") #'gnosis-review-model-cancel)
+          (use-local-map (gnosis-review--model-input-map map))
           (setq-local header-line-format '(:eval (gnosis-review--model-header)))
           (add-hook 'canvas-3d-selection-hook #'gnosis-review--model-selection nil t)
           (add-hook 'kill-buffer-hook #'gnosis-review-model-cancel nil t)
           (add-hook 'change-major-mode-hook #'gnosis-review-model-cancel nil t)
           (goto-char (point-min))
+          (setf (plist-get context :preparation)
+                (gnosis-model-prepare
+                 (car row) (nth 2 row) (nth 3 row)
+                 (lambda (fields failure) (gnosis-review--model-prepared context fields failure))))
           (recursive-edit)
+          (when (plist-get context :error) (user-error "%s" (plist-get context :error)))
           (unless (plist-get context :result) (user-error "Model input cancelled"))
-          (with-current-buffer owner
-            (gnosis-display-basic-answer
-             (or (plist-get fields :answer) (alist-get 'label target))
-             (car (plist-get context :result))
-             (if (eq (plist-get fields :response) 'name)
-                 (plist-get context :input)
-               (if-let* ((selected (plist-get (plist-get context :selection) :id)))
-                   (alist-get 'label (gnosis-model-target scene selected))
-                 "Unmarked surface")))
-            (gnosis-display-parathema (gnosis-get 'parathema 'extras `(= id ,id)))
-            (gnosis-display-next-review
-             (gnosis-review--result-date (cdr (plist-get context :result)))
-             (car (plist-get context :result))))
+          (let* ((fields (plist-get context :fields))
+                 (scene (plist-get (plist-get fields :verified) :manifest))
+                 (target (gnosis-model-target scene (plist-get fields :target))))
+            (with-current-buffer owner
+              (gnosis-display-basic-answer
+               (or (plist-get fields :answer) (alist-get 'label target))
+               (car (plist-get context :result))
+               (if (eq (plist-get fields :response) 'name)
+                   (plist-get context :input)
+                 (if-let* ((selected (plist-get (plist-get context :selection) :id)))
+                     (alist-get 'label (gnosis-model-target scene selected))
+                   "Unmarked surface")))
+              (gnosis-display-parathema (gnosis-get 'parathema 'extras `(= id ,id)))
+              (gnosis-display-next-review
+               (gnosis-review--result-date (cdr (plist-get context :result)))
+               (car (plist-get context :result)))))
           (plist-get context :result))
+      (gnosis-model-cancel-preparation (plist-get context :preparation))
+      (when (timerp (plist-get context :display-timer))
+        (cancel-timer (plist-get context :display-timer)))
       (when (buffer-live-p owner)
         (with-current-buffer owner
           ;; A mode change already retired the old buffer-local encounter.
           (when (eq gnosis-review--model-context context)
-            (when attached (gnosis-review--model-detach context))
+            (gnosis-review--model-detach context)
             (setq gnosis-review--model-context nil header-line-format header)
             (use-local-map map)
             (remove-hook 'canvas-3d-selection-hook #'gnosis-review--model-selection t)

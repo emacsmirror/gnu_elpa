@@ -25,10 +25,12 @@
 (declare-function gnosis-export-parse-themata "gnosis-export-import")
 (declare-function canvas-3d-open "canvas-3d")
 (declare-function canvas-3d-attach "canvas-3d")
+(declare-function canvas-3d-detach "canvas-3d")
 (declare-function canvas-3d--python "canvas-3d")
 (declare-function canvas-3d--request "canvas-3d")
 (defvar canvas-3d--directory)
 (defvar canvas-3d--process)
+(defvar canvas-3d--image)
 (defvar canvas-3d--selection)
 (defvar canvas-3d--question-target)
 (defvar canvas-3d--frame)
@@ -67,14 +69,17 @@ installed checkout's optional/canvas-3d directory."
     (user-error "Camera requires finite yaw, pitch and zoom 0.25..4"))
   view)
 
-(defun gnosis-model--scene (file &optional license source)
+(defun gnosis-model--scene (file &optional license source geometry-p)
   "Read and validate scene FILE, optionally supplying LICENSE and SOURCE.
-Return the manifest alist; it owns stable targets and provenance."
+Return the manifest alist; it owns stable targets and provenance.
+With GEOMETRY-P return (MANIFEST GEOMETRY REVISION), verifying that asset
+bytes did not change during topology validation."
   (when (or (file-remote-p file) (file-symlink-p file)
             (not (file-regular-p file))
             (> (file-attribute-size (file-attributes file)) 65536))
     (user-error "Model scene must be a local JSON file below 64 KiB"))
-  (let* ((scene (json-parse-string
+  (let* ((manifest-hash (and geometry-p (gnosis-assets-hash file)))
+         (scene (json-parse-string
                  (with-temp-buffer (insert-file-contents file) (buffer-string))
                  :object-type 'alist :array-type 'list))
          (objects (alist-get 'objects scene))
@@ -99,8 +104,15 @@ Return the manifest alist; it owns stable targets and provenance."
                    (not (string-empty-p (string-trim (alist-get field scene)))))
         (user-error "Scene requires %s metadata" field)))
     (gnosis-model--view (alist-get 'initial_view scene))
-    (gnosis-model--validate-targets scene directory)
-    scene))
+    (when (and geometry-p (not (equal manifest-hash (gnosis-assets-hash file))))
+      (user-error "Model manifest changed during preparation"))
+    (let* ((names (cons "scene.json" (mapcar (lambda (o) (alist-get 'path o)) objects)))
+           (before (and geometry-p (gnosis-assets-revision directory names)))
+           (geometry (gnosis-model--validate-targets scene directory)))
+      (if (not geometry-p) scene
+        (unless (equal before (gnosis-assets-revision directory names))
+          (user-error "Model resource changed during preparation"))
+        (list scene geometry before)))))
 
 (defun gnosis-model--revision (directory)
   "Return validated scene digest for DIRECTORY."
@@ -130,16 +142,18 @@ Failure or quit removes only the unpublished staging directory."
              (list (cons "scene.json" text)))
             "/scene.json")))
 
-(defun gnosis-model-resolve (hypothesis answer)
+(defun gnosis-model-resolve (hypothesis answer &optional root)
   "Validate model HYPOTHESIS and ANSWER; return scene path and camera.
 HYPOTHESIS is (RESOURCE YAW PITCH ZOOM), all strings.  ANSWER contains one
-stable target ID.  Refuse missing or changed resources, never score them."
+stable target ID.  Refuse missing or changed resources, never score them.
+ROOT defaults to the connected database asset root.  The third return value
+is a compact verified scene with face counts and target point coordinates."
   (unless (and (proper-list-p hypothesis) (= (length hypothesis) 4)
                (seq-every-p #'stringp hypothesis)
                (string-match-p "\\`[0-9a-f]\\{64\\}/scene\\.json\\'" (car hypothesis))
                (proper-list-p answer) (= (length answer) 1) (stringp (car answer)))
     (user-error "Invalid model resource reference or target"))
-  (let* ((root (gnosis-assets-root))
+  (let* ((root (or root (gnosis-assets-root)))
          (revision (car (split-string (car hypothesis) "/")))
          (directory (expand-file-name revision root))
          (file (expand-file-name "scene.json" directory))
@@ -149,13 +163,26 @@ stable target ID.  Refuse missing or changed resources, never score them."
                            "\\`[-+]?[0-9]+\\(?:\\.[0-9]+\\)?\\(?:[eE][-+]?[0-9]+\\)?\\'" text)
                     (user-error "Invalid model camera number"))
                   (string-to-number text)) (cdr hypothesis))))
-    (when (or (file-symlink-p root) (file-symlink-p directory)
-              (not (equal revision (gnosis-model--revision directory))))
-      (user-error "Model unavailable: revision changed"))
-    (unless (seq-find (lambda (o) (equal (car answer) (alist-get 'id o)))
-                      (gnosis-model--targets (gnosis-model--scene file)))
-      (user-error "Model target is absent from its pinned scene"))
-    (list file (gnosis-model--view view))))
+    (let* ((validated (gnosis-model--scene file nil nil t))
+           (scene (car validated))
+           (geometry (cadr validated))
+           (names (cons "scene.json" (mapcar (lambda (o) (alist-get 'path o))
+                                            (alist-get 'objects scene)))))
+      (unless (and (not (file-symlink-p root))
+                   (equal revision (nth 2 validated)))
+        (user-error "Model unavailable: revision changed"))
+      (gnosis-model-target scene (car answer))
+      (list file (gnosis-model--view view)
+            (list :manifest scene :root root :revision revision :names names
+                  :counts (mapcar (lambda (entry) (cons (car entry) (length (cdr entry))))
+                                  geometry)
+                  :points (mapcar
+                           (lambda (target)
+                             (cons (alist-get 'id target)
+                                   (gnosis-model--point
+                                    target (cdr (assoc (alist-get 'mesh target) geometry)))))
+                           (seq-filter (lambda (target) (equal (alist-get 'kind target) "point"))
+                                       (gnosis-model--targets scene))))))))
 
 (cl-defun gnosis-model--save (id type keimenon hypothesis answer parathema tags suspend links
                                &optional (accepted-aliases nil aliases-p))
@@ -497,14 +524,18 @@ With a prefix argument, use advanced numeric input instead of the canvas."
       (let ((bundled (expand-file-name "../optional/canvas-3d" gnosis-model--directory)))
         (when (file-readable-p (expand-file-name "canvas-3d.el" bundled)) bundled))))
 
-(defun gnosis-model-open (path view &optional size inline question-target)
+(defun gnosis-model-open (path view &optional size inline question-target verified)
   "Open validated scene PATH at VIEW using the optional canvas backend.
 SIZE defaults to 512 pixels; callers with an owned layout may pass its actual
 available size.  INLINE attaches at point, preserving the current buffer.
 Never install dependencies or use the network on opening.
-QUESTION-TARGET locks a label-free target highlight during inspection."
+QUESTION-TARGET locks a label-free target highlight during inspection.
+VERIFIED is retained scene data from `gnosis-model-fields'; recheck its bytes
+rather than parsing topology again."
+  (when verified (gnosis-model--verified-check verified path))
   (let* ((target (when question-target
-                   (gnosis-model-target (gnosis-model--scene path) question-target)))
+                   (gnosis-model-target (if verified (plist-get verified :manifest)
+                                          (gnosis-model--scene path)) question-target)))
          (directory (gnosis-model--renderer-directory))
          (load-path (if directory (cons directory load-path) load-path)))
     (when (and directory (file-remote-p directory))
@@ -526,9 +557,16 @@ QUESTION-TARGET locks a label-free target highlight during inspection."
             (canvas-3d-attach path "Gnosis model" view (or size 512)))
         (canvas-3d-open path "Gnosis model" view (or size 512)))))
         (with-current-buffer buffer
-          (when question-target
-            (setq-local canvas-3d--question-target target)
-            (canvas-3d--request)))
+          (let ((image canvas-3d--image) (process canvas-3d--process) ready)
+            (unwind-protect
+                (progn
+                  (when question-target
+                    (setq-local canvas-3d--question-target (copy-tree target))
+                    (canvas-3d--request))
+                  (setq ready t))
+              (unless ready
+                (when (and (eq image canvas-3d--image) (eq process canvas-3d--process))
+                  (canvas-3d-detach))))))
         buffer))))
 
 (defun gnosis-model--geometry (file)
@@ -640,8 +678,10 @@ QUESTION-TARGET locks a label-free target highlight during inspection."
           (_ (user-error "Unknown model target kind")))))
     geometry))
 
-(defun gnosis-model-fields (type hypothesis answer)
-  "Validate TYPE, HYPOTHESIS and ANSWER and return resolved model fields."
+(defun gnosis-model-fields (type hypothesis answer &optional root)
+  "Validate TYPE, HYPOTHESIS and ANSWER and return resolved model fields.
+ROOT defaults to the connected database asset root.  Retain verified scene
+data in the result; only byte integrity needs rechecking within its owner."
   (unless (and (member type '("model" "model-name"))
                (proper-list-p hypothesis) (= (length hypothesis) (if (equal type "model") 4 5))
                (seq-every-p #'stringp hypothesis)
@@ -651,9 +691,103 @@ QUESTION-TARGET locks a label-free target highlight during inspection."
   (let* ((name (equal type "model-name"))
          (target (if name (nth 1 hypothesis) (car answer)))
          (legacy (if name (cons (car hypothesis) (cddr hypothesis)) hypothesis))
-         (resolved (gnosis-model-resolve legacy (list target))))
+         (resolved (gnosis-model-resolve legacy (list target) root)))
     (list :resource (car hypothesis) :scene (car resolved) :view (cadr resolved)
-          :target target :response (if name 'name 'find) :answer (and name (car answer)))))
+          :target target :response (if name 'name 'find) :answer (and name (car answer))
+          :verified (nth 2 resolved))))
+
+(defun gnosis-model--verified-check (verified path)
+  "Recheck VERIFIED asset bytes and require their exact scene PATH."
+  (unless (and verified
+               (equal path (expand-file-name
+                            (concat (plist-get verified :revision) "/scene.json")
+                            (plist-get verified :root))))
+    (user-error "Model scene does not belong to its preparation"))
+  (gnosis-assets-validate (plist-get verified :root) (plist-get verified :revision)
+                          (plist-get verified :names)))
+
+(defun gnosis-model-check-fields (fields)
+  "Recheck retained FIELDS against the current asset root and literal bytes.
+Return FIELDS without reparsing verified topology.  Callers must separately
+validate the encounter that owns these retained values."
+  (let ((verified (plist-get fields :verified)))
+    (unless (and (equal (plist-get verified :root) (gnosis-assets-root))
+                 (equal (plist-get fields :resource)
+                        (concat (plist-get verified :revision) "/scene.json")))
+      (user-error "Model resource belongs to another asset root"))
+    (gnosis-model--verified-check verified (plist-get fields :scene)))
+  fields)
+
+(defun gnosis-model-cancel-preparation (job)
+  "Retire JOB's child, deferred delivery and private buffers idempotently."
+  (when job
+    (setf (plist-get job :cancelled) t)
+    (when (timerp (plist-get job :timer)) (cancel-timer (plist-get job :timer)))
+    (when-let* ((process (plist-get job :process)))
+      (set-process-sentinel process #'ignore)
+      (when (process-live-p process) (delete-process process)))
+    (dolist (key '(:output :errors))
+      (when (buffer-live-p (plist-get job key)) (kill-buffer (plist-get job key))))))
+
+(defun gnosis-model--deliver-preparation (job callback)
+  "Deliver JOB to CALLBACK outside the process sentinel.
+CALLBACK receives (FIELDS ERROR); exactly one is non-nil.  It runs in timer
+context and must validate its own buffer and encounter before applying data."
+  (unless (plist-get job :cancelled)
+    (let ((result
+           (condition-case err
+               (progn
+                 (unless (zerop (process-exit-status (plist-get job :process)))
+                   (error "Model preparation process failed"))
+                 (with-current-buffer (plist-get job :output)
+                   (goto-char (point-min))
+                   (let ((value (read (current-buffer))))
+                     (skip-chars-forward " \t\r\n")
+                     (unless (eobp) (error "Invalid model preparation response"))
+                     value)))
+             (error (list :error (error-message-string err))))))
+      (gnosis-model-cancel-preparation job)
+      (funcall callback (plist-get result :fields)
+               (or (plist-get result :error)
+                   (unless (plist-get result :fields) "Empty model preparation response"))))))
+
+(defun gnosis-model-prepare (type hypothesis answer callback)
+  "Prepare TYPE, HYPOTHESIS and ANSWER in an owned child Emacs process.
+Return a cancellable job immediately.  CALLBACK receives (FIELDS ERROR)
+from a deferred timer, never the process sentinel.  No database is opened
+in the child; only the explicitly captured asset root is read."
+  (let* ((root (gnosis-assets-root))
+         (job (list :process nil :timer nil :cancelled nil
+                    :output (generate-new-buffer " *Gnosis model preparation*")
+                    :errors (generate-new-buffer " *Gnosis model preparation errors*")))
+         (expression
+          `(progn
+             (setq load-prefer-newer t)
+             (require 'gnosis-model)
+             (princ (gnosis-sqlite--serialize
+                     (condition-case err
+                         (list :fields (gnosis-model-fields ,type ',hypothesis ',answer ,root))
+                       (error (list :error (error-message-string err))))))))
+         started)
+    (unwind-protect
+        (progn
+          (setf (plist-get job :process)
+                (make-process
+                 :name "gnosis-model-prepare" :noquery t :connection-type 'pipe
+                 :buffer (plist-get job :output) :stderr (plist-get job :errors)
+                 :coding 'utf-8-unix
+                 :command (list (expand-file-name invocation-name invocation-directory)
+                                "-Q" "--batch" "-L" gnosis-model--directory
+                                "--eval" (gnosis-sqlite--serialize expression))
+                 :sentinel
+                 (lambda (process _event)
+                   (when (and (memq (process-status process) '(exit signal))
+                              (not (plist-get job :cancelled)))
+                     (setf (plist-get job :timer)
+                           (run-at-time 0 nil #'gnosis-model--deliver-preparation job callback))))))
+          (setq started t)
+          job)
+      (unless started (gnosis-model-cancel-preparation job)))))
 
 (defun gnosis-model--point (target geometry)
   "Return original coordinate of point TARGET in GEOMETRY."
@@ -661,8 +795,9 @@ QUESTION-TARGET locks a label-free target highlight during inspection."
                       (apply #'+ (cl-mapcar #'* coordinates (alist-get 'barycentric target))))
          (aref geometry (alist-get 'face target))))
 
-(defun gnosis-model--candidate (scene geometry expected hit)
-  "Resolve HIT against SCENE GEOMETRY using EXPECTED target kind, not grading."
+(defun gnosis-model--candidate (scene geometry expected hit &optional points)
+  "Resolve HIT against SCENE GEOMETRY using EXPECTED target kind, not grading.
+POINTS optionally supplies verified target coordinates instead of GEOMETRY."
   (let* ((kind (alist-get 'kind (gnosis-model-target scene expected)))
          (mesh (plist-get hit :mesh))
          (point (plist-get hit :point))
@@ -679,7 +814,8 @@ QUESTION-TARGET locks a label-free target highlight during inspection."
                                ("point" (and point
                                              (<= (apply #'+ (cl-mapcar
                                                               (lambda (a b) (expt (- a b) 2)) point
-                                                              (gnosis-model--point target (cdr (assoc mesh geometry)))))
+                                                              (if points (cdr (assoc (alist-get 'id target) points))
+                                                                (gnosis-model--point target (cdr (assoc mesh geometry))))))
                                                  (expt (alist-get 'tolerance target) 2)))))))
                       (gnosis-model--targets scene))
                      (lambda (a b)
@@ -688,7 +824,8 @@ QUESTION-TARGET locks a label-free target highlight during inspection."
                                 (if (equal kind "point")
                                     (apply #'+ (cl-mapcar
                                                 (lambda (x y) (expt (- x y) 2)) point
-                                                (gnosis-model--point target (cdr (assoc mesh geometry)))))
+                                                (if points (cdr (assoc (alist-get 'id target) points))
+                                                                (gnosis-model--point target (cdr (assoc mesh geometry))))))
                                   0))))
                          (let ((da (funcall distance a)) (db (funcall distance b)))
                            (if (= da db) (string< (alist-get 'id a) (alist-get 'id b))
@@ -705,23 +842,21 @@ Return nil for background; reject stale or in-flight renderer state."
                (equal (plist-get canvas-3d--selection :frame) (plist-get canvas-3d--frame :seq))
                (not canvas-3d--busy) (not canvas-3d--dirty))
     (user-error "No current owned model selection"))
-  (let* ((directory (file-name-directory (plist-get fields :scene)))
-         (scene (gnosis-model--scene (plist-get fields :scene)))
-         (geometry (gnosis-model--validate-targets scene directory))
+  (let* ((verified (plist-get fields :verified))
+         (scene (plist-get verified :manifest))
          (hit (copy-sequence canvas-3d--selection))
-         (mesh (cdr (assoc (plist-get hit :mesh) geometry))))
-    (unless (equal (plist-get fields :resource)
-                   (concat (gnosis-model--revision directory) "/scene.json"))
-      (user-error "Model resource changed during selection"))
+         (count (cdr (assoc (plist-get hit :mesh) (plist-get verified :counts)))))
+    (gnosis-model-check-fields fields)
     (when (plist-get hit :mesh)
-      (unless (and mesh (integerp (plist-get hit :face))
-                   (<= 0 (plist-get hit :face)) (< (plist-get hit :face) (length mesh))
+      (unless (and count (integerp (plist-get hit :face))
+                   (<= 0 (plist-get hit :face)) (< (plist-get hit :face) count)
                    (proper-list-p (plist-get hit :point)) (= (length (plist-get hit :point)) 3)
                    (seq-every-p (lambda (n) (and (numberp n) (<= (abs n) 1000000)))
                                 (plist-get hit :point)))
         (user-error "Invalid renderer surface hit"))
       (setf (plist-get hit :id)
-            (gnosis-model--candidate scene geometry (plist-get fields :target) hit))
+            (gnosis-model--candidate scene nil (plist-get fields :target) hit
+                                     (plist-get verified :points)))
       hit)))
 
 (defun gnosis-model--author-hit ()

@@ -896,6 +896,7 @@
   :readme ignore
   :doc "README.org")
  (trust-manager         :url "https://git.sr.ht/~eshel/trust-manager")
+ (typewriter            :url "https://github.com/enricoflor/typewriter.el")
  (ulisp-repl		:url "https://git.sr.ht/~fitzsim/ulisp-repl")
  (undo-tree		:url "https://gitlab.com/tsc25/undo-tree"
   ;; FIXME: The upstream of `undo-tree' has diverged.  I tried to

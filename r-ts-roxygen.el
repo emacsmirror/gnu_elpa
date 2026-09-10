@@ -1,5 +1,5 @@
 ;;; r-ts-roxygen.el --- Roxygen functionality for R tree-sitter mode -*- lexical-binding: t; -*-
-;; Copyright (C) 2026  Manuel Teodoro Tenango
+;; Copyright (C) 2026 Free Software Foundation, Inc.
 
 ;; Author: Manuel Teodoro <ttm@teoten.me>
 ;; URL: https://codeberg.org/R-for-emacs/r-ts-mode

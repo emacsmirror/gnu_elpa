@@ -1,5 +1,5 @@
 ;;; r-ts-mode-tests.el --- ERT tests for r-ts-mode  -*- lexical-binding: t; -*-
-;; Copyright (C) 2026  Manuel Teodoro Tenango
+;; Copyright (C) 2026 Free Software Foundation, Inc.
 
 ;; Author: Manuel Teodoro <ttm@teoten.me>
 ;; URL: https://codeberg.org/R-for-emacs/r-ts-mode

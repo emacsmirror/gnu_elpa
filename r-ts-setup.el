@@ -1,5 +1,5 @@
 ;;; r-ts-setup.el --- Emacs tree-sitter setup from R package -*- lexical-binding: t; -*-
-;; Copyright (C) 2026  Manuel Teodoro Tenango
+;; Copyright (C) 2026 Free Software Foundation, Inc.
 
 ;; Author: Manuel Teodoro <ttm@teoten.me>
 ;; URL: https://codeberg.org/R-for-emacs/r-ts-mode

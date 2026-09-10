@@ -460,5 +460,21 @@
         (should (eq major-mode 'text-mode))
         (should (string-prefix-p "Keep question" (buffer-string)))))))
 
+(ert-deftest canvas-3d-emacs-rotation-keys ()
+  "Emacs movement keys and arrows dispatch the same rotations."
+  (with-temp-buffer
+    (canvas-3d-mode)
+    (cl-letf (((symbol-function 'canvas-3d--request) #'ignore))
+      (dolist (binding '(("b" "<left>" -10 0)
+                         ("f" "<right>" 10 0)
+                         ("p" "<up>" 0 -10)
+                         ("n" "<down>" 0 10)))
+        (setq canvas-3d--yaw 0 canvas-3d--pitch 0)
+        (should (eq (key-binding (kbd (nth 0 binding)))
+                    (key-binding (kbd (nth 1 binding)))))
+        (call-interactively (key-binding (kbd (car binding))))
+        (should (= canvas-3d--yaw (mod (nth 2 binding) 360)))
+        (should (= canvas-3d--pitch (mod (nth 3 binding) 360)))))))
+
 (provide 'canvas-3d-tests)
 ;;; canvas-3d-tests.el ends here

@@ -395,8 +395,8 @@ Quit exits tracking; other keyboard events return to the command loop."
   "<mouse-4>" #'canvas-3d-wheel "<mouse-5>" #'canvas-3d-wheel
   "<left>" #'canvas-3d-left "<right>" #'canvas-3d-right
   "<up>" #'canvas-3d-up "<down>" #'canvas-3d-down
-  "h" #'canvas-3d-left "l" #'canvas-3d-right
-  "k" #'canvas-3d-up "j" #'canvas-3d-down
+  "b" #'canvas-3d-left "f" #'canvas-3d-right
+  "p" #'canvas-3d-up "n" #'canvas-3d-down
   "+" #'canvas-3d-zoom-in "=" #'canvas-3d-zoom-in "-" #'canvas-3d-zoom-out
   "r" #'canvas-3d-reset "SPC" #'canvas-3d-reveal
   "e" #'canvas-3d-log "?" #'describe-mode
@@ -405,7 +405,7 @@ Quit exits tracking; other keyboard events return to the command loop."
 (define-derived-mode canvas-3d-mode special-mode "Canvas-3D"
   "View an OBJ through an Emacs canvas, with asynchronous OpenGL rendering.
 Drag with the left button to rotate; click to pick; wheel or +/- to zoom.
-Arrow keys or hjkl rotate; r resets; SPC reveals the label.
+Arrow keys or n/p/f/b rotate; r resets; SPC reveals the label.
 \\<canvas-3d-mode-map>\\[canvas-3d-cancel] stops rendering.
 Use \\[canvas-3d-quit] to close the viewer and \\[canvas-3d-log] to show errors."
   (setq-local cursor-type nil)

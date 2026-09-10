@@ -7,16 +7,12 @@
 ;;; Commentary:
 
 ;; Shared macros and helper functions used across gnosis test suites.
-;; Load this file in each test file that needs `gnosis-test-with-db'
+;; Require this feature in each test file that needs `gnosis-test-with-db'
 ;; or `gnosis-test--add-basic-thema'.
 
 ;;; Code:
 
 (require 'gnosis)
-
-(let ((lisp-dir (expand-file-name "../lisp"
-                  (file-name-directory (or load-file-name default-directory)))))
-  (add-to-list 'load-path lisp-dir))
 
 (defvar gnosis-test--db-file nil
   "Path to temporary test database file.")

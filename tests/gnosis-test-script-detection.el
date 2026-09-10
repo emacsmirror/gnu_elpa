@@ -13,10 +13,6 @@
 
 (require 'ert)
 
-(let ((lisp-dir (expand-file-name "../lisp"
-                  (file-name-directory (or load-file-name default-directory)))))
-  (add-to-list 'load-path lisp-dir))
-
 (require 'gnosis-utils)
 (require 'gnosis)
 
@@ -184,5 +180,4 @@
 
 (provide 'gnosis-test-script-detection)
 
-(ert-run-tests-batch-and-exit)
 ;;; gnosis-test-script-detection.el ends here

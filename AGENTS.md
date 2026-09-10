@@ -131,7 +131,9 @@ path, and refresh/resume behavior where relevant; ERT alone does not establish
 usability. Do not load development code into a learner's session as a test.
 
 Run `make JOBS=4 dev` for lint, compilation, autoload checks, ERT,
-and the manual.
+and the manual. Outer build phases are serialized even with `make -j`;
+`JOBS` controls only isolated test workers. Test suites are require-based
+libraries; the runner owns load paths and ERT execution.
 The Makefile enters the pinned Nix environment when available. Use fresh
 bytecode and disposable HOME/XDG/data directories for manual probes; never
 create test grades or exercise destructive paths on a learner's database.

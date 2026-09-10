@@ -15,8 +15,7 @@
 (require 'gnosis)
 (require 'gnosis-export-import)
 
-(load (expand-file-name "gnosis-test-helpers.el"
-       (file-name-directory (or load-file-name buffer-file-name))))
+(require 'gnosis-test-helpers)
 
 ;; ──────────────────────────────────────────────────────────
 ;; gnosis-cloze-extract-contents
@@ -310,5 +309,4 @@
 
 (provide 'gnosis-test-cloze)
 
-(ert-run-tests-batch-and-exit)
 ;;; gnosis-test-cloze.el ends here

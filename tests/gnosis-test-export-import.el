@@ -14,8 +14,7 @@
 (require 'gnosis)
 (require 'gnosis-export-import)
 
-(load (expand-file-name "gnosis-test-helpers.el"
-       (file-name-directory (or load-file-name buffer-file-name))))
+(require 'gnosis-test-helpers)
 
 (ert-deftest gnosis-test-export-list-literal-hyphens ()
   "Remove list markers once, preserving negative and literal field values."
@@ -683,5 +682,4 @@
 
 (provide 'gnosis-test-export-import)
 
-(ert-run-tests-batch-and-exit)
 ;;; gnosis-test-export-import.el ends here

@@ -698,7 +698,8 @@ Returns a list of (ID TITLE BACKLINK-COUNT) for each node."
 
 (defun gnosis-nodes-goto-id (&optional id)
   "Visit file for ID.
-If file or id are not found, use `org-open-at-point'."
+Enable `gnosis-nodes-mode' for a resolved node or journal destination.
+If file or id are not found, use `org-open-at-point' without changing modes."
   (interactive)
   (let* ((id (or id (gnosis-nodes--get-id-at-point)))
 	 (org-id-track-globally nil))
@@ -709,16 +710,17 @@ If file or id are not found, use `org-open-at-point'."
 	      (expand-file-name
                (car (gnosis-nodes-select 'file 'nodes `(= id ,id) t))
 	       gnosis-nodes-dir))
-	     (org-id-goto id))
+	     (org-id-goto id)
+             (gnosis-nodes-mode 1))
 	    ((gnosis-nodes-select 'file 'journal `(= id ,id))
 	     (find-file
 	      (expand-file-name
 	       (car (gnosis-nodes-select 'file 'journal
 				         `(= id ,id) t))
 	       (gnosis-nodes--journal-dir)))
-	     (org-id-goto id))
-	    (t (org-open-at-point))))
-    (gnosis-nodes-mode 1)))
+	     (org-id-goto id)
+             (gnosis-nodes-mode 1))
+	    (t (org-open-at-point))))))
 
 ;;; Sync
 

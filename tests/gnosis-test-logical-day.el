@@ -101,5 +101,4 @@
 
 (provide 'gnosis-test-logical-day)
 
-(ert-run-tests-batch-and-exit)
 ;;; gnosis-test-logical-day.el ends here

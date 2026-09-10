@@ -16,8 +16,7 @@
 (require 'gnosis)
 (require 'gnosis-anki)
 
-(load (expand-file-name "gnosis-test-helpers.el"
-       (file-name-directory (or load-file-name buffer-file-name))))
+(require 'gnosis-test-helpers)
 
 (ert-deftest gnosis-test-helpers-with-db-isolates-directories ()
   "`gnosis-test-with-db' binds user and Gnosis paths to temp dirs."
@@ -858,5 +857,4 @@ TMP-P, EXTRA-TAG, SUSPEND, and SOURCE-FILE are passed through to
 
 (provide 'gnosis-test-anki)
 
-(ert-run-tests-batch-and-exit)
 ;;; gnosis-test-anki.el ends here

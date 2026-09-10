@@ -396,13 +396,18 @@ well."
 (defun gnosis-review--pending-result
     (id success &optional event-id reviewed-at-us review-day)
   "Return pending binary review for ID and SUCCESS without mutation.
-EVENT-ID, REVIEWED-AT-US, and REVIEW-DAY may pin deterministic facts."
+EVENT-ID, REVIEWED-AT-US, and REVIEW-DAY may pin deterministic facts.
+Derive an omitted REVIEW-DAY from REVIEWED-AT-US, capturing the current
+instant once when REVIEWED-AT-US is also omitted."
   (let* ((event-id (or event-id
                        (and gnosis-review--state (gnosis-review-state-event-id gnosis-review--state))
                        (gnosis-scheduler-event-id)))
          (reviewed-at-us
           (or reviewed-at-us (car (time-convert nil 1000000))))
-         (review-day (or review-day (gnosis--today-int)))
+         (review-day
+          (or review-day
+              (gnosis--date-to-int
+               (gnosis-date nil (cons reviewed-at-us 1000000)))))
          (outcome (if success 'success 'failure)))
     (list :event-id event-id :thema-id id :outcome outcome
           :reviewed-at-us reviewed-at-us :review-day review-day

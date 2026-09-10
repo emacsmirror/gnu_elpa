@@ -14,10 +14,8 @@
 (require 'ert)
 (require 'org)
 
-(load (expand-file-name "../lisp/gnosis-org.el"
-       (file-name-directory (or load-file-name buffer-file-name))))
-(load (expand-file-name "../lisp/gnosis-nodes.el"
-       (file-name-directory (or load-file-name buffer-file-name))))
+(require 'gnosis-org)
+(require 'gnosis-nodes)
 
 ;;; ---- Group 1: gnosis-org-expand-headings ----
 
@@ -104,5 +102,4 @@
 
 (provide 'gnosis-test-insert-template)
 
-(ert-run-tests-batch-and-exit)
 ;;; gnosis-test-insert-template.el ends here

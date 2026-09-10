@@ -66,8 +66,8 @@
           lib = pkgs.lib;
           emacsPackages = pkgs.emacsPackagesFor pkgs.emacs-nox;
           packageSource = lib.fileset.toSource {
-            root = ./lisp;
-            fileset = lib.fileset.unions packageFiles;
+            root = ./.;
+            fileset = lib.fileset.unions (packageFiles ++ [ ./docs/gnosis.org ]);
           };
           keymapPopup = emacsPackages.melpaBuild {
             pname = "keymap-popup";
@@ -79,6 +79,11 @@
             pname = "gnosis";
             inherit version;
             src = packageSource;
+            files = ''("lisp/*.el" "docs/gnosis.texi")'';
+            preBuild = ''
+              emacs --quick --batch --load ox-texinfo docs/gnosis.org \
+                --funcall org-texinfo-export-to-texinfo
+            '';
             packageRequires = [
               emacsPackages.compat
               keymapPopup
@@ -140,13 +145,24 @@
               export XDG_STATE_HOME="$TMPDIR/state"
               mkdir -p "$HOME" "$XDG_CACHE_HOME" "$XDG_CONFIG_HOME" \
                 "$XDG_DATA_HOME" "$XDG_STATE_HOME"
-              make GNOSIS_ENV_WRAPPED=1 ENV= EMACS=emacs dev
+              make GNOSIS_ENV_WRAPPED=1 ENV= EMACS=emacs JOBS="$NIX_BUILD_CORES" dev
               emacs --quick --batch \
                 --eval="(require 'package)" \
                 --eval="(package-initialize)" \
                 --eval="(unless (and (autoloadp (symbol-function 'gnosis)) \
                                      (commandp 'gnosis)) \
                           (error \"Installed gnosis command is not autoloaded\"))"
+              (cd "$TMPDIR"
+                emacs --quick --batch \
+                  --eval="(require 'package)" \
+                  --eval="(package-initialize)" \
+                  --eval="(require 'info)" \
+                  --eval='(Info-find-node "gnosis" "Top")' \
+                  --eval='(unless (and (equal Info-current-node "Top")
+                                      (file-equal-p (concat Info-current-file ".info")
+                                                    "${self.packages.${system}.gnosis}/share/emacs/site-lisp/elpa/gnosis-${version}/gnosis.info"))
+                            (error "Info manual did not resolve from installed package"))'
+              )
               runHook postBuild
             '';
             installPhase = ''

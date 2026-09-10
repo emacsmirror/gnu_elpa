@@ -16,8 +16,7 @@
 (require 'gnosis)
 (require 'gnosis-nodes)
 
-(load (expand-file-name "gnosis-test-helpers.el"
-       (file-name-directory (or load-file-name buffer-file-name))))
+(require 'gnosis-test-helpers)
 
 ;;; Test helpers
 
@@ -367,5 +366,4 @@ Content with [[id:other-node][a link]].
 
 (provide 'gnosis-test-nodes)
 
-(ert-run-tests-batch-and-exit)
 ;;; gnosis-test-nodes.el ends here

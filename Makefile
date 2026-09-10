@@ -1,4 +1,10 @@
 .POSIX:
+
+# Only the suite scheduler may fan out.  Serialize public goals and build
+# phases even when the caller supplies -j; workers still honor JOBS below.
+ifneq ($(MAKECMDGOALS),_test-summary)
+.NOTPARALLEL:
+endif
 .PHONY: all doc autoload autoload-smoke compile lint lint-checkdoc \
 	lint-package-lint test check dev load clean \
 	_doc _autoload _autoload-smoke _compile _lint _lint-checkdoc \
@@ -129,7 +135,7 @@ $(TEST_RESULTS)/%.stamp: tests/%.el
 			  (file-name-as-directory (getenv \"GNOSIS_TEST_DIR\")) \
 			  gnosis-testing t gnosis-vc-auto-push nil \
 			  load-prefer-newer t)" \
-			-l "$<" -f ert-run-tests-batch-and-exit > "$$log" 2>&1; then \
+			--eval="(require '$*)" -f ert-run-tests-batch-and-exit > "$$log" 2>&1; then \
 		status=OK; \
 	else \
 		status=FAIL; \

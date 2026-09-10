@@ -15,8 +15,7 @@
 (require 'gnosis)
 (require 'gnosis-review)
 
-(load (expand-file-name "gnosis-test-helpers.el"
-       (file-name-directory (or load-file-name buffer-file-name))))
+(require 'gnosis-test-helpers)
 
 ;;; ---- Group 1: gnosis-review-is-due-today-p ----
 
@@ -312,5 +311,4 @@
 
 (provide 'gnosis-test-review)
 
-(ert-run-tests-batch-and-exit)
 ;;; gnosis-test-review.el ends here

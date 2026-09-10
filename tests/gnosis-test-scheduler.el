@@ -193,6 +193,57 @@
     (should (= 0 (caar (gnosis-sqlite-select
                         gnosis-db "SELECT reps FROM scheduler_state"))))))
 
+(ert-deftest gnosis-test-review-pending-time-crosses-day-boundary ()
+  "Capture coherent evidence even when the next clock read crosses 03:00."
+  (gnosis-test-scheduler--with-db
+    (gnosis-test-scheduler--seed-state)
+    (let* ((gnosis-day-start-hour 3)
+           (boundary (encode-time 0 0 3 31 8 2026))
+           (before (time-subtract boundary '(1 . 1000000)))
+           (timestamp (car (time-convert before 1000000)))
+           (convert (symbol-function 'time-convert))
+           (reads 0)
+           (clock (lambda () (if (= (cl-incf reads) 1) before boundary)))
+           (pending
+            (cl-letf (((symbol-function 'current-time) clock)
+                      ((symbol-function 'time-convert)
+                       (lambda (time form)
+                         (funcall convert (or time (funcall clock)) form))))
+              (gnosis-review--pending-result
+               1 t gnosis-test-scheduler--event-id))))
+      (should (= timestamp (plist-get pending :reviewed-at-us)))
+      (should (= 20260830 (plist-get pending :review-day)))
+      (let ((accepted (gnosis-review-result 1 t pending)))
+        (should (= 20260901 (plist-get accepted :due-day)))
+        (should-not (plist-get (gnosis-review-result 1 t pending) :inserted-p)))
+      (should (equal (list (list timestamp 20260830))
+                     (gnosis-sqlite-select
+                      gnosis-db
+                      "SELECT reviewed_at_us, review_day FROM review_events"))))))
+
+(ert-deftest gnosis-test-review-pending-time-explicit-evidence ()
+  "Derive an omitted day from the timestamp but retain an explicit day."
+  (gnosis-test-scheduler--with-db
+    (gnosis-test-scheduler--seed-state)
+    (let* ((gnosis-day-start-hour 3)
+           (timestamp (car (time-convert (encode-time 59 59 2 31 8 2026)
+                                         1000000))))
+      (cl-letf (((symbol-function 'current-time)
+                 (lambda () (encode-time 0 0 3 31 8 2026))))
+        (let* ((pending (gnosis-review--pending-result
+                         1 t gnosis-test-scheduler--event-id timestamp))
+               (explicit (gnosis-review--pending-result
+                          1 t gnosis-test-scheduler--event-id timestamp 20260829))
+               (override (gnosis-review--override-result explicit nil)))
+          (should (= 20260830 (plist-get pending :review-day)))
+          (dolist (result (list explicit override))
+            (should (= timestamp (plist-get result :reviewed-at-us)))
+            (should (= 20260829 (plist-get result :review-day)))
+            (should (equal gnosis-test-scheduler--event-id
+                           (plist-get result :event-id))))
+          (should (= 20260831 (plist-get (plist-get explicit :preview)
+                                        :due-day))))))))
+
 (ert-deftest gnosis-test-review-relearning-preserves-due-count ()
   "Relearning and early reviews do not consume other themata's due count."
   (gnosis-test-scheduler--with-db

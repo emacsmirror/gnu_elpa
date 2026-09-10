@@ -16,8 +16,7 @@
 (require 'gnosis)
 (require 'gnosis-journal)
 
-(load (expand-file-name "gnosis-test-helpers.el"
-       (file-name-directory (or load-file-name buffer-file-name))))
+(require 'gnosis-test-helpers)
 
 ;;; Test helpers
 
@@ -494,5 +493,4 @@
 
 (provide 'gnosis-test-journal)
 
-(ert-run-tests-batch-and-exit)
 ;;; gnosis-test-journal.el ends here

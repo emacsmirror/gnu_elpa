@@ -118,5 +118,4 @@
 
 (provide 'gnosis-test-logical-day-cutover)
 
-(ert-run-tests-batch-and-exit)
 ;;; gnosis-test-logical-day-cutover.el ends here

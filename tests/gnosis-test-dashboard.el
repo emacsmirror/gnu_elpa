@@ -1755,5 +1755,4 @@ This is the critical bug fix: (not nil) => t was wrong."
 
 (provide 'gnosis-test-dashboard)
 
-(ert-run-tests-batch-and-exit)
 ;;; gnosis-test-dashboard.el ends here

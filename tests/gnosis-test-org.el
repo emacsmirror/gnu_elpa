@@ -14,8 +14,7 @@
 (require 'ert)
 (require 'org)
 
-(load (expand-file-name "../lisp/gnosis-org.el"
-       (file-name-directory (or load-file-name buffer-file-name))))
+(require 'gnosis-org)
 
 ;;; ---- Group 1: gnosis-org-adjust-title ----
 
@@ -476,5 +475,4 @@
 
 (provide 'gnosis-test-org)
 
-(ert-run-tests-batch-and-exit)
 ;;; gnosis-test-org.el ends here

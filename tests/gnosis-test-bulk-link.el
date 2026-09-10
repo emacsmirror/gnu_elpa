@@ -14,10 +14,6 @@
 
 (require 'ert)
 
-(let ((lisp-dir (expand-file-name "../lisp"
-                  (file-name-directory (or load-file-name default-directory)))))
-  (add-to-list 'load-path lisp-dir))
-
 (require 'gnosis-utils)
 
 ;; ──────────────────────────────────────────────────────────
@@ -196,5 +192,4 @@
 
 (provide 'gnosis-test-bulk-link)
 
-(ert-run-tests-batch-and-exit)
 ;;; gnosis-test-bulk-link.el ends here

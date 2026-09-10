@@ -147,41 +147,10 @@ Returns the buffer.  MODE defaults to due; practice never reschedules."
 	     :total (length themata)
 	     :remaining (copy-sequence themata)))
       (add-hook 'window-configuration-change-hook #'gnosis-image-refresh nil t)
-      (add-hook 'window-configuration-change-hook #'gnosis-review--layout-media t t)
       (setq header-line-format '(:eval (gnosis-review--header-line))))
     buf))
 
 ;;; Display functions
-
-(declare-function image-size "image.c" (spec &optional pixels frame))
-
-(defun gnosis-review--layout-media ()
-  "Fit and center standalone media in the visible review window.
-Keep image identity and pixel data intact so native picking remains relative
-to the displayed image.  Never rewrite question or hidden answer content."
-  (when-let* ((window (get-buffer-window (current-buffer))))
-    (remove-overlays (point-min) (point-max) 'gnosis-review-media t)
-    (save-excursion
-      (goto-char (point-min))
-      (while (< (point) (point-max))
-        (let* ((start (line-beginning-position))
-               (end (line-end-position))
-               (image (get-text-property start 'display)))
-          (when (and (= (- end start) 1) (eq (car-safe image) 'image))
-            (when (eq (plist-get (cdr image) :type) 'canvas)
-              (let* ((size (gnosis-image--display-size
-                            (plist-get (cdr image) :data-width)
-                            (plist-get (cdr image) :data-height) window)))
-                (setcdr image (plist-put (cdr image) :width (car size)))
-                (setcdr image (plist-put (cdr image) :height (cdr size)))))
-            (when gnosis-center-content
-              (when-let* ((size (ignore-errors (image-size image t (window-frame window)))))
-                (let ((overlay (make-overlay start end)))
-                  (overlay-put overlay 'gnosis-review-media t)
-                  (overlay-put overlay 'before-string
-                               (propertize " " 'display
-                                           `(space :align-to (- center (,(floor (/ (car size) 2.0))))))))))))
-        (forward-line 1)))))
 
 (defun gnosis-display-keimenon (str)
   "Display STR as keimenon."
@@ -189,8 +158,7 @@ to the displayed image.  Never rewrite question or hidden answer content."
     (erase-buffer)
     (insert "\n" (gnosis-format-string str))
     (gnosis-insert-separator)
-    (gnosis-apply-center-buffer-overlay)
-    (gnosis-review--layout-media)))
+    (gnosis-apply-center-buffer-overlay)))
 
 (defun gnosis-display-image (keimenon)
   "Display image link from KEIMENON in new window."
@@ -901,7 +869,6 @@ Missing backend/assets and cancelled input cannot produce an incorrect grade."
                              (and (eq (plist-get fields :response) 'name)
                                   (plist-get fields :target)))
           (setq attached t)
-          (gnosis-review--layout-media)
           (setf (plist-get context :process) canvas-3d--process
                 (plist-get context :attachment) canvas-3d--image)
           (setq-local gnosis-review--model-context context)

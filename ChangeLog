@@ -1,3 +1,10 @@
+2026-09-11  Bob Weiner  <rsw@gnu.org>
+
+* hywiki.el (hywiki-word-highlight-post-self-insert): Replace call to
+   'hywiki--maybe-dehighlight-at-point' with
+   'hywiki-maybe-dehighlight-between-references' to fix insertion of
+   letters in front of a WikiWord not dehighlighting it.
+
 2026-09-10  Bob Weiner  <rsw@gnu.org>
 
 * hmouse-drv.el (hkey-help-hbut): Add.

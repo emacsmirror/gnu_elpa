@@ -103,7 +103,7 @@ Otherwise, add STRING to the kill ring and send MSG."
       (replace-region-contents (region-beginning) (region-end) string)
     (kill-new string)
     (when msg
-      (message "%s" msg))))
+      (message "ISBN: %s" msg))))
 
 (defun isbn--list->string (isbn)
   "Convert ISBN (list) to a string."
@@ -147,7 +147,7 @@ concerning ISBN's validation."
                          index (1+ index)))
                       (= (mod (+ sum (car (last isbn))) 10) 0)))))
       (when interactive
-        (message (if res "ISBN is valid" "ISBN is not valid")))
+        (message "ISBN: %s" (if res "ISBN is valid" "ISBN is not valid")))
       res)))
 
 (defun isbn-10-p (isbn)

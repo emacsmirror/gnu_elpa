@@ -204,11 +204,6 @@ when point is `typewriter-warning-bell-offset' columns short of
                              typewriter-tab
                              typewriter-backward-char))
 
-    ;; Only typewriter-newline forces point to the true end of the
-    ;; buffer; self-insert and tab must evaluate overstrike/margin
-    ;; logic at wherever point actually is, since a user may have
-    ;; navigated to an earlier position on the last line, or even an
-    ;; earlier line, to overstrike there.
     (when (eq this-command 'typewriter-newline)
       (if (save-excursion
             (end-of-line)

@@ -1,7 +1,7 @@
 ;; -*- lisp-data -*-
 
 ((name			"GNU")
- (gitrepo		"emacs/elpa.git")
+ (gitrepo		"elpa/gnu.git")
  (release-url		"https://elpa.gnu.org/packages/")
  (devel-url		"https://elpa.gnu.org/devel/")
  (branch-prefix		"externals/")

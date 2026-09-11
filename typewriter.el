@@ -5,7 +5,7 @@
 ;; Author: Enrico Flor <enrico@eflor.net>
 ;; Maintainer: Enrico Flor <enrico@eflor.net>
 ;; URL: https://github.com/enricoflor/typewriter.el
-;; Version: 1.0.2
+;; Version: 1.1.0
 ;; Keywords: wp
 
 ;; Package-Requires: ((emacs "30.1"))
@@ -59,6 +59,10 @@
 You still cannot undo while the mode is active (buffer will be in
 `read-only-mode'), but the history will be fully available after you
 exit the mode."
+  :type 'boolean)
+
+(defcustom typewriter-recenter t
+  "If non-nil, keep the line where cursor is centered in the window."
   :type 'boolean)
 
 (defcustom typewriter-fill-column nil
@@ -160,7 +164,8 @@ to succeed, and the only job left is to make the buffer briefly writable
 for it."
   (interactive)
   (let ((inhibit-read-only t))
-    (call-interactively #'self-insert-command)))
+    (call-interactively #'self-insert-command))
+  (when typewriter-recenter (funcall #'recenter)))
 
 (defun typewriter-newline ()
   "Typewriter replacement for `newline'.
@@ -173,7 +178,8 @@ to succeed, and the only job left is to make the buffer briefly writable
 for it."
   (interactive)
   (let ((inhibit-read-only t))
-    (call-interactively #'newline)))
+    (call-interactively #'newline))
+  (when typewriter-recenter (funcall #'recenter)))
 
 (defun typewriter--bell-ring (&optional maybe)
   "Ring the typewriter bell, or ring it only near the margin.
@@ -198,48 +204,57 @@ when point is `typewriter-warning-bell-offset' columns short of
                              typewriter-tab
                              typewriter-backward-char))
 
-    (when (and (not (eq this-command 'typewriter-backward-char))
-               (or (eq this-command 'typewriter-newline)
-                   (< (point) (save-excursion
-                                (goto-char (point-max))
-                                (line-beginning-position)))))
-      (goto-char (point-max)))
+    ;; Only typewriter-newline forces point to the true end of the
+    ;; buffer; self-insert and tab must evaluate overstrike/margin
+    ;; logic at wherever point actually is, since a user may have
+    ;; navigated to an earlier position on the last line, or even an
+    ;; earlier line, to overstrike there.
+    (when (eq this-command 'typewriter-newline)
+      (if (save-excursion
+            (end-of-line)
+            (skip-chars-forward " \t\n")
+            (eobp))
+          (goto-char (point-max))
+        (forward-line 1)
+        (setq this-command 'ignore)))
 
-    (let ((col (current-column)))
-      (cond
-       ((and (eq this-command 'typewriter-self-insert)
-             (not (eobp))
-             (not (looking-at-p "\t\\|\s")))
-        ;; trying to type over existing ink
-        (typewriter--bell-ring)
-        (message
-         (substitute-command-keys
-          "You can only overstrike blank spaces.  \\[typewriter-mode] to toggle off and edit"))
-        (setq this-command 'ignore))
+    (unless (eq this-command 'ignore)
+      (let ((col (current-column)))
+        (cond
+         ((and (eq this-command 'typewriter-self-insert)
+               (not (eobp))
+               (not (eolp))
+               (not (looking-at-p "\t\\|\s")))
+          ;; trying to type over existing ink
+          (typewriter--bell-ring)
+          (message
+           (substitute-command-keys
+            "You can only overstrike blank spaces.  \\[typewriter-mode] to toggle off and edit"))
+          (setq this-command 'ignore))
 
-       ((and typewriter-fill-column
-             (not (eq this-command 'typewriter-newline))
-             (>= col typewriter-fill-column))
-        ;; we're at the margin
-        (typewriter--bell-ring t)
-        (typewriter--bell-ring)
-        (message
-         (substitute-command-keys
-          "Margin reached!  Press \\[typewriter-newline] to return the carriage."))
-        (setq this-command 'ignore))
+         ((and typewriter-fill-column
+               (not (eq this-command 'typewriter-newline))
+               (>= col typewriter-fill-column))
+          ;; we're at the margin
+          (typewriter--bell-ring t)
+          (typewriter--bell-ring)
+          (message
+           (substitute-command-keys
+            "Margin reached!  Press \\[typewriter-newline] to return the carriage."))
+          (setq this-command 'ignore))
 
-       (t
-        ;; just type
-        (typewriter--bell-ring t)
-        ;; This lift of inhibit-read-only is unrelated to the one in
-        ;; typewriter-self-insert: that one wraps the insertion
-        ;; command itself, while this one only covers deleting the
-        ;; placeholder space/tab that the new character is about to
-        ;; overstrike.
-        (when (and (eq this-command 'typewriter-self-insert)
-                   (looking-at-p "\t\\|\s"))
-          (let ((inhibit-read-only t))
-            (delete-char 1))))))))
+         (t
+          ;; just type
+          (typewriter--bell-ring t)
+          ;; This lift of inhibit-read-only is unrelated to the one in
+          ;; typewriter-self-insert: that one wraps the insertion
+          ;; command itself, while this one only covers deleting the
+          ;; placeholder space/tab that the new character is about to
+          ;; overstrike.
+          (when (and (eq this-command 'typewriter-self-insert)
+                     (looking-at-p "\t\\|\s"))
+            (let ((inhibit-read-only t))
+              (delete-char 1)))))))))
 
 (defun typewriter--post-command ()
   "Run configured hooks after a keystroke or carriage return.

@@ -8,10 +8,14 @@ experience.  Some find that the lack of editing facilities fosters a
 state of concentration and focus that makes certain types of creative
 writing more satisfying.
 
-The package has six configuration options:
+The package has seven configuration options:
 
   - ~typewriter-preserve-undo-history~: if non-nil, you'll be able to
     undo edits if you turn ~typewriter-mode~.  Default is ~t~.
+
+  - ~typewriter-recenter~: if non-nil, the line where cursor is at is
+    recentered (the command ~recenter~ is called) after every licit
+    keystroke.  Default is ~nil~.
 
   - ~typewriter-fill-column~: if ~nil~, your lines will be as long as
     you want.  Set to any integer =N=, emacs-turned-to-typewriter

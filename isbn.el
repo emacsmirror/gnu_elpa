@@ -123,7 +123,6 @@ Otherwise, add STRING to the kill ring and send MSG."
 
 ;;;; Validation
 
-;;;###autoload
 (defun isbn-valid-p (isbn &optional interactive)
   "Return t if ISBN is valid, otherwise nil.
 
@@ -151,14 +150,12 @@ concerning ISBN's validation."
         (message (if res "ISBN is valid" "ISBN is not valid")))
       res)))
 
-;;;###autoload
 (defun isbn-10-p (isbn)
   "Return t if ISBN matches the ISBN-10 format."
   (and
    (isbn-valid-p isbn)
    (eq (length (isbn--string->list isbn)) 10)))
 
-;;;###autoload
 (defun isbn-13-p (isbn)
   "Return t if ISBN matches the ISBN-13 format."
   (and
@@ -167,7 +164,6 @@ concerning ISBN's validation."
 
 ;;;; Conversion
 
-;;;###autoload
 (defun isbn-convert (isbn &optional format interactive)
   "Convert ISBN between 10- and 13-digit formats.
 
@@ -223,7 +219,6 @@ If nil, reading from, or caching to, a file is disabled."
 (defvar isbn-hyphenation-ranges-cache nil
   "Cache of all valid ISBN ranges from the International ISBN Agency.")
 
-;;;###autoload
 (defun isbn-update-hyphenation-ranges ()
   "Update cache of ISBN hyphenation ranges."
   (interactive)
@@ -244,7 +239,6 @@ If nil, reading from, or caching to, a file is disabled."
             (progress-reporter-done prgrp)))
       (error (error "Failed to retrieve hyphenation data")))))
 
-;;;###autoload
 (defun isbn-hyphenate (isbn &optional interactive)
   "Hyphenate ISBN as an ISBN-13.
 

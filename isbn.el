@@ -81,6 +81,8 @@
 
 ;;; Code:
 
+(require 'dom)
+
 (defgroup isbn nil
   "ISBN library."
   :prefix "isbn-"
@@ -250,8 +252,6 @@ Optional argument INTERACTIVE, when non-nil, adds the hyphenated ISBN to
 the kill ring or, when there is an active region, replaces the region
 with the hyphenated ISBN."
   (interactive (list (isbn--get-interactively) t))
-
-  (require 'dom)
 
   (unless (libxml-available-p)
     (error "Hyphenation requires libxml2 support"))

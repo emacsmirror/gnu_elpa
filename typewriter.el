@@ -5,7 +5,7 @@
 ;; Author: Enrico Flor <enrico@eflor.net>
 ;; Maintainer: Enrico Flor <enrico@eflor.net>
 ;; URL: https://github.com/enricoflor/typewriter.el
-;; Version: 1.0.1
+;; Version: 1.0.2
 ;; Keywords: wp
 
 ;; Package-Requires: ((emacs "30.1"))
@@ -270,11 +270,12 @@ non-nil."
   "<remap> <self-insert-command>" #'typewriter-self-insert)
 
 (defconst typewriter--overridden-variables '(buffer-read-only
-                                             fill-column
                                              indent-line-function
                                              tab-width
                                              tab-stop-list
-                                             command-error-function)
+                                             electric-indent-mode
+                                             command-error-function
+                                             fill-column)
   "Buffer-local variables that `typewriter-mode' temporarily overrides.
 
 Used to save their pre-mode values into `typewriter--saved-state' on
@@ -297,7 +298,6 @@ No deletions or arbitrary edits."
   (if typewriter-mode
 
       (progn
-        (electric-indent-local-mode -1)
         (unless typewriter-preserve-undo-history
           (setq-local buffer-undo-list t))
         ;; Save original variable states before overriding
@@ -312,6 +312,7 @@ No deletions or arbitrary edits."
                     ;; as a value for typewriter-tab-width)
                     tab-width (max 1 typewriter-tab-width)
                     tab-stop-list nil
+                    electric-indent-mode nil
                     command-error-function #'typewriter--error-handler
                     fill-column typewriter-fill-column)
         (add-hook 'pre-command-hook #'typewriter--pre-command nil t)
@@ -321,7 +322,6 @@ No deletions or arbitrary edits."
                    typewriter-tab-width)
           (sit-for 2)))
 
-    (electric-indent-local-mode 1)
     ;; Only restore undo tracking if WE were the ones who disabled it
     (when (eq buffer-undo-list t)
       (kill-local-variable 'buffer-undo-list))

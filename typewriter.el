@@ -83,12 +83,12 @@ Has no effect unless `typewriter-fill-column' is also set to an integer,
 since without a margin there is nothing to count down to."
   :type 'boolean)
 
-(defcustom typewriter-modeline-format " [%d]"
-  "Format string for the modeline character counter.
+(defcustom typewriter-mode-line-format " [%d]"
+  "Format string for the mode line character counter.
 
 This is passed directly to `format'.  The `%d' construct will be
 replaced by the number of remaining characters.  Include a leading space
-to visually separate the counter from preceding items in the modeline."
+to visually separate the counter from preceding items in the mode line."
   :type 'string)
 
 (defcustom typewriter-tab-width 8
@@ -105,8 +105,8 @@ If 0, `typewriter-tab' is disabled."
   "Hook run after inserting a new line."
   :type 'hook)
 
-(defun typewriter--modeline-remaining ()
-  "Return a mode-line string with columns left before the margin.
+(defun typewriter--mode-line-remaining ()
+  "Return a mode line string with columns left before the margin.
 
 Returns the empty string outside `typewriter-mode', or when
 `typewriter-show-chars-remaining' or `typewriter-fill-column' is nil."
@@ -116,7 +116,8 @@ Returns the empty string outside `typewriter-mode', or when
       (let ((curr (save-excursion
                     (end-of-line)
                     (current-column))))
-        (format typewriter-modeline-format (max 0 (- typewriter-fill-column curr))))
+        (format typewriter-mode-line-format
+                (max 0 (- typewriter-fill-column curr))))
     ""))
 
 (defun typewriter-backward-char ()
@@ -299,7 +300,6 @@ No deletions or arbitrary edits."
         (electric-indent-local-mode -1)
         (unless typewriter-preserve-undo-history
           (setq-local buffer-undo-list t))
-
         ;; Save original variable states before overriding
         (setq typewriter--saved-state
               (mapcar (lambda (sym) (cons sym (symbol-value sym)))
@@ -333,7 +333,7 @@ No deletions or arbitrary edits."
     (remove-hook 'post-command-hook #'typewriter--post-command t)))
 
 (add-to-list 'mode-line-misc-info
-             '(typewriter-mode ("" (:eval (typewriter--modeline-remaining))))
+             '(typewriter-mode ("" (:eval (typewriter--mode-line-remaining))))
              t)
 
 (provide 'typewriter)

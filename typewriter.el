@@ -5,7 +5,7 @@
 ;; Author: Enrico Flor <enrico@eflor.net>
 ;; Maintainer: Enrico Flor <enrico@eflor.net>
 ;; URL: https://github.com/enricoflor/typewriter.el
-;; Version: 1.0.0
+;; Version: 1.0.1
 ;; Keywords: wp
 
 ;; Package-Requires: ((emacs "30.1"))
@@ -66,7 +66,8 @@ exit the mode."
 
 If set to an integer, the typewriter will lock up and \\='ding\\=' when
 you reach this column. You must press RET to continue.  If nil, no
-margin is enforced."
+margin is enforced.  While `typewriter-mode' is active, the buffer-local
+value of `fill-column' is identical to the value of this variable."
   :type '(choice (const :tag "No margin" nil)
                  (natnum :tag "Margin at column")))
 
@@ -268,6 +269,7 @@ non-nil."
   "<remap> <self-insert-command>" #'typewriter-self-insert)
 
 (defconst typewriter--overridden-variables '(buffer-read-only
+                                             fill-column
                                              indent-line-function
                                              tab-width
                                              tab-stop-list
@@ -310,7 +312,8 @@ No deletions or arbitrary edits."
                     ;; as a value for typewriter-tab-width)
                     tab-width (max 1 typewriter-tab-width)
                     tab-stop-list nil
-                    command-error-function #'typewriter--error-handler)
+                    command-error-function #'typewriter--error-handler
+                    fill-column typewriter-fill-column)
         (add-hook 'pre-command-hook #'typewriter--pre-command nil t)
         (add-hook 'post-command-hook #'typewriter--post-command nil t)
         (when (<= typewriter-tab-width 0)

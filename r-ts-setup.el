@@ -46,20 +46,18 @@
 
 (defcustom r-ts-setup-r-program "R"
   "Program name or path for invoking R."
-  :type '(choice string file)
-  :group 'r-ts-setup)
+  :type '(choice string file))
 
 (defcustom r-ts-setup-create-treesitter-dir t
   "When non-nil, automatically create `~/<user-emacs-directory>/tree-sitter/'.
 When nil, signal an error if the target directory does not exist."
-  :type 'boolean
-  :group 'r-ts-setup)
+  :type 'boolean)
 
 
 ;;;; Grammar / Binary Preparation — Pure Helpers
 ;; =============================================================================
 (defun r-ts-setup--build-r-find-package-command (r-program)
-  "Return the shell command that prints the path of the \='treesitter.r\=' R package.
+  "Return the shell command that prints the path of the \\='treesitter.r\\=' R package.
 R-PROGRAM is the executable name or path.  Pure function — no side effects."
   (if (string-match-p "\\.exe\\'" r-program)
       (format "%s --no-echo -q -e print(find.package('treesitter.r'))" r-program)
@@ -77,9 +75,12 @@ Pure function — no side effects."
     (error "Could not parse R output: %s" output)))
 
 (defun r-ts-setup--find-treesitter-r-package-path ()
-  "Run R to find the installed path of the \='treesitter.r\=' package.
+  "Run R to find the installed path of the \\='treesitter.r\\=' package.
 Returns the path string.  Signals an error on failure."
   (let* ((cmd (r-ts-setup--build-r-find-package-command r-ts-setup-r-program))
+         ;; FIXME: I'd recommend `with-temp-buffer' + `call-process' so
+         ;; you avoid the shell which just gets in the way (thus saving
+         ;; you the trouble of quoting the arguments).         
          (output (progn
                    (shell-command cmd)
                    (with-current-buffer "*Shell Command Output*"
@@ -88,13 +89,13 @@ Returns the path string.  Signals an error on failure."
     (r-ts-setup--parse-r-find-package-output output)))
 
 ;; Path construction and validation
-(defun r-ts-setup--binary-path-unix (package-path)
-  "Return the expected .so path for PACKAGE-PATH on Unix.  Pure."
-  (format "%s/libs/treesitter.r.so" package-path))
+(defun r-ts-setup--binary-path-unix (package-dir)
+  "Return the expected .so path for PACKAGE-DIR on Unix.  Pure."
+  (format "%s/libs/treesitter.r.so" package-dir))
 
-(defun r-ts-setup--binary-path-win (package-path)
-  "Return candidate .dll paths for PACKAGE-PATH on Windows as a list.  Pure."
-  (let ((base (format "%s/libs/" package-path)))
+(defun r-ts-setup--binary-path-win (package-dir)
+  "Return candidate .dll paths for PACKAGE-DIR on Windows as a list.  Pure."
+  (let ((base (format "%s/libs/" package-dir)))
     (list (format "%streesitter.r.dll" base)
           (format "%sx64/treesitter.r.dll" base))))
 
@@ -139,7 +140,7 @@ otherwise signal an error."
 ;; =============================================================================
 ;;;###autoload
 (defun r-ts-setup-prepare-binaries-from-r-library (&optional package-path emacs-ts-path)
-  "Copy the tree-sitter R grammar from the \='treesitter.r\=' R package to Emacs.
+  "Copy the tree-sitter R grammar from the \\='treesitter.r\\=' R package to Emacs.
 Searches for the package in PACKAGE-PATH (or auto-detects via R) and
 copies the compiled binary to EMACS-TS-PATH (default:
 ~/<user-emacs-directory>/tree-sitter/)."

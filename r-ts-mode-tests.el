@@ -13,6 +13,7 @@
 
 (require 'ert)
 (require 'cl-lib)
+(require 'treesit)
 
 
 ;;;; Test utilities

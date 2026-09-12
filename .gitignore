@@ -1,0 +1,5 @@
+*.elc
+
+# ELPA-generated files.
+/r-ts-mode-autoloads.el
+/r-ts-mode-pkg.el

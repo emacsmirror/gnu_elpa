@@ -32,6 +32,8 @@
 
 (defvar gnosis-script-input-method-alist)
 
+(declare-function completion-preview-mode "completion-preview" (&optional arg))
+
 
 (defface gnosis-monkeytype-face-dimmed
   '((((class color) (background light)) :foreground "grey50")
@@ -169,13 +171,25 @@ Optionally, highlight MISTAKES."
   :parent text-mode-map
   "DEL" #'gnosis-monkeytype--ignore-del
   "RET" #'forward-line
-  "C-c C-k" #'gnosis-monkeytype-exit)
+  "C-c C-k" #'gnosis-monkeytype-exit
+  "<remap> <completion-at-point>" #'ignore
+  "<remap> <complete-symbol>" #'ignore
+  "<remap> <dabbrev-expand>" #'ignore
+  "<remap> <dabbrev-completion>" #'ignore
+  "<remap> <hippie-expand>" #'ignore)
 
 (define-derived-mode gnosis-monkeytype-mode text-mode "Gnosis Monkeytype"
-  "Gnosis Monkeytype Mode."
+  "Gnosis Monkeytype Mode with buffer-local completion disabled."
   :interactive nil
   :lighter " gnosis-monkeytype-mode"
   :keymap gnosis-monkeytype-mode-map
+  :after-hook
+  (progn
+    ;; Parent hooks can add CAPFs; global preview starts after mode hooks.
+    (setq-local completion-at-point-functions nil)
+    (when (and (fboundp 'completion-preview-mode)
+               (bound-and-true-p completion-preview-mode))
+      (completion-preview-mode -1)))
   (setq-local post-self-insert-hook nil)
   (setq-local header-line-format
 	      (substitute-command-keys

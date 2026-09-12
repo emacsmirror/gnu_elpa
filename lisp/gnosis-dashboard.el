@@ -1448,9 +1448,11 @@ Moves cursor to the beginning of the buffer after sorting."
 (defun gnosis-dashboard-nodes-review-with-depth ()
   "Review themata for node at point, prompting for link depths."
   (interactive)
-  (gnosis-review-topic (tabulated-list-get-id)
-		       (read-number "Forward link depth: " 1)
-		       (read-number "Backlink depth: " 0)))
+  (let ((target (gnosis-review--session-target)))
+    (gnosis-review-topic (tabulated-list-get-id)
+		         (read-number "Forward link depth: " 1)
+		         (read-number "Backlink depth: " 0)
+                         target)))
 
 (defun gnosis-dashboard-nodes-study ()
   "Open the study view for the node at point."

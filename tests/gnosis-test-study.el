@@ -484,7 +484,7 @@
            (gnosis-review-basic-input 'self-grade)
            (buf (gnosis-test-study-state (list id) 'practice))
            (state (with-current-buffer buf gnosis-review--state)))
-      (should-error (gnosis-review-loop (list id) 'practice))
+      (should-error (gnosis-review-loop (lambda () (user-error "Selection cancelled")) 'practice))
       (gnosis-test--add-basic-thema "New since pause" "B")
       (gnosis-sqlite-close gnosis-db)
       (setq gnosis-db (gnosis-sqlite-open gnosis-test--db-file))

@@ -119,8 +119,10 @@ Supply exactly one nonempty list: integer THEMA-IDS or string TOPIC-IDS.
 LIMIT is a required positive unique-item limit.  Select direct
 topic links only, sorted by thema ID; exclude missing/suspended themata,
 deduplicate before limiting and report shortfall.  Freeze validated POLICY
-as described by `gnosis-review-practice-policy'.  Refuse unfinished reviews.
-The human answers later in native Emacs UI; this function records no grade."
+as described by `gnosis-review-practice-policy'.  A nonempty selection ends
+unfinished progress early, retaining accepted evidence and schedules.  An empty
+selection returns a completed shortfall report without replacing the batch.
+Refuse active native input.  The human answers later; this records no grade."
           (unless (and (integerp limit) (> limit 0)
                        (if thema-ids (null topic-ids) topic-ids)
                        (proper-list-p (or thema-ids topic-ids))
@@ -128,7 +130,8 @@ The human answers later in native Emacs UI; this function records no grade."
                                       (lambda (id) (and (stringp id) (not (string-empty-p id)))))
                                     (or thema-ids topic-ids)))
             (user-error "Provide thema IDs or topic IDs and a positive unique limit"))
-          (let* ((policy (gnosis-review-practice-policy policy))
+          (let* ((target (gnosis-review--session-target))
+                 (policy (gnosis-review-practice-policy policy))
                  (topics (delete-dups (copy-sequence topic-ids)))
                  (unknown (seq-remove (lambda (id) (gnosis-get 'id 'nodes `(= id ,id))) topics)))
             (when unknown (user-error "Unknown topics: %S" unknown))
@@ -145,7 +148,7 @@ The human answers later in native Emacs UI; this function records no grade."
                                     :omitted-by-limit (max 0 (- (length eligible) limit))
                                     :excluded-ids (vconcat (seq-difference candidates eligible))
                                     :topic-ids (vconcat topics)))
-                   (state (gnosis-review--reserve-practice ids policy selection)))
+                   (state (gnosis-review--reserve-practice ids policy selection target)))
               (gnosis-agent--schedule state)
               (gnosis-agent-status (gnosis-review-state-session-id state)))))
 
@@ -174,6 +177,8 @@ The human answers later in native Emacs UI; this function records no grade."
   "Return API v1 status and progress for exact SESSION-ID.
 Statuses are pending, running, unfinished, completed and cancelled strings.
 Pending is process-local: after restart a reserved batch is unfinished.
+Cancelled includes batches ended early by a replacement, never completion.
+Their remaining IDs record abandoned membership, not resumable active work.
 Return :api-version 1, :session-id, :mode, :status, :schedule-updated :false,
 :selected-ids and :remaining-ids vectors, frozen :policy, :selection counts,
 :summary effective first/retry grade counts, and :targets reason counts.

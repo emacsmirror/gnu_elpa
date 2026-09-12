@@ -74,7 +74,6 @@
       (should (equal [103 999] (plist-get (plist-get status :selection) :excluded-ids)))
       (should-not (gnosis-select '* 'practice-events))
       (should-not (get-buffer gnosis-review-buffer-name))
-      (should-error (gnosis-agent-start-practice :thema-ids '(102) :limit 1))
       (let ((json (json-serialize (gnosis-agent-results id) :false-object :false :null-object nil)))
         (should (string-match-p "\"schedule-updated\":false" json))
         (should (string-match-p "\"events\":\\[\\]" json))
@@ -290,7 +289,12 @@
               (should (equal data (gnosis-get 'data 'study-session '(= id 1))))
               (should (equal before (gnosis-select '* 'practice-events)))
               (should-not (gnosis-review-state-policy (gnosis-review--read-session)))
-              (should-error (gnosis-agent-start-practice :thema-ids '(101) :limit 1)))))
+              (cl-letf (((symbol-function 'run-with-timer) (lambda (&rest _) nil)))
+                (let ((gnosis-agent--launches nil))
+                  (gnosis-agent-start-practice :thema-ids '(101) :limit 1)))
+              (should (plist-get (gnosis-get 'data 'study-history
+                                            '(= session-id "old-session")) :cancelled-p))
+              (should (equal before (gnosis-select '* 'practice-events))))))
       (gnosis-sqlite-close gnosis-db)
       (delete-directory dir t))))
 

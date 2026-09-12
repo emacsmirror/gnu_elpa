@@ -63,6 +63,29 @@ and queue progress remain one transaction; practice evidence remains separate
 from scheduling. These snapshots protect a pending interaction, not retained
 content versions or an archive.
 
+## Session replacement
+
+`gnosis-review` owns replacement of the one active `study_session` row.
+After a nonempty scheduled or practice selection succeeds, atomically retain
+an unfinished predecessor in `study_history` with `:cancelled-p t` and a nil
+`:launch-token`, then install the successor.  Cancelled means ended early,
+not completed.  Historical remaining IDs and outcomes remain evidence, not
+an active queue; old resume, undo, acceptance and deferred launch owners must
+not act on the successor.  Accepted practice/review events and scheduler rows
+are unchanged by replacement.  No schema or session-format change is needed.
+
+Selection cancellation, empty membership, stale database/checkpoint and
+transaction errors or quits preserve prior progress.  Recheck ownership after
+selection and buffer setup, and refuse replacement during native input.
+Capture the database and normalized checkpoint before public selection
+callbacks, including tag/topic input, link-depth prompts and confirmations;
+a prompt that outlives its owner must not replace an intervening batch.
+An empty agent selection retains a history-only completed shortfall report,
+never a replacement of the current batch.  Its previous deferred launch stays
+valid.  Nonempty replacement invalidates the previous launch by session/token;
+a queued callback may retire itself later but cannot present the old batch.
+See `tests/gnosis-test-session-replacement.el`.
+
 ## Lisp encoding
 
 `lisp/gnosis-sqlite.el` owns Lisp/SQL encoding. Its

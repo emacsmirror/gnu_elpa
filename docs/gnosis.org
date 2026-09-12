@@ -1326,16 +1326,26 @@ IDs, accepted outcomes, retry state and its basic input style.  Use
 ~gnosis-review-resume~ after interruption, buffer loss or an Emacs
 restart.  It presents the unaccepted question again using current thema
 content; it does not restore a typed answer or an unaccepted reveal.
-Existence and suspension are checked again.  Starting another batch is
-blocked while an unfinished batch remains.
+Existence and suspension are checked again.  Starting a new nonempty
+scheduled or practice batch automatically ends any unfinished batch early.
+Accepted grades, practice evidence and schedules are preserved; the old
+remaining queue is no longer active or resumable.  Its history retains
+that membership and marks the batch cancelled (ended early), not completed.
+An empty selection, selection error or cancelled prompt leaves the old
+batch available to resume.  Quit active native input before starting a new
+batch; replacement never interrupts an answer in progress.
 
 The study summary provides =r= to resume, =c= to continue, =d= to discard
 progress and =u= to undo.  ~gnosis-review-continue~ opens the review menu
 to select another batch; it does not silently repeat the previous scope.
-Finish or discard the current batch first.  ~gnosis-review-discard~ asks
-for confirmation and removes saved progress and its undo slot, but keeps
-accepted evidence and schedules.  Starting a new nonempty batch replaces
-the previous completed batch's saved progress and undo slot.
+No separate resume or discard step is required.  ~gnosis-review-discard~
+remains an optional command: it asks for confirmation and removes saved
+progress and its undo slot, but keeps accepted evidence and schedules.
+Starting a new nonempty batch replaces the previous batch's active saved
+progress and undo slot.  Merely opening or cancelling Continue changes
+nothing.  Agent-launched practice follows the same replacement rule; an
+empty agent selection returns a completed shortfall report without
+replacing the current batch or invalidating its pending launch.
 
 ~gnosis-review-undo~ is a single last-grade correction, available only
 outside active review.  Quit review first, taking care that =q= accepts
@@ -1351,8 +1361,9 @@ identity.  There is no multi-step undo history.  Deleted events, stale
 slots and grades superseded by a later effective event of the same kind
 for that thema cannot be undone.  Undo does not restore deleted content,
 reverse edits, remove flags or undo explicit suspension.  Older summaries
-are snapshots: their session commands operate on the currently retained
-batch, not a separate batch owned by that summary buffer.
+are snapshots: Resume, Discard and Undo refuse a changed checkpoint or
+database rather than acting on a newer batch.  Continue selects a new
+batch; it does not resume the summary's historical scope.
 
 ** Scheduling and Retention
 

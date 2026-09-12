@@ -519,6 +519,12 @@ after session advancement.  Scheduler acceptance validates retained facts."
     (apply #'gnosis-review-state-create :persistent-p t
            :database (gnosis--ensure-db) (cddr data))))
 
+(defun gnosis-review--session-target ()
+  "Return the current database and normalized checkpoint, ignoring buffers."
+  (cons (gnosis--ensure-db)
+        (when-let* ((state (gnosis-review--read-session)))
+          (gnosis-review--state-data state))))
+
 (defun gnosis-review--save-session (state)
   "Persist STATE on the caller's transaction."
   (gnosis-sqlite-execute (gnosis--ensure-db)
@@ -571,25 +577,45 @@ failure target.  A reached target takes precedence over the attempt cap."
                          "attempt-limit")
                         (t "unfinished")))))
 
-(defun gnosis-review--reserve-practice (ids policy selection)
-  "Reserve IDS for native practice with frozen POLICY and SELECTION metadata.
-Return durable state without displaying a buffer or asking for an answer."
+(defun gnosis-review--replace-session (state target)
+  "Install nonempty STATE in place of the exact database/checkpoint TARGET.
+End unfinished progress early, preserving accepted evidence and historical
+remaining membership.  The existing cancelled flag distinguishes this from
+completion.  Invalidate deferred launches without invoking adapter code."
   (when gnosis-review--running (user-error "Finish the active review first"))
-  (let ((policy (gnosis-review-practice-policy policy)))
-    (gnosis-sqlite-with-transaction (gnosis--ensure-db)
-      (when-let* ((old (gnosis-review--read-session))
-                  ((gnosis-review-state-remaining old)))
-        (user-error "Resume or discard the unfinished study session first"))
-      (let ((state (gnosis-review-state-create
-                    :mode 'practice :persistent-p t :database (gnosis--ensure-db)
-                    :session-id (gnosis-scheduler-event-id)
-                    :event-id (gnosis-scheduler-event-id)
-                    :basic-input gnosis-review-basic-input
-                    :policy policy :selection selection
-                    :selected (copy-sequence ids) :remaining (copy-sequence ids)
-                    :initial (length ids) :total (length ids))))
-        (gnosis-review--save-session state)
-        state))))
+  (unless (gnosis-review-state-remaining state) (error "Cannot replace with an empty batch"))
+  (gnosis-review--check-database state)
+  (gnosis-sqlite-with-transaction (car target)
+    (gnosis-review--check-action-target target)
+    (when-let* ((old (gnosis-review--read-session))
+                ((gnosis-review-state-remaining old)))
+      (setf (gnosis-review-state-cancelled-p old) t
+            (gnosis-review-state-launch-token old) nil)
+      (gnosis-review--save-history old))
+    (gnosis-review--save-session state)))
+
+(defun gnosis-review--reserve-practice (ids policy selection &optional target)
+  "Reserve IDS for native practice with frozen POLICY and SELECTION metadata.
+Return durable state without displaying a buffer or asking for an answer.
+Replace optional database/checkpoint TARGET, defaulting to the current batch.
+An empty selection retains only its report, leaving the current batch intact."
+  (when gnosis-review--running (user-error "Finish the active review first"))
+  (let* ((target (or target (gnosis-review--session-target)))
+         (policy (gnosis-review-practice-policy policy))
+         (state (gnosis-review-state-create
+                 :mode 'practice :persistent-p t :database (car target)
+                 :session-id (gnosis-scheduler-event-id)
+                 :event-id (gnosis-scheduler-event-id)
+                 :basic-input gnosis-review-basic-input
+                 :policy policy :selection selection
+                 :selected (copy-sequence ids) :remaining (copy-sequence ids)
+                 :initial (length ids) :total (length ids))))
+    (if ids
+        (gnosis-review--replace-session state target)
+      (gnosis-sqlite-with-transaction (car target)
+        (gnosis-review--check-action-target target)
+        (gnosis-review--save-history state)))
+    state))
 
 (defun gnosis-review--advance (state id success eligible next-event &optional skipped)
   "Return a fresh STATE advanced after ID and SUCCESS, or SKIPPED presentation.
@@ -1653,39 +1679,37 @@ Summary commands own the displayed snapshot; elsewhere use the current batch."
   (let ((target (if (derived-mode-p 'gnosis-review-summary-mode)
                     (or gnosis-review--summary-target
                         (user-error "No study checkpoint belongs to this summary"))
-                  (cons (gnosis--ensure-db)
-                        (when-let* ((state (gnosis-review--read-session)))
-                          (gnosis-review--state-data state))))))
+                  (gnosis-review--session-target))))
     (gnosis-review--check-action-target target)
     target))
 
-(defun gnosis-review-loop (collector &optional mode)
+(defun gnosis-review-loop (collector &optional mode target)
   "Review one finite batch from COLLECTOR in MODE, defaulting to due.
 COLLECTOR is a list of IDs or a function called exactly once.  Deduplicate
 and freeze membership, then recheck deletion and suspension before each
 presentation.  Practice records separate encounters and never reschedules.
-Return the session state, also on ordinary quit.  Keyboard quit preserves
-accepted grades and restores windows.  Cancelling an answer writes no grade."
+Return the session state, also on ordinary quit, or nil for empty selection.
+Keyboard quit preserves accepted grades and restores windows.  Cancelling
+an answer writes no grade.  A new nonempty selection ends an unfinished
+batch early without changing its accepted evidence or schedules.  Empty,
+failed or cancelled selection keeps the old batch and its summary.
+Optional TARGET is the database/checkpoint captured before earlier prompts;
+otherwise capture it before calling COLLECTOR."
   (when gnosis-review--running (user-error "Finish the active review first"))
   (unless (memq mode '(nil due practice)) (error "Unknown study mode"))
-  (when-let* ((old (gnosis-review--read-session))
-              ((gnosis-review-state-remaining old)))
-    (user-error "Resume or discard the unfinished study session first"))
-  (let* ((previous (gnosis-get 'data 'study-session '(= id 1)))
+  (let* ((target (or target (gnosis-review--session-target)))
          (themata (seq-filter #'gnosis-study-eligible-p
                               (delete-dups (copy-sequence
                                             (if (functionp collector)
-                                                (funcall collector) collector)))))
-         (buf (gnosis-review--setup-buffer themata mode))
-         (state (buffer-local-value 'gnosis-review--state buf)))
-    (when themata
-      (setf (gnosis-review-state-persistent-p state) t)
-      (gnosis-sqlite-with-transaction (gnosis--ensure-db)
-        (let ((current (gnosis-get 'data 'study-session '(= id 1))))
-          (unless (and (equal previous current) (not (plist-get current :remaining)))
-            (user-error "Study session changed; resume or discard it first"))
-          (gnosis-review--save-session state))))
-    (gnosis-review--run-state buf state)))
+                                                (funcall collector) collector))))))
+    (if (null themata)
+        (progn (message "No eligible themata selected") nil)
+      (gnosis-review--check-action-target target)
+      (let* ((buf (gnosis-review--setup-buffer themata mode))
+             (state (buffer-local-value 'gnosis-review--state buf)))
+        (setf (gnosis-review-state-persistent-p state) t)
+        (gnosis-review--replace-session state target)
+        (gnosis-review--run-state buf state)))))
 
 (defun gnosis-review--run-state (buf state)
   "Present STATE in BUF with frozen input policy and restored windows."
@@ -1747,11 +1771,10 @@ From a summary, require its original database and unchanged checkpoint."
 
 ;;;###autoload
 (defun gnosis-review-continue ()
-  "Deliberately select another batch after finishing the current one."
+  "Select another batch, ending unfinished progress only after selection.
+Keep accepted evidence and schedules.  Cancelling the menu changes nothing."
   (interactive)
-  (when-let* ((state (gnosis-review--read-session))
-              ((gnosis-review-state-remaining state)))
-    (user-error "Finish, resume or discard the current batch first"))
+  (when gnosis-review--running (user-error "Finish the active review first"))
   (gnosis-review))
 
 ;;;###autoload
@@ -1978,20 +2001,25 @@ SELECTION is a (KIND . TAGS) pair from `gnosis-review--read-selection'."
   :description "Review"
   :group "Review"
   "d" ("Due themata" (lambda () (interactive)
-                        (gnosis-review-loop (gnosis-review--selection-ids '(due)))))
+                        (gnosis-review-loop
+                         (lambda () (gnosis-review--selection-ids '(due))))))
   "t" ("Due themata of tag(s)" (lambda () (interactive)
                                   (gnosis-review-loop
-                                   (gnosis-review--selection-ids
-                                    (gnosis-review--read-selection 'due-tags)))))
+                                   (lambda ()
+                                     (gnosis-review--selection-ids
+                                      (gnosis-review--read-selection 'due-tags))))))
   "o" ("Overdue themata" (lambda () (interactive)
-                            (gnosis-review-loop (gnosis-review--selection-ids '(overdue)))))
+                            (gnosis-review-loop
+                             (lambda () (gnosis-review--selection-ids '(overdue))))))
   "w" ("Due without overdue" (lambda () (interactive)
                                 (gnosis-review-loop
-                                 (gnosis-review--selection-ids '(without-overdue)))))
+                                 (lambda ()
+                                   (gnosis-review--selection-ids '(without-overdue))))))
   "T" ("All themata of tag(s)" (lambda () (interactive)
                                   (gnosis-review-loop
-                                   (gnosis-review--selection-ids
-                                    (gnosis-review--read-selection 'tags)))))
+                                   (lambda ()
+                                     (gnosis-review--selection-ids
+                                      (gnosis-review--read-selection 'tags))))))
   :group "Topic"
   "n" ("Review due topic" gnosis-review-due-topic)
   "p" ("Practise topic (no rescheduling)" gnosis-practice-topic)
@@ -2018,17 +2046,22 @@ SELECTION is a (KIND . TAGS) pair from `gnosis-review--read-selection'."
     (cdr (assoc (gnosis-completing-read "Select topic: " candidates t) candidates))))
 
 ;;;###autoload
-(defun gnosis-review-topic (&optional node-id fwd-depth back-depth)
+(defun gnosis-review-topic (&optional node-id fwd-depth back-depth target)
   "Review ahead: reschedule all eligible themata linked to topic NODE-ID.
 FWD-DEPTH and BACK-DEPTH control forward/backlink traversal depth.
-With prefix arg, prompt for depths."
+With prefix arg, prompt for depths.  Optional TARGET is the database/checkpoint
+captured by a caller before its own selection prompts."
   (interactive
-   (list nil
-	 (when current-prefix-arg (read-number "Forward link depth: " 1))
-	 (when current-prefix-arg (read-number "Backlink depth: " 0))))
-  (let* ((node-id (or node-id (gnosis-review--select-topic)))
-	 (fwd-depth (or fwd-depth 0))
-	 (back-depth (or back-depth 0))
+   (let ((target (gnosis-review--session-target)))
+     (list nil
+           (when current-prefix-arg (read-number "Forward link depth: " 1))
+           (when current-prefix-arg (read-number "Backlink depth: " 0))
+           target)))
+  (when gnosis-review--running (user-error "Finish the active review first"))
+  (let* ((target (or target (gnosis-review--session-target)))
+         (fwd-depth (or fwd-depth 0))
+         (back-depth (or back-depth 0))
+         (node-id (or node-id (gnosis-review--select-topic)))
 	 (node-title (car (gnosis-select 'title 'nodes
 					 `(= id ,node-id) t)))
 	 (node-ids (if (or (> fwd-depth 0) (> back-depth 0))
@@ -2045,7 +2078,7 @@ With prefix arg, prompt for depths."
 			 (format " (%d nodes, fwd:%d back:%d)"
 				 (length node-ids) fwd-depth back-depth)
 		       "")))
-	(gnosis-review-loop gnosis-questions)))))
+	(gnosis-review-loop gnosis-questions nil target)))))
 
 (provide 'gnosis-review)
 ;;; gnosis-review.el ends here

@@ -32,9 +32,12 @@
 (require 'keymap-popup)
 (require 'tabulated-list)
 
-(declare-function gnosis-review-loop "gnosis-review" (collector &optional mode))
+(declare-function gnosis-review-loop "gnosis-review" (collector &optional mode target))
+(declare-function gnosis-review--session-target "gnosis-review" ())
 (declare-function gnosis-review-resume "gnosis-review" ())
 (declare-function gnosis-review-undo "gnosis-review" (&optional event-id correction-id))
+
+(defvar gnosis-review--running)
 
 (defun gnosis-study-topic-candidates (&optional ids)
   "Return title-based completion candidates, optionally for IDS.
@@ -116,10 +119,15 @@ Due and new counts include only active items; new can also be due."
           :new (seq-count (lambda (row) (zerop (car row))) active)
           :due due :not-due (- (length active) due))))
 
-(defun gnosis-study--start (nodes mode &optional fwd back)
-  "Preview and start a finite batch for NODES in MODE using FWD/BACK depths."
+(defun gnosis-study--start (nodes mode &optional fwd back target)
+  "Preview and start a finite batch for NODES in MODE using FWD/BACK depths.
+Read topics when NODES is nil.  Optional TARGET is the database/checkpoint
+captured before earlier prompts, otherwise capture it before collecting."
   (require 'gnosis-review)
-  (let* ((ids (gnosis-study-topic-ids nodes (eq mode 'due) fwd back))
+  (when gnosis-review--running (user-error "Finish the active review first"))
+  (let* ((target (or target (gnosis-review--session-target)))
+         (nodes (or nodes (gnosis-study-read-topics)))
+         (ids (gnosis-study-topic-ids nodes (eq mode 'due) fwd back))
          (counts (gnosis-study-composition ids))
          (candidates (gnosis-study-topic-candidates nodes))
          (scope (mapconcat (lambda (id)
@@ -135,27 +143,39 @@ Due and new counts include only active items; new can also be due."
                      (if (or (> (or fwd 0) 0) (> (or back 0) 0))
                          (format " Link depth: %d forward, %d backward." (or fwd 0) (or back 0))
                        "")))
-        (gnosis-review-loop (gnosis-shuffle ids) mode)))))
+        (gnosis-review-loop (gnosis-shuffle ids) mode target)))))
 
 ;;;###autoload
-(defun gnosis-practice-topic (&optional nodes fwd back)
+(defun gnosis-practice-topic (&optional nodes fwd back target)
   "Practise NODES without rescheduling, including new and not-due themata.
 NODES is a list of Org IDs.  Interactively select topics; with a prefix,
-prompt for bounded FWD and BACK graph depths.  Retry each failure at most once."
-  (interactive (list nil
-                     (when current-prefix-arg (read-number "Forward depth: " 0))
-                     (when current-prefix-arg (read-number "Backlink depth: " 0))))
-  (gnosis-study--start (or nodes (gnosis-study-read-topics)) 'practice fwd back))
+prompt for bounded FWD and BACK graph depths.  Retry each failure at most once.
+Optional TARGET is the database/checkpoint captured before earlier prompts."
+  (interactive
+   (progn
+     (require 'gnosis-review)
+     (let ((target (gnosis-review--session-target)))
+       (list nil
+             (when current-prefix-arg (read-number "Forward depth: " 0))
+             (when current-prefix-arg (read-number "Backlink depth: " 0))
+             target))))
+  (gnosis-study--start nodes 'practice fwd back target))
 
 ;;;###autoload
-(defun gnosis-review-due-topic (&optional nodes fwd back)
+(defun gnosis-review-due-topic (&optional nodes fwd back target)
   "Review due themata of NODES with normal FSRS acceptance.
 NODES is a list of Org IDs.  FWD and BACK optionally expand graph selection.
-This explicit topic batch is not capped by the daily new-item limit."
-  (interactive (list nil
-                     (when current-prefix-arg (read-number "Forward depth: " 0))
-                     (when current-prefix-arg (read-number "Backlink depth: " 0))))
-  (gnosis-study--start (or nodes (gnosis-study-read-topics)) 'due fwd back))
+This explicit topic batch is not capped by the daily new-item limit.
+Optional TARGET is the database/checkpoint captured before earlier prompts."
+  (interactive
+   (progn
+     (require 'gnosis-review)
+     (let ((target (gnosis-review--session-target)))
+       (list nil
+             (when current-prefix-arg (read-number "Forward depth: " 0))
+             (when current-prefix-arg (read-number "Backlink depth: " 0))
+             target))))
+  (gnosis-study--start nodes 'due fwd back target))
 
 ;;;###autoload
 (defun gnosis-study-subtree (&optional due)

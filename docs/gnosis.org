@@ -1283,7 +1283,12 @@ stages:
 1. *Display*: The keimenon is rendered in the =*gnosis*= buffer.
    If the keimenon contains a =[[file:...]]= image link, the image is
    opened in a secondary window.  Content is centred by default
-   (controlled by =gnosis-center-content-during-review=).
+   (controlled by =gnosis-center-content-during-review=). Short text lines
+   are centred separately in each window. Prose is filled to =fill-column=
+   when first displayed; narrower windows wrap those lines natively.
+   Splitting or resizing updates the presentation without rewriting the text,
+   resetting the answer or moving the reading position. Disabling centring
+   skips the initial filling and keeps native wrapping.
 
 2. *Input*: The user provides an answer.  The exact mechanism depends on
    the thema type.

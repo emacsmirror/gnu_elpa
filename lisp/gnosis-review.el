@@ -153,13 +153,92 @@ Returns the buffer.  MODE defaults to due; practice never reschedules."
 
 ;;; Display functions
 
+(defvar-local gnosis-review--layout nil
+  "Last text tick, centering preference and displaying window sizes.")
+
+(defvar-local gnosis-review--layout-overlays nil
+  "Window-specific line prefixes owned by this review buffer.")
+
+(defun gnosis-review--clear-layout ()
+  "Remove review line prefixes without changing buffer text."
+  (mapc #'delete-overlay gnosis-review--layout-overlays)
+  (setq gnosis-review--layout-overlays nil
+        gnosis-review--layout nil))
+
+(defun gnosis-review--refresh-layout (&rest _ignored)
+  "Update review line prefixes for each displaying window.
+Short lines are centered using window-specific pixel measurements; long
+lines wrap natively when the window is narrower than their initial filling.
+Text, point and window starts are never rewritten.  Ignore repeated calls
+with unchanged text and widths."
+  (let* ((windows (get-buffer-window-list (current-buffer) nil t))
+         (layout (list (buffer-modified-tick) gnosis-center-content
+                       (mapcar (lambda (window)
+                                 (cons window (window-body-width window t)))
+                               windows))))
+    (unless (equal layout gnosis-review--layout)
+      (gnosis-review--clear-layout)
+      (when gnosis-center-content
+        (save-excursion
+          (dolist (window windows)
+            (goto-char (point-min))
+            (while (< (point) (point-max))
+              (let ((start (point))
+                    (end (line-end-position))
+                    (width (window-body-width window t)))
+                ;; Images and separators have their own display geometry.
+                (unless (or (= start end)
+                            (text-property-not-all start end 'display nil))
+                  (let* ((truncate-lines t)
+                         (pixels (car (window-text-pixel-size
+                                       window start end (1+ width))))
+                         (padding (max 0 (/ (- width pixels) 2))))
+                    (when (> padding 0)
+                      (let ((overlay (make-overlay start end nil nil t)))
+                        (overlay-put overlay 'window window)
+                        (overlay-put overlay 'line-prefix
+                                     `(space :align-to (,padding)))
+                        (push overlay gnosis-review--layout-overlays))))))
+              (forward-line 1)))))
+      (setq gnosis-review--layout layout))))
+
+(defun gnosis-review--enable-layout ()
+  "Enable native, non-destructive wrapping in this review buffer."
+  (setq-local word-wrap t)
+  (setq-local truncate-lines nil)
+  (setq-local truncate-partial-width-windows nil)
+  (add-hook 'window-configuration-change-hook
+            #'gnosis-review--refresh-layout nil t)
+  (add-hook 'after-change-functions #'gnosis-review--refresh-layout nil t)
+  (add-hook 'change-major-mode-hook #'gnosis-review--clear-layout nil t))
+
+(defun gnosis-review--format-string (str)
+  "Format STR with stable filling and no window-dependent padding.
+When centering is enabled, fill prose once to `fill-column'.  Preserve
+explicit line breaks and display-bearing lines, including image properties.
+Narrow windows wrap the resulting text natively without rewriting it."
+  (let ((text (let ((gnosis-center-content nil)) (gnosis-format-string str)))
+        (column fill-column))
+    (if (not gnosis-center-content)
+        text
+      (mapconcat
+       (lambda (line)
+         (if (text-property-not-all 0 (length line) 'display nil line)
+             line
+           (with-temp-buffer
+             (setq fill-column column)
+             (insert (string-trim line))
+             (fill-region (point-min) (point-max))
+             (buffer-string))))
+       (split-string text "\n") "\n"))))
+
 (defun gnosis-display-keimenon (str)
   "Display STR as keimenon."
   (with-current-buffer gnosis-review-buffer-name
+    (gnosis-review--enable-layout)
     (erase-buffer)
-    (insert "\n" (gnosis-format-string str))
+    (insert "\n" (gnosis-review--format-string str))
     (gnosis-insert-separator)
-    (gnosis-apply-center-buffer-overlay)
     (when (and gnosis-review--running gnosis-review--state
                (not (member (gnosis-get 'type 'themata
                                         `(= id ,(car (gnosis-review-state-remaining gnosis-review--state))))
@@ -195,16 +274,12 @@ When SUCCESS nil, display USER-INPUT as well"
 	    (propertize "Answer:" 'face 'gnosis-face-directions)
 	    " "
 	    (propertize (gnosis-image-format-string answer) 'face 'gnosis-face-correct))
-    (when gnosis-center-content
-      (gnosis-center-current-line))
     ;; Insert user wrong answer
     (when (not success)
       (insert "\n"
 	      (propertize "Your answer:" 'face 'gnosis-face-directions)
 	      " "
-	      (propertize user-input 'face 'gnosis-face-false))
-      (when gnosis-center-content
-	(gnosis-center-current-line)))))
+	      (propertize user-input 'face 'gnosis-face-false)))))
 
 (defun gnosis-display-hint (hint)
   "Display HINT."
@@ -213,7 +288,7 @@ When SUCCESS nil, display USER-INPUT as well"
       (goto-char (point-max))
       (and (not (string-empty-p hint))
 	   (insert "\n"
-		   (gnosis-format-string
+		   (gnosis-review--format-string
 		    (propertize hint 'face 'gnosis-face-hint))))
       (gnosis-insert-separator))))
 
@@ -227,14 +302,12 @@ If FALSE t, use gnosis-face-false face"
 	  " "
 	  (propertize user-input 'face
 		      (if false 'gnosis-face-false 'gnosis-face-correct)))
-  (when gnosis-center-content
-    (gnosis-center-current-line))
   (newline))
 
 (defun gnosis-display-correct-answer-mcq (answer user-choice)
   "Display correct ANSWER & USER-CHOICE for MCQ thema."
   (goto-char (point-max))
-  (insert (gnosis-format-string
+  (insert (gnosis-review--format-string
 	   (format "%s %s\n%s %s"
 		   (propertize "Correct Answer:" 'face 'gnosis-face-directions)
 		   (propertize answer 'face 'gnosis-face-correct)
@@ -250,7 +323,7 @@ If FALSE t, use gnosis-face-false face"
   (when (and parathema (not (string-empty-p parathema)))
     (goto-char (point-max))
     (insert "\n"
-	    (gnosis-format-string
+	    (gnosis-review--format-string
 	     (gnosis-org-format-string parathema))
 	    "\n")))
 
@@ -281,7 +354,7 @@ SUCCESS controls the face used when overriding a previous display."
 					     'gnosis-face-false))))
 	;; Default behaviour
 	(goto-char (point-max))
-	(insert (gnosis-format-string next-review-msg)))))))
+	(insert (gnosis-review--format-string next-review-msg)))))))
 
 ;;; Link view mode
 

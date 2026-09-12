@@ -861,26 +861,44 @@ Translates {n}, {n,}, {n,m} to \\{n\\}, \\{n,\\}, \\{n,m\\}."
 	    '(:type history)))
     (pop-to-buffer buffer)))
 
+(defun gnosis-dashboard-view-all-nodes ()
+  "Display all nodes and reset dashboard navigation history."
+  (interactive)
+  (setq gnosis-dashboard--history nil)
+  (gnosis-dashboard-output-nodes))
+
+(defun gnosis-dashboard-view-isolated-nodes ()
+  "Display isolated nodes with all nodes as the previous view.
+Reset dashboard navigation history before opening these views."
+  (interactive)
+  (setq gnosis-dashboard--history nil)
+  (gnosis-dashboard-output-nodes)
+  (gnosis-dashboard-nodes-show-isolated))
+
+(defun gnosis-dashboard-view-all-themata ()
+  "Display all themata and reset dashboard navigation history."
+  (interactive)
+  (setq gnosis-dashboard--history nil)
+  (gnosis-dashboard-output-themata (gnosis-collect-thema-ids)))
+
+(defun gnosis-dashboard-rebuild-nodes ()
+  "Rebuild the node index from files."
+  (interactive)
+  (gnosis-nodes-db-sync t))
+
 (keymap-popup-define gnosis-dashboard-nodes-map
   "Nodes"
   :description "Nodes"
   :group "Nodes"
-  "a" ("View all nodes" (lambda () (interactive)
-			  (setq gnosis-dashboard--history nil)
-			  (gnosis-dashboard-output-nodes)))
+  "a" ("View all nodes" gnosis-dashboard-view-all-nodes)
   "t" ("View nodes by tag" gnosis-dashboard-nodes-search-by-tag)
-  "i" ("View isolated nodes" (lambda () (interactive)
-			       (setq gnosis-dashboard--history nil)
-			       (gnosis-dashboard-output-nodes)
-			       (gnosis-dashboard-nodes-show-isolated))))
+  "i" ("View isolated nodes" gnosis-dashboard-view-isolated-nodes))
 
 (keymap-popup-define gnosis-dashboard-themata-map
   "Themata"
   :description "Themata"
   :group "Themata"
-  "a" ("View all themata" (lambda () (interactive)
-			    (setq gnosis-dashboard--history nil)
-			    (gnosis-dashboard-output-themata (gnosis-collect-thema-ids))))
+  "a" ("View all themata" gnosis-dashboard-view-all-themata)
   "SPC" ("Search themata" gnosis-dashboard-suffix-query)
   "t" ("View by tags" gnosis-dashboard-view-by-tags)
   "T" ("View all tags" gnosis-dashboard-output-tags)
@@ -900,7 +918,7 @@ Translates {n}, {n,}, {n,m} to \\{n\\}, \\{n,\\}, \\{n,m\\}."
   :description "Maintenance"
   :group "Maintenance"
   "s" ("Sync nodes" gnosis-nodes-db-sync)
-  "S" ("Rebuild nodes" (lambda () (interactive) (gnosis-nodes-db-sync t)))
+  "S" ("Rebuild nodes" gnosis-dashboard-rebuild-nodes)
   "l" ((lambda ()
          (let ((n gnosis-dashboard--link-issues))
            (if (null n)
@@ -1465,14 +1483,34 @@ Moves cursor to the beginning of the buffer after sorting."
   (tabulated-list-print t)
   (goto-char (point-min)))
 
+(defun gnosis-dashboard-nodes-sort-by-title ()
+  "Sort nodes by title in ascending order and move to the first row."
+  (interactive)
+  (gnosis-dashboard-nodes--sort-by "Title" t))
+
+(defun gnosis-dashboard-nodes-sort-by-links ()
+  "Sort nodes by descending forward link count and move to the first row."
+  (interactive)
+  (gnosis-dashboard-nodes--sort-by "Links"))
+
+(defun gnosis-dashboard-nodes-sort-by-backlinks ()
+  "Sort nodes by descending backlink count and move to the first row."
+  (interactive)
+  (gnosis-dashboard-nodes--sort-by "Backlinks"))
+
+(defun gnosis-dashboard-nodes-sort-by-themata ()
+  "Sort nodes by descending thema link count and move to the first row."
+  (interactive)
+  (gnosis-dashboard-nodes--sort-by "Themata"))
+
 (keymap-popup-define gnosis-dashboard-nodes-sort-map
   "Sort Nodes"
   :description "Sort Nodes"
   :group "Sort By"
-  "C-t" ("Title" (lambda () (interactive) (gnosis-dashboard-nodes--sort-by "Title" t)))
-  "l" ("Links" (lambda () (interactive) (gnosis-dashboard-nodes--sort-by "Links")))
-  "b" ("Backlinks" (lambda () (interactive) (gnosis-dashboard-nodes--sort-by "Backlinks")))
-  "t" ("Themata" (lambda () (interactive) (gnosis-dashboard-nodes--sort-by "Themata"))))
+  "C-t" ("Title" gnosis-dashboard-nodes-sort-by-title)
+  "l" ("Links" gnosis-dashboard-nodes-sort-by-links)
+  "b" ("Backlinks" gnosis-dashboard-nodes-sort-by-backlinks)
+  "t" ("Themata" gnosis-dashboard-nodes-sort-by-themata))
 
 (keymap-popup-define gnosis-dashboard-nodes-search-map
   "Search Nodes"

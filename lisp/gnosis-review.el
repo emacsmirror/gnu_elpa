@@ -2150,30 +2150,50 @@ SELECTION is a (KIND . TAGS) pair from `gnosis-review--read-selection'."
                                        (gnosis-review-get-overdue-themata)))
     ('tags (gnosis-collect-thema-ids :tags (cdr selection)))))
 
+(defun gnosis-review-due ()
+  "Start a scheduled review of due themata."
+  (interactive)
+  (gnosis-review-loop
+   (lambda () (gnosis-review--selection-ids '(due)))))
+
+(defun gnosis-review-due-tags ()
+  "Start a scheduled review of due themata with selected tags."
+  (interactive)
+  (gnosis-review-loop
+   (lambda ()
+     (gnosis-review--selection-ids
+      (gnosis-review--read-selection 'due-tags)))))
+
+(defun gnosis-review-overdue ()
+  "Start a scheduled review of overdue themata."
+  (interactive)
+  (gnosis-review-loop
+   (lambda () (gnosis-review--selection-ids '(overdue)))))
+
+(defun gnosis-review-without-overdue ()
+  "Start a scheduled review of due themata excluding overdue themata."
+  (interactive)
+  (gnosis-review-loop
+   (lambda () (gnosis-review--selection-ids '(without-overdue)))))
+
+(defun gnosis-review-tags ()
+  "Start a scheduled review of all themata with selected tags.
+Include themata not yet due; accepted answers update their schedules."
+  (interactive)
+  (gnosis-review-loop
+   (lambda ()
+     (gnosis-review--selection-ids
+      (gnosis-review--read-selection 'tags)))))
+
 (keymap-popup-define gnosis-review-map
   "Review"
   :description "Review"
   :group "Review"
-  "d" ("Due themata" (lambda () (interactive)
-                        (gnosis-review-loop
-                         (lambda () (gnosis-review--selection-ids '(due))))))
-  "t" ("Due themata of tag(s)" (lambda () (interactive)
-                                  (gnosis-review-loop
-                                   (lambda ()
-                                     (gnosis-review--selection-ids
-                                      (gnosis-review--read-selection 'due-tags))))))
-  "o" ("Overdue themata" (lambda () (interactive)
-                            (gnosis-review-loop
-                             (lambda () (gnosis-review--selection-ids '(overdue))))))
-  "w" ("Due without overdue" (lambda () (interactive)
-                                (gnosis-review-loop
-                                 (lambda ()
-                                   (gnosis-review--selection-ids '(without-overdue))))))
-  "T" ("All themata of tag(s)" (lambda () (interactive)
-                                  (gnosis-review-loop
-                                   (lambda ()
-                                     (gnosis-review--selection-ids
-                                      (gnosis-review--read-selection 'tags))))))
+  "d" ("Due themata" gnosis-review-due)
+  "t" ("Due themata of tag(s)" gnosis-review-due-tags)
+  "o" ("Overdue themata" gnosis-review-overdue)
+  "w" ("Due without overdue" gnosis-review-without-overdue)
+  "T" ("All themata of tag(s)" gnosis-review-tags)
   :group "Topic"
   "n" ("Review due topic" gnosis-review-due-topic)
   "p" ("Practise topic (no rescheduling)" gnosis-practice-topic)

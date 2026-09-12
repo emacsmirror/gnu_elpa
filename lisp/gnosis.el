@@ -790,6 +790,12 @@ ACCEPTED-ALIASES must be nil for choice-based responses."
 (defvar-local gnosis--draft-original nil
   "Original edit content as (ID . SNAPSHOT), or nil for a creation draft.")
 
+(defvar-local gnosis--draft-save-receipt nil
+  "Optional one-cell receipt owned by this native edit occurrence.
+A successful save fills its car with (DATABASE ID CONTENT), before closing
+or running user hooks.  CONTENT holds the saved response and extras rows;
+review can acknowledge this write without replacing the answered content.")
+
 (defun gnosis--draft-content (db id)
   "Return the retained content of thema ID on DB, excluding study state."
   (mapcar (lambda (sql) (sqlite-select db sql (list id)))

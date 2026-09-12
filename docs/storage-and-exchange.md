@@ -57,11 +57,16 @@ opened thema. Do not silently redirect an existing draft after connection
 replacement or accept a stale draft over intervening content changes.
 
 Review response kinds retain the encountered question and answer rules
-through input, outcome overrides and final acceptance. Material edits require
-a fresh answer, never acceptance of the pre-edit result. Scheduled acceptance
-and queue progress remain one transaction; practice evidence remains separate
-from scheduling. These snapshots protect a pending interaction, not retained
-content versions or an archive.
+through input, outcome overrides and final acceptance. Native edit/save from
+review changes future presentations and returns to the same actions with the
+pending correct/incorrect result intact: Next or Quit accepts the originally
+answered question exactly once. Only that edit occurrence's committed content
+is acknowledged; unrelated content changes, deletion, database replacement and
+stale encounters still refuse acceptance. Captured answer rules and resource
+checks are not replaced or used to regrade the input after editing. Scheduled
+acceptance and queue progress remain one transaction; practice evidence remains
+separate from scheduling. These snapshots protect a pending interaction, not
+retained content versions or an archive.
 
 ## Session replacement
 

@@ -510,7 +510,7 @@ instant once when REVIEWED-AT-US is also omitted."
                     (plist-get result :thema-id) success
                     (plist-get result :event-id) (plist-get result :reviewed-at-us)
                     (plist-get result :review-day))))
-      (dolist (key '(:model :image :content))
+      (dolist (key '(:model :image :content :edited-content))
         (when (plist-member result key)
           (setq pending (plist-put pending key (plist-get result key)))))
       pending)))
@@ -521,12 +521,11 @@ instant once when REVIEWED-AT-US is also omitted."
     (gnosis--int-to-date
      (plist-get (plist-get result :preview) :due-day))))
 
-(defun gnosis-review--write-result (id success result)
-  "Accept pending RESULT for thema ID and binary SUCCESS.
+(defun gnosis-review--check-result-content (id result)
+  "Validate pending RESULT's content and encounter owners for thema ID.
 A media result retains (DATABASE THEMA BUFFER STATE SNAPSHOT), followed
 by verified fields for models.  Its owner must still match; only the last
-committed persistent attempt may retry
-after session advancement.  Scheduler acceptance validates retained facts."
+committed persistent attempt may retry after session advancement."
   (when-let* ((owner (plist-get result :content)))
     (gnosis-review--content-check id owner result))
   (dolist (key '(:model :image))
@@ -544,9 +543,10 @@ after session advancement.  Scheduler acceptance validates retained facts."
                                      (gnosis-review-state-last-event state)))))
           (user-error "Media answer belongs to an outdated encounter")))
       (unless (and (eq (car model) (gnosis--ensure-db))
-                   (equal (cadr model)
-                          (if (eq key :image) (gnosis-review--image-thema id)
-                            (gnosis-review--answer-thema id))))
+                   (or (gnosis-review--edited-content-p id result)
+                       (equal (cadr model)
+                              (if (eq key :image) (gnosis-review--image-thema id)
+                                (gnosis-review--answer-thema id)))))
         (user-error "Media answer belongs to an outdated thema or database"))
       (let ((row (car (cadr model))))
         (if (eq key :image)
@@ -554,7 +554,12 @@ after session advancement.  Scheduler acceptance validates retained facts."
           (gnosis--validate-accepted-aliases (nth 0 row) (nth 3 row) (nth 4 row))
           (if (nth 5 model)
               (gnosis-model-check-fields (nth 5 model))
-            (gnosis-model-fields (nth 0 row) (nth 2 row) (nth 3 row)))))))
+            (gnosis-model-fields (nth 0 row) (nth 2 row) (nth 3 row))))))))
+
+(defun gnosis-review--write-result (id success result)
+  "Accept pending RESULT for thema ID and binary SUCCESS.
+Validate its encountered content, then commit the retained scheduler facts."
+  (gnosis-review--check-result-content id result)
   (let ((outcome (if success 'success 'failure)))
     (unless (and (= id (plist-get result :thema-id))
                  (eq outcome (plist-get result :outcome)))
@@ -1391,7 +1396,8 @@ RESULT permits an identical retry of the last committed persistent attempt."
                                  (gnosis-review-state-session-id state))
                           (equal (plist-get result :event-id)
                                  (gnosis-review-state-last-event state))))
-                 (equal (nth 1 owner) (gnosis-review--content-thema id)))
+                 (or (gnosis-review--edited-content-p id result)
+                     (equal (nth 1 owner) (gnosis-review--content-thema id))))
       (signal 'gnosis-review-content-changed
               '("The content or encounter changed; resume the batch to answer again")))
     (gnosis--validate-accepted-aliases (nth 0 row) (nth 3 row) (nth 4 row))))
@@ -1908,18 +1914,40 @@ the changes with a message containing the reviewed number THEMA-NUM."
 
 ;;; Review actions
 
-(defun gnosis-review-action--edit (success thema result)
-  "Edit THEMA during review.
+(defun gnosis-review--edited-content-p (id result)
+  "Validate RESULT's acknowledged native edit of ID, returning non-nil.
+Only the exact saved response and extras may replace the content guard.
+The encountered question, answer rules, resources and owner remain intact."
+  (when-let* ((saved (plist-get result :edited-content)))
+    (unless (and (eq (car saved) (gnosis--ensure-db))
+                 (equal id (nth 1 saved))
+                 (equal (nth 2 saved)
+                        (seq-take (gnosis--draft-content (car saved) id) 2)))
+      (signal 'gnosis-review-content-changed
+              '("The saved content changed; resume the batch to answer again")))
+    t))
 
-RESULT is the pending outcome for SUCCESS and THEMA.
-After an unchanged save or cancel, return to `gnosis-review-actions'.
-Changed content invalidates RESULT; resume the batch to answer it again."
-  (gnosis-edit-thema thema)
-  (setf gnosis-review-editing-p t)
-  (recursive-edit)
-  (when-let* ((owner (plist-get result :content)))
-    (gnosis-review--content-check thema owner))
-  (gnosis-review-actions success thema result))
+(defun gnosis-review-action--edit (success thema result)
+  "Edit THEMA's future presentations, preserving pending SUCCESS and RESULT.
+Return to the same review actions after native save or cancel.  A save
+acknowledges only this edit's content, never another encounter or write."
+  (gnosis-review--check-result-content thema result)
+  (let ((origin (current-buffer))
+        (receipt (list nil))
+        (gnosis-review-editing-p t))
+    (gnosis-edit-thema thema)
+    (setq gnosis--draft-save-receipt receipt)
+    (with-current-buffer origin
+      (gnosis-review--check-result-content thema result))
+    (recursive-edit)
+    (unless (buffer-live-p origin)
+      (user-error "Review buffer no longer exists"))
+    (with-current-buffer origin
+      (let ((result (if (car receipt)
+                        (plist-put (copy-sequence result) :edited-content (car receipt))
+                      result)))
+        (gnosis-review--check-result-content thema result)
+        (gnosis-review-actions success thema result)))))
 
 (defun gnosis-review-action--quit (success thema result)
   "Quit review session.

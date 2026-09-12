@@ -261,6 +261,8 @@ the draft.  Copy its text before cancelling and reopening to reconcile."
             (dolist (id (gnosis-select 'id 'themata nil t) ht)
               (puthash id t ht))))
          (errors nil)
+         (receipt gnosis--draft-save-receipt)
+         (saved-content nil)
          (edited-id (string-to-number (caar themata))))
     (catch 'gnosis-save-failed
       (gnosis-sqlite-with-transaction gnosis--draft-db
@@ -269,12 +271,18 @@ the draft.  Copy its text before cancelling and reopening to reconcile."
                  for err = (gnosis-save-thema thema)
                  when err do (push err errors))
         (when errors
-          (throw 'gnosis-save-failed nil))))
+          (throw 'gnosis-save-failed nil))
+        (when (and receipt gnosis--draft-original)
+          (setq saved-content
+                (list gnosis--draft-db (car gnosis--draft-original)
+                      (seq-take (gnosis--draft-content
+                                 gnosis--draft-db (car gnosis--draft-original)) 2))))))
     (if errors
         (user-error
          "Failed to import %d thema(ta):\n%s"
          (length errors)
          (mapconcat #'identity (nreverse errors) "\n"))
+      (when receipt (setcar receipt saved-content))
       (gnosis-edit-quit)
       (run-hook-with-args 'gnosis-save-hook edited-id))))
 

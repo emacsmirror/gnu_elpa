@@ -86,7 +86,7 @@ boundary; neither accepts a pending grade."
                   (gnosis-review--resume
                    (cons (plist-get record :db) (gnosis-review--state-data state))))))))
       (quit (message "Gnosis practice interrupted; resume the same session"))
-      (error (message "Gnosis practice launch stopped: %s" (error-message-string err))))))
+      (error (message "Gnosis practice stopped: %s" (error-message-string err))))))
 
 (defun gnosis-agent--schedule (state)
   "Schedule exact STATE for native input after returning to the event loop."

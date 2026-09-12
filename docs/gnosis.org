@@ -815,8 +815,10 @@ question, not its reverse.
 Save with =C-c C-c= and reopen through the normal edit command to inspect the
 retained field. Removing or emptying the Accepted aliases section in a full
 draft clears the aliases. Duplicate or unknown field headings are rejected;
-do not put aliases in Answer as additional required answers. Changing aliases
-during input or before accepting its pending result requires answering again.
+do not put aliases in Answer as additional required answers. Unrelated alias
+changes during input or before acceptance require answering again. An alias
+edit saved through review's =e= action applies to future presentations without
+regrading the answer already given.
 
 *** Images, regions and occlusion
 
@@ -1164,6 +1166,13 @@ To edit an existing thema, use =M-x gnosis-edit-thema= or press =e=
 during a review session.  The same edit buffer is used, this time
 populated with the existing values.  Saving updates the record in
 place, re-synchronising both tags and node links.
+
+After answering, =e= followed by save or cancel returns to the same review
+actions. Edits apply to future presentations; the pending correct/incorrect
+result still describes the question you answered. =n= (Next) or =q= (Quit)
+accepts that result once, without asking again. Use =o= to override the result
+explicitly. Deletion, unrelated content changes and a replaced database or
+encounter still prevent stale acceptance.
 
 A native creation or edit draft belongs to the database connection that
 opened it.  Saving refuses a replaced or reopened connection, and an edit

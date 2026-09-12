@@ -552,15 +552,17 @@ remains lexical regardless of the caller."
       `(keymap-popup--filter-binding ,cmd-form ,if-pred)
     cmd-form))
 
-(defun keymap-popup--build-keymap-pairs (map-name rows)
+(defun keymap-popup--build-keymap-pairs (map-name rows &optional commands)
   "Build flat key/command forms for MAP-NAME from ROWS.
 Group and entry :if forms are evaluated at load time, then combined
-as function values for the live binding's filter."
+as function values for the live binding's filter.
+COMMANDS maps entries to variables holding their evaluated commands."
   (cl-loop for row in rows append
            (cl-loop for group in row append
                     (cl-loop for entry in (plist-get group :entries)
                              for cmd = (keymap-popup--entry-command map-name entry)
-                             for cmd-form = (if (symbolp cmd) `#',cmd cmd)
+                             for cmd-form = (or (cdr (assq entry commands))
+                                                (if (symbolp cmd) `#',cmd cmd))
                              for group-if = (plist-get group :if)
                              for entry-if = (plist-get entry :if)
                              for pred = (if (and group-if entry-if)
@@ -571,20 +573,22 @@ as function values for the live binding's filter."
                                           (keymap-popup--wrap-binding-form
                                            cmd-form pred))))))
 
-(defun keymap-popup--build-entry-form (entry &optional map-name)
+(defun keymap-popup--build-entry-form (entry &optional map-name commands)
   "Build a canonical entry form for ENTRY.
 When MAP-NAME is non-nil, switch and keymap entries also store the
 generated toggle/enter command as :command, so every entry is
 command-addressable (annotate entries have no generated commands,
-so their builders pass no MAP-NAME)."
+so their builders pass no MAP-NAME).
+COMMANDS maps entries to variables holding their evaluated commands."
   (let* ((type (plist-get entry :type))
          (command (pcase-exhaustive type
                     ('suffix (plist-get entry :command))
                     ((or 'switch 'keymap)
                      (and map-name
                           (keymap-popup--entry-command map-name entry)))))
-         (command-form (and command
-                            (if (symbolp command) `#',command command)))
+         (command-form (or (cdr (assq entry commands))
+                           (and command
+                                (if (symbolp command) `#',command command))))
          (variable-form (and (eq type 'switch)
                              `(quote ,(plist-get entry :variable))))
          (target-form (and (eq type 'keymap)
@@ -601,26 +605,26 @@ so their builders pass no MAP-NAME)."
       :stay-open ,(plist-get entry :stay-open)
       :c-u ,(plist-get entry :c-u))))
 
-(defun keymap-popup--build-group-form (group &optional map-name)
+(defun keymap-popup--build-group-form (group &optional map-name commands)
   "Build a canonical form for one GROUP plist.
-MAP-NAME is passed to `keymap-popup--build-entry-form'."
+MAP-NAME and COMMANDS are passed to `keymap-popup--build-entry-form'."
   `(keymap-popup--group
     ,(plist-get group :name)
     (list ,@(mapcar (lambda (entry)
-                      (keymap-popup--build-entry-form entry map-name))
+                      (keymap-popup--build-entry-form entry map-name commands))
                     (plist-get group :entries)))
     :if ,(plist-get group :if)
     :inapt-if ,(plist-get group :inapt-if)))
 
-(defun keymap-popup--build-descriptions-form (rows &optional map-name)
+(defun keymap-popup--build-descriptions-form (rows &optional map-name commands)
   "Build a `list' form that constructs descriptions at load time.
 ROWS is a list of rows, each row a list of groups.  Uses `list'
 calls so lambdas in :if/:inapt-if/:description get compiled.
-MAP-NAME is passed down to the entry forms."
+MAP-NAME and COMMANDS are passed down to the entry forms."
   `(list ,@(mapcar (lambda (row)
                      `(list ,@(mapcar (lambda (group)
                                         (keymap-popup--build-group-form
-                                         group map-name))
+                                         group map-name commands))
                                       row)))
                    rows)))
 
@@ -826,24 +830,36 @@ pairs."
          (keymap-entries (cl-loop for entry in all-entries
                                   when (eq (plist-get entry :type) 'keymap)
                                   collect entry))
-         (keymap-pairs (keymap-popup--build-keymap-pairs name rows))
-         (launcher (keymap-popup--launcher-name name)))
+         (commands (cl-loop for entry in all-entries
+                            for command = (keymap-popup--entry-command name entry)
+                            unless (symbolp command)
+                            collect (cons entry (make-symbol "command"))))
+         (keymap-pairs (keymap-popup--build-keymap-pairs name rows commands))
+         (launcher (keymap-popup--launcher-name name))
+         (definition
+          `((defvar-keymap ,name
+              ,@(and docstring (list :doc docstring))
+              ,@(and parent (list :parent parent))
+              ,@keymap-pairs)
+            ;; Read the default popup key at load time.
+            (keymap-popup--bind-launcher
+             ,name ,(or popup-key 'keymap-popup-default-popup-key) #',launcher)
+            ,(keymap-popup--build-attach-form
+              name (keymap-popup--build-descriptions-form rows name commands)
+              exit-key description persistent persistent-p))))
     `(progn
        ,@(keymap-popup--build-declaration-forms name parent all-entries)
        ,@(keymap-popup--build-switch-forms name switch-entries)
        ,@(keymap-popup--build-enter-forms name keymap-entries)
        ,(keymap-popup--build-launcher-form name launcher)
-       (defvar-keymap ,name
-         ,@(and docstring (list :doc docstring))
-         ,@(and parent (list :parent parent))
-         ,@keymap-pairs)
-       ;; Bound outside `defvar-keymap' so the default key is read at
-       ;; load time, not baked in when the macro is byte-compiled.
-       (keymap-popup--bind-launcher
-        ,name ,(or popup-key 'keymap-popup-default-popup-key) #',launcher)
-       ,(keymap-popup--build-attach-form
-         name (keymap-popup--build-descriptions-form rows name)
-         exit-key description persistent persistent-p))))
+       ,@(if commands
+             ;; Share function objects, not merely equal closure forms, between
+             ;; the live bindings and descriptions.  Keep predicate layers apart.
+             `((let ,(mapcar (lambda (pair)
+                              `(,(cdr pair) ,(plist-get (car pair) :command)))
+                            commands)
+                 ,@definition))
+           definition))))
 
 ;;;###autoload
 (defmacro keymap-popup-annotate (keymap &rest body)

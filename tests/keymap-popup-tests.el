@@ -417,6 +417,97 @@ PROPERTIES may supply active-state and session values used by a test."
         t)
   (should (functionp (keymap-lookup keymap-popup--test-map-5 "x"))))
 
+(defvar keymap-popup--test-anonymous-map)
+
+(defun keymap-popup-test--anonymous-command-popup (compile)
+  "Exercise anonymous commands through a popup, using COMPILE on its factory."
+  (let* ((keymap-popup--test-anonymous-map nil)
+         (overriding-terminal-local-map nil)
+         (pre-command-hook nil)
+         (post-command-hook nil)
+         (minibuffer-setup-hook nil)
+         (minibuffer-exit-hook nil)
+         (keymap-popup-backend
+          (lambda () (list :show #'ignore :fit #'ignore :hide #'ignore)))
+         ;; Evaluate once as source, even when this test file is compiled.
+         (factory
+          (eval '(lambda (value)
+                   (keymap-popup-define keymap-popup--test-anonymous-map
+                     "a" ("Anonymous" (lambda () (interactive) (insert value)))
+                     "f" ("Filtered" (lambda () (interactive) (insert value))
+                          :if (lambda () t))
+                     "n" ("Named" ignore)))
+                t)))
+    (unwind-protect
+        (with-temp-buffer
+          (makunbound 'keymap-popup--test-anonymous-map)
+          (funcall (funcall compile factory) "captured")
+          (let* ((map keymap-popup--test-anonymous-map)
+                 (original (keymap-lookup map "a")))
+            (keymap-popup map)
+            (should (string-match-p
+                     "Anonymous" (with-current-buffer keymap-popup--buffer-name
+                                   (buffer-string))))
+            (should (string-match-p
+                     "Filtered" (with-current-buffer keymap-popup--buffer-name
+                                  (buffer-string))))
+            (dolist (key '("a" "f"))
+              (let* ((rows (keymap-popup--meta map 'descriptions))
+                     (entry (keymap-popup--find-entry-by-key rows key)))
+                (should (eq (plist-get entry :command)
+                            (keymap-lookup map key)))))
+            (call-interactively (key-binding (kbd "a")))
+            (should (equal (buffer-string) "captured"))
+            (keymap-popup-dismiss)
+            ;; A fresh closure, even with equal source and environment, is
+            ;; a replacement, not the command described by the old entry.
+            (let ((replacement (eval '(lambda () (interactive) (insert value))
+                                     '((value . "captured")))))
+              (should-not (eq original replacement))
+              (keymap-set map "a" replacement)
+              (keymap-popup map)
+              (should-not
+               (string-match-p
+                "Anonymous" (with-current-buffer keymap-popup--buffer-name
+                              (buffer-string))))
+              (keymap-popup-dismiss)
+              (keymap-set map "z" original)
+              (keymap-popup map)
+              (should (string-match-p
+                       "Anonymous" (with-current-buffer keymap-popup--buffer-name
+                                     (buffer-string))))
+              (call-interactively (key-binding (kbd "z")))
+              (should (equal (buffer-string) "capturedcaptured")))
+            (execute-kbd-macro (kbd "q"))
+            (should-not (get-buffer keymap-popup--buffer-name))
+            (should-not overriding-terminal-local-map)))
+      (keymap-popup-dismiss))))
+
+(ert-deftest keymap-popup-test-anonymous-command-popup-source ()
+  (keymap-popup-test--anonymous-command-popup #'identity))
+
+(ert-deftest keymap-popup-test-anonymous-command-popup-byte-compiled ()
+  (keymap-popup-test--anonymous-command-popup #'byte-compile))
+
+(ert-deftest keymap-popup-test-distinct-equal-commands-stay-distinct ()
+  "Equal closure bodies do not transfer labels or popup restrictions."
+  (let* ((form '(lambda () (interactive) (insert value)))
+         (environment '((value . "captured")))
+         (original (eval form environment))
+         (replacement (eval form environment))
+         (map (make-sparse-keymap)))
+    (should (equal original replacement))
+    (should-not (eq original replacement))
+    (keymap-set map "a" original)
+    (keymap-popup-attach map
+                         (list "a" (list "Original" original :inapt-if #'always)))
+    (keymap-set map "a" replacement)
+    (let* ((rows (keymap-popup--resolve-descriptions
+                  (keymap-popup--meta map 'descriptions) map))
+           (wrapper (keymap-popup--build-wrapper-map map rows nil "q")))
+      (should-not (keymap-popup--find-entry-by-key rows "a"))
+      (should (eq (keymap-lookup wrapper "a") replacement)))))
+
 (ert-deftest keymap-popup-test-macro-no-docstring ()
   (eval '(keymap-popup-define keymap-popup--test-map-nodoc
            :group "Actions"

@@ -114,6 +114,10 @@ KEY (DESC :keymap MAP [PROP VALUE...])    ; sub-menu
 - =DESC= -- string or zero-arg function (called at render time in the
   user's buffer, so it sees buffer-local state).
 - =COMMAND= -- command symbol or a =(lambda () (interactive) ...)=.
+  Anonymous commands retain their lexical environment and share one function
+  object between the binding and its popup description.  Moving that object
+  to another key moves its label; replacing it with a different function
+  does not transfer the old label or popup restrictions.
 - =MAP= -- keymap variable symbol.  It may be defined after its parent;
   its value is resolved when the sub-menu opens.
 - =PROP= -- one of =:if=, =:inapt-if=, =:stay-open=, =:c-u= (see

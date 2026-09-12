@@ -207,5 +207,14 @@
         (should (apply #'= (mapcar (lambda (result) (plist-get result key))
                                   results)))))))
 
+(ert-deftest gnosis-test-fsrs-calendar-ties-to-even ()
+  "Preserve whole-day policy separately from raw reference intervals."
+  (dolist (case '((2.5 . 2) (3.5 . 4) (4.5 . 4) (1000.5 . 1000)))
+    (let ((result (gnosis-fsrs-transition
+                   (list :stability (car case) :difficulty 5.0)
+                   0 'success 0.9)))
+      (should (= (car case) (plist-get result :raw-interval-days)))
+      (should (= (cdr case) (plist-get result :calendar-interval-days))))))
+
 (provide 'gnosis-test-fsrs)
 ;;; gnosis-test-fsrs.el ends here

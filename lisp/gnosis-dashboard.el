@@ -36,6 +36,15 @@
 (require 'keymap-popup)
 
 (declare-function gnosis-review-resume "gnosis-review" ())
+(declare-function gnosis-review--session-target "gnosis-review" ())
+(declare-function gnosis-review-topic "gnosis-review"
+                  (&optional node-id fwd-depth back-depth target))
+(declare-function gnosis-study-topic "gnosis-study" (&optional node))
+(declare-function gnosis-study-repair "gnosis-study" ())
+(declare-function gnosis-practice-topic "gnosis-study"
+                  (&optional nodes fwd back target))
+(declare-function gnosis-review-due-topic "gnosis-study"
+                  (&optional nodes fwd back target))
 
 (defface gnosis-face-dashboard-header
   '((t :inherit (bold font-lock-constant-face)))
@@ -1448,6 +1457,7 @@ Moves cursor to the beginning of the buffer after sorting."
 (defun gnosis-dashboard-nodes-review-with-depth ()
   "Review themata for node at point, prompting for link depths."
   (interactive)
+  (require 'gnosis-review)
   (let ((target (gnosis-review--session-target)))
     (gnosis-review-topic (tabulated-list-get-id)
 		         (read-number "Forward link depth: " 1)

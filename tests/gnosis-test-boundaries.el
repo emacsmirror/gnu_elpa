@@ -83,5 +83,41 @@
                      (directory-files gnosis-dir nil "\\`[^.]"))
         (error "Cloze wrote data")))))
 
+(ert-deftest gnosis-test-boundaries-cold-dashboard-compilation ()
+  "Compile the dashboard without preloading review or study commands."
+  (gnosis-test-boundaries--cold
+   '(progn
+      (require 'bytecomp)
+      (let* ((source (locate-file "gnosis-dashboard.el" load-path))
+             (target (expand-file-name "gnosis-dashboard.el" gnosis-dir))
+             ;; Popup-generated long docstrings have their own lint policy.
+             (byte-compile-warnings '(not docstrings))
+             (byte-compile-error-on-warn t))
+        (copy-file source target)
+        (unless (byte-compile-file target)
+          (error "Cold dashboard compilation failed"))))))
+
+(ert-deftest gnosis-test-boundaries-cold-dashboard-review-depth-cancel ()
+  "Reach depth input from a cold dashboard and cancel without study evidence."
+  (gnosis-test-boundaries--cold
+   '(progn
+      (require 'gnosis-dashboard)
+      (when (featurep 'gnosis-review)
+        (error "Dashboard eagerly loaded review"))
+      (let ((prompted nil))
+        (cl-letf (((symbol-function 'read-number)
+                   (lambda (&rest _args)
+                     (setq prompted t)
+                     (signal 'quit nil))))
+          (with-temp-buffer
+            (gnosis-dashboard-nodes-mode)
+            (condition-case nil
+                (call-interactively (key-binding (kbd "R")))
+              (quit nil))))
+        (unless prompted (error "Depth command did not reach its prompt"))
+        (unless (and (null (gnosis-select '* 'study-session))
+                     (null (gnosis-select '* 'review-events)))
+          (error "Cancelled selection wrote study evidence"))))))
+
 (provide 'gnosis-test-boundaries)
 ;;; gnosis-test-boundaries.el ends here

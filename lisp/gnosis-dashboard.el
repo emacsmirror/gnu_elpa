@@ -35,6 +35,7 @@
 (require 'gnosis-nodes)
 (require 'keymap-popup)
 
+(declare-function gnosis-review-count-due "gnosis-review" ())
 (declare-function gnosis-review-resume "gnosis-review" ())
 (declare-function gnosis-review--session-target "gnosis-review" ())
 (declare-function gnosis-review-topic "gnosis-review"
@@ -104,6 +105,9 @@ When non-nil, sort in ascending order (smaller values first)."
 (defvar-local gnosis-dashboard--link-issues nil
   "Count of link issues, computed on dashboard load.")
 
+(defvar-local gnosis-dashboard--link-audit nil
+  "Private builder owned by the current automatic link audit.")
+
 (defvar-local gnosis-dashboard--load-generation 0
   "Generation counter to cancel stale work in this buffer.")
 (put 'gnosis-dashboard--load-generation 'permanent-local t)
@@ -128,7 +132,7 @@ mutable tails of that prefix.  Mutations settle this suffix first.")
 
 (defvar gnosis-dashboard-module-today-stats
   (lambda ()
-    (let* ((due-count (length (gnosis-review-get--due-themata)))
+    (let* ((due-count (gnosis-review-count-due))
            (overdue-count (gnosis-review-count-overdue)))
       (insert
        (gnosis-center-string
@@ -497,6 +501,7 @@ proportionally so all columns fit."
   (when (timerp gnosis-dashboard--timer)
     (cancel-timer gnosis-dashboard--timer))
   (setq gnosis-dashboard--timer nil
+        gnosis-dashboard--link-audit nil
         gnosis-dashboard--pending-entries nil)
   (cl-incf gnosis-dashboard--load-generation))
 
@@ -1087,13 +1092,48 @@ Uses +tag/-tag syntax: +foo adds tag foo, -bar removes tag bar."
 
 
 (defun gnosis-dashboard--compute-link-issues ()
-  "Compute and cache the total number of link issues."
-  (setq gnosis-dashboard--link-issues
-        (+ (length (gnosis--orphaned-link-dests))
-           (length (gnosis--stale-links))
-           (length (gnosis--missing-links))
-           (length (gnosis--node-links-missing-dest))
-           (length (gnosis--node-links-missing-source)))))
+  "Start an incremental automatic link count for this dashboard.
+Keep the badge unknown until a complete, unchanged database scan finishes.
+The explicit `gnosis-links-check' report remains synchronous."
+  (when (timerp gnosis-dashboard--timer)
+    (cancel-timer gnosis-dashboard--timer))
+  (setq gnosis-dashboard--link-issues nil
+        gnosis-dashboard--link-audit (gnosis--link-audit-new))
+  (setq gnosis-dashboard--timer
+        (run-with-timer
+         0.01 nil #'gnosis-dashboard--link-audit-chunk
+         (current-buffer) gnosis-dashboard--load-generation
+         gnosis-dashboard--database gnosis-dashboard--link-audit
+         (gnosis--link-audit-revision gnosis-dashboard--database))))
+
+(defun gnosis-dashboard--link-audit-chunk (buffer generation db audit revision)
+  "Continue BUFFER's AUDIT only for GENERATION, DB and REVISION.
+Each callback reads one bounded page, then yields to the command loop.
+Check the captured content identity before and after reading: text and
+indexes read in different callbacks must belong to the same database
+revision.  Restart after a write, without publishing a partial count."
+  (when (buffer-live-p buffer)
+    (with-current-buffer buffer
+      (when (and (eq major-mode 'gnosis-dashboard-mode)
+                 (= generation gnosis-dashboard--load-generation)
+                 (eq db gnosis-db) (eq db gnosis-dashboard--database)
+                 (eq audit gnosis-dashboard--link-audit)
+                 (gnosis-sqlite-live-p db))
+        (setq gnosis-dashboard--timer nil)
+        (if (not (equal revision (gnosis--link-audit-revision db)))
+            (gnosis-dashboard--compute-link-issues)
+          (let ((done (gnosis--link-audit-page db audit)))
+            (cond
+             ((not (equal revision (gnosis--link-audit-revision db)))
+              (gnosis-dashboard--compute-link-issues))
+             (done
+              (setq gnosis-dashboard--link-issues (plist-get audit :count)
+                    gnosis-dashboard--link-audit nil))
+             (t
+              (setq gnosis-dashboard--timer
+                    (run-with-timer
+                     0.01 nil #'gnosis-dashboard--link-audit-chunk
+                     buffer generation db audit revision))))))))))
 
 (defun gnosis-dashboard--load-stats (buffer marker generation)
   "Load dashboard statistics into BUFFER at MARKER position.
@@ -1118,7 +1158,8 @@ GENERATION prevents stale updates when the user navigates away."
                (lambda ()
                  (when (buffer-live-p buffer)
                    (with-current-buffer buffer
-                     (when (and (= generation gnosis-dashboard--load-generation)
+                     (when (and (eq major-mode 'gnosis-dashboard-mode)
+                                (= generation gnosis-dashboard--load-generation)
                                 (eq gnosis-dashboard--database gnosis-db))
                        (setq gnosis-dashboard--timer nil)
                        (gnosis-dashboard--compute-link-issues)))))))))))

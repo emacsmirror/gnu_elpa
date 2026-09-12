@@ -475,6 +475,24 @@ well."
 	  (append limited-new old-themata)
 	(append old-themata limited-new)))))
 
+(defun gnosis-review-count-due ()
+  "Return the number of due themata, respecting the new-thema limit.
+Count in SQLite rather than materializing the review queue for a badge."
+  (pcase-let ((`((,old ,new))
+               (gnosis-sqlite-select
+                (gnosis--ensure-db)
+                "SELECT COUNT(CASE WHEN reps > 0 THEN 1 END),
+                        COUNT(CASE WHEN reps = 0 THEN 1 END)
+                   FROM scheduler_state
+                  WHERE suspended = 0 AND due_day <= ?"
+                (list (gnosis--today-int)))))
+    ;; Match `cl-subseq' in the queue selector, including negative end indices.
+    (let* ((end (min new (or gnosis-new-themata-limit new)))
+           (limited-new (if (< end 0) (+ new end) end)))
+      (when (< limited-new 0)
+        (error "End index out of bounds: %s" gnosis-new-themata-limit))
+      (+ old limited-new))))
+
 (defun gnosis-review-get-due-themata ()
   "Return all due thema IDs."
   (mapcar #'car (gnosis-review-get--due-themata)))

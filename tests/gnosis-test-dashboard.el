@@ -141,6 +141,37 @@ Includes `gnosis-test-with-dashboard-state' for isolation."
                  gnosis-db "SELECT * FROM review_activity_baseline")
                 (gnosis-sqlite-select gnosis-db "SELECT * FROM review_events"))))))))
 
+(ert-deftest gnosis-test-dashboard-due-count-does-not-materialize-cards ()
+  "Counting due cards returns aggregates, with the same new-card limit."
+  (gnosis-test-with-db
+    (should (= (gnosis-review-count-due) 0))
+    (dotimes (i 600)
+      (gnosis-test--add-basic-thema "Question" "Answer" nil nil (1+ i)))
+    ;; Include due old, overdue, future and suspended cards in the oracle.
+    (gnosis-sqlite-execute gnosis-db
+                           "UPDATE scheduler_state SET reps = 1 WHERE thema_id <= 20")
+    (gnosis-sqlite-execute gnosis-db
+                           "UPDATE scheduler_state SET suspended = 1 WHERE thema_id = 1")
+    (gnosis-sqlite-execute gnosis-db
+                           "UPDATE scheduler_state SET due_day = ? WHERE thema_id = 2"
+                           (list (1+ (gnosis--today-int))))
+    (let ((gnosis-new-themata-limit -900))
+      (should-error (gnosis-review-get--due-themata))
+      (should-error (gnosis-review-count-due)))
+    (dolist (limit '(nil 0 7 900 -1 -580))
+      (let* ((gnosis-new-themata-limit limit)
+             (expected (length (gnosis-review-get--due-themata)))
+             (select (symbol-function 'gnosis-sqlite-select)))
+        (with-temp-buffer
+          (cl-letf (((symbol-function 'gnosis-sqlite-select)
+                     (lambda (&rest args)
+                       (let ((rows (apply select args)))
+                         (should (<= (length rows) 2))
+                         rows))))
+            (funcall gnosis-dashboard-module-today-stats))
+          (should (string-search (format "Due themata: %d " expected)
+                                 (buffer-string))))))))
+
 (ert-deftest gnosis-test-dashboard-sort-total-themata ()
   "Sort entries by column index 1 (total themata count)."
   (let ((entry-small '("tag-a" ["tag-a" "5"]))

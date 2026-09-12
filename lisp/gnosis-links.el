@@ -161,9 +161,14 @@ Return the updated thema IDs."
 
 (defun gnosis--all-link-dests ()
   "Return all unique dest UUIDs from thema-links table."
-  (cl-remove-duplicates
-   (gnosis-select 'dest 'thema-links nil t)
-   :test #'equal))
+  (let ((seen (make-hash-table :test 'equal)) result)
+    ;; The old deduplicator kept the last occurrence.  Reverse a private
+    ;; spine, then prepend unseen IDs to preserve that order in linear time.
+    (dolist (dest (reverse (gnosis-select 'dest 'thema-links nil t)))
+      (unless (gethash dest seen)
+        (puthash dest t seen)
+        (push dest result)))
+    result))
 
 (defun gnosis--all-node-ids ()
   "Return all node IDs from both nodes and journal tables."
@@ -173,8 +178,10 @@ Return the updated thema IDs."
 (defun gnosis--orphaned-link-dests ()
   "Return thema-link destination UUIDs without a node or journal entry."
   (let ((link-dests (gnosis--all-link-dests))
-        (node-ids (gnosis--all-node-ids)))
-    (cl-set-difference link-dests node-ids :test #'equal)))
+        (node-set (make-hash-table :test 'equal)))
+    (dolist (id (gnosis--all-node-ids))
+      (puthash id t node-set))
+    (seq-remove (lambda (dest) (gethash dest node-set)) link-dests)))
 
 (defun gnosis--orphaned-links ()
   "Return (source dest) rows where dest has no matching node."
@@ -233,18 +240,25 @@ Fetches all themata, extras, and thema-links in bulk."
                                 'extras nil))
          (all-links (gnosis-select '[source dest]
                                    'thema-links nil))
-         (extras-map (make-hash-table :test 'equal)))
-    ;; Build extras lookup
+         (themata-map (make-hash-table :test 'eql))
+         (extras-map (make-hash-table :test 'equal))
+         (expected-map (make-hash-table :test 'eql)))
+    (dolist (thema themata)
+      (puthash (car thema) (cadr thema) themata-map))
     (dolist (extra extras)
       (puthash (car extra) (cadr extra) extras-map))
-    ;; Find links in DB that aren't in text
+    ;; Preserve link order, but look up and extract each source only once.
     (cl-loop
      for (source dest) in all-links
-     for keimenon = (cadr (cl-find source themata
-                                   :key #'car))
-     for parathema = (gethash source extras-map "")
-     for expected = (gnosis--thema-expected-links
-                     (or keimenon "") (or parathema ""))
+     for expected =
+     (let ((cached (gethash source expected-map 'not-extracted)))
+       (if (eq cached 'not-extracted)
+           (puthash source
+                    (gnosis--thema-expected-links
+                     (or (gethash source themata-map) "")
+                     (or (gethash source extras-map) ""))
+                    expected-map)
+         cached))
      unless (member dest expected)
      collect (list source dest))))
 
@@ -276,6 +290,84 @@ Fetches all themata, extras, and thema-links in bulk."
                      for key = (format "%s-%s" id dest)
                      unless (gethash key links-set)
                      collect (list id dest)))))
+
+;;; Incremental link count
+
+(defun gnosis--link-audit-revision (db)
+  "Return DB's connection-local and external content change identity.
+Conservatively invalidate on any write, including rolled-back writes.
+Schema changes also invalidate the rowid cursor."
+  (list (gnosis-sqlite-select db "SELECT total_changes()")
+        (gnosis-sqlite-select db "PRAGMA data_version")
+        (gnosis-sqlite-select db "PRAGMA schema_version")))
+
+(defun gnosis--link-audit-new ()
+  "Return a private, mutable builder for an incremental link issue count.
+Only IDs, indexed links and counters survive a page; text is not retained."
+  (list :tables '(nodes journal thema-links themata node-links)
+        :after nil :count 0
+        :nodes (make-hash-table :test 'equal)
+        :links (make-hash-table :test 'equal)
+        :indexed (make-hash-table :test 'equal)
+        :orphans (make-hash-table :test 'equal)))
+
+(defun gnosis--link-audit-page (db audit)
+  "Accumulate at most 256 rows from DB into the private builder AUDIT.
+Return non-nil when all tables have been scanned.  Use indexed rowid
+pagination, including for the text/extras join, rather than fetching or
+copying the whole collection before yielding.  The caller must reject the
+builder if DB changes between pages; no transaction spans these calls."
+  (let* ((table (car (plist-get audit :tables)))
+         (after (plist-get audit :after))
+         (nodes (plist-get audit :nodes))
+         (links (plist-get audit :links))
+         (indexed (plist-get audit :indexed))
+         (orphans (plist-get audit :orphans))
+         (count (plist-get audit :count))
+         (rows
+          (gnosis-sqlite-select
+           db
+           (concat
+            (pcase-exhaustive table
+              ('nodes "SELECT t.rowid, t.id FROM nodes t")
+              ('journal "SELECT t.rowid, t.id FROM journal t")
+              ('thema-links "SELECT t.rowid, t.source, t.dest FROM thema_links t")
+              ('node-links "SELECT t.rowid, t.source, t.dest FROM node_links t")
+              ('themata
+               (concat "SELECT t.rowid, t.id, t.keimenon, e.parathema "
+                       "FROM themata t LEFT JOIN extras e ON e.id = t.id")))
+            (when after " WHERE t.rowid > ?")
+            " ORDER BY t.rowid LIMIT 256")
+           (when after (list after)))))
+    (dolist (row rows)
+      (setq after (car row))
+      (pcase-exhaustive table
+        ((or 'nodes 'journal) (puthash (nth 1 row) t nodes))
+        ('thema-links
+         (let ((pair (cdr row)) (dest (nth 2 row)))
+           ;; Initially every index row is stale; matching text subtracts it.
+           (cl-incf count)
+           (puthash pair (1+ (gethash pair links 0)) links)
+           ;; Missing links use formatted equality; stale rows do not.
+           (puthash (format "%s-%s" (car pair) dest) t indexed)
+           (unless (or (gethash dest nodes) (gethash dest orphans))
+             (puthash dest t orphans)
+             (cl-incf count))))
+        ('themata
+         (dolist (dest (gnosis--thema-expected-links
+                       (or (nth 2 row) "") (or (nth 3 row) "")))
+           (cl-decf count (gethash (list (nth 1 row) dest) links 0))
+           (unless (gethash (format "%s-%s" (nth 1 row) dest) indexed)
+             (cl-incf count))))
+        ('node-links
+         (unless (gethash (nth 1 row) nodes) (cl-incf count))
+         (unless (gethash (nth 2 row) nodes) (cl-incf count)))))
+    (setf (plist-get audit :count) count
+          (plist-get audit :after) after)
+    (when (< (length rows) 256)
+      (setf (plist-get audit :tables) (cdr (plist-get audit :tables))
+            (plist-get audit :after) nil))
+    (null (plist-get audit :tables))))
 
 ;;; Link report
 

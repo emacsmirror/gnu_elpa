@@ -212,25 +212,44 @@ with unchanged text and widths."
   (add-hook 'after-change-functions #'gnosis-review--refresh-layout nil t)
   (add-hook 'change-major-mode-hook #'gnosis-review--clear-layout nil t))
 
+(defun gnosis-review--unstyle-link-newlines (str)
+  "Return STR without Org link styling on newline characters.
+Preserve other faces, link destinations and all non-newline properties.
+Org fontification and filling can carry link styling onto newlines,
+where redisplay extends it into otherwise empty display space."
+  (with-temp-buffer
+    (insert str)
+    (goto-char (point-min))
+    (while (search-forward "\n" nil t)
+      (let* ((start (1- (point)))
+             (faces (ensure-list (get-text-property start 'face))))
+        (when (memq 'org-link faces)
+          (put-text-property start (point) 'face (remq 'org-link faces))
+          (when (eq (get-text-property start 'mouse-face) 'highlight)
+            (remove-text-properties start (point) '(mouse-face nil))))))
+    (buffer-string)))
+
 (defun gnosis-review--format-string (str)
   "Format STR with stable filling and no window-dependent padding.
 When centering is enabled, fill prose once to `fill-column'.  Preserve
 explicit line breaks and display-bearing lines, including image properties.
+Keep Org link styling off newlines, including those inserted by filling.
 Narrow windows wrap the resulting text natively without rewriting it."
   (let ((text (let ((gnosis-center-content nil)) (gnosis-format-string str)))
         (column fill-column))
-    (if (not gnosis-center-content)
-        text
-      (mapconcat
-       (lambda (line)
-         (if (text-property-not-all 0 (length line) 'display nil line)
-             line
-           (with-temp-buffer
-             (setq fill-column column)
-             (insert (string-trim line))
-             (fill-region (point-min) (point-max))
-             (buffer-string))))
-       (split-string text "\n") "\n"))))
+    (gnosis-review--unstyle-link-newlines
+     (if (not gnosis-center-content)
+         text
+       (mapconcat
+        (lambda (line)
+          (if (text-property-not-all 0 (length line) 'display nil line)
+              line
+            (with-temp-buffer
+              (setq fill-column column)
+              (insert (string-trim line))
+              (fill-region (point-min) (point-max))
+              (buffer-string))))
+        (split-string text "\n") "\n")))))
 
 (defun gnosis-display-keimenon (str)
   "Display STR as keimenon."

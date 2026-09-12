@@ -228,5 +228,80 @@
         (should (= mark (mark)))
         (should (eq state gnosis-review--state))))))
 
+(ert-deftest gnosis-review-layout-answer-blocks-start-below-separator ()
+  "Center every feedback entry independently of the keimenon separator."
+  (dolist (renderer '(basic cloze mcq))
+    (gnosis-test-review-layout--with-buffer
+      (let ((gnosis-center-content t))
+        (gnosis-display-keimenon "Question")
+        (pcase renderer
+          ('basic (gnosis-display-basic-answer "Athens" nil "Rome"))
+          ('cloze (gnosis-display-cloze-user-answer "Rome"))
+          ('mcq (gnosis-display-correct-answer-mcq "Athens" "Rome")))
+        (dolist (label (pcase renderer
+                        ('basic '("Answer:" "Your answer:"))
+                        ('cloze '("Your answer:"))
+                        ('mcq '("Correct Answer:" "Your answer:"))))
+          (goto-char (point-min))
+          (search-forward label)
+          (should (= (line-beginning-position) (match-beginning 0)))
+          (should-not (text-property-not-all (line-beginning-position)
+                                             (line-end-position) 'display nil))
+          (should (gnosis-test-review-layout--prefix
+                   (selected-window) (line-beginning-position))))))))
+
+(ert-deftest gnosis-review-layout-answer-blocks-share-stable-filling ()
+  "Fill feedback once like keimenon, retaining authored breaks on resize."
+  (dolist (center '(nil t))
+    (dolist (renderer '(basic cloze mcq))
+      (gnosis-test-review-layout--with-buffer
+        (let* ((gnosis-center-content center)
+               (fill-column 28)
+               (answer "Alpha beta gamma delta epsilon zeta eta\n\nΕλληνικά")
+               (snapshot (copy-sequence answer)))
+          (gnosis-display-keimenon "Question")
+          (pcase renderer
+            ('basic (gnosis-display-basic-answer answer nil answer))
+            ('cloze (gnosis-display-cloze-user-answer answer))
+            ('mcq (gnosis-display-correct-answer-mcq answer answer)))
+          (should (string-match-p "\n\nΕλληνικά" (buffer-string)))
+          (if center
+              (should (seq-every-p (lambda (line) (<= (string-width line) fill-column))
+                                   (split-string (buffer-string) "\n")))
+            (should (string-match-p (regexp-quote answer) (buffer-string))))
+          (let ((text (buffer-string)))
+            (split-window-right 35)
+            (run-hooks 'window-configuration-change-hook)
+            (should (equal-including-properties text (buffer-string))))
+          (should (equal-including-properties answer snapshot)))))))
+
+(ert-deftest gnosis-review-layout-answer-blocks-preserve-media-and-literals ()
+  "Keep media geometry and literal typed links when formatting feedback."
+  (dolist (center '(nil t))
+    (gnosis-test-review-layout--with-buffer
+      (let* ((gnosis-center-content center)
+             (fill-column 100)
+             (media (propertize " " 'display '(space :width 5)
+                                'gnosis-image-mask '(retained-mask)))
+             (answer (concat "Caption\n" media "\n\nTail"))
+             (input "[[https://example.org/source][Literal typed link]]")
+             (answer-snapshot (copy-sequence answer))
+             (input-snapshot (copy-sequence input)))
+        (gnosis-display-keimenon "Question")
+        (gnosis-display-basic-answer answer nil input)
+        (gnosis-display-cloze-user-answer input)
+        (should (text-property-any (point-min) (point-max) 'display
+                                   (get-text-property 0 'display media)))
+        (should (equal '(retained-mask)
+                       (get-text-property
+                        (text-property-not-all (point-min) (point-max)
+                                               'gnosis-image-mask nil)
+                        'gnosis-image-mask)))
+        (goto-char (point-min))
+        (should (search-forward input nil t))
+        (should (search-forward input nil t))
+        (should (equal-including-properties answer answer-snapshot))
+        (should (equal-including-properties input input-snapshot))))))
+
 (provide 'gnosis-test-review-layout)
 ;;; gnosis-test-review-layout.el ends here

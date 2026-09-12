@@ -212,32 +212,41 @@ with unchanged text and widths."
   (add-hook 'after-change-functions #'gnosis-review--refresh-layout nil t)
   (add-hook 'change-major-mode-hook #'gnosis-review--clear-layout nil t))
 
-(defun gnosis-review--unstyle-link-newlines (str)
-  "Return STR without Org link styling on newline characters.
+(defun gnosis-review--unstyle-inline-newlines (str)
+  "Return STR without link or cloze answer faces on newline characters.
 Preserve other faces, link destinations and all non-newline properties.
-Org fontification and filling can carry link styling onto newlines,
-where redisplay extends it into otherwise empty display space."
+Fontification, multiline hints and filling can carry inline faces onto
+newlines, where redisplay extends them into otherwise empty display space."
   (with-temp-buffer
     (insert str)
     (goto-char (point-min))
     (while (search-forward "\n" nil t)
       (let* ((start (1- (point)))
-             (faces (ensure-list (get-text-property start 'face))))
-        (when (memq 'org-link faces)
-          (put-text-property start (point) 'face (remq 'org-link faces))
-          (when (eq (get-text-property start 'mouse-face) 'highlight)
-            (remove-text-properties start (point) '(mouse-face nil))))))
+             (faces (ensure-list (get-text-property start 'face)))
+             (remaining (seq-remove
+                         (lambda (face)
+                           (memq face '(org-link gnosis-face-cloze
+                                        gnosis-face-correct gnosis-face-false
+                                        gnosis-face-unanswered)))
+                         faces)))
+        (unless (equal faces remaining)
+          (put-text-property start (point) 'face remaining))
+        (when (and (memq 'org-link faces)
+                   (eq (get-text-property start 'mouse-face) 'highlight))
+          (remove-text-properties start (point) '(mouse-face nil)))))
     (buffer-string)))
 
-(defun gnosis-review--format-string (str)
+(defun gnosis-review--format-string (str &optional literal)
   "Format STR with stable filling and no window-dependent padding.
 When centering is enabled, fill prose once to `fill-column'.  Preserve
 explicit line breaks and display-bearing lines, including image properties.
-Keep Org link styling off newlines, including those inserted by filling.
-Narrow windows wrap the resulting text natively without rewriting it."
-  (let ((text (let ((gnosis-center-content nil)) (gnosis-format-string str)))
+Keep inline link and cloze faces off newlines, including filled breaks.
+Narrow windows wrap the resulting text natively without rewriting it.
+When LITERAL is non-nil, skip link and image interpretation of STR."
+  (let ((text (if literal str
+                (let ((gnosis-center-content nil)) (gnosis-format-string str))))
         (column fill-column))
-    (gnosis-review--unstyle-link-newlines
+    (gnosis-review--unstyle-inline-newlines
      (if (not gnosis-center-content)
          text
        (mapconcat
@@ -290,15 +299,19 @@ When SUCCESS nil, display USER-INPUT as well"
   (with-current-buffer gnosis-review-buffer-name
     (goto-char (point-max))
     (insert "\n\n"
-	    (propertize "Answer:" 'face 'gnosis-face-directions)
-	    " "
-	    (propertize (gnosis-image-format-string answer) 'face 'gnosis-face-correct))
+            (gnosis-review--format-string
+             (concat (propertize "Answer:" 'face 'gnosis-face-directions)
+                     " "
+                     (propertize (gnosis-image-format-string answer)
+                                 'face 'gnosis-face-correct))
+             t))
     ;; Insert user wrong answer
     (when (not success)
       (insert "\n"
-	      (propertize "Your answer:" 'face 'gnosis-face-directions)
-	      " "
-	      (propertize user-input 'face 'gnosis-face-false)))))
+              (gnosis-review--format-string
+               (concat (propertize "Your answer:" 'face 'gnosis-face-directions)
+                       " " (propertize user-input 'face 'gnosis-face-false))
+               t)))))
 
 (defun gnosis-display-hint (hint)
   "Display HINT."
@@ -317,16 +330,19 @@ When SUCCESS nil, display USER-INPUT as well"
 If FALSE t, use gnosis-face-false face"
   (goto-char (point-max))
   (insert "\n\n"
-	  (propertize "Your answer:" 'face 'gnosis-face-directions)
-	  " "
-	  (propertize user-input 'face
-		      (if false 'gnosis-face-false 'gnosis-face-correct)))
-  (newline))
+          (gnosis-review--format-string
+           (concat (propertize "Your answer:" 'face 'gnosis-face-directions)
+                   " "
+                   (propertize user-input 'face
+                               (if false 'gnosis-face-false 'gnosis-face-correct)))
+           t))
+  (insert "\n"))
 
 (defun gnosis-display-correct-answer-mcq (answer user-choice)
   "Display correct ANSWER & USER-CHOICE for MCQ thema."
   (goto-char (point-max))
-  (insert (gnosis-review--format-string
+  (insert "\n\n"
+          (gnosis-review--format-string
 	   (format "%s %s\n%s %s"
 		   (propertize "Correct Answer:" 'face 'gnosis-face-directions)
 		   (propertize answer 'face 'gnosis-face-correct)

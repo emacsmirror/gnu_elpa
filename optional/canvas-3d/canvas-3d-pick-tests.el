@@ -1,5 +1,5 @@
 ;;; canvas-3d-pick-tests.el --- Compact picking tests -*- lexical-binding: t; -*-
-;; Copyright (C) 2026 Thanos Apollo
+;; Copyright (C) 2026 Free Software Foundation, Inc.
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
 ;;; Commentary:

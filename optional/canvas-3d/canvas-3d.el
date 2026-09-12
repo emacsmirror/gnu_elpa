@@ -1,6 +1,6 @@
 ;;; canvas-3d.el --- Native canvas viewer for local OBJ scenes -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2026 Thanos Apollo
+;; Copyright (C) 2026 Free Software Foundation, Inc.
 ;; Author: Thanos Apollo <public@thanosapollo.org>
 ;; Version: 0.1.0
 ;; Package-Requires: ((emacs "32.0.50"))

@@ -5,3 +5,7 @@ Makefile
 tests
 
 decks
+optional
+AGENTS.md
+flake.nix
+flake.lock

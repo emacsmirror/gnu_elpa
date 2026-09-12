@@ -82,7 +82,7 @@ the text that underlies something; the question or prompt), an
 Themata are reviewed using a spaced repetition algorithm that adapts
 the interval between reviews based on performance.
 
-Themata support five question types:
+Themata support the following text question types:
 
 - *Basic*: A direct question with typed matching or reveal-and-self-grade.
 - *Double*: Two prompts, each with its own answer, presented in sequence.
@@ -92,6 +92,10 @@ Themata support five question types:
   missing text.
 - *MC-Cloze* (Multiple Choice Cloze): A cloze question where the missing
   text is chosen from a list of options.
+
+Image-region and image-occlusion questions add image-based review.
+Model Find and Model Name questions use the separately installed optional
+3D backend; see the model installation requirements below.
 
 *** The Link Between Nodes and Themata
 
@@ -122,10 +126,13 @@ to FSRS /Again/ and a successful review maps to FSRS /Good/.
 
 ** Data Storage
 
-All data lives in a single SQLite database at =GNOSIS-DIR/gnosis.db=.
-The database is created and migrated automatically; no manual setup or
-maintenance is required.  Gnosis requires Emacs 29.1 or later (for
-built-in SQLite support), the =compat= library, and =keymap-popup=.
+Themata, indexes, schedules and study history live in the SQLite database
+at =GNOSIS-DIR/gnosis.db=.  Org files own note contents, and managed
+images/models live in =assets/= beside the database.  External media
+remains at its referenced paths.  A new database is created on first use;
+back up existing data before an upgrade (see Database Version 9).
+Gnosis requires Emacs 29.1 or later with built-in SQLite support, the
+=compat= library, and =keymap-popup=.
 
 * Installation and Setup
 :PROPERTIES:
@@ -138,7 +145,7 @@ built-in SQLite support), the =compat= library, and =keymap-popup=.
 Gnosis requires:
 
 - GNU Emacs 29.1 or later, compiled with SQLite support.  Verify this
-  with ~(fboundp 'sqlite-open)~; it should return =t=.
+  with ~(sqlite-available-p)~; it should return =t=.
 - The =compat= library, available from GNU ELPA.
 - The =keymap-popup= library.
 
@@ -215,12 +222,14 @@ separately from regular nodes but use the same underlying mechanism.
 #+end_src
 
 
-** Upgrading from org-gnosis
+** Upgrading to 0.11.0
 
-If you previously used org-gnosis as a separate package, gnosis
-automatically imports your org-gnosis database when it first detects
-the old data.  No manual action is required beyond installing the new
-version.
+The supported upgrade is released Gnosis 0.10.6 (database version 8)
+directly to version 9.  Separate org-gnosis databases and older Gnosis
+schemas are not automatically imported.  Preserve their data and use
+matching older source or a separately verified conversion.  Follow the
+pre-first-open backup procedure in Database Version 9 before opening
+an existing database with 0.11.0.
 
 ** Version Control
 
@@ -1040,11 +1049,15 @@ a new revision and explicitly attach it to a thema.
 Ordinary Gnosis and advanced numeric model authoring do not require a
 renderer.  Visual authoring and 3D review require graphical GNU Emacs built
 with native canvas image support (=canvas-refresh= and the =canvas= image
-type), plus an OpenGL/EGL-capable environment.  Stock Emacs without canvas
+type, currently Emacs 32 development builds), plus an OpenGL/EGL-capable
+environment.  Stock Emacs without canvas
 support cannot display 3D; ordinary Gnosis remains usable.
 
-The optional backend is included at =optional/canvas-3d= in the Gnosis
-checkout.  Prepare its locked, project-local Python environment explicitly:
+GNU ELPA ships core Gnosis without the renderer.  Obtain the whole
+=optional/canvas-3d= directory from a source checkout matching the
+installed Gnosis version.  Keep using the ELPA core; do not add the
+checkout's =lisp/= directory to =load-path=.  Prepare the backend's
+locked, project-local Python environment explicitly:
 
 #+begin_src sh
 uv sync --locked --project /path/to/gnosis/optional/canvas-3d
@@ -1058,17 +1071,23 @@ Python imports and real EGL frames; it does not prove display in a particular
 graphical session. Install the whole optional directory and recreate its local
 environment rather than copying a virtual environment.
 
-Use matching =canvas-3d.el= and =render.py= from this backend: real viewers
-use the C3D2 frame protocol (sequence, BGRA color, object IDs, full 32-bit
-triangle IDs and original-coordinate XYZ). It does not negotiate with an old
-C3D1 renderer. Geometry and picking belong to the backend; Gnosis owns target
-interpretation and grading.
+Keep =canvas-3d.el= and =render.py= from the same backend version; there
+is no protocol negotiation with older renderer installations.  Geometry
+and picking belong to the backend; Gnosis owns target interpretation and
+grading.
+
+Point the installed core at that absolute directory:
+
+#+begin_src emacs-lisp
+(with-eval-after-load 'gnosis
+  (setq gnosis-model-renderer-directory
+        "/path/to/gnosis/optional/canvas-3d/"))
+#+end_src
 
 Gnosis loads the backend only when opening a model.  With
-~gnosis-model-renderer-directory~ nil, it discovers =canvas-3d.el= on
-=load-path= or in =optional/canvas-3d= relative to the installed Gnosis
-library.  Set the option to override discovery.  Distributions that omit
-the optional directory must install it separately.  The renderer uses
+~gnosis-model-renderer-directory~ nil, it looks for =canvas-3d.el= on
+=load-path= or in a sibling =optional/canvas-3d= directory of a source
+checkout.  An ELPA-only installation has no such sibling.  The renderer uses
 =.venv/bin/python= beside its library; a separately prepared interpreter
 can be selected with ~canvas-3d-python-command~.  Opening or authoring never
 installs dependencies or accesses the network.  Missing capabilities show
@@ -1314,8 +1333,11 @@ stages:
    when typed matching rejected a valid answer.  =e= edits the thema,
    =v= visits an identity-selected linked source, =f= adds =needs_work=,
    and =s= toggles suspension.  Editing or visiting a source is not
-   successful recall.  An unchanged edit returns to the pending grade;
-   changing the question or answer rules requires answering again.
+   successful recall.  Saving or cancelling the native edit returns to
+   the same pending result and actions.  Edits affect future presentations,
+   not the captured answer; only =o= changes its binary result.  =n= or
+   =q= accepts that result once.  Unrelated writes or stale owners still
+   refuse acceptance rather than silently refreshing the encounter.
    =d= deletes the thema without accepting its pending grade.
 
 6. *Acceptance*: Scheduled review records an immutable review event and
@@ -1385,6 +1407,13 @@ Gnosis uses the FSRS-6 default parameters pinned from fsrs-rs 6.6.1,
 with desired retention initially set to 90%.  Successful recall maps to
 /Good/; forgotten information maps to /Again/.  Grade what you recalled
 before feedback, not what you recognise after revealing the answer.
+
+Gnosis rounds raw FSRS intervals to the nearest whole number of days,
+with exact half-day ties going to the even integer, then applies a
+one-day minimum.  Thus 2.5 days becomes 2 and 3.5 days becomes 4.
+This calendar policy does not promise identical due dates to Anki or
+the fsrs-rs scheduling example.  Accepted reviews retain their original
+scheduling evidence for replay.
 
 Use =M-x gnosis-scheduler-set-retention= to set a user-wide target strictly
 between 0 and 1, for example =0.9=.  Each changed value creates an
@@ -1705,7 +1734,7 @@ especially for large collections.
 ** Database Version 9
 
 Gnosis upgrades released 0.10.6 databases (version 8) directly to version 9.
-Until 0.11.0 is published, this is the only supported migration. Unknown or
+This is the only supported migration in 0.11.0. Unknown or
 private development versions are refused; preserve a backup and use matching
 source or a separately verified conversion rather than changing the version.
 
@@ -1725,9 +1754,25 @@ Content formats 1 and 2 remain readable and supply no aliases. Alias-only
 changes and clears appear in import preview and participate in drift checks.
 Format 3 is still content-only: it does not bundle managed images or models.
 
-Keep a full database backup before upgrading, as well as separate
-backups of Org sources and referenced media.  A portable content export
-cannot restore schedules or session progress.
+Before the *first database open* with 0.11.0:
+
+1. Stop other Gnosis database and filesystem writers.  Keep the released
+   0.10.6 package/source available for recovery.
+2. Load Gnosis without opening a dashboard or starting review, and set
+   ~gnosis-dir~ to the existing data directory.  Run
+   =M-x gnosis-backup-db= and choose a new backup filename.  With no
+   Gnosis connection open, this command reads the existing database
+   independently: it does not initialize or migrate it.
+3. Back up Org source files and all managed/external media separately.
+   A database-only backup contains their references, not their bytes.
+4. Preserve those backups, then open Gnosis to perform the upgrade.
+   On initialization failure, stop; do not relabel the database version.
+
+For rollback, close every owner and restore the old database together
+with its matching 0.10.6 source and separately backed-up files.  Never
+open a version-9 database with old code.  A portable content export
+cannot restore schedules or session progress.  ~gnosis-backup-data~
+requires an open connection, so it is not the pre-first-open backup step.
 
 ** Full Backups Versus Content Exports
 

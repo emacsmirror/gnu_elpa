@@ -14,7 +14,11 @@ other platforms are not verified. Python dependencies cannot supply the
 system graphics driver or add canvas support to an older Emacs.
 
 Install [uv](https://docs.astral.sh/uv/getting-started/installation/) separately.
-From a Gnosis checkout:
+This directory is not shipped by GNU ELPA. Obtain a Gnosis source checkout
+matching the installed package version (check `M-x describe-package RET
+gnosis RET`), and retain the entire `optional/canvas-3d/` subtree. Do not
+add the checkout's `lisp/` to `load-path`: keep using the ELPA core package.
+From that checkout:
 
 ```sh
 cd optional/canvas-3d
@@ -44,9 +48,20 @@ verifies packet identities, background/stale picks and a changed highlight.
 
 ## Load and use
 
-Set `gnosis-model-renderer-directory` to this directory in your Gnosis
-configuration. Alternatively, add this directory to `load-path`; Gnosis finds
-`canvas-3d` lazily when a model is opened. For standalone use:
+Set the absolute backend directory in your Emacs configuration:
+
+```elisp
+(with-eval-after-load 'gnosis
+  (setq gnosis-model-renderer-directory
+        "/path/to/gnosis/optional/canvas-3d/"))
+```
+
+Gnosis first uses this setting, then looks for `canvas-3d` on `load-path`,
+then checks for a sibling backend in a source checkout. An ELPA-only
+installation has no sibling backend. Loading core Gnosis does not load the
+renderer; opening a model checks the actual graphical/canvas and prepared
+Python capabilities and reports a setup error if they are missing.
+For standalone use:
 
 ```elisp
 (add-to-list 'load-path "/path/to/gnosis/optional/canvas-3d")

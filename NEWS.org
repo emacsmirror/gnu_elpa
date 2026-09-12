@@ -3,6 +3,37 @@
 + [[https://git.thanosapollo.org/gnosis/][Upstream]]
 + [[https://thanosapollo.org/log/gnosis/][Changelog]]
 
+* 0.11.0 (unreleased)
+
+** Scheduling and study
++ Use FSRS-6 with binary Again/Good outcomes and retained scheduled
+  evidence.  Practice has separate history and never reschedules cards.
++ Resume, continue, discard and undo study sessions; inspect topic study
+  evidence and repair flagged themata from dedicated views.
++ Native edit/save or cancel returns to the captured pending answer.
+  Edits affect future presentations; explicit override changes the result.
+  Improve source navigation and typed-input handling; keep feedback
+  consistently centered and cloze answer faces off newlines.
++ Dashboard commands are available immediately after a fresh installation.
+
+** Authoring and media
++ Support typed-answer aliases and portable content format 3.  Formats 1
+  and 2 remain readable; content exchange does not transfer study history.
++ Add image-region and typed image-occlusion review, plus optional model
+  Find/Name workflows.  The 3D renderer is installed separately; core
+  GNU ELPA Gnosis still requires only Emacs 29.1, SQLite and its Lisp
+  dependencies, not Python or native canvas.
+
+** Upgrade and recovery
++ Upgrade released 0.10.6/schema 8 directly to schema 9.  Preserve legacy
+  schedules and activity without inventing FSRS memory or review events.
+  Older/private schemas and retired algorithm customization are not
+  carried forward automatically.
++ Back up before the first upgraded database open.  Full data snapshots
+  preserve the connected database and managed assets; Org and external
+  media need separate backups.  Rollback pairs old source with its old
+  database.  Content exports are not full backups.
+
 * 0.10.6
 #+date: 2026/05/08
 

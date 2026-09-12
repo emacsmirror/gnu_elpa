@@ -46,14 +46,28 @@ a /keimenon/ (the question or prompt), an /answer/, and an optional
 are reviewed using a spaced repetition algorithm that adapts the
 interval between reviews based on performance.
 
-Themata support five question types: basic, double, MCQ, cloze, and
-mc-cloze.
+Themata support basic, double, MCQ, cloze and mc-cloze text questions,
+image-region and image-occlusion questions, and optional 3D model questions.
 
 For agent-assisted creation or repair, read the
 [[file:skills/gnosis-themata/SKILL.md][thema authoring skill]] before drafting.  It covers source-backed
 questions, descriptive links, cross-topic reuse, and verified native saves.
 The skill is agent-neutral; load it explicitly or install its directory
 using your agent's skill mechanism.
+
+** Installation
+
+Install from GNU ELPA with =M-x package-refresh-contents=, then
+=M-x package-install RET gnosis RET=.  Emacs installs the declared
+=compat= and =keymap-popup= dependencies.  Core Gnosis requires Emacs
+29.1 or later with working SQLite support: =M-: (sqlite-available-p)=
+should return =t=.  Python and native canvas support are not required.
+
+Open =M-x gnosis-dashboard= to start, or =C-h i g (gnosis) RET= for
+the installed manual.  See [[file:docs/gnosis.org::#installation][Installation and Setup]] for directories and
+configuration.  Existing users: back up the old database, Org files and
+media *before the first database open* with upgraded code; see the
+manual's Database Version 9 section.
 
 ** Optional 3D support
 
@@ -86,7 +100,7 @@ Point Gnosis at that directory in your Emacs configuration:
 
 The renderer loads only when needed.  Opening a model never installs
 software or downloads dependencies.  See the
-[[file:optional/canvas-3d/README.md][canvas-3d setup guide]] for preflight options, a standalone test scene,
+[[https://git.thanosapollo.org/emacs-gnosis/tree/optional/canvas-3d/README.md][canvas-3d setup guide]] for preflight options, a standalone test scene,
 and renderer configuration.  Anatomical models are not bundled.
 
 ** The Link Between Nodes and Themata

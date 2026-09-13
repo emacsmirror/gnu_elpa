@@ -33,6 +33,7 @@
 (require 'gnosis-links)
 (require 'gnosis-tl)
 (require 'gnosis-nodes)
+(require 'gnosis-study)
 (require 'keymap-popup)
 
 (declare-function gnosis-review-count-due "gnosis-review" ())
@@ -90,7 +91,8 @@ Refuse to reuse unrelated or file-visiting buffers with the same name."
                            (eq gnosis-dashboard--buffer-owner
                                (if history 'history 'dashboard))
                            (if history
-                               (eq major-mode 'tabulated-list-mode)
+                               (memq major-mode '(tabulated-list-mode
+                                                  gnosis-dashboard-history-mode))
                              (memq major-mode
                                    '(gnosis-dashboard-mode
                                      gnosis-dashboard-themata-mode
@@ -155,17 +157,23 @@ mutable tails of that prefix.  Mutations settle this suffix first.")
 
 (defvar gnosis-dashboard-module-today-stats
   (lambda ()
-    (let* ((due-count (gnosis-review-count-due))
+    (let* ((activity (gnosis-study-activity))
+           (due-count (gnosis-review-count-due))
            (overdue-count (gnosis-review-count-overdue)))
       (insert
        (gnosis-center-string
-        (format "\nReviewed today: %s (New: %s)"
-                (propertize
-                 (number-to-string (gnosis-get-date-total-themata))
-                 'face 'success)
-                (propertize
-                 (number-to-string (gnosis-get-date-new-themata))
-                 'face 'font-lock-keyword-face)))
+        (format "\nStudied today: %s attempts"
+                (propertize (number-to-string (plist-get activity :total))
+                            'face 'success)))
+       "\n"
+       (gnosis-center-string
+        (format "Scheduled: %s (New: %s) · Practice: %s"
+                (propertize (number-to-string (plist-get activity :scheduled))
+                            'face 'font-lock-type-face)
+                (propertize (number-to-string (plist-get activity :new))
+                            'face 'font-lock-keyword-face)
+                (propertize (number-to-string (plist-get activity :practice))
+                            'face 'font-lock-type-face)))
        "\n"
        (gnosis-center-string
         (format "Due themata: %s (Overdue: %s)"
@@ -183,7 +191,7 @@ mutable tails of that prefix.  Mutations settle this suffix first.")
 	       'face 'font-lock-type-face)))
      "\n"
      (gnosis-center-string
-      (format "Current streak: %s day(s)"
+      (format "Review streak: %s day(s)"
 	      (propertize
 	       (gnosis-dashboard--streak
 		(cl-loop for (date total) in (gnosis-review-activity)
@@ -906,45 +914,118 @@ Translates {n}, {n,}, {n,m} to \\{n\\}, \\{n,\\}, \\{n,m\\}."
   (interactive)
   (gnosis-dashboard--back))
 
+(defvar-keymap gnosis-dashboard-history-mode-map
+  :doc "Keymap for recorded Gnosis study activity."
+  :parent tabulated-list-mode-map
+  "RET" #'gnosis-dashboard-history-details)
+
+(define-derived-mode gnosis-dashboard-history-mode tabulated-list-mode "Gnosis History"
+  "Browse scheduled daily aggregates and recorded practice sessions.
+\\<gnosis-dashboard-history-mode-map>\\[gnosis-dashboard-history-details] shows practice evidence.
+\\[revert-buffer] refreshes; \\[quit-window] returns to the previous view."
+  (setq tabulated-list-format
+        [("Date" 11 t)
+         ("Attempts" 9 gnosis-dashboard-sort-total-themata)
+         ("New" 5 (lambda (a b)
+                    (< (string-to-number (aref (cadr a) 2))
+                       (string-to-number (aref (cadr b) 2)))))
+         ("Type" 17 t)
+         ("Summary" 0 t)])
+  (setq tabulated-list-sort-key '("Date" . t))
+  (add-hook 'tabulated-list-revert-hook #'gnosis-dashboard-history-refresh nil t)
+  (tabulated-list-init-header))
+
+(defun gnosis-dashboard--history-date (date)
+  "Format logical DATE, a (YEAR MONTH DAY) list."
+  (propertize (apply #'format "%04d/%02d/%02d" date) 'face 'org-date))
+
+(defun gnosis-dashboard--history-entries (scheduled practice)
+  "Format SCHEDULED daily rows and PRACTICE session plists as history rows."
+  (append
+   (mapcar
+    (lambda (row)
+      (list (car row)
+            (vector (gnosis-dashboard--history-date (gnosis--int-to-date (car row)))
+                    (number-to-string (nth 1 row)) (number-to-string (nth 2 row))
+                    (propertize "Scheduled day" 'face 'font-lock-type-face)
+                    "Daily aggregate")))
+    scheduled)
+   (mapcar
+    (lambda (session)
+      (list (cons 'practice (plist-get session :session-id))
+            (vector
+             (gnosis-dashboard--history-date
+              (gnosis-date nil (cons (plist-get session :first-us) 1000000)))
+             (number-to-string (plist-get session :attempts)) "—"
+             (propertize "Practice session" 'face 'font-lock-type-face)
+             (propertize
+              (format "%s · %d distinct · %d voided"
+                      (plist-get session :status) (plist-get session :unique)
+                      (plist-get session :voids))
+              'help-echo (plist-get session :session-id)))))
+    practice)))
+
+(defun gnosis-dashboard-history-refresh (&optional history)
+  "Refresh study history, optionally using scheduled daily rows HISTORY.
+Explicit refresh adopts the current database.  Preserve the selected row
+and sort order; read effective counts again rather than replaying a snapshot."
+  (interactive)
+  (unless (and (derived-mode-p 'gnosis-dashboard-history-mode)
+               (eq gnosis-dashboard--buffer-owner 'history)
+               (not buffer-file-name))
+    (user-error "Open Gnosis History first"))
+  (let* ((database (gnosis--ensure-db))
+         (entries
+          (gnosis-sqlite-with-transaction database
+            (gnosis-dashboard--history-entries
+             (or history (gnosis-review-activity)) (gnosis-study-practice-history)))))
+    (setq tabulated-list-entries entries
+          gnosis-dashboard--database database)
+    (tabulated-list-print t)))
+
+(defun gnosis-dashboard-history-details ()
+  "Show recorded evidence for the practice session at point.
+Display the selected session identity, not the current active session.
+This is a read-only snapshot: close it and refresh History for later changes."
+  (interactive)
+  (unless (and (derived-mode-p 'gnosis-dashboard-history-mode)
+               (eq gnosis-dashboard--buffer-owner 'history)
+               (not buffer-file-name)
+               (eq gnosis-dashboard--database gnosis-db))
+    (user-error "History is stale; refresh it first"))
+  (let ((id (tabulated-list-get-id)))
+    (unless (eq (car-safe id) 'practice)
+      (user-error "Select a practice session; scheduled rows are daily aggregates"))
+    (let ((events (gnosis-study-practice-events (cdr id))))
+      (unless events (user-error "Practice evidence was deleted; refresh History"))
+      (with-help-window (generate-new-buffer "*Gnosis Practice Evidence*")
+        (princ (propertize "Practice session\n" 'face 'bold))
+        (princ (format "%s\n\n" (cdr id)))
+        (princ "Recorded attempts; voided events do not count as studied.\n")
+        (princ "Timestamps use the current local timezone.  No scheduling changes.\n\n")
+        (dolist (event events)
+          (princ (format "Attempt %d · Thema %d · %s · %s%s\n"
+                         (nth 3 event) (nth 1 event)
+                         (format-time-string "%Y-%m-%d %H:%M:%S.%6N %z"
+                                             (cons (nth 4 event) 1000000))
+                         (if (= (nth 5 event) 3) "Success" "Failure")
+                         (if (nth 6 event) " (voided)" "")))
+          (princ (format "  Event: %s\n" (car event)))
+          (when (nth 6 event)
+            (princ (format "  Correction: %s\n" (nth 6 event)))))))))
+
 (defun gnosis-dashboard-history (&optional history)
-  "Display review HISTORY.
+  "Display study history, optionally using scheduled daily rows HISTORY.
+Keep scheduled daily aggregates alongside typed practice-session entries.
 Refuse to replace an unrelated buffer named *Gnosis History*."
   (interactive)
-  (let* ((history (or history
-		      (gnosis-review-activity)))
-	 (buffer (gnosis-dashboard--buffer t)))
+  (let ((buffer (gnosis-dashboard--buffer t)))
     (with-current-buffer buffer
-      (let ((inhibit-read-only t))
-	(erase-buffer))
-      (tabulated-list-mode)
+      (unless (derived-mode-p 'gnosis-dashboard-history-mode)
+        (gnosis-dashboard-history-mode))
       (setq gnosis-dashboard--buffer-owner 'history)
-      (setq tabulated-list-format
-            `[("Date" ,(/ (window-width) 6) t)
-              ("Total Reviews" ,(/ (window-width) 6)
-               gnosis-dashboard-sort-total-themata)
-              ("New" ,(/ (window-width) 6)
-               gnosis-dashboard-sort-total-themata)])
-      (make-local-variable 'tabulated-list-entries)
-      ;; Sort for date
-      (setq tabulated-list-sort-key (cons "Date" t))
-      (setq tabulated-list-entries
-            (cl-loop for entry in history
-                     for date = (gnosis--int-to-date (car entry))
-                     collect (list (car entry)
-                                   (vector (propertize
-					    (format "%04d/%02d/%02d"
-						    (nth 0 date)
-						    (nth 1 date)
-						    (nth 2 date))
-					    'face 'org-date)
-                                           (number-to-string
-                                            (cadr entry))
-                                           (number-to-string
-                                            (caddr entry))))))
-      (tabulated-list-init-header)
-      (tabulated-list-print t)
-      (setq gnosis-dashboard--current
-	    '(:type history)))
+      (gnosis-dashboard-history-refresh history)
+      (setq gnosis-dashboard--current '(:type history)))
     (pop-to-buffer buffer)))
 
 (defun gnosis-dashboard-view-all-nodes ()

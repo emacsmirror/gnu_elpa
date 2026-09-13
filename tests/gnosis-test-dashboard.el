@@ -116,9 +116,9 @@ Includes `gnosis-test-with-dashboard-state' for isolation."
        (with-temp-buffer
          (funcall gnosis-dashboard-module-today-stats)
          (funcall gnosis-dashboard-module-average-rev)
-         (should (string-search "Reviewed today: 6 (New: 2)" (buffer-string)))
+         (should (string-search "Studied today: 6 attempts" (buffer-string)))
          (should (string-search "Reviews per active day: 4.00" (buffer-string)))
-         (should (string-search "Current streak: 2 day(s)" (buffer-string))))
+         (should (string-search "Review streak: 2 day(s)" (buffer-string))))
        (unwind-protect
            (cl-letf (((symbol-function 'pop-to-buffer) #'ignore))
              (gnosis-dashboard-history)

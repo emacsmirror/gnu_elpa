@@ -419,7 +419,7 @@ images using `org-format-latex'."
 
 (defun gnosis-cloze-create (str clozes &optional cloze-string)
   "Render STR as Org and replace CLOZES with CLOZE-STRING.
-Preserve whitespace patterns and replace each cloze's first occurrence.
+Preserve whitespace patterns and replace each cloze's preferred occurrence.
 CLOZE-STRING defaults to `gnosis-cloze-string'.  Fontification and optional
 LaTeX preview run once, before substitution, as in `gnosis-org-format-string'."
   (cl-assert (listp clozes) nil "Adding clozes: Clozes need to be a list.")

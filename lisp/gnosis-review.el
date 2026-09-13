@@ -288,7 +288,7 @@ Applies highlighting for CORRECT & FALSE."
   (let* ((cloze-str (gnosis-cloze-create str clozes))
 	 (str-with-hints (gnosis-cloze-add-hints cloze-str hints))
 	 (str-with-c-answers
-	  (gnosis-utils-highlight-words str-with-hints correct 'gnosis-face-correct))
+	  (gnosis-cloze-highlight str-with-hints correct 'gnosis-face-correct))
 	 (final (gnosis-cloze-mark-false str-with-c-answers false)))
     (gnosis-display-keimenon final)))
 

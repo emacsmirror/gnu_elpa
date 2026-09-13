@@ -8,7 +8,7 @@
   (let ((gnosis-latex-preview nil))
     (dolist (case '(("α β α" ("α") "_" "_ β α")
                     ("α β α" ("α" "α") "_" "_ β _")
-                    ("a a" ("a" "a") "aa" "aaa a")
+                    ("a a" ("a" "a") "aa" "aa aa")
                     ("x[a]. x[a]." ("x[a].") "\\1" "\\1 x[a].")
                     ("A a" ("\"a\"") "_" "_ a")
                     ("left\t α  right" ("\t α  ") "_" "left\t _  right")

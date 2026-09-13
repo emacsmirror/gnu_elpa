@@ -10,10 +10,8 @@ research
 !.elpaignore
 \#*
 
-*.md
-!/AGENTS.md
-!/docs/storage-and-exchange.md
-!/skills/gnosis-themata/SKILL.md
+*.[mM][dD]
+*.[mM][aA][rR][kK][dD][oO][wW][nN]
 *.info
 *.texi
 refs/*

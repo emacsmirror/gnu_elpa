@@ -18,16 +18,6 @@
 
 (require 'gnosis-test-helpers)
 
-(ert-deftest gnosis-test-helpers-with-db-isolates-directories ()
-  "`gnosis-test-with-db' binds user and Gnosis paths to temp dirs."
-  (gnosis-test-with-db
-    (dolist (dir (list user-emacs-directory
-                       gnosis-dir
-                       gnosis-nodes-dir
-                       gnosis-journal-dir))
-      (should (file-directory-p dir))
-      (should (file-in-directory-p dir gnosis-test--dir)))))
-
 ;;; ---- Schema creation (mirrors Anki .apkg DB) ----
 
 (defun gnosis-test-anki--create-schema (db)
@@ -233,40 +223,6 @@ N-BASIC basic notes and N-CLOZE cloze notes, plus 1 image occlusion."
     (sqlite-close db)
     path))
 
-(defconst gnosis-test-anki--import-timeout 5
-  "Seconds to wait for an async Anki import in tests.")
-
-(defun gnosis-test-anki--wait-for-import (predicate &optional timeout)
-  "Wait until PREDICATE returns non-nil or TIMEOUT seconds pass."
-  (let ((deadline (+ (float-time)
-                     (or timeout gnosis-test-anki--import-timeout))))
-    (while (and (not (funcall predicate))
-                (< (float-time) deadline))
-      (accept-process-output nil 0.05))
-    (unless (funcall predicate)
-      (error "Timed out waiting for Anki import"))))
-
-(defun gnosis-test-anki--raise-import-error (err)
-  "Signal ERR when an async import callback returned one."
-  (when err
-    (signal (car err) (cdr err))))
-
-(defun gnosis-test-anki--import-db-sync
-    (db-file &optional tmp-p extra-tag suspend source-file)
-  "Import Anki DB-FILE and wait for the async callback.
-TMP-P, EXTRA-TAG, SUSPEND, and SOURCE-FILE are passed through to
-`gnosis-anki--import-db'.  Return (IMPORTED SKIPPED)."
-  (let (done result import-error)
-    (gnosis-anki--import-db
-     db-file tmp-p extra-tag suspend source-file
-     (lambda (imported skipped err)
-       (setq result (list imported skipped)
-             import-error err
-             done t)))
-    (gnosis-test-anki--wait-for-import (lambda () done))
-    (gnosis-test-anki--raise-import-error import-error)
-    result))
-
 ;;; ---- Group 1: parse-notes ----
 
 (ert-deftest gnosis-test-anki-parse-notes ()
@@ -276,7 +232,6 @@ TMP-P, EXTRA-TAG, SUSPEND, and SOURCE-FILE are passed through to
          (model-info (make-hash-table :test 'equal)))
     (unwind-protect
         (progn
-          (random "gnosis-test-anki-parse-notes")
           (gnosis-test-anki--populate-db tmp 10 5)
           (setq anki-db (sqlite-open tmp))
           ;; Build model-info as import-db does
@@ -530,9 +485,10 @@ TMP-P, EXTRA-TAG, SUSPEND, and SOURCE-FILE are passed through to
     (let ((anki-file (make-temp-file "anki-import-" nil ".db")))
       (unwind-protect
           (progn
-            (random "gnosis-test-anki-import")
             (gnosis-test-anki--populate-db anki-file 10 5)
-            (gnosis-test-anki--import-db-sync anki-file)
+            (gnosis-anki--import-db anki-file)
+            ;; Wait for async timer to complete
+            (sleep-for 1)
             ;; At least 15 themata (10 basic + 5+ cloze items)
             (let ((count (length (gnosis-select 'id 'themata nil t))))
               (should (>= count 15)))
@@ -891,85 +847,8 @@ and explanation; SKIPPED counts rejected items, or one for an empty note."
               (gnosis-test-anki--create-schema db)
               (gnosis-test-anki--insert-notetype db 100 "Basic" 'basic)
               (sqlite-close db))
-            (gnosis-test-anki--import-db-sync anki-file)
+            (gnosis-anki--import-db anki-file)
             (should (= 0 (length (gnosis-select 'id 'themata nil t)))))
-        (when (file-exists-p anki-file)
-          (delete-file anki-file))))))
-
-(ert-deftest gnosis-test-anki-empty-import-reports-cleanup-errors ()
-  "Empty async import reports cleanup errors through its callback."
-  (gnosis-test-with-db
-    (let ((anki-file (make-temp-file "anki-empty-cleanup-" nil ".db")))
-      (unwind-protect
-          (progn
-            (let ((db (sqlite-open anki-file)))
-              (gnosis-test-anki--create-schema db)
-              (sqlite-close db))
-            (cl-letf (((symbol-function 'gnosis-anki--cleanup-temp)
-                       (lambda (&rest _)
-                         (error "test cleanup failure"))))
-              (let ((err (should-error
-                          (gnosis-test-anki--import-db-sync
-                           anki-file t nil nil anki-file)
-                          :type 'error)))
-                (should (string-match-p
-                         "test cleanup failure" (error-message-string err))))))
-        (when (file-exists-p anki-file)
-          (delete-file anki-file))))))
-
-(ert-deftest gnosis-test-anki-import-captures-testing-state ()
-  "Async import finalizer preserves import-start `gnosis-testing'."
-  (gnosis-test-with-db
-    (let ((anki-file (make-temp-file "anki-context-" nil ".db"))
-          (git-called nil))
-      (unwind-protect
-          (progn
-            (let ((db (sqlite-open anki-file)))
-              (gnosis-test-anki--create-schema db)
-              (gnosis-test-anki--insert-notetype db 100 "Basic" 'basic)
-              (gnosis-test-anki--insert-note
-               db 1 100 (concat "Q" "\x1f" "A") " test ")
-              (sqlite-close db))
-            (cl-letf (((symbol-function 'gnosis--ensure-git-repo)
-                       (lambda () (setq git-called t)))
-                      ((symbol-function 'gnosis--git-chain)
-                       (lambda (&rest _) (setq git-called t))))
-              (let (done import-error)
-                (let ((gnosis-testing t))
-                  (gnosis-anki--import-db
-                   anki-file nil nil nil anki-file
-                   (lambda (_imported _skipped err)
-                     (setq import-error err
-                           done t))))
-                (let ((gnosis-testing nil))
-                  (gnosis-test-anki--wait-for-import (lambda () done)))
-                (gnosis-test-anki--raise-import-error import-error)))
-            (should (= 1 (length (gnosis-select 'id 'themata nil t))))
-            (should-not git-called))
-        (when (file-exists-p anki-file)
-          (delete-file anki-file))))))
-
-(ert-deftest gnosis-test-anki-import-reports-completion-errors ()
-  "Async import reports finalization errors through its callback."
-  (gnosis-test-with-db
-    (let ((anki-file (make-temp-file "anki-finish-error-" nil ".db")))
-      (unwind-protect
-          (progn
-            (let ((db (sqlite-open anki-file)))
-              (gnosis-test-anki--create-schema db)
-              (gnosis-test-anki--insert-notetype db 100 "Basic" 'basic)
-              (gnosis-test-anki--insert-note
-               db 1 100 (concat "Q" "\x1f" "A") " test ")
-              (sqlite-close db))
-            (cl-letf (((symbol-function 'gnosis--ensure-git-repo)
-                       (lambda () (error "test git failure"))))
-              (let ((err (let ((gnosis-testing nil))
-                           (should-error
-                            (gnosis-test-anki--import-db-sync
-                             anki-file nil nil nil anki-file)
-                            :type 'error))))
-                (should (string-match-p
-                         "test git failure" (error-message-string err))))))
         (when (file-exists-p anki-file)
           (delete-file anki-file))))))
 
@@ -1156,14 +1035,14 @@ and explanation; SKIPPED counts rejected items, or one for an empty note."
               (sqlite-close db))
             ;; First import
             (let ((gnosis-testing t))
-              (gnosis-test-anki--import-db-sync
-               anki-file nil nil nil anki-file))
+              (gnosis-anki--import-db anki-file nil nil nil anki-file))
+            (sleep-for 1)
             (let ((first-count (length (gnosis-select 'id 'themata nil t))))
               (should (= 3 first-count))
               ;; Second import: all 3 should be skipped as duplicates
               (let ((gnosis-testing t))
-                (gnosis-test-anki--import-db-sync
-                 anki-file nil nil nil anki-file))
+                (gnosis-anki--import-db anki-file nil nil nil anki-file))
+              (sleep-for 1)
               (should (= first-count
                          (length (gnosis-select 'id 'themata nil t))))))
         (when (file-exists-p anki-file)

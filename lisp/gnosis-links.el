@@ -418,17 +418,6 @@ get a keimenon excerpt."
       (truncate-string-to-width
        keimenon 60 nil nil "..."))))
 
-(defun gnosis--links-report-insert-section (heading rows)
-  "Insert link report section HEADING with ROWS.
-ROWS is a list of (source dest) pairs.  Insert the exact
-empty-section marker used by link reports when ROWS is nil."
-  (gnosis--links-report-insert-heading heading)
-  (if rows
-      (dolist (row rows)
-        (gnosis--links-report-insert-row
-         (car row) (cadr row)))
-    (insert "  None\n")))
-
 (defun gnosis--links-report-generate
     (orphaned stale missing
 	      nl-missing-dest nl-missing-source)
@@ -440,20 +429,45 @@ node-links (source dest) lists."
       (get-buffer-create "*Gnosis Link Report*")
     (let ((inhibit-read-only t))
       (erase-buffer)
-      (gnosis--links-report-insert-section
-       "Thema-links: orphaned dest" orphaned)
+      (gnosis--links-report-insert-heading
+       "Thema-links: orphaned dest")
+      (if orphaned
+          (dolist (row orphaned)
+            (gnosis--links-report-insert-row
+             (car row) (cadr row)))
+        (insert "  None\n"))
       (insert "\n")
-      (gnosis--links-report-insert-section
-       "Thema-links: stale (in DB but not in text)" stale)
+      (gnosis--links-report-insert-heading
+       "Thema-links: stale (in DB but not in text)")
+      (if stale
+          (dolist (row stale)
+            (gnosis--links-report-insert-row
+             (car row) (cadr row)))
+        (insert "  None\n"))
       (insert "\n")
-      (gnosis--links-report-insert-section
-       "Thema-links: missing (in text but not in DB)" missing)
+      (gnosis--links-report-insert-heading
+       "Thema-links: missing (in text but not in DB)")
+      (if missing
+          (dolist (row missing)
+            (gnosis--links-report-insert-row
+             (car row) (cadr row)))
+        (insert "  None\n"))
       (insert "\n")
-      (gnosis--links-report-insert-section
-       "Node-links: missing dest" nl-missing-dest)
+      (gnosis--links-report-insert-heading
+       "Node-links: missing dest")
+      (if nl-missing-dest
+          (dolist (row nl-missing-dest)
+            (gnosis--links-report-insert-row
+             (car row) (cadr row)))
+        (insert "  None\n"))
       (insert "\n")
-      (gnosis--links-report-insert-section
-       "Node-links: missing source" nl-missing-source)
+      (gnosis--links-report-insert-heading
+       "Node-links: missing source")
+      (if nl-missing-source
+          (dolist (row nl-missing-source)
+            (gnosis--links-report-insert-row
+             (car row) (cadr row)))
+        (insert "  None\n"))
       (goto-char (point-min))
       (special-mode))
     (pop-to-buffer (current-buffer))))

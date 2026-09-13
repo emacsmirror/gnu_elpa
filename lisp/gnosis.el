@@ -345,15 +345,14 @@ Leave display-bearing lines unfilled and unpadded, preserving their properties."
          (let* ((trimmed (string-trim line))
                 ;; Replace links with just the description part
                 (processed (replace-regexp-in-string
-                            "\\[\\[\\([^]]+\\)\\]\\[\\([^]]+\\)\\]\\]"
-                            "\\2"
-                            trimmed))
+			    "\\[\\[\\([^]]+\\)\\]\\[\\([^]]+\\)\\]\\]"
+			    "\\2"
+			    trimmed))
                 ;; Fill the text to wrap it properly
-                (wrapped (let ((fill-column width))
-                           (with-temp-buffer
-                             (insert processed)
-                             (fill-region (point-min) (point-max))
-                             (buffer-string))))
+                (wrapped (with-temp-buffer
+                           (insert processed)
+                           (fill-region (point-min) (point-max))
+                           (buffer-string)))
                 ;; Process each wrapped line with proper centering
                 (wrapped-lines (split-string wrapped "\n")))
            (mapconcat

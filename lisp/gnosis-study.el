@@ -223,6 +223,82 @@ until hard thema deletion.  Content exports exclude all study evidence."
           (gnosis-sqlite-execute db "INSERT INTO practice_events VALUES (?, ?, ?, ?, ?, ?)" row))))
     (list :event-id (car row) :rating (nth 5 row))))
 
+(defun gnosis-study-activity (&optional date)
+  "Return accepted study attempt counts for logical DATE as a plist.
+DATE defaults to today, as a YYYYMMDD integer.  Return :total, :scheduled,
+:practice and :new (new scheduled reviews only).  Count effective accepted
+attempts, including retries, not distinct themata.  Exclude voided events.
+Scheduled dates remain as recorded, including legacy daily aggregates.
+Practice timestamps use the current local timezone and `gnosis-day-start-hour';
+historical practice did not retain its original day-boundary settings."
+  (let* ((today (gnosis-date))
+         (date (or date (gnosis--date-to-int today)))
+         (calendar (gnosis--int-to-date date))
+         (bounds (mapcar
+                  (lambda (offset)
+                    (car (time-convert
+                          (encode-time 0 0 0 (+ (nth 2 calendar) offset)
+                                       (nth 1 calendar) (car calendar))
+                          1000000)))
+                  '(-1 2)))
+         (scheduled (gnosis-review-activity date))
+         ;; Read neighboring calendar days, then use the encounter wall-clock
+         ;; rule.  Keep ambiguous cutoffs, including a repeated midnight,
+         ;; strictly inside the coarse range rather than on either boundary.
+         (practice
+          (cl-loop for (time count) in
+                   (gnosis-sqlite-select
+                    (gnosis--ensure-db)
+                    "SELECT reviewed_at_us, COUNT(*) FROM practice_events
+                      WHERE reviewed_at_us >= ? AND reviewed_at_us < ?
+                        AND event_id NOT IN (SELECT event_id FROM practice_voids)
+                      GROUP BY reviewed_at_us" bounds)
+                   when (equal calendar (gnosis-date nil (cons time 1000000)))
+                   sum count)))
+    (list :total (+ (nth 1 scheduled) practice)
+          :scheduled (nth 1 scheduled) :practice practice :new (nth 2 scheduled))))
+
+(defun gnosis-study-practice-history ()
+  "Return practice session plists from retained event evidence.
+Each session has :session-id, :first-us and :last-us (recorded timestamps),
+:attempts, :unique, :successes (effective evidence), :voids and :status.
+Include sessions with only voided evidence, but not empty reservations.
+Session snapshots supply status only, never grades or fabricated timestamps.
+A session whose snapshot is absent has status Recorded.  Completed refers
+to queue completion, not mastery.  Hard thema deletion removes its events."
+  (mapcar
+   (lambda (row)
+     (let ((data (nth 7 row)))
+       (list :session-id (nth 0 row) :first-us (nth 1 row) :last-us (nth 2 row)
+             :attempts (nth 3 row) :unique (nth 4 row) :successes (nth 5 row)
+             :voids (nth 6 row)
+             :status (cond ((null data) "Recorded")
+                           ((plist-get data :cancelled-p) "Ended early")
+                           ((plist-get data :remaining) "Unfinished")
+                           (t "Completed")))))
+   (gnosis-sqlite-select
+    (gnosis--ensure-db)
+    "SELECT e.session_id, MIN(e.reviewed_at_us), MAX(e.reviewed_at_us),
+            SUM(v.event_id IS NULL),
+            COUNT(DISTINCT CASE WHEN v.event_id IS NULL THEN e.thema_id END),
+            SUM(v.event_id IS NULL AND e.rating = 3),
+            COUNT(v.event_id), h.data
+       FROM practice_events e
+       LEFT JOIN practice_voids v ON v.event_id = e.event_id
+       LEFT JOIN study_history h ON h.session_id = e.session_id
+      GROUP BY e.session_id ORDER BY MIN(e.reviewed_at_us), e.session_id")))
+
+(defun gnosis-study-practice-events (session-id)
+  "Return recorded practice events and corrections for exact SESSION-ID.
+Rows contain event ID, thema ID, session ID, attempt ordinal, timestamp in
+microseconds, rating, and correction ID (nil for effective evidence).
+Order by the session-wide attempt ordinal; never infer grades from a queue."
+  (gnosis-sqlite-select
+   (gnosis--ensure-db)
+   "SELECT e.*, v.correction_id FROM practice_events e
+      LEFT JOIN practice_voids v ON v.event_id = e.event_id
+     WHERE e.session_id = ? ORDER BY e.attempt" (list session-id)))
+
 ;;;###autoload
 (defun gnosis-backup-db (file)
   "Write a consistent full database backup to new FILE without upgrading.

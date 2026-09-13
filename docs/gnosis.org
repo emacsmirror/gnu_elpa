@@ -1656,6 +1656,42 @@ automatically, providing access to nodes, themata, review sessions,
 export/import (=e= to export, =i= to import), and database
 synchronisation.
 
+** Study Activity and History
+
+=Studied today= counts accepted attempts, including incorrect answers and
+retries, across scheduled reviews and non-rescheduling practice.  The
+breakdown separates scheduled attempts (and new scheduled reviews) from
+practice.  Topic, custom and agent-launched practice use the same retained
+practice evidence.  Pending answers, cancelled input and evaluation failures
+without an accepted result do not count.  Voided grades are excluded.
+These are effort counts, not unique themata or a measure of mastery.  The
+review average and review streak remain scheduled-review statistics.
+
+Open =History= from the dashboard with =H=.  =Scheduled day= rows retain
+the existing daily aggregates, including migrated review totals.  =Practice
+session= rows show accepted attempts, distinct themata and voided events for
+one stable session, with its completed, unfinished or ended-early status.
+A resumed session remains one row; replacing a batch retains its evidence
+without claiming completion.  Empty reservations are not study activity.
+The =New= column applies only to scheduled reviews.
+
+Practice rows use the logical date of their first recorded event; their
+counts cover the whole session, which may span several days.  Press =RET=
+on a practice row to see its session identity and recorded attempts, including
+timestamps, thema IDs, event IDs and undo corrections.  Details are a read-only
+snapshot: =q= closes it, and =g= in History refreshes the retained evidence
+while preserving the selected session.  Sessions with retained events but no
+session snapshot are labelled =Recorded=.  Hard thema deletion removes that
+thema's events, so a session with no remaining events disappears from this
+activity view; its retained batch summary is not used to invent grades.
+
+Scheduled logical dates remain as originally recorded.  Practice timestamps
+are projected using the current local timezone and =gnosis-day-start-hour=,
+the same rules used by native encounters.  Original timezone and day-cutoff
+settings were not retained for historical practice: changing these settings
+can change its date grouping.  Reading History never backfills or rewrites
+study evidence, and practice never updates FSRS scheduling.
+
 ** The Themata View
 
 Lists all review items in a tabulated format, with columns for the

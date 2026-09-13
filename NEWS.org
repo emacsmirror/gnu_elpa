@@ -2,6 +2,10 @@
 #+author: Daniel Mendler
 #+language: en
 
+* Development
+
+- Improve completion field handling in =corfu--in-region=.
+
 * Version 2.15 (2026-09-03)
 
 - Minor optimizations during candidate computation.

@@ -49,6 +49,11 @@
 (defvar gnosis-tl-ellipsis "..."
   "String appended to truncated column text.")
 
+(defvar gnosis-tl-after-insert-functions nil
+  "Hook run with the bounds of newly rendered rows.
+Functions receive beginning and end positions after bulk insertion or
+single-row replacement.  Use buffer-local hooks for view decorations.")
+
 ;;; Column spec handling (pure)
 
 (defun gnosis-tl--column-specs (format)
@@ -269,6 +274,7 @@ same entry ID and column."
       (erase-buffer)
       (gnosis-tl--render-into-buffer entries tabulated-list-format
                                      (or tabulated-list-padding 0)))
+    (run-hook-with-args 'gnosis-tl-after-insert-functions (point-min) (point-max))
     (set-buffer-modified-p nil)
     (if (and saved-id remember-pos)
         (progn
@@ -331,7 +337,8 @@ Point is preserved via `save-excursion'."
               (end (progn (forward-line 1) (point))))
           (delete-region beg end)
           (goto-char beg)
-          (insert (gnosis-tl--format-line id new-cols specs)))))))
+          (insert (gnosis-tl--format-line id new-cols specs))
+          (run-hook-with-args 'gnosis-tl-after-insert-functions beg (point)))))))
 
 (defun gnosis-tl-delete-entry (id)
   "Delete the displayed line for entry ID from the buffer.
@@ -361,8 +368,10 @@ Assumes `tabulated-list-format' and `tabulated-list-padding' are set."
         (inhibit-modification-hooks t))
     (save-excursion
       (goto-char (point-max))
-      (gnosis-tl--render-into-buffer entries tabulated-list-format
-                                     (or tabulated-list-padding 0)))))
+      (let ((beg (point)))
+        (gnosis-tl--render-into-buffer entries tabulated-list-format
+                                       (or tabulated-list-padding 0))
+        (run-hook-with-args 'gnosis-tl-after-insert-functions beg (point))))))
 
 (provide 'gnosis-tl)
 ;;; gnosis-tl.el ends here

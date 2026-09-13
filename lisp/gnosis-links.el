@@ -110,9 +110,12 @@ NODE-ID is added to each updated thema's link index."
   (gnosis-vc--auto-commit
    (format "Bulk link: %d themata updated with %s" count string)))
 
-(defun gnosis-bulk-link-themata (ids string node-id)
+(defun gnosis-bulk-link-themata (ids string node-id &optional validate-owner)
   "Replace STRING with a link to NODE-ID in themata with IDS.
-Return the updated thema IDs."
+Return the updated thema IDs.
+When non-nil, call VALIDATE-OWNER with no arguments after confirmation,
+immediately before writing.  It must signal an error if the caller's
+initiating context is no longer valid; its return value is ignored."
   (when (string-empty-p string)
     (user-error "String cannot be empty"))
   (unless node-id
@@ -128,6 +131,7 @@ Return the updated thema IDs."
       (when (y-or-n-p
              (format "Replace '%s' in %d themata? "
                      string (length updates)))
+        (when validate-owner (funcall validate-owner))
         (gnosis--update-themata-keimenon updates node-id)
         (gnosis--commit-bulk-link (length updates) string)
         (message "Updated %d themata with links to '%s'"

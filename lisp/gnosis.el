@@ -499,16 +499,21 @@ Ignore quote wrappers, case and whitespace, preserving short-string rules."
 (defun gnosis--read-string-with-input-method (prompt answer)
   "Read string with PROMPT, activating input method matching ANSWER's script.
 Activates the input method in the current buffer so `read-string' with
-INHERIT-INPUT-METHOD propagates it into the minibuffer.  Restores the
-previous state on exit."
+INHERIT-INPUT-METHOD propagates it into the minibuffer.  Restore the
+original buffer's previous input method on return, error or quit."
   (let ((method (alist-get (gnosis-utils-detect-script answer)
-                           gnosis-script-input-method-alist)))
+                           gnosis-script-input-method-alist))
+        (buffer (current-buffer))
+        (previous-method current-input-method))
     (if (not method)
         (read-string prompt)
-      (activate-input-method method)
       (unwind-protect
-          (read-string prompt nil nil nil t)
-        (deactivate-input-method)))))
+          (progn
+            (activate-input-method method)
+            (read-string prompt nil nil nil t))
+        (when (buffer-live-p buffer)
+          (with-current-buffer buffer
+            (activate-input-method previous-method)))))))
 
 (defun gnosis-suspended-p (id)
   "Return t if thema with ID is suspended."

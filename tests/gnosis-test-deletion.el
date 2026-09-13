@@ -117,6 +117,7 @@
              (gnosis-dashboard-buffer-name (buffer-name buffer)))
         (unwind-protect
             (save-window-excursion
+              (with-current-buffer buffer (gnosis-dashboard-mode))
               (gnosis-dashboard-output-themata ids)
               (goto-char (point-min))
               (setq gnosis-dashboard--selected-ids (and marked (copy-sequence ids)))
@@ -239,6 +240,7 @@
                (execute (symbol-function 'gnosis-sqlite-execute-batch)))
           (unwind-protect
               (save-window-excursion
+                (with-current-buffer buffer (gnosis-dashboard-mode))
                 (gnosis-dashboard-output-themata (list id))
                 (setq gnosis-dashboard--selected-ids (list id))
                 (let ((text (buffer-string)))

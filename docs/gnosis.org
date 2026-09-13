@@ -205,7 +205,18 @@ enabled.  Defaults to ={user-emacs-directory}/gnosis/=.
 *** ~gnosis-nodes-dir~
 
 The directory containing your note files.  All =.org= and =.org.gpg=
-files in this directory are indexed by gnosis.  Defaults to =~/Notes/=.
+files in this directory and its subdirectories are indexed by gnosis,
+excluding the separately indexed journal.  Defaults to =~/Notes/=.
+Node filenames in the index are relative to this directory, so files
+in different subdirectories can share a basename.  Older saves could
+index subdirectory files using only their basenames.  If those rows
+cannot be identified as a root file's snapshot, save indexing, sync,
+navigation and deletion refuse with an instruction to run
+~gnosis-nodes-db-force-sync~.  This explicit rebuild changes only the
+index, not Org contents or IDs.  A save-hook refusal occurs after your
+edited file has been saved; it preserves the previous index.  Replacing
+all IDs in an old root snapshot can also require this rebuild because
+no surviving ID identifies that snapshot.
 
 #+begin_src emacs-lisp
 (setopt gnosis-nodes-dir "~/Notes/")
@@ -493,6 +504,11 @@ Retry ~gnosis-nodes-delete-file~ from the retained buffer, or supply the
 same filename explicitly, to confirm index-only reconciliation.  A retained
 buffer is detached from the deleted filename so an ordinary save cannot
 silently recreate it.  This recovery does not restore deleted file bytes.
+If you save the recovery buffer under another name, it belongs to that new
+file.  To retry cleanup for the original, use =M-:= with
+=(gnosis-nodes-delete-file "/path/to/original.org")=.  When retained
+basename ownership is unresolved, rebuild the index as instructed before
+retrying deletion; no file bytes are removed by that refusal or rebuild.
 
 ** Links Between Nodes
 
@@ -650,13 +666,14 @@ The list of org files from which TODOs are pulled.  Defaults to
 
 *** ~gnosis-journal-todo-keywords~
 
-The TODO keywords recognized when scanning files.  Defaults to
-~org-todo-keywords~.  Keywords that appear after the vertical bar =|=
-(which in standard org convention separates active from done states)
-are ignored.
+A flat list of TODO keyword strings to collect when scanning files.
+Defaults to =("TODO")=.  Include only the active states you want to
+collect; unlike ~org-todo-keywords~, this option does not accept
+sequences or a vertical-bar separator.  The states must also be defined
+in Org, for example with =#+todo: TODO NEXT | DONE= in the source file.
 
 #+begin_src emacs-lisp
-(setopt gnosis-journal-todo-keywords org-todo-keywords)
+(setopt gnosis-journal-todo-keywords '("TODO" "NEXT"))
 #+end_src
 
 *** Bullet Point Character
@@ -713,7 +730,7 @@ journal entry using ~gnosis-journal-insert~.  It works identically to
   (gnosis-journal-as-gpg nil)
   (gnosis-journal-bullet-point-char "+")
   (gnosis-journal-todo-files org-agenda-files)
-  (gnosis-journal-todo-keywords org-todo-keywords)
+  (gnosis-journal-todo-keywords '("TODO" "NEXT"))
   (gnosis-journal-templates
    (list (cons "Default"
                (lambda ()

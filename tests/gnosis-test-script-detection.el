@@ -12,6 +12,7 @@
 ;;; Code:
 
 (require 'ert)
+(require 'quail)
 
 (require 'gnosis-utils)
 (require 'gnosis)
@@ -80,103 +81,115 @@
                    (alist-get 'cyrillic gnosis-script-input-method-alist)))))
 
 ;; ---- Group 3: gnosis--read-string-with-input-method ----
-;;
-;; The function calls `activate-input-method' in the current buffer,
-;; then `read-string' with INHERIT-INPUT-METHOD=t so the minibuffer
-;; inherits it, then `deactivate-input-method' to clean up.
-;;
-;; We stub `activate-input-method' (to set `current-input-method'),
-;; `deactivate-input-method' (to clear it), and `read-string' (to
-;; capture the state at call time).
-
-(ert-deftest gnosis-test-read-string-greek-input-method-active ()
-  "Greek answer: activate-input-method called, inherit=t, deactivate called."
-  (let ((captured-method nil)
-        (captured-inherit nil)
-        (deactivated nil)
-        (gnosis-script-input-method-alist '((greek . "greek"))))
-    (cl-letf (((symbol-function 'activate-input-method)
-               (lambda (method) (setq current-input-method method)))
-              ((symbol-function 'deactivate-input-method)
-               (lambda () (setq current-input-method nil deactivated t)))
-              ((symbol-function 'read-string)
-               (lambda (_prompt &optional _init _hist _default inherit)
-                 (setq captured-method current-input-method
-                       captured-inherit inherit)
-                 "dummy")))
-      (gnosis--read-string-with-input-method "Answer: " "ελληνικά")
-      (should (equal "greek" captured-method))
-      (should (eq t captured-inherit))
-      (should deactivated))))
+;; Use real Quail activation and restoration, stubbing only the input boundary.
 
 (ert-deftest gnosis-test-read-string-cyrillic-input-method-active ()
-  "Cyrillic answer with mapping: input method activated and inherited."
-  (let ((captured-method nil)
-        (captured-inherit nil)
-        (gnosis-script-input-method-alist '((greek . "greek")
-                                            (cyrillic . "cyrillic-translit"))))
-    (cl-letf (((symbol-function 'activate-input-method)
-               (lambda (method) (setq current-input-method method)))
-              ((symbol-function 'deactivate-input-method)
-               (lambda () (setq current-input-method nil)))
-              ((symbol-function 'read-string)
-               (lambda (_prompt &optional _init _hist _default inherit)
-                 (setq captured-method current-input-method
-                       captured-inherit inherit)
-                 "dummy")))
-      (gnosis--read-string-with-input-method "Answer: " "самолет")
-      (should (equal "cyrillic-translit" captured-method))
-      (should (eq t captured-inherit)))))
+  "Honor a custom Cyrillic mapping and inherit it during input."
+  (with-temp-buffer
+    (let ((gnosis-script-input-method-alist
+           '((cyrillic . "cyrillic-translit"))))
+      (cl-letf (((symbol-function 'read-string)
+                 (lambda (_prompt &optional _init _hist _default inherit)
+                   (should inherit)
+                   (should (equal current-input-method "cyrillic-translit"))
+                   (should (eq input-method-function #'quail-input-method))
+                   "typed answer")))
+        (should (equal (gnosis--read-string-with-input-method "Answer: " "самолет")
+                       "typed answer")))
+      (should-not current-input-method))))
 
-(ert-deftest gnosis-test-read-string-latin-no-activation ()
-  "Latin answer: no activate/deactivate calls, plain read-string."
-  (let ((activated nil)
-        (gnosis-script-input-method-alist '((greek . "greek"))))
-    (cl-letf (((symbol-function 'activate-input-method)
-               (lambda (method) (setq activated method)))
-              ((symbol-function 'deactivate-input-method) #'ignore)
-              ((symbol-function 'read-string)
-               (lambda (_prompt &rest _args) "dummy")))
-      (gnosis--read-string-with-input-method "Answer: " "hello")
-      (should (null activated)))))
+(ert-deftest gnosis-test-read-string-unmapped-preserves-input-method ()
+  "Latin and unmapped scripts use plain input without replacing the method."
+  (dolist (answer '("hello" "самолет"))
+    (with-temp-buffer
+      (activate-input-method "german-postfix")
+      (let ((gnosis-script-input-method-alist '((greek . "greek"))))
+        (cl-letf (((symbol-function 'read-string)
+                   (lambda (_prompt &optional _init _hist _default inherit)
+                     (should-not inherit)
+                     (should (equal current-input-method "german-postfix"))
+                     "typed answer")))
+          (should (equal (gnosis--read-string-with-input-method "Answer: " answer)
+                         "typed answer")))
+        (should (equal current-input-method "german-postfix"))))))
 
-(ert-deftest gnosis-test-read-string-unmapped-no-activation ()
-  "Unmapped script: no activate/deactivate calls."
-  (let ((activated nil)
-        (gnosis-script-input-method-alist '((greek . "greek"))))
-    (cl-letf (((symbol-function 'activate-input-method)
-               (lambda (method) (setq activated method)))
-              ((symbol-function 'deactivate-input-method) #'ignore)
-              ((symbol-function 'read-string)
-               (lambda (_prompt &rest _args) "dummy")))
-      (gnosis--read-string-with-input-method "Answer: " "самолет")
-      (should (null activated)))))
+(ert-deftest gnosis-test-read-string-restores-real-input-method ()
+  "Restore nil, same and different Quail methods after return, error or quit."
+  (dolist (previous '(nil "greek" "cyrillic-translit"))
+    (dolist (outcome '(return error quit))
+      (ert-info ((format "Previous %S, outcome %S" previous outcome))
+        (with-temp-buffer
+          (activate-input-method previous)
+          (let ((gnosis-script-input-method-alist '((greek . "greek")))
+                result)
+            (cl-letf (((symbol-function 'read-string)
+                       (lambda (_prompt &optional _init _hist _default inherit)
+                         (should inherit)
+                         (should (equal current-input-method "greek"))
+                         (should (eq input-method-function #'quail-input-method))
+                         (if (eq outcome 'return) "typed answer"
+                           (signal outcome '("Input interrupted"))))))
+              (setq result
+                    (condition-case err
+                        (gnosis--read-string-with-input-method "Answer: " "α")
+                      ((error quit) err))))
+            (should (equal result (if (eq outcome 'return) "typed answer"
+                                    (list outcome "Input interrupted"))))
+            (should (equal current-input-method previous))
+            (when previous
+              (should (eq input-method-function #'quail-input-method)))))))))
 
-(ert-deftest gnosis-test-read-string-returns-user-input ()
-  "Return value is the string from read-string."
-  (let ((gnosis-script-input-method-alist '((greek . "greek"))))
-    (cl-letf (((symbol-function 'activate-input-method)
-               (lambda (method) (setq current-input-method method)))
-              ((symbol-function 'deactivate-input-method)
-               (lambda () (setq current-input-method nil)))
-              ((symbol-function 'read-string)
-               (lambda (_prompt &rest _args) "user-typed")))
-      (should (equal "user-typed"
-                     (gnosis--read-string-with-input-method "Answer: " "αβγ"))))))
+(ert-deftest gnosis-test-read-string-restores-after-activation-failure ()
+  "Restore real Quail state even when an activation hook errors or quits."
+  (dolist (outcome '(error quit))
+    (with-temp-buffer
+      (activate-input-method "cyrillic-translit")
+      (let ((gnosis-script-input-method-alist '((greek . "greek")))
+            (input-method-activate-hook
+             (list (lambda ()
+                     (when (equal current-input-method "greek")
+                       (signal outcome '("Activation interrupted"))))))
+            result)
+        (cl-letf (((symbol-function 'read-string)
+                   (lambda (&rest _) (ert-fail "Input followed failed activation"))))
+          (setq result
+                (condition-case err
+                    (gnosis--read-string-with-input-method "Answer: " "α")
+                  ((error quit) err))))
+        (should (equal result (list outcome "Activation interrupted")))
+        (should (equal current-input-method "cyrillic-translit"))
+        (should (eq input-method-function #'quail-input-method))))))
 
-(ert-deftest gnosis-test-read-string-deactivates-on-error ()
-  "Input method is deactivated even when read-string signals an error."
-  (let ((deactivated nil)
-        (gnosis-script-input-method-alist '((greek . "greek"))))
-    (cl-letf (((symbol-function 'activate-input-method)
-               (lambda (method) (setq current-input-method method)))
-              ((symbol-function 'deactivate-input-method)
-               (lambda () (setq current-input-method nil deactivated t)))
-              ((symbol-function 'read-string)
-               (lambda (_prompt &rest _args) (error "Simulated quit"))))
-      (ignore-errors
-        (gnosis--read-string-with-input-method "Answer: " "αβγ"))
-      (should deactivated))))
+(ert-deftest gnosis-test-read-string-restores-origin-not-current-buffer ()
+  "A reader changing buffers must not redirect input-method cleanup."
+  (dolist (outcome '(return error quit))
+    (with-temp-buffer
+      (let ((origin (current-buffer))
+            (other (generate-new-buffer " *gnosis-input-other*"))
+            (gnosis-script-input-method-alist '((greek . "greek")))
+            result)
+        (unwind-protect
+            (progn
+              (activate-input-method "cyrillic-translit")
+              (with-current-buffer other (activate-input-method "german-postfix"))
+              (cl-letf (((symbol-function 'read-string)
+                         (lambda (&rest _)
+                           (set-buffer other)
+                           (if (eq outcome 'return) "typed answer"
+                             (signal outcome '("Input interrupted"))))))
+                (setq result
+                      (condition-case err
+                          (gnosis--read-string-with-input-method "Answer: " "α")
+                        ((error quit) err))))
+              (should (equal result (if (eq outcome 'return) "typed answer"
+                                      (list outcome "Input interrupted"))))
+              (with-current-buffer origin
+                (should (equal current-input-method "cyrillic-translit"))
+                (should (eq input-method-function #'quail-input-method)))
+              (with-current-buffer other
+                (should (equal current-input-method "german-postfix"))
+                (should (eq input-method-function #'quail-input-method))))
+          (kill-buffer other))))))
 
 (provide 'gnosis-test-script-detection)
 

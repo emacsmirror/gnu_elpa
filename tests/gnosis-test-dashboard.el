@@ -38,7 +38,8 @@ Includes `gnosis-test-with-dashboard-state' for isolation."
   (declare (indent 0) (debug t))
   `(gnosis-test-with-dashboard-state
     (let ((gnosis-dashboard-buffer-name "*Gnosis Dashboard Test*"))
-      (get-buffer-create gnosis-dashboard-buffer-name)
+      (with-current-buffer (get-buffer-create gnosis-dashboard-buffer-name)
+        (gnosis-dashboard-mode))
       (cl-letf (((symbol-function 'pop-to-buffer-same-window)
                  (lambda (buf &rest _) (set-buffer (get-buffer-create buf)))))
         (unwind-protect
@@ -234,14 +235,15 @@ Includes `gnosis-test-with-dashboard-state' for isolation."
 (ert-deftest gnosis-test-dashboard-suspend-tag-refreshes-entry ()
   "Suspend-by-tag makes the next formatted entry reflect SQLite state."
   (gnosis-test-with-db
-   (gnosis-test-with-dashboard-state
+   (gnosis-test-with-dashboard-buffer
     (let ((id (gnosis-test--add-basic-thema "Q?" "A" '("math"))))
       (should (equal
                (aref (cadar (gnosis-dashboard--output-themata (list id))) 5)
                "No"))
       (cl-letf (((symbol-function 'y-or-n-p) (lambda (&rest _) t)))
         (let ((current-prefix-arg nil))
-          (gnosis-dashboard-suspend-tag "math")))
+          (gnosis-dashboard-output-tags)
+          (call-interactively (local-key-binding (kbd "s")))))
       (should (= (gnosis-get 'suspended 'scheduler-state
                              `(= thema-id ,id)) 1))
       (should (equal

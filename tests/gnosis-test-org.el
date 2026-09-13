@@ -473,6 +473,54 @@
     (let ((links (gnosis-org-collect-id-links)))
       (should (null links)))))
 
+(ert-deftest gnosis-test-org-collect-id-links-native-syntax ()
+  "Only native ID links contribute edges, not descriptions or literals."
+  (with-temp-buffer
+    (org-mode)
+    (insert ":PROPERTIES:\n:ID: root\n:END:\n#+title: Links\n\n"
+            "[[https://example.org][id:not-a-target]]\n"
+            "[[file:guide.org][id:not-a-file-target]]\n"
+            "#+begin_src org\n[[id:source-only]]\n#+end_src\n"
+            "#+begin_example\n[[id:example-only]]\n#+end_example\n"
+            "~[[id:verbatim-only]]~ and =[[id:code-only]]=\n"
+            "[[id:described][Real description]] [[id:bracketed]]\n"
+            "id:plain\n<id:angle>\n")
+    (should (equal (gnosis-org-collect-id-links)
+                   '(("described" . "root") ("bracketed" . "root")
+                     ("plain" . "root") ("angle" . "root"))))))
+
+(ert-deftest gnosis-test-org-collect-id-links-nearest-owner ()
+  "Links belong to their beginning's nearest ID, including heading links."
+  (with-temp-buffer
+    (org-mode)
+    (insert "#+title: Rootless\n\n[[id:unowned]]\n"
+            "* Parent\n:PROPERTIES:\n:ID: parent\n:END:\n"
+            "** No ID\n[[id:inherited]]\n"
+            "*** [[id:heading][Child]]\n:PROPERTIES:\n:ID: child\n:END:\n"
+            "[[id:multiline][Description\n* not a new link owner]]\n"
+            "* Sibling without ID\n[[id:also-unowned]]\n")
+    (goto-char (point-min))
+    (should (equal (gnosis-org-collect-id-links)
+                   '(("inherited" . "parent") ("heading" . "child")
+                     ("multiline" . "child"))))
+    (should (= (point) (point-min)))))
+
+(ert-deftest gnosis-test-org-get-buffer-info-parses-once ()
+  "Node data and link extraction share one full Org parse."
+  (with-temp-buffer
+    (org-mode)
+    (insert ":PROPERTIES:\n:ID: root\n:END:\n#+title: Links\n\n"
+            "[[id:target][Target]]\n")
+    (let ((parse (symbol-function 'org-element-parse-buffer))
+          (calls 0))
+      (cl-letf (((symbol-function 'org-element-parse-buffer)
+                 (lambda (&rest args)
+                   (cl-incf calls)
+                   (apply parse args))))
+        (should (equal (car (last (gnosis-org-get-buffer-info) 2))
+                       '(("target" . "root"))))
+        (should (= calls 1))))))
+
 (provide 'gnosis-test-org)
 
 ;;; gnosis-test-org.el ends here

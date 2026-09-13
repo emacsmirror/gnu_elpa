@@ -25,7 +25,10 @@
             (keymap-popup-persistent nil)
             (keymap-popup-backend #'keymap-popup-backend-side-window))
        (unwind-protect
-           (progn (switch-to-buffer buffer) ,@body)
+           (progn
+             (switch-to-buffer buffer)
+             (gnosis-dashboard-mode)
+             ,@body)
          (keymap-popup-dismiss)
          (when (buffer-live-p buffer) (kill-buffer buffer))))))
 

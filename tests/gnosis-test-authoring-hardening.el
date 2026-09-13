@@ -281,8 +281,14 @@ its real indexer before restoring the candidate implementation."
               (load base nil t)
               (gnosis-nodes-update-file file))
           (load candidate nil t)))
-    (let ((gnosis-journal-file nil))
-      (gnosis-nodes-update-file file))))
+    (let ((gnosis-journal-file nil)
+          (file-key (symbol-function 'gnosis-nodes--file-key)))
+      ;; Pin the historical encoding, not the candidate's filename policy.
+      (cl-letf (((symbol-function 'gnosis-nodes--file-key)
+                 (lambda (file journal)
+                   (if journal (funcall file-key file journal)
+                     (file-name-nondirectory file)))))
+        (gnosis-nodes-update-file file)))))
 
 (defun gnosis-test-authoring--index-snapshot ()
   "Return ordered rows for the complete node index."

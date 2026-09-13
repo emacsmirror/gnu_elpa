@@ -38,21 +38,17 @@ Converts [[id:xxx][Description]] to Description."
 	     (outline-up-heading 1 t)
 	     (gnosis-org-get-id))))))
 
-(defun gnosis-org-collect-id-links ()
-  "Collect ID links and current headline ID as (link-id . headline-id) pairs."
-  (let ((links nil)
-        (begin (point-min))
-        (end (point-max)))
-    (save-excursion
-      (goto-char begin)
-      (while (re-search-forward org-link-any-re end t)
-        (let ((link (match-string-no-properties 0)))
-          (when (string-match "id:\\([^]]+\\)" link)
-            (let ((target-id (match-string 1 link))
-                  (source-id (gnosis-org-get-id)))
-              (when (and target-id source-id)
-                (push (cons target-id source-id) links)))))))
-    (nreverse links)))
+(defun gnosis-org-collect-id-links (&optional parsed-data)
+  "Collect ID links as (target-id . source-id) pairs from PARSED-DATA.
+Parse the current buffer when PARSED-DATA is nil.  Each source is the
+nearest enclosing ID at the link's beginning."
+  (save-excursion
+    (org-element-map (or parsed-data (org-element-parse-buffer)) 'link
+      (lambda (link)
+        (when (equal (org-element-property :type link) "id")
+          (goto-char (org-element-property :begin link))
+          (when-let* ((source-id (gnosis-org-get-id)))
+            (cons (org-element-property :path link) source-id)))))))
 
 (defun gnosis-org-get-filetags (&optional parsed-data)
   "Return the filetags of the buffer's PARSED-DATA as a list of strings."
@@ -196,8 +192,9 @@ the SHA1 hash of the buffer content."
     (unless (derived-mode-p 'org-mode)
       (org-mode))
     (org-set-regexps-and-options 'tags-only)
-    (let* ((data (gnosis-org-buffer-data))
-	   (links (gnosis-org-collect-id-links)))
+    (let* ((parsed-data (org-element-parse-buffer))
+           (data (gnosis-org-buffer-data parsed-data))
+           (links (gnosis-org-collect-id-links parsed-data)))
       (append data (list links hash)))))
 
 (defun gnosis-org-get-file-info (filename)

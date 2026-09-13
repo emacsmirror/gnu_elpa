@@ -26,6 +26,7 @@
           callbacks)
      (unwind-protect
          (save-window-excursion
+           (with-current-buffer buffer (gnosis-dashboard-mode))
            (cl-letf (((symbol-function 'run-with-timer)
                       (lambda (delay repeat function &rest args)
                         (if (eq function #'gnosis-dashboard--append-chunk)
@@ -183,6 +184,7 @@
         (let ((other (generate-new-buffer " *gnosis-dashboard-other*")))
           (unwind-protect
               (let ((gnosis-dashboard-buffer-name (buffer-name other)))
+                (with-current-buffer other (gnosis-dashboard-mode))
                 (gnosis-dashboard-output-themata (list (nth 2 ids)))
                 (drain)
                 (with-current-buffer buffer
@@ -457,6 +459,7 @@
            timer callback args)
       (unwind-protect
           (save-window-excursion
+            (with-current-buffer buffer (gnosis-dashboard-mode))
             (gnosis-dashboard-output-themata ids)
             (setq timer (seq-find
                          (lambda (timer)
@@ -509,6 +512,7 @@
             (should (= 2 (length items)))
             (gnosis-anki--bulk-insert-chunk
              gnosis-db items '(801 802) (gnosis--today-int))
+            (with-current-buffer buffer (gnosis-dashboard-mode))
             (gnosis-dashboard-output-themata '(801 802))
             (should (equal '("alpha\nbeta")
                            (gnosis-get 'answer 'themata '(= id 801))))
@@ -539,6 +543,7 @@
           (save-window-excursion
             (gnosis-anki--bulk-insert-chunk
              gnosis-db items '(801 802) (gnosis--today-int) "two\nlines")
+            (with-current-buffer buffer (gnosis-dashboard-mode))
             (gnosis-dashboard-output-themata '(801 802))
             (dolist (step '(("g" . 0) ("s" . 1) ("s" . 0)))
               (goto-char (point-min))

@@ -124,6 +124,40 @@
           (should (string= "Second" (car (nth 1 todos))))))
     (gnosis-test-journal--teardown)))
 
+(ert-deftest gnosis-test-journal-manual-keyword-examples ()
+  "Collect TODO and NEXT, but not DONE, with each manual example."
+  (let ((examples
+         (with-temp-buffer
+           (insert-file-contents
+            (expand-file-name "../docs/gnosis.org"
+                              (file-name-directory
+                               (locate-library "gnosis-test-journal"))))
+           (cl-loop while (re-search-forward
+                           "(\\(?:setopt \\)?gnosis-journal-todo-keywords\\_>"
+                           nil t)
+                    collect (progn
+                              (goto-char (match-beginning 0))
+                              (read (current-buffer)))))))
+    ;; Cover both the standalone setopt and the use-package :custom entry.
+    (should (= (length examples) 2))
+    (gnosis-test-journal--setup)
+    (unwind-protect
+        (let ((file (gnosis-test-journal--create-file
+                     "manual-keywords.org"
+                     (concat "#+todo: TODO NEXT | DONE\n"
+                             "* TODO First\n* NEXT Second\n* DONE Third\n")))
+              (org-todo-keywords '((sequence "TODO" "NEXT" "|" "DONE"))))
+          (dolist (example examples)
+            (ert-info ((format "Manual configuration: %S" example))
+              (let ((gnosis-journal-todo-keywords nil))
+                ;; Evaluate only the keyword option, not unrelated setup.
+                (eval (if (eq (car example) 'setopt)
+                          example
+                        (cons 'setopt example)) t)
+                (should (equal (mapcar #'car (gnosis-journal-get--todos file))
+                               '("First" "Second")))))))
+      (gnosis-test-journal--teardown))))
+
 ;;; ---- Group 2: gnosis-journal-get-todos ----
 
 (ert-deftest gnosis-test-journal-get-todos-multiple-files ()

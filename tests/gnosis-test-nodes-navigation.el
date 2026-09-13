@@ -69,8 +69,9 @@
       ;; Isolate lookup routing; file visiting, ID positioning, mode and hooks
       ;; remain real.  The absolute fixture path works with either owned root.
       (cl-letf (((symbol-function 'gnosis-nodes-select)
-                 (lambda (_column candidate-table &rest _)
-                   (when (eq candidate-table table) (list file)))))
+                 (lambda (column candidate-table &rest _)
+                   (when (and (eq column 'file) (eq candidate-table table))
+                     (list file)))))
         (gnosis-nodes-goto-id "destination-id"))
       (should (eq (current-buffer) destination))
       (should (equal (org-id-get) "destination-id"))

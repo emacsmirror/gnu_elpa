@@ -261,11 +261,33 @@ and all practice are excluded.  No automatic suspension threshold is applied."
 
 (defvar-local gnosis-study--topic nil "Org ID of the displayed study topic.")
 (defvar-local gnosis-study--repair-p nil "Non-nil for the repair collection.")
+(defvar-local gnosis-study--owner nil
+  "Buffer and database pair identifying this rendering of the collection.")
+
+(defun gnosis-study--check-owner (&optional owner)
+  "Return current collection OWNER, or signal if its rendering is stale.
+An explicit OWNER may be checked after source navigation or a prompt."
+  (let* ((owner (or owner gnosis-study--owner))
+         (buffer (car owner))
+         (database (cdr owner)))
+    (unless (and (buffer-live-p buffer)
+                 (eq database gnosis-db)
+                 database
+                 (with-current-buffer buffer
+                   (and (derived-mode-p 'gnosis-study-mode)
+                        (eq owner gnosis-study--owner))))
+      (user-error "Study view is stale; refresh or reopen the collection"))
+    owner))
 
 (defun gnosis-study-refresh ()
-  "Refresh the current topic or repair collection, preserving row identity."
+  "Refresh the collection from the current database, preserving row identity.
+This explicitly adopts the current database for subsequent row commands."
   (interactive)
-  (let* ((evidence (gnosis-study-delayed-evidence))
+  (unless (derived-mode-p 'gnosis-study-mode)
+    (user-error "Open a study collection first"))
+  (setq gnosis-study--owner nil)
+  (let* ((database (gnosis--ensure-db))
+         (evidence (gnosis-study-delayed-evidence))
          (ids (if gnosis-study--repair-p
                   (delete-dups
                    (append (gnosis-get-tag-themata "needs_work")
@@ -295,55 +317,66 @@ and all practice are excluded.  No automatic suspension threshold is applied."
                   (plist-get counts :total) (plist-get counts :due)
                   (plist-get counts :new) (plist-get counts :suspended)
                   (if (null ids) " | No linked questions: authoring gap candidate" "")))
-    (tabulated-list-print t)))
+    (tabulated-list-print t)
+    (setq gnosis-study--owner (cons (current-buffer) database))))
 
 (defun gnosis-study-edit ()
   "Edit the selected thema, visiting its indexed source when available.
 Do not record recall or replace an unfinished edit."
   (interactive)
-  (let ((id (or (tabulated-list-get-id) (user-error "No thema at point"))))
+  (let ((owner (gnosis-study--check-owner))
+        (id (or (tabulated-list-get-id) (user-error "No thema at point"))))
     (when (and (get-buffer "*Gnosis Edit*")
                (buffer-modified-p (get-buffer "*Gnosis Edit*")))
       (user-error "Finish the existing Gnosis edit first"))
     (gnosis-study-source t)
+    (gnosis-study--check-owner owner)
     (gnosis-edit-thema id)))
 
 (defun gnosis-study-source (&optional if-available)
   "Visit the topic source or an identity-selected source of the current thema.
 With IF-AVAILABLE non-nil, do nothing when no indexed source exists."
   (interactive)
-  (let* ((id (tabulated-list-get-id))
+  (let* ((owner (gnosis-study--check-owner))
+         (id (tabulated-list-get-id))
          (nodes (if gnosis-study--topic (list gnosis-study--topic)
                   (and id (gnosis-select 'dest 'thema-links `(= source ,id) t))))
          (candidates (and nodes (gnosis-study-topic-candidates nodes))))
     (if candidates
-        (gnosis-nodes-goto-id
-         (if (= (length candidates) 1) (cdar candidates)
-           (cdr (assoc (completing-read "Source: " candidates nil t) candidates))))
+        (let ((node (if (= (length candidates) 1) (cdar candidates)
+                      (cdr (assoc (completing-read "Source: " candidates nil t)
+                                  candidates)))))
+          (gnosis-study--check-owner owner)
+          (gnosis-nodes-goto-id node))
       (unless if-available (user-error "No indexed source for this thema")))))
 
 (defun gnosis-study-create ()
   "Compose a basic thema from the selected topic source."
   (interactive)
   (unless gnosis-study--topic (user-error "Open a topic first"))
-  (gnosis-study-source)
-  (gnosis-add-thema-from-node))
+  (let ((owner (gnosis-study--check-owner)))
+    (gnosis-study-source)
+    (gnosis-study--check-owner owner)
+    (gnosis-add-thema-from-node)))
 
 (defun gnosis-study-due ()
   "Review due themata of the displayed topic."
   (interactive)
   (unless gnosis-study--topic (user-error "Open a topic first"))
+  (gnosis-study--check-owner)
   (gnosis-review-due-topic (list gnosis-study--topic)))
 
 (defun gnosis-study-practice ()
   "Practise the displayed topic without rescheduling."
   (interactive)
   (unless gnosis-study--topic (user-error "Open a topic first"))
+  (gnosis-study--check-owner)
   (gnosis-practice-topic (list gnosis-study--topic)))
 
 (defun gnosis-study-toggle-flag ()
   "Toggle needs_work for the thema at point."
   (interactive)
+  (gnosis-study--check-owner)
   (let ((id (or (tabulated-list-get-id) (user-error "No thema at point"))))
     (gnosis-study-flag id (member "needs_work" (gnosis-get-tags-for-ids (list id))))
     (gnosis-study-refresh)))
@@ -351,9 +384,14 @@ With IF-AVAILABLE non-nil, do nothing when no indexed source exists."
 (defun gnosis-study-suspend ()
   "Explicitly toggle suspension of the thema at point."
   (interactive)
-  (gnosis-toggle-suspend-themata
-   (list (or (tabulated-list-get-id) (user-error "No thema at point"))))
-  (gnosis-study-refresh))
+  (let* ((owner (gnosis-study--check-owner))
+         (id (or (tabulated-list-get-id) (user-error "No thema at point")))
+         (value (if (gnosis-suspended-p id) 0 1)))
+    (when (y-or-n-p (if (= value 1) "Suspend thema? " "Unsuspend thema? "))
+      (gnosis-study--check-owner owner)
+      (gnosis-toggle-suspend-themata (list id) value t)
+      (with-current-buffer (car owner)
+        (gnosis-study-refresh)))))
 
 (keymap-popup-define gnosis-study-mode-map
   "Topic study"

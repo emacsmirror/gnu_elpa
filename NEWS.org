@@ -3,42 +3,147 @@
 + [[https://git.thanosapollo.org/gnosis/][Upstream]]
 + [[https://thanosapollo.org/log/gnosis/][Changelog]]
 
-* 0.11.0 (unreleased)
+* 0.11.0
+#+date: 2026/09/14
 
-** Scheduling and study
-+ Use FSRS-6 with binary Again/Good outcomes and retained scheduled
-  evidence.  Practice has separate history and never reschedules cards.
-+ Resume, continue, discard and undo study sessions; inspect topic study
-  evidence and repair flagged themata from dedicated views.
-+ Native edit/save or cancel returns to the captured pending answer.
-  Edits affect future presentations; explicit override changes the result.
-  Improve source navigation and typed-input handling; keep feedback
-  consistently centered and cloze answer faces off newlines.
-+ Dashboard commands are available immediately after a fresh installation.
+** Breaking changes and upgrading
++ Replace the previous scheduling algorithm with FSRS-6.  Remove the
+  legacy algorithm and per-tag scheduling customization.  Desired
+  retention is now a versioned, database-wide setting.  Remove
+  =gnosis-custom-values= and ~gnosis-history-clear~; activity is derived
+  from retained evidence rather than a separately editable daily log.
++ The supported database upgrade is from released 0.10.6 (schema 8)
+  directly to schema 9.  Preserve existing due dates and review totals
+  without inventing individual review events or historical FSRS state.
+  Older schemas, separate org-gnosis databases and private development
+  layouts require matching older source or a separately verified conversion.
++ Back up before opening an existing database with 0.11.0.
+  ~gnosis-backup-db~ copies the existing database without upgrading it;
+  follow the manual's pre-first-open procedure and keep the matching old
+  source for rollback.  Back up Org files and external media separately.
++ Journal entries now default to one =journal.org=, or =journal.org.gpg=
+  when ~gnosis-journal-as-gpg~ is enabled.  Set ~gnosis-journal-file~ to
+  =nil= to retain one file per entry.  Existing files are not converted.
++ Saving a journal no longer completes tasks in other Org files.  Use
+  ~gnosis-journal-insert-task~ and ~gnosis-journal-complete-task~ for
+  explicit, confirmed completion through source ID links.
 
-** Authoring and media
-+ Default journal storage is a single =journal.org= (or =journal.org.gpg=
-  when ~gnosis-journal-as-gpg~ is set).  Saving a journal no longer
-  completes external tasks; ~gnosis-journal-complete-task~ does that
-  through an ID link.  Dated navigation and capture commands are
-  ~gnosis-journal-date~, ~gnosis-journal-previous~, ~gnosis-journal-next~
-  and ~gnosis-journal-capture~.
-+ Support typed-answer aliases and portable content format 3.  Formats 1
-  and 2 remain readable; content exchange does not transfer study history.
-+ Add image-region and typed image-occlusion review, plus optional model
-  Find/Name workflows.  The 3D renderer is installed separately; core
-  GNU ELPA Gnosis still requires only Emacs 29.1, SQLite and its Lisp
-  dependencies, not Python or native canvas.
+** Scheduling and review
++ Use FSRS-6 with binary Again/Good outcomes and an initial desired
+  retention of 90%.  ~gnosis-scheduler-set-retention~ changes the target
+  for future accepted reviews without rewriting existing due dates.
++ Retain scheduled review events and their configuration for replay.
+  ~gnosis-study-history-audit~ distinguishes migrated totals, scheduled
+  recall, same-day activity, practice exposures and voided grades.
++ Bound failure relearning: a failed thema returns once at the end of
+  the batch rather than extending it indefinitely.  Same-day reviews
+  use the FSRS short-term update; calendar intervals remain at least a day.
++ Use a shared logical review day for scheduling and daily activity.
+  Configure the day boundary with ~gnosis-day-start-hour~; the old
+  =gnosis-algorithm-day-start-hour= name remains an obsolete alias.
++ Basic themata support optional self-grading with
+  ~gnosis-review-basic-input~ set to =self-grade=.  Recall first, reveal
+  the answer, then choose the binary result.  Typed matching remains
+  available; the selected input style survives session resume.
++ Editing after an answer, followed by save or cancel, returns to the
+  same review actions.  Edits affect future presentations without
+  regrading the pending answer; use the explicit override to change it.
 
-** Upgrade and recovery
-+ Upgrade released 0.10.6/schema 8 directly to schema 9.  Preserve legacy
-  schedules and activity without inventing FSRS memory or review events.
-  Older/private schemas and retired algorithm customization are not
-  carried forward automatically.
-+ Back up before the first upgraded database open.  Full data snapshots
-  preserve the connected database and managed assets; Org and external
-  media need separate backups.  Rollback pairs old source with its old
-  database.  Content exports are not full backups.
+** Topic study and saved sessions
++ Add ~gnosis-practice-topic~ for study without rescheduling and
+  ~gnosis-review-due-topic~ for due-only topic review.  Select multiple
+  topics and optionally expand through forward links and backlinks.
+  ~gnosis-study-subtree~ selects source nodes within an Org subtree.
++ Practice retains its own timestamped attempts but never changes FSRS
+  state or due dates.  The existing ~gnosis-review-topic~ command remains
+  schedule-affecting review ahead, not non-rescheduling practice.
++ Resume unfinished batches after interruption or an Emacs restart with
+  ~gnosis-review-resume~.  Continue selects another batch; discard removes
+  saved progress but preserves accepted evidence.  A new nonempty batch
+  ends the old one early without losing its accepted results.
++ ~gnosis-review-undo~ corrects the last accepted grade outside active
+  review.  Scheduled undo reconstructs the schedule; practice undo leaves
+  FSRS untouched.  This is a single correction, not a multi-step history.
++ Add topic and repair collections through ~gnosis-study-topic~ and
+  ~gnosis-study-repair~.  Inspect linked questions, source material,
+  due status and delayed failures; edit or flag questions with =needs_work=.
++ Dashboard activity includes scheduled and practice attempts, with
+  separate breakdowns.  History lists practice sessions and their
+  recorded attempts, including unfinished sessions and undo corrections.
+  Review streaks and averages remain scheduled-review statistics.
++ Add ~gnosis-study-day~ and ~gnosis-journal-study~ for read-only dated
+  study views, plus the optional =gnosis-agent= programmatic practice API.
+
+** Authoring, images and models
++ ~gnosis-add-thema-from-node~ creates a basic draft beside its Org source.
+  An active region prefills the answer; the source ID link is placed in
+  the explanation.  Existing drafts and source files are preserved.
++ Add explicit accepted-answer aliases for basic typed answers,
+  Image-occlusion and Model-name.  Keep one canonical answer and author
+  alternatives in the draft's Accepted aliases section.
++ Attach managed PNG/JPEG images to ordinary thema fields with =C-c C-a=.
+  Images display inline; image answers use self-grading.
++ Add Image-region questions with click-and-submit review and
+  Image-occlusion questions with typed answers.  Draw and edit targets
+  visually, group several rectangles under one target, and choose to
+  hide the tested target or all annotated targets during occlusion.
++ Add Model Find and Model-name questions for local OBJ scenes.  Author
+  object, surface-point and surface-region targets and save starting
+  views; select a target or type its name during scheduled review or practice.
++ Keep models inline in the review buffer, with rotation, zoom and
+  explicit submission.  Scene preparation runs in the background and
+  prepares the next queued model while the current question is answered.
++ Managed media revisions live beside the database in =assets/=.
+  Corrupt, missing or changed resources prevent grading.  Images require
+  graphical Emacs with SVG and PNG/JPEG support; the optional 3D renderer
+  is installed separately.  Core GNU ELPA Gnosis does not require Python
+  or the canvas backend.
+
+** Journal and node navigation
++ Add dated journal navigation with ~gnosis-journal-date~,
+  ~gnosis-journal-previous~ and ~gnosis-journal-next~.  Previous/next skip
+  missing days without creating entries.  ~gnosis-journal-capture~ appends
+  a timestamped note.  Commands are grouped in ~gnosis-journal-prefix-map~.
++ Preserve existing timestamped and encrypted journal files when opening
+  entries.  Task completion uses Org's TODO handling and leaves saving
+  the source buffer to the user.
++ Index node paths relative to the notes directory, distinguishing equal
+  basenames in different subdirectories.  Ambiguous older indexes request
+  ~gnosis-nodes-db-force-sync~ rather than modifying the wrong file.
++ Node content search returns the nearest enclosing ID-bearing node.
+  Improve navigation history, source visits, link synchronization and
+  deletion handling while preserving unrelated notes and their IDs.
+
+** Content exchange and backups
++ Introduce portable content format 3, including answer aliases.  Formats
+  1 and 2 remain readable.  Content imports preserve existing local
+  schedules and history; new themata start fresh scheduling.
++ Validate import previews again before applying their retained changes.
+  Preserve existing export destinations on failure or cancellation, and
+  improve Anki import validation and retry handling.
++ Content-only exchange refuses managed image/model content because it
+  does not bundle asset bytes.  It also excludes schedules, study history,
+  saved sessions and scheduler configuration.
++ Add ~gnosis-backup-data~ for a snapshot of the connected database and
+  managed assets, ~gnosis-backup-verify~ for offline integrity checks, and
+  ~gnosis-backup-restore~ for restoration into a new directory.  Restore
+  never overwrites or activates the current database.  Org files and
+  unmanaged media are not included.
+
+** Fixes and development
++ Fix dashboard startup after a fresh installation and defer link audits
+  so they do not block the initial view.  Refresh counts and selections
+  after changes; refuse stale actions after changing buffers or databases.
++ Preserve drafts, pending review results and import state across
+  cancellation, deletion and connection changes.  Optional Git failures
+  are reported separately from completed database operations.
++ Prefer standalone cloze occurrences when available without rejecting
+  valid substrings.  Keep cloze and link faces off line breaks, preserve
+  inline image layout, and recenter review text after window changes.
++ Disable completion and inline completion previews during Monkeytype
+  copying exercises without changing completion in other buffers.
++ Add a pinned Nix development environment and a unified =make JOBS=4 dev=
+  gate for lint, compilation, autoloads, isolated ERT suites and the manual.
 
 * 0.10.6
 #+date: 2026/05/08

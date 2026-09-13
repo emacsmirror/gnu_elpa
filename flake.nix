@@ -21,7 +21,7 @@
         "aarch64-darwin"
       ];
       forAllSystems = nixpkgs.lib.genAttrs systems;
-      version = "0.10.6";
+      version = "0.11.0";
       packageFiles = [
         ./lisp/gnosis-logical-day.el
         ./lisp/gnosis-fsrs.el

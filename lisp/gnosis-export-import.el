@@ -547,19 +547,13 @@ the export; errors preserve the previous file."
 
 ;;; SQLite import
 
-(defun gnosis-import--commit (new-count changed-count
-					filename)
+(defun gnosis-import--commit (new-count changed-count filename)
   "Commit database after importing NEW-COUNT new entries.
 CHANGED-COUNT is the updated count from FILENAME."
-  (unless gnosis-testing
-    (when (file-exists-p (expand-file-name ".git" gnosis-dir))
-      (gnosis--git-chain
-       `(("add" "gnosis.db")
-         ("commit" "-m"
-          ,(format "Import: %d new, %d updated from %s"
-                   new-count changed-count filename)))
-       (lambda ()
-         (when gnosis-vc-auto-push (gnosis-vc-push)))))))
+  (gnosis-vc--auto-commit
+   (format "Import: %d new, %d updated from %s"
+           new-count changed-count filename)
+   t))
 
 (defface gnosis-import-new-face
   '((t :inherit success))

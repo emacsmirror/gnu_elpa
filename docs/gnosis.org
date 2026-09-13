@@ -1991,9 +1991,13 @@ C-u M-x gnosis-nodes-db-sync
 
 ** Version Control
 
-Gnosis automatically commits =gnosis.db= to a Git repository inside
-=gnosis-dir= after review sessions, migrations, and imports.  Enable
-=gnosis-vc-auto-push= to push to a remote after each session:
+When Git is available, Gnosis automatically commits =gnosis.db= inside
+=gnosis-dir= after review sessions, link updates, and imports.  SQLite
+content imports commit only when that repository already exists.  Without
+Git these operations still complete; accepted reviews and imported data
+are stored in SQLite independently of version control.  Automatic Git
+failures are reported separately and do not undo completed database changes.
+Enable =gnosis-vc-auto-push= to push after successful automatic commits:
 
 #+begin_src emacs-lisp
 (setq gnosis-vc-auto-push t)

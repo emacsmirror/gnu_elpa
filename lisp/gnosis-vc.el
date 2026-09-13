@@ -37,8 +37,8 @@
 
 ARGS is a list of strings passed directly to git (no shell interpretation).
 Optional SENTINEL is called with (process event) on completion.
-Binds `default-directory' to `gnosis-dir' so sentinels run in
-the correct directory regardless of buffer context."
+Bind `default-directory' to `gnosis-dir' while starting git.
+SENTINEL must retain any directory context it needs after that binding ends."
   (let* ((default-directory gnosis-dir)
          (git (or (executable-find "git")
                   (error "Git is not installed or not in PATH")))
@@ -60,18 +60,62 @@ the correct directory regardless of buffer context."
     (unless (file-exists-p (expand-file-name ".git" gnosis-dir))
       (vc-git-create-repo))))
 
-(defun gnosis--git-chain (commands &optional on-finish)
+(defun gnosis--git-chain (commands &optional on-finish on-error)
   "Run git COMMANDS sequentially, each as an arg list for `gnosis--git-cmd'.
 Call ON-FINISH with no args after the last command succeeds.
-Abort chain on failure with a message."
-  (if (null commands)
-      (when on-finish (funcall on-finish))
-    (gnosis--git-cmd (car commands)
-		     (lambda (_proc event)
-		       (if (string-match-p "finished" event)
-			   (gnosis--git-chain (cdr commands) on-finish)
-			 (message "gnosis: git %s failed: %s"
-				  (car (car commands)) (string-trim event)))))))
+Keep `gnosis-dir' and `default-directory' bound to the initiating absolute
+directory through every command and ON-FINISH, including any push it starts.
+Abort chain on failure with a message.  If supplied, call ON-ERROR with
+an error condition raised by a deferred continuation; otherwise signal it.
+Keyboard quit is not caught."
+  (let* ((directory (file-name-as-directory (expand-file-name gnosis-dir)))
+         (gnosis-dir directory)
+         (default-directory directory))
+    (if (null commands)
+        (when on-finish (funcall on-finish))
+      (gnosis--git-cmd
+       (car commands)
+       (lambda (_proc event)
+         (let ((gnosis-dir directory)
+               (default-directory directory))
+           (condition-case err
+               (if (string-match-p "finished" event)
+                   (gnosis--git-chain (cdr commands) on-finish on-error)
+                 (message "gnosis: git %s failed: %s"
+                          (car (car commands)) (string-trim event)))
+             (error (if on-error (funcall on-error err)
+                      (signal (car err) (cdr err)))))))))))
+
+(defun gnosis-vc--auto-commit (message &optional existing-only)
+  "Optionally commit gnosis.db with MESSAGE after a completed database change.
+Skip Git when testing or when its executable is unavailable.  Unless
+EXISTING-ONLY is non-nil, initialize a repository if necessary.  Report
+Git setup or launch errors separately; they do not undo the database change.
+Push after a successful commit when `gnosis-vc-auto-push' is non-nil."
+  (unless gnosis-testing
+    (if (not (executable-find "git"))
+        (message "Gnosis: Automatic Git commit skipped; Git is unavailable")
+      (condition-case err
+          (let* ((gnosis-dir (file-name-as-directory (expand-file-name gnosis-dir)))
+                 (default-directory gnosis-dir))
+            (when (or (not existing-only)
+                      (file-exists-p (expand-file-name ".git" gnosis-dir)))
+              (unless existing-only (gnosis--ensure-git-repo))
+              (gnosis--git-chain
+               `(("add" "gnosis.db") ("commit" "-m" ,message))
+               (lambda ()
+                 (when gnosis-vc-auto-push
+                   (condition-case err
+                       (gnosis-vc-push)
+                     (error
+                      (message "Gnosis: Automatic Git push failed: %s"
+                               (error-message-string err))))))
+               (lambda (err)
+                 (message "Gnosis: Automatic Git commit failed: %s"
+                          (error-message-string err))))))
+        (error
+         (message "Gnosis: Automatic Git commit failed: %s"
+                  (error-message-string err)))))))
 
 ;;;###autoload
 (defun gnosis-vc-push ()

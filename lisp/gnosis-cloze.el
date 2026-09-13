@@ -62,7 +62,7 @@ rendering Org, or opening a buffer."
            clozes :initial-value (copy-sequence str)))))))
 
 (defun gnosis-cloze-add-hints (str hints &optional cloze-string)
-  "Replace CLOZE-STRING in STR with HINTS, skipping empty hints."
+  "Replace CLOZE-STRING in STR with literal HINTS, skipping empty hints."
   (cl-assert (listp hints) nil "Hints must be a list.")
   (let ((cloze-string (or cloze-string gnosis-cloze-string)))
     (with-temp-buffer
@@ -75,7 +75,8 @@ rendering Org, or opening a buffer."
 			  (not (string= "\"\"" hint))
 			  (search-backward cloze-string nil t))
                  (replace-match (propertize (format "(%s)" hint)
-					    'face 'gnosis-face-cloze))
+					    'face 'gnosis-face-cloze)
+                                t t)
                  (goto-char (match-end 0)))) ; Move point to end of match
       (buffer-string))))
 
@@ -111,11 +112,10 @@ First item of answers will be marked as false, while the rest unanswered."
   "Replace cloze tags and hints in STRING.
 
 Works with both single (:), double colons (::), single braces ({}) and
-double braces ({{}}).
+double braces ({{}}).  Preserve literal newlines in the cloze contents.
 
-Also removes content after a double semicolon (::),
-which indicates a hint."
-  (let* ((regex "{\\{1,2\\}c[0-9]+:\\{1,2\\}\\(.*?\\)\\(::[^{}]*\\)?}\\{1,2\\}")
+Also remove content after a double colon (::), which indicates a hint."
+  (let* ((regex "{\\{1,2\\}c[0-9]+:\\{1,2\\}\\(\\(?:.\\|\n\\)*?\\)\\(::[^{}]*\\)?}\\{1,2\\}")
          (result (replace-regexp-in-string regex "\\1" string)))
     result))
 
@@ -123,13 +123,14 @@ which indicates a hint."
   "Extract cloze contents for STR.
 
 Return a list of cloze tag contents for STR, organized by cX-tag.
+Include every member, preserving literal newlines in contents and hints.
 
 Valid cloze formats include:
 \"This is an {c1:example}\"
 \"This is an {{c1::example}}\""
   (let ((result-alist '())
         (start 0))
-    (while (string-match "{\\{1,2\\}c\\([0-9]+\\)::?\\(.*?\\)}\\{1,2\\}" str start)
+    (while (string-match "{\\{1,2\\}c\\([0-9]+\\)::?\\(\\(?:.\\|\n\\)*?\\)}\\{1,2\\}" str start)
       (let* ((tag (match-string 1 str))
              (content (match-string 2 str)))
         (if (assoc tag result-alist)
@@ -146,7 +147,7 @@ This function should be used in combination with
 `gnosis-cloze-extract-contents'."
   (mapcar (lambda (lst)
             (mapcar (lambda (str)
-                      (replace-regexp-in-string "::\\(.*\\)" "" str))
+                      (replace-regexp-in-string "::\\(?:.\\|\n\\)*" "" str))
                     lst))
           nested-lst))
 
@@ -157,7 +158,7 @@ This function should be used in combination with
 `gnosis-cloze-extract-contents'."
   (mapcar (lambda (lst)
             (mapcar (lambda (str)
-                      (when (string-match "::\\(.*\\)" str)
+                      (when (string-match "::\\(\\(?:.\\|\n\\)*\\)" str)
                         (match-string 1 str)))
                     lst))
           nested-lst))

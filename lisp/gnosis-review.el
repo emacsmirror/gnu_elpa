@@ -1948,22 +1948,11 @@ From a summary, require its original database and unchanged checkpoint."
     restored))
 
 (defun gnosis-review-commit (thema-num)
-  "Commit review session on git repository.
-
-This function initializes the `gnosis-dir' as a Git repository if it is not
-already one.  It then adds the gnosis.db file to the repository and commits
-the changes with a message containing the reviewed number THEMA-NUM."
-  (if gnosis-testing
-      (message "Review session finished.  %d review attempts accepted." thema-num)
-    (gnosis--ensure-git-repo)
-    (gnosis--git-chain
-     `(("add" "gnosis.db")
-       ("commit" "-m"
-        ,(format "Total themata reviewed: %d" thema-num)))
-     (lambda ()
-       (when gnosis-vc-auto-push (gnosis-vc-push))
-       (message "Review session finished.  %d review attempts accepted."
-		thema-num)))))
+  "Report THEMA-NUM accepted attempts and optionally commit the database.
+When Git is available, initialize `gnosis-dir' as a repository if needed
+and commit gnosis.db.  Git failures do not invalidate accepted reviews."
+  (message "Review session finished.  %d review attempts accepted." thema-num)
+  (gnosis-vc--auto-commit (format "Total themata reviewed: %d" thema-num)))
 
 ;;; Review actions
 

@@ -417,105 +417,87 @@ Uses `gnosis--id-cache' for O(1) collision checking when bound."
          gnosis-fsrs-default-retention
          gnosis-fsrs-default-parameters)))
 
-(defun gnosis-db--create-scheduler-guards (db)
-  "Create append-only review-event guards on DB when available."
-  (when (gnosis-table-exists-p 'review-events)
-    (gnosis-sqlite-execute
-     db
-     "CREATE TRIGGER IF NOT EXISTS scheduler_config_no_replace
+(defconst gnosis-db--scheduler-guards
+  '("CREATE TRIGGER scheduler_config_no_replace
         BEFORE INSERT ON scheduler_config
         WHEN EXISTS (SELECT 1 FROM scheduler_config WHERE id = NEW.id)
         BEGIN
           SELECT RAISE(ABORT, 'scheduler config already exists');
-        END")
-    (gnosis-sqlite-execute
-     db
-     "CREATE TRIGGER IF NOT EXISTS scheduler_config_no_update
+        END"
+    "CREATE TRIGGER scheduler_config_no_update
         BEFORE UPDATE ON scheduler_config
         BEGIN
           SELECT RAISE(ABORT, 'scheduler config is immutable');
-        END")
-    (gnosis-sqlite-execute
-     db
-     "CREATE TRIGGER IF NOT EXISTS scheduler_config_no_delete
+        END"
+    "CREATE TRIGGER scheduler_config_no_delete
         BEFORE DELETE ON scheduler_config
         BEGIN
           SELECT RAISE(ABORT, 'scheduler config is immutable');
-        END")
-    (gnosis-sqlite-execute
-     db
-     "CREATE TRIGGER IF NOT EXISTS scheduler_baseline_no_replace
+        END"
+    "CREATE TRIGGER scheduler_baseline_no_replace
         BEFORE INSERT ON scheduler_baseline
         WHEN EXISTS
           (SELECT 1 FROM scheduler_baseline
              WHERE thema_id = NEW.thema_id)
         BEGIN
           SELECT RAISE(ABORT, 'scheduler baseline already exists');
-        END")
-    (gnosis-sqlite-execute
-     db
-     "CREATE TRIGGER IF NOT EXISTS scheduler_baseline_no_update
+        END"
+    "CREATE TRIGGER scheduler_baseline_no_update
         BEFORE UPDATE ON scheduler_baseline
         BEGIN
           SELECT RAISE(ABORT, 'scheduler baseline is immutable');
-        END")
-    (gnosis-sqlite-execute
-     db
-     "CREATE TRIGGER IF NOT EXISTS review_events_no_replace
+        END"
+    "CREATE TRIGGER review_events_no_replace
         BEFORE INSERT ON review_events
         WHEN EXISTS
           (SELECT 1 FROM review_events WHERE event_id = NEW.event_id)
         BEGIN
           SELECT RAISE(ABORT, 'review event already exists');
-        END")
-    (gnosis-sqlite-execute
-     db
-     "CREATE TRIGGER IF NOT EXISTS review_activity_baseline_no_replace
+        END"
+    "CREATE TRIGGER review_activity_baseline_no_replace
         BEFORE INSERT ON review_activity_baseline
         WHEN EXISTS
           (SELECT 1 FROM review_activity_baseline WHERE date = NEW.date)
         BEGIN
           SELECT RAISE(ABORT, 'review activity baseline already exists');
-        END")
-    (gnosis-sqlite-execute
-     db
-     "CREATE TRIGGER IF NOT EXISTS review_activity_baseline_no_update
+        END"
+    "CREATE TRIGGER review_activity_baseline_no_update
         BEFORE UPDATE ON review_activity_baseline
         BEGIN
           SELECT RAISE(ABORT, 'review activity baseline is immutable');
-        END")
-    (gnosis-sqlite-execute
-     db
-     "CREATE TRIGGER IF NOT EXISTS review_activity_baseline_no_delete
+        END"
+    "CREATE TRIGGER review_activity_baseline_no_delete
         BEFORE DELETE ON review_activity_baseline
         BEGIN
           SELECT RAISE(ABORT, 'review activity baseline is immutable');
-        END")
-    (gnosis-sqlite-execute
-     db
-     "CREATE TRIGGER IF NOT EXISTS scheduler_baseline_no_direct_delete
+        END"
+    "CREATE TRIGGER scheduler_baseline_no_direct_delete
         BEFORE DELETE ON scheduler_baseline
         WHEN EXISTS (SELECT 1 FROM themata WHERE id = OLD.thema_id)
         BEGIN
           SELECT RAISE(ABORT, 'scheduler baseline requires hard thema deletion');
-        END")
-    (gnosis-sqlite-execute
-     db
-     "CREATE TRIGGER IF NOT EXISTS review_events_no_update
+        END"
+    "CREATE TRIGGER review_events_no_update
         BEFORE UPDATE ON review_events
         BEGIN
           SELECT RAISE(ABORT, 'review events are immutable');
-        END")
-    (gnosis-sqlite-execute
-     db
-     "CREATE TRIGGER IF NOT EXISTS review_events_no_direct_delete
+        END"
+    "CREATE TRIGGER review_events_no_direct_delete
         BEFORE DELETE ON review_events
         WHEN EXISTS
           (SELECT 1 FROM scheduler_baseline
              WHERE thema_id = OLD.thema_id)
         BEGIN
           SELECT RAISE(ABORT, 'review events require hard thema deletion');
-        END")))
+        END")
+  "Supported scheduler evidence guards, shared by creation and validation.")
+
+(defun gnosis-db--create-scheduler-guards (db)
+  "Create append-only review-event guards on DB when available."
+  (when (gnosis-table-exists-p 'review-events)
+    (dolist (sql gnosis-db--scheduler-guards)
+      (gnosis-sqlite-execute
+       db (string-replace "CREATE TRIGGER " "CREATE TRIGGER IF NOT EXISTS " sql)))))
 
 (defun gnosis--db-version ()
   "Return the current user_version pragma from the database."
@@ -643,29 +625,34 @@ Used for fresh databases only."
       (gnosis-db--create-scheduler-guards db)
       (gnosis--db-set-version 9))))
 
+(defconst gnosis-db--study-guards
+  (cl-loop
+   for (table parent parent-key key conflict)
+   in '(("practice_events" "themata" "id" "thema_id"
+         "event_id = NEW.event_id OR (session_id = NEW.session_id AND attempt = NEW.attempt)")
+        ("review_voids" "review_events" "event_id" "event_id"
+         "correction_id = NEW.correction_id OR event_id = NEW.event_id")
+        ("practice_voids" "practice_events" "event_id" "event_id"
+         "correction_id = NEW.correction_id OR event_id = NEW.event_id"))
+   append
+   (list
+    (format "CREATE TRIGGER %s_no_update BEFORE UPDATE ON %s
+               BEGIN SELECT RAISE(ABORT, 'immutable study evidence'); END" table table)
+    ;; REPLACE can delete conflicts without firing DELETE triggers.
+    (format "CREATE TRIGGER %s_no_replace BEFORE INSERT ON %s
+               WHEN EXISTS (SELECT 1 FROM %s WHERE %s)
+               BEGIN SELECT RAISE(ABORT, 'study identity exists'); END"
+            table table table conflict)
+    (format "CREATE TRIGGER %s_no_direct_delete BEFORE DELETE ON %s
+               WHEN EXISTS (SELECT 1 FROM %s WHERE %s = OLD.%s)
+               BEGIN SELECT RAISE(ABORT, 'hard deletion required'); END"
+            table table parent parent-key key)))
+  "Supported study evidence guards, shared by creation and validation.")
+
 (defun gnosis-db--create-study-guards (db)
   "Protect immutable practice and correction evidence in DB."
-  (dolist (spec '(("practice_events" "themata" "id" "thema_id"
-                   "event_id = NEW.event_id OR (session_id = NEW.session_id AND attempt = NEW.attempt)")
-                  ("review_voids" "review_events" "event_id" "event_id"
-                   "correction_id = NEW.correction_id OR event_id = NEW.event_id")
-                  ("practice_voids" "practice_events" "event_id" "event_id"
-                   "correction_id = NEW.correction_id OR event_id = NEW.event_id")))
-    (pcase-let ((`(,table ,parent ,parent-key ,key ,conflict) spec))
-      (gnosis-sqlite-execute
-       db (format "CREATE TRIGGER %s_no_update BEFORE UPDATE ON %s
-                    BEGIN SELECT RAISE(ABORT, 'immutable study evidence'); END" table table))
-      ;; REPLACE can delete conflicts without firing DELETE triggers.
-      (gnosis-sqlite-execute
-       db (format "CREATE TRIGGER %s_no_replace BEFORE INSERT ON %s
-                    WHEN EXISTS (SELECT 1 FROM %s WHERE %s)
-                    BEGIN SELECT RAISE(ABORT, 'study identity exists'); END"
-                  table table table conflict))
-      (gnosis-sqlite-execute
-       db (format "CREATE TRIGGER %s_no_direct_delete BEFORE DELETE ON %s
-                    WHEN EXISTS (SELECT 1 FROM %s WHERE %s = OLD.%s)
-                    BEGIN SELECT RAISE(ABORT, 'hard deletion required'); END"
-                  table table parent parent-key key)))))
+  (dolist (sql gnosis-db--study-guards)
+    (gnosis-sqlite-execute db sql)))
 
 (defun gnosis--db-run-migrations (current-version &optional no-commit)
   "Upgrade released CURRENT-VERSION to `gnosis-db-version'.
@@ -764,14 +751,35 @@ VERSION defaults to the current schema; older schemas do not yet have aliases."
            (equal actual '(("source" "TEXT" 0 nil 0)
                            ("dest" "TEXT" 0 nil 0))))))))
 
+(defun gnosis-db--guard-tokens (sql)
+  "Return comparable tokens for a supported evidence guard SQL declaration.
+Ignore whitespace and unquoted case; preserve string literals.  Accept the
+quoted identifiers SQLite emits when renaming tables.  This is deliberately
+not a general SQL equivalence test: unknown guard definitions are refused."
+  (with-temp-buffer
+    (insert sql)
+    (goto-char (point-min))
+    (cl-loop
+     while (re-search-forward
+            (rx (or (seq "'" (* (or "''" (not (any "'")))) "'")
+                    (seq "\"" (* (or "\"\"" (not (any "\"")))) "\"")
+                    (+ (any alnum "_"))
+                    (not (any " \t\r\n"))))
+            nil t)
+     for token = (match-string-no-properties 0)
+     collect (pcase (aref token 0)
+               (?' token)
+               (?\" (downcase (string-replace "\"\"" "\"" (substring token 1 -1))))
+               (_ (downcase token))))))
+
 (defun gnosis-db--check-schema (db version)
   "Check required tables, columns and evidence guards of DB at VERSION.
 This is a compatibility check, not an exact DDL fingerprint or a check of
 all application values.  Reject damaged required objects before any writes."
   (let ((tables (mapcar #'car (sqlite-select db
                   "SELECT name FROM sqlite_master WHERE type = 'table'")))
-        (triggers (mapcar #'car (sqlite-select db
-                  "SELECT name FROM sqlite_master WHERE type = 'trigger'"))))
+        (triggers (sqlite-select db
+                   "SELECT name, sql FROM sqlite_master WHERE type = 'trigger'")))
     (when (= version 8)
       (dolist (entry gnosis-db--schemata)
         (unless (assq (car entry) (gnosis-db--schemata-for-version 8))
@@ -788,21 +796,14 @@ all application values.  Reject damaged required objects before any writes."
                                 (sqlite-select db (format "PRAGMA table_info(%s)" name)))
                         version))
             (error "Invalid Gnosis schema %d: required table/columns %s" version name))))
-    (dolist (trigger
-             (append
-              (when (>= version 9)
-                '("scheduler_config_no_replace" "scheduler_config_no_update"
-                "scheduler_config_no_delete" "scheduler_baseline_no_replace"
-                "scheduler_baseline_no_update" "scheduler_baseline_no_direct_delete"
-                "review_events_no_replace" "review_events_no_update"
-                "review_events_no_direct_delete" "review_activity_baseline_no_replace"
-                "review_activity_baseline_no_update" "review_activity_baseline_no_delete"))
-              (when (>= version 9)
-                (cl-loop for table in '("practice_events" "review_voids" "practice_voids")
-                         append (mapcar (lambda (suffix) (concat table suffix))
-                                        '("_no_update" "_no_replace" "_no_direct_delete"))))))
-      (unless (member trigger triggers)
-        (error "Invalid Gnosis schema %d: missing guard %s" version trigger))))
+    (when (>= version 9)
+      (dolist (sql (append gnosis-db--scheduler-guards gnosis-db--study-guards))
+        (let* ((expected (gnosis-db--guard-tokens sql))
+               (name (nth 2 expected))
+               (actual (cadr (assoc-string name triggers t))))
+          (unless (and actual (equal expected (gnosis-db--guard-tokens actual)))
+            (error "Invalid Gnosis schema %d: missing or changed guard %s"
+                   version name))))))
   (when (and (>= version 9)
              (not (equal '((1)) (sqlite-select db "SELECT id FROM scheduler_config WHERE id = 1"))))
     (error "Gnosis database is missing its baseline scheduler configuration"))

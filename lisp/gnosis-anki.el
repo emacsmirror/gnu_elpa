@@ -44,9 +44,11 @@
 (defconst gnosis-anki--tag-batch-size 400
   "Number of tag rows per INSERT batch within a chunk.")
 
-(defun gnosis-anki--html-to-org (str)
+(defun gnosis-anki--html-to-org (str &optional no-emphasis)
   "Convert HTML markup in STR to Org mode equivalents.
 Converts bold, italic, underline, sub/superscript and links.
+With NO-EMPHASIS, omit bold, italic and underline wrappers for typed
+answers, preserving literal punctuation from STR.
 Strips remaining HTML tags.  Collapses excessive blank lines.
 Short-circuits when STR contains no HTML markup or entities."
   (if (not (or (string-match-p "[<&]" str)
@@ -56,9 +58,9 @@ Short-circuits when STR contains no HTML markup or entities."
      (seq-reduce
       (lambda (text rule)
         (replace-regexp-in-string (car rule) (cdr rule) text))
-      '(("<b>\\(.*?\\)</b>" . "*\\1*")
-        ("<i>\\(.*?\\)</i>" . "/\\1/")
-        ("<u>\\(.*?\\)</u>" . "_\\1_")
+      `(("<b>\\(.*?\\)</b>" . ,(if no-emphasis "\\1" "*\\1*"))
+        ("<i>\\(.*?\\)</i>" . ,(if no-emphasis "\\1" "/\\1/"))
+        ("<u>\\(.*?\\)</u>" . ,(if no-emphasis "\\1" "_\\1_"))
         ("<sub>\\(.*?\\)</sub>" . "_{\\1}")
         ("<sup>\\(.*?\\)</sup>" . "^{\\1}")
         ("<a [^>]*href=\"\\([^\"]+\\)\"[^>]*>\\(.*?\\)</a>" . "[[\\1][\\2]]")
@@ -73,15 +75,6 @@ Short-circuits when STR contains no HTML markup or entities."
         ("\\[sound:[^]]*\\]" . "")
         ("\n\\{3,\\}" . "\n\n"))
       str))))
-
-(defun gnosis-anki--strip-emphasis (str)
-  "Strip org emphasis markers from STR.
-Removes *bold*, /italic/, _underline_ wrappers, keeping content."
-  (let ((s str))
-    (setq s (replace-regexp-in-string "\\*\\([^*]+\\)\\*" "\\1" s))
-    (setq s (replace-regexp-in-string "/\\([^/]+\\)/" "\\1" s))
-    (setq s (replace-regexp-in-string "_\\([^_]+\\)_" "\\1" s))
-    s))
 
 (defun gnosis-anki--sanitize-segment (seg)
   "Sanitize a single tag SEG for Org mode.
@@ -214,20 +207,23 @@ field as front, rest as back if templates are unavailable."
         value)))
 
 (defun gnosis-anki--resolve-field-values
-    (field-names-to-get all-field-names raw-fields)
+    (field-names-to-get all-field-names raw-fields &optional no-emphasis)
   "Get field values for FIELD-NAMES-TO-GET from RAW-FIELDS.
 ALL-FIELD-NAMES is the ordered list of all field names.
-Skips fields whose values are pure media (sound/image).
-Returns a list of Org mode text strings."
+Skip absent, blank source fields and pure media (sound/image).
+Return a list of Org mode text strings, retaining empty conversions so
+later fields cannot replace a selected answer.  Pass NO-EMPHASIS to
+`gnosis-anki--html-to-org' for typed answers without changing which
+source fields supply the text."
   (let (texts)
     (dolist (target field-names-to-get)
       (let ((idx (cl-position target all-field-names :test #'string=)))
         (when idx
-          (let* ((val (or (nth idx raw-fields) ""))
-                 (converted (gnosis-anki--html-to-org val)))
-            (unless (or (string-empty-p converted)
+          (let ((val (or (nth idx raw-fields) "")))
+            (unless (or (string-empty-p (string-trim val))
                         (gnosis-anki--media-value-p val))
-              (push converted texts))))))
+              (push (gnosis-anki--html-to-org val no-emphasis)
+                    texts))))))
     (nreverse texts)))
 
 (defun gnosis-anki--image-occlusion-p (name fields)
@@ -246,35 +242,40 @@ or for IO-specific fields (InSVG, OutSVG, Original Mask, I0)."
   "Extract SQLite database from Anki .apkg FILE.
 Extracts the collection database to a temp directory via 7z.
 Modern .apkg files contain a zstd-compressed collection.anki21b
-which is decompressed via zstd or 7z."
-  (let* ((tmpdir (make-temp-file "gnosis-anki-" t))
-         (abs-file (expand-file-name file))
-         (db-name nil)
-         (7z (or (executable-find "7z")
-                 (executable-find "7za")))
-         (zstd (executable-find "zstd")))
-    (unless 7z
-      (delete-directory tmpdir t)
-      (user-error "7z not found; install p7zip to import .apkg files"))
-    ;; Try collection.anki21b (modern, zstd-compressed), then legacy formats
-    (dolist (name '("collection.anki21b"
-                    "collection.anki21"
-                    "collection.anki2"))
-      (when (and (null db-name)
-                 (zerop (call-process 7z nil nil nil
-                                      "e" abs-file
-                                      (concat "-o" tmpdir)
-                                      name "-y")))
-        (let ((extracted (expand-file-name name tmpdir)))
-          (when (file-exists-p extracted)
-            (if (string-suffix-p ".anki21b" name)
-                (setq db-name
-                      (gnosis-anki--decompress-zstd extracted tmpdir zstd 7z))
-              (setq db-name extracted))))))
-    (unless db-name
-      (delete-directory tmpdir t)
-      (user-error "No collection database found in %s" file))
-    db-name))
+which is decompressed via zstd or 7z.
+Return the database filename; the caller owns its temporary directory.
+Remove that directory on error or quit before returning successfully."
+  (let ((tmpdir (make-temp-file "gnosis-anki-" t))
+        transferred)
+    (unwind-protect
+        (let* ((abs-file (expand-file-name file))
+               (db-name nil)
+               (7z (or (executable-find "7z")
+                       (executable-find "7za")))
+               (zstd (executable-find "zstd")))
+          (unless 7z
+            (user-error "7z not found; install p7zip to import .apkg files"))
+          ;; Try the modern, zstd-compressed database, then legacy formats.
+          (dolist (name '("collection.anki21b"
+                          "collection.anki21"
+                          "collection.anki2"))
+            (when (and (null db-name)
+                       (zerop (call-process 7z nil nil nil
+                                            "e" abs-file
+                                            (concat "-o" tmpdir)
+                                            name "-y")))
+              (let ((extracted (expand-file-name name tmpdir)))
+                (when (file-exists-p extracted)
+                  (if (string-suffix-p ".anki21b" name)
+                      (setq db-name
+                            (gnosis-anki--decompress-zstd extracted tmpdir zstd 7z))
+                    (setq db-name extracted))))))
+          (unless db-name
+            (user-error "No collection database found in %s" file))
+          (prog1 db-name
+            (setq transferred t)))
+      (unless transferred
+        (delete-directory tmpdir t)))))
 
 (defun gnosis-anki--decompress-zstd (extracted tmpdir zstd 7z)
   "Decompress zstd-compressed EXTRACTED file in TMPDIR.
@@ -295,12 +296,18 @@ Try ZSTD first, fall back to 7Z.  Returns path to decompressed DB."
             (delete-file extracted)
             7z-out))))))
 
+(defun gnosis-anki--usable-answer-p (answer)
+  "Return t for a converted ANSWER with non-whitespace text."
+  (and (stringp answer) (not (string-empty-p (string-trim answer)))))
+
 (defun gnosis-anki--parse-cloze-note (flds tag-str seg-cache seen)
   "Parse a cloze note from FLDS string with TAG-STR.
 SEG-CACHE and SEEN are shared tag-parsing caches.
-Returns a list of plists (one per cloze deletion), or nil if skipped."
+Return one plist per usable cloze group and nil per rejected group.
+Return nil if there are no groups.  Keep rejected slots for skip accounting;
+never remove individual answers and shift the remaining hints."
   (let* ((fields (split-string flds "\x1f"))
-         ;; Parse cloze syntax before HTML introduces literal newlines.
+         ;; Extract all source members before HTML conversion and validation.
          (text (or (nth 0 fields) ""))
          (extra (gnosis-anki--html-to-org (or (nth 1 fields) "")))
          (_ (clrhash seen))
@@ -312,19 +319,21 @@ Returns a list of plists (one per cloze deletion), or nil if skipped."
     (when clozes
       (cl-loop for cloze in clozes
                for hint in hints
-               collect (list :type "cloze"
-                             :keimenon keimenon
-                             :hypothesis (mapcar
-                                          (lambda (text)
-                                            (and text (gnosis-anki--html-to-org text)))
-                                          hint)
-                             :answer (mapcar
-                                      (lambda (answer)
-                                        (gnosis-anki--strip-emphasis
-                                         (gnosis-anki--html-to-org answer)))
-                                      cloze)
-                             :parathema extra
-                             :tags tags)))))
+               for answers = (mapcar
+                              (lambda (answer)
+                                (gnosis-anki--html-to-org answer t))
+                              cloze)
+               collect (when (and answers
+                                  (seq-every-p #'gnosis-anki--usable-answer-p answers))
+                         (list :type "cloze"
+                               :keimenon keimenon
+                               :hypothesis (mapcar
+                                            (lambda (text)
+                                              (and text (gnosis-anki--html-to-org text)))
+                                            hint)
+                               :answer answers
+                               :parathema extra
+                               :tags tags))))))
 
 (defun gnosis-anki--parse-basic-note (flds front-field-names back-field-names
                                            all-field-names tag-str tmpl-count
@@ -334,7 +343,8 @@ FRONT-FIELD-NAMES, BACK-FIELD-NAMES, ALL-FIELD-NAMES control
 field extraction.  TAG-STR is the raw tag string.  TMPL-COUNT
 triggers reversed cards when 2.  SEG-CACHE and SEEN are shared
 tag-parsing caches.
-Returns a list of plists (1 or 2 items), or nil if skipped."
+Return a list of plists (1 or 2 items), or nil if the note is skipped.
+Retain a nil slot for an unusable reverse answer, for skip accounting."
   (let* ((raw-fields (split-string flds "\x1f"))
          (front-texts (gnosis-anki--resolve-field-values
                        front-field-names all-field-names raw-fields))
@@ -342,34 +352,40 @@ Returns a list of plists (1 or 2 items), or nil if skipped."
                       back-field-names all-field-names raw-fields))
          (front (mapconcat #'identity front-texts "\n"))
          (back (car back-texts))
+         (answer (car (gnosis-anki--resolve-field-values
+                       back-field-names all-field-names raw-fields t)))
          (extra (mapconcat #'identity (cdr back-texts) "\n"))
          (_ (clrhash seen))
          (tags (gnosis-anki--parse-tags tag-str seg-cache seen)))
     (when (and (not (string-empty-p front))
-               back (not (string-empty-p back)))
+               (gnosis-anki--usable-answer-p answer))
       (let ((items (list (list :type "basic"
                                :keimenon front
                                :hypothesis '("")
-                               :answer (list
-                                        (gnosis-anki--strip-emphasis
-                                         back))
+                               :answer (list answer)
                                :parathema extra
                                :tags tags))))
         (when (and tmpl-count (= tmpl-count 2))
-          (push (list :type "basic"
-                      :keimenon back
-                      :hypothesis '("")
-                      :answer (list
-                               (gnosis-anki--strip-emphasis
-                                front))
-                      :parathema extra
-                      :tags tags)
-                items))
+          (let ((reverse-answer
+                 (mapconcat
+                  #'identity
+                  (gnosis-anki--resolve-field-values
+                   front-field-names all-field-names raw-fields t)
+                  "\n")))
+            (push (when (gnosis-anki--usable-answer-p reverse-answer)
+                    (list :type "basic"
+                          :keimenon back
+                          :hypothesis '("")
+                          :answer (list reverse-answer)
+                          :parathema extra
+                          :tags tags))
+                  items)))
         items))))
 
 (defun gnosis-anki--parse-notes (anki-db model-info)
   "Parse all notes from ANKI-DB using MODEL-INFO.
 Returns (SKIPPED . PREPARED) where PREPARED is a flat list of plists.
+SKIPPED counts rejected generated items, or one for a note with no items.
 Each plist has keys :type :keimenon :hypothesis :answer
 :parathema :tags :guid.  Tag parsing is cached per unique tag string.
 MODEL-INFO maps mid strings to
@@ -398,7 +414,9 @@ MODEL-INFO maps mid strings to
                  tag-str (nth 1 info) seg-cache seen)))))
         (if items
             (dolist (item items)
-              (push (plist-put item :guid guid) result))
+              (if item
+                  (push (plist-put item :guid guid) result)
+                (cl-incf skipped)))
           (cl-incf skipped))))
     (cons skipped (nreverse result))))
 
@@ -609,15 +627,9 @@ Returns (SKIPPED . PREPARED) where PREPARED is a list of plists."
 
 (defun gnosis-anki--commit-import (count source-file)
   "Commit after importing COUNT themata from SOURCE-FILE."
-  (unless gnosis-testing
-    (gnosis--ensure-git-repo)
-    (gnosis--git-chain
-     `(("add" "gnosis.db")
-       ("commit" "-m"
-        ,(format "Anki import: %d themata from %s"
-                 count (file-name-nondirectory source-file))))
-     (lambda ()
-       (when gnosis-vc-auto-push (gnosis-vc-push))))))
+  (gnosis-vc--auto-commit
+   (format "Anki import: %d themata from %s"
+           count (file-name-nondirectory source-file))))
 
 (defun gnosis-anki--import-chunks (items size)
   "Partition ITEMS into chunks of about SIZE without splitting source notes.
@@ -639,6 +651,32 @@ writes must be bounded separately inside a single transaction."
         (setq count (+ count (length group))))
       (when chunk (push (apply #'append (nreverse chunk)) chunks))
       (nreverse chunks))))
+
+(defun gnosis-anki--insert-pending-chunk (db items ids today extra-tag suspend)
+  "Insert complete source notes from ITEMS into DB unless already present.
+Recheck GUIDs under the write transaction before inserting any siblings.
+ITEMS and corresponding IDS form one logical chunk; bound SQL statements
+separately.  Pass TODAY, EXTRA-TAG and SUSPEND to the bulk writer.
+Return the number of themata committed."
+  (gnosis-sqlite-with-transaction db
+    (let ((present (make-hash-table :test #'equal))
+          (guids (delete-dups (delq nil (mapcar (lambda (item)
+                                                (plist-get item :guid)) items)))))
+      ;; source_guid is raw text, not a serialized Lisp string.
+      (dolist (batch (seq-partition guids gnosis-anki--chunk-size))
+        (dolist (row (sqlite-select
+                     db (concat "SELECT DISTINCT source_guid FROM themata
+                                 WHERE source_guid IN ("
+                                (mapconcat (lambda (_) "?") batch ",") ")")
+                     batch))
+          (puthash (car row) t present)))
+      (let ((pending (cl-loop for item in items for id in ids
+                              unless (gethash (plist-get item :guid) present)
+                              collect (cons item id))))
+        (dolist (batch (seq-partition pending gnosis-anki--chunk-size))
+          (gnosis-anki--bulk-insert-chunk
+           db (mapcar #'car batch) (mapcar #'cdr batch) today extra-tag suspend))
+        (length pending)))))
 
 (defun gnosis-anki--chunk-insert (db item-chunks id-chunks total skipped
                                      today cleanup-fn
@@ -662,18 +700,16 @@ Pass EXTRA-TAG and SUSPEND to `gnosis-anki--bulk-insert-chunk'."
                            (gnosis-anki--commit-import imported source-file)
                            (message "Anki import complete: %d imported, %d skipped"
                                     imported skipped))
-                       (gnosis-sqlite-with-transaction db
-                         (cl-loop for items in (seq-partition
-                                                (car item-rest)
-                                                gnosis-anki--chunk-size)
-                                  for ids in (seq-partition
-                                              (car id-rest)
-                                              gnosis-anki--chunk-size)
-                                  do (gnosis-anki--bulk-insert-chunk
-                                      db items ids today extra-tag suspend)))
-                       (setq imported (+ imported (length (car item-rest))))
+                       (let* ((count (gnosis-anki--insert-pending-chunk
+                                      db (car item-rest) (car id-rest)
+                                      today extra-tag suspend))
+                              (duplicates (- (length (car item-rest)) count)))
+                         (setq imported (+ imported count)
+                               skipped (+ skipped duplicates)
+                               total (- total duplicates)))
                        (message "Importing... %d/%d (%d%%)"
-                                imported total (/ (* 100 imported) total))
+                                imported total
+                                (if (zerop total) 100 (/ (* 100 imported) total)))
                        (run-with-timer 0.1 nil #'process-next
                                        (cdr item-rest) (cdr id-rest))
                        (setq continued t))

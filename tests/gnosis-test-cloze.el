@@ -307,6 +307,35 @@
     (should (gnosis-cloze-check clean (nth 1 answers)))))
 
 
+(ert-deftest gnosis-test-cloze-pipeline-multiline-members ()
+  "Keep multiline members, group order, punctuation and aligned hints."
+  (dolist (text '("A {{c1::α\n2*3*4::first\nhint}} B {{c2::5 mg/kg/day}} C {{c1::gene_alpha_beta::last}}"
+                  "A {c1:α\n2*3*4::first\nhint} B {c2:5 mg/kg/day} C {c1:gene_alpha_beta::last}"))
+    (let* ((before (copy-sequence text))
+           (contents (gnosis-cloze-extract-contents text))
+           (snapshot (copy-tree contents t)))
+      (should (equal contents '(("α\n2*3*4::first\nhint" "gene_alpha_beta::last")
+                                ("5 mg/kg/day"))))
+      (should (equal (gnosis-cloze-extract-answers contents)
+                     '(("α\n2*3*4" "gene_alpha_beta") ("5 mg/kg/day"))))
+      (should (equal (gnosis-cloze-extract-hints contents)
+                     '(("first\nhint" "last") (nil))))
+      (should (equal (gnosis-cloze-remove-tags text)
+                     "A α\n2*3*4 B 5 mg/kg/day C gene_alpha_beta"))
+      (should (equal contents snapshot))
+      (should (equal text before)))))
+
+(ert-deftest gnosis-test-cloze-multiline-hint-split ()
+  "Split at the first hint separator and preserve the entire multiline hint."
+  (let* ((contents '(("α\n2*3*4::first\nsecond::third" "gene_alpha_beta::\n")
+                     ("5 mg/kg/day\n/_*")))
+         (before (copy-tree contents t)))
+    (should (equal (gnosis-cloze-extract-answers contents)
+                   '(("α\n2*3*4" "gene_alpha_beta") ("5 mg/kg/day\n/_*"))))
+    (should (equal (gnosis-cloze-extract-hints contents)
+                   '(("first\nsecond::third" "\n") (nil))))
+    (should (equal contents before))))
+
 (provide 'gnosis-test-cloze)
 
 ;;; gnosis-test-cloze.el ends here

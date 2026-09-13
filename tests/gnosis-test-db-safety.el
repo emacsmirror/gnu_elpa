@@ -67,6 +67,107 @@
           (should-not gnosis-db)
           (should (equal before (gnosis-test-safety-snapshot file))))))))
 
+(ert-deftest gnosis-db-safety-rejects-impostor-evidence-guards ()
+  "Refuse same-name damaged guards without publishing or changing any facts."
+  (dolist (replacement
+           '("BEFORE UPDATE ON review_events BEGIN SELECT 1; END"
+             "BEFORE UPDATE ON themata
+                BEGIN SELECT RAISE(ABORT, 'review events are immutable'); END"
+             "BEFORE INSERT ON review_events
+                BEGIN SELECT RAISE(ABORT, 'review events are immutable'); END"
+             "BEFORE UPDATE ON review_events WHEN 0
+                BEGIN SELECT RAISE(ABORT, 'review events are immutable'); END"))
+    (gnosis-test-safety
+      (gnosis-test-safety-v8)
+      (gnosis--ensure-db)
+      (gnosis-scheduler-accept-review (make-string 64 ?a) 1 'success
+                                      1000000 20260913)
+      (sqlite-close gnosis-db)
+      (setq gnosis-db nil)
+      (let* ((file (expand-file-name "gnosis.db" gnosis-dir))
+             (raw (sqlite-open file)))
+        (unwind-protect
+            (progn
+              (sqlite-execute raw "DROP TRIGGER review_events_no_update")
+              (sqlite-execute raw (concat "CREATE TRIGGER review_events_no_update "
+                                          replacement)))
+          (sqlite-close raw))
+        (let ((before (gnosis-test-safety-snapshot file)))
+          (dotimes (_ 2)
+            (should-error (gnosis--ensure-db))
+            (should-not gnosis-db)
+            (should (equal before (gnosis-test-safety-snapshot file)))))))))
+
+(ert-deftest gnosis-db-safety-checks-every-required-guard-body ()
+  "A no-op body on any required evidence guard must fail nondestructively."
+  (gnosis-test-safety
+    (gnosis-test-safety-v8)
+    (gnosis--ensure-db)
+    (gnosis-scheduler-accept-review (make-string 64 ?a) 1 'success
+                                    1000000 20260913)
+    (sqlite-execute gnosis-db
+      "INSERT INTO practice_events VALUES ('practice', 1, 'session', 1, 1000000, 3)")
+    (sqlite-execute gnosis-db
+      "INSERT INTO practice_voids VALUES ('practice-correction', 'practice')")
+    (sqlite-execute gnosis-db
+      "INSERT INTO review_voids SELECT 'review-correction', event_id FROM review_events")
+    (let ((guards (sqlite-select gnosis-db
+                   "SELECT name, sql FROM sqlite_master WHERE type = 'trigger'"))
+          (file (expand-file-name "gnosis.db" gnosis-dir)))
+      (should (= 21 (length guards)))
+      (sqlite-close gnosis-db)
+      (setq gnosis-db nil)
+      (pcase-dolist (`(,name ,sql) guards)
+        (let ((raw (sqlite-open file)))
+          (unwind-protect
+              (progn
+                (sqlite-execute raw (format "DROP TRIGGER %s" name))
+                (sqlite-execute raw
+                  (replace-regexp-in-string "BEGIN\\(?:.\\|\n\\)*END"
+                                            "BEGIN SELECT 1; END" sql t t)))
+            (sqlite-close raw)))
+        (let ((before (gnosis-test-safety-snapshot file)))
+          (should-error (gnosis--ensure-db))
+          (should-not gnosis-db)
+          (should (equal before (gnosis-test-safety-snapshot file))))
+        ;; Only the fixture restores its original definition, not the opener.
+        (let ((raw (sqlite-open file)))
+          (unwind-protect
+              (progn
+                (sqlite-execute raw (format "DROP TRIGGER %s" name))
+                (sqlite-execute raw sql))
+            (sqlite-close raw))))
+      (should (gnosis--ensure-db)))))
+
+(ert-deftest gnosis-db-safety-guard-formatting-and-retained-layout ()
+  "Accept supported retained tables and innocuous guard SQL formatting."
+  (gnosis-test-safety
+    (gnosis-test-safety-retained-v8)
+    (gnosis--ensure-db)
+    (gnosis-scheduler-accept-review (make-string 64 ?a) 1 'success
+                                    1000000 20260913)
+    ;; SQLite quotes references in guards on and referring to renamed tables.
+    (sqlite-execute gnosis-db "ALTER TABLE review_events RENAME TO renamed_events")
+    (sqlite-execute gnosis-db "ALTER TABLE renamed_events RENAME TO review_events")
+    (sqlite-execute gnosis-db "DROP TRIGGER review_events_no_update")
+    (sqlite-execute gnosis-db
+      "create trigger REVIEW_EVENTS_NO_UPDATE before update on \"review_events\"
+         begin select raise ( ABORT , 'review events are immutable' ) ; end")
+    ;; Required guards do not impose a fingerprint on unrelated schema objects.
+    (sqlite-execute gnosis-db "CREATE INDEX local_question_index ON themata(keimenon)")
+    (sqlite-close gnosis-db)
+    (setq gnosis-db nil)
+    (let* ((file (expand-file-name "gnosis.db" gnosis-dir))
+           (before (gnosis-test-safety-snapshot file)))
+      (should (gnosis--ensure-db))
+      (should (equal before (gnosis-test-safety-snapshot file)))
+      (should-error (sqlite-execute gnosis-db
+                       "UPDATE review_events SET reviewed_at_us = 2000000"))
+      (should-error (sqlite-execute gnosis-db "DELETE FROM review_events"))
+      (should (equal before (gnosis-test-safety-snapshot file)))
+      (gnosis-delete-themata '(1))
+      (should-not (sqlite-select gnosis-db "SELECT * FROM review_events")))))
+
 (ert-deftest gnosis-db-safety-required-column-constraints ()
   (dolist (ddl '("CREATE TABLE study_history (session_id TEXT NOT NULL, data TEXT NOT NULL)"
                  "CREATE TABLE study_history (session_id TEXT PRIMARY KEY NOT NULL, data TEXT)"

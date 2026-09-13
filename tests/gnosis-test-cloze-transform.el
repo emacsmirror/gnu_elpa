@@ -86,5 +86,29 @@
       (should (= 3 (point)))
       (should (equal "caller" (buffer-string))))))
 
+(ert-deftest gnosis-test-cloze-transform-literal-hints ()
+  "Insert authored hints literally without changing input text or properties."
+  (dolist (hint '("\\alpha" "C:\\temp\\file" "\\&" "\\1" "tail\\"
+                  "\\\\" "Ελληνικά\\alpha\n\\&"))
+    (let* ((source (propertize "Before (...) after" 'help-echo "source"))
+           (hints (list (propertize hint 'help-echo "hint")))
+           (source-before (copy-sequence source))
+           (hint-before (copy-sequence (car hints)))
+           (result (gnosis-cloze-add-hints source hints)))
+      (should (equal (concat "Before (" hint ") after") result))
+      (should (eq 'gnosis-face-cloze (get-text-property 8 'face result)))
+      (should (equal "hint" (get-text-property 8 'help-echo result)))
+      (should (equal "source" (get-text-property 0 'help-echo result)))
+      (should (equal-including-properties source source-before))
+      (should (equal-including-properties (car hints) hint-before))))
+  ;; A lettered custom mask must not case-convert the replacement.
+  (should (equal "(lower\\&)"
+                 (gnosis-cloze-add-hints "MASK" '("lower\\&") "MASK")))
+  ;; Empty hints consume their own mask; later hints retain their order.
+  (should (equal "(...) (...) (...) (...) (\\&) (\\1)"
+                 (gnosis-cloze-add-hints
+                  "(...) (...) (...) (...) (...) (...)"
+                  '(nil "" "nil" "\"\"" "\\&" "\\1")))))
+
 (provide 'gnosis-test-cloze-transform)
 ;;; gnosis-test-cloze-transform.el ends here

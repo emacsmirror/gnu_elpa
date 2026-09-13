@@ -107,15 +107,8 @@ NODE-ID is added to each updated thema's link index."
 
 (defun gnosis--commit-bulk-link (count string)
   "Commit the bulk-link transaction for COUNT themata using STRING."
-  (unless gnosis-testing
-    (gnosis--ensure-git-repo)
-    (gnosis--git-chain
-     `(("add" "gnosis.db")
-       ("commit" "-m"
-        ,(format "Bulk link: %d themata updated with %s"
-                 count string)))
-     (lambda ()
-       (when gnosis-vc-auto-push (gnosis-vc-push))))))
+  (gnosis-vc--auto-commit
+   (format "Bulk link: %d themata updated with %s" count string)))
 
 (defun gnosis-bulk-link-themata (ids string node-id)
   "Replace STRING with a link to NODE-ID in themata with IDS.
@@ -544,20 +537,10 @@ Each element is a (source dest) pair."
 ORPHANED, STALE, MISSING are thema-links counts.
 NODE-LINKS-REMOVED is the number of broken node-links
 deleted."
-  (unless gnosis-testing
-    (gnosis--ensure-git-repo)
-    (gnosis--git-chain
-     `(("add" "gnosis.db")
-       ("commit" "-m"
-        ,(format
-          (concat "Link cleanup: thema-links"
-                  " %d orphaned, %d stale,"
-                  " %d missing;"
-                  " node-links %d removed")
-          orphaned stale missing
-          (or node-links-removed 0))))
-     (lambda ()
-       (when gnosis-vc-auto-push (gnosis-vc-push))))))
+  (gnosis-vc--auto-commit
+   (format (concat "Link cleanup: thema-links %d orphaned, %d stale,"
+                   " %d missing; node-links %d removed")
+           orphaned stale missing (or node-links-removed 0))))
 
 ;;;###autoload
 (defun gnosis-links-cleanup ()

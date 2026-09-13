@@ -2,6 +2,45 @@
 
 (require 'ert)
 (require 'gnosis-review)
+(require 'gnosis-test-helpers)
+
+(ert-deftest gnosis-test-cloze-newlines-saved-literal-hints ()
+  "Render saved cloze hints verbatim, including backslashes and line breaks."
+  (dolist (hint '("\\alpha" "C:\\temp\\file" "\\&" "\\1" "tail\\"
+                  "\\\\" "Ελληνικά\\alpha\n\\&"))
+    (gnosis-test-with-db
+      (let* ((source "Before Αθήνα after")
+             (hints (list hint))
+             (answers (list "Αθήνα"))
+             (snapshots (mapcar #'copy-sequence (list source hint (car answers)))))
+        (gnosis-add-thema--cloze
+         "NEW" "cloze" source hints answers "" '("test") 0 nil)
+        (let* ((id (gnosis-get 'id 'themata))
+               (stored (gnosis-select '[keimenon hypothesis answer]
+                                      'themata `(= id ,id) t)))
+          (should (equal stored (list source hints answers)))
+          (dolist (center '(nil t))
+            (with-temp-buffer
+              (let ((gnosis-review-buffer-name (buffer-name))
+                    (gnosis-review--running nil)
+                    (gnosis-center-content center)
+                    (gnosis-latex-preview nil)
+                    (fill-column 80))
+                (gnosis-display-cloze-string
+                 (nth 0 stored) (nth 2 stored) (nth 1 stored) nil nil)
+                (should (equal (buffer-substring-no-properties
+                                (point-min) (point-max))
+                               (concat "\nBefore (" hint ") after\n ")))
+                (gnosis-test-cloze-newlines--assert-faces)
+                (goto-char (point-min))
+                (search-forward (concat "(" hint ")"))
+                (should (eq 'gnosis-face-cloze
+                            (get-text-property (1- (point)) 'face))))))
+          (should (equal stored (gnosis-select '[keimenon hypothesis answer]
+                                              'themata `(= id ,id) t))))
+        (cl-mapc (lambda (original snapshot)
+                   (should (equal-including-properties original snapshot)))
+                 (list source hint (car answers)) snapshots)))))
 
 (defun gnosis-test-cloze-newlines--assert-faces ()
   "Assert that cloze faces never decorate newlines in the current buffer."

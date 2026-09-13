@@ -20,6 +20,9 @@
 (require 'gnosis-db)
 (require 'gnosis-sqlite)
 (declare-function gnosis-journal--dir "gnosis-journal")
+(declare-function gnosis-journal--configured-file "gnosis-journal")
+(declare-function gnosis-journal--file-p "gnosis-journal")
+(declare-function gnosis-journal--goto-live-id "gnosis-journal")
 (defvar gnosis-journal-file)
 (defvar gnosis-journal-templates)
 
@@ -258,10 +261,12 @@ Use this same resolution before physical deletion and index cleanup."
   (let* ((journal-p (gnosis-nodes--journal-file-p file))
          (journal-file
           (if journal-p file
-            (when (and gnosis-journal-file
-                       (equal (file-name-nondirectory file)
-                              (file-name-nondirectory gnosis-journal-file)))
-              gnosis-journal-file))))
+            (when-let* ((single (progn
+                                  (require 'gnosis-journal)
+                                  (gnosis-journal--configured-file))))
+              (when (equal (file-name-nondirectory file)
+                           (file-name-nondirectory single))
+                single)))))
     (when journal-file
       (let* ((basename (file-name-nondirectory journal-file))
              (key (gnosis-nodes--file-key journal-file nil))
@@ -338,14 +343,14 @@ erasing evidence; refuse unresolved ownership without changing the index."
 Removes all contents of FILE in database, adding them anew.
 When FILE is the current buffer's file, parses the buffer directly
 instead of re-reading from disk (avoids re-decrypting .gpg files).
-When INDEX-ONLY is non-nil, do not complete TODOs from journal checkboxes.
+INDEX-ONLY is accepted for compatibility and ignored; journal
+saves never complete external tasks.
 Unresolved basename ownership requires `gnosis-nodes-db-force-sync'."
+  (ignore index-only)
   (let* ((file (or file (buffer-file-name)))
 	 (journal-p (gnosis-nodes--journal-file-p file))
 	 (buf (and file (get-file-buffer file))))
-    (gnosis-nodes--update-file file journal-p buf)
-    (when (and journal-p file (not index-only))
-      (gnosis-journal--update-todos file))))
+    (gnosis-nodes--update-file file journal-p buf)))
 
 (defun gnosis-nodes--check-delete-ownership (file)
   "Validate retained index ownership before physically deleting FILE."
@@ -548,9 +553,9 @@ Uses the node-tag junction table for proper querying."
   "Return non-nil if FILE belongs to the configured journal."
   (and file
        (or (file-in-directory-p file (gnosis-nodes--journal-dir))
-           (and gnosis-journal-file
-                (equal (expand-file-name file)
-                       (expand-file-name gnosis-journal-file))))))
+           (progn
+             (require 'gnosis-journal)
+             (gnosis-journal--file-p file)))))
 
 (defun gnosis-nodes--journal-buffer-p ()
   "Return non-nil if current buffer is a journal file."
@@ -773,6 +778,9 @@ Refuse unresolved basename ownership before visiting another file."
 	       (gnosis-nodes--journal-dir)))
 	     (org-id-goto id)
              (gnosis-nodes-mode 1))
+            ((progn
+               (require 'gnosis-journal)
+               (gnosis-journal--goto-live-id id)))
 	    (t (org-open-at-point))))))
 
 ;;; Sync
@@ -901,7 +909,6 @@ Added to `org-mode-hook'."
 
 ;; Forward declarations for journal functions
 (declare-function gnosis-journal-db-sync "gnosis-journal")
-(declare-function gnosis-journal--update-todos "gnosis-journal")
 
 (provide 'gnosis-nodes)
 ;;; gnosis-nodes.el ends here

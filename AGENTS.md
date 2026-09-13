@@ -24,6 +24,8 @@ only where the task needs it, rather than reorganizing the package:
 - `gnosis-org`, `gnosis-nodes`, `gnosis-journal`, and `gnosis-links`: native Org
   interpretation, file operations, and indexes. Org files own node contents;
   indexed titles and links do not replace those files or their IDs.
+  Journal prose and IDs live in Org; saving a journal never completes
+  external tasks. Optional dated study views belong to `gnosis-study`.
 - `gnosis-study`: topic selection, repair, and study evidence queries/views.
   `gnosis-review` owns encounter/session flow, durable practice sessions,
   and practice success/retry policy. `gnosis-agent` adapts these operations

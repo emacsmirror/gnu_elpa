@@ -74,7 +74,7 @@ Bind OWNER, OTHER and SOURCE filenames and preserve unrelated source data."
                 ('sync (gnosis-nodes-db-sync))
                 ('index-only (gnosis-nodes-update-file owner t))
                 ('namesake (gnosis-test-node-retained--native-save other))))
-            (should (= todo-calls (if (eq action 'save) 1 0)))
+            (should (= todo-calls 0))
             (unless (eq action 'save)
               (should (equal bytes (gnosis-test-node-paths--bytes owner))))
             (should (equal incoming (gnosis-select '* 'node-links '(= source "source"))))

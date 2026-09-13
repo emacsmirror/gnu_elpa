@@ -137,7 +137,7 @@
     (buffer-string)))
 
 (ert-deftest gnosis-test-authoring-journal-recurring-completion ()
-  "Rebuilding indexes never replays checkboxes; saving completes once."
+  "Rebuilding indexes never replays checkboxes; save and sync never complete tasks."
   (dolist (layout '(separate inside outside))
     (gnosis-test-with-db
       (let* ((gnosis-nodes-dir (expand-file-name "nodes" gnosis-dir))
@@ -191,16 +191,15 @@
               (with-current-buffer (find-file-noselect file)
                 (goto-char (point-min))
                 (should (equal (org-get-todo-state) "TODO"))
-                (should (equal (org-entry-get nil "LAST_DONE_DATE") today))
-                (should (equal (format-time-string "%Y-%m-%d" (org-get-scheduled-time (point)))
-                               tomorrow)))
-              (let ((completed (gnosis-test-authoring--file-bytes file)))
+                (should (equal (org-entry-get nil "LAST_DONE_DATE")
+                               "2000-01-01")))
+              (let ((unchanged (gnosis-test-authoring--file-bytes file)))
                 (with-current-buffer (find-file-noselect today-file)
                   (goto-char (point-max))
                   (insert "\nSaved again.\n")
                   (save-buffer))
                 (gnosis-nodes-db-sync t)
-                (should (equal completed (gnosis-test-authoring--file-bytes file)))))
+                (should (equal unchanged (gnosis-test-authoring--file-bytes file)))))
           (dolist (path (delete-dups (list file old-file today-file)))
             (when-let* ((buffer (get-file-buffer path)))
               (with-current-buffer buffer (set-buffer-modified-p nil))

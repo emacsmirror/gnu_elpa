@@ -565,14 +565,12 @@ names across notes.
 * Journal
 :PROPERTIES:
 :CUSTOM_ID: journal
-:DESCRIPTION: Date-based journal entries with TODO integration
+:DESCRIPTION: Date-based journal entries with optional task and study views
 :END:
 
-The journal module provides date-based entry creation with optional
-TODO carry-forward and checkbox-to-done tracking.  Journal entries are
-org-mode files (or headings within a single file) stored in
-~gnosis-journal-dir~.  They are indexed alongside nodes but in a
-separate table.
+The journal is a dated Org node for recording and reflecting on the
+day.  Org owns the prose and IDs; saving a journal never completes
+external tasks.  SQLite indexes titles and owns study history.
 
 ** Creating Entries
 
@@ -592,30 +590,29 @@ in single-file mode) for it.
 
 Gnosis supports two modes for journal storage:
 
-*** Separate Files (Default)
+*** Single Journal File (Default)
 
-By default, each journal entry is its own file in ~gnosis-journal-dir~.
-File naming follows the same rules as nodes (timestamp prefix by
-default, configurable via ~gnosis-nodes-timestring~).
-
-#+begin_src emacs-lisp
-;; Default: separate files per entry
-(setopt gnosis-journal-file nil)
-#+end_src
-
-*** Single Journal File
-
-Setting ~gnosis-journal-file~ to a file path causes all journal entries
-to be added as top-level headings in that file.  Each entry is a
-=* YYYY-MM-DD= heading with an org ID.
+By default ~gnosis-journal-file~ is =t=: entries live as level-1
+headings in =journal.org= under ~gnosis-journal-dir~, or
+=journal.org.gpg= when ~gnosis-journal-as-gpg~ is non-nil.  Relative
+strings resolve against ~gnosis-journal-dir~.  Absolute paths keep
+their suffix.  =nil= restores one file per entry.  Existing files are
+never renamed or converted.  These values are mutually exclusive;
+choose one:
 
 #+begin_src emacs-lisp
-(setopt gnosis-journal-file "~/Notes/journal/journal.org")
+;; Automatic single file (journal.org or journal.org.gpg):
+(setopt gnosis-journal-file t)
+;; Explicit path (suffix is authoritative):
+;; (setopt gnosis-journal-file "~/Notes/journal/journal.org.gpg")
+;; One file per entry:
+;; (setopt gnosis-journal-file nil)
 #+end_src
 
-When this is set, gnosis creates the file if it does not exist, adding
-an appropriate =#+title:= and =#+filetags:= header.  New entries are
-appended at the end of the file.
+Retained files with native filenames (including timestamp prefixes and
+=.gpg= suffixes) are checked when opening their title, before creating a
+new entry.  Run ~gnosis-journal-db-sync~ to discover renamed files or
+refresh the complete history; ordinary commands do not read every archive.
 
 ** GPG Encryption
 
@@ -686,7 +683,7 @@ It defaults to =+=, which org-mode renders as a plain-list item.
 (setopt gnosis-journal-bullet-point-char "+")
 #+end_src
 
-*** How TODO Carry-Forward Works
+*** How Task Collection Works
 
 When a journal entry's template is applied, ~gnosis-journal-todos~
 scans ~gnosis-journal-todo-files~ for headings whose TODO keyword
@@ -699,18 +696,44 @@ today.  Each included item is rendered as a checkbox line:
 + [ ] Review pull requests
 #+end_src
 
-** Checked Item Tracking
+** Completing source tasks
 
-When you mark a checkbox in a journal entry as done (=[x]=) and save
-the buffer, gnosis identifies all checked items, finds the
-corresponding TODO headings in ~gnosis-journal-todo-files~ by title,
-and marks them as =DONE=.  It also records a =LAST_DONE_DATE= property
-on the heading so that the same item is not marked done twice in one
-day.
+Saving a journal does not mark external TODOs done.  A plain checkbox
+is journal prose.  ~gnosis-journal-insert-task~ inserts an ID-linked
+checkbox; ~gnosis-journal-complete-task~ completes the linked source
+with ~org-todo~ after confirmation and does not save the source
+buffer.  Recurrence stays with Org.
 
-In single-file mode (~gnosis-journal-file~ non-nil), gnosis restricts
-checked-item lookup to the section of the file corresponding to today's
-date heading.
+** Dated navigation
+
+~gnosis-journal-date~ prompts with ~org-read-date~ and opens that
+calendar day.  ~gnosis-journal-previous~ and ~gnosis-journal-next~
+visit existing dated entries, skip gaps, and never create a missing
+day.  ~gnosis-journal-capture~ appends a timestamped note to the
+current dated entry, or today's.  ~gnosis-journal-study~ opens the
+optional read-only study view for the entry date without rewriting
+journal prose.
+
+** Command map
+
+~gnosis-journal-prefix-map~ groups these commands.  Gnosis does not
+bind it globally:
+
+| Key | Command |
+| j | ~gnosis-journal~ (today) |
+| d | ~gnosis-journal-date~ |
+| f | ~gnosis-journal-find~ |
+| n | ~gnosis-journal-next~ |
+| p | ~gnosis-journal-previous~ |
+| c | ~gnosis-journal-capture~ |
+| t | ~gnosis-journal-insert-task~ |
+| k | ~gnosis-journal-complete-task~ |
+| s | ~gnosis-journal-study~ |
+| l | ~gnosis-journal-insert~ |
+
+#+begin_src emacs-lisp
+(keymap-global-set "C-c j" gnosis-journal-prefix-map)
+#+end_src
 
 ** Inserting Journal Links
 
@@ -724,8 +747,8 @@ journal entry using ~gnosis-journal-insert~.  It works identically to
 (use-package gnosis
   :ensure t
   :custom
-  ;; Journal in separate files (default):
-  (gnosis-journal-file nil)
+  ;; Default single file (journal.org or journal.org.gpg):
+  (gnosis-journal-file t)
   (gnosis-journal-dir "~/Notes/journal/")
   (gnosis-journal-as-gpg nil)
   (gnosis-journal-bullet-point-char "+")

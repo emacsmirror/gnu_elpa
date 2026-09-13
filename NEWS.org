@@ -17,6 +17,12 @@
 + Dashboard commands are available immediately after a fresh installation.
 
 ** Authoring and media
++ Default journal storage is a single =journal.org= (or =journal.org.gpg=
+  when ~gnosis-journal-as-gpg~ is set).  Saving a journal no longer
+  completes external tasks; ~gnosis-journal-complete-task~ does that
+  through an ID link.  Dated navigation and capture commands are
+  ~gnosis-journal-date~, ~gnosis-journal-previous~, ~gnosis-journal-next~
+  and ~gnosis-journal-capture~.
 + Support typed-answer aliases and portable content format 3.  Formats 1
   and 2 remain readable; content exchange does not transfer study history.
 + Add image-region and typed image-occlusion review, plus optional model

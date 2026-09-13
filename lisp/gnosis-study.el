@@ -36,6 +36,7 @@
 (declare-function gnosis-review--session-target "gnosis-review" ())
 (declare-function gnosis-review-resume "gnosis-review" ())
 (declare-function gnosis-review-undo "gnosis-review" (&optional event-id correction-id))
+(declare-function gnosis-dashboard-history "gnosis-dashboard" (&optional history))
 
 (defvar gnosis-review--running)
 
@@ -223,6 +224,30 @@ until hard thema deletion.  Content exports exclude all study evidence."
           (gnosis-sqlite-execute db "INSERT INTO practice_events VALUES (?, ?, ?, ?, ?, ?)" row))))
     (list :event-id (car row) :rating (nth 5 row))))
 
+(defun gnosis-study--practice-day-events (date)
+  "Return effective practice (REVIEWED-AT-US THEMA-ID) rows for DATE.
+DATE is a YYYYMMDD integer.  Exclude voided events.  Read neighboring
+calendar days, then use the encounter wall-clock rule.  Keep ambiguous
+cutoffs, including a repeated midnight, strictly inside the coarse range
+rather than on either boundary."
+  (let* ((calendar (gnosis--int-to-date date))
+         (bounds (mapcar
+                  (lambda (offset)
+                    (car (time-convert
+                          (encode-time 0 0 0 (+ (nth 2 calendar) offset)
+                                       (nth 1 calendar) (car calendar))
+                          1000000)))
+                  '(-1 2))))
+    (cl-loop for (time id) in
+             (gnosis-sqlite-select
+              (gnosis--ensure-db)
+              "SELECT reviewed_at_us, thema_id FROM practice_events
+                WHERE reviewed_at_us >= ? AND reviewed_at_us < ?
+                  AND event_id NOT IN (SELECT event_id FROM practice_voids)"
+              bounds)
+             when (equal calendar (gnosis-date nil (cons time 1000000)))
+             collect (list time id))))
+
 (defun gnosis-study-activity (&optional date)
   "Return accepted study attempt counts for logical DATE as a plist.
 DATE defaults to today, as a YYYYMMDD integer.  Return :total, :scheduled,
@@ -233,28 +258,8 @@ Practice timestamps use the current local timezone and `gnosis-day-start-hour';
 historical practice did not retain its original day-boundary settings."
   (let* ((today (gnosis-date))
          (date (or date (gnosis--date-to-int today)))
-         (calendar (gnosis--int-to-date date))
-         (bounds (mapcar
-                  (lambda (offset)
-                    (car (time-convert
-                          (encode-time 0 0 0 (+ (nth 2 calendar) offset)
-                                       (nth 1 calendar) (car calendar))
-                          1000000)))
-                  '(-1 2)))
          (scheduled (gnosis-review-activity date))
-         ;; Read neighboring calendar days, then use the encounter wall-clock
-         ;; rule.  Keep ambiguous cutoffs, including a repeated midnight,
-         ;; strictly inside the coarse range rather than on either boundary.
-         (practice
-          (cl-loop for (time count) in
-                   (gnosis-sqlite-select
-                    (gnosis--ensure-db)
-                    "SELECT reviewed_at_us, COUNT(*) FROM practice_events
-                      WHERE reviewed_at_us >= ? AND reviewed_at_us < ?
-                        AND event_id NOT IN (SELECT event_id FROM practice_voids)
-                      GROUP BY reviewed_at_us" bounds)
-                   when (equal calendar (gnosis-date nil (cons time 1000000)))
-                   sum count)))
+         (practice (length (gnosis-study--practice-day-events date))))
     (list :total (+ (nth 1 scheduled) practice)
           :scheduled (nth 1 scheduled) :practice practice :new (nth 2 scheduled))))
 
@@ -583,6 +588,258 @@ Do not fit parameters or claim personalized calibration from these counts."
         (special-mode))
       (pop-to-buffer (current-buffer)))
     counts))
+
+(defvar gnosis-study-day-buffer-name "*Gnosis Study Day*"
+  "Name of the read-only study-day view.")
+
+(defvar-local gnosis-study--day nil
+  "YYYYMMDD integer displayed by this study-day view.")
+
+(defvar-local gnosis-study--day-owner nil
+  "Buffer and database pair identifying this study-day rendering.")
+
+(defun gnosis-study--calendar-day (day)
+  "Return DAY when it is a real YYYYMMDD calendar date."
+  (unless (and (integerp day) (> day 0))
+    (user-error "Study date must be a YYYYMMDD integer"))
+  (let* ((date (gnosis--int-to-date day))
+         (time (encode-time 0 0 12 (nth 2 date) (nth 1 date) (nth 0 date)))
+         (decoded (decode-time time))
+         (roundtrip (gnosis--date-to-int
+                     (list (decoded-time-year decoded)
+                           (decoded-time-month decoded)
+                           (decoded-time-day decoded)))))
+    (unless (= day roundtrip)
+      (user-error "Study date is not a real calendar day"))
+    day))
+
+(defun gnosis-study--read-day ()
+  "Read a calendar date as a YYYYMMDD integer using `org-read-date'."
+  (let* ((raw (org-read-date nil nil nil "Study day"))
+         (decoded (parse-time-string raw))
+         (year (decoded-time-year decoded))
+         (month (decoded-time-month decoded))
+         (day (decoded-time-day decoded)))
+    (gnosis-study--calendar-day
+     (if (and year month day)
+         (gnosis--date-to-int (list year month day))
+       0))))
+
+(defun gnosis-study--format-day (date)
+  "Format YYYYMMDD integer DATE as a calendar date string."
+  (apply #'format "%04d-%02d-%02d" (gnosis--int-to-date date)))
+
+(defun gnosis-study--day-scheduled-events (date)
+  "Return the number of effective scheduled events recorded on DATE."
+  (caar (gnosis-sqlite-select
+         (gnosis--ensure-db)
+         "SELECT COUNT(*) FROM review_events
+           WHERE review_day = ?
+             AND event_id NOT IN (SELECT event_id FROM review_voids)"
+         (list date))))
+
+(defun gnosis-study--day-source-nodes (date)
+  "Return unique source completion pairs for event-level activity on DATE.
+Pairs are (LABEL . ID) from `gnosis-study-topic-candidates'.  Ignore
+legacy scheduled aggregates, which have no event-level themata."
+  (let* ((practice (mapcar #'cadr (gnosis-study--practice-day-events date)))
+         (scheduled
+          (mapcar #'car
+                  (gnosis-sqlite-select
+                   (gnosis--ensure-db)
+                   "SELECT DISTINCT thema_id FROM review_events
+                     WHERE review_day = ?
+                       AND event_id NOT IN (SELECT event_id FROM review_voids)"
+                   (list date))))
+         (ids (delete-dups (delq nil (append practice scheduled))))
+         (nodes (when ids
+                  (delete-dups
+                   (gnosis-select 'dest 'thema-links
+                                  `(in source ,(vconcat ids)) t)))))
+    (and nodes (gnosis-study-topic-candidates nodes))))
+
+(defun gnosis-study--day-payload (date)
+  "Return display data for logical DATE as a plist."
+  (list :date date
+        :activity (gnosis-study-activity date)
+        :scheduled-events (gnosis-study--day-scheduled-events date)
+        :sources (gnosis-study--day-source-nodes date)))
+
+(defun gnosis-study-day--buffer ()
+  "Return the owned study-day buffer.
+Refuse to reuse unrelated or file-visiting buffers with the same name."
+  (let ((buffer (get-buffer gnosis-study-day-buffer-name)))
+    (when (and buffer
+               (not (with-current-buffer buffer
+                      (and (not buffer-file-name)
+                           (derived-mode-p 'gnosis-study-day-mode)))))
+      (user-error "Buffer %s is not a Gnosis study-day view; rename it first"
+                  gnosis-study-day-buffer-name))
+    (or buffer (generate-new-buffer gnosis-study-day-buffer-name))))
+
+(defun gnosis-study-day--check-owner (&optional owner)
+  "Return current study-day OWNER, or signal if its rendering is stale.
+An explicit OWNER may be checked after a prompt or source navigation."
+  (let* ((owner (or owner gnosis-study--day-owner))
+         (buffer (car owner))
+         (database (cdr owner)))
+    (unless (and (buffer-live-p buffer)
+                 (eq database gnosis-db)
+                 database
+                 (with-current-buffer buffer
+                   (and (derived-mode-p 'gnosis-study-day-mode)
+                        (not buffer-file-name)
+                        (eq owner gnosis-study--day-owner))))
+      (user-error "Study-day view is stale; refresh or reopen it"))
+    owner))
+
+(defun gnosis-study--insert-day (payload owner)
+  "Insert study-day PAYLOAD owned by OWNER into the current buffer."
+  (let* ((date (plist-get payload :date))
+         (activity (plist-get payload :activity))
+         (sources (plist-get payload :sources))
+         (scheduled-events (or (plist-get payload :scheduled-events) 0))
+         (inhibit-read-only t)
+         (point (point)))
+    (erase-buffer)
+    (insert (propertize "Study day " 'face 'shadow)
+            (propertize (gnosis-study--format-day date) 'face 'org-date)
+            "\n\nAccepted attempts: "
+            (propertize (number-to-string (plist-get activity :total))
+                        'face 'success)
+            "\nScheduled: "
+            (propertize (number-to-string (plist-get activity :scheduled))
+                        'face 'font-lock-type-face)
+            " (New: "
+            (propertize (number-to-string (plist-get activity :new))
+                        'face 'font-lock-keyword-face)
+            ")\nPractice: "
+            (propertize (number-to-string (plist-get activity :practice))
+                        'face 'font-lock-type-face)
+            "\n\n"
+            (propertize
+             (format (concat "Practice uses the current timezone and day-start hour (%d).\n"
+                             "Scheduled days remain as recorded, including legacy daily aggregates.\n"
+                             "Counts are accepted attempts, including retries, not distinct themata.\n")
+                     gnosis-day-start-hour)
+             'face 'shadow)
+            "\n")
+    (when (> (plist-get activity :scheduled) scheduled-events)
+      (insert (propertize
+               "Scheduled totals include legacy aggregates without event-level sources.\n\n"
+               'face 'warning)))
+    (insert (propertize "Sources\n" 'face 'bold))
+    (if sources
+        (dolist (pair sources)
+          (insert "  ")
+          (insert-text-button
+           (car pair)
+           'face 'link
+           'follow-link t
+           'action (lambda (button)
+                     (gnosis-study-day-visit-source
+                      (button-get button 'gnosis-node-id)
+                      (button-get button 'gnosis-day-owner)
+                      (button-get button 'gnosis-day-date)))
+           'gnosis-node-id (cdr pair)
+           'gnosis-day-owner owner
+           'gnosis-day-date date
+           'help-echo (format "Visit source %s" (cdr pair)))
+          (insert "\n"))
+      (insert (propertize
+               "  No indexed source nodes for this day's event-level activity.\n"
+               'face 'shadow)))
+    (insert "\n"
+            (propertize "H opens History for session-level evidence.\n"
+                        'face 'shadow))
+    (setq header-line-format
+          (format " Study day %s | %d attempts"
+                  (gnosis-study--format-day date)
+                  (plist-get activity :total)))
+    (goto-char (min point (point-max)))
+    (set-buffer-modified-p nil)))
+
+(defun gnosis-study-day-refresh ()
+  "Refresh this study-day view from the current database.
+Keep the displayed date and adopt the current connection."
+  (interactive)
+  (unless (and (derived-mode-p 'gnosis-study-day-mode)
+               (not buffer-file-name))
+    (user-error "Open a study-day view first"))
+  (let* ((date (or gnosis-study--day
+                   (user-error "Study-day view is stale; reopen it")))
+         (database (gnosis--ensure-db))
+         (payload (gnosis-study--day-payload date))
+         (owner (cons (current-buffer) database)))
+    (setq gnosis-study--day date
+          gnosis-study--day-owner owner)
+    (gnosis-study--insert-day payload owner)))
+
+(defun gnosis-study-day-visit-source (&optional node owner date)
+  "Visit source NODE from this study-day view.
+NODE is an Org ID.  OWNER and DATE must be this rendering's identity."
+  (interactive)
+  (let* ((current (gnosis-study-day--check-owner))
+         (node (or node (get-text-property (point) 'gnosis-node-id)
+                   (user-error "No source at point")))
+         (owner (or owner (get-text-property (point) 'gnosis-day-owner)))
+         (date (or date (get-text-property (point) 'gnosis-day-date))))
+    (unless (and (eq owner current)
+                 (integerp date)
+                 (= date gnosis-study--day))
+      (user-error "Study-day view is stale; refresh or reopen it"))
+    (gnosis-nodes-goto-id node)))
+
+(defun gnosis-study-day-history ()
+  "Open recorded study history from this view."
+  (interactive)
+  (gnosis-study-day--check-owner)
+  (require 'gnosis-dashboard)
+  (gnosis-dashboard-history))
+
+(defun gnosis-study-day--detach ()
+  "Retire study-day ownership when the buffer is repurposed."
+  (setq gnosis-study--day-owner nil
+        gnosis-study--day nil))
+
+(defvar-keymap gnosis-study-day-mode-map
+  :doc "Keymap for the read-only study-day view."
+  :parent special-mode-map
+  "g" #'gnosis-study-day-refresh
+  "H" #'gnosis-study-day-history
+  "RET" #'gnosis-study-day-visit-source)
+
+(define-derived-mode gnosis-study-day-mode special-mode "Study Day"
+  "Read-only accepted study activity for one logical day.
+\\<gnosis-study-day-mode-map>\\[gnosis-study-day-refresh] refreshes;
+\\[gnosis-study-day-history] opens History;
+\\[quit-window] closes the view."
+  :interactive nil
+  (setq-local revert-buffer-function
+              (lambda (&rest _) (gnosis-study-day-refresh)))
+  (add-hook 'change-major-mode-hook #'gnosis-study-day--detach nil t)
+  (add-hook 'after-set-visited-file-name-hook #'gnosis-study-day--detach nil t))
+
+;;;###autoload
+(defun gnosis-study-day (&optional date)
+  "Show a read-only view of accepted study activity for DATE.
+DATE is a YYYYMMDD integer and defaults to the current logical day.
+Interactively, prompt with `org-read-date' when DATE is omitted.
+Validate that DATE is a real calendar day.  Do not write journal prose
+or study evidence."
+  (interactive (list (gnosis-study--read-day)))
+  (let* ((date (gnosis-study--calendar-day (or date (gnosis--today-int))))
+         (database (gnosis--ensure-db))
+         (payload (gnosis-study--day-payload date))
+         (buffer (gnosis-study-day--buffer)))
+    (with-current-buffer buffer
+      (unless (derived-mode-p 'gnosis-study-day-mode)
+        (gnosis-study-day-mode))
+      (let ((owner (cons (current-buffer) database)))
+        (setq gnosis-study--day date
+              gnosis-study--day-owner owner)
+        (gnosis-study--insert-day payload owner)))
+    (pop-to-buffer buffer)))
 
 (provide 'gnosis-study)
 ;;; gnosis-study.el ends here

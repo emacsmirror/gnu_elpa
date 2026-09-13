@@ -1,5 +1,5 @@
 ;;; r-ts-mode.el --- R treesitter mode  -*- lexical-binding: t -*-
-;; Copyright (C) 2025  Manuel Teodoro Tenango
+;; Copyright (C) 2026 Free Software Foundation, Inc.
 
 ;; Author: Manuel Teodoro <ttm@teoten.me>
 ;; URL: https://codeberg.org/R-for-emacs/r-ts-mode
@@ -46,13 +46,11 @@
 
 (defcustom r-ts-mode-inherit-ess nil
   "When non-nil, inherit from `ess-r-mode' for R process interaction."
-  :type 'boolean
-   :group 'r-ts)
+  :type 'boolean)
 
 (defcustom r-ts-mode-indent-level 2
   "Number of spaces per indentation level."
-  :type 'integer
-   :group 'r-ts)
+  :type 'integer)
 
 (defvar r-ts-mode--debug nil
   "When non-nil, enable verbose debugging messages.  For development use.")
@@ -182,63 +180,56 @@ Intended to silence ESS fontification.")
 
 ;;;; Parent Mode (ESS or prog-mode)
 ;; =============================================================================
-
-;; ESS declarations — kept here so the byte-compiler is happy,
-;; but ESS-specific logic is intentionally left untouched for now.
-(declare-function ess-r-mode                "ext:ess-r-mode.el")
-(declare-function ess-mode                  "ext:ess-r-mode.el")
-(declare-function ess-setq-vars-local       "ext:ess-r-mode.el")
-(declare-function ess-set-style             "ext:ess-r-mode.el")
-(declare-function ess--setup-eldoc          "ext:ess-r-mode.el")
-(declare-function ess--setup-auto-complete  "ext:ess-r-mode.el")
-(declare-function ess--setup-company        "ext:ess-r-mode.el")
-(declare-function ess-r-eldoc-function      "ext:ess-r-mode.el")
-(declare-function ess-filename-completion   "ext:ess-r-mode.el")
-(declare-function ess-r-project             "ext:ess-r-mode.el")
-(declare-function ess-r-xref-backend        "ext:ess-r-mode.el")
-(declare-function ess-r-package-completion  "ext:ess-r-mode.el")
-(declare-function ess-r-object-completion   "ext:ess-r-mode.el")
-(defvar ess-r-mode-syntax-table)
-(defvar ess-r-customize-alist)
-(defvar ess-font-lock-keywords)
-(defvar ess-r--syntax-propertize-function)
-(defvar ess-r-ac-sources)
-(defvar ess-r-company-backends)
-(defvar ess-mode-map)
-
 (if r-ts-mode-inherit-ess
     (if (not (fboundp 'ess-r-mode))
         (error "ESS is not available.  Is it installed?")
-      (progn
-        (require 'ess-mode)
-        (require 'ess-r-mode)
-        (require 'ess-r-completion)
-        (require 'ess-utils)
-        (defvar r-ts-mode-parent-mode-map
-          (let ((map (make-sparse-keymap)))
-            (set-keymap-parent map ess-mode-map)
-            map)
-          "Keymap for `r-ts-mode-parent-mode' when inheriting from ESS.")
 
-        (define-derived-mode r-ts-mode-parent-mode ess-mode "" ""
-           :group 'r-ts
-          :keymap r-ts-mode-parent-mode-map
-          (set-syntax-table ess-r-mode-syntax-table)
-          (ess-setq-vars-local ess-r-customize-alist)
-          (setq-local ess-font-lock-keywords 'r-ts-mode-font-lock-keywords)
-          (setq-local add-log-current-defun-header-regexp
-                      "^\\(.+\\)\\s-+<-[ \t\n]*function")
-          (setq-local syntax-propertize-function ess-r--syntax-propertize-function)
-          (add-hook 'hack-local-variables-hook #'ess-set-style nil t)
-          (ess--setup-eldoc #'ess-r-eldoc-function)
-          (ess--setup-auto-complete ess-r-ac-sources)
-          (ess--setup-company ess-r-company-backends)
-          (remove-hook 'completion-at-point-functions #'ess-filename-completion 'local)
-          (add-hook 'completion-at-point-functions #'ess-r-object-completion  nil 'local)
-          (add-hook 'completion-at-point-functions #'ess-r-package-completion nil 'local)
-          (add-hook 'completion-at-point-functions #'ess-filename-completion   nil 'local)
-          (add-hook 'xref-backend-functions #'ess-r-xref-backend nil 'local)
-          (add-hook 'project-find-functions  #'ess-r-project       nil 'local))))
+      (require 'ess-mode)
+      (require 'ess-r-mode)
+      (require 'ess-r-completion)
+      (require 'ess-utils)
+
+      ;; ESS declarations — kept here so the byte-compiler is happy,
+      ;; but ESS-specific logic is intentionally left untouched for now.
+      (declare-function ess-r-mode                "ext:ess-r-mode.el")
+      (declare-function ess-mode                  "ext:ess-r-mode.el")
+      (declare-function ess-setq-vars-local       "ext:ess-r-mode.el")
+      (declare-function ess-set-style             "ext:ess-r-mode.el")
+      (declare-function ess--setup-eldoc          "ext:ess-r-mode.el")
+      (declare-function ess--setup-auto-complete  "ext:ess-r-mode.el")
+      (declare-function ess--setup-company        "ext:ess-r-mode.el")
+      (declare-function ess-r-eldoc-function      "ext:ess-r-mode.el")
+      (declare-function ess-filename-completion   "ext:ess-r-mode.el")
+      (declare-function ess-r-project             "ext:ess-r-mode.el")
+      (declare-function ess-r-xref-backend        "ext:ess-r-mode.el")
+      (declare-function ess-r-package-completion  "ext:ess-r-mode.el")
+      (declare-function ess-r-object-completion   "ext:ess-r-mode.el")
+      (defvar ess-r-mode-syntax-table)
+      (defvar ess-r-customize-alist)
+      (defvar ess-font-lock-keywords)
+      (defvar ess-r--syntax-propertize-function)
+      (defvar ess-r-ac-sources)
+      (defvar ess-r-company-backends)
+      (defvar ess-mode-map)
+
+      (define-derived-mode r-ts-mode-parent-mode ess-mode "" ""
+        :group 'r-ts
+        :syntax-table ess-r-mode-syntax-table
+        (ess-setq-vars-local ess-r-customize-alist)
+        (setq-local ess-font-lock-keywords 'r-ts-mode-font-lock-keywords)
+        (setq-local add-log-current-defun-header-regexp
+                    "^\\(.+\\)\\s-+<-[ \t\n]*function")
+        (setq-local syntax-propertize-function ess-r--syntax-propertize-function)
+        (add-hook 'hack-local-variables-hook #'ess-set-style nil t)
+        (ess--setup-eldoc #'ess-r-eldoc-function)
+        (ess--setup-auto-complete ess-r-ac-sources)
+        (ess--setup-company ess-r-company-backends)
+        (remove-hook 'completion-at-point-functions #'ess-filename-completion 'local)
+        (add-hook 'completion-at-point-functions #'ess-r-object-completion  nil 'local)
+        (add-hook 'completion-at-point-functions #'ess-r-package-completion nil 'local)
+        (add-hook 'completion-at-point-functions #'ess-filename-completion   nil 'local)
+        (add-hook 'xref-backend-functions #'ess-r-xref-backend nil 'local)
+        (add-hook 'project-find-functions  #'ess-r-project       nil 'local)))
   (define-derived-mode r-ts-mode-parent-mode prog-mode "R-ts Parent"
     "Parent mode for `r-ts-mode' when ESS is not used."
     :group 'r-ts

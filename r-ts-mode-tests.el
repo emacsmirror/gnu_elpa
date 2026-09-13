@@ -1,5 +1,5 @@
 ;;; r-ts-mode-tests.el --- ERT tests for r-ts-mode  -*- lexical-binding: t; -*-
-;; Copyright (C) 2026  Manuel Teodoro Tenango
+;; Copyright (C) 2026 Free Software Foundation, Inc.
 
 ;; Author: Manuel Teodoro <ttm@teoten.me>
 ;; URL: https://codeberg.org/R-for-emacs/r-ts-mode
@@ -10,26 +10,18 @@
 ;; framework.
 
 ;;; Code:
-
 (require 'ert)
 (require 'cl-lib)
+(require 'treesit)
 
 
 ;;;; Test utilities
 ;; ---------------------------------------------------------------------------
-
-(defmacro r-ts-test--with-r-buffer (content &rest body)
-  "Execute BODY in a temporary buffer containing CONTENT.
-If the R tree-sitter grammar is available the buffer is put in
-`r-ts-mode'; otherwise it is left in `fundamental-mode' so that
-pure-function tests can still run."
-  (declare (indent 1) (debug t))
+(defmacro r-ts-test--with-temp-r-ts (content &rest body)
+  "Execute BODY in a temporary buffer containing CONTENT."
   `(with-temp-buffer
+     (r-ts-mode)
      (insert ,content)
-     (goto-char (point-min))
-     (if (treesit-ready-p 'r t)
-         (r-ts-mode)
-       (fundamental-mode))
      ,@body))
 
 
@@ -40,7 +32,7 @@ pure-function tests can still run."
   "R-ts-mode activates without errors when the R grammar is present."
   :tags '(:ts)
   (when (treesit-ready-p 'r t)
-    (r-ts-test--with-r-buffer "x <- 1\n"
+    (r-ts-test--with-temp-r-ts "x <- 1\n"
       (should (eq major-mode 'r-ts-mode)))))
 
 (provide 'r-ts-mode-tests)

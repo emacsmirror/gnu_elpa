@@ -13,7 +13,7 @@ TESTS   = r-ts-mode-tests.elc
 
 ## Everything that goes into the release tarball
 PKG     = r-ts-mode-pkg.el
-DIST    = $(PKG) $(EL) README.org LICENSE
+DIST    = $(EL) README.org LICENSE
 
 .el.elc:
 	$(BATCH) -f batch-byte-compile $<

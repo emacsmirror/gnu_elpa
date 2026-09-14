@@ -2155,8 +2155,8 @@ in case of cyclic dependencies."
                                ""
                              (concat elpaa--sister-archive-url "/"
                                      elpaa--sister-archive-release-path))))
-                 (format "<a href=\"%s.html\">%s</a> (<a href=\"%s.tar\">.tar</a>)"
-                         pkg-name pkg-name pkg-name)))
+                 (format "<a href=\"%s%s.html\">%s</a> (<a href=\"%s%s.tar\">.tar</a>)"
+                         pref pkg-name pkg-name pref pkg-name)))
              reqs "</dd><dd>")
             "</dd>\n")))
 

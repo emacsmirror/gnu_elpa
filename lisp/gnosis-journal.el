@@ -57,13 +57,21 @@ then uses journal.org.gpg under `gnosis-journal-dir'.  An explicit
 (defcustom gnosis-journal-templates
   (list (cons "Default"
               (lambda ()
-                (concat "{*} Daily Notes\n\n{*} Goals\n"
+                (concat "{*} Daily Notes\n:PROPERTIES:\n"
+                        ":GNOSIS_JOURNAL_ROLES: thoughts\n:END:\n\n"
+                        "{*} Goals\n:PROPERTIES:\n"
+                        ":GNOSIS_JOURNAL_ROLES: todos\n:END:\n"
                         (gnosis-journal-todos))))
         (cons "Empty" (lambda () ""))
-        (cons "Study" (lambda () "{*} Study\n\n"))
+        (cons "Study" (lambda ()
+                        "{*} Study\n:PROPERTIES:\n:GNOSIS_JOURNAL_ROLES: thoughts\n:END:\n\n"))
         (cons "Goals" (lambda ()
-                        (concat "{*} Goals\n" (gnosis-journal-todos))))
-        (cons "Day reflection" (lambda () "{*} Day reflection\n\n")))
+                        (concat "{*} Goals\n:PROPERTIES:\n"
+                                ":GNOSIS_JOURNAL_ROLES: todos\n:END:\n"
+                                (gnosis-journal-todos))))
+        (cons "Day reflection"
+              (lambda ()
+                "{*} Day reflection\n:PROPERTIES:\n:GNOSIS_JOURNAL_ROLES: thoughts\n:END:\n\n")))
   "Templates for journaling.
 Template functions take no arguments and return strings.  During
 journal creation or insertion, `gnosis-journal-template-date' holds
@@ -71,7 +79,13 @@ the selected ISO date; `gnosis-journal-todos' uses that date.
 Use {*} as a heading
 placeholder; it will be expanded to org heading stars relative to
 the insertion context.  {**} adds one extra level, {***} adds two,
-etc."
+etc.  A heading's non-inherited GNOSIS_JOURNAL_ROLES property may be
+thoughts, todos, or thoughts todos.  Each role has at most one destination
+per date.  Consolidate additive GNOSIS_JOURNAL_ROLES+ declarations into
+one property; additive syntax is not supported.  Capture appends to its
+own body before children; absent roles
+use the date body with a notice.  Heading titles have no routing meaning.
+Existing dates retain their own declarations when templates change."
   :type '(alist :key-type (string :tag "Name")
                 :value-type (function :tag "Template Function")))
 
@@ -109,6 +123,7 @@ or pass an explicit date to `gnosis-journal-todos'.")
   "n" #'gnosis-journal-next
   "p" #'gnosis-journal-previous
   "c" #'gnosis-journal-capture
+  "a" #'gnosis-journal-add-todo
   "i" #'gnosis-journal-insert-template
   "t" #'gnosis-journal-insert-task
   "k" #'gnosis-journal-complete-task
@@ -522,7 +537,20 @@ if TEMPLATE is not a string."
         ((not (stringp template))
          (user-error "Journal template must return a string"))
         ((string-empty-p template) nil)
-        (t (gnosis-org-expand-headings template (if heading-p 2 1)))))
+        (t
+         (let ((body (gnosis-org-expand-headings template (if heading-p 2 1))))
+           (gnosis-journal--validate-body body heading-p)
+           body))))
+
+(defun gnosis-journal--validate-body (body heading-p &optional existing)
+  "Validate BODY's roles combined with EXISTING dated text, without edits.
+HEADING-P means a dated heading rather than a file-level entry."
+  (with-temp-buffer
+    (org-mode)
+    (insert (or existing (if heading-p "* Date\n" "#+title: Date\n")))
+    (unless (bolp) (insert "\n"))
+    (insert body)
+    (gnosis-journal--role-position 'thoughts heading-p)))
 
 (defun gnosis-journal--ensure-buffer (file)
   "Visit FILE, inserting journal metadata when the buffer is new and empty.
@@ -535,12 +563,14 @@ Do not write FILE to disk; native save handles encryption."
                         (or user-full-name ""))))
       buffer)))
 
-(defun gnosis-journal--create-heading (title)
+(cl-defun gnosis-journal--create-heading (title &optional (prepared nil prepared-p))
   "Append a level-1 heading TITLE in the single journal file.
 Widen before appending so a narrowed subtree is not the insertion
-point, and leave the buffer widened on the new heading."
+point, and leave the buffer widened on the new heading.
+Use PREPARED template text when PREPARED-P is non-nil."
   (pcase-let* ((`(,file ,db ,dir) (gnosis-journal--destination))
-               (template (gnosis-journal--read-template file db dir title))
+               (template (if prepared-p prepared
+                           (gnosis-journal--read-template file db dir title)))
                (body (gnosis-journal--prepared-body template t)))
     (unless file
       (user-error "No single journal file is configured"))
@@ -558,10 +588,12 @@ point, and leave the buffer widened on the new heading."
         (when body (insert body)))
       (gnosis-nodes-mode 1))))
 
-(defun gnosis-journal--create-separate (title)
-  "Create a separate journal file for TITLE after template selection."
+(cl-defun gnosis-journal--create-separate (title &optional (prepared nil prepared-p))
+  "Create a separate journal file for TITLE after template selection.
+Use PREPARED template text when PREPARED-P is non-nil."
   (pcase-let* ((`(,file ,db ,dir) (gnosis-journal--destination))
-               (template (gnosis-journal--read-template file db dir title))
+               (template (if prepared-p prepared
+                           (gnosis-journal--read-template file db dir title)))
                (body (gnosis-journal--prepared-body template nil)))
     (gnosis-journal--assert-destination file db dir)
     (gnosis-nodes--create-file title (gnosis-journal--dir) body)))
@@ -846,12 +878,15 @@ Preserve existing text and IDs.  Quit or invalid input inserts nothing."
          (file buffer-file-name)
          (entry (gnosis-journal--unique-entry date))
          (destination (gnosis-journal--destination))
-         (state (gnosis-journal--buffer-state file)))
+         (state (gnosis-journal--buffer-state file))
+         (config (gnosis-journal--capture-config)))
     (unless (and file entry (equal file (nth 2 entry)))
       (user-error "Not in the selected journal entry"))
     (let ((name (or name (funcall gnosis-nodes-completing-read-func
                                  "Insert journal template: "
                                  (mapcar #'car gnosis-journal-templates)))))
+      (unless (equal config (gnosis-journal--capture-config))
+        (user-error "Journal configuration changed during input"))
       (apply #'gnosis-journal--assert-destination destination)
       (gnosis-journal--assert-buffer-state file state)
       (let ((text (with-current-buffer (car state)
@@ -859,7 +894,18 @@ Preserve existing text and IDs.  Quit or invalid input inserts nothing."
         (apply #'gnosis-journal--assert-destination destination)
         (gnosis-journal--assert-buffer-state file state)
         (gnosis-journal--goto-entry entry)
-        (let ((body (gnosis-journal--prepared-body text (org-current-level))))
+        (let* ((heading-p (org-current-level))
+               (body (gnosis-journal--prepared-body text heading-p)))
+          (when body
+            (gnosis-journal--validate-body
+             body heading-p
+             (save-restriction
+               (when heading-p (org-narrow-to-subtree))
+               (buffer-substring-no-properties (point-min) (point-max)))))
+          (unless (equal config (gnosis-journal--capture-config))
+            (user-error "Journal configuration changed during input"))
+          (apply #'gnosis-journal--assert-destination destination)
+          (gnosis-journal--assert-buffer-state file state)
           (when body
             (atomic-change-group
               (if (org-current-level)
@@ -869,64 +915,296 @@ Preserve existing text and IDs.  Quit or invalid input inserts nothing."
               (insert body)
               (unless (bolp) (insert "\n")))))))))
 
-(defun gnosis-journal--writing-position ()
-  "Move from an entry root to its free-writing section's end.
-Use its direct Daily Notes child if present, otherwise the entry body.
-Stop before the next heading so notes never fall under Goals or a
-nested child.  The buffer must be widened and point on the entry root."
-  (let* ((level (or (org-current-level) 0))
-         (start (point))
-         (end (if (> level 0)
-                  (save-excursion (org-end-of-subtree t t))
-                (point-max)))
-         (daily
-          (save-excursion
-            (when (> level 0) (forward-line 1))
-            (catch 'found
-              (while (re-search-forward org-heading-regexp end t)
-                (when (and (= (org-current-level) (1+ level))
-                           (equal (org-get-heading t t t t) "Daily Notes"))
-                  (throw 'found (line-beginning-position))))))))
-    (goto-char (or daily start))
-    (when (or daily (> level 0)) (forward-line 1))
-    (if (re-search-forward org-heading-regexp end t)
-        (beginning-of-line)
-      (goto-char end))))
+(defun gnosis-journal--role-position (role &optional heading-p)
+  "Return (POSITION . FALLBACK) for ROLE in this complete dated restriction.
+HEADING-P means the restriction must be exactly one heading subtree;
+otherwise it is a dated file.  ROLE is `thoughts' or `todos'.  Validate
+all non-inherited GNOSIS_JOURNAL_ROLES declarations, including duplicate
+keys and destinations.  Append to the heading's own body before children.
+No matching role means the date body and non-nil FALLBACK.
+Use native Org boundaries: valid blocks and drawers are opaque; unescaped
+star lines are headings, not literal examples.  Do not lint free prose."
+  (unless (memq role '(thoughts todos))
+    (user-error "Unknown journal role: %s" role))
+  (save-excursion
+    (save-match-data
+      (let* ((tree (org-element-parse-buffer))
+             (headlines (org-element-map tree 'headline #'identity))
+             (root (and heading-p (car headlines)))
+             destinations)
+        (when (and heading-p
+                   (or (null root)
+                       (/= (org-element-property :begin root) (point-min))
+                       (/= (org-element-property :end root) (point-max))))
+          (user-error "Narrow to exactly one dated journal subtree"))
+        (org-element-map tree 'paragraph
+          (lambda (paragraph)
+            (when (eq (org-element-type (org-element-property :parent paragraph))
+                      'section)
+              (goto-char (org-element-property :begin paragraph))
+              (when (let ((case-fold-search t))
+                      (re-search-forward "^[ \t]*:GNOSIS_JOURNAL_ROLES[+:]"
+                                         (org-element-property :end paragraph) t))
+                (user-error "Put GNOSIS_JOURNAL_ROLES in the heading's property drawer")))))
+        (org-element-map tree 'node-property
+          (lambda (property)
+            (when (equal (upcase (org-element-property :key property))
+                         "GNOSIS_JOURNAL_ROLES+")
+              (user-error "Consolidate additive declarations into one GNOSIS_JOURNAL_ROLES property"))))
+        (dolist (headline headlines)
+          (let* ((section (car (org-element-contents headline)))
+                 (properties
+                  (and (eq (org-element-type section) 'section)
+                       (org-element-map section 'node-property
+                         (lambda (property)
+                           (when (equal (upcase (org-element-property :key property))
+                                        "GNOSIS_JOURNAL_ROLES")
+                             property)))))
+                 (value (and properties
+                             (org-element-property :value (car properties))))
+                 (roles (and value (split-string value nil t)))
+                 (title (org-element-property :raw-value headline)))
+            (when (cdr properties)
+              (user-error "Duplicate GNOSIS_JOURNAL_ROLES keys on %s; keep one" title))
+            (when (and properties
+                       (or (null roles)
+                           (/= (length roles) (length (delete-dups (copy-sequence roles))))
+                           (seq-some (lambda (item)
+                                       (not (member item '("thoughts" "todos"))))
+                                     roles)))
+              (user-error "Invalid GNOSIS_JOURNAL_ROLES on %s; use thoughts, todos or thoughts todos" title))
+            (dolist (item roles)
+              (when (assoc item destinations)
+                (user-error "Multiple %s destinations; keep one GNOSIS_JOURNAL_ROLES declaration for this role" item))
+              (push (cons item headline) destinations))))
+        (let* ((match (cdr (assoc (symbol-name role) destinations)))
+               (target (or match root))
+               (begin (and target (org-element-property :begin target)))
+               (next (seq-find
+                      (lambda (headline)
+                        (or (null begin)
+                            (> (org-element-property :begin headline) begin)))
+                      headlines)))
+          (cons (if next (org-element-property :begin next) (point-max))
+                (not match)))))))
+
+(defun gnosis-journal--writing-position (role)
+  "Move from the dated root to ROLE's own-body insertion position.
+Announce a missing role's date-body fallback.  Never search sibling dates."
+  (let ((target
+         (save-restriction
+           (let ((heading-p (org-current-level)))
+             (when heading-p (org-narrow-to-subtree))
+             (gnosis-journal--role-position role heading-p)))))
+    (goto-char (car target))
+    (when (cdr target)
+      (message "No %s journal role; using the date body" role))))
+
+(defun gnosis-journal--capture-config ()
+  "Return the configuration that owns an in-progress journal capture.
+Keep template function identity, not a copy of closure-local state."
+  (list (mapcar (lambda (value)
+                  (if (stringp value) (copy-sequence value) value))
+                (append (gnosis-journal--destination)
+                        (list gnosis-journal-as-gpg gnosis-nodes-timestring
+                              gnosis-nodes-create-as-gpg
+                              gnosis-journal-bullet-point-char
+                              gnosis-journal-new-entry-template)))
+        (mapcar (lambda (item)
+                  (list (copy-sequence (car item)) (cdr item)
+                        (and (symbolp (cdr item))
+                             (fboundp (cdr item))
+                             (symbol-function (cdr item)))))
+                gnosis-journal-templates)))
+
+(defun gnosis-journal--capture-context ()
+  "Capture date, entry, file, buffer and configuration before any input.
+Visit an existing target without changing its contents."
+  (let* ((date (or (and buffer-file-name
+                       (gnosis-nodes--journal-file-p buffer-file-name)
+                       (gnosis-journal--date-at-point))
+                  (format-time-string "%Y-%m-%d")))
+         (entry (gnosis-journal--unique-entry date))
+         (file (or (nth 2 entry) (gnosis-journal--file))))
+    (when (and file (file-exists-p file) (not (get-file-buffer file)))
+      (find-file-noselect file))
+    (list :date date :entry entry :file file
+          :state (gnosis-journal--buffer-state file)
+          :config (gnosis-journal--capture-config))))
+
+(defun gnosis-journal--assert-capture (context)
+  "Refuse to retarget CONTEXT after recursive input or source effects."
+  (unless (equal (plist-get context :entry)
+                 (gnosis-journal--unique-entry (plist-get context :date)))
+    (user-error "Journal date changed during input"))
+  (unless (equal (plist-get context :config) (gnosis-journal--capture-config))
+    (user-error "Journal configuration changed during input"))
+  (gnosis-journal--assert-buffer-state
+   (plist-get context :file) (plist-get context :state)))
+
+(defun gnosis-journal--capture-template (context role)
+  "Preflight CONTEXT's ROLE and return a prepared new-date template, or nil.
+Perform all template prompts and routing checks before source ID effects."
+  (gnosis-journal--assert-capture context)
+  (let ((template
+         (if-let* ((entry (plist-get context :entry)))
+             (save-window-excursion
+               (with-current-buffer (car (plist-get context :state))
+                 (save-excursion
+                   (save-restriction
+                     (gnosis-journal--goto-entry entry)
+                     (let ((heading-p (org-current-level)))
+                       (when heading-p (org-narrow-to-subtree))
+                       (gnosis-journal--role-position role heading-p))
+                     nil))))
+           (let ((text (apply #'gnosis-journal--read-template
+                              (append (gnosis-journal--destination)
+                                      (list (plist-get context :date))))))
+             (gnosis-journal--prepared-body text (gnosis-journal--file))
+             text))))
+    (gnosis-journal--assert-capture context)
+    template))
+
+(defun gnosis-journal--create-capture (context role text template)
+  "Create CONTEXT's missing date with ROLE's TEXT and prepared TEMPLATE.
+Settle native buffer initialization before generating dated content.
+Keep initialization edits and confirmed source IDs outside the atomic
+insertion.  Native ID callback text edits share its rollback; file and
+mode changes are not undone."
+  (let* ((date (plist-get context :date))
+         (single (gnosis-journal--file))
+         (body (gnosis-journal--prepared-body template single))
+         (file (or single
+                   (expand-file-name
+                    (gnosis-org--create-name
+                     date nil gnosis-journal-as-gpg
+                     gnosis-nodes-create-as-gpg gnosis-nodes-timestring)
+                    (gnosis-journal--dir))))
+         (before (gnosis-journal--buffer-state file)))
+    (gnosis-journal--assert-capture context)
+    (make-directory (file-name-directory file) t)
+    (switch-to-buffer (find-file-noselect file))
+    (widen)
+    (unless gnosis-nodes-mode (gnosis-nodes-mode 1))
+    (unless (and (derived-mode-p 'org-mode)
+                 (equal buffer-file-name file))
+      (user-error "Journal buffer changed during initialization"))
+    (unless (equal (plist-get context :config) (gnosis-journal--capture-config))
+      (user-error "Journal configuration changed during input"))
+    (when before (gnosis-journal--assert-buffer-state file before))
+    (when (gnosis-journal--unique-entry date)
+      (user-error "Journal date changed during input"))
+    (unless (or single (and (not (file-exists-p file)) (= (buffer-size) 0)))
+      (user-error "Journal file is not empty; preserve its contents before retrying"))
+    (let ((owner (current-buffer))
+          (mode major-mode))
+      (atomic-change-group
+        (when (and single (= (buffer-size) 0))
+          (insert (format "#+title: %s Journal\n#+filetags: \n"
+                          (or user-full-name ""))))
+        (goto-char (point-max))
+        (unless (bolp) (insert "\n"))
+        (let ((begin (point))
+              (org-id-track-globally nil))
+          (insert (if single (format "* %s\n" date)
+                    (format "#+title: %s\n#+filetags: \n" date)))
+          (goto-char begin)
+          (org-id-get-create)
+          (unless (and (eq (current-buffer) owner)
+                       (eq (get-file-buffer file) owner)
+                       (equal buffer-file-name file)
+                       (eq major-mode mode))
+            (user-error "Journal buffer changed during ID creation"))
+          (goto-char (point-max))
+          (when body (insert body))
+          (goto-char begin)
+          (gnosis-journal--writing-position role)
+          (unless (equal (plist-get context :config) (gnosis-journal--capture-config))
+            (user-error "Journal configuration changed during input"))
+          (unless (bolp) (insert "\n"))
+          (insert text "\n"))))))
+
+(cl-defun gnosis-journal--insert-capture
+    (context role text &optional (prepared nil prepared-p))
+  "Insert TEXT under ROLE for the validated CONTEXT, without saving.
+Evaluate an automatic template only once, before creating a missing date.
+Use PREPARED text when PREPARED-P is non-nil."
+  (gnosis-journal--assert-capture context)
+  (let* ((entry (plist-get context :entry))
+         (template (if prepared-p prepared
+                     (gnosis-journal--capture-template context role))))
+    (gnosis-journal--assert-capture context)
+    (if (not entry)
+        (gnosis-journal--create-capture context role text template)
+      (gnosis-journal--goto-entry entry)
+      (gnosis-journal--assert-capture context)
+      (let ((file buffer-file-name)
+            (state (gnosis-journal--buffer-state buffer-file-name)))
+        (gnosis-journal--writing-position role)
+        (gnosis-journal--assert-capture context)
+        (gnosis-journal--assert-buffer-state file state)
+        (atomic-change-group
+          (unless (bolp) (insert "\n"))
+          (insert text "\n"))))))
+
+(defun gnosis-journal--capture-text (role note)
+  "Read NOTE if nil and append it under ROLE with native draft recovery."
+  (let* ((context (gnosis-journal--capture-context))
+         (note (or note (read-string-from-buffer
+                        (if (eq role 'thoughts) "Thought " "Todo ") ""))))
+    (when (string-empty-p (string-trim note))
+      (user-error "Journal note is empty"))
+    (condition-case err
+        (gnosis-journal--insert-capture
+         context role
+         (concat (if (eq role 'thoughts)
+                     (format-time-string "- %H:%M ")
+                   (concat gnosis-journal-bullet-point-char " [ ] "))
+                 note))
+      ((error quit)
+       (let ((buffer (generate-new-buffer "*Gnosis journal recovery*")))
+         (with-current-buffer buffer
+           (insert note)
+           (setq-local header-line-format
+                       "Journal capture refused; copy this draft to retry"))
+         (display-buffer buffer)
+         (message "Journal draft retained in %s" (buffer-name buffer)))
+       (signal (car err) (cdr err))))))
 
 ;;;###autoload
 (defun gnosis-journal-capture (&optional note)
-  "Append a timestamped NOTE to the current dated entry, or today's.
-Read NOTE in a temporary editing buffer when nil.  Use Daily Notes when
-present, otherwise the entry body before its first child heading.
-Do not save the journal."
+  "Append timestamped NOTE to this journal date, or today's outside journals.
+Read NOTE with native buffer input when nil.  A heading's non-inherited
+GNOSIS_JOURNAL_ROLES property selects thoughts; absent roles use the date
+body, with a notice.  Refuse ambiguous roles without edits.  Retain an
+accepted draft in a recovery buffer if later validation fails.  Do not save."
   (interactive)
-  (let* ((date (or (gnosis-journal--date-at-point)
-                   (format-time-string "%Y-%m-%d")))
-         (entry (gnosis-journal--unique-entry date))
-         (destination (gnosis-journal--destination))
-         (file (or (nth 2 entry) (car destination)))
-         (state (gnosis-journal--buffer-state file))
-         (note (or note (read-string-from-buffer "Thought " ""))))
-    (when (string-empty-p (string-trim note))
-      (user-error "Journal note is empty"))
-    (apply #'gnosis-journal--assert-destination destination)
-    (gnosis-journal--assert-buffer-state file state)
-    (if entry
-        (gnosis-journal--goto-entry entry)
-      (gnosis-journal-find date)
-      (gnosis-journal--goto-entry (gnosis-journal--unique-entry date)))
-    (gnosis-journal--writing-position)
-    (atomic-change-group
-      (unless (bolp) (insert "\n"))
-      (insert (format-time-string "- %H:%M ") note "\n"))))
+  (gnosis-journal--capture-text 'thoughts note))
+
+;;;###autoload
+(defun gnosis-journal-add-todo (&optional note)
+  "Append local checkbox NOTE to this journal date, or today's.
+Read NOTE with native buffer input when nil.  Use the non-inherited todos
+GNOSIS_JOURNAL_ROLES destination, or the date body with a notice.
+Retain accepted drafts on refusal.  Do not create external tasks or save."
+  (interactive)
+  (gnosis-journal--capture-text 'todos note))
 
 ;;;###autoload
 (defun gnosis-journal-insert-task ()
-  "Insert a checkbox linked to a selected source task.
-If the heading has no ID, confirm creating one at the captured
-source position.  Unlinked checkboxes remain journal prose."
+  "Insert a linked source-task checkbox under this date's todos role.
+Use today outside a journal.  If the source has no ID, confirm creating
+one at its captured position, including in this journal buffer.  Display
+source ID edits without saving them; a later refusal leaves those explicit
+edits unsaved.  Do not complete tasks or save the journal."
   (interactive)
-  (let* ((todos (gnosis-journal-get-todos))
+  (let* ((context (gnosis-journal--capture-context))
+         (todos (gnosis-journal-get-todos))
+         (source-modes
+          (mapcar (lambda (todo)
+                    (when-let* ((buffer (get-file-buffer (nth 2 todo))))
+                      (cons buffer (buffer-local-value 'major-mode buffer))))
+                  todos))
          (candidates
           (cl-loop for todo in todos
                    collect
@@ -945,51 +1223,90 @@ source position.  Unlinked checkboxes remain journal prose."
       (user-error "No task selected"))
     (pcase todo
       (`(,title ,_ts ,file ,id ,begin ,marker ,tick ,line ,digest)
-       (unless id
-         (unless (y-or-n-p (format "Create an Org ID on %s? " title))
-           (user-error "Canceled"))
-         (setq id (gnosis-journal--create-task-id
-                   title file begin marker tick line digest)))
-       (insert (format "%s [ ] [[id:%s][%s]]\n"
-                       gnosis-journal-bullet-point-char id title))))))
+       (gnosis-journal--assert-capture context)
+       (unless (or id (y-or-n-p (format "Create an Org ID on %s? " title)))
+         (user-error "Canceled"))
+       (let ((template (gnosis-journal--capture-template context 'todos)))
+         (unless id
+           (let* ((state (plist-get context :state))
+                  (same (and state marker (eq (car state) (marker-buffer marker))))
+                  (position (and same (marker-position marker)))
+                  (before (and same
+                               (with-current-buffer (car state)
+                                 (save-restriction
+                                   (widen)
+                                   (buffer-substring-no-properties
+                                    (point-min) (point-max)))))))
+             (setq id (gnosis-journal--create-task-id
+                       title file begin marker tick line digest
+                       (cdr (assq (get-file-buffer file) source-modes))))
+             (when same
+               (gnosis-journal--accept-task-id context before position id))))
+         (gnosis-journal--insert-capture
+          context 'todos
+          (format "%s [ ] [[id:%s][%s]]"
+                  gnosis-journal-bullet-point-char id title)
+          template))))))
 
-(defun gnosis-journal--create-task-id (title file begin marker tick line digest)
+(defun gnosis-journal--accept-task-id (context before position id)
+  "Accept only the authorized ID delta at POSITION in CONTEXT's owner.
+Compare native property insertion into BEFORE with the entire resulting
+buffer.  Do not bless unrelated edits, buffer replacement or mode changes."
+  (let* ((file (plist-get context :file))
+         (old (plist-get context :state))
+         (new (gnosis-journal--buffer-state file))
+         (expected (with-temp-buffer
+                     (org-mode)
+                     (insert before)
+                     (goto-char position)
+                     (org-entry-put nil "ID" id)
+                     (buffer-string))))
+    (unless (and (equal (seq-take old 3) (seq-take new 3))
+                 (with-current-buffer (car old)
+                   (save-restriction
+                     (widen)
+                     (equal expected (buffer-substring-no-properties
+                                      (point-min) (point-max))))))
+      (user-error "Journal changed beyond the confirmed source ID; insertion refused"))
+    (setf (plist-get context :state) new)
+    (let* ((entry (plist-get context :entry))
+           (current (and entry (gnosis-journal--unique-entry (car entry)))))
+      (when (and entry (null (nth 3 entry))
+                 (equal (seq-take entry 3) (seq-take current 3))
+                 (equal (nth 3 current) id))
+        (setf (plist-get context :entry) current)))))
+
+(defun gnosis-journal--create-task-id (title file begin marker tick line digest
+                                          &optional mode)
   "Create an Org ID on the captured source heading and return it.
 TITLE, FILE, BEGIN, MARKER, TICK, LINE and DIGEST identify the
-captured source.  Fail if the source buffer or snapshot changed."
-  (cond
-   ((and marker (marker-buffer marker))
-    (with-current-buffer (marker-buffer marker)
-      (unless (equal (expand-file-name (or (buffer-file-name) ""))
-                     (expand-file-name file))
-        (user-error "Task buffer is no longer %s" file))
-      (unless (and tick (= (buffer-chars-modified-tick) tick))
-        (user-error "Task heading changed: %s" title))
-      (save-excursion
-        (save-restriction
-          (widen)
-          (goto-char marker)
-          (org-id-get-create)
-          (display-buffer (current-buffer))
-          (org-id-get)))))
-   ((and marker (not (marker-buffer marker)))
+captured source.  Require Org mode and the captured MODE when non-nil.
+Fail atomically if the source buffer or snapshot changed."
+  (when (and marker (not (marker-buffer marker)))
     (user-error "Task heading buffer is gone"))
-   (t
-    (with-current-buffer (find-file-noselect file)
-      (save-excursion
-        (save-restriction
-          (widen)
-          (goto-char begin)
-          (unless (and digest
+  (with-current-buffer (if marker (marker-buffer marker)
+                         (find-file-noselect file))
+    (unless (and (derived-mode-p 'org-mode)
+                 (or (null mode) (eq major-mode mode)))
+      (user-error "Task source mode changed; return to Org mode and retry"))
+    (unless (equal (expand-file-name (or buffer-file-name ""))
+                   (expand-file-name file))
+      (user-error "Task buffer is no longer %s" file))
+    (save-excursion
+      (save-restriction
+        (widen)
+        (goto-char (or marker begin))
+        (unless (if marker
+                    (and tick (= (buffer-chars-modified-tick) tick))
+                  (and digest
                        (equal (secure-hash 'sha1 (current-buffer)) digest)
                        (equal (buffer-substring-no-properties
-                               (line-beginning-position)
-                               (line-end-position))
-                              line))
-            (user-error "Task heading changed: %s" title))
-          (org-id-get-create)
+                               (line-beginning-position) (line-end-position))
+                              line)))
+          (user-error "Task heading changed: %s" title))
+        (let ((id (atomic-change-group (org-id-get-create))))
           (display-buffer (current-buffer))
-          (org-id-get)))))))
+          id)))))
 
 (defun gnosis-journal--id-link-at-point ()
   "Return the Org ID of the link at point, or nil."

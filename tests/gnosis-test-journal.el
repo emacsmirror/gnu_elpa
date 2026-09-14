@@ -1952,7 +1952,7 @@ Name-only `.org.gpg' fixtures are not encryption proof."
     (gnosis-test-journal--teardown)))
 
 (ert-deftest gnosis-test-journal-insert-task-same-file-new-id-retains-origin ()
-  "Same-file confirmed ID creation inserts at origin and leaves the source task."
+  "Same-file confirmed ID creation appends to the date and retains the source."
   (gnosis-test-journal--setup)
   (unwind-protect
       (let* ((file (gnosis-test-journal--create-file
@@ -1962,6 +1962,8 @@ Name-only `.org.gpg' fixtures are not encryption proof."
                             "** TODO Task inside journal\nBody.\n"
                             "* 2026-01-03\n:PROPERTIES:\n:ID: origin-day\n:END:\n"
                             "HERE\n")))
+             (gnosis-journal-file file)
+             (gnosis-journal-dir gnosis-test-journal--temp-dir)
              (gnosis-journal-todo-files (list file))
              (gnosis-journal-todo-keywords '("TODO"))
              (gnosis-journal-bullet-point-char "+")
@@ -1981,7 +1983,7 @@ Name-only `.org.gpg' fixtures are not encryption proof."
           (cl-letf (((symbol-function 'y-or-n-p) (lambda (&rest _) t)))
             (gnosis-journal-insert-task))
           (should (equal (org-get-heading t t t t) "2026-01-03"))
-          (should (looking-at "HERE"))
+          (should (string-match-p (regexp-quote "HERE\n+ [ ]") (buffer-string)))
           (save-excursion
             (forward-line -1)
             (should (string-match-p

@@ -1228,6 +1228,7 @@ SPECS is the list of package specifications."
                        version
                        (elpaa--package-oldfiles pkgname destdir))))
          (default-directory (expand-file-name destdir)))
+    (elpaa--build-Info pkg-spec dir destdir)
     (elpaa--html-make-pkg
      pkgdesc pkg-spec files dir
      ;; we don't pass a readme here, since we don't want to generate one

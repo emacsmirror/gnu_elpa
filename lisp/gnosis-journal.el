@@ -17,6 +17,7 @@
 (require 'org)
 (require 'org-element)
 (require 'subr-x)
+(require 'string-edit)
 (require 'gnosis-org)
 (require 'gnosis-db)
 (require 'gnosis-sqlite)
@@ -895,7 +896,7 @@ nested child.  The buffer must be widened and point on the entry root."
 ;;;###autoload
 (defun gnosis-journal-capture (&optional note)
   "Append a timestamped NOTE to the current dated entry, or today's.
-Prompt for NOTE when called interactively.  Use Daily Notes when
+Read NOTE in a temporary editing buffer when nil.  Use Daily Notes when
 present, otherwise the entry body before its first child heading.
 Do not save the journal."
   (interactive)
@@ -905,7 +906,7 @@ Do not save the journal."
          (destination (gnosis-journal--destination))
          (file (or (nth 2 entry) (car destination)))
          (state (gnosis-journal--buffer-state file))
-         (note (or note (read-string "Journal note: "))))
+         (note (or note (read-string-from-buffer "Thought " ""))))
     (when (string-empty-p (string-trim note))
       (user-error "Journal note is empty"))
     (apply #'gnosis-journal--assert-destination destination)

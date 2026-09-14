@@ -45,7 +45,8 @@ AUTOLOAD_COMMANDS := gnosis gnosis-add-thema gnosis-add-model-thema gnosis-add-m
 	gnosis-dashboard gnosis-export-db gnosis-import-db gnosis-save \
 	gnosis-import-anki gnosis-journal-find gnosis-journal-insert \
 	gnosis-journal gnosis-journal-date gnosis-journal-previous \
-	gnosis-journal-next gnosis-journal-capture gnosis-journal-insert-task \
+	gnosis-journal-next gnosis-journal-capture gnosis-journal-insert-template \
+	gnosis-journal-insert-task \
 	gnosis-journal-complete-task gnosis-journal-study gnosis-study-day \
 	gnosis-links-check gnosis-links-cleanup gnosis-links-sync \
 	gnosis-nodes-delete-file gnosis-nodes-find gnosis-nodes-find-by-tag \

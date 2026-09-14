@@ -2147,7 +2147,7 @@ Name-only `.org.gpg' fixtures are not encryption proof."
                 (insert "\n* Reflection\nAn unsaved section.\n")
                 (gnosis-journal-capture "A later reflection.")
                 (should (equal buffer-file-name file))
-                (should (= selections 1))
+                (should (= selections 0))
                 (should (equal (org-entry-get (point-min) "ID") id))
                 (should (string-match-p "An unsaved section" (buffer-string)))
                 (should (string-match-p "A later reflection" (buffer-string)))
@@ -2156,7 +2156,7 @@ Name-only `.org.gpg' fixtures are not encryption proof."
                 (gnosis-journal-previous)
                 (should (equal buffer-file-name file))
                 (should (equal (org-entry-get (point-min) "ID") id))
-                (should (= selections 2)))))
+                (should (= selections 0)))))
         (gnosis-test-journal--kill-files
          (directory-files gnosis-journal-dir t "\\.org\\'"))))))
 

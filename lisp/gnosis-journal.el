@@ -58,14 +58,35 @@ then uses journal.org.gpg under `gnosis-journal-dir'.  An explicit
               (lambda ()
                 (concat "{*} Daily Notes\n\n{*} Goals\n"
                         (gnosis-journal-todos))))
-        (cons "Empty" (lambda () "")))
+        (cons "Empty" (lambda () ""))
+        (cons "Study" (lambda () "{*} Study\n\n"))
+        (cons "Goals" (lambda ()
+                        (concat "{*} Goals\n" (gnosis-journal-todos))))
+        (cons "Day reflection" (lambda () "{*} Day reflection\n\n")))
   "Templates for journaling.
-Template functions return strings.  Use {*} as a heading
+Template functions take no arguments and return strings.  During
+journal creation or insertion, `gnosis-journal-template-date' holds
+the selected ISO date; `gnosis-journal-todos' uses that date.
+Use {*} as a heading
 placeholder; it will be expanded to org heading stars relative to
 the insertion context.  {**} adds one extra level, {***} adds two,
 etc."
   :type '(alist :key-type (string :tag "Name")
                 :value-type (function :tag "Template Function")))
+
+(defcustom gnosis-journal-new-entry-template nil
+  "Template name to insert automatically when creating a new dated entry.
+Nil means free-form writing, without generated body or template prompt.
+A string names an entry in `gnosis-journal-templates'.  Existing dates
+are never rewritten.  Non-dated entries retain template selection.
+Use `gnosis-journal-insert-template' to add a template on demand."
+  :type '(choice (const :tag "Free-form" nil) (string :tag "Template name"))
+  :group 'gnosis-journal)
+
+(defvar gnosis-journal-template-date nil
+  "ISO date being expanded by a journal template, or nil outside expansion.
+Template functions still take no arguments.  They may read this variable
+or pass an explicit date to `gnosis-journal-todos'.")
 
 (defcustom gnosis-journal-todo-files org-agenda-files
   "TODO files used for journal task collection."
@@ -87,6 +108,7 @@ etc."
   "n" #'gnosis-journal-next
   "p" #'gnosis-journal-previous
   "c" #'gnosis-journal-capture
+  "i" #'gnosis-journal-insert-template
   "t" #'gnosis-journal-insert-task
   "k" #'gnosis-journal-complete-task
   "s" #'gnosis-journal-study
@@ -451,28 +473,55 @@ FILE is nil in separate-file mode.  DIR is not created."
                       (expand-file-name dir)))
     (user-error "Journal destination changed during template selection")))
 
-(defun gnosis-journal--read-template (file db dir)
-  "Select a journal template without writing.
-FILE, DB and DIR are the captured destination."
-  (let ((template (gnosis-nodes-select-template gnosis-journal-templates)))
+(defun gnosis-journal--buffer-state (file)
+  "Return FILE's visiting buffer identity and edit state, or nil."
+  (when-let* ((buffer (and file (get-file-buffer file))))
+    (with-current-buffer buffer
+      (list buffer buffer-file-name major-mode (buffer-chars-modified-tick)))))
+
+(defun gnosis-journal--assert-buffer-state (file state)
+  "Signal if FILE's visiting buffer no longer matches STATE."
+  (unless (equal state (gnosis-journal--buffer-state file))
+    (user-error "Journal buffer changed during input")))
+
+(defun gnosis-journal--template-text (name date)
+  "Evaluate template NAME for DATE without changing the caller's point.
+Signal on unknown names or non-string results."
+  (let ((function (cdr (assoc name gnosis-journal-templates)))
+        (gnosis-journal-template-date date))
+    (unless (and (stringp name) (functionp function))
+      (user-error "Unknown journal template: %s" name))
+    (let ((text (save-excursion (funcall function))))
+      (unless (stringp text)
+        (user-error "Journal template must return a string"))
+      text)))
+
+(defun gnosis-journal--read-template (file db dir &optional title)
+  "Prepare a journal template without writing.
+FILE, DB and DIR are the captured destination.  Dated TITLE uses
+`gnosis-journal-new-entry-template'; other titles prompt as before."
+  (let* ((state (gnosis-journal--buffer-state file))
+         (date (gnosis-journal--title-date title))
+         (template
+          (if date
+              (when gnosis-journal-new-entry-template
+                (gnosis-journal--template-text
+                 gnosis-journal-new-entry-template date))
+            (save-excursion
+              (gnosis-nodes-select-template gnosis-journal-templates)))))
     (gnosis-journal--assert-destination file db dir)
+    (gnosis-journal--assert-buffer-state file state)
     template))
 
 (defun gnosis-journal--prepared-body (template heading-p)
   "Return expanded TEMPLATE text, or nil if empty.
 HEADING-P non-nil expands relative to a level-1 heading.  Signal
-if TEMPLATE is not a string.  Expand in a disposable buffer."
+if TEMPLATE is not a string."
   (cond ((null template) nil)
         ((not (stringp template))
          (user-error "Journal template must return a string"))
         ((string-empty-p template) nil)
-        (t
-         (with-temp-buffer
-           (org-mode)
-           (when heading-p
-             (insert "* heading\n")
-             (org-back-to-heading t))
-           (gnosis-org-expand-headings template)))))
+        (t (gnosis-org-expand-headings template (if heading-p 2 1)))))
 
 (defun gnosis-journal--ensure-buffer (file)
   "Visit FILE, inserting journal metadata when the buffer is new and empty.
@@ -490,7 +539,7 @@ Do not write FILE to disk; native save handles encryption."
 Widen before appending so a narrowed subtree is not the insertion
 point, and leave the buffer widened on the new heading."
   (pcase-let* ((`(,file ,db ,dir) (gnosis-journal--destination))
-               (template (gnosis-journal--read-template file db dir))
+               (template (gnosis-journal--read-template file db dir title))
                (body (gnosis-journal--prepared-body template t)))
     (unless file
       (user-error "No single journal file is configured"))
@@ -511,7 +560,7 @@ point, and leave the buffer widened on the new heading."
 (defun gnosis-journal--create-separate (title)
   "Create a separate journal file for TITLE after template selection."
   (pcase-let* ((`(,file ,db ,dir) (gnosis-journal--destination))
-               (template (gnosis-journal--read-template file db dir))
+               (template (gnosis-journal--read-template file db dir title))
                (body (gnosis-journal--prepared-body template nil)))
     (gnosis-journal--assert-destination file db dir)
     (gnosis-nodes--create-file title (gnosis-journal--dir) body)))
@@ -603,13 +652,18 @@ point, or narrowing."
              do (push (gnosis-journal-get--todos file) todos))
     (nreverse (apply #'append todos))))
 
-(defun gnosis-journal-todos ()
-  "Return today's unscheduled and today-scheduled tasks as checkboxes.
+(defun gnosis-journal-todos (&optional date)
+  "Return unscheduled and DATE-scheduled tasks as checkboxes.
+DATE is an ISO calendar date, defaulting to `gnosis-journal-template-date'
+or today outside template expansion.
 Headings with source IDs are written as ID links; headings without
 IDs remain plain text and cannot complete external tasks."
   (let ((todos (gnosis-journal-get-todos))
-        (current-date (format-time-string "%Y-%m-%d"))
+        (current-date (or date gnosis-journal-template-date
+                          (format-time-string "%Y-%m-%d")))
         todos-string)
+    (unless (gnosis-journal--iso-date-p current-date)
+      (user-error "Not a calendar date: %s" current-date))
     (cl-loop for todo in todos
              do
              (pcase todo
@@ -780,21 +834,90 @@ Skip missing dates.  Do not create an entry."
     (gnosis-journal--visit-existing-date next)))
 
 ;;;###autoload
+(defun gnosis-journal-insert-template (&optional name)
+  "Append template NAME to the dated entry at point, without saving.
+Prompt for a name from `gnosis-journal-templates' when NAME is nil.
+Expand headings relative to the entry, not the section at point.
+Preserve existing text and IDs.  Quit or invalid input inserts nothing."
+  (interactive)
+  (let* ((date (or (gnosis-journal--date-at-point)
+                   (user-error "No dated journal entry at point")))
+         (file buffer-file-name)
+         (entry (gnosis-journal--unique-entry date))
+         (destination (gnosis-journal--destination))
+         (state (gnosis-journal--buffer-state file)))
+    (unless (and file entry (equal file (nth 2 entry)))
+      (user-error "Not in the selected journal entry"))
+    (let ((name (or name (funcall gnosis-nodes-completing-read-func
+                                 "Insert journal template: "
+                                 (mapcar #'car gnosis-journal-templates)))))
+      (apply #'gnosis-journal--assert-destination destination)
+      (gnosis-journal--assert-buffer-state file state)
+      (let ((text (with-current-buffer (car state)
+                    (gnosis-journal--template-text name date))))
+        (apply #'gnosis-journal--assert-destination destination)
+        (gnosis-journal--assert-buffer-state file state)
+        (gnosis-journal--goto-entry entry)
+        (let ((body (gnosis-journal--prepared-body text (org-current-level))))
+          (when body
+            (atomic-change-group
+              (if (org-current-level)
+                  (org-end-of-subtree t t)
+                (goto-char (point-max)))
+              (unless (bolp) (insert "\n"))
+              (insert body)
+              (unless (bolp) (insert "\n")))))))))
+
+(defun gnosis-journal--writing-position ()
+  "Move from an entry root to its free-writing section's end.
+Use its direct Daily Notes child if present, otherwise the entry body.
+Stop before the next heading so notes never fall under Goals or a
+nested child.  The buffer must be widened and point on the entry root."
+  (let* ((level (or (org-current-level) 0))
+         (start (point))
+         (end (if (> level 0)
+                  (save-excursion (org-end-of-subtree t t))
+                (point-max)))
+         (daily
+          (save-excursion
+            (when (> level 0) (forward-line 1))
+            (catch 'found
+              (while (re-search-forward org-heading-regexp end t)
+                (when (and (= (org-current-level) (1+ level))
+                           (equal (org-get-heading t t t t) "Daily Notes"))
+                  (throw 'found (line-beginning-position))))))))
+    (goto-char (or daily start))
+    (when (or daily (> level 0)) (forward-line 1))
+    (if (re-search-forward org-heading-regexp end t)
+        (beginning-of-line)
+      (goto-char end))))
+
+;;;###autoload
 (defun gnosis-journal-capture (&optional note)
   "Append a timestamped NOTE to the current dated entry, or today's.
-Prompt for NOTE when called interactively."
+Prompt for NOTE when called interactively.  Use Daily Notes when
+present, otherwise the entry body before its first child heading.
+Do not save the journal."
   (interactive)
-  (let ((note (or note (read-string "Journal note: ")))
-        (date (or (gnosis-journal--date-at-point)
-                  (format-time-string "%Y-%m-%d"))))
+  (let* ((date (or (gnosis-journal--date-at-point)
+                   (format-time-string "%Y-%m-%d")))
+         (entry (gnosis-journal--unique-entry date))
+         (destination (gnosis-journal--destination))
+         (file (or (nth 2 entry) (car destination)))
+         (state (gnosis-journal--buffer-state file))
+         (note (or note (read-string "Journal note: "))))
     (when (string-empty-p (string-trim note))
       (user-error "Journal note is empty"))
-    (gnosis-journal-find date)
-    (if (org-current-level)
-        (org-end-of-subtree t t)
-      (goto-char (point-max)))
-    (unless (bolp) (insert "\n"))
-    (insert (format-time-string "- %H:%M ") note "\n")))
+    (apply #'gnosis-journal--assert-destination destination)
+    (gnosis-journal--assert-buffer-state file state)
+    (if entry
+        (gnosis-journal--goto-entry entry)
+      (gnosis-journal-find date)
+      (gnosis-journal--goto-entry (gnosis-journal--unique-entry date)))
+    (gnosis-journal--writing-position)
+    (atomic-change-group
+      (unless (bolp) (insert "\n"))
+      (insert (format-time-string "- %H:%M ") note "\n"))))
 
 ;;;###autoload
 (defun gnosis-journal-insert-task ()

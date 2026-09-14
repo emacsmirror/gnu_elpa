@@ -7753,7 +7753,7 @@ this point.  If nil, limit to the previous 15 lines."
                    ;; Deal with spaces between macro name and argument
                    ;; in `docTeX-mode':
                    (if (derived-mode-p 'docTeX-mode)
-                       (skip-chars-backward "[ ]")
+                       (skip-chars-backward " ")
                      t)
                    (re-search-backward (concat (regexp-quote TeX-esc)
                                                "["

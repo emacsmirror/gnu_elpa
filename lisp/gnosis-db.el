@@ -60,7 +60,7 @@ Initialized lazily by `gnosis--ensure-db' on first use.")
 (defvar gnosis-testing nil
   "Change this to non-nil when running manual tests.")
 
-(defconst gnosis-db-version 9
+(defconst gnosis-db-version 10
   "Gnosis database version.")
 
 (defvar gnosis--id-cache nil
@@ -336,6 +336,11 @@ Uses `gnosis--id-cache' for O(1) collision checking when bound."
       (:unique [event-id])
       (:foreign-key [event-id] :references practice-events [event-id]
                     :on-delete :cascade)))
+    (practice-encounters
+     ([(event-id text :primary-key :not-null)
+       (data text :not-null)]
+      (:foreign-key [event-id] :references practice-events [event-id]
+                    :on-delete :cascade)))
     (practice-events
      ([(event-id text :primary-key :not-null)
        (thema-id integer :not-null)
@@ -521,6 +526,7 @@ Used for fresh databases only."
       (gnosis-db--install-default-scheduler-config db)
       (gnosis-sqlite-execute db "INSERT INTO scheduler_active VALUES (1, 1)")
       (gnosis-db--create-study-guards db)
+      (gnosis-db--create-encounter-guards db)
       (gnosis--db-create-indexes db)
       (gnosis-db--create-scheduler-guards db)
       (gnosis--db-set-version gnosis-db-version))))
@@ -654,14 +660,45 @@ Used for fresh databases only."
   (dolist (sql gnosis-db--study-guards)
     (gnosis-sqlite-execute db sql)))
 
+(defconst gnosis-db--encounter-guards
+  '("CREATE TRIGGER practice_encounters_no_update BEFORE UPDATE ON practice_encounters
+       BEGIN SELECT RAISE(ABORT, 'immutable practice encounter'); END"
+    "CREATE TRIGGER practice_encounters_no_replace BEFORE INSERT ON practice_encounters
+       WHEN EXISTS (SELECT 1 FROM practice_encounters WHERE event_id = NEW.event_id)
+       BEGIN SELECT RAISE(ABORT, 'practice encounter identity exists'); END"
+    "CREATE TRIGGER practice_encounters_no_direct_delete BEFORE DELETE ON practice_encounters
+       WHEN EXISTS (SELECT 1 FROM practice_events WHERE event_id = OLD.event_id)
+       BEGIN SELECT RAISE(ABORT, 'hard deletion required'); END")
+  "Schema 10 guards for minimal accepted practice encounter evidence.")
+
+(defun gnosis-db--create-encounter-guards (db)
+  "Protect accepted practice encounter evidence in DB."
+  (dolist (sql gnosis-db--encounter-guards) (gnosis-sqlite-execute db sql)))
+
+(defun gnosis-db--migrate-v10 ()
+  "Upgrade validated released schema 9 to schema 10 without inventing evidence."
+  (unless (= 9 (gnosis--db-version)) (error "Expected released schema 9"))
+  (let ((db (gnosis--ensure-db))
+        (schema (cadr (assq 'practice-encounters gnosis-db--schemata))))
+    (gnosis-db--check-schema db 9)
+    (gnosis-sqlite-with-transaction db
+      (gnosis-sqlite-execute
+       db (format "CREATE TABLE practice_encounters (%s)"
+                  (gnosis-sqlite--compile-schema schema)))
+      (gnosis-db--create-encounter-guards db)
+      (gnosis--db-set-version 10))))
+
 (defun gnosis--db-run-migrations (current-version &optional no-commit)
   "Upgrade released CURRENT-VERSION to `gnosis-db-version'.
 Commit afterwards unless NO-COMMIT defers that until outer validation."
-  (pcase current-version
-    (8 (gnosis-db--migrate-v9)
-       (unless no-commit (gnosis--commit-migration 8 9)))
-    (9 nil)
-    (_ (error "Unsupported Gnosis migration source %s" current-version))))
+  (gnosis-sqlite-with-transaction (gnosis--ensure-db)
+    (pcase current-version
+      (8 (gnosis-db--migrate-v9) (gnosis-db--migrate-v10))
+      (9 (gnosis-db--migrate-v10))
+      (10 nil)
+      (_ (error "Unsupported Gnosis migration source %s" current-version))))
+  (when (and (not no-commit) (< current-version gnosis-db-version))
+    (gnosis--commit-migration current-version gnosis-db-version)))
 
 (defun gnosis--commit-migration (from to)
   "Commit database after migrating from version FROM to TO.
@@ -677,7 +714,7 @@ before database initialization continues."
 
 (defconst gnosis-db-min-version 8
   "Oldest supported schema: released Gnosis 0.10.6.
-Until 0.11.0 is published, schema 8 to 9 is the sole migration boundary.
+Released schema 8 upgrades through released 0.11.0 schema 9 to schema 10.
 Private development schemas require a separate, verified conversion.")
 
 (defconst gnosis-db--legacy-schemata
@@ -714,7 +751,8 @@ Private development schemas require a separate, verified conversion.")
                   (memq (car entry) '(themata extras thema-tag thema-links nodes
                                      journal node-tag node-links)))
                 gnosis-db--schemata)))
-    (9 gnosis-db--schemata)
+    (9 (assq-delete-all 'practice-encounters (copy-sequence gnosis-db--schemata)))
+    (10 gnosis-db--schemata)
     (_ (error "Unsupported Gnosis schema %s" version))))
 
 (defun gnosis-db--compatible-columns-p (table schema actual &optional version)
@@ -773,18 +811,18 @@ not a general SQL equivalence test: unknown guard definitions are refused."
                (_ (downcase token))))))
 
 (defun gnosis-db--check-schema (db version)
-  "Check required tables, columns and evidence guards of DB at VERSION.
+  "Check DB's tables, columns, ownership and evidence guards at VERSION.
 This is a compatibility check, not an exact DDL fingerprint or a check of
 all application values.  Reject damaged required objects before any writes."
   (let ((tables (mapcar #'car (sqlite-select db
                   "SELECT name FROM sqlite_master WHERE type = 'table'")))
         (triggers (sqlite-select db
                    "SELECT name, sql FROM sqlite_master WHERE type = 'trigger'")))
-    (when (= version 8)
+    (when (< version 10)
       (dolist (entry gnosis-db--schemata)
-        (unless (assq (car entry) (gnosis-db--schemata-for-version 8))
+        (unless (assq (car entry) (gnosis-db--schemata-for-version version))
           (when (member (gnosis-sqlite--ident (car entry)) tables)
-            (error "Unexpected current table in released schema 8: %s" (car entry))))))
+            (error "Unexpected current table in released schema %d: %s" version (car entry))))))
     (pcase-dolist (`(,table ,schema) (gnosis-db--schemata-for-version version))
         (let ((name (gnosis-sqlite--ident table)))
           (unless (and (member name tables)
@@ -797,13 +835,23 @@ all application values.  Reject damaged required objects before any writes."
                         version))
             (error "Invalid Gnosis schema %d: required table/columns %s" version name))))
     (when (>= version 9)
-      (dolist (sql (append gnosis-db--scheduler-guards gnosis-db--study-guards))
+      (dolist (sql (append gnosis-db--scheduler-guards gnosis-db--study-guards
+                           (when (>= version 10) gnosis-db--encounter-guards)))
         (let* ((expected (gnosis-db--guard-tokens sql))
                (name (nth 2 expected))
                (actual (cadr (assoc-string name triggers t))))
           (unless (and actual (equal expected (gnosis-db--guard-tokens actual)))
             (error "Invalid Gnosis schema %d: missing or changed guard %s"
                    version name))))))
+  ;; Row integrity alone cannot detect a missing deletion cascade.
+  (when (and (>= version 9)
+             (not (equal '((0 0 "themata" "thema_id" "id" "NO ACTION" "CASCADE" "NONE"))
+                         (sqlite-select db "PRAGMA foreign_key_list(practice_events)"))))
+    (error "Invalid practice event ownership constraint"))
+  (when (and (>= version 10)
+             (not (equal '((0 0 "practice_events" "event_id" "event_id" "NO ACTION" "CASCADE" "NONE"))
+                         (sqlite-select db "PRAGMA foreign_key_list(practice_encounters)"))))
+    (error "Invalid practice encounter ownership constraint"))
   (when (and (>= version 9)
              (not (equal '((1)) (sqlite-select db "SELECT id FROM scheduler_config WHERE id = 1"))))
     (error "Gnosis database is missing its baseline scheduler configuration"))

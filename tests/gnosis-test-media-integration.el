@@ -34,7 +34,7 @@
 (ert-deftest gnosis-media-schema-fresh-alias-column-and-old-writer ()
   (gnosis-test-safety
     (gnosis--ensure-db)
-    (should (= 9 (gnosis--db-version)))
+    (should (= 10 (gnosis--db-version)))
     (should (equal '("accepted_aliases" "TEXT" 0 nil 0)
                    (cdr (assoc 6 (sqlite-select gnosis-db "PRAGMA table_info(themata)")))))
     (gnosis--insert-into 'themata '([900 "basic" "Q" ("") ("A") "source"]))
@@ -52,7 +52,7 @@
                          "SELECT sql FROM sqlite_master WHERE name = 'retained_labels_no_update'"))
                (before (unwind-protect (gnosis-test-media--rows raw) (sqlite-close raw))))
           (gnosis--ensure-db)
-          (should (= 9 (gnosis--db-version)))
+          (should (= 10 (gnosis--db-version)))
           (dolist (entry (seq-remove
                           (lambda (row) (member (car row)
                             '("review" "review_log" "activity_log"))) before))
@@ -84,7 +84,7 @@
         (should-not gnosis-db)
         (should (equal before (gnosis-test-safety-snapshot file)))
         (should (gnosis--ensure-db))
-        (should (= 9 (gnosis--db-version)))))))
+        (should (= 10 (gnosis--db-version)))))))
 
 (ert-deftest gnosis-media-schema-rejects-alias-column-drift-before-writes ()
   (gnosis-test-safety

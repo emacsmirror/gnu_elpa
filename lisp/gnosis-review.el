@@ -284,13 +284,15 @@ When LITERAL is non-nil, skip link and image interpretation of STR."
 (defun gnosis-display-cloze-string (str clozes hints correct false)
   "Display STR with CLOZES and HINTS.
 
-Applies highlighting for CORRECT & FALSE."
+Apply highlighting for CORRECT and FALSE; return the actually shown hints."
   (let* ((cloze-str (gnosis-cloze-create str clozes))
-	 (str-with-hints (gnosis-cloze-add-hints cloze-str hints))
+         (hinted (gnosis-cloze-add-hints cloze-str hints nil t))
+	 (str-with-hints (car hinted))
 	 (str-with-c-answers
 	  (gnosis-cloze-highlight str-with-hints correct 'gnosis-face-correct))
 	 (final (gnosis-cloze-mark-false str-with-c-answers false)))
-    (gnosis-display-keimenon final)))
+    (gnosis-display-keimenon final)
+    (cdr hinted)))
 
 (defun gnosis-display-basic-answer (answer success user-input)
   "Display ANSWER.
@@ -563,7 +565,7 @@ instant once when REVIEWED-AT-US is also omitted."
                     (plist-get result :thema-id) success
                     (plist-get result :event-id) (plist-get result :reviewed-at-us)
                     (plist-get result :review-day))))
-      (dolist (key '(:model :image :content :edited-content))
+      (dolist (key '(:model :image :content :edited-content :encounter))
         (when (plist-member result key)
           (setq pending (plist-put pending key (plist-get result key)))))
       pending)))
@@ -643,10 +645,18 @@ Validate its encountered content, then commit the retained scheduler facts."
         :cancelled-p (gnosis-review-state-cancelled-p state)
         :launch-token (gnosis-review-state-launch-token state)))
 
+(defun gnosis-review--check-frozen-policy (policy)
+  "Validate complete frozen POLICY without filling omitted fields.
+Nil retains the legacy one-retry session policy."
+  (when policy
+    (unless (= (length policy) (length (gnosis-review-practice-policy policy)))
+      (error "Incomplete frozen practice policy"))))
+
 (defun gnosis-review--read-session ()
   "Return the retained session state, or nil."
   (when-let* ((data (gnosis-get 'data 'study-session '(= id 1))))
     (unless (equal 1 (plist-get data :version)) (error "Unsupported study session format"))
+    (gnosis-review--check-frozen-policy (plist-get data :policy))
     (apply #'gnosis-review-state-create :persistent-p t
            :database (gnosis--ensure-db) (cddr data))))
 
@@ -674,8 +684,9 @@ Validate its encountered content, then commit the retained scheduler facts."
 
 (defun gnosis-review-practice-policy (&optional policy)
   "Validate POLICY overrides and return a fresh frozen practice policy.
-Require positive integer targets and a cap, and a boolean
-consecutive flag.  Reject unknown and duplicate keys and malformed plists."
+Require positive integer targets and a boolean consecutive flag.
+An explicit :max-attempts-per-thema nil means unlimited; omission keeps the
+finite default.  Reject unknown and duplicate keys and malformed plists."
   (let ((defaults '(:successes-required 1 :successes-after-failure 2
                    :consecutive t :max-attempts-per-thema 5))
         seen)
@@ -683,8 +694,9 @@ consecutive flag.  Reject unknown and duplicate keys and malformed plists."
       (user-error "Practice policy must be a keyword plist"))
     (cl-loop for (key value) on policy by #'cddr do
              (unless (and (plist-member defaults key) (not (memq key seen))
-                          (if (eq key :consecutive) (memq value '(nil t))
-                            (and (integerp value) (> value 0))))
+                          (cond ((eq key :consecutive) (memq value '(nil t)))
+                                ((and (eq key :max-attempts-per-thema) (null value)) t)
+                                (t (and (integerp value) (> value 0)))))
                (user-error "Invalid practice policy field: %S" key))
              (push key seen))
     (cl-loop for (key value) on defaults by #'cddr append
@@ -704,7 +716,8 @@ failure target.  A reached target takes precedence over the attempt cap."
                       (seq-count #'identity outcomes))))
     (list :attempts attempts :successes successes :target target
           :reason (cond ((>= successes target) "target-reached")
-                        ((>= attempts (plist-get policy :max-attempts-per-thema))
+                        ((and (plist-get policy :max-attempts-per-thema)
+                              (>= attempts (plist-get policy :max-attempts-per-thema)))
                          "attempt-limit")
                         (t "unfinished")))))
 
@@ -1225,6 +1238,7 @@ Missing assets and cancellation never produce a grade."
     (user-error "Start a review session before answering a model"))
   (let* ((owner (current-buffer))
          (state gnosis-review--state)
+         (content-owner (gnosis-review--content-owner id))
          (thema (gnosis-review--answer-thema id))
          (row (car thema))
          (map (current-local-map))
@@ -1262,6 +1276,21 @@ Missing assets and cancellation never produce a grade."
                  (scene (plist-get (plist-get fields :verified) :manifest))
                  (target (gnosis-model-target scene (plist-get fields :target))))
             (with-current-buffer owner
+              (gnosis-review--content-check id content-owner)
+              (setcdr
+               (plist-get context :result)
+               (gnosis-review--encounter
+                (plist-put (cdr (plist-get context :result)) :content content-owner)
+                (car (cadr content-owner))
+                (if (eq (plist-get fields :response) 'name)
+                    (list :kind "text" :text (plist-get context :input))
+                  (let ((selection (plist-get context :selection)))
+                    (list :kind "surface" :selected-target (plist-get selection :id)
+                          :mesh (plist-get selection :mesh) :face (plist-get selection :face)
+                          :point (vconcat (plist-get selection :point))
+                          :view (vconcat (plist-get context :view)))))
+                nil (when (eq (plist-get fields :response) 'name)
+                      (plist-get context :tolerance))))
               (gnosis-display-basic-answer
                (or (plist-get fields :answer) (alist-get 'label target))
                (car (plist-get context :result))
@@ -1270,7 +1299,7 @@ Missing assets and cancellation never produce a grade."
                  (if-let* ((selected (plist-get (plist-get context :selection) :id)))
                      (alist-get 'label (gnosis-model-target scene selected))
                    "Unmarked surface")))
-              (gnosis-display-parathema (gnosis-get 'parathema 'extras `(= id ,id)))
+              (gnosis-display-parathema (nth 5 (car (cadr content-owner))))
               (gnosis-display-next-review
                (gnosis-review--result-date (cdr (plist-get context :result)))
                (car (plist-get context :result)))))
@@ -1354,7 +1383,10 @@ Missing assets and cancellation never produce a grade."
                                       (lambda () (gnosis-review--image-check id owner)))))
          (success (equal target (cadr input))))
     (gnosis-review--image-check id owner)
-    (let ((result (plist-put (gnosis-review-algorithm id success) :image owner)))
+    (let ((result (gnosis-review--encounter
+                   (plist-put (gnosis-review-algorithm id success) :image owner)
+                   (append (seq-take row 4) (list (nth 6 row) (nth 4 row) (nth 5 row)))
+                   (list :kind "region" :selected-target (cadr input)) nil nil)))
       (gnosis-display-basic-answer
        label success
        (or (alist-get 'label (seq-find (lambda (r) (equal (cadr input) (alist-get 'id r)))
@@ -1382,7 +1414,11 @@ Missing assets and cancellation never produce a grade."
     (let ((input (gnosis--read-string-with-input-method "Answer: " answer)))
       (gnosis-review--image-check id owner)
       (let* ((success (gnosis-answer-match-p answer input aliases tolerance))
-             (result (plist-put (gnosis-review-algorithm id success) :image owner)))
+             (result (gnosis-review--encounter
+                      (plist-put (gnosis-review-algorithm id success) :image owner)
+                      (list (nth 0 row) (nth 1 row) (car fields) (list answer)
+                            aliases (nth 4 row) (nth 5 row))
+                      (list :kind "text" :text input) nil tolerance)))
         (gnosis-display-keimenon
          (concat (gnosis-org-format-string (nth 1 row)) "\n\n"
                  (gnosis-image-mask scene target t nil policy)))
@@ -1406,6 +1442,9 @@ Missing assets and cancellation never produce a grade."
            (_ (gnosis-review--content-check id owner))
 	   (success (string= answer user-choice))
            (result (plist-put (gnosis-review-algorithm id success) :content owner)))
+      (setq result (gnosis-review--encounter
+                    result data (list :kind "choice" :selected user-choice
+                                      :choices (vconcat (nth 2 data))) nil nil))
       (unless success (setq gnosis-review--monkeytype-text answer))
       (gnosis-display-correct-answer-mcq answer user-choice)
       (gnosis-display-parathema parathema)
@@ -1416,6 +1455,28 @@ Missing assets and cancellation never produce a grade."
   "Read ID's typed-response content, including its accepted aliases."
   (gnosis-select '[type keimenon hypothesis answer accepted-aliases]
                  'themata `(= id ,id)))
+
+(defun gnosis-review--encounter (result row response hints tolerance)
+  "Return RESULT with captured practice evidence from content ROW.
+RESPONSE is type-specific plain data, or nil for unobservable input.
+HINTS records actually displayed hints, not merely available content.
+TOLERANCE is the captured typed-match rule, or nil for exact selection.
+ROW uses `gnosis-review--content-thema' order.  This is an accepted-encounter
+snapshot, never a content archive or retrospective regrading rule."
+  (if (not (eq (plist-get result :mode) 'practice)) result
+    (plist-put
+     result :encounter
+     (list :version 1 :kind (nth 0 row) :prompt (nth 1 row)
+           :hypothesis (vconcat (nth 2 row)) :expected-answers (vconcat (nth 3 row))
+           :accepted-aliases (vconcat (nth 4 row)) :parathema (nth 5 row)
+           :review-image (nth 6 row) :response response
+           :hints-available (vconcat (when (member (nth 0 row) '("basic" "cloze")) (nth 2 row)))
+           :hints-shown (vconcat hints) :coaching nil
+           :match-rule (cond (tolerance (list :kind "text" :tolerance tolerance))
+                             ((equal (plist-get response :kind) "self-grade")
+                              (list :kind "self-grade"))
+                             (t (list :kind "exact")))
+           :original-outcome (symbol-name (plist-get result :outcome))))))
 
 (defun gnosis-review--content-owner (id)
   "Capture ID's content and optional encounter owner before input."
@@ -1485,7 +1546,13 @@ RESULT permits an identical retry of the last committed persistent attempt."
               (gnosis-answer-match-p answer user-input aliases tolerance)))
            (_ (gnosis-review--content-check id owner))
            (result (gnosis-review-algorithm id success)))
-      (setq result (plist-put result :content owner))
+      (setq result
+            (gnosis-review--encounter
+             (plist-put result :content owner) data
+             (if self-grade (list :kind "self-grade" :recalled (if success t :false))
+               (list :kind "text" :text user-input))
+             (when (and hypothesis (not (string-empty-p hypothesis))) (list hypothesis))
+             (unless self-grade tolerance)))
       (unless (or success self-grade) (setq gnosis-review--monkeytype-text answer))
       (unless self-grade
         (gnosis-display-basic-answer answer success user-input)
@@ -1537,19 +1604,26 @@ Returns (NEW-UNREVEALED NEW-HINTS NEW-REVEALED)."
 	 (keimenon (nth 1 data))
 	 (all-clozes (nth 3 data))
 	 (all-hints (nth 2 data))
+         (indices (number-sequence 0 (1- (length all-clozes))))
+         (responses nil)
+         (shown-hints nil)
+         (tolerance gnosis-string-difference)
 	 (revealed-clozes '())
 	 (unrevealed-clozes all-clozes)
 	 (unrevealed-hints all-hints)
 	 (parathema (nth 5 data))
 	 (success t))
-    (gnosis-display-cloze-string
-     keimenon unrevealed-clozes unrevealed-hints nil nil)
+    (setq shown-hints (gnosis-display-cloze-string
+                       keimenon unrevealed-clozes unrevealed-hints nil nil))
     (catch 'done
       (while unrevealed-clozes
-	(let* ((input (gnosis-review-cloze--input
-		       unrevealed-clozes))
+	(let* ((input (let ((gnosis-string-difference tolerance))
+                         (gnosis-review-cloze--input unrevealed-clozes)))
 	       (position (car input)))
           (gnosis-review--content-check id owner)
+          (push (list :text (cdr input) :remaining-blank-indices (vconcat indices)
+                      :matched-blank-index (and position (nth position indices))) responses)
+          (when position (setq indices (seq-remove (lambda (i) (= i (nth position indices))) indices)))
 	  (if position
 	      (pcase-let ((`(,new-unrev ,new-hints ,new-rev)
 			   (gnosis-review-cloze--update-state
@@ -1559,9 +1633,11 @@ Returns (NEW-UNREVEALED NEW-HINTS NEW-REVEALED)."
 		(setq unrevealed-clozes new-unrev
 		      unrevealed-hints new-hints
 		      revealed-clozes new-rev)
-		(gnosis-display-cloze-string
-		 keimenon unrevealed-clozes
-		 unrevealed-hints revealed-clozes nil))
+                (setq shown-hints
+                      (append shown-hints
+                              (gnosis-display-cloze-string
+                               keimenon unrevealed-clozes
+                               unrevealed-hints revealed-clozes nil))))
 	    (gnosis-display-cloze-string
 	     keimenon nil nil
 	     revealed-clozes unrevealed-clozes)
@@ -1571,7 +1647,10 @@ Returns (NEW-UNREVEALED NEW-HINTS NEW-REVEALED)."
 		  (car unrevealed-clozes))
 	    (throw 'done nil)))))
     (gnosis-review--content-check id owner)
-    (let ((result (plist-put (gnosis-review-algorithm id success) :content owner)))
+    (let ((result (gnosis-review--encounter
+                   (plist-put (gnosis-review-algorithm id success) :content owner) data
+                   (list :kind "blanks" :inputs (vconcat (reverse responses)))
+                   (delete-dups shown-hints) tolerance)))
       (gnosis-display-parathema parathema)
       (gnosis-display-next-review (gnosis-review--result-date result) success)
       (cons success result))))
@@ -1598,7 +1677,9 @@ Returns (NEW-UNREVEALED NEW-HINTS NEW-REVEALED)."
       (gnosis-display-correct-answer-mcq (car cloze) user-input)
       (setq gnosis-review--monkeytype-text (car cloze)))
     (gnosis-review--content-check id owner)
-    (let ((result (plist-put (gnosis-review-algorithm id success) :content owner)))
+    (let ((result (gnosis-review--encounter
+                   (plist-put (gnosis-review-algorithm id success) :content owner) data
+                   (list :kind "choice" :selected user-input :choices (vconcat options)) nil nil)))
       (gnosis-display-parathema parathema)
       (gnosis-display-next-review (gnosis-review--result-date result) success)
       (cons success result))))
@@ -1655,7 +1736,11 @@ This is a helper function for `gnosis-review-session'."
                  gnosis-review--monkeytype-text
                  gnosis-monkeytype-enable
                  (member thema-type gnosis-monkeytype-themata))
-        (gnosis-monkeytype gnosis-review--monkeytype-text))
+        (let ((text gnosis-review--monkeytype-text))
+          (gnosis-monkeytype text)
+          (when-let* ((encounter (plist-get result :encounter)))
+            (setf (plist-get encounter :coaching)
+                  (vector (list :kind "copy-practice" :text text))))))
       (let* ((disposition (gnosis-review-actions success thema result))
              (failed-p (gnosis-review--failed-disposition-p disposition))
              (requeued (gnosis-review-state-requeued state)))
@@ -1701,6 +1786,22 @@ Return STATE after completion."
           (gnosis-review--skip state id))))
     state))
 
+(defun gnosis-review-practice-projection (state events)
+  "Project retained effective practice EVENTS onto a copy of STATE.
+EVENTS are ordered rows from `gnosis-study-practice-events'.  Deleted selected
+items remain excluded membership, never accepted outcome evidence."
+  (gnosis-review--check-database state)
+  (let ((projection (copy-gnosis-review-state state)))
+    (setf (gnosis-review-state-outcomes projection)
+          (reverse (mapcar (lambda (row) (cons (nth 1 row) (= 3 (nth 5 row))))
+                           (seq-remove (lambda (row) (nth 6 row)) events)))
+          (gnosis-review-state-skipped projection)
+          (delete-dups
+           (append (gnosis-review-state-skipped state)
+                   (seq-remove (lambda (id) (gnosis-get 'id 'themata `(= id ,id)))
+                               (gnosis-review-state-selected state)))))
+    projection))
+
 (defun gnosis-review-summary (state)
   "Return truthful unique and attempt counts from accepted outcomes in STATE."
   (let* ((rows (reverse (gnosis-review-state-outcomes state)))
@@ -1740,8 +1841,24 @@ Return STATE after completion."
           :excluded (seq-count (lambda (reason) (equal reason "excluded")) reasons))))
 
 (defun gnosis-review--show-summary (state)
-  "Display accepted recall evidence from STATE, not a mastery estimate."
-  (let* ((summary (gnosis-review-summary state))
+  "Display accepted recall evidence from STATE, not a mastery estimate.
+Read evidence in STATE's owning database without changing the current database
+or granting summary actions authority over a different current connection."
+  (let* ((database (or (gnosis-review-state-database state) (gnosis--ensure-db)))
+         (projection
+          (let ((gnosis-db database))
+            (if (and (eq (gnosis-review-state-mode state) 'practice)
+                     (gnosis-review-state-persistent-p state))
+                (gnosis-review-practice-projection
+                 state (gnosis-study-practice-events (gnosis-review-state-session-id state)))
+              state)))
+         (summary (gnosis-review-summary projection))
+         (backlog (let ((gnosis-db database)
+                        (gnosis-new-themata-limit nil))
+                    (length (gnosis-review-get-due-themata))))
+         (progress (when (gnosis-review-state-policy state)
+                     (let ((gnosis-db database))
+                       (gnosis-review-policy-summary projection))))
          (target (cons (gnosis-review-state-database state)
                        (copy-tree (gnosis-review--state-data state))))
          (buf (generate-new-buffer "*Gnosis Study Summary*")))
@@ -1759,20 +1876,17 @@ Return STATE after completion."
                           'face 'warning)
               (format "Unattempted: %d\nSkipped items (including retries): %d\n"
                       (plist-get summary :unattempted) (plist-get summary :excluded))
-              (format "Remaining due backlog: %d\n"
-                      (let ((gnosis-new-themata-limit nil))
-                        (length (gnosis-review-get-due-themata))))
+              (format "Remaining due backlog: %d\n" backlog)
               "Session recall is not topic mastery.  Practice is excluded from FSRS replay.\n")
       (when-let* ((policy (gnosis-review-state-policy state)))
-        (let ((progress (gnosis-review-policy-summary state)))
-          (insert (format "\nFrozen practice target: %d successes; after failure: %d; consecutive: %s; cap: %d effective attempts per thema\n"
-                          (plist-get policy :successes-required)
-                          (plist-get policy :successes-after-failure)
-                          (if (plist-get policy :consecutive) "yes" "no")
-                          (plist-get policy :max-attempts-per-thema))
-                  (format "Targets reached: %d   Attempt limit (target unmet): %d   Unfinished: %d   Excluded: %d\n"
-                          (plist-get progress :target-reached) (plist-get progress :attempt-limit)
-                          (plist-get progress :unfinished) (plist-get progress :excluded)))))
+        (insert (format "\nFrozen practice target: %d successes; after failure: %d; consecutive: %s; cap: %s effective attempts per thema\n"
+                        (plist-get policy :successes-required)
+                        (plist-get policy :successes-after-failure)
+                        (if (plist-get policy :consecutive) "yes" "no")
+                        (or (plist-get policy :max-attempts-per-thema) "unlimited"))
+                (format "Targets reached: %d   Attempt limit (target unmet): %d   Unfinished: %d   Excluded: %d\n"
+                        (plist-get progress :target-reached) (plist-get progress :attempt-limit)
+                        (plist-get progress :unfinished) (plist-get progress :excluded))))
       (gnosis-review-summary-mode)
       (setq gnosis-review--summary-target target))
     (pop-to-buffer buf)))

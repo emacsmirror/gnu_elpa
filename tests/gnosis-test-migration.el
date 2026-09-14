@@ -47,7 +47,7 @@
     (let ((content (gnosis-sqlite-select
                     gnosis-db "SELECT * FROM themata ORDER BY id")))
       (gnosis-db-init)
-      (should (= 9 (gnosis--db-version)))
+      (should (= 10 (gnosis--db-version)))
       (should (equal (mapcar (lambda (row) (append row '(nil))) content)
                      (gnosis-sqlite-select
                       gnosis-db "SELECT * FROM themata ORDER BY id"))))

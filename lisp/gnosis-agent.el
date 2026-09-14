@@ -40,6 +40,7 @@
                  (eq 'practice (plist-get data :mode))
                  (plist-get data :policy))
       (user-error "Unknown agent practice session: %s" session-id))
+    (gnosis-review--check-frozen-policy (plist-get data :policy))
     (apply #'gnosis-review-state-create :persistent-p t
            :database (gnosis--ensure-db) (cddr data))))
 
@@ -152,26 +153,18 @@ Refuse active native input.  The human answers later; this records no grade."
               (gnosis-agent--schedule state)
               (gnosis-agent-status (gnosis-review-state-session-id state)))))
 
-(defun gnosis-agent--projection (state events)
-  "Project retained effective EVENTS onto a copy of STATE."
-  (let ((projection (copy-gnosis-review-state state)))
-    (setf (gnosis-review-state-outcomes projection)
-          (reverse (mapcar (lambda (row) (cons (nth 1 row) (= 3 (nth 5 row))))
-                           (seq-remove (lambda (row) (nth 6 row)) events)))
-          (gnosis-review-state-skipped projection)
-          (delete-dups
-           (append (gnosis-review-state-skipped state)
-                   (seq-remove (lambda (id) (gnosis-get 'id 'themata `(= id ,id)))
-                               (gnosis-review-state-selected state)))))
-    projection))
-
-(defun gnosis-agent--events (session-id)
-  "Return ordered practice evidence and corrections for SESSION-ID."
-  (gnosis-sqlite-select
-   (gnosis--ensure-db)
-   "SELECT e.*, v.correction_id FROM practice_events e
-    LEFT JOIN practice_voids v ON v.event_id = e.event_id
-    WHERE e.session_id = ? ORDER BY e.attempt" (list session-id)))
+(defun gnosis-agent-current-practice ()
+  "Return status for the current practice reservation, or nil.
+Read only the connected database's exact active checkpoint, including a
+zero-attempt reservation.  Do not start, resume, cancel or select a batch.
+A completed checkpoint remains discoverable until replaced or discarded;
+scheduled sessions and cancelled reservations return nil."
+  (gnosis-sqlite-with-transaction (gnosis--ensure-db)
+    (when-let* ((state (gnosis-review--read-session))
+                ((eq (gnosis-review-state-mode state) 'practice))
+                ((gnosis-review-state-policy state))
+                ((not (gnosis-review-state-cancelled-p state))))
+      (gnosis-agent-status (gnosis-review-state-session-id state)))))
 
 (defun gnosis-agent-status (session-id)
   "Return API v1 status and progress for exact SESSION-ID.
@@ -179,7 +172,8 @@ Statuses are pending, running, unfinished, completed and cancelled strings.
 Pending is process-local: after restart a reserved batch is unfinished.
 Cancelled includes batches ended early by a replacement, never completion.
 Their remaining IDs record abandoned membership, not resumable active work.
-Return :api-version 1, :session-id, :mode, :status, :schedule-updated :false,
+Return :api-version 1, :session-id, :database (connected main filename),
+:mode, :status, :schedule-updated :false,
 :selected-ids and :remaining-ids vectors, frozen :policy, :selection counts,
 :summary effective first/retry grade counts, and :targets reason counts.
 Selection records limit, candidates, eligible, selected, shortfall,
@@ -188,16 +182,22 @@ attempt-limit, unfinished and excluded items.  Summary needs-work counts
 last effective failures, not unmet repetition targets; consult :targets.
 Use `json-serialize' with :false-object :false and :null-object nil."
   (gnosis-sqlite-with-transaction (gnosis--ensure-db)
-    (let* ((state (gnosis-agent--session session-id))
+    (gnosis-agent--status (gnosis-agent--session session-id)
+                          (gnosis-study-practice-events session-id))))
+
+(defun gnosis-agent--status (state events)
+  "Render API status from exact STATE and ordered retained EVENTS."
+  (let* ((session-id (gnosis-review-state-session-id state))
            (token (gnosis-review-state-launch-token state))
            (pending (seq-some (lambda (record)
                                 (and (eq gnosis-db (plist-get record :db))
                                      (equal token (plist-get record :token))))
                               gnosis-agent--launches))
            (policy (copy-sequence (gnosis-review-state-policy state)))
-           (projection (gnosis-agent--projection state (gnosis-agent--events session-id))))
+           (projection (gnosis-review-practice-projection state events)))
       (unless (plist-get policy :consecutive) (setq policy (plist-put policy :consecutive :false)))
       (list :api-version 1 :session-id session-id :mode "practice"
+            :database (nth 2 (assoc 0 (sqlite-select (gnosis--ensure-db) "PRAGMA database_list")))
             :status (cond ((gnosis-review-state-cancelled-p state) "cancelled")
                           ((equal gnosis-review--running session-id) "running")
                           ((null (gnosis-review-state-remaining state)) "completed")
@@ -208,20 +208,26 @@ Use `json-serialize' with :false-object :false and :null-object nil."
             :policy policy :selection (gnosis-review-state-selection state)
             :summary (gnosis-review-summary projection)
             :targets (gnosis-review-policy-summary projection)
-            :remaining-ids (vconcat (gnosis-review-state-remaining state))))))
+            :remaining-ids (vconcat (gnosis-review-state-remaining state)))))
 
 (defun gnosis-agent--item (state id events)
   "Return result for thema ID in STATE using retained EVENTS."
   (let* ((rows (seq-filter (lambda (row) (equal id (nth 1 row))) events))
          (effective (seq-remove (lambda (row) (nth 6 row)) rows))
-         (outcomes (reverse (mapcar (lambda (row) (= 3 (nth 5 row))) effective)))
+         (ordered (mapcar (lambda (row) (= 3 (nth 5 row))) effective))
+         (first-correct (seq-position ordered t))
+         (outcomes (reverse ordered))
          (progress (gnosis-review-policy-progress (gnosis-review-state-policy state) outcomes))
          (deleted (not (gnosis-get 'id 'themata `(= id ,id))))
          (excluded (or deleted (member id (gnosis-review-state-skipped state)))))
     (list :thema-id id
           :reason (if excluded "excluded" (plist-get progress :reason))
           :deleted (if deleted t :false)
-          :attempts (length effective) :successes (plist-get progress :successes)
+          :attempts (length effective) :total-attempts (length rows)
+          :first-outcome (when effective (if (car ordered) "success" "failure"))
+          :attempts-to-first-correct (and first-correct (1+ first-correct))
+          :retries-to-first-correct first-correct
+          :successes (plist-get progress :successes)
           :target (plist-get progress :target)
           :events
           (vconcat (mapcar
@@ -230,23 +236,29 @@ Use `json-serialize' with :false-object :false and :null-object nil."
                             :reviewed-at-us (nth 4 row)
                             :outcome (if (= 3 (nth 5 row)) "success" "failure")
                             :effective (if (nth 6 row) :false t)
-                            :correction-id (nth 6 row))) rows)))))
+                            :correction-id (nth 6 row)
+                            :encounter (nth 7 row))) rows)))))
 
 (defun gnosis-agent-results (session-id)
   "Return API v1 status, per-item outcomes and corrections for SESSION-ID.
 The additional :items vector contains thema-id, reason, deleted, attempts,
 successes, target and events.  Reasons are target-reached, attempt-limit,
 unfinished or excluded strings.  Each event has event-id, attempt (the
-session-wide ordinal), reviewed-at-us, original outcome (success/failure),
+session-wide ordinal), reviewed-at-us, accepted outcome (success/failure),
 effective (t or :false) and correction-id (string or nil).  Event vectors
-retain original grades and void identifiers, not learner text.
+retain accepted grades and void identifiers.  Optional encounter data retains
+versioned presented content, type-specific response, captured matching rules,
+shown hints and the original pre-override outcome.  Nil means unavailable;
+legacy events are never supplemented with current question content.
+Items also include total-attempts (including voids), first-outcome and nullable
+attempts-to-first-correct/retries-to-first-correct from effective evidence.
 Effective grades alone determine first/retry counts and policy progress.
 Hard thema deletion removes owned events; deleted membership remains visible.
 Completion and immediate repetition are not mastery or calibrated retention."
   (gnosis-sqlite-with-transaction (gnosis--ensure-db)
     (let* ((state (gnosis-agent--session session-id))
-           (events (gnosis-agent--events session-id)))
-      (append (gnosis-agent-status session-id)
+           (events (gnosis-study-practice-events session-id t)))
+      (append (gnosis-agent--status state events)
               (list :items (vconcat (mapcar (lambda (id) (gnosis-agent--item state id events))
                                             (gnosis-review-state-selected state))))))))
 

@@ -163,10 +163,11 @@ new string without changing the inputs, rendering Org, or opening a buffer."
                  text)))
            clozes :initial-value (copy-sequence str)))))))
 
-(defun gnosis-cloze-add-hints (str hints &optional cloze-string)
-  "Replace CLOZE-STRING in STR with literal HINTS, skipping empty hints."
+(defun gnosis-cloze-add-hints (str hints &optional cloze-string with-evidence)
+  "Replace CLOZE-STRING in STR with literal HINTS, skipping empty hints.
+With WITH-EVIDENCE, return (TEXT . SHOWN-HINTS), retaining only inserted hints."
   (cl-assert (listp hints) nil "Hints must be a list.")
-  (let ((cloze-string (or cloze-string gnosis-cloze-string)))
+  (let ((cloze-string (or cloze-string gnosis-cloze-string)) shown)
     (with-temp-buffer
       (insert str)
       (goto-char (point-min))
@@ -176,11 +177,12 @@ new string without changing the inputs, rendering Org, or opening a buffer."
 	       (when (and hint (not (string-empty-p hint)) (not (string= hint "nil"))
 			  (not (string= "\"\"" hint))
 			  (search-backward cloze-string nil t))
+                 (push hint shown)
                  (replace-match (propertize (format "(%s)" hint)
 					    'face 'gnosis-face-cloze)
                                 t t)
                  (goto-char (match-end 0)))) ; Move point to end of match
-      (buffer-string))))
+      (if with-evidence (cons (buffer-string) (nreverse shown)) (buffer-string)))))
 
 (defun gnosis-cloze-mark-false (str answers)
   "Mark contents of STR as false for ANSWERS.

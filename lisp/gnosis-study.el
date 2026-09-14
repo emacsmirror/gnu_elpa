@@ -194,11 +194,32 @@ Include the enclosing source ID and descendant IDs, without graph traversal."
     (gnosis-study--start (delete-dups (delq nil (cons owner ids)))
                          (if due 'due 'practice))))
 
+(defun gnosis-study--check-encounter (data)
+  "Validate optional versioned practice encounter DATA and return it.
+Nil means historical or unobservable evidence, never reconstructed content."
+  (when data
+    (unless (and (proper-list-p data) (zerop (% (length data) 2))
+                 (equal (plist-get data :version) 1)
+                 (stringp (plist-get data :kind))
+                 (stringp (plist-get data :prompt))
+                 (seq-every-p (lambda (key) (vectorp (plist-get data key)))
+                              '(:hypothesis :expected-answers :accepted-aliases
+                                :hints-available :hints-shown))
+                 (member (plist-get data :original-outcome) '("success" "failure"))
+                 (plist-member data :response)
+                 (plist-member data :coaching)
+                 (plist-member data :parathema))
+      (error "Unsupported practice encounter format"))
+    ;; Reject nonportable objects rather than retain unreadable encounter data.
+    (ignore (json-serialize data :false-object :false :null-object nil)))
+  data)
+
 (defun gnosis-study-accept-practice (result)
   "Accept pending practice RESULT idempotently, without scheduler writes.
 Reject reuse of an encounter identity with different facts.  Retain evidence
 until hard thema deletion.  Content exports exclude all study evidence."
   (let* ((db (gnosis--ensure-db))
+         (encounter (gnosis-study--check-encounter (plist-get result :encounter)))
          (row (list (plist-get result :event-id) (plist-get result :thema-id)
                     (plist-get result :session-id) (plist-get result :attempt)
                     (plist-get result :reviewed-at-us)
@@ -218,10 +239,16 @@ until hard thema deletion.  Content exports exclude all study evidence."
         (when (gnosis-get 'event-id 'practice-voids `(= event-id ,(car row)))
           (error "Practice encounter was voided"))
         (if existing
-            (unless (equal existing row) (error "Practice identity conflict"))
+            (unless (and (equal existing row)
+                         (equal encounter (gnosis-get 'data 'practice-encounters
+                                                       `(= event-id ,(car row)))))
+              (error "Practice identity conflict"))
           (unless (gnosis-get 'id 'themata `(= id ,(nth 1 row)))
             (user-error "Thema was deleted before acceptance"))
-          (gnosis-sqlite-execute db "INSERT INTO practice_events VALUES (?, ?, ?, ?, ?, ?)" row))))
+          (gnosis-sqlite-execute db "INSERT INTO practice_events VALUES (?, ?, ?, ?, ?, ?)" row)
+          (when encounter
+            (gnosis-sqlite-execute db "INSERT INTO practice_encounters VALUES (?, ?)"
+                                   (list (car row) encounter))))))
     (list :event-id (car row) :rating (nth 5 row))))
 
 (defun gnosis-study--practice-day-events (date)
@@ -293,16 +320,24 @@ to queue completion, not mastery.  Hard thema deletion removes its events."
        LEFT JOIN study_history h ON h.session_id = e.session_id
       GROUP BY e.session_id ORDER BY MIN(e.reviewed_at_us), e.session_id")))
 
-(defun gnosis-study-practice-events (session-id)
+(defun gnosis-study-practice-events (session-id &optional encounters)
   "Return recorded practice events and corrections for exact SESSION-ID.
 Rows contain event ID, thema ID, session ID, attempt ordinal, timestamp in
 microseconds, rating, and correction ID (nil for effective evidence).
+With ENCOUNTERS, append captured answer/context data, or nil when unavailable.
 Order by the session-wide attempt ordinal; never infer grades from a queue."
-  (gnosis-sqlite-select
-   (gnosis--ensure-db)
-   "SELECT e.*, v.correction_id FROM practice_events e
-      LEFT JOIN practice_voids v ON v.event_id = e.event_id
-     WHERE e.session_id = ? ORDER BY e.attempt" (list session-id)))
+  (let ((rows (gnosis-sqlite-select
+               (gnosis--ensure-db)
+               (concat "SELECT e.*, v.correction_id"
+                       (when encounters ", c.data")
+                       " FROM practice_events e
+                         LEFT JOIN practice_voids v ON v.event_id = e.event_id "
+                       (when encounters "LEFT JOIN practice_encounters c ON c.event_id = e.event_id ")
+                       "WHERE e.session_id = ? ORDER BY e.attempt")
+               (list session-id))))
+    (when encounters
+      (mapc (lambda (row) (gnosis-study--check-encounter (nth 7 row))) rows))
+    rows))
 
 ;;;###autoload
 (defun gnosis-backup-db (file)

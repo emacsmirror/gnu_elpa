@@ -984,15 +984,35 @@
     (let* ((id (gnosis-test--add-basic-thema "A" "A"))
            (_summary (gnosis-test-study-summary (list id) 'practice))
            (state (gnosis-review--read-session))
+           (source gnosis-db)
            (copy (expand-file-name "other.db" gnosis-dir)))
+      (setf (gnosis-review-state-policy state) (gnosis-review-practice-policy))
+      (gnosis-review--save-session state)
       (gnosis-backup-db copy)
-      (let ((gnosis-db (gnosis-sqlite-open copy)))
+      ;; The foreign database still owns colliding IDs and accepted evidence.
+      ;; Render the source's deletion, not that evidence or the old checkpoint.
+      (gnosis-delete-thema id t)
+      (let ((source-before (gnosis-test-study-all-evidence))
+            (checkpoint (gnosis-review--state-data state))
+            (gnosis-db (gnosis-sqlite-open copy)))
         (unwind-protect
-            (let ((before (gnosis-test-study-all-evidence)))
+            (let ((before (gnosis-test-study-all-evidence))
+                  (foreign gnosis-db))
               (gnosis-review--show-summary state)
+              (should (eq gnosis-db foreign))
+              (should (eq (car gnosis-review--summary-target) source))
+              (should (equal checkpoint (gnosis-review--state-data state)))
+              (should (string-match-p "Unique attempted: 0   Accepted attempts: 0"
+                                      (buffer-string)))
+              (should (string-match-p "Remaining due backlog: 0" (buffer-string)))
+              (should (string-match-p
+                       "Targets reached: 0   Attempt limit (target unmet): 0   Unfinished: 0   Excluded: 1"
+                       (buffer-string)))
               (should-error (call-interactively (local-key-binding (kbd "u")))
                             :type 'user-error)
-              (should (equal before (gnosis-test-study-all-evidence))))
+              (should (equal before (gnosis-test-study-all-evidence)))
+              (let ((gnosis-db source))
+                (should (equal source-before (gnosis-test-study-all-evidence)))))
           (gnosis-sqlite-close gnosis-db))))))
 
 (ert-deftest gnosis-study-summary-resume-rejects-db-change-during-input ()

@@ -121,12 +121,32 @@ ACCEPTED-ALIASES: Independent list of authored accepted spellings."
                             separator t "[ \t\n]+"))))
    (t text)))
 
+(defun gnosis-export--check-structure (document)
+  "Refuse content in DOCUMENT that has no thema field owner."
+  (dolist (element (org-element-contents document))
+    (unless (and (eq (org-element-type element) 'headline)
+                 (= (org-element-property :level element) 1)
+                 (org-element-property :GNOSIS_ID element)
+                 (org-element-property :GNOSIS_TYPE element))
+      (user-error
+       "Line %s: content outside a thema; move it into a field, using *** or deeper for body headings"
+       (line-number-at-pos (org-element-property :begin element))))
+    (dolist (child (org-element-contents element))
+      (when (eq (org-element-type child) 'section)
+        (dolist (item (org-element-contents child))
+          (unless (eq (org-element-type item) 'property-drawer)
+            (user-error "Line %s: content outside a field; move it under a thema field heading"
+                        (line-number-at-pos (org-element-property :begin item)))))))))
+
 (defun gnosis-export-parse-themata (&optional separator)
   "Extract level-1 themata by field heading, using list SEPARATOR.
 Return (ID TYPE KEIMENON HYPOTHESIS ANSWER PARATHEMA TAGS LINE ALIASES).
-Missing aliases mean nil.  Reject duplicate and unknown field headings."
-  (let ((sep (or separator gnosis-export-separator)) results)
-    (org-element-map (org-element-parse-buffer) 'headline
+Missing aliases mean nil.  Reject duplicate and unknown field headings,
+and content outside themata or their fields, without changing the draft."
+  (let ((sep (or separator gnosis-export-separator))
+        (document (org-element-parse-buffer)) results)
+    (gnosis-export--check-structure document)
+    (org-element-map document 'headline
       (lambda (headline)
         (let ((id (org-element-property :GNOSIS_ID headline))
               (type (org-element-property :GNOSIS_TYPE headline)))
@@ -249,13 +269,15 @@ Returns nil on success, or an error message string on failure."
 
 ;;;###autoload
 (defun gnosis-save ()
-  "Save themata in the current native draft.
+  "Save all themata in the current native draft, ignoring narrowing.
 Refuse changed database ownership or original content without discarding
 the draft.  Copy its text before cancelling and reopening to reconcile."
   (interactive nil gnosis-edit-mode)
   (gnosis--draft-check-owner)
   (let* ((gc-cons-threshold most-positive-fixnum)
-         (themata (gnosis-export-parse-themata))
+         (themata (save-restriction
+                    (widen)
+                    (gnosis-export-parse-themata)))
          (gnosis--id-cache
           (let ((ht (make-hash-table :test 'equal)))
             (dolist (id (gnosis-select 'id 'themata nil t) ht)

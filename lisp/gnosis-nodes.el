@@ -633,41 +633,32 @@ If JOURNAL-P is non-nil, retrieve/create node as a journal entry."
     (org-insert-link nil (format "id:%s" id) desc)
     (unless id (message "Created new node: %s" node))))
 
-(defun gnosis-nodes--last-keyword-pos ()
-  "Return end-of-line position of the last #+KEYWORD line at buffer top.
-Returns nil if no keyword lines exist."
-  (save-excursion
-    (goto-char (point-min))
-    (let (last-pos)
-      (while (looking-at "^#\\+")
-        (setq last-pos (line-end-position))
-        (forward-line 1))
-      last-pos)))
-
 (defun gnosis-nodes--filetags ()
-  "Return list of current filetags, or nil."
+  "Return list of current filetags, or nil, ignoring narrowing."
   (let ((case-fold-search t))
-    (save-excursion
-      (goto-char (point-min))
-      (when (re-search-forward "^#\\+filetags:[ \t]*\\(.*\\)" nil t)
-        (split-string (match-string 1) ":" t)))))
+    (org-with-wide-buffer
+     (goto-char (point-min))
+     (when (re-search-forward "^#\\+filetags:[ \t]*\\(.*\\)" nil t)
+       (split-string (match-string 1) ":" t)))))
 
 (defun gnosis-nodes--write-filetags (tags)
-  "Write TAGS as a #+filetags line, replacing or creating it."
+  "Write TAGS as a #+filetags line, preserving the root property drawer."
   (let ((case-fold-search t)
         (value (format " :%s:" (mapconcat #'identity tags ":"))))
-    (save-excursion
-      (goto-char (point-min))
-      (cond
-       ((re-search-forward "^#\\+filetags:" nil t)
-        (delete-region (point) (line-end-position))
-        (insert value))
-       ((gnosis-nodes--last-keyword-pos)
-        (goto-char (gnosis-nodes--last-keyword-pos))
-        (end-of-line)
-        (insert "\n#+filetags:" value))
-       (t
-        (insert "#+filetags:" value "\n"))))))
+    (org-with-wide-buffer
+     (goto-char (point-min))
+     (if (re-search-forward "^#\\+filetags:" nil t)
+         (progn
+           (delete-region (point) (line-end-position))
+           (insert value))
+       (goto-char (point-min))
+       ;; Org owns file-level drawer placement, including leading comments.
+       (when-let* ((drawer (org-get-property-block (point-min))))
+         (goto-char (cdr drawer))
+         (forward-line))
+       ;; Insert before keywords or body: a #+ line may open an Org block.
+       (unless (bolp) (insert "\n"))
+       (insert "#+filetags:" value "\n")))))
 
 (defun gnosis-nodes-insert-filetag (&optional tag)
   "Insert TAG as filetag.

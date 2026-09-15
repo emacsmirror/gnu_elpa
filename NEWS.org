@@ -3,6 +3,44 @@
 + [[https://git.thanosapollo.org/gnosis/][Upstream]]
 + [[https://thanosapollo.org/log/gnosis/][Changelog]]
 
+* 0.12.0
+#+date: 2026/09/15
+
+** Upgrading
++ Upgrade released schema 9 to schema 10 to retain practice encounter
+  evidence.  Released 0.10.6 databases still upgrade through schema 9.
+  Existing content, schedules and study history are preserved; missing
+  historical answers are not invented.
++ Back up before the first database open with this version.  Downgrading
+  to 0.11.0 requires its matching pre-upgrade database backup, not a
+  schema-10 database.
+
+** Fixes
++ Populate dashboard statistics on first startup without requiring a
+  previous review session to load their implementation.
++ Refuse native thema saves that would discard explanation headings or
+  prose outside fields.  Preserve the complete draft and source links,
+  including when the editor is narrowed.
++ Preserve file-level Org IDs and adjacent source/example blocks when
+  inserting the first file tag.
++ Retire study collection and dashboard ownership when their buffers
+  become files.  Refresh and retained commands cannot erase successor
+  drafts or reuse retired selections after detachment.
++ Keep dashboard study actions and pending-review Delete, Suspend and
+  Flag actions bound to the database and presentation that produced them,
+  including across prompts.
+
+** Practice and journals
++ Retain accepted practice answers and context, support an explicit
+  unlimited-attempt policy, and recover current practice sessions without
+  changing scheduled-review evidence or FSRS state.
++ Add optional journal templates and free-form capture through
+  ~gnosis-journal-insert-template~ and ~gnosis-journal-capture~.  Thoughts
+  can be edited before saving; cancellation leaves the journal unchanged.
++ Route journal captures through explicit local heading roles and reject
+  ambiguous destinations rather than choosing an unrelated heading.
++ Improve the bundled demo collection and remove stale ELPA ignore entries.
+
 * 0.11.0
 #+date: 2026/09/14
 

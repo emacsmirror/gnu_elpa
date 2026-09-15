@@ -1,10 +1,8 @@
-CONTRIBUTING.org
 LICENSE
 Makefile
 
 tests
 
-decks
 optional
 AGENTS.md
 flake.nix

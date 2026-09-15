@@ -1929,7 +1929,7 @@ Summary commands own the displayed snapshot; elsewhere use the current batch."
     (gnosis-review--check-action-target target)
     target))
 
-(defun gnosis-review-loop (collector &optional mode target)
+(defun gnosis-review-loop (collector &optional mode target validate)
   "Review one finite batch from COLLECTOR in MODE, defaulting to due.
 COLLECTOR is a list of IDs or a function called exactly once.  Deduplicate
 and freeze membership, then recheck deletion and suspension before each
@@ -1940,9 +1940,12 @@ an answer writes no grade.  A new nonempty selection ends an unfinished
 batch early without changing its accepted evidence or schedules.  Empty,
 failed or cancelled selection keeps the old batch and its summary.
 Optional TARGET is the database/checkpoint captured before earlier prompts;
-otherwise capture it before calling COLLECTOR."
+otherwise capture it before calling COLLECTOR.
+Optional VALIDATE is a caller check, run before selection, buffer setup,
+and batch replacement; it must signal if the caller no longer owns the action."
   (when gnosis-review--running (user-error "Finish the active review first"))
   (unless (memq mode '(nil due practice)) (error "Unknown study mode"))
+  (when validate (funcall validate))
   (let* ((target (or target (gnosis-review--session-target)))
          (themata (seq-filter #'gnosis-study-eligible-p
                               (delete-dups (copy-sequence
@@ -1951,8 +1954,10 @@ otherwise capture it before calling COLLECTOR."
     (if (null themata)
         (progn (message "No eligible themata selected") nil)
       (gnosis-review--check-action-target target)
+      (when validate (funcall validate))
       (let* ((buf (gnosis-review--setup-buffer themata mode))
              (state (buffer-local-value 'gnosis-review--state buf)))
+        (when validate (funcall validate))
         (setf (gnosis-review-state-persistent-p state) t)
         (gnosis-review--replace-session state target)
         (gnosis-review--run-state buf state)))))
@@ -2128,7 +2133,9 @@ RESULT is the algorithm result to thread through.
 
 This function should be used with `gnosis-review-actions', which
 should be recursively called using SUCCESS and THEMA."
-  (gnosis-toggle-suspend-themata (list thema))
+  (gnosis-toggle-suspend-themata
+   (list thema) nil nil
+   (lambda () (gnosis-review--check-result-content thema result)))
   (gnosis-review-actions success thema result))
 
 (defun gnosis-review-action--override (success thema result)
@@ -2189,10 +2196,12 @@ To customize the keybindings, adjust `gnosis-review-keybindings'."
       (?n (gnosis-review--accept id success result))
       (?o (gnosis-review-action--override success id result))
       (?s (gnosis-review-action--suspend success id result))
-      (?d (if (gnosis-delete-thema id)
+      (?d (if (gnosis-delete-thema
+               id nil (lambda () (gnosis-review--check-result-content id result)))
               :deleted
             (gnosis-review-actions success id result)))
-      (?f (gnosis-study-flag id)
+      (?f (gnosis-review--check-result-content id result)
+          (gnosis-study-flag id)
           (gnosis-review-actions success id result))
       (?e (gnosis-review-action--edit success id result))
       (?v (gnosis-review-action--view-link success id result))
@@ -2323,11 +2332,12 @@ Include themata not yet due; accepted answers update their schedules."
     (cdr (assoc (gnosis-completing-read "Select topic: " candidates t) candidates))))
 
 ;;;###autoload
-(defun gnosis-review-topic (&optional node-id fwd-depth back-depth target)
+(defun gnosis-review-topic (&optional node-id fwd-depth back-depth target validate)
   "Review ahead: reschedule all eligible themata linked to topic NODE-ID.
 FWD-DEPTH and BACK-DEPTH control forward/backlink traversal depth.
 With prefix arg, prompt for depths.  Optional TARGET is the database/checkpoint
-captured by a caller before its own selection prompts."
+captured by a caller before its own selection prompts.
+Optional VALIDATE checks caller ownership before selection and replacement."
   (interactive
    (let ((target (gnosis-review--session-target)))
      (list nil
@@ -2335,10 +2345,12 @@ captured by a caller before its own selection prompts."
            (when current-prefix-arg (read-number "Backlink depth: " 0))
            target)))
   (when gnosis-review--running (user-error "Finish the active review first"))
+  (when validate (funcall validate))
   (let* ((target (or target (gnosis-review--session-target)))
          (fwd-depth (or fwd-depth 0))
          (back-depth (or back-depth 0))
          (node-id (or node-id (gnosis-review--select-topic)))
+         (_ (when validate (funcall validate)))
 	 (node-title (car (gnosis-select 'title 'nodes
 					 `(= id ,node-id) t)))
 	 (node-ids (if (or (> fwd-depth 0) (> back-depth 0))
@@ -2355,7 +2367,7 @@ captured by a caller before its own selection prompts."
 			 (format " (%d nodes, fwd:%d back:%d)"
 				 (length node-ids) fwd-depth back-depth)
 		       "")))
-	(gnosis-review-loop gnosis-questions nil target)))))
+	(gnosis-review-loop gnosis-questions nil target validate)))))
 
 (provide 'gnosis-review)
 ;;; gnosis-review.el ends here

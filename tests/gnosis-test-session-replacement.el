@@ -330,6 +330,9 @@
         (gnosis--insert-into 'nodes '(["node" "fixture.org" "Topic" "1" nil nil nil]))
         (gnosis--insert-into 'thema-links '([103 "node"]))
         (gnosis-test-replacement-start 'agent '(101 102))
+        (when (eq command 'gnosis-dashboard-nodes-review-with-depth)
+          (gnosis-dashboard-output-nodes '("node"))
+          (goto-char (point-min)))
         (let ((current-prefix-arg '(4)) successor)
           (cl-labels ((replace-once ()
                         (unless successor

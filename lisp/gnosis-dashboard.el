@@ -40,13 +40,13 @@
 (declare-function gnosis-review-resume "gnosis-review" ())
 (declare-function gnosis-review--session-target "gnosis-review" ())
 (declare-function gnosis-review-topic "gnosis-review"
-                  (&optional node-id fwd-depth back-depth target))
+                  (&optional node-id fwd-depth back-depth target validate))
 (declare-function gnosis-study-topic "gnosis-study" (&optional node))
 (declare-function gnosis-study-repair "gnosis-study" ())
 (declare-function gnosis-practice-topic "gnosis-study"
-                  (&optional nodes fwd back target))
+                  (&optional nodes fwd back target validate))
 (declare-function gnosis-review-due-topic "gnosis-study"
-                  (&optional nodes fwd back target))
+                  (&optional nodes fwd back target validate))
 
 (defface gnosis-face-dashboard-header
   '((t :inherit (bold font-lock-constant-face)))
@@ -285,7 +285,8 @@ without opening a replacement database or changing the view."
     (unless (and (not buffer-file-name)
                  (eq (car owner) (current-buffer))
                  (memq major-mode '(gnosis-dashboard-themata-mode
-                                    gnosis-dashboard-tags-mode))
+                                    gnosis-dashboard-tags-mode
+                                    gnosis-dashboard-nodes-mode))
                  (eq (nth 1 owner) major-mode)
                  (eql (nth 2 owner) gnosis-dashboard--load-generation)
                  (eq (nth 3 owner) gnosis-dashboard--database)
@@ -1119,6 +1120,14 @@ Reset dashboard navigation history before opening these views."
   "x" ("Import/Export" :keymap gnosis-dashboard-import-export-map)
   "!" ("Maintenance" :keymap gnosis-dashboard-maintenance-map))
 
+(defun gnosis-dashboard--retire-file-view ()
+  "Retire collection authority after a visited filename change.
+Detaching the file must not revive the former database or selection."
+  (gnosis-dashboard--cancel-load)
+  (setq gnosis-dashboard--buffer-owner nil
+        gnosis-dashboard--database nil
+        gnosis-dashboard--selected-ids nil))
+
 (defun gnosis-dashboard--common-setup ()
   "Common buffer setup for all dashboard views."
   (gnosis-dashboard--cancel-load)
@@ -1128,7 +1137,7 @@ Reset dashboard navigation history before opening these views."
   (add-hook 'kill-buffer-hook #'gnosis-dashboard--cancel-load nil t)
   ;; File association keeps the major mode but retires its former work.
   (add-hook 'after-set-visited-file-name-hook
-            #'gnosis-dashboard--cancel-load nil t)
+            #'gnosis-dashboard--retire-file-view nil t)
   (when (fboundp 'keymap-popup-dismiss)
     (keymap-popup-dismiss))
   (setq-local header-line-format nil)
@@ -1742,34 +1751,48 @@ Moves cursor to the beginning of the buffer after sorting."
 (defun gnosis-dashboard-nodes-review ()
   "Review themata for node at point."
   (interactive)
-  (gnosis-review-topic (tabulated-list-get-id)))
+  (let ((owner (gnosis-dashboard--command-owner)))
+    (gnosis-review-topic
+     (or (tabulated-list-get-id) (user-error "No topic at point"))
+     nil nil nil (lambda () (gnosis-dashboard--command-owner owner)))))
 
 (defun gnosis-dashboard-nodes-review-with-depth ()
   "Review themata for node at point, prompting for link depths."
   (interactive)
-  (require 'gnosis-review)
-  (let ((target (gnosis-review--session-target)))
-    (gnosis-review-topic (tabulated-list-get-id)
-		         (read-number "Forward link depth: " 1)
-		         (read-number "Backlink depth: " 0)
-                         target)))
+  (let* ((owner (gnosis-dashboard--command-owner))
+         (node (or (tabulated-list-get-id) (user-error "No topic at point")))
+         (_ (require 'gnosis-review))
+         (target (gnosis-review--session-target))
+         (fwd (read-number "Forward link depth: " 1))
+         (_ (gnosis-dashboard--command-owner owner))
+         (back (read-number "Backlink depth: " 0)))
+    (gnosis-dashboard--command-owner owner)
+    (gnosis-review-topic
+     node fwd back target (lambda () (gnosis-dashboard--command-owner owner)))))
 
 (defun gnosis-dashboard-nodes-study ()
   "Open the study view for the node at point."
   (interactive)
+  (gnosis-dashboard--command-owner)
   (gnosis-study-topic (or (tabulated-list-get-id) (user-error "No topic at point"))))
 
 (defun gnosis-dashboard-nodes-practice ()
   "Practise marked nodes or the node at point, without rescheduling."
   (interactive)
-  (gnosis-practice-topic (or gnosis-dashboard--selected-ids
-                             (list (or (tabulated-list-get-id) (user-error "No topic at point"))))))
+  (let ((owner (gnosis-dashboard--command-owner)))
+    (gnosis-practice-topic
+     (or (copy-sequence gnosis-dashboard--selected-ids)
+         (list (or (tabulated-list-get-id) (user-error "No topic at point"))))
+     nil nil nil (lambda () (gnosis-dashboard--command-owner owner)))))
 
 (defun gnosis-dashboard-nodes-due ()
   "Review due themata of marked nodes or the node at point."
   (interactive)
-  (gnosis-review-due-topic (or gnosis-dashboard--selected-ids
-                               (list (or (tabulated-list-get-id) (user-error "No topic at point"))))))
+  (let ((owner (gnosis-dashboard--command-owner)))
+    (gnosis-review-due-topic
+     (or (copy-sequence gnosis-dashboard--selected-ids)
+         (list (or (tabulated-list-get-id) (user-error "No topic at point"))))
+     nil nil nil (lambda () (gnosis-dashboard--command-owner owner)))))
 
 (keymap-popup-define gnosis-dashboard-nodes-mode-map
   "Nodes"

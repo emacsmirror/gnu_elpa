@@ -104,20 +104,28 @@
       (require 'gnosis-dashboard)
       (when (featurep 'gnosis-review)
         (error "Dashboard eagerly loaded review"))
+      (gnosis--insert-into 'nodes
+                           '(["node" "test.org" "Node" "1" nil nil nil]))
       (let ((prompted nil))
-        (cl-letf (((symbol-function 'read-number)
-                   (lambda (&rest _args)
-                     (setq prompted t)
-                     (signal 'quit nil))))
-          (with-temp-buffer
-            (gnosis-dashboard-nodes-mode)
+        (with-temp-buffer
+          (gnosis-dashboard-output-nodes '("node"))
+          (goto-char (point-min))
+          (unless (equal (tabulated-list-get-id) "node")
+            (error "Dashboard did not render the owned node"))
+          (when (featurep 'gnosis-review)
+            (error "Rendering nodes eagerly loaded review"))
+          (cl-letf (((symbol-function 'read-number)
+                     (lambda (&rest _args)
+                       (setq prompted t)
+                       (signal 'quit nil))))
             (condition-case nil
                 (call-interactively (key-binding (kbd "R")))
               (quit nil))))
         (unless prompted (error "Depth command did not reach its prompt"))
-        (unless (and (null (gnosis-select '* 'study-session))
-                     (null (gnosis-select '* 'review-events)))
-          (error "Cancelled selection wrote study evidence"))))))
+        (dolist (table '(study-session review-events practice-events
+                        practice-voids study-history))
+          (when (gnosis-select '* table)
+            (error "Cancelled selection wrote %s evidence" table)))))))
 
 (provide 'gnosis-test-boundaries)
 ;;; gnosis-test-boundaries.el ends here

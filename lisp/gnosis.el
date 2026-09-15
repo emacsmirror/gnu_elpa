@@ -244,13 +244,16 @@ Each function is called with the saved thema ID (integer).")
 (defvar gnosis-review-editing-p nil
   "Boolean value to check if user is currently in a review edit.")
 
-(defun gnosis-delete-thema (id &optional verification)
+(defun gnosis-delete-thema (id &optional verification validate)
   "Delete thema with ID.
 
 When VERIFICATION is non-nil, skip `y-or-n-p' prompt.
+Optional VALIDATE checks caller ownership before and after confirmation.
 Return t when deletion completes, or nil when confirmation is declined.
 Errors and quits propagate without reporting completion."
+  (when validate (funcall validate))
   (when (or verification (y-or-n-p "Delete thema?"))
+    (when validate (funcall validate))
     (gnosis-delete-themata (list id))))
 
 (defun gnosis-delete-themata (ids)
@@ -450,18 +453,20 @@ Set SPLIT to t to split all input given."
 
 
 (cl-defun gnosis-toggle-suspend-themata
-    (ids &optional suspend-value verification)
+    (ids &optional suspend-value verification validate)
   "Suspend or unsuspend themata IDS.
 
 When SUSPEND-VALUE is nil and IDS has one element, toggle that thema's
 current value.  When SUSPEND-VALUE is 0 or 1, set all IDS to that value
 explicitly (safe for bulk operations).
 
-When VERIFICATION is non-nil, skips `y-or-n-p' prompt."
+When VERIFICATION is non-nil, skip `y-or-n-p' prompt.
+Optional VALIDATE checks caller ownership before and after confirmation."
   (cl-assert (listp ids) nil "IDS value needs to be a list.")
   (cl-assert (or (null suspend-value)
                  (memq suspend-value '(0 1)))
              nil "SUSPEND-VALUE must be nil, 0, or 1.")
+  (when validate (funcall validate))
   (let* ((items-num (length ids))
          (suspend-value
           (or suspend-value
@@ -478,6 +483,7 @@ When VERIFICATION is non-nil, skips `y-or-n-p' prompt."
                   (y-or-n-p (format "%s thema? " action))
                 (y-or-n-p (format "%s %d themata? " action items-num))))))
     (when verification
+      (when validate (funcall validate))
       (let ((db (gnosis--ensure-db)))
         (gnosis-sqlite-with-transaction db
           (gnosis-sqlite-execute-batch

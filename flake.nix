@@ -52,6 +52,7 @@
         ./lisp/gnosis.el
       ];
       testFiles = [
+        ./collections/demo.gnosis
         ./docs/gnosis.org
         ./tests
         # Discovery tests need the optional backend, not a package dependency.

@@ -97,6 +97,71 @@
         (unless (byte-compile-file target)
           (error "Cold dashboard compilation failed"))))))
 
+(ert-deftest gnosis-test-boundaries-cold-dashboard-statistics ()
+  "Render deferred counts from a cold public dashboard, then refresh and cancel."
+  (gnosis-test-boundaries--cold
+   '(progn
+      (require 'cl-lib)
+      (require 'gnosis-test-helpers)
+      (require 'gnosis-dashboard)
+      (gnosis-test-with-db
+        (dotimes (i 4)
+          (gnosis-test--add-basic-thema "Question" "Answer" nil nil (1+ i)))
+        (gnosis-sqlite-execute
+         gnosis-db "UPDATE scheduler_state SET reps = 1, due_day = ?
+                     WHERE thema_id = 1"
+         (list (gnosis--date-to-int (gnosis-date -1))))
+        (gnosis-sqlite-execute
+         gnosis-db "UPDATE scheduler_state SET suspended = 1 WHERE thema_id = 4")
+        (let ((gnosis-new-themata-limit 1))
+          (cl-letf (((symbol-function 'keymap-popup) #'ignore))
+            (unwind-protect
+                (cl-labels
+                    ((deliver (timer)
+                       (cancel-timer timer)
+                       (apply (timer--function timer) (timer--args timer)))
+                     (settle ()
+                       ;; Deliver the real scheduled statistics and audit callbacks.
+                       (cl-loop repeat 20 while gnosis-dashboard--timer
+                                do (deliver gnosis-dashboard--timer))
+                       (when gnosis-dashboard--timer
+                         (error "Dashboard callbacks did not settle")))
+                     (check-stats (due)
+                       (unless (and (string-search
+                                     (format "Due themata: %d (Overdue: 1)" due)
+                                     (buffer-string))
+                                    (string-search "Studied today: 0 attempts"
+                                                   (buffer-string))
+                                    (not (string-search "Loading statistics"
+                                                        (buffer-string)))
+                                    (equal gnosis-dashboard--link-issues 0))
+                         (error "Incomplete dashboard: %s" (buffer-string)))))
+                  (call-interactively #'gnosis)
+                  (with-current-buffer "*Gnosis Dashboard*"
+                    (when (featurep 'gnosis-review)
+                      (error "Dashboard eagerly loaded review before statistics"))
+                    (let ((first gnosis-dashboard--timer))
+                      (settle)
+                      (check-stats 2)
+                      (setq gnosis-new-themata-limit 0)
+                      (call-interactively #'gnosis)
+                      (deliver first)
+                      (unless (string-search "Loading statistics" (buffer-string))
+                        (error "Stale statistics overwrote refresh"))
+                      (settle)
+                      (check-stats 1))
+                    (call-interactively #'gnosis)
+                    (let ((pending gnosis-dashboard--timer)
+                          (inhibit-read-only t))
+                      (fundamental-mode)
+                      (erase-buffer)
+                      (insert "Successor buffer")
+                      (deliver pending)
+                      (unless (equal (buffer-string) "Successor buffer")
+                        (error "Cancelled statistics overwrote successor")))))
+              (when (get-buffer "*Gnosis Dashboard*")
+                (kill-buffer "*Gnosis Dashboard*")))))))))
+
 (ert-deftest gnosis-test-boundaries-cold-dashboard-review-depth-cancel ()
   "Reach depth input from a cold dashboard and cancel without study evidence."
   (gnosis-test-boundaries--cold

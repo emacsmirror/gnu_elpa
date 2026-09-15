@@ -1,5 +1,5 @@
 * R Tree Sitter Mode for Emacs
-Version 1.1.3
+Version 1.2.0
 
 [[https://melpa.org/#/r-ts-mode][file:https://melpa.org/packages/r-ts-mode-badge.svg]]
 

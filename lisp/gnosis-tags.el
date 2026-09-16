@@ -97,6 +97,16 @@ Return (INCLUDE . EXCLUDE) cons of plain tag lists."
 		 candidates nil nil)))
     (gnosis-tags--parse-filter input)))
 
+(defun gnosis-tags--check-org (tags)
+  "Refuse TAGS that native Org headline syntax cannot preserve exactly.
+This is an authoring boundary, not a restriction on stored tag identities."
+  (dolist (tag tags)
+    (unless (and (stringp tag)
+                 (string-match-p (concat "\\`" org-tag-re "\\'") tag))
+      (user-error
+       "Org cannot preserve tag %S; explicitly rename or remove it with the tag commands first"
+       tag))))
+
 (defun gnosis-tags-prompt ()
   "Tag prompt for adding themata."
   (interactive)
@@ -109,6 +119,7 @@ Return (INCLUDE . EXCLUDE) cons of plain tag lists."
 	  (current-tags (org-get-tags)))
       (outline-up-heading 99)
       (when input
+        (gnosis-tags--check-org input)
 	(setf gnosis-previous-thema-tags input)
         (org-set-tags (append input current-tags))))))
 

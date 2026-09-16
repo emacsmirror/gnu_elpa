@@ -180,13 +180,18 @@
       (save-window-excursion
         (unwind-protect
             (progn
-              (gnosis-add-thema "basic" "Q [[id:node-x][X]] [[id:node-x][X]]"
+              (sqlite-execute
+               gnosis-db
+               "CREATE TEMP TRIGGER refuse_link BEFORE INSERT ON thema_links
+                WHEN NEW.dest = '\"node-y\"'
+                BEGIN SELECT RAISE(ABORT, 'Blocked source'); END")
+              (gnosis-add-thema "basic" "Q [[id:node-x][X]] [[id:node-y][Y]]"
                                 "hint" "A" nil '("probe"))
               (let ((text (buffer-string))
                     (err (should-error
                           (call-interactively (key-binding (kbd "C-c C-c")))
                           :type 'user-error)))
-                (should (string-match-p "UNIQUE constraint failed: thema_links"
+                (should (string-match-p "Blocked source"
                                         (error-message-string err)))
                 (should (equal text (buffer-string)))
                 (should (get-buffer "*Gnosis NEW*"))))

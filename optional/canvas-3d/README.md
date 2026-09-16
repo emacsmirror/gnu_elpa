@@ -130,8 +130,8 @@ viewer buffer. `canvas-3d-selected-id` and `canvas-3d-selection-hook` are local
 to it. The hook runs after asynchronous picking delivery with a plist:
 `(:mesh ID :face TRIANGLE :point (X Y Z) :id ID :frame SEQUENCE :owner PROCESS)`.
 `canvas-3d--selection` retains this geometry snapshot. Face indices are zero-based
-file-order OBJ fan triangles, not object-index bytes; points use original mesh
-coordinates (float32 wire precision). Background ID and geometry are nil. Consumers
+file-order OBJ fan triangles, not object-index bytes; compact picks use original
+mesh coordinates encoded as float64. Background ID and geometry are nil. Consumers
 own interpretation, explicit submission and grading; selecting is not grading.
 `canvas-3d-pick` accepts integer canvas X/Y and an optional retained frame.
 
@@ -146,23 +146,25 @@ identity bytes. The corresponding `pending-SEQUENCE.bgra` contains exactly
 sequence-qualified name and deletes the previous one only after refresh.
 Standalone script users omitting the file flags receive `C3D3`, a big-endian
 uint32 sequence and tightly packed BGRA color (8 + 4 × area bytes).
-The renderer retains the matching depth-tested object, face and
-original-coordinate GPU attachments; only the clicked pixel is read back
-on a pick, and no geometry planes travel with the image.
+The renderer retains the matching depth-tested object, face and normalized
+surface-coordinate GPU attachments. Only the clicked pixel is read back on a
+pick; the CPU reconstructs original coordinates using the scene center and
+radius in float64. No geometry planes travel with the image.
 
 A pick request has `op: "pick"`, its own `seq`, the displayed `frame` sequence,
-and integer raw-frame pixel `x` and `y`. Its 32-byte response contains:
+and integer raw-frame pixel `x` and `y`. Its 44-byte response contains:
 
-- `C3P3`, request sequence, requested frame sequence (12 bytes);
+- `C3P4`, request sequence, requested frame sequence (12 bytes);
 - big-endian uint32 object index and triangle index **plus one** (8 bytes);
-- original XYZ, three finite big-endian IEEE float32 values (12 bytes).
+- original XYZ, three finite big-endian IEEE float64 values (24 bytes).
 
 Zero object/face/coordinates mean background. Object index `0xffffffff` means
 the renderer no longer retains the requested frame, not background. Faces above
 65535 retain their full identity. Python `frame_pair` still returns color/mesh
-planes locally. Existing Elisp protocol 1/2 fixture paths remain for transport
-regressions; real open/attach always sets 4. There is no wire negotiation or
-fallback to old renderer installations.
+planes locally. The legacy `frame_geometry` API and Elisp protocol 1/2 fixture
+paths retain float32 coordinates. Real open/attach always sets view protocol 4;
+both view protocols 3 and 4 use C3P4 picks. There is no wire negotiation or
+fallback to old renderer installations: update the backend and Elisp together.
 
 OBJ `v` and `f` are read in file order. Each polygon becomes `(v0, vi, vi+1)`;
 positive position indices and negative indices relative to preceding vertices

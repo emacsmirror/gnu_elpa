@@ -91,7 +91,8 @@ Uses NOCASE instead of Anki's custom unicase collation."
 (defun gnosis-test-anki--insert-notetype (db id name type)
   "Insert notetype ID with NAME into DB.  TYPE is basic or cloze."
   (sqlite-execute db
-    "INSERT INTO notetypes VALUES (?,?,0,0,'')" (list id name))
+    "INSERT INTO notetypes VALUES (?,?,0,0,?)"
+    (list id name (if (eq type 'cloze) (unibyte-string 8 1) "")))
   (if (eq type 'cloze)
       (progn
         (sqlite-execute db
@@ -1245,6 +1246,267 @@ and explanation; SKIPPED counts rejected items, or one for an empty note."
         (funcall pending)
         (should (equal completions '((0 1) (3 1))))
         (should (= 4 (length (gnosis-select 'id 'themata))))))))
+
+(defmacro gnosis-test-anki--with-git (&rest body)
+  "Run BODY without inherited Git configuration or repository overrides."
+  (declare (indent 0) (debug t))
+  `(let ((process-environment
+          (seq-remove (lambda (entry) (string-prefix-p "GIT_" entry))
+                      process-environment)))
+     (setenv "GIT_CONFIG_NOSYSTEM" "1")
+     (setenv "GIT_CONFIG_GLOBAL" null-device)
+     (setenv "GIT_AUTHOR_NAME" "Gnosis Test")
+     (setenv "GIT_AUTHOR_EMAIL" "test@example.invalid")
+     (setenv "GIT_COMMITTER_NAME" "Gnosis Test")
+     (setenv "GIT_COMMITTER_EMAIL" "test@example.invalid")
+     ,@body))
+
+(defun gnosis-test-anki--git (directory &rest args)
+  "Run Git ARGS in DIRECTORY and return its trimmed output."
+  (let ((default-directory directory))
+    (with-temp-buffer
+      (should (zerop (apply #'call-process "git" nil t nil args)))
+      (string-trim (buffer-string)))))
+
+(defun gnosis-test-anki--wait-git ()
+  "Drain the disposable import's Git processes within five seconds."
+  (let ((deadline (+ (float-time) 5)))
+    (while (and (seq-some (lambda (process)
+                           (string-prefix-p "gnosis-git" (process-name process)))
+                         (process-list))
+                (< (float-time) deadline))
+      (accept-process-output nil 0.05))
+    (should-not (seq-some (lambda (process)
+                           (string-prefix-p "gnosis-git" (process-name process)))
+                         (process-list)))))
+
+(ert-deftest gnosis-test-anki-import-git-database-owner ()
+  "Commit the imported connection's file, not mutable directory options."
+  (skip-unless (executable-find "git"))
+  (gnosis-test-anki--with-git
+    (dolist (change '(unchanged after-dispatch before-dispatch))
+      (gnosis-test-with-db
+        (let* ((source (expand-file-name "source.anki2" gnosis-dir))
+               (db-a gnosis-db)
+               (dir-a gnosis-dir)
+               (gnosis-anki--chunk-size 1)
+               pending)
+          (gnosis-test-anki--overlap-source source 'basic '(1 2))
+          (gnosis-test-with-db
+            (let* ((db-b gnosis-db)
+                   (dir-b gnosis-dir)
+                   (before-b (sqlite-select db-b "SELECT * FROM themata"))
+                   (gnosis-db db-a)
+                   (gnosis-dir (if (eq change 'before-dispatch) dir-b dir-a))
+                   (gnosis-testing nil))
+              (cl-letf (((symbol-function 'run-with-timer)
+                         (lambda (_delay _repeat fn &rest args)
+                           (setq pending
+                                 (append pending
+                                         (list (lambda () (apply fn args))))))))
+                (gnosis-anki--import-db source)
+                (should (= 1 (caar (sqlite-select db-a "SELECT COUNT(*) FROM themata"))))
+                (unless (eq change 'unchanged)
+                  (setq gnosis-db db-b gnosis-dir dir-b))
+                (let ((current-db gnosis-db) (current-dir gnosis-dir))
+                  (while pending (funcall (pop pending)))
+                  (gnosis-test-anki--wait-git)
+                  (should (eq gnosis-db current-db))
+                  (should (equal gnosis-dir current-dir))))
+              (should (= 2 (caar (sqlite-select db-a "SELECT COUNT(*) FROM themata"))))
+              (should (equal before-b (sqlite-select db-b "SELECT * FROM themata")))
+              (should-not (file-exists-p (expand-file-name ".git" dir-b)))
+              (should (equal (gnosis-test-anki--git dir-a "log" "-1" "--format=%s")
+                             "Anki import: 2 themata from source.anki2"))
+              (should (equal (gnosis-test-anki--git dir-a "ls-tree" "--name-only" "HEAD")
+                             "gnosis.db"))
+              (should (equal (gnosis-test-anki--git dir-a "remote") ""))
+              ;; Prove the committed database contains the import, not just its message.
+              (let* ((snapshot (expand-file-name "committed.db" dir-a))
+                     (coding-system-for-write 'no-conversion))
+                (with-temp-buffer
+                  (set-buffer-multibyte nil)
+                  (let ((default-directory dir-a))
+                    (should (zerop (call-process "git" nil t nil "show" "HEAD:gnosis.db"))))
+                  (write-region (point-min) (point-max) snapshot nil 'silent))
+                (let ((committed (sqlite-open snapshot)))
+                  (unwind-protect
+                      (should (equal (sqlite-select committed
+                                                    "SELECT source_guid FROM themata ORDER BY source_guid")
+                                     '(("guid1") ("guid2"))))
+                    (sqlite-close committed)))))))))))
+
+(ert-deftest gnosis-test-anki-import-closed-owner-retry ()
+  "A closed owner aborts without Git effects; retry retains committed chunks."
+  (dolist (completed-chunks '(1 2))
+    (gnosis-test-with-db
+     (let* ((source (expand-file-name "source.anki2" gnosis-dir))
+            (db-a gnosis-db)
+            (dir-a gnosis-dir)
+            (gnosis-anki--chunk-size 1)
+            (cleaned 0)
+            pending)
+       (gnosis-test-anki--overlap-source source 'basic '(1 2))
+       (let ((items (cdr (gnosis-anki--parse-anki-db source))))
+         (cl-letf (((symbol-function 'run-with-timer)
+                    (lambda (_delay _repeat fn &rest args)
+                      (setq pending (lambda () (apply fn args))))))
+           (gnosis-anki--chunk-insert
+            db-a (mapcar #'list items) '((901) (902)) 2 0
+            (gnosis--today-int) (lambda () (cl-incf cleaned)) source)
+           (when (= completed-chunks 2) (funcall pending))
+           (sqlite-close db-a)
+           (gnosis-test-with-db
+            (let ((db-b gnosis-db) (dir-b gnosis-dir) (gnosis-testing nil))
+              (funcall pending)
+              (should (= cleaned 1))
+              (should (eq gnosis-db db-b))
+              (should (equal gnosis-dir dir-b))
+              (should-not (sqlite-select db-b "SELECT * FROM themata"))
+              (should-not (file-exists-p (expand-file-name ".git" dir-b)))))
+           (should-not (file-exists-p (expand-file-name ".git" dir-a)))
+           (setq gnosis-db (gnosis-db--open dir-a))
+           (should (= completed-chunks
+                      (caar (sqlite-select gnosis-db "SELECT COUNT(*) FROM themata"))))
+           (setq pending nil)
+           (gnosis-anki--import-db source)
+           (when pending (funcall pending))
+           (should (equal (sqlite-select gnosis-db
+                                         "SELECT source_guid FROM themata ORDER BY source_guid")
+                          '(("guid1") ("guid2"))))))))))
+
+(ert-deftest gnosis-test-anki-import-optional-git-failure ()
+  "Missing Git and real commit rejection preserve successful import SQL."
+  (skip-unless (executable-find "git"))
+  (gnosis-test-anki--with-git
+    (dolist (failure '(missing rejected))
+      (gnosis-test-with-db
+        (let* ((source (expand-file-name "source.anki2" gnosis-dir))
+               (gnosis-anki--chunk-size 1)
+               (gnosis-testing nil)
+               pending)
+          (gnosis-test-anki--overlap-source source 'basic '(1 2))
+          (when (eq failure 'rejected)
+            (gnosis--ensure-git-repo)
+            (let ((hook (expand-file-name ".git/hooks/pre-commit" gnosis-dir)))
+              (with-temp-file hook (insert "#!/bin/sh\nexit 1\n"))
+              (set-file-modes hook #o700)))
+          (let ((exec-path (unless (eq failure 'missing) exec-path)))
+            (cl-letf (((symbol-function 'run-with-timer)
+                       (lambda (_delay _repeat fn &rest args)
+                         (setq pending
+                               (append pending (list (lambda () (apply fn args))))))))
+              (gnosis-anki--import-db source)
+              (while pending (funcall (pop pending)))
+              (gnosis-test-anki--wait-git)))
+          (should (= 2 (caar (sqlite-select gnosis-db "SELECT COUNT(*) FROM themata"))))
+          (should-not (file-exists-p (expand-file-name ".git/refs/heads/master" gnosis-dir)))
+          (when (eq failure 'missing)
+            (should-not (file-exists-p (expand-file-name ".git" gnosis-dir)))))))))
+
+(ert-deftest gnosis-test-anki-import-nonstandard-database ()
+  "Never commit a neighboring gnosis.db for an unversionable import owner."
+  (dolist (filename '(nil "other.db"))
+    (gnosis-test-with-db
+      (let* ((source (expand-file-name "source.anki2" gnosis-dir))
+             (owner (sqlite-open (and filename (expand-file-name filename gnosis-dir))))
+             (configured-db gnosis-db)
+             (gnosis-db owner)
+             (gnosis-anki--chunk-size 1)
+             commits pending)
+        (unwind-protect
+            (progn
+              (gnosis-db-init)
+              (gnosis-test-anki--overlap-source source 'basic '(1 2))
+              (let ((gnosis-testing nil))
+                (cl-letf (((symbol-function 'gnosis-anki--commit-import)
+                           (lambda (&rest args) (push args commits)))
+                          ((symbol-function 'run-with-timer)
+                           (lambda (_delay _repeat fn &rest args)
+                             (setq pending
+                                   (append pending (list (lambda () (apply fn args))))))))
+                  (gnosis-anki--import-db source)
+                  (while pending (funcall (pop pending)))))
+              (should-not commits)
+              (should (= 2 (caar (sqlite-select owner "SELECT COUNT(*) FROM themata"))))
+              (should-not (sqlite-select configured-db "SELECT * FROM themata"))
+              (should-not (file-exists-p (expand-file-name ".git" gnosis-dir))))
+          (sqlite-close owner))))))
+
+(ert-deftest gnosis-test-anki-import-modern-notetype-kind ()
+  "Persist semantic kinds from protobuf, independently of template labels."
+  (dolist (spec '((cloze "Anatomy" (8 1))
+                  (cloze "Ανατομία" (8 1))
+                  (basic "Cloze" ())
+                  (basic "Cloze" (8 0))
+                  ;; sort_field_idx=1 and CSS containing kind-like bytes must
+                  ;; not be mistaken for the top-level enum, wherever it occurs.
+                  (cloze "Renamed" (16 1 26 2 8 0 8 1))
+                  (basic "Cloze" (26 2 8 1))
+                  (basic "Cloze" (8 1 8 0))))
+    (gnosis-test-with-db
+      (let* ((file (expand-file-name "source.anki2" gnosis-dir))
+             (source (sqlite-open file))
+             (kind (nth 0 spec))
+             pending)
+        (unwind-protect
+            (progn
+              (gnosis-test-anki--create-schema source)
+              (gnosis-test-anki--insert-notetype source 200 "Medicine" kind)
+              (sqlite-execute source "UPDATE notetypes SET config = ?"
+                              (list (apply #'unibyte-string (nth 2 spec))))
+              (sqlite-execute source "UPDATE templates SET name = ?" (list (nth 1 spec)))
+              (gnosis-test-anki--insert-note
+               source 1 200
+               (if (eq kind 'cloze)
+                   (concat "The {{c1::heart}} pumps blood" (string 31) "Extra context")
+                 (concat "Question" (string 31) "Answer")) "")
+              (cl-letf (((symbol-function 'run-with-timer)
+                         (lambda (_delay _repeat fn &rest args)
+                           (setq pending (lambda () (apply fn args))))))
+                (gnosis-anki--import-db file)
+                (when pending (funcall pending)))
+              (should (equal (gnosis-select '[type keimenon answer] 'themata)
+                             (if (eq kind 'cloze)
+                                 '(("cloze" "The heart pumps blood" ("heart")))
+                               '(("basic" "Question" ("Answer")))))))
+          (sqlite-close source))))))
+
+(ert-deftest gnosis-test-anki-notetype-kind-protobuf ()
+  "Decode full field tags and skip unknown fields without scanning their bodies."
+  (dolist (bytes '((8 1)
+                    (249 15 0 0 0 0 0 0 0 0 8 1)
+                    (250 15 2 8 0 8 1)
+                    (253 15 0 0 0 0 8 1)))
+    (should (= 1 (gnosis-anki--notetype-kind (apply #'unibyte-string bytes))))))
+
+(ert-deftest gnosis-test-anki-import-invalid-kind-refuses-and-retries ()
+  "Malformed and unsupported kind configs refuse before writes and permit repair."
+  (dolist (bytes '((8 2) (8) (128) (26 5 0) (0) (10 0)))
+    (gnosis-test-with-db
+      (let* ((file (expand-file-name "source.anki2" gnosis-dir))
+             (source (sqlite-open file))
+             pending)
+        (unwind-protect
+            (progn
+              (gnosis-test-anki--create-schema source)
+              (gnosis-test-anki--insert-notetype source 200 "Medicine" 'cloze)
+              (gnosis-test-anki--insert-note
+               source 1 200 (concat "The {{c1::heart}}" (string 31) "Extra") "")
+              (sqlite-execute source "UPDATE notetypes SET config = ?"
+                              (list (apply #'unibyte-string bytes)))
+              (should-error (gnosis-anki--import-db file))
+              (should-not (gnosis-select '* 'themata))
+              (should-not (file-exists-p (expand-file-name ".git" gnosis-dir)))
+              (sqlite-execute source "UPDATE notetypes SET config = x'0801'")
+              (cl-letf (((symbol-function 'run-with-timer)
+                         (lambda (_delay _repeat fn &rest args)
+                           (setq pending (lambda () (apply fn args))))))
+                (gnosis-anki--import-db file)
+                (funcall pending))
+              (should (equal (gnosis-select '[type answer] 'themata)
+                             '(("cloze" ("heart"))))))
+          (sqlite-close source))))))
 
 (provide 'gnosis-test-anki)
 

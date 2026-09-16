@@ -635,22 +635,23 @@ If JOURNAL-P is non-nil, retrieve/create node as a journal entry."
 
 (defun gnosis-nodes--filetags ()
   "Return list of current filetags, or nil, ignoring narrowing."
-  (let ((case-fold-search t))
-    (org-with-wide-buffer
-     (goto-char (point-min))
-     (when (re-search-forward "^#\\+filetags:[ \t]*\\(.*\\)" nil t)
-       (split-string (match-string 1) ":" t)))))
+  (org-with-wide-buffer
+   (gnosis-org-get-filetags)))
 
 (defun gnosis-nodes--write-filetags (tags)
-  "Write TAGS as a #+filetags line, preserving the root property drawer."
-  (let ((case-fold-search t)
-        (value (format " :%s:" (mapconcat #'identity tags ":"))))
-    (org-with-wide-buffer
-     (goto-char (point-min))
-     (if (re-search-forward "^#\\+filetags:" nil t)
-         (progn
+  "Write TAGS in one FILETAGS keyword, preserving literal text and root ID."
+  (org-with-wide-buffer
+   (let ((keywords (gnosis-org--filetag-keywords))
+         (line (format "#+filetags: :%s:" (mapconcat #'identity tags ":"))))
+     (if keywords
+         ;; Edit backwards so the parser's positions stay valid.  Remove only
+         ;; keyword lines, not their affiliated keywords or trailing blanks.
+         (dolist (keyword (reverse keywords))
+           (goto-char (org-element-property :post-affiliated keyword))
            (delete-region (point) (line-end-position))
-           (insert value))
+           (if (eq keyword (car keywords))
+               (insert line)
+             (when (eq (char-after) ?\n) (delete-char 1))))
        (goto-char (point-min))
        ;; Org owns file-level drawer placement, including leading comments.
        (when-let* ((drawer (org-get-property-block (point-min))))
@@ -658,7 +659,7 @@ If JOURNAL-P is non-nil, retrieve/create node as a journal entry."
          (forward-line))
        ;; Insert before keywords or body: a #+ line may open an Org block.
        (unless (bolp) (insert "\n"))
-       (insert "#+filetags:" value "\n")))))
+       (insert line "\n")))))
 
 (defun gnosis-nodes-insert-filetag (&optional tag)
   "Insert TAG as filetag.
@@ -777,21 +778,15 @@ Refuse unresolved basename ownership before visiting another file."
 ;;; Sync
 
 (defun gnosis-nodes--file-changed-p (file table)
-  "Check if FILE changed since last sync using mtime then hash.
-TABLE is either \\='nodes or \\='journal."
+  "Return non-nil if FILE's contents differ from its index in TABLE.
+TABLE is either \\='nodes or \\='journal.  Compare hashes even when mtimes
+agree: retained timestamps and some filesystems have only second precision.
+Reading errors propagate so sync cannot silently accept an unreadable file."
   (let* ((filename (gnosis-nodes--file-key file (eq table 'journal)))
-         (file-mtime
-          (format-time-string
-           "%s" (file-attribute-modification-time
-                 (file-attributes file))))
-         (db-data (car (gnosis-nodes-select
-                        '[mtime hash] table
-                        `(= file ,filename))))
-         (db-mtime (car db-data))
-         (db-hash (cadr db-data)))
-    (or (not db-mtime)
-        (and (not (string= file-mtime db-mtime))
-             (not (string= (gnosis-org--file-hash file) db-hash))))))
+         (db-hash (caar (gnosis-nodes-select
+                         'hash table `(= file ,filename)))))
+    (or (not db-hash)
+        (not (equal (gnosis-org--file-hash file) db-hash)))))
 
 (defun gnosis-nodes--org-file-p (file)
   "Return non-nil for regular Org FILE inputs, excluding Emacs lockfiles."
@@ -813,7 +808,8 @@ TABLE is either \\='nodes or \\='journal."
 
 (defun gnosis-nodes-db-update-files (&optional force)
   "Sync node files with progress reporting.
-When FORCE, update all files.  Otherwise, only update changed files.
+Normally index changed files from disk, leaving visiting buffers untouched.
+When FORCE, rebuild all files using visiting contents when available.
 Only rebuild indexes; do not complete journal TODOs."
   (gnosis-nodes-ensure-directories)
   (let* ((all-files (gnosis-nodes--files))
@@ -832,7 +828,11 @@ Only rebuild indexes; do not complete journal TODOs."
         (cl-loop for file in files
                  for i from 0
                  do (progn
-                      (gnosis-nodes-update-file file t)
+                      ;; External sync indexes disk.  Explicit rebuilds retain
+                      ;; the live-buffer recovery behavior of the save writer.
+                      (if force
+                          (gnosis-nodes-update-file file t)
+                        (gnosis-nodes--update-file file))
                       (progress-reporter-update progress i)))
         (progress-reporter-done progress)))))
 

@@ -50,18 +50,22 @@ nearest enclosing ID at the link's beginning."
           (when-let* ((source-id (gnosis-org-get-id)))
             (cons (org-element-property :path link) source-id)))))))
 
+(defun gnosis-org--filetag-keywords (&optional parsed-data)
+  "Return native FILETAGS keyword elements from PARSED-DATA or the buffer."
+  (org-element-map (or parsed-data (org-element-parse-buffer)) 'keyword
+    (lambda (keyword)
+      (when (equal (org-element-property :key keyword) "FILETAGS")
+        keyword))))
+
 (defun gnosis-org-get-filetags (&optional parsed-data)
-  "Return the filetags of the buffer's PARSED-DATA as a list of strings."
-  (let* ((parsed-data (or parsed-data (org-element-parse-buffer)))
-         (filetags (org-element-map parsed-data 'keyword
-                     (lambda (kw)
-                       (when (string-equal
-                              (org-element-property :key kw)
-                              "FILETAGS")
-                         (org-element-property :value kw)))
-                     nil t)))
-    (when (and filetags (not (string-empty-p (string-trim filetags))))
-      (remove "" (split-string filetags ":")))))
+  "Return unique file tags from all FILETAGS keywords in PARSED-DATA.
+Parse the buffer when PARSED-DATA is nil.  Literal block contents are not
+keywords.  As in Org, whitespace and colons separate tags."
+  (delete-dups
+   (mapcan (lambda (keyword)
+             (split-string (org-element-property :value keyword)
+                           "[ \t\n\r:]+" t))
+           (gnosis-org--filetag-keywords parsed-data))))
 
 (defun gnosis-org-get-data--topic (&optional parsed-data)
   "Retrieve the title and ID from the current org buffer or given PARSED-DATA.

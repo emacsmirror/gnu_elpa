@@ -841,14 +841,28 @@ all application values.  Reject damaged required objects before any writes."
             (error "Invalid Gnosis schema %d: missing or changed guard %s"
                    version name))))))
   ;; Row integrity alone cannot detect a missing deletion cascade.
-  (when (and (>= version 9)
-             (not (equal '((0 0 "themata" "thema_id" "id" "NO ACTION" "CASCADE" "NONE"))
-                         (sqlite-select db "PRAGMA foreign_key_list(practice_events)"))))
-    (error "Invalid practice event ownership constraint"))
-  (when (and (>= version 10)
-             (not (equal '((0 0 "practice_events" "event_id" "event_id" "NO ACTION" "CASCADE" "NONE"))
-                         (sqlite-select db "PRAGMA foreign_key_list(practice_encounters)"))))
-    (error "Invalid practice encounter ownership constraint"))
+  (when (>= version 9)
+    (pcase-dolist
+        (`(,table ,parent ,column ,parent-column)
+         (append '(("scheduler_baseline" "themata" "thema_id" "id")
+                   ("scheduler_state" "scheduler_baseline" "thema_id" "thema_id")
+                   ("review_events" "scheduler_baseline" "thema_id" "thema_id")
+                   ("review_voids" "review_events" "event_id" "event_id")
+                   ("practice_events" "themata" "thema_id" "id")
+                   ("practice_voids" "practice_events" "event_id" "event_id"))
+                 (when (>= version 10)
+                   '(("practice_encounters" "practice_events" "event_id" "event_id")))))
+      (let ((expected
+             (cons (list 0 parent column parent-column "NO ACTION" "CASCADE" "NONE")
+                   (when (member table '("scheduler_state" "review_events"))
+                     '((0 "scheduler_config" "config_id" "id" "NO ACTION" "NO ACTION" "NONE")))))
+            ;; Constraint numbers and declaration order are not ownership.
+            ;; Keep sequence numbers so composite keys cannot pass as singles.
+            (actual (mapcar #'cdr (sqlite-select
+                                  db (format "PRAGMA foreign_key_list(%s)" table)))))
+        (unless (and (= (length expected) (length actual))
+                     (seq-every-p (lambda (key) (member key actual)) expected))
+          (error "Invalid %s ownership constraint" table)))))
   (when (and (>= version 9)
              (not (equal '((1)) (sqlite-select db "SELECT id FROM scheduler_config WHERE id = 1"))))
     (error "Gnosis database is missing its baseline scheduler configuration"))

@@ -210,7 +210,9 @@ minimise per-entry overhead.  Properties set per line:
           (let* ((raw (or (aref cols i) ""))
                  (text (if (stringp raw) raw (format "%s" raw)))
                  (len (length text))
-                 (ascii-p (= len (string-bytes text)))
+                 ;; Tabs and control characters are ASCII too, but their
+                 ;; display width is not their character count.
+                 (ascii-p (not (string-match-p "[^ -~]" text)))
                  (width (aref widths i)))
             (if (= i last-idx)
                 ;; Last column -- no padding, just truncate if needed
@@ -222,22 +224,15 @@ minimise per-entry overhead.  Properties set per line:
                                  text width nil nil ellipsis)
                               text))))
               ;; Non-last columns -- pad to width + pad-right
-              (if (and ascii-p (<= len width))
-                  ;; Fast path: single C-level format call does padding
+              (if (and ascii-p (<= len width) (not (aref right-aligns i)))
+                  ;; Fast path: single C-level format call does padding.
                   (insert (format (aref fmt-strs i) text))
-                ;; Slow path: multibyte or truncation needed
-                (let ((sw (if ascii-p len (string-width text)))
-                      (pr (aref pad-rights i)))
-                  (if (> sw width)
-                      (insert (truncate-string-to-width
-                               text width nil nil ellipsis)
-                              (make-string pr ?\s))
-                    (if (aref right-aligns i)
-                        (insert (make-string (- width sw) ?\s) text
-                                (make-string pr ?\s))
-                      (insert text
-                              (make-string
-                               (+ (- width sw) pr) ?\s))))))))
+                ;; Share replacement's width and alignment policy.  In
+                ;; particular, truncating before a wide glyph can leave
+                ;; a gap which still needs padding before the next cell.
+                (insert (gnosis-tl--pad-column
+                         text width (aref pad-rights i)
+                         (aref right-aligns i))))))
           (setq i (1+ i)))
         (insert ?\n)
         (add-text-properties beg (point)
@@ -255,7 +250,7 @@ of all formatted lines.  Pure function — no buffer side effects."
     (buffer-string)))
 
 (defun gnosis-tl-print (&optional remember-pos)
-  "Fast drop-in replacement for `tabulated-list-print'.
+  "Render string-valued tabulated-list entries quickly.
 Renders directly into the current buffer using optimised bulk
 insertion.  When REMEMBER-POS is non-nil, restore point to the
 same entry ID and column."

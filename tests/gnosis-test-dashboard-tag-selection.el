@@ -46,7 +46,8 @@
                              (overlays-at (point)))
               collect (tabulated-list-get-id)
               do (forward-line 1)))
-   (buffer-substring-no-properties (point-min) (point-max))))
+   (buffer-substring-no-properties (point-min) (point-max))
+   (copy-sequence gnosis-dashboard-tags-current)))
 
 (ert-deftest gnosis-dashboard-tag-selection-cancel-and-error ()
   "Declines, prompt quits, invalid regexps and write errors preserve marks."

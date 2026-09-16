@@ -210,8 +210,12 @@ mutable tails of that prefix.  Mutations settle this suffix first.")
                          ('gnosis-dashboard-tags-mode
                           (cons 'tags gnosis-dashboard-tags-current)))))
          (items (cdr snapshot)))
-    (when (or view items)
+    ;; Global searches may start in an obsolete collection.  Do not retain
+    ;; its IDs as a route back into the replacement database.
+    (when (and (or view items)
+               (or view (eq gnosis-dashboard--database gnosis-db)))
       (push (list :type (car snapshot)
+                  :database gnosis-db
                   :id (when (derived-mode-p 'tabulated-list-mode)
                         (tabulated-list-get-id))
                   :items (copy-sequence items))
@@ -228,6 +232,8 @@ mutable tails of that prefix.  Mutations settle this suffix first.")
 
 (defun gnosis-dashboard--restore-view (view)
   "Restore dashboard VIEW from navigation history."
+  (unless (eq (plist-get view :database) gnosis-db)
+    (user-error "Dashboard history belongs to another database"))
   (let ((id (plist-get view :id))
         (items (plist-get view :items)))
     (pcase-exhaustive (plist-get view :type)
@@ -241,8 +247,11 @@ mutable tails of that prefix.  Mutations settle this suffix first.")
 
 (defun gnosis-dashboard--back ()
   "Restore the previous dashboard view, or open the main dashboard."
+  (gnosis-dashboard--command-owner)
   (if gnosis-dashboard--history
-      (gnosis-dashboard--restore-view (pop gnosis-dashboard--history))
+      (let ((view (car gnosis-dashboard--history)))
+        (gnosis-dashboard--restore-view view)
+        (setq gnosis-dashboard--history (cdr gnosis-dashboard--history)))
     (gnosis-dashboard)))
 
 (defun gnosis-dashboard-return (&optional current-values)
@@ -354,8 +363,10 @@ Retain marks if confirmation is declined or the operation fails."
   "Filter themata IDS by searching within them for STR.
 If IDS is not provided, use current themata being displayed."
   (interactive)
-  (let* ((ids (or ids gnosis-dashboard-themata-current-ids))
+  (let* ((owner (unless ids (gnosis-dashboard--command-owner)))
+         (ids (or ids gnosis-dashboard-themata-current-ids))
          (query (or str (read-string "Filter current themata: "))))
+    (when owner (gnosis-dashboard--command-owner owner))
     ;; Validate inputs
     (unless ids (user-error "No themata to filter"))
     (when (string-empty-p query) (user-error "Search query cannot be empty"))
@@ -383,22 +394,26 @@ With prefix arg, prompt for count.  Default 0 (never reviewed)."
           (gnosis-dashboard-output-themata ids))
       (message "No themata with at most %d reviews" max-reviews))))
 
-(defun gnosis-dashboard-filter-themata-by-reviews (max-reviews)
+(defun gnosis-dashboard-filter-themata-by-reviews (&optional max-reviews)
   "Filter current themata to those with at most MAX-REVIEWS total reviews.
 With prefix arg, prompt for count.  Default 0 (never reviewed)."
-  (interactive (list (if current-prefix-arg
-                         (read-number "Max reviews: " 0)
-                       0)))
-  (unless gnosis-dashboard-themata-current-ids
-    (user-error "No themata to filter"))
-  (let ((filtered (gnosis-get-themata-by-reviews
-                   max-reviews gnosis-dashboard-themata-current-ids)))
-    (if filtered
-        (progn
-          (gnosis-dashboard--push-current-view)
-          (gnosis-dashboard-output-themata filtered))
-      (message "No themata in current view with at most %d reviews"
-               max-reviews))))
+  (interactive)
+  (let* ((owner (gnosis-dashboard--command-owner))
+         (max-reviews (or max-reviews
+                          (if current-prefix-arg
+                              (read-number "Max reviews: " 0)
+                            0))))
+    (gnosis-dashboard--command-owner owner)
+    (unless gnosis-dashboard-themata-current-ids
+      (user-error "No themata to filter"))
+    (let ((filtered (gnosis-get-themata-by-reviews
+                     max-reviews gnosis-dashboard-themata-current-ids)))
+      (if filtered
+          (progn
+            (gnosis-dashboard--push-current-view)
+            (gnosis-dashboard-output-themata filtered))
+	(message "No themata in current view with at most %d reviews"
+		 max-reviews)))))
 
 (defun gnosis-dashboard-themata-back ()
   "Go back to the previous themata view, nodes view, or main dashboard."
@@ -412,7 +427,7 @@ With prefix arg, prompt for count.  Default 0 (never reviewed)."
   :group "Mark"
   "m" ("Toggle mark" gnosis-dashboard-mark-toggle :stay-open t)
   "M" ("Mark all" gnosis-dashboard-mark-all :stay-open t)
-  "u" ("Unmark" gnosis-dashboard-mark-toggle :stay-open t)
+  "u" ("Unmark" gnosis-dashboard-unmark :stay-open t)
   "U" ("Unmark all" gnosis-dashboard-unmark-all :stay-open t))
 
 (keymap-popup-define gnosis-dashboard-themata-mode-map
@@ -777,6 +792,8 @@ Keep marks on cancellation or mutation failure."
            db "DELETE FROM thema_tag WHERE tag IN (%s)" tags)))
       (setq gnosis-dashboard--selected-ids nil)
       (remove-overlays nil nil 'gnosis-mark t)
+      (setq gnosis-dashboard-tags-current
+            (seq-difference gnosis-dashboard-tags-current tags #'equal))
       (setq tabulated-list-entries
             (cl-remove-if (lambda (entry) (member (car entry) tags))
                           tabulated-list-entries))
@@ -805,8 +822,9 @@ Keep marks on cancellation or mutation failure."
       (message "%sed %d themata" action (length themata)))))
 
 (defun gnosis-dashboard-tag-view-themata (&optional tag)
-  "View themata for TAG."
+  "View themata for TAG, or the tag at point in the current owned view."
   (interactive)
+  (unless tag (gnosis-dashboard--command-owner))
   (let ((tag (or tag (tabulated-list-get-id))))
     (gnosis-dashboard--push-current-view)
     (gnosis-dashboard-output-themata (gnosis-get-tag-themata tag))))
@@ -840,8 +858,9 @@ Keep marks on cancellation or mutation failure."
   (gnosis-dashboard--common-setup))
 
 (cl-defun gnosis-dashboard-output-tags (&optional (tags nil tags-supplied-p))
-  "Format the Gnosis dashboard with TAGS.
-When TAGS is omitted, use every current database tag."
+  "Format the Gnosis dashboard with existing TAGS.
+When TAGS is omitted, use every current database tag.
+Ignore deleted tags in retained selections and navigation history."
   (interactive)
   (let* ((database (gnosis--ensure-db))
          (tag-counts (gnosis-sqlite-select database
@@ -851,7 +870,9 @@ When TAGS is omitted, use every current database tag."
                               :size (length tag-counts))))
                      (dolist (row tag-counts ht)
                        (puthash (car row) (cadr row) ht))))
-         (tags (if tags-supplied-p tags (mapcar #'car tag-counts))))
+         (tags (if tags-supplied-p
+                   (seq-filter (lambda (tag) (gethash tag count-ht)) tags)
+                 (mapcar #'car tag-counts))))
     (pop-to-buffer-same-window (gnosis-dashboard--buffer))
     (gnosis-dashboard-tags-mode)
     (setq gnosis-dashboard-tags-current tags
@@ -882,8 +903,10 @@ Translates {n}, {n,}, {n,m} to \\{n\\}, \\{n,\\}, \\{n,m\\}."
   (interactive)
   (unless gnosis-dashboard-tags-current
     (user-error "No tags to filter"))
-  (let* ((pattern (gnosis-dashboard--pcre-to-emacs
+  (let* ((owner (gnosis-dashboard--command-owner))
+         (pattern (gnosis-dashboard--pcre-to-emacs
                    (or pattern (read-string "Filter tags (regex): "))))
+         (_ (gnosis-dashboard--command-owner owner))
          (filtered (cl-remove-if-not
                     (lambda (tag) (string-match-p pattern tag))
                     gnosis-dashboard-tags-current)))
@@ -1133,6 +1156,9 @@ Detaching the file must not revive the former database or selection."
   (gnosis-dashboard--cancel-load)
   (setq gnosis-dashboard--buffer-owner 'dashboard)
   (setq gnosis-dashboard--database gnosis-db)
+  (setq gnosis-dashboard--history
+        (seq-filter (lambda (view) (eq (plist-get view :database) gnosis-db))
+                    gnosis-dashboard--history))
   (add-hook 'change-major-mode-hook #'gnosis-dashboard--cancel-load nil t)
   (add-hook 'kill-buffer-hook #'gnosis-dashboard--cancel-load nil t)
   ;; File association keeps the major mode but retires its former work.
@@ -1226,6 +1252,18 @@ Detaching the file must not revive the former database or selection."
     (remove-overlays nil nil 'gnosis-mark t)
     (message "All items unmarked")))
 
+(defun gnosis-dashboard-unmark ()
+  "Remove the mark from the current row and advance one line."
+  (interactive)
+  (if-let* ((id (tabulated-list-get-id)))
+      (progn
+        (setq gnosis-dashboard--selected-ids
+              (remove id gnosis-dashboard--selected-ids))
+        (remove-overlays (line-beginning-position) (line-end-position)
+                         'gnosis-mark t)
+        (forward-line 1))
+    (message "No entry at point")))
+
 (defun gnosis-dashboard-mark-all ()
   "Mark all items in the tabulated-list buffer and collect their IDs."
   (interactive)
@@ -1252,13 +1290,11 @@ Detaching the file must not revive the former database or selection."
          (_ (unless ids (user-error "No themata to link")))
          (string (read-string "String to replace: "))
          (_ (gnosis-dashboard--command-owner owner))
-         (nodes (gnosis-select '[id title] 'nodes))
+         (nodes (gnosis-study-topic-candidates))
          (node-title (gnosis-completing-read
                       "Select node: "
-                      (mapcar #'cadr nodes)))
-         (node-id (car (cl-find node-title nodes
-                                :key #'cadr
-                                :test #'string=)))
+                      (mapcar #'car nodes) t))
+         (node-id (cdr (assoc node-title nodes)))
          (_ (gnosis-dashboard--command-owner owner))
          (updated (gnosis-bulk-link-themata
                    ids string node-id
@@ -1492,6 +1528,7 @@ Returns list of (ID [TITLE LINK-COUNT BACKLINK-COUNT THEMATA-LINKS-COUNT])."
 GET-IDS-FN takes a node-id and returns related IDs.
 NO-RESULTS-MSG is displayed when no related items are found.
 DISPLAY-FN displays results, defaults to `gnosis-dashboard-output-nodes'."
+  (gnosis-dashboard--command-owner)
   (let* ((node-id (tabulated-list-get-id))
          (related-ids (funcall get-ids-fn node-id))
          (display-fn (or display-fn #'gnosis-dashboard-output-nodes)))
@@ -1575,30 +1612,33 @@ Searches the database for nodes whose titles contain the search term."
           (gnosis-dashboard-output-nodes matching-ids))
       (message "No nodes found with title matching '%s'" query))))
 
-(defun gnosis-dashboard-nodes-filter-by-title (query)
+(defun gnosis-dashboard-nodes-filter-by-title (&optional query)
   "Filter CURRENT nodes by title for QUERY.
 Only searches within currently displayed nodes."
-  (interactive "sFilter current nodes by title: ")
-  (unless gnosis-dashboard-nodes-current-ids
-    (user-error "No nodes to filter"))
-  (when (string-empty-p query)
-    (user-error "Search query cannot be empty"))
-  (let* ((current-nodes
-          (gnosis-select
-           '[id title] 'nodes
-           `(in id ,(vconcat
-                     gnosis-dashboard-nodes-current-ids))))
-         (matching-ids (cl-loop for node in current-nodes
-				for id = (nth 0 node)
-				for title = (nth 1 node)
-				when (string-match-p (regexp-quote query) title)
-				collect id)))
-    (if matching-ids
-        (progn
-          ;; Save current view to history
-          (gnosis-dashboard--push-current-view)
-          (gnosis-dashboard-output-nodes matching-ids))
-      (message "No nodes in current view match '%s'" query))))
+  (interactive)
+  (let* ((owner (gnosis-dashboard--command-owner))
+         (query (or query (read-string "Filter current nodes by title: "))))
+    (gnosis-dashboard--command-owner owner)
+    (unless gnosis-dashboard-nodes-current-ids
+      (user-error "No nodes to filter"))
+    (when (string-empty-p query)
+      (user-error "Search query cannot be empty"))
+    (let* ((current-nodes
+            (gnosis-select
+             '[id title] 'nodes
+             `(in id ,(vconcat
+                       gnosis-dashboard-nodes-current-ids))))
+           (matching-ids (cl-loop for node in current-nodes
+				  for id = (nth 0 node)
+				  for title = (nth 1 node)
+				  when (string-match-p (regexp-quote query) title)
+				  collect id)))
+      (if matching-ids
+          (progn
+            ;; Save current view to history
+            (gnosis-dashboard--push-current-view)
+            (gnosis-dashboard-output-nodes matching-ids))
+	(message "No nodes in current view match '%s'" query)))))
 
 (defun gnosis-dashboard-nodes-search-by-content (query)
   "Search all nodes for QUERY in files under `gnosis-nodes-dir'."
@@ -1612,20 +1652,23 @@ Only searches within currently displayed nodes."
           (gnosis-dashboard-output-nodes matching-ids))
       (message "No nodes found matching '%s'" query))))
 
-(defun gnosis-dashboard-nodes-filter-by-content (query)
+(defun gnosis-dashboard-nodes-filter-by-content (&optional query)
   "Filter current nodes by searching their files for QUERY."
-  (interactive "sFilter current nodes by content: ")
-  (unless gnosis-dashboard-nodes-current-ids
-    (user-error "No nodes to filter"))
-  (when (string-empty-p query)
-    (user-error "Search query cannot be empty"))
-  (let ((matching-ids (gnosis-nodes-search-content
-                       query gnosis-dashboard-nodes-current-ids)))
-    (if matching-ids
-        (progn
-          (gnosis-dashboard--push-current-view)
-          (gnosis-dashboard-output-nodes matching-ids))
-      (message "No nodes in current view match '%s'" query))))
+  (interactive)
+  (let* ((owner (gnosis-dashboard--command-owner))
+         (query (or query (read-string "Filter current nodes by content: "))))
+    (gnosis-dashboard--command-owner owner)
+    (unless gnosis-dashboard-nodes-current-ids
+      (user-error "No nodes to filter"))
+    (when (string-empty-p query)
+      (user-error "Search query cannot be empty"))
+    (let ((matching-ids (gnosis-nodes-search-content
+			 query gnosis-dashboard-nodes-current-ids)))
+      (if matching-ids
+          (progn
+            (gnosis-dashboard--push-current-view)
+            (gnosis-dashboard-output-nodes matching-ids))
+	(message "No nodes in current view match '%s'" query)))))
 
 (defun gnosis-dashboard-nodes-search-by-tag (tag)
   "Search ALL nodes by TAG."
@@ -1642,26 +1685,27 @@ Only searches within currently displayed nodes."
           (gnosis-dashboard-output-nodes matching-ids))
       (message "No nodes found with tag '%s'" tag))))
 
-(defun gnosis-dashboard-nodes-filter-by-tag (tag)
+(defun gnosis-dashboard-nodes-filter-by-tag (&optional tag)
   "Filter CURRENT nodes by TAG."
-  (interactive
-   (list (completing-read "Filter nodes by tag: "
-                          (gnosis-nodes--all-tags)
-                          nil t)))
-  (unless gnosis-dashboard-nodes-current-ids
-    (user-error "No nodes to filter"))
-  (when (string-empty-p tag)
-    (user-error "Tag cannot be empty"))
-  (let* ((nodes-with-tag (gnosis-nodes--nodes-by-tag tag))
-         (matching-ids
-          (cl-intersection
-           gnosis-dashboard-nodes-current-ids
-           nodes-with-tag :test #'equal)))
-    (if matching-ids
-        (progn
-          (gnosis-dashboard--push-current-view)
-          (gnosis-dashboard-output-nodes matching-ids))
-      (message "No nodes in current view have tag '%s'" tag))))
+  (interactive)
+  (let* ((owner (gnosis-dashboard--command-owner))
+         (tag (or tag (completing-read "Filter nodes by tag: "
+                                       (gnosis-nodes--all-tags) nil t))))
+    (gnosis-dashboard--command-owner owner)
+    (unless gnosis-dashboard-nodes-current-ids
+      (user-error "No nodes to filter"))
+    (when (string-empty-p tag)
+      (user-error "Tag cannot be empty"))
+    (let* ((nodes-with-tag (gnosis-nodes--nodes-by-tag tag))
+           (matching-ids
+            (cl-intersection
+             gnosis-dashboard-nodes-current-ids
+             nodes-with-tag :test #'equal)))
+      (if matching-ids
+          (progn
+            (gnosis-dashboard--push-current-view)
+            (gnosis-dashboard-output-nodes matching-ids))
+	(message "No nodes in current view have tag '%s'" tag)))))
 
 (defun gnosis-dashboard-nodes-show-due ()
   "Show nodes linked to today's due themata."
@@ -1686,6 +1730,7 @@ Only searches within currently displayed nodes."
 (defun gnosis-dashboard-nodes-visit ()
   "Visit the node at point."
   (interactive)
+  (gnosis-dashboard--command-owner)
   (gnosis-nodes-goto-id
    (or (tabulated-list-get-id) (user-error "No node at point"))))
 
@@ -1838,35 +1883,37 @@ If NODE-IDS is provided, display only those nodes.
 Otherwise display all nodes.  Shows title, link count,
 backlink count, and themata links count."
   (interactive)
-  (pop-to-buffer-same-window (gnosis-dashboard--buffer))
-  (gnosis-dashboard-nodes-mode)
-  (setf tabulated-list-format
-        `[("Title" ,(/ (window-width) 2) t)
-          ("Links" ,(/ (window-width) 8)
-           gnosis-dashboard-sort-count)
-          ("Backlinks" ,(/ (window-width) 8)
-           gnosis-dashboard-sort-count)
-          ("Themata" ,(/ (window-width) 8)
-           gnosis-dashboard-sort-count)]
-        tabulated-list-entries nil
-        ;; Default sort based on user preferences.
-        ;; tabulated-list uses FLIP where t=descending,
-        ;; nil=ascending, so we invert the custom value.
-        tabulated-list-sort-key
-        (cons gnosis-dashboard-nodes-default-sort-column
-              (not gnosis-dashboard-nodes-default-sort-ascending)))
-  (make-local-variable 'tabulated-list-entries)
-  (tabulated-list-init-header)
-  (let* ((inhibit-read-only t)
-         (entries (gnosis-dashboard-nodes--data node-ids))
-         ;; Extract actual node IDs being displayed
-         (displayed-ids (mapcar #'car entries)))
-    (erase-buffer)
-    (insert (format "Loading %s nodes..." (length entries)))
-    (setq tabulated-list-entries entries)
-    ;; Store current node IDs (now always populated)
-    (setq gnosis-dashboard-nodes-current-ids displayed-ids)
-    (tabulated-list-print t)))
+  (let* ((database (gnosis--ensure-db))
+         (entries (gnosis-dashboard-nodes--data node-ids)))
+    (pop-to-buffer-same-window (gnosis-dashboard--buffer))
+    (gnosis-dashboard-nodes-mode)
+    (setq gnosis-dashboard--database database)
+    (setf tabulated-list-format
+          `[("Title" ,(/ (window-width) 2) t)
+            ("Links" ,(/ (window-width) 8)
+             gnosis-dashboard-sort-count)
+            ("Backlinks" ,(/ (window-width) 8)
+             gnosis-dashboard-sort-count)
+            ("Themata" ,(/ (window-width) 8)
+             gnosis-dashboard-sort-count)]
+          tabulated-list-entries nil
+          ;; Default sort based on user preferences.
+          ;; tabulated-list uses FLIP where t=descending,
+          ;; nil=ascending, so we invert the custom value.
+          tabulated-list-sort-key
+          (cons gnosis-dashboard-nodes-default-sort-column
+		(not gnosis-dashboard-nodes-default-sort-ascending)))
+    (make-local-variable 'tabulated-list-entries)
+    (tabulated-list-init-header)
+    (let* ((inhibit-read-only t)
+           ;; Extract actual node IDs being displayed
+           (displayed-ids (mapcar #'car entries)))
+      (erase-buffer)
+      (insert (format "Loading %s nodes..." (length entries)))
+      (setq tabulated-list-entries entries)
+      ;; Store current node IDs (now always populated)
+      (setq gnosis-dashboard-nodes-current-ids displayed-ids)
+      (tabulated-list-print t))))
 
 (provide 'gnosis-dashboard)
 ;;; gnosis-dashboard.el ends here

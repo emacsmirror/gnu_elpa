@@ -199,7 +199,8 @@ Each row is (THEMA-ID DUE-DAY SUSPENDED)."
     (error "Invalid scheduler initialization"))
   (let ((db (or db (gnosis--ensure-db))))
     (gnosis-sqlite-with-transaction db
-      (let ((batch-size
+      (let ((config (gnosis-scheduler-active-config db))
+            (batch-size
              (max 1 (/ (gnosis-sqlite--max-variable-number db) 10))))
         (dolist (chunk (seq-partition rows batch-size))
           (gnosis-sqlite-execute
@@ -215,7 +216,7 @@ Each row is (THEMA-ID DUE-DAY SUSPENDED)."
                                  chunk ","))
            (apply #'append
                   (mapcar (lambda (row)
-                            (list (nth 0 row) (gnosis-scheduler-active-config db)
+                            (list (nth 0 row) config
                                   nil nil nil nil (nth 1 row)
                                   0 0 (nth 2 row)))
                           chunk))))))))

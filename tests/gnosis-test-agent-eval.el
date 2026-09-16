@@ -30,6 +30,118 @@
   "Invoke KEY through the response buffer's actual binding."
   (call-interactively (key-binding (kbd key))))
 
+(defun gnosis-test-eval--key-face (text key)
+  "Assert that KEY in TEXT uses the native key hint face."
+  (let ((start (string-match (regexp-quote key) text)))
+    (should start)
+    (dotimes (offset (length key))
+      (let ((face (get-text-property (+ start offset) 'face text)))
+        (should (if (listp face) (memq 'help-key-binding face)
+                  (eq face 'help-key-binding)))))))
+
+(ert-deftest gnosis-test-eval-header-key-faces ()
+  "The response header advertises the actual bindings with native key faces."
+  (dolist (rebound '(nil t))
+    (let ((gnosis-agent-eval-mode-map (copy-keymap gnosis-agent-eval-mode-map)))
+      (when rebound
+        (define-key gnosis-agent-eval-mode-map (kbd "C-c C-c") nil)
+        (define-key gnosis-agent-eval-mode-map (kbd "C-c C-s")
+                    #'gnosis-agent-eval-submit))
+      (with-temp-buffer
+        (gnosis-agent-eval-mode)
+        (gnosis-test-eval--key-face header-line-format (if rebound "C-c C-s" "C-c C-c"))
+        (gnosis-test-eval--key-face header-line-format "C-c C-k")
+        (gnosis-test-eval--key-face header-line-format "C-g")))))
+
+(ert-deftest gnosis-test-eval-rendered-header-key-faces ()
+  "Native header rendering preserves literal bindings and their key faces."
+  ;; Batch Emacs returns an empty string from `format-mode-line'.
+  (skip-unless (not noninteractive))
+  (dolist (key '("C-c C-c" "C-c C-s" "C-c %"))
+    (let ((gnosis-agent-eval-mode-map (copy-keymap gnosis-agent-eval-mode-map)))
+      (define-key gnosis-agent-eval-mode-map (kbd "C-c C-c") nil)
+      (define-key gnosis-agent-eval-mode-map (kbd key) #'gnosis-agent-eval-submit)
+      (with-temp-buffer
+        (gnosis-agent-eval-mode)
+        (should (eq (key-binding (kbd key)) #'gnosis-agent-eval-submit))
+        (let ((header (format-mode-line header-line-format nil nil (current-buffer))))
+          (should (equal (substring-no-properties header)
+                         (concat " Response  " key " Evaluate/continue"
+                                 "  C-c C-k Cancel evaluation  C-g Quit")))
+          (gnosis-test-eval--key-face header key)
+          (gnosis-test-eval--key-face header "C-c C-k")
+          (gnosis-test-eval--key-face header "C-g"))))))
+
+(ert-deftest gnosis-test-eval-feedback-key-faces-and-literal-content ()
+  "Pending and settled hints keep faces without interpreting learner content."
+  (gnosis-test-eval--with-review 'practice
+    (let* ((before (gnosis-test-eval--evidence))
+           (literal "Ελληνικά 🧠\nC-c C-c \\[gnosis-agent-eval-submit] `literal' 100%")
+           resolve reject
+           (gnosis-agent-eval-function
+            (lambda (_request yes no) (setq resolve yes reject no) #'ignore)))
+      (cl-letf (((symbol-function 'recursive-edit)
+                 (lambda ()
+                   (insert literal)
+                   (dolist (outcome '(cancel pass fail ungradable rejection))
+                     (gnosis-test-eval--key "C-c C-c")
+                     (gnosis-test-eval--key-face
+                      (overlay-get (plist-get gnosis-agent-eval--context :overlay) 'after-string)
+                      "C-c C-k")
+                     (pcase outcome
+                       ('cancel (gnosis-test-eval--key "C-c C-k"))
+                       ('rejection (with-temp-buffer (funcall reject literal)))
+                       (_ (with-temp-buffer
+                            (funcall resolve (list :verdict outcome :explanation literal)))))
+                     (let* ((display (overlay-get (plist-get gnosis-agent-eval--context :overlay)
+                                                  'after-string))
+                            (face (pcase outcome ('pass 'success) ('fail 'error) (_ 'warning)))
+                            (instruction (substring display (1+ (string-match "\n[^\n]*\n\\'" display)))))
+                       (should (eq (get-text-property 2 'face display) face))
+                       (gnosis-test-eval--key-face instruction "C-c C-c")
+                       (when (memq outcome '(ungradable rejection))
+                         (gnosis-test-eval--key-face instruction "C-g"))
+                       (unless (eq outcome 'cancel)
+                         (let ((start (string-match (regexp-quote literal) display)))
+                           (should start)
+                           (should (equal (substring-no-properties display start (+ start (length literal)))
+                                          literal))
+                           (should (eq (get-text-property start 'face display) face))
+                           (should (eq (get-text-property (+ start (string-match "C-c C-c" literal))
+                                                         'face display) face)))))
+                     (should (equal (buffer-string) literal))
+                     (should (equal before (gnosis-test-eval--evidence)))
+                     ;; Permit the next request after a provisional binary verdict.
+                     (when (memq outcome '(pass fail))
+                       (gnosis-test-eval--key "C-c C-k")))
+                   (gnosis-test-eval--key "C-g"))))
+        (should-error (gnosis-review-agent-eval id) :type 'user-error))
+      (should (equal before (gnosis-test-eval--evidence))))))
+
+(ert-deftest gnosis-test-eval-settled-hints-respect-rebinding ()
+  "Substituted bindings are literal text, not format directives."
+  (dolist (key '("C-c C-c" "C-c C-s" "C-c %" "%"))
+    (let ((gnosis-agent-eval-mode-map (copy-keymap gnosis-agent-eval-mode-map)))
+      (define-key gnosis-agent-eval-mode-map (kbd "C-c C-c") nil)
+      (define-key gnosis-agent-eval-mode-map (kbd key) #'gnosis-agent-eval-submit)
+      (gnosis-test-eval--with-review 'practice
+        (cl-letf (((symbol-function 'recursive-edit)
+                   (lambda ()
+                     (insert "Answer")
+                     (dolist (verdict '(ungradable pass))
+                       (let ((gnosis-agent-eval-function
+                              (lambda (_request resolve _reject)
+                                (funcall resolve (list :verdict verdict :explanation "Feedback"))
+                                #'ignore)))
+                         (gnosis-test-eval--key key))
+                       (let ((display (overlay-get (plist-get gnosis-agent-eval--context :overlay)
+                                                    'after-string)))
+                         (should (string-match-p (if (eq verdict 'pass)
+                                                     "Pass: Feedback" "Not graded: Feedback")
+                                                 display))
+                         (gnosis-test-eval--key-face display key))))))
+          (should (car (gnosis-review-agent-eval id))))))))
+
 (ert-deftest gnosis-test-eval-acceptance-and-override ()
   "Evaluation stays pending until native actions accept, in both study modes."
   (dolist (mode '(due practice))

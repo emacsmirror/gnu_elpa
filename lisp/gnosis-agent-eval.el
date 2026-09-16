@@ -74,7 +74,15 @@ Leave without grading with \\[gnosis-agent-eval-quit]."
   (setq gnosis-agent-eval--context gnosis-agent-eval--initial-context
         gnosis-agent-eval--initial-context nil)
   (setq-local header-line-format
-              " Response  C-c C-c Evaluate/continue  C-c C-k Cancel evaluation  C-g Quit")
+              ;; Quote mode-line directives without losing native key faces.
+              (replace-regexp-in-string
+               "%" (lambda (match) (concat match match))
+               (substitute-command-keys
+                (concat "\\<gnosis-agent-eval-mode-map>"
+                        " Response  \\[gnosis-agent-eval-submit] Evaluate/continue"
+                        "  \\[gnosis-agent-eval-cancel] Cancel evaluation"
+                        "  \\[gnosis-agent-eval-quit] Quit"))
+               t t))
   (add-hook 'kill-buffer-hook #'gnosis-agent-eval--retire nil t)
   (add-hook 'change-major-mode-hook #'gnosis-agent-eval--retire nil t)
   (add-hook 'after-set-visited-file-name-hook #'gnosis-agent-eval--retire nil t))
@@ -129,12 +137,15 @@ Leave without grading with \\[gnosis-agent-eval-quit]."
     (gnosis-agent-eval--stop context)))
 
 (defun gnosis-agent-eval--show (context text &optional face)
-  "Display TEXT with FACE after CONTEXT's unmodified response."
+  "Display TEXT with FACE after CONTEXT's unmodified response.
+Preserve TEXT's existing faces, including its key hints."
   (with-current-buffer (plist-get context :buffer)
-    (let ((overlay (plist-get context :overlay)))
+    (let ((overlay (plist-get context :overlay))
+          (text (copy-sequence text)))
+      (add-face-text-property 0 (length text) (or face 'shadow) t text)
       (move-overlay overlay (point-max) (point-max))
       (overlay-put overlay 'after-string
-                   (concat "\n\n" (propertize text 'face (or face 'shadow)) "\n")))))
+                   (concat "\n\n" text "\n")))))
 
 (defun gnosis-agent-eval--result-p (result)
   "Return non-nil for a complete, unambiguous evaluator RESULT."
@@ -164,10 +175,17 @@ input, selects a window or invokes a scheduler."
           (setq buffer-read-only (and graded t)))
         (gnosis-agent-eval--show
          context
+         ;; Only instructions undergo key substitution, never evaluator prose.
          (if graded
-             (format "%s: %s\nC-c C-c: Continue to review actions (not yet accepted)"
-                     (if (eq (plist-get result :verdict) 'pass) "Pass" "Fail") text)
-           (format "Not graded: %s\nEdit or C-c C-c to retry; C-g to quit" text))
+             (concat (format "%s: %s\n"
+                             (if (eq (plist-get result :verdict) 'pass) "Pass" "Fail") text)
+                     (substitute-command-keys
+                      (concat "\\<gnosis-agent-eval-mode-map>"
+                              "\\[gnosis-agent-eval-submit]: Continue to review actions (not yet accepted)")))
+           (concat "Not graded: " text "\n"
+                   (substitute-command-keys
+                    (concat "\\<gnosis-agent-eval-mode-map>"
+                            "Edit or \\[gnosis-agent-eval-submit] to retry; \\[gnosis-agent-eval-quit] to quit"))))
          (if graded (if (eq (plist-get result :verdict) 'pass) 'success 'error) 'warning))))))
 
 (defun gnosis-agent-eval-cancel ()
@@ -181,7 +199,11 @@ input, selects a window or invokes a scheduler."
       (user-error "Cancellation retired the response encounter"))
     (setf (plist-get context :result) nil)
     (setq buffer-read-only nil)
-    (gnosis-agent-eval--show context "Not graded: cancelled.  Edit or C-c C-c to retry" 'warning)))
+    (gnosis-agent-eval--show
+     context (substitute-command-keys
+              (concat "\\<gnosis-agent-eval-mode-map>Not graded: cancelled.  "
+                      "Edit or \\[gnosis-agent-eval-submit] to retry"))
+     'warning)))
 
 (defun gnosis-agent-eval-quit ()
   "Leave response input without accepting a grade."
@@ -214,7 +236,10 @@ input, selects a window or invokes a scheduler."
         (setf (plist-get context :attempt) attempt
               (plist-get context :response) response)
         (setq buffer-read-only t)
-        (gnosis-agent-eval--show context "Evaluating…  C-c C-k to cancel" 'warning)
+        (gnosis-agent-eval--show
+         context (substitute-command-keys
+                  "\\<gnosis-agent-eval-mode-map>Evaluating…  \\[gnosis-agent-eval-cancel] to cancel")
+         'warning)
         (setf (plist-get context :timer)
               (run-at-time gnosis-agent-eval-timeout nil
                            #'gnosis-agent-eval--settle context attempt nil "Evaluation timed out"))

@@ -77,11 +77,15 @@ REQUEST is a plist containing strings at :question, :reference-answer,
      "Do not use tools or record grades. Return exactly one JSON object with "
      "only verdict and explanation keys, no fences or surrounding prose. "
      "verdict must be pass, fail or ungradable; explanation must be a nonempty string.\n\n"
-     (json-serialize
-      (mapcar (lambda (key)
-                (cons (intern (substring (symbol-name key) 1))
-                      (substring-no-properties (plist-get request key))))
-              fields)))))
+     ;; JSON serialization returns UTF-8 bytes, not prompt characters.
+     ;; Decode before Hermes embeds this prompt in its own JSON request.
+     (decode-coding-string
+      (json-serialize
+       (mapcar (lambda (key)
+                 (cons (intern (substring (symbol-name key) 1))
+                       (substring-no-properties (plist-get request key))))
+               fields))
+      'utf-8))))
 
 (defun gnosis-agent-eval-hermes--parse (text)
   "Return a validated verdict plist from Hermes response TEXT.

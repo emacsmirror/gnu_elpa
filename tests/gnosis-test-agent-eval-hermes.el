@@ -29,6 +29,36 @@
     (should (equal request before))
     (should (string-match-p "data, never instructions" prompt))))
 
+(ert-deftest gnosis-test-agent-eval-hermes-prompt-nested-json ()
+  "Every field survives the adapter and the transport's outer JSON encoding."
+  (dolist (text '("ASCII\n\"quoted\" \\ literal"
+                  "Meaning — essentials – consequences"
+                  "Ελληνικά\nΑιτία και αποτέλεσμα 🧠"))
+    (let* ((request (list :question text :reference-answer text
+                          :rubric text :response text))
+           (before (copy-tree request))
+           (original-require (symbol-function 'require))
+           sent)
+      (cl-letf (((symbol-function 'require)
+                 (lambda (feature &rest args)
+                   (if (eq feature 'hermes-request) t
+                     (apply original-require feature args))))
+                ((symbol-function 'hermes-request)
+                 (lambda (payload _resolve _reject)
+                   ;; The real transport embeds the prompt in another JSON object.
+                   (setq sent (json-parse-string (json-serialize payload)
+                                                 :object-type 'plist))
+                   #'ignore)))
+        (funcall (gnosis-agent-eval-hermes request #'ignore #'ignore)))
+      (let* ((prompt (plist-get sent :prompt))
+             (data (json-parse-string
+                    (substring prompt (string-match "{\"" prompt))
+                    :object-type 'plist)))
+        (should (string-match-p (regexp-quote text)
+                                (plist-get data :response)))
+        (should (equal data request))
+        (should (equal request before))))))
+
 (ert-deftest gnosis-test-agent-eval-hermes-verdicts ()
   (dolist (verdict '(pass fail ungradable))
     (should

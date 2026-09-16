@@ -1591,7 +1591,11 @@ Reads state from BUF.  Consumes the reentering flag on read."
             ((equal key-str (plist-get active :exit-key)) nil)
             ((eq this-command 'keyboard-quit) nil)
             ((keymap-popup--inapt-key-p buf key-str) t)
-            ((plist-get session :persistent))
+            ((plist-get session :persistent)
+             ;; Ordinary suffixes inherit their native binding, so settle
+             ;; presentation before dispatch, even if the command signals.
+             (keymap-popup--consume-prefix buf)
+             t)
             (t (keymap-popup--keep-popup-p
                 (plist-get active :descriptions) key-str)))))))
 
@@ -1704,27 +1708,35 @@ binding, which may be nil."
     cmd))
 
 (defun keymap-popup--consume-prefix (buf)
-  "Consume prefix mode owned by popup BUF."
+  "Clear prefix presentation owned by popup BUF before command dispatch.
+Leave native prefix arguments to the command loop, including any new
+prefix established by the command.  Refresh before dispatch so errors
+and quits cannot leave consumed prefix highlighting behind."
   (when (keymap-popup--session-get buf :prefix-mode)
     (keymap-popup--set-session buf :prefix-mode nil)
-    (setq prefix-arg nil)))
+    (keymap-popup--refresh buf)))
 
 (defun keymap-popup--dispatch-entry (keymap entry buf)
-  "Dispatch KEYMAP's popup ENTRY for BUF."
+  "Dispatch KEYMAP's popup ENTRY for BUF.
+If BUF's session expired after native key lookup, call the live source
+binding instead of attempting navigation in the expired popup."
   (let ((key (plist-get entry :key)))
-    (if (keymap-popup--inapt-key-p buf key)
-        (keymap-popup--refuse-inapt buf)
+    (cond
+     ((or (not (keymap-popup--session-state buf))
+          (keymap-popup--session-get buf :closing))
+      (keymap-popup--call-real-binding keymap key))
+     ((keymap-popup--inapt-key-p buf key)
+      (keymap-popup--refuse-inapt buf))
+     (t
       (pcase-exhaustive (plist-get entry :type)
         ('keymap
          (keymap-popup--push-submenu buf (plist-get entry :target)))
-        ('switch
-         (when (keymap-popup--call-real-binding keymap key)
-           (keymap-popup--consume-prefix buf))
-         (keymap-popup--refresh buf))
-        ('suffix
+        ((or 'switch 'suffix)
+         (keymap-popup--consume-prefix buf)
          (keymap-popup--call-real-binding keymap key)
-         (when (plist-get entry :stay-open)
-           (keymap-popup--refresh buf)))))))
+         (when (or (eq (plist-get entry :type) 'switch)
+                   (plist-get entry :stay-open))
+           (keymap-popup--refresh buf))))))))
 
 (defun keymap-popup--entry-needs-override-p (entry group)
   "Return non-nil when ENTRY in GROUP needs popup dispatch."

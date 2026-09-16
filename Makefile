@@ -23,7 +23,7 @@ ORG = docs/keymap-popup.org
 TEXI = docs/keymap-popup.texi
 INFO = docs/keymap-popup.info
 
-.PHONY: all compile do-compile test do-test lint do-lint doc do-doc clean dev do-dev load
+.PHONY: all compile do-compile test do-test test-native do-test-native lint do-lint doc do-doc clean dev do-dev load
 
 all: compile
 
@@ -40,6 +40,16 @@ test:
 do-test:
 	@echo "Testing $(TESTS)..."
 	@$(BATCH) -l ert -l $(SRCS) -l $(TESTS) -f ert-run-tests-batch-and-exit
+
+# Native minibuffer tests need a terminal, not batch stdin (util-linux script).
+test-native:
+	@$(ENV_MAKE) do-test-native
+
+do-test-native:
+	@TERM=xterm script -q -e -c '$(EMACS_CMD) -Q -nw -L . -L tests \
+	  --eval "(setq load-prefer-newer t)" \
+	  --eval "(require (quote keymap-popup-native-tests))" \
+	  --eval "(run-at-time 0.2 nil (function keymap-popup-native-test-run))"' /dev/null
 
 lint:
 	@$(ENV_MAKE) do-lint

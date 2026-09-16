@@ -2206,6 +2206,128 @@ entry independently)."
 (ert-deftest keymap-popup-test-dismiss-is-command ()
   (should (commandp #'keymap-popup-dismiss)))
 
+(ert-deftest keymap-popup-test-popup-mouse-click-keeps-source-context ()
+  "Popup mouse events must not delete their target or select the help buffer."
+  (dolist (persistent '(nil t))
+    (dolist (nested '(nil t))
+      (let ((overriding-terminal-local-map nil)
+            (pre-command-hook nil)
+            (post-command-hook nil)
+            (minibuffer-setup-hook nil)
+            (minibuffer-exit-hook nil)
+            (keymap-popup-persistent persistent)
+            (keymap-popup-backend #'keymap-popup-backend-side-window)
+            (map (make-sparse-keymap))
+            (child (make-sparse-keymap)))
+        (save-window-excursion
+          (with-temp-buffer
+            (switch-to-buffer (current-buffer))
+            (buffer-enable-undo)
+            (insert "Draft")
+            (undo-boundary)
+            (let ((source (current-buffer))
+                  (source-window (selected-window))
+                  (undo buffer-undo-list)
+                  (action (lambda () (interactive) (insert "!"))))
+              (keymap-set map "a" action)
+              (keymap-popup-attach map `("a" ("Action" ,action)))
+              (keymap-set child "a" action)
+              (keymap-popup-attach child `("a" ("Child action" ,action)))
+              (unwind-protect
+                  (progn
+                    (keymap-popup map)
+                    (when nested
+                      (keymap-popup--push-submenu
+                       (get-buffer keymap-popup--buffer-name) child))
+                    (let* ((buf (get-buffer keymap-popup--buffer-name))
+                           (win (get-buffer-window buf))
+                           (active (keymap-popup--session-get buf :active))
+                           (stack (keymap-popup--session-get buf :stack)))
+                      ;; Include button-down, release, double-click and blank
+                      ;; space: native mouse commands must never see a window
+                      ;; destroyed by the transient map's pre-command hook.
+                      (dolist (type '(down-mouse-1 mouse-1 double-mouse-1
+                                     mouse-2 mouse-3))
+                        (dolist (position '(1 header-line))
+                          (execute-kbd-macro
+                           (vector (list type
+                                         (list win position '(0 . 0) 0))))
+                          (should (window-live-p win))
+                          (should (eq (current-buffer) source))
+                          (should (eq (selected-window) source-window))
+                          (should (eq (keymap-popup--session-get buf :source)
+                                      source))
+                          (should (eq (keymap-popup--active-get buf :keymap)
+                                      (plist-get active :keymap)))
+                          (should (eq (keymap-popup--session-get buf :stack)
+                                      stack))
+                          (should (equal (buffer-string) "Draft"))
+                          (should (= (point) 6))
+                          (should (equal buffer-undo-list undo))))
+                      ;; Back navigation's reentry grace must not survive a
+                      ;; click and keep the next ordinary suffix open.
+                      (when (and nested (not persistent))
+                        (execute-kbd-macro (kbd "q"))
+                        (execute-kbd-macro
+                         (vector (list 'down-mouse-1 (list win 1 '(0 . 0) 0))
+                                 (list 'mouse-1 (list win 1 '(0 . 0) 0)))))
+                      ;; The next keyboard action still belongs to the source.
+                      (execute-kbd-macro (kbd "a"))
+                      (should (equal (buffer-string) "Draft!"))
+                      (if persistent
+                          (progn
+                            (should (buffer-live-p buf))
+                            (when nested
+                              (execute-kbd-macro (kbd "q"))
+                              (should (buffer-live-p buf)))
+                            (execute-kbd-macro (kbd "q")))
+                        (should-not (buffer-live-p buf)))
+                      (should-not (buffer-live-p buf))
+                      (should-not overriding-terminal-local-map)
+                      (should-not pre-command-hook)
+                      (should-not post-command-hook)
+                      (should-not minibuffer-setup-hook)
+                      (should-not minibuffer-exit-hook)))
+                (keymap-popup-dismiss)))))))))
+
+(ert-deftest keymap-popup-test-source-mouse-click-dispatches ()
+  "Clicks outside the popup keep native and source-map mouse dispatch."
+  (dolist (custom '(nil t))
+    (let ((overriding-terminal-local-map nil)
+          (pre-command-hook nil)
+          (post-command-hook nil)
+          (minibuffer-setup-hook nil)
+          (minibuffer-exit-hook nil)
+          (keymap-popup-persistent nil)
+          (keymap-popup-backend #'keymap-popup-backend-side-window)
+          (map (make-sparse-keymap))
+          (received nil))
+      (save-window-excursion
+        (with-temp-buffer
+          (switch-to-buffer (current-buffer))
+          (insert "Draft")
+          (keymap-set map "a" #'ignore)
+          (keymap-popup-attach map '("a" ("Action" ignore)))
+          (when custom
+            (keymap-set map "<mouse-1>"
+                        (lambda (event)
+                          (interactive "e")
+                          (setq received (list (current-buffer) event)))))
+          (unwind-protect
+              (progn
+                (keymap-popup map)
+                (let ((event (list 'mouse-1
+                                   (list (selected-window) 2 '(1 . 0) 0))))
+                  (execute-kbd-macro (vector event))
+                  (if custom
+                      (should (equal received (list (current-buffer) event)))
+                    (should (= (point) 2))))
+                (should (equal (buffer-string) "Draft"))
+                (should-not (get-buffer keymap-popup--buffer-name))
+                (should-not overriding-terminal-local-map)
+                (should-not pre-command-hook))
+            (keymap-popup-dismiss)))))))
+
 (ert-deftest keymap-popup-test-dismiss-cleans-real-transient-maps ()
   "Dismiss removes nested transient maps and their pre-command hooks."
   (let ((overriding-terminal-local-map nil)

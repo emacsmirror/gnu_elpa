@@ -1579,6 +1579,16 @@ Reads state from BUF.  Consumes the reentering flag on read."
                 (active (plist-get session :active))
                 (key-str (key-description (this-command-keys-vector))))
            (cond
+            ((and (mouse-event-p last-input-event)
+                  (let ((window (posn-window (event-start last-input-event))))
+                    (and (window-live-p window)
+                         (eq (window-buffer window) buf))))
+             ;; Help is not an action target.  Do not let a mouse command
+             ;; select it (even during a prompt), or receive a window
+             ;; destroyed by teardown.
+             (setq this-command #'ignore)
+             (keymap-popup--set-session buf :reentering nil)
+             t)
             ((active-minibuffer-window) t)
             ((plist-get session :reentering)
              (keymap-popup--set-session buf :reentering nil)

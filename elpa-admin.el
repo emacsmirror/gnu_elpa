@@ -2152,10 +2152,10 @@ in case of cyclic dependencies."
     (insert "<dt>All Dependencies</dt><dd>"
             (mapconcat
              (lambda (pkg-name)
-               (let ((pref (if (file-exists-p (format "%s.tar" pkg-name))
+               (let ((pref (if (file-exists-p (format "%s/%s.tar" elpaa--release-subdir pkg-name))
                                ""
-                             (concat elpaa--sister-archive-url "/"
-                                     elpaa--sister-archive-release-path))))
+                             (file-name-concat elpaa--sister-archive-url
+                                               elpaa--sister-archive-release-path))))
                  (format "<a href=\"%s%s.html\">%s</a> (<a href=\"%s%s.tar\">.tar</a>)"
                          pref pkg-name pkg-name pref pkg-name)))
              reqs "</dd><dd>")
@@ -2214,11 +2214,7 @@ in case of cyclic dependencies."
                                   (if (string-suffix-p "-devel" elpaa--name)
                                       elpaa--release-url
                                     elpaa--devel-url)))
-                          "/" name ".html"))
-            (file (concat "../" (if (string-suffix-p "-devel" elpaa--name)
-                                    elpaa--release-subdir
-                                  elpaa--devel-subdir)
-                          "/" (elpaa--html-quote name) ".html")))
+                          "/" name ".html")))
         (insert "<dt>Other versions:</dt><dd><a href=\"" href "\">"
                 (if (string-suffix-p "-devel" elpaa--name)
                     "release"

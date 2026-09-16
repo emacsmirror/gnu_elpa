@@ -746,15 +746,19 @@ TARGET identifies occlusion.  CHECK revalidates ownership.
 POLICY controls masks.
 Restore the original layout and destroy only the owned viewer on every exit."
   (gnosis-image--decode scene)
+  (when check (funcall check))
   (unless (image-type-available-p 'svg) (user-error "Native SVG support is required"))
   (let ((buffer (generate-new-buffer "*Gnosis Image*")) owner)
     (save-window-excursion
       (unwind-protect
           (progn
             (pop-to-buffer-same-window buffer)
+            (when check (funcall check))
             (delete-other-windows)
+            (when check (funcall check))
             (gnosis-image-mode)
             (setq owner gnosis-image--owner)
+            (when check (funcall check))
             (setq gnosis-image--scene (copy-tree scene)
                   gnosis-image--regions (copy-tree (alist-get 'regions scene))
                   gnosis-image--purpose purpose gnosis-image--target target
@@ -762,7 +766,9 @@ Restore the original layout and destroy only the owned viewer on every exit."
                   gnosis-image--policy (or policy "hide-target")
                   gnosis-image--depth (recursion-depth) gnosis-image--check check)
             (gnosis-image--render)
+            (when check (funcall check))
             (recursive-edit)
+            (when check (funcall check))
             (unless (and (buffer-live-p buffer)
                          (with-current-buffer buffer
                            (and (eq owner gnosis-image--owner) (gnosis-image--owned-p)

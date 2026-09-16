@@ -130,7 +130,7 @@ Themata, indexes, schedules and study history live in the SQLite database
 at =GNOSIS-DIR/gnosis.db=.  Org files own note contents, and managed
 images/models live in =assets/= beside the database.  External media
 remains at its referenced paths.  A new database is created on first use;
-back up existing data before an upgrade (see Database Version 9).
+back up existing data before an upgrade (see [[#database-upgrades][Database Upgrades and Rollback]]).
 Gnosis requires Emacs 29.1 or later with built-in SQLite support, the
 =compat= library, and =keymap-popup=.
 
@@ -233,14 +233,15 @@ separately from regular nodes but use the same underlying mechanism.
 #+end_src
 
 
-** Upgrading to 0.11.0
+** Upgrading to 0.12.0
 
-The supported upgrade is released Gnosis 0.10.6 (database version 8)
-directly to version 9.  Separate org-gnosis databases and older Gnosis
-schemas are not automatically imported.  Preserve their data and use
-matching older source or a separately verified conversion.  Follow the
-pre-first-open backup procedure in Database Version 9 before opening
-an existing database with 0.11.0.
+Released Gnosis 0.11.0 databases upgrade from schema 9 to 10;
+0.10.6 databases upgrade from schema 8 through 9 to 10.  Separate
+org-gnosis databases and older Gnosis schemas are not automatically
+imported.  Preserve their data and use matching older source or a
+separately verified conversion.  Follow the pre-first-open backup
+procedure in [[#database-upgrades][Database Upgrades and Rollback]] before opening an existing
+database with 0.12.0.
 
 ** Version Control
 
@@ -1807,48 +1808,67 @@ Gnosis exports and imports themata using SQLite database files (=.gnosis=
 extension).  This is faster and more reliable than text-based formats,
 especially for large collections.
 
-** Database Version 9
+** Database Upgrades and Rollback
+:PROPERTIES:
+:CUSTOM_ID: database-upgrades
+:END:
 
-Gnosis upgrades released 0.10.6 databases (version 8) directly to version 9.
-This is the only supported migration in 0.11.0. Unknown or
-private development versions are refused; preserve a backup and use matching
-source or a separately verified conversion rather than changing the version.
+Gnosis 0.12.0 uses database schema 10.  On first open, it upgrades released
+0.11.0 databases from schema 9 to 10.  Released 0.10.6 databases upgrade
+from schema 8 through 9 to 10 in the same open; installing 0.11.0 first
+is not necessary.  Unknown or private development layouts are refused;
+preserve a backup and use matching source or a separately verified
+conversion rather than changing the version number.
 
-The migration creates the complete FSRS and study storage in one transaction:
-scheduler baselines and state, scheduled events, separate practice encounters,
+The 8-to-9 step creates the FSRS and study storage:
+scheduler baselines and state, scheduled events, separate practice events,
 a retained study session, session snapshots by identity in =study_history=,
 active configuration selection and scheduled/practice void records. It
 initially selects configuration 1. Known legacy due dates, repetition/lapse
 counts, suspension and aggregate activity are retained. Legacy algorithm
 values do not become FSRS memory or invented event-level history.
 
-Version 9 also adds nullable =themata.accepted_aliases= without rewriting
-existing answers; old rows have no aliases. Schema, data and version changes
-roll back together on error or quit. This database version is separate from
-portable content format 3, which carries aliases explicitly.
+Schema 9 also adds nullable =themata.accepted_aliases= without rewriting
+existing answers; old rows have no aliases.
+
+The 9-to-10 step adds =practice_encounters= and its integrity guards to
+retain accepted practice answers and context.  Existing content, schedules
+and study history are preserved; missing historical answers are not
+invented.  Both migration steps run within one transaction: schema, data
+and version changes roll back together on error or quit.
+
+Database schema versions are separate from portable content format 3,
+which carries aliases explicitly.
 Content formats 1 and 2 remain readable and supply no aliases. Alias-only
 changes and clears appear in import preview and participate in drift checks.
 Format 3 is still content-only: it does not bundle managed images or models.
 
-Before the *first database open* with 0.11.0:
+Before the *first database open* with 0.12.0:
 
-1. Stop other Gnosis database and filesystem writers.  Keep the released
-   0.10.6 package/source available for recovery.
-2. Load Gnosis without opening a dashboard or starting review, and set
+1. Stop other Gnosis database and filesystem writers and close existing
+   Gnosis connections.  Keep the package/source matching the old database
+   available for recovery: 0.11.0 for schema 9, or 0.10.6 for schema 8.
+2. Load the 0.12.0 code without opening a dashboard or starting review, and set
    ~gnosis-dir~ to the existing data directory.  Run
    =M-x gnosis-backup-db= and choose a new backup filename.  With no
-   Gnosis connection open, this command reads the existing database
-   independently: it does not initialize or migrate it.
-3. Back up Org source files and all managed/external media separately.
+   Gnosis connection open, this version of the command reads the existing
+   =gnosis.db= independently: it does not initialize or migrate it.  Do not
+   substitute an older backup implementation without checking that property.
+3. Back up Org source files and all managed/external media separately,
+   including the =assets/= directory beside the database.
    A database-only backup contains their references, not their bytes.
 4. Preserve those backups, then open Gnosis to perform the upgrade.
    On initialization failure, stop; do not relabel the database version.
 
-For rollback, close every owner and restore the old database together
-with its matching 0.10.6 source and separately backed-up files.  Never
-open a version-9 database with old code.  A portable content export
-cannot restore schedules or session progress.  ~gnosis-backup-data~
-requires an open connection, so it is not the pre-first-open backup step.
+For rollback, close every database owner before restoring the pre-upgrade
+database, its matching release source and the separately backed-up Org/media
+files.  Use a schema-9 backup with 0.11.0, or a schema-8 backup with 0.10.6.
+Never open a schema-10 database with 0.11.0 or 0.10.6, or a schema-9
+database with 0.10.6; there is no reverse migration.  Keep the upgraded
+data separately if needed: restoring the old backup does not retain work
+done since that backup.  A portable content export cannot restore schedules
+or session progress.  ~gnosis-backup-data~ requires an open connection,
+so it is not the pre-first-open backup step.
 
 ** Full Backups Versus Content Exports
 

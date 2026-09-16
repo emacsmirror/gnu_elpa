@@ -33,8 +33,7 @@ PROPERTIES may supply active-state and session values used by a test."
                         :backend backend
                         :persistent-hook
                         (plist-get properties :persistent-hook))))
-    (with-current-buffer buf
-      (setq-local keymap-popup--session session))))
+    (keymap-popup--init-session buf session)))
 
 ;;; Parser tests
 

@@ -527,16 +527,44 @@ Values are (mtype tmpl-count front-fields back-fields . all-fields)."
                                (car fb) (cdr fb) fields)
                  model-info)))))
 
+(defun gnosis-anki--notetype-kind (config)
+  "Return the note kind encoded in protobuf CONFIG.
+Read Notetype.Config.kind (field 1): 0 means basic and 1 means cloze.
+An omitted kind defaults to basic.  Skip unrelated protobuf fields;
+reject malformed input and unsupported kinds instead of guessing."
+  (let ((bytes (encode-coding-string config 'raw-text))
+        (pos 0)
+        (kind 0))
+    (while (< pos (length bytes))
+      (let* ((tag (gnosis-anki--decode-varint bytes pos))
+             (field (ash (car tag) -3))
+             (wire (logand (car tag) 7)))
+        (setq pos (cdr tag))
+        (when (or (zerop field) (and (= field 1) (/= wire 0)))
+          (user-error "Invalid Anki note type field"))
+        (pcase wire
+          (0 (let ((value (gnosis-anki--decode-varint bytes pos)))
+               (when (= field 1) (setq kind (car value)))
+               (setq pos (cdr value))))
+          (1 (setq pos (+ pos 8)))
+          (2 (let ((size (gnosis-anki--decode-varint bytes pos)))
+               (setq pos (+ (cdr size) (car size)))))
+          (5 (setq pos (+ pos 4)))
+          (_ (user-error "Unsupported Anki note type wire format: %s" wire)))
+        (when (> pos (length bytes))
+          (user-error "Truncated Anki note type configuration"))))
+    (unless (memq kind '(0 1))
+      (user-error "Unsupported Anki note type kind: %s" kind))
+    kind))
+
 (defun gnosis-anki--build-model-info-from-tables (anki-db model-info)
   "Build MODEL-INFO from ANKI-DB using notetypes/fields/templates tables.
 Modern .apkg files store note types in separate tables with protobuf
 config blobs.  Template qfmt/afmt are decoded from the config blob.
-Uses 5 total queries instead of 3N+2.
+Uses 4 total queries instead of 3N+2.  Read the semantic note kind from
+notetypes.config, never from a template's display name.
 Values are (mtype tmpl-count front-fields back-fields . all-fields)."
-  (let ((notetypes (sqlite-select anki-db "SELECT id, name FROM notetypes"))
-        (cloze-ids (mapcar #'car
-			   (sqlite-select anki-db
-					  "SELECT DISTINCT ntid FROM templates WHERE name COLLATE NOCASE = 'Cloze'")))
+  (let ((notetypes (sqlite-select anki-db "SELECT id, name, config FROM notetypes"))
         (all-fields (sqlite-select anki-db
 				   "SELECT ntid, ord, name FROM fields ORDER BY ntid, ord"))
         (all-configs (sqlite-select anki-db
@@ -582,10 +610,9 @@ Values are (mtype tmpl-count front-fields back-fields . all-fields)."
                            (cons q-fields a-fields)
                          (cons (list (car fields)) (cdr fields))))
                    (cons (list (car fields)) (cdr fields))))
-             (mtype (cond
-                     ((gnosis-anki--image-occlusion-p name fields) 'skip)
-                     ((member ntid cloze-ids) 1)
-                     (t 0))))
+             (mtype (if (gnosis-anki--image-occlusion-p name fields)
+                        'skip
+                      (gnosis-anki--notetype-kind (nth 2 nt)))))
         (puthash mid (cl-list* mtype tmpl-count
                                (car fb) (cdr fb) fields)
                  model-info)))))
@@ -687,8 +714,20 @@ Each chunk commits atomically; SQL writes stay bounded even for a
 large source note.  TOTAL and SKIPPED are progress counts.  TODAY is
 the captured logical review day.  Call CLEANUP-FN with no arguments
 on completion, error or quit.  SOURCE-FILE identifies the import commit.
-Pass EXTRA-TAG and SUSPEND to `gnosis-anki--bulk-insert-chunk'."
-  (let ((imported 0))
+Pass EXTRA-TAG and SUSPEND to `gnosis-anki--bulk-insert-chunk'.
+Capture the repository beside DB before yielding, independently of
+`gnosis-dir'.  Skip automatic Git for a database not named gnosis.db."
+  (let* ((imported 0)
+         ;; Metadata is optional for Git.  Let the writer report a closed DB
+         ;; inside its cleanup boundary instead of failing before entering it.
+         (file (condition-case nil
+                   (nth 2 (seq-find
+                           (lambda (row) (equal (nth 1 row) "main"))
+                           (sqlite-select db "PRAGMA database_list")))
+                 (error nil)))
+         (directory (and (stringp file) (file-name-absolute-p file)
+                         (equal (file-name-nondirectory file) "gnosis.db")
+                         (file-name-directory file))))
     (cl-labels
         ((process-next (item-rest id-rest)
            (let (continued)
@@ -697,7 +736,10 @@ Pass EXTRA-TAG and SUSPEND to `gnosis-anki--bulk-insert-chunk'."
                      (if (null item-rest)
                          (progn
                            (sqlite-execute db "ANALYZE")
-                           (gnosis-anki--commit-import imported source-file)
+                           (if directory
+                               (let ((gnosis-dir directory))
+                                 (gnosis-anki--commit-import imported source-file))
+                             (message "Anki import: Git skipped; database is not gnosis.db"))
                            (message "Anki import complete: %d imported, %d skipped"
                                     imported skipped))
                        (let* ((count (gnosis-anki--insert-pending-chunk

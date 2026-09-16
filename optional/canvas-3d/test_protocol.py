@@ -20,6 +20,8 @@ class ProtocolTests(unittest.TestCase):
         self.renderer = render.Renderer.__new__(render.Renderer)
         self.renderer.size = self.renderer.rendered_size = 256
         self.renderer.latest = None
+        self.renderer.radius = .01
+        self.renderer.center = (999999.01, 999999.01, -999999)
         self.renderer._draw = Mock()
         self.renderer._color_bytes = Mock(return_value=b"color")
         self.renderer.framebuffer = Mock()
@@ -33,9 +35,9 @@ class ProtocolTests(unittest.TestCase):
         r.rendered_size = 128
         r.framebuffer.read.side_effect = [b"\x02", struct.pack("=I", 70001), struct.pack("=fff", -1, -2, -3)]
         hit = r.request(op="pick", seq=11, frame=10, x=5, y=7)
-        self.assertEqual(struct.unpack(">4sIIIIfff", hit),
-                         (b"C3P3", 11, 10, 2, 70001, -1, -2, -3))
-        self.assertEqual(len(hit), 32)
+        self.assertEqual(struct.unpack(">4sIIIIddd", hit),
+                         (b"C3P4", 11, 10, 2, 70001, 999999., 999998.99, -999999.03))
+        self.assertEqual(len(hit), 44)
         self.assertEqual(r._draw.call_count, 1)
         self.assertEqual(r.framebuffer.read.call_args_list, [
             call(viewport=(5, 120, 1, 1), components=n, attachment=a, alignment=1, dtype=d)
@@ -45,11 +47,11 @@ class ProtocolTests(unittest.TestCase):
         r = self.renderer
         r.packet(10)
         r.framebuffer.read.return_value = b"\0"
-        self.assertEqual(struct.unpack(">4sIIIIfff", r.pick(11, 10, 1, 0))[3:], (0, 0, 0, 0, 0))
+        self.assertEqual(struct.unpack(">4sIIIIddd", r.pick(11, 10, 1, 0))[3:], (0, 0, 0, 0, 0))
         self.assertEqual(r.framebuffer.read.call_count, 1)
         r.packet(12, yaw=90)
         r.framebuffer.read.reset_mock()
-        self.assertEqual(struct.unpack(">4sIIIIfff", r.pick(13, 10, 0, 1))[2:],
+        self.assertEqual(struct.unpack(">4sIIIIddd", r.pick(13, 10, 0, 1))[2:],
                          (10, 0xffffffff, 0, 0, 0, 0))
         r.framebuffer.read.assert_not_called()
 

@@ -79,7 +79,7 @@
           (dir (file-name-directory file))
           (before (gnosis-assets-revision dir '("surface.obj"))))
      (setf (alist-get 'label (nth 1 (alist-get 'targets scene))) "Edited tip")
-     (let* ((new (gnosis-model--publish-scene scene dir))
+     (let* ((new (gnosis-model--publish-scene scene old))
             (newfile (expand-file-name new (gnosis-assets-root))))
        (should-not (equal old new))
        (should (equal before (gnosis-assets-revision (file-name-directory newfile) '("surface.obj"))))
@@ -272,9 +272,62 @@
                               (gnosis-get 'hypothesis 'themata `(= id ,id))))))
          (when (get-buffer "*Gnosis NEW*") (kill-buffer "*Gnosis NEW*")))))))
 
-(defun gnosis-test-model-targets--author-roundtrip (command type &optional changed-key)
+(defun gnosis-test-model-targets--refuse-drift (context fault)
+  "Refuse FAULT during CONTEXT acceptance, preserving the draft for retry."
+  (let* ((directory (plist-get context :directory))
+         (file (expand-file-name (if (eq fault 'manifest) "scene.json" "surface.obj")
+                                 directory))
+         (original (with-temp-buffer
+                     (insert-file-contents-literally file) (buffer-string)))
+         (replacement (if (eq fault 'manifest) (concat original "\n")
+                        "v 100 0 0\nv 110 0 0\nv 110 10 0\nv 100 10 0\nf -4 -3 -2 -1\n"))
+         (before (copy-tree context))
+         (owner (plist-get context :buffer))
+         (draft (with-current-buffer owner (buffer-string)))
+         (entries (directory-files (gnosis-assets-root) nil nil t))
+         (copy (symbol-function 'copy-file))
+         stage injected)
+    (unwind-protect
+        (progn
+          (when (memq fault '(geometry manifest))
+            (with-temp-file file (insert replacement)))
+          (cl-letf (((symbol-function 'copy-file)
+                     (lambda (source destination &rest args)
+                       (if (and (not injected) (equal source file)
+                                (memq fault '(copy after restore quit)))
+                           (progn
+                             (setq injected t stage (file-name-directory destination))
+                             ;; Valid replacement topology, not a parser failure.
+                             (when (memq fault '(copy restore))
+                               (with-temp-file source (insert replacement)))
+                             (apply copy source destination args)
+                             (when (eq fault 'after)
+                               (with-temp-file source (insert replacement)))
+                             (when (eq fault 'restore)
+                               (with-temp-file source (insert original)))
+                             (when (eq fault 'quit) (signal 'quit nil)))
+                         (apply copy source destination args)))))
+            (if (eq fault 'quit)
+                (should (eq 'cancelled
+                            (condition-case nil
+                                (call-interactively #'gnosis-model-author-accept)
+                              (quit 'cancelled))))
+              (should-error (call-interactively #'gnosis-model-author-accept)
+                            :type 'user-error)))
+          (should (equal before context))
+          (should (equal draft (with-current-buffer owner (buffer-string))))
+          (should (equal (sort entries #'string<)
+                         (sort (directory-files (gnosis-assets-root) nil nil t) #'string<)))
+          (when (memq fault '(copy after restore quit))
+            (should injected)
+            (should-not (file-exists-p stage))))
+      (with-temp-file file (insert original)))))
+
+(defun gnosis-test-model-targets--author-roundtrip (command type &optional changed-key fault)
   "Exercise COMMAND through acceptance, native TYPE saving and reopening.
-When CHANGED-KEY is non-nil, start with an explicit nil change flag."
+When CHANGED-KEY is non-nil, start with an explicit nil change flag.
+If FAULT is non-nil, refuse resource drift first and retry after restoration."
+
   (gnosis-test-with-db
    (save-window-excursion
     (let* ((resource (gnosis-model-import (gnosis-test-model-targets--fixture)))
@@ -322,6 +375,7 @@ When CHANGED-KEY is non-nil, start with an explicit nil change flag."
                                (lambda (&rest _) "Whole (whole)")))
                       (call-interactively #'gnosis-model-author-target)))
                   (setq expected (copy-tree (plist-get context :scene)))
+                  (when fault (gnosis-test-model-targets--refuse-drift context fault))
                   (call-interactively #'gnosis-model-author-accept))))
             (let* ((fields (plist-get context :result))
                    (new (caar fields))
@@ -380,6 +434,39 @@ When CHANGED-KEY is non-nil, start with an explicit nil change flag."
                      gnosis-model-author-edit gnosis-model-author-move
                      gnosis-model-author-region-toggle gnosis-model-author-remove))
     (gnosis-test-model-targets--author-roundtrip command "model" t)))
+
+(ert-deftest gnosis-model-targets-author-drift-label ()
+  (dolist (fault '(geometry manifest))
+    (gnosis-test-model-targets--author-roundtrip
+     #'gnosis-model-author-edit "model-name" nil fault)))
+
+(ert-deftest gnosis-model-targets-author-drift-point ()
+  (gnosis-test-model-targets--author-roundtrip
+   #'gnosis-model-author-point "model" nil 'geometry))
+
+(ert-deftest gnosis-model-targets-author-drift-region ()
+  (gnosis-test-model-targets--author-roundtrip
+   #'gnosis-model-author-region "model" nil 'geometry))
+
+(ert-deftest gnosis-model-targets-author-drift-unchanged ()
+  (gnosis-test-model-targets--author-roundtrip nil "model" nil 'geometry))
+
+(ert-deftest gnosis-model-targets-author-drift-during-copy ()
+  (gnosis-test-model-targets--author-roundtrip
+   #'gnosis-model-author-edit "model" nil 'copy))
+
+(ert-deftest gnosis-model-targets-author-drift-after-copy ()
+  (gnosis-test-model-targets--author-roundtrip
+   #'gnosis-model-author-edit "model" nil 'after))
+
+(ert-deftest gnosis-model-targets-author-drift-copied-bytes ()
+  ;; Restoring the source before copy-file returns defeats source-only checks.
+  (gnosis-test-model-targets--author-roundtrip
+   #'gnosis-model-author-edit "model" nil 'restore))
+
+(ert-deftest gnosis-model-targets-author-drift-copy-quit ()
+  (gnosis-test-model-targets--author-roundtrip
+   #'gnosis-model-author-edit "model" nil 'quit))
 
 (provide 'gnosis-test-model-targets)
 ;;; gnosis-test-model-targets.el ends here

@@ -390,7 +390,8 @@ input instead of the canvas.  Import immutable assets before visual input."
                                      (seq-take (plist-get context :view) 2))
                           (list canvas-3d--zoom))))
            (reference (if (plist-get context :changed)
-                          (gnosis-model--publish-scene (plist-get context :scene) (plist-get context :directory))
+                          (gnosis-model--publish-scene (plist-get context :scene)
+                                                       (plist-get context :reference))
                         (plist-get context :reference)))
            (fields (list (cons reference (mapcar #'number-to-string view))
                          (list target))))
@@ -1015,14 +1016,24 @@ Return nil for background; reject stale or in-flight renderer state."
       (gnosis-model--author-check context)
       (gnosis-model--author-change target t))))
 
-(defun gnosis-model--publish-scene (scene directory)
-  "Publish private SCENE with unmodified geometry from DIRECTORY."
-  (let ((stage (make-temp-file "gnosis-model-targets-" t)))
+(defun gnosis-model--publish-scene (scene reference)
+  "Publish edited SCENE, retaining the exact geometry of original REFERENCE.
+Verify both the original resource and its private copy before replacing the
+copied manifest.  Refuse observed drift without publishing a new revision."
+  (let* ((root (gnosis-assets-root))
+         (revision (car (split-string reference "/")))
+         (names (cons "scene.json" (mapcar (lambda (object) (alist-get 'path object))
+                                          (alist-get 'objects scene))))
+         (directory (gnosis-assets-validate root revision names))
+         (stage (make-temp-file "gnosis-model-targets-" t)))
     (unwind-protect
         (progn
-          (dolist (object (alist-get 'objects scene))
-            (let ((path (alist-get 'path object)))
-              (copy-file (gnosis-assets-file directory path) (expand-file-name path stage) t)))
+          (dolist (name (delete-dups (copy-sequence names)))
+            (copy-file (gnosis-assets-file directory name) (expand-file-name name stage)))
+          ;; Checking the source alone misses changed bytes copied before restore.
+          (unless (equal revision (gnosis-assets-revision stage names))
+            (user-error "Model resource changed during copying"))
+          (gnosis-assets-validate root revision names)
           (let ((coding-system-for-write 'utf-8-unix)
                 (json-encoding-pretty-print nil))
             (with-temp-file (expand-file-name "scene.json" stage) (insert (json-encode scene))))

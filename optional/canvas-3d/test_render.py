@@ -85,9 +85,9 @@ class PublicationTests(unittest.TestCase):
                 else:
                     self.assertEqual(result.returncode == 0, failure is None, result.stderr)
                     self.assertEqual(result.stdout[:24], b"C3D4" + struct.pack(">I", 1) + identity.encode())
-                    self.assertEqual(result.stdout[24:], reference[-32:])
+                    self.assertEqual(result.stdout[24:], reference[-44:])
                     self.assertEqual([p.name for p in files], ["pending-1.bgra"])
-                    self.assertEqual(files[0].read_bytes(), reference[8:-32])
+                    self.assertEqual(files[0].read_bytes(), reference[8:-44])
                     self.assertEqual(files[0].stat().st_size, 4 * 128 * 128)
 
     def test_full_resolution_geometry_and_frame_ownership(self):
@@ -106,17 +106,18 @@ class PublicationTests(unittest.TestCase):
                     self.assertEqual(packet[8:], color)
                     for x, y in ((0, 0), (size-1, size-1), (size//2, size//2),
                                  (size//2, size//3), (size//3, size//2)):
-                        hit = struct.unpack(">4sIIIIfff", r.pick(100, seq, x, y))
+                        hit = struct.unpack(">4sIIIIddd", r.pick(100, seq, x, y))
                         pixel = y * size + x
                         self.assertEqual(hit[3], ids[pixel])
                         self.assertEqual(hit[4], struct.unpack_from(">I", faces, pixel*4)[0])
-                        self.assertEqual(hit[5:], struct.unpack_from(">fff", points, pixel*12))
-                    self.assertEqual(struct.unpack(">4sIIIIfff", r.pick(100, seq-1, 0, 0))[3], 0xffffffff)
+                        np.testing.assert_array_equal(np.asarray(hit[5:], dtype="f4"),
+                                                      struct.unpack_from(">fff", points, pixel*12))
+                    self.assertEqual(struct.unpack(">4sIIIIddd", r.pick(100, seq-1, 0, 0))[3], 0xffffffff)
                     with self.assertRaises(ValueError):
                         r.pick(100, seq, size, 0)
                 self.assertEqual(r.packet(20)[8:], full[8:])
                 r.frame_geometry(yaw=90)
-                self.assertEqual(struct.unpack(">4sIIIIfff", r.pick(21, 20, 64, 64))[3], 0xffffffff)
+                self.assertEqual(struct.unpack(">4sIIIIddd", r.pick(21, 20, 64, 64))[3], 0xffffffff)
             finally:
                 r.close()
 
@@ -129,7 +130,7 @@ class PublicationTests(unittest.TestCase):
                   patch.object(r.framebuffer, "read", wraps=r.framebuffer.read) as read):
                 r.packet(1)
                 read.assert_not_called()
-                self.assertEqual(struct.unpack(">4sIIIIfff", r.pick(2, 1, 64, 64))[3], 1)
+                self.assertEqual(struct.unpack(">4sIIIIddd", r.pick(2, 1, 64, 64))[3], 1)
                 self.assertEqual(read.call_count, 3)
                 for args in read.call_args_list:
                     self.assertEqual(args.kwargs["viewport"], (64, 63, 1, 1))
@@ -137,8 +138,8 @@ class PublicationTests(unittest.TestCase):
                     with self.assertRaises(RuntimeError):
                         r.packet(3, yaw=90)
                 read.reset_mock()
-                self.assertEqual(struct.unpack(">4sIIIIfff", r.pick(4, 1, 64, 64))[3], 0xffffffff)
-                self.assertEqual(struct.unpack(">4sIIIIfff", r.pick(5, 3, 64, 64))[3], 0xffffffff)
+                self.assertEqual(struct.unpack(">4sIIIIddd", r.pick(4, 1, 64, 64))[3], 0xffffffff)
+                self.assertEqual(struct.unpack(">4sIIIIddd", r.pick(5, 3, 64, 64))[3], 0xffffffff)
                 read.assert_not_called()
         finally:
             r.close()
@@ -152,12 +153,12 @@ class PublicationTests(unittest.TestCase):
                                 input=requests, capture_output=True, timeout=20)
         self.assertEqual(result.returncode, 0, result.stderr)
         first = second = 8 + 4*256*256
-        self.assertEqual(len(result.stdout), first + second + 64)
-        self.assertEqual(struct.unpack(">4sIIIIfff", result.stdout[first:first+32])[:4],
-                         (b"C3P3", 2, 1, 1))
-        self.assertEqual(result.stdout[first+32:first+40], b"C3D3" + struct.pack(">I", 3))
-        self.assertEqual(struct.unpack(">4sIIIIfff", result.stdout[-32:])[:4],
-                         (b"C3P3", 4, 1, 0xffffffff))
+        self.assertEqual(len(result.stdout), first + second + 88)
+        self.assertEqual(struct.unpack(">4sIIIIddd", result.stdout[first:first+44])[:4],
+                         (b"C3P4", 2, 1, 1))
+        self.assertEqual(result.stdout[first+44:first+52], b"C3D3" + struct.pack(">I", 3))
+        self.assertEqual(struct.unpack(">4sIIIIddd", result.stdout[-44:])[:4],
+                         (b"C3P4", 4, 1, 0xffffffff))
 
 
 class SceneTests(unittest.TestCase):

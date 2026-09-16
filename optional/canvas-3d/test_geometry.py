@@ -51,10 +51,10 @@ class GeometryTests(unittest.TestCase):
                     geometry = renderer.frame_geometry(yaw=yaw, pitch=pitch, zoom=zoom)
                     _, ids, faces, points = self.decode(geometry, 64)
                     self.assertEqual(renderer.packet(seq, yaw=yaw, pitch=pitch, zoom=zoom)[8:], geometry[0])
-                    picked = struct.unpack(">4sIIIIfff", renderer.pick(seq + 100, seq, 32, 32))
-                    self.assertEqual(picked[:5], (b"C3P3", seq + 100, seq, int(ids[32, 32]), int(faces[32, 32])))
+                    picked = struct.unpack(">4sIIIIddd", renderer.pick(seq + 100, seq, 32, 32))
+                    self.assertEqual(picked[:5], (b"C3P4", seq + 100, seq, int(ids[32, 32]), int(faces[32, 32])))
                     np.testing.assert_allclose(picked[5:], points[32, 32])
-                    stale = struct.unpack(">4sIIIIfff", renderer.pick(seq + 101, seq + 10, 32, 32))
+                    stale = struct.unpack(">4sIIIIddd", renderer.pick(seq + 101, seq + 10, 32, 32))
                     self.assertEqual(stale[3], 0xffffffff)
                     hit = ids != 0
                     self.assertTrue(hit.any())
@@ -120,6 +120,64 @@ class GeometryTests(unittest.TestCase):
                                 np.testing.assert_array_equal(changed, expected)
                         finally:
                             renderer.close()
+
+    def test_compact_picks_preserve_small_translated_geometry(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "mesh.obj"
+            for scale, offset in ((.01, (0, 0, 0)),
+                                  (.01, (999999.01, 999999.01, -999999)),
+                                  (1e-20, (4e-20, -3e-20, 2e-20)),
+                                  (1e5, (5e5, -3e5, 2e5)),
+                                  (1e20, (4e20, -3e20, 2e20))):
+                with self.subTest(scale=scale, offset=offset):
+                    vertices = (np.array([[-1., -1., 0.], [1., -1., 0.], [0., 1., 0.]])
+                                * scale + offset)
+                    path.write_text("".join(f"v {x:.17g} {y:.17g} {z:.17g}\n"
+                                            for x, y, z in vertices) + "f 1 2 3\n")
+                    renderer = Renderer(path, 64)
+                    try:
+                        target = {"kind": "point", "mesh": "model", "face": 0,
+                                  "barycentric": [.25, .25, .5], "tolerance": .3 * scale}
+                        center = np.asarray(target["barycentric"]) @ vertices
+                        for yaw, pitch, zoom in ((0, 0, 1), (35, 20, 1.4)):
+                            base = renderer.packet(1, yaw=yaw, pitch=pitch, zoom=zoom)[8:]
+                            marked = renderer.packet(2, yaw=yaw, pitch=pitch, zoom=zoom,
+                                                     highlight=target)[8:]
+                            changed = (np.frombuffer(base, "u1").reshape(64, 64, 4)
+                                       != np.frombuffer(marked, "u1").reshape(64, 64, 4)).any(axis=2)
+                            inside, outside = 0, 0
+                            angle_y, angle_p = np.radians([yaw, pitch])
+                            cy, sy = np.cos(angle_y), np.sin(angle_y)
+                            cp, sp = np.cos(angle_p), np.sin(angle_p)
+                            rotation = (np.array([[cy, 0, sy], [0, 1, 0], [-sy, 0, cy]])
+                                        @ np.array([[1, 0, 0], [0, cp, -sp], [0, sp, cp]]))
+                            # Every visible pick, including outside-target controls,
+                            # must agree with float64 distance in ORIGINAL units.
+                            for row in range(64):
+                                for col in range(64):
+                                    packet = renderer.pick(3, 2, col, row)
+                                    self.assertEqual(packet[:4], b"C3P4")
+                                    pick = struct.unpack(">4sIIIIddd", packet)
+                                    if pick[3]:
+                                        self.assertEqual(pick[4], 1)
+                                        point = np.asarray(pick[5:])
+                                        self.assertTrue(np.isfinite(point).all())
+                                        projected = ((point - renderer.center) / renderer.radius) @ rotation.T
+                                        np.testing.assert_allclose(projected[:2] * zoom * .8,
+                                                                   [(col + .5) / 32 - 1,
+                                                                    1 - (row + .5) / 32],
+                                                                   atol=2e-5, rtol=0)
+                                        expected = np.linalg.norm(point - center) <= target["tolerance"]
+                                        self.assertEqual(bool(changed[row, col]), bool(expected))
+                                        inside += int(expected)
+                                        outside += int(not expected)
+                                    else:
+                                        self.assertFalse(changed[row, col])
+                                        self.assertEqual(pick[4:], (0, 0, 0, 0))
+                            self.assertGreater(inside, 0)
+                            self.assertGreater(outside, 0)
+                    finally:
+                        renderer.close()
 
     def test_geometry_only_highlights_camera_reset_and_occlusion(self):
         with tempfile.TemporaryDirectory() as directory:

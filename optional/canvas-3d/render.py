@@ -109,18 +109,15 @@ class Renderer:
             uniform mat4 rotation;
             uniform float zoom;
             in vec3 position;
-            in vec3 original;
             in vec3 normal;
             in float marked;
             out vec3 n;
-            out vec3 point;
             out vec3 normalized_point;
             flat out float region_mark;
             void main() {
                 vec4 p = rotation * vec4(position, 1.0);
                 gl_Position = vec4(p.xy * zoom * 0.8, -p.z * 0.25, 1.0);
                 n = mat3(rotation) * normal;
-                point = original;
                 normalized_point = position;
                 region_mark = marked;
             }
@@ -132,13 +129,12 @@ class Renderer:
             uniform vec3 highlight_point;
             uniform float highlight_radius;
             in vec3 n;
-            in vec3 point;
             in vec3 normalized_point;
             flat in float region_mark;
             layout(location=0) out vec4 color;
             layout(location=1) out float identity;
             layout(location=2) out uint face;
-            layout(location=3) out vec3 original_point;
+            layout(location=3) out vec3 surface_point;
             void main() {
                 float light = 0.28 + 0.72 * abs(dot(normalize(n), normalize(vec3(-0.4,0.6,1.0))));
                 bool marked = highlight_kind == 0 ? object_index == selected :
@@ -148,7 +144,7 @@ class Renderer:
                 color = vec4((marked ? vec3(1.0, 0.82, 0.2) : vec3(0.92, 0.77, 0.59)) * light, 1.0);
                 identity = object_index / 255.0;
                 face = uint(gl_PrimitiveID) + 1u;
-                original_point = point;
+                surface_point = normalized_point;
             }
         ''')
         self.vaos, self.mark_buffers = [], []
@@ -157,12 +153,12 @@ class Renderer:
             points = (original - self.center) / self.radius
             normals = np.cross(points[:, 1] - points[:, 0], points[:, 2] - points[:, 0])
             normals /= np.linalg.norm(normals, axis=1)[:, None]
-            data = np.concatenate((points, original, np.repeat(normals[:, None, :], 3, axis=1)), axis=2)
+            data = np.concatenate((points, np.repeat(normals[:, None, :], 3, axis=1)), axis=2)
             vbo = self.ctx.buffer(data.astype("f4").tobytes())
             marks = self.ctx.buffer(np.zeros(len(faces) * 3, dtype="f4").tobytes())
             self.mark_buffers.append(marks)
             self.vaos.append(self.ctx.vertex_array(self.program,
-                             [(vbo, "3f 3f 3f", "position", "original", "normal"),
+                             [(vbo, "3f 3f", "position", "normal"),
                               (marks, "1f", "marked")]))
         self.color = self.ctx.texture((size, size), 4)
         self.identity = self.ctx.texture((size, size), 1)
@@ -202,8 +198,8 @@ class Renderer:
                     raise ValueError("Invalid point highlight")
                 point = np.asarray(bary) @ vertices[faces[face]]
                 # Match the unrotated normalized positions used for drawing.
-                # Original float32 distance can underflow/overflow when squared;
-                # keep original coordinates only for the picking attachment.
+                # Original float32 coordinates lose small translated geometry;
+                # both highlighting and picking use the normalized surface.
                 point = (point - self.center) / self.radius
                 radius /= self.radius
             elif kind == 3:
@@ -265,6 +261,9 @@ class Renderer:
         ids = np.frombuffer(self.identity.read(alignment=1), dtype=np.uint8).reshape(self.size, self.size)[::-1]
         faces = np.frombuffer(self.faces.read(alignment=1), dtype="u4").reshape(self.size, self.size)[::-1].copy()
         points = np.frombuffer(self.points.read(alignment=1), dtype="f4").reshape(self.size, self.size, 3)[::-1].copy()
+        # Preserve the legacy float32 original-coordinate API.  Compact picks
+        # instead retain float64 reconstruction through their wire boundary.
+        points = points.astype("f8") * self.radius + self.center
         # Explicitly canonicalize background for all attachment clear formats.
         faces[ids == 0], points[ids == 0] = 0, 0
         return (color, ids.tobytes(),
@@ -293,7 +292,12 @@ class Renderer:
         return packet
 
     def pick(self, seq, frame, x, y):
-        """Return a compact hit from exactly FRAME, never a newer camera."""
+        """Return a 44-byte C3P4 hit from exactly FRAME, never a newer camera.
+
+        XYZ are original coordinates encoded as big-endian IEEE float64.
+        Reconstruct on the CPU: float32 original coordinates collapse small
+        translated geometry even when its normalized drawing is accurate.
+        """
         if (type(seq) is not int or not 1 <= seq <= 0xffffffff
                 or type(frame) is not int or not 1 <= frame <= 0xffffffff
                 or type(x) is not int or type(y) is not int
@@ -309,7 +313,9 @@ class Renderer:
                     viewport=viewport, components=1, attachment=2, alignment=1, dtype="u4"))[0]
                 point = struct.unpack("=fff", self.framebuffer.read(
                     viewport=viewport, components=3, attachment=3, alignment=1, dtype="f4"))
-        return struct.pack(">4sIIIIfff", b"C3P3", seq, frame, index, face, *point)
+                point = tuple(value * self.radius + center
+                              for value, center in zip(point, self.center))
+        return struct.pack(">4sIIIIddd", b"C3P4", seq, frame, index, face, *point)
 
     def request(self, seq, op="view", **request):
         """Dispatch bounded view/pick requests; neither operation grades."""

@@ -9,6 +9,37 @@
 (require 'ert)
 (require 'canvas-3d)
 
+(ert-deftest canvas-3d-compact-float64-domain ()
+  (dolist (case '(((0 0 0 0 0 0 0 0) . 0.0)
+                  ((128 0 0 0 0 0 0 0) . -0.0)
+                  ((192 4 0 0 0 0 0 0) . -2.5)
+                  ((0 0 0 0 0 0 0 1) . 4.9406564584124654e-324)
+                  ((0 16 0 0 0 0 0 0) . 2.2250738585072014e-308)
+                  ((127 239 255 255 255 255 255 255) . 1.7976931348623157e+308)
+                  ((65 46 132 126 5 30 184 82) . 999999.01)))
+    (should (eql (canvas-3d--float64 (apply #'unibyte-string (car case)) 0)
+                 (cdr case))))
+  (dolist (bits '((127 240 0 0 0 0 0 0) (255 240 0 0 0 0 0 0)
+                  (127 248 0 0 0 0 0 0)))
+    (should-error (canvas-3d--float64 (apply #'unibyte-string bits) 0))))
+
+(ert-deftest canvas-3d-compact-rejects-old-pick-protocol ()
+  (dotimes (split 5)
+    (with-temp-buffer
+      (let ((process (make-pipe-process :name "old-pick" :buffer (current-buffer)
+                                        :noquery t)))
+        (unwind-protect
+            (progn
+              (setq canvas-3d--process process canvas-3d--busy 'pick)
+              (canvas-3d--receive process (substring "C3P3" 0 split))
+              (when (< split 4)
+                (canvas-3d--receive process (substring "C3P3" split)))
+              (should-not canvas-3d--process)
+              (should-not canvas-3d--selection)
+              (should (string-match-p "Incompatible renderer pick protocol"
+                                      canvas-3d--status)))
+          (canvas-3d--stop))))))
+
 (ert-deftest canvas-3d-compact-frame-and-deferred-pick ()
   (with-temp-buffer
     (let* ((owner (current-buffer))
@@ -33,9 +64,10 @@
             (canvas-3d-pick 0 0)
             (should (eq canvas-3d--busy 'pick))
             (should (string-match-p "\"frame\":1" (car sent)))
-            (let ((packet (concat "C3P3" (unibyte-string
+            (let ((packet (concat "C3P4" (unibyte-string
                                          0 0 0 2 0 0 0 1 0 0 0 1 0 0 0 3
-                                         63 128 0 0 64 0 0 0 64 64 0 0))))
+                                         63 240 0 0 0 0 0 0 64 0 0 0 0 0 0 0
+                                         64 8 0 0 0 0 0 0))))
               (canvas-3d--receive process (substring packet 0 7))
               (canvas-3d--receive process (substring packet 7)))
             (should-not canvas-3d--selection)
@@ -54,9 +86,10 @@
     (with-temp-buffer
       (let* ((process (make-pipe-process :name "pick-owner" :buffer (current-buffer) :noquery t))
              (frame (list :owner process :seq 1 :color (unibyte-string 0 0 0 255)))
-             (packet (concat "C3P3" (unibyte-string
+             (packet (concat "C3P4" (unibyte-string
                                     0 0 0 2 0 0 0 1 0 0 0 1 0 0 0 3
-                                    63 128 0 0 64 0 0 0 64 64 0 0)))
+                                    63 240 0 0 0 0 0 0 64 0 0 0 0 0 0 0
+                                    64 8 0 0 0 0 0 0)))
              callbacks hooks sent)
         (unwind-protect
             (cl-letf (((symbol-function 'process-send-string)
@@ -95,10 +128,11 @@
           (when (process-live-p process) (delete-process process)))))))
 
 (ert-deftest canvas-3d-compact-pick-all-splits-and-invalid-packets ()
-  (let ((packet (concat "C3P3" (unibyte-string
+  (let ((packet (concat "C3P4" (unibyte-string
                               0 0 0 2 0 0 0 1 0 0 0 1 0 0 0 3
-                              63 128 0 0 64 0 0 0 64 64 0 0))))
-    (dotimes (split 33)
+                              63 240 0 0 0 0 0 0 64 0 0 0 0 0 0 0
+                              64 8 0 0 0 0 0 0))))
+    (dotimes (split 45)
       (with-temp-buffer
         (let ((process (make-pipe-process :name "pick-split" :buffer (current-buffer) :noquery t)))
           (unwind-protect
@@ -107,7 +141,7 @@
                       canvas-3d--busy 'pick canvas-3d--seq 2
                       canvas-3d--objects '(((id . "mesh"))))
                 (canvas-3d--receive process (substring packet 0 split))
-                (when (< split 32)
+                (when (< split 44)
                   (canvas-3d--receive process (substring packet split)))
                 (should (eq canvas-3d--busy 'pick-ready))
                 (should-not canvas-3d--selection)
@@ -116,19 +150,20 @@
             (canvas-3d--stop)))))))
 
 (ert-deftest canvas-3d-compact-pick-malformed-replies ()
-  (let ((valid (concat "C3P3" (unibyte-string
+  (let ((valid (concat "C3P4" (unibyte-string
                              0 0 0 2 0 0 0 1 0 0 0 1 0 0 0 3
-                             63 128 0 0 64 0 0 0 64 64 0 0))))
+                             63 240 0 0 0 0 0 0 64 0 0 0 0 0 0 0
+                             64 8 0 0 0 0 0 0))))
     ;; Wrong magic/sequence/index, missing face, nonfinite coordinates, excess.
     (dolist (change '((0 . 88) (7 . 3) (15 . 2) (19 . 0)
-                      (20 . 127) (32 . 0)))
+                      (20 . 127) (44 . 0)))
       (with-temp-buffer
         (let ((packet (copy-sequence valid))
               (process (make-pipe-process :name "pick-invalid"
                                           :buffer (current-buffer) :noquery t)))
           (unwind-protect
               (progn
-                (if (= (car change) 32)
+                (if (= (car change) 44)
                     (setq packet (concat packet (unibyte-string 0)))
                   (aset packet (car change) (cdr change)))
                 (setq canvas-3d--process process canvas-3d--protocol 3

@@ -76,7 +76,8 @@ Opening a viewer never installs dependencies."
   "Cached (OBJECT-COUNT . REGEXP) matching invalid object-index bytes.")
 (defvar-local canvas-3d--seq 0)
 (defvar-local canvas-3d--protocol 1
-  "Wire version; real viewers use 4, legacy packet fixtures default to 1.")
+  "View wire version; real viewers use 4, legacy fixtures default to 1.
+View versions 3 and 4 both use C3P4 picks with original-coordinate float64 XYZ.")
 (defvar-local canvas-3d--selection nil
   "Owned geometry plist with :mesh :face :point :id :frame and :owner.")
 (defvar-local canvas-3d--question-target nil
@@ -353,6 +354,18 @@ through Lisp.  Call only after retiring the renderer."
            (* fraction (expt 2.0 -149))
          (* (+ 1.0 (/ fraction 8388608.0)) (expt 2.0 (- exponent 127)))))))
 
+(defun canvas-3d--float64 (bytes offset)
+  "Decode a finite big-endian IEEE float64 from BYTES at OFFSET."
+  (let* ((high (canvas-3d--uint32 bytes offset))
+         (low (canvas-3d--uint32 bytes (+ offset 4)))
+         (exponent (logand (ash high -20) 2047))
+         (fraction (+ (* (logand high #xfffff) 4294967296) low)))
+    (when (= exponent 2047) (error "Non-finite renderer coordinate"))
+    (* (if (zerop (logand high #x80000000)) 1.0 -1.0)
+       (if (zerop exponent)
+           (ldexp (float fraction) -1074)
+         (ldexp (+ 1.0 (/ fraction 4503599627370496.0)) (- exponent 1023))))))
+
 (defun canvas-3d--pick-legacy (x y &optional frame)
   "Select geometry at canvas pixel X, Y, returning its mesh ID or nil.
 Use displayed FRAME when supplied; reject retired or replaced frames.
@@ -444,8 +457,8 @@ supersedes a pending hit.  Picking never accepts an answer or changes a target."
                    (selection (list :mesh id :id id :owner process
                                     :frame (plist-get frame :seq)
                                     :face (and id (1- (canvas-3d--uint32 packet 16)))
-                                    :point (and id (cl-loop for offset from 20 below 32 by 4
-                                                           collect (canvas-3d--float32 packet offset))))))
+                                    :point (and id (cl-loop for offset from 20 below 44 by 8
+                                                           collect (canvas-3d--float64 packet offset))))))
               (setq canvas-3d-selected-id id canvas-3d--selection selection)
               (canvas-3d--request)
               (run-hook-with-args 'canvas-3d-selection-hook (copy-tree selection)))))))))
@@ -463,24 +476,31 @@ supersedes a pending hit.  Picking never accepts an answer or changes a target."
          (t
           (condition-case err
               (progn
-                (when (> (+ canvas-3d--byte-count (length chunk)) 32)
+                (when (> (+ canvas-3d--byte-count (length chunk)) 44)
                   (error "Oversized renderer pick"))
                 (push chunk canvas-3d--bytes)
                 (cl-incf canvas-3d--byte-count (length chunk))
-                (when (= canvas-3d--byte-count 32)
+                ;; Reject old/unknown pick formats as soon as their magic is
+                ;; complete, rather than waiting for an incompatible length.
+                (when (>= canvas-3d--byte-count 4)
+                  (unless (equal (substring (mapconcat #'identity
+                                                       (reverse canvas-3d--bytes) "") 0 4)
+                                 "C3P4")
+                    (error "Incompatible renderer pick protocol; update backend")))
+                (when (= canvas-3d--byte-count 44)
                   (let* ((packet (mapconcat #'identity (nreverse canvas-3d--bytes) ""))
                          (seq canvas-3d--seq)
                          (frame canvas-3d--frame)
                          (index (canvas-3d--uint32 packet 12)))
-                    (unless (and (equal (substring packet 0 4) "C3P3")
+                    (unless (and (equal (substring packet 0 4) "C3P4")
                                  (= (canvas-3d--uint32 packet 4) seq)
                                  (or (= index #xffffffff)
                                      (<= index (length canvas-3d--objects)))
                                  (or (= index 0) (= index #xffffffff)
                                      (> (canvas-3d--uint32 packet 16) 0)))
                       (error "Invalid renderer pick"))
-                    (cl-loop for offset from 20 below 32 by 4
-                             do (canvas-3d--float32 packet offset))
+                    (cl-loop for offset from 20 below 44 by 8
+                             do (canvas-3d--float64 packet offset))
                     (when (timerp canvas-3d--timer) (cancel-timer canvas-3d--timer))
                     (setq canvas-3d--bytes nil canvas-3d--byte-count 0
                           canvas-3d--busy 'pick-ready

@@ -652,7 +652,7 @@ Includes `gnosis-test-with-dashboard-state' for isolation."
           (should (eq major-mode 'gnosis-dashboard-mode))
           (gnosis-dashboard-view-by-tags)
           (should (equal (car gnosis-dashboard--history)
-                         '(:type tags :id nil :items nil)))
+                         `(:type tags :database ,gnosis-db :id nil :items nil)))
           (gnosis-test--add-basic-thema "Q2" "A2" '("new"))
           (should (equal (gnosis-select 'tag 'thema-tag) '(("new"))))
           (gnosis-dashboard-themata-back)

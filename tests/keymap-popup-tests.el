@@ -1042,7 +1042,9 @@ PROPERTIES may supply active-state and session values used by a test."
            :group "C"
            "a" ("Child A" ignore))
         t)
-  (let* ((all (keymap-popup--collect-descriptions keymap-popup--test-shadow-child))
+  (let* ((all (keymap-popup--resolve-descriptions
+               (keymap-popup--collect-descriptions keymap-popup--test-shadow-child)
+               keymap-popup--test-shadow-child))
          (group-names (cl-loop for row in all
                                append (mapcar (lambda (g) (plist-get g :name)) row)))
          (entries (cl-loop for row in all

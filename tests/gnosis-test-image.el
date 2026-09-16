@@ -934,5 +934,134 @@
        ;; Resolving checks the immutable byte revision as well as manifest data.
        (should (equal scene (gnosis-image-resolve reference "left")))))))
 
+(ert-deftest gnosis-image-resolver-paths-are-authoritative ()
+  (gnosis-test-with-db
+    (dolist (version '(1 2))
+      (let* ((file (gnosis-test-image--file))
+             (regions (if (= version 1) gnosis-test-image--regions
+                        '(((id . "left") (label . "Left region")
+                           (rects . ((0.0 0.0 0.4 0.8)))))))
+             (ordinary (gnosis-image-import file regions "Source" "Author"))
+             (ordinary-scene (gnosis-image-resolve ordinary))
+             (manifest (with-temp-buffer
+                         (insert-file-contents
+                          (expand-file-name "image.json" (alist-get 'directory ordinary-scene)))
+                         (json-parse-buffer :object-type 'alist)))
+             (crafted (append `((path . ,file) (directory . "/not-managed")) manifest))
+             (revision (gnosis-assets-import gnosis-dir '("original.png")
+                                             (list (cons "image.json" (json-encode crafted)))))
+             (reference (concat revision "/image.json"))
+             (scene (gnosis-image-resolve reference "left"))
+             (directory (expand-file-name revision (gnosis-assets-root))))
+        (should (= version (alist-get 'version scene)))
+        (should (equal directory (alist-get 'directory scene)))
+        (should (equal (expand-file-name "original.png" directory) (alist-get 'path scene)))
+        ;; Deleting the untrusted path cannot affect native rendering's input.
+        (delete-file file)
+        (should (equal scene (gnosis-image-resolve reference)))
+        (should (dom-by-tag (gnosis-image--svg scene regions 8 6 'edit nil nil nil) 'image))
+        (should (equal ordinary
+                       (gnosis-image-import (alist-get 'path ordinary-scene)
+                                            regions "Source" "Author")))))))
+
+(ert-deftest gnosis-image-reassociation-retires-resize-and-commands ()
+  (gnosis-test-with-db
+    (save-window-excursion
+      (with-temp-buffer
+        (switch-to-buffer (current-buffer))
+        (gnosis-image-mode)
+        (setq gnosis-image--scene (gnosis-image-resolve
+                                   (gnosis-image-import (gnosis-test-image--file)))
+              gnosis-image--regions (copy-tree gnosis-test-image--regions)
+              gnosis-image--purpose 'edit gnosis-image--selection "left")
+        (let ((queued #'gnosis-image--render)
+              (successor "Unrelated unsaved successor text"))
+          (set-visited-file-name (expand-file-name "successor.txt" gnosis-dir) t)
+          (should (eq major-mode 'gnosis-image-mode))
+          (let ((inhibit-read-only t)) (erase-buffer) (insert successor))
+          (cl-letf (((symbol-function 'svg-image) (lambda (&rest _) '(image :type svg)))
+                    ((symbol-function 'insert-image) (lambda (&rest _) (insert "[image]"))))
+            (dolist (detach '(nil t))
+              (when detach (set-visited-file-name nil t))
+              (dotimes (_ 2)
+                (run-hooks 'window-configuration-change-hook)
+                (funcall queued))
+              (should (equal successor (buffer-string)))
+              (should (buffer-modified-p))
+              (dolist (command '(gnosis-image-next-rectangle gnosis-image-submit))
+                (should-error (call-interactively command) :type 'user-error))
+              (should-error (gnosis-image-select '(mouse-1 nil)) :type 'user-error)
+              (gnosis-image-cancel)
+              (should (equal successor (buffer-string)))))
+          (set-buffer-modified-p nil))))))
+
+(ert-deftest gnosis-image-reassociation-during-prompt-refuses-edit ()
+  (gnosis-test-with-db
+    (with-temp-buffer
+      (gnosis-image-mode)
+      (setq gnosis-image--regions (copy-tree gnosis-test-image--regions)
+            gnosis-image--purpose 'edit gnosis-image--selection "left")
+      (cl-letf (((symbol-function 'read-string)
+                 (lambda (&rest _)
+                   (set-visited-file-name (expand-file-name "successor.txt" gnosis-dir) t)
+                   (set-visited-file-name nil t)
+                   (let ((inhibit-read-only t)) (insert "Successor"))
+                   "Changed")))
+        (should-error (gnosis-image-rename-target) :type 'user-error))
+      (should (equal gnosis-test-image--regions gnosis-image--regions))
+      (should (equal "Successor" (buffer-string))))))
+
+(ert-deftest gnosis-image-reassociation-input-cleanup-preserves-successor ()
+  (dolist (detach '(nil t))
+    (dolist (finish '(return quit))
+      (gnosis-test-with-db
+        (let ((scene (gnosis-image-resolve (gnosis-image-import (gnosis-test-image--file))))
+              successor)
+          (unwind-protect
+              (cl-letf (((symbol-function 'gnosis-image--decode) #'ignore)
+                        ((symbol-function 'image-type-available-p) (lambda (_) t))
+                        ((symbol-function 'gnosis-image--render) #'ignore)
+                        ((symbol-function 'recursive-edit)
+                         (lambda ()
+                           (setq successor (current-buffer))
+                           (set-visited-file-name (expand-file-name "successor.txt" gnosis-dir) t)
+                           (when detach (set-visited-file-name nil t))
+                           (let ((inhibit-read-only t)) (erase-buffer) (insert "Keep my edits"))
+                           (if (eq finish 'quit) (signal 'quit nil)
+                             (setq gnosis-image--accepted t)))))
+                (should (condition-case nil (progn (gnosis-image-input scene 'edit) nil)
+                          ((error quit) t)))
+                (should (buffer-live-p successor))
+                (with-current-buffer successor
+                  (should (equal "Keep my edits" (buffer-string)))
+                  (should (buffer-modified-p))
+                  ;; Retained q cannot abort a later unrelated input at the
+                  ;; same depth after the original input has unwound.
+                  (cl-letf (((symbol-function 'recursion-depth) (lambda () 1))
+                            ((symbol-function 'abort-recursive-edit)
+                             (lambda () (ert-fail "Aborted successor input"))))
+                    (call-interactively (key-binding (kbd "q"))))))
+            (when (buffer-live-p successor)
+              (with-current-buffer successor (setq gnosis-image--depth nil) (set-buffer-modified-p nil))
+              (kill-buffer successor))))))))
+
+(ert-deftest gnosis-image-reassociation-nested-input-remains-cancellable ()
+  (gnosis-test-with-db
+    (with-temp-buffer
+      (gnosis-image-mode)
+      (setq gnosis-image--purpose 'edit gnosis-image--depth 0)
+      (let ((aborts 0))
+        ;; Association inside nested input must not abort that inner reader.
+        (cl-letf (((symbol-function 'recursion-depth) (lambda () 2))
+                  ((symbol-function 'abort-recursive-edit) (lambda () (cl-incf aborts))))
+          (set-visited-file-name (expand-file-name "successor.txt" gnosis-dir) t)
+          (should (= aborts 0)))
+        ;; Once that reader returns, q can still leave the original input;
+        ;; the input's cleanup, not this command, owns buffer destruction.
+        (cl-letf (((symbol-function 'recursion-depth) (lambda () 1))
+                  ((symbol-function 'abort-recursive-edit) (lambda () (cl-incf aborts))))
+          (call-interactively (key-binding (kbd "q")))
+          (should (= aborts 1)))))))
+
 (provide 'gnosis-test-image)
 ;;; gnosis-test-image.el ends here

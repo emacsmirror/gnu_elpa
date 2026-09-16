@@ -188,8 +188,9 @@ Include private `directory' and `path' entries for the verified local payload."
       (when (and target (not (seq-find (lambda (r) (equal target (alist-get 'id r)))
                                        (alist-get 'regions manifest))))
         (user-error "Image target is absent from its pinned resource"))
-      (append manifest (list (cons 'directory directory)
-                             (cons 'path (gnosis-assets-file directory (alist-get 'file manifest))))))))
+      (append (list (cons 'directory directory)
+                    (cons 'path (gnosis-assets-file directory (alist-get 'file manifest))))
+              (seq-remove (lambda (entry) (memq (car entry) '(directory path))) manifest)))))
 
 (defun gnosis-image-import (file &optional regions source attribution)
   "Import PNG/JPEG FILE with REGIONS, SOURCE and ATTRIBUTION; return reference.
@@ -366,6 +367,22 @@ Forward ACCEPTED-ALIASES only when supplied, preserving omitted updates."
 (defvar-local gnosis-image--depth nil "Recursive input depth owned by this viewer.")
 (defvar-local gnosis-image--accepted nil "Non-nil when explicit input finished.")
 (defvar-local gnosis-image--check nil "Encounter validation function, or nil.")
+(defvar-local gnosis-image--owner nil
+  "Viewer token: (RENDER-OWNED . INPUT-LIVE), retired independently.")
+
+(defun gnosis-image--owned-p ()
+  "Return non-nil while this buffer still belongs to its native viewer."
+  (and (car gnosis-image--owner) (not buffer-file-name)
+       (derived-mode-p 'gnosis-image-mode)))
+
+(defun gnosis-image--retire ()
+  "Retire this viewer permanently on native file association."
+  (let ((depth (and (cdr gnosis-image--owner) gnosis-image--depth)))
+    (when gnosis-image--owner (setcar gnosis-image--owner nil))
+    (setq gnosis-image--accepted nil)
+    ;; Retire before unwinding: cleanup must not kill the successor buffer.
+    (when (and depth (= (recursion-depth) (1+ depth)))
+      (abort-recursive-edit))))
 
 (defface gnosis-image-mask '((t (:background "#202020" :foreground "#ffffff")))
   "Opaque answer coverage and neutral cue text." :group 'gnosis)
@@ -433,7 +450,8 @@ POLICY defaults to hide-target, or hide-all masks every annotated target."
 
 (defun gnosis-image--render (&rest _)
   "Render this owned viewer at its current window size."
-  (when-let* ((window (get-buffer-window (current-buffer))) (scene gnosis-image--scene))
+  (when-let* (((gnosis-image--owned-p))
+              (window (get-buffer-window (current-buffer))) (scene gnosis-image--scene))
     (let* ((scale (min 1.0 (/ (float (max 1 (- (window-body-width window t) 16)))
                               (alist-get 'width scene))
                        (/ (float (max 1 (- (window-body-height window t) 120)))
@@ -491,6 +509,7 @@ POLICY defaults to hide-target, or hide-all masks every annotated target."
 (defun gnosis-image-select (event)
   "Select target at mouse EVENT without grading or revealing labels."
   (interactive "e")
+  (unless (gnosis-image--owned-p) (user-error "Image viewer is no longer active"))
   (let ((hit (gnosis-image--hit-rectangle gnosis-image--regions
                                           (gnosis-image--position (event-start event)))))
     (setq gnosis-image--selection (car hit) gnosis-image--rectangle (or (cdr hit) 0)))
@@ -498,7 +517,7 @@ POLICY defaults to hide-target, or hide-all masks every annotated target."
 
 (defun gnosis-image--editor-snapshot (&optional selected)
   "Capture editor ownership, requiring a selection when SELECTED."
-  (unless (and (derived-mode-p 'gnosis-image-mode) (eq gnosis-image--purpose 'edit))
+  (unless (and (gnosis-image--owned-p) (eq gnosis-image--purpose 'edit))
     (user-error "Not editing image targets"))
   (when selected
     (unless (and gnosis-image--selection
@@ -508,12 +527,13 @@ POLICY defaults to hide-target, or hide-all masks every annotated target."
       (user-error "Select a rectangle first")))
   (list (current-buffer) gnosis-image--regions (copy-tree gnosis-image--regions)
         gnosis-image--selection gnosis-image--rectangle (copy-sequence gnosis-image--reserved)
-        gnosis-image--scene (copy-tree gnosis-image--scene)))
+        gnosis-image--scene (copy-tree gnosis-image--scene) gnosis-image--owner))
 
 (defun gnosis-image--editor-check (snapshot)
   "Reject changed editor ownership or contents since SNAPSHOT."
   (unless (and (buffer-live-p (car snapshot)) (eq (car snapshot) (current-buffer))
-               (derived-mode-p 'gnosis-image-mode) (eq gnosis-image--purpose 'edit)
+               (gnosis-image--owned-p) (eq (nth 8 snapshot) gnosis-image--owner)
+               (eq gnosis-image--purpose 'edit)
                (eq (nth 1 snapshot) gnosis-image--regions)
                (equal (nth 2 snapshot) gnosis-image--regions)
                (equal (nth 3 snapshot) gnosis-image--selection)
@@ -670,9 +690,14 @@ POLICY defaults to hide-target, or hide-all masks every annotated target."
 (defun gnosis-image-submit ()
   "Accept edited regions, submit a selection, or explicitly reveal occlusion."
   (interactive)
-  (unless (and gnosis-image--depth (= (recursion-depth) (1+ gnosis-image--depth)))
+  (unless (and (gnosis-image--owned-p) gnosis-image--depth
+               (= (recursion-depth) (1+ gnosis-image--depth)))
     (user-error "No active image input"))
-  (when gnosis-image--check (funcall gnosis-image--check))
+  (let ((buffer (current-buffer)) (owner gnosis-image--owner))
+    (when gnosis-image--check (funcall gnosis-image--check))
+    (unless (and (eq buffer (current-buffer)) (eq owner gnosis-image--owner)
+                 (gnosis-image--owned-p))
+      (user-error "Image viewer changed during input")))
   (when (and (eq gnosis-image--purpose 'region) (not gnosis-image--selection))
     (user-error "Click a region before submitting"))
   (if (and (eq gnosis-image--purpose 'occlusion) (not gnosis-image--revealed))
@@ -683,7 +708,10 @@ POLICY defaults to hide-target, or hide-all masks every annotated target."
 (defun gnosis-image-cancel ()
   "Cancel owned image input without returning an answer."
   (interactive)
-  (when (and gnosis-image--depth (= (recursion-depth) (1+ gnosis-image--depth)))
+  ;; A retired viewer can still be inside its original recursive input after
+  ;; nested input returns.  Only that input's unwind retires cancellation.
+  (when (and (cdr gnosis-image--owner) gnosis-image--depth
+             (= (recursion-depth) (1+ gnosis-image--depth)))
     (abort-recursive-edit)))
 
 (defvar-keymap gnosis-image-mode-map
@@ -706,7 +734,9 @@ POLICY defaults to hide-target, or hide-all masks every annotated target."
 (define-derived-mode gnosis-image-mode special-mode "Gnosis Image"
   "Inspect or edit an owned native image; header line shows available actions."
   (setq-local cursor-type nil)
+  (setq gnosis-image--owner (cons t t))
   (add-hook 'window-configuration-change-hook #'gnosis-image--render nil t)
+  (add-hook 'after-set-visited-file-name-hook #'gnosis-image--retire nil t)
   (add-hook 'kill-buffer-hook #'gnosis-image-cancel nil t)
   (add-hook 'change-major-mode-hook #'gnosis-image-cancel nil t))
 
@@ -717,13 +747,14 @@ POLICY controls masks.
 Restore the original layout and destroy only the owned viewer on every exit."
   (gnosis-image--decode scene)
   (unless (image-type-available-p 'svg) (user-error "Native SVG support is required"))
-  (let ((buffer (generate-new-buffer "*Gnosis Image*")))
+  (let ((buffer (generate-new-buffer "*Gnosis Image*")) owner)
     (save-window-excursion
       (unwind-protect
           (progn
             (pop-to-buffer-same-window buffer)
             (delete-other-windows)
             (gnosis-image-mode)
+            (setq owner gnosis-image--owner)
             (setq gnosis-image--scene (copy-tree scene)
                   gnosis-image--regions (copy-tree (alist-get 'regions scene))
                   gnosis-image--purpose purpose gnosis-image--target target
@@ -733,11 +764,16 @@ Restore the original layout and destroy only the owned viewer on every exit."
             (gnosis-image--render)
             (recursive-edit)
             (unless (and (buffer-live-p buffer)
-                         (with-current-buffer buffer gnosis-image--accepted))
+                         (with-current-buffer buffer
+                           (and (eq owner gnosis-image--owner) (gnosis-image--owned-p)
+                                gnosis-image--accepted)))
               (user-error "Image input cancelled"))
             (with-current-buffer buffer
               (list (copy-tree gnosis-image--regions) gnosis-image--selection)))
-        (when (buffer-live-p buffer)
+        (when owner (setcdr owner nil))
+        (when (and (buffer-live-p buffer)
+                   (with-current-buffer buffer
+                     (and (eq owner gnosis-image--owner) (gnosis-image--owned-p))))
           (with-current-buffer buffer (setq gnosis-image--depth nil))
           (kill-buffer buffer))))))
 

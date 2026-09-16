@@ -86,12 +86,13 @@ Keyboard quit is not caught."
              (error (if on-error (funcall on-error err)
                       (signal (car err) (cdr err)))))))))))
 
-(defun gnosis-vc--auto-commit (message &optional existing-only)
+(defun gnosis-vc--auto-commit (message &optional existing-only no-push)
   "Optionally commit gnosis.db with MESSAGE after a completed database change.
 Skip Git when testing or when its executable is unavailable.  Unless
 EXISTING-ONLY is non-nil, initialize a repository if necessary.  Report
 Git setup or launch errors separately; they do not undo the database change.
-Push after a successful commit when `gnosis-vc-auto-push' is non-nil."
+Push after a successful commit when `gnosis-vc-auto-push' is non-nil,
+unless NO-PUSH is non-nil."
   (unless gnosis-testing
     (if (not (executable-find "git"))
         (message "Gnosis: Automatic Git commit skipped; Git is unavailable")
@@ -104,7 +105,7 @@ Push after a successful commit when `gnosis-vc-auto-push' is non-nil."
               (gnosis--git-chain
                `(("add" "gnosis.db") ("commit" "-m" ,message))
                (lambda ()
-                 (when gnosis-vc-auto-push
+                 (when (and (not no-push) gnosis-vc-auto-push)
                    (condition-case err
                        (gnosis-vc-push)
                      (error

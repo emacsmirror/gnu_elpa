@@ -28,10 +28,12 @@
 
 (require 'cl-lib)
 (require 'subr-x)
-(require 'vc-git)
 (require 'gnosis-sqlite)
 (require 'gnosis-logical-day)
 (require 'gnosis-fsrs)
+
+(declare-function gnosis-vc--auto-commit "gnosis-vc"
+                  (message &optional existing-only no-push))
 
 (defcustom gnosis-dir (locate-user-emacs-file "gnosis")
   "Gnosis directory."
@@ -75,7 +77,7 @@ for O(1) lookups instead of querying the database per thema.")
 Create DIRECTORY if needed.  Close the candidate on any nonlocal exit."
   (let ((gnosis-dir (expand-file-name directory)))
     (unless (file-directory-p gnosis-dir)
-      (make-directory gnosis-dir))
+      (make-directory gnosis-dir t))
     (let ((candidate (gnosis-sqlite-open
                       (expand-file-name "gnosis.db" gnosis-dir)))
           ready)
@@ -701,16 +703,11 @@ Commit afterwards unless NO-COMMIT defers that until outer validation."
     (gnosis--commit-migration current-version gnosis-db-version)))
 
 (defun gnosis--commit-migration (from to)
-  "Commit database after migrating from version FROM to TO.
-Uses synchronous git operations because migration must complete
-before database initialization continues."
-  (let ((default-directory gnosis-dir))
-    (unless gnosis-testing
-      (when (file-exists-p (expand-file-name ".git" gnosis-dir))
-        (call-process (executable-find "git") nil nil nil "add" "gnosis.db")
-        (call-process (executable-find "git") nil nil nil
-                      "commit" "-m"
-                      (format "Migrate database v%d -> v%d" from to))))))
+  "Optionally commit the completed migration from version FROM to TO.
+Use an existing repository without pushing.  Git runs asynchronously;
+its absence or failure does not invalidate the database upgrade."
+  (require 'gnosis-vc)
+  (gnosis-vc--auto-commit (format "Migrate database v%d -> v%d" from to) t t))
 
 (defconst gnosis-db-min-version 8
   "Oldest supported schema: released Gnosis 0.10.6.

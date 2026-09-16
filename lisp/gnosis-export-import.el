@@ -675,12 +675,7 @@ Formats 1 and 2 have no aliases; format 3 must carry the column."
   "Validate independent aliases in normalized content ROW and return ROW."
   (let ((aliases (gnosis-answer-validate-aliases (nth 8 row))))
     (when aliases
-      (unless (and (member (downcase (nth 1 row))
-                           '("basic" "image-occlusion" "model-name"))
-                   (proper-list-p (nth 4 row))
-                   (= 1 (length (nth 4 row)))
-                   (stringp (car (nth 4 row)))
-                   (not (string-empty-p (string-trim (car (nth 4 row))))))
+      (unless (gnosis-answer-aliases-eligible-p (nth 1 row) (nth 4 row))
         (user-error "Aliases require one canonical typed answer"))))
   row)
 

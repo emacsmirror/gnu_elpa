@@ -555,10 +555,7 @@ When THEMA-IDS is non-nil, restrict to that subset."
   "Validate ALIASES for TYPE and canonical ANSWER before a content write."
   (gnosis-answer-validate-aliases aliases)
   (when aliases
-    (unless (and (member (downcase type) '("basic" "image-occlusion" "model-name"))
-                 (proper-list-p answer) (= (length answer) 1)
-                 (stringp (car answer))
-                 (not (string-empty-p (string-trim (car answer)))))
+    (unless (gnosis-answer-aliases-eligible-p type answer)
       (user-error "Accepted aliases require one canonical typed answer")))
   aliases)
 

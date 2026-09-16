@@ -29,6 +29,15 @@
 (require 'seq)
 (require 'gnosis-utils)
 
+(defun gnosis-answer-aliases-eligible-p (type answer)
+  "Return non-nil if TYPE and canonical ANSWER support accepted aliases.
+TYPE is case-insensitive.  ANSWER must be a proper list containing one
+nonblank string.  This does not validate aliases or portable media."
+  (and (member (downcase type) '("basic" "image-occlusion" "model-name"))
+       (proper-list-p answer) (= (length answer) 1)
+       (stringp (car answer))
+       (not (string-empty-p (string-trim (car answer))))))
+
 (defun gnosis-answer-validate-aliases (aliases)
   "Validate ALIASES and return the original value without modifying it.
 Require a proper list of nonempty, single-line, non-whitespace strings."

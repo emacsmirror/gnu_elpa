@@ -68,9 +68,10 @@ KEIMENON: Text user is first presented with.
 HYPOTHESIS: Hypothesis for what the ANSWER is
 ANSWER: The revelation after KEIMENON
 PARATHEMA: The text where THEMA is derived from.
-TAGS: List of THEMA tags
+TAGS: List of exact Org headline tags; refuse unrepresentable identities.
 EXAMPLE: Boolean value, if non-nil do not add properties for thema.
 ACCEPTED-ALIASES: Independent list of authored accepted spellings."
+  (gnosis-tags--check-org tags)
   (when (and (equal (downcase type) "image-occlusion")
              hypothesis answer (not (string-match-p "\n- " hypothesis)))
     (pcase-let ((`(,fields ,text)
@@ -142,7 +143,8 @@ ACCEPTED-ALIASES: Independent list of authored accepted spellings."
   "Extract level-1 themata by field heading, using list SEPARATOR.
 Return (ID TYPE KEIMENON HYPOTHESIS ANSWER PARATHEMA TAGS LINE ALIASES).
 Missing aliases mean nil.  Reject duplicate and unknown field headings,
-and content outside themata or their fields, without changing the draft."
+malformed headline tag syntax, and content outside themata or their fields,
+without changing the draft."
   (let ((sep (or separator gnosis-export-separator))
         (document (org-element-parse-buffer)) results)
     (gnosis-export--check-structure document)
@@ -151,6 +153,11 @@ and content outside themata or their fields, without changing the draft."
         (let ((id (org-element-property :GNOSIS_ID headline))
               (type (org-element-property :GNOSIS_TYPE headline)))
           (when (and (= 1 (org-element-property :level headline)) id type)
+            ;; Org leaves malformed :tag: text in the headline title.
+            ;; Never mistake that unparsed syntax for an empty tag set.
+            (when (string-match-p ":" (org-element-property :raw-value headline))
+              (user-error "Line %s: invalid Org tag syntax; correct the thema headline before saving"
+                          (line-number-at-pos (org-element-property :begin headline))))
             (let (fields)
               (dolist (child (org-element-contents headline))
                 (when (eq 'headline (org-element-type child))
@@ -195,6 +202,7 @@ generate new thema id."
   (let ((id-values (mapcar (lambda (id)
                              (if (listp id) (car id) id))
                            ids)))
+    (gnosis-tags--check-org (gnosis-get-tags-for-ids id-values))
     (dolist (id id-values)
       (let* ((thema-data
               (append (gnosis-select
@@ -606,6 +614,41 @@ CHANGED-COUNT is the updated count from FILENAME."
   "Reviewed (ID CURRENT INCOMING) entries for detail rendering.
 CURRENT and INCOMING are normalized content rows, never reread for display.")
 
+(defvar-local gnosis-import--owner nil
+  "Identity of this import view, retired on file association or mode change.")
+
+(defvar-local gnosis-import--detail-buffer nil
+  "Detail buffer belonging to this preview.")
+
+(defun gnosis-import--retire-view ()
+  "Retire the current import view without touching its contents."
+  (setq gnosis-import--owner nil))
+
+(defun gnosis-import--view-owned-p (buffer owner mode)
+  "Return non-nil if BUFFER is still the unmodified view of OWNER in MODE."
+  (and owner (buffer-live-p buffer)
+       (with-current-buffer buffer
+         (and (eq gnosis-import--owner owner)
+              (eq major-mode mode)
+              (not buffer-file-name)
+              (not (buffer-modified-p))))))
+
+(defun gnosis-import--check-preview (buffer owner &optional database-p)
+  "Require BUFFER to remain the reviewed preview of OWNER.
+When DATABASE-P is non-nil, also require its original destination connection."
+  (unless (and (gnosis-import--view-owned-p
+                buffer owner 'gnosis-import-diff-mode)
+               (or (not database-p)
+                   (eq gnosis-db
+                       (car (buffer-local-value 'gnosis-import--destination buffer)))))
+    (user-error "Gnosis import preview changed; review the import again")))
+
+(defun gnosis-import--initialize-view ()
+  "Initialize the current import view's lifetime."
+  (setq gnosis-import--owner (list (current-buffer)))
+  (add-hook 'after-set-visited-file-name-hook #'gnosis-import--retire-view nil t)
+  (add-hook 'change-major-mode-hook #'gnosis-import--retire-view nil t))
+
 (defun gnosis-import--normalize-rows (rows tags)
   "Return content ROWS with sorted TAGS inserted before their aliases.
 TAGS contains (THEMA-ID TAG) rows.  Preserve absent and empty values."
@@ -714,14 +757,31 @@ and DETAILS retains (ID CURRENT INCOMING) entries for those same IDs."
                                   reviewed-ids)))))
       (sqlite-execute db "DETACH DATABASE import_db"))))
 
+(defun gnosis-import--check-source (file)
+  "Reject FILE if it has SQLite companions, without opening it.
+Check the given pathname and its symlink target.  Import requires a closed,
+standalone source on a trusted, quiescent filesystem; repeated checks detect
+observed companions but do not exclude concurrent writers."
+  (dolist (base (delete-dups (list (expand-file-name file) (file-truename file))))
+    (dolist (suffix gnosis-export--sqlite-companions)
+      (let ((companion (concat base suffix)))
+        (when (or (file-exists-p companion) (file-symlink-p companion))
+          (user-error
+           "Cannot import a source with SQLite companions: %s; use a closed standalone export"
+           companion))))))
+
 (defun gnosis-import--diff (file)
-  "Compute reviewed import diff and source identity from FILE."
+  "Compute reviewed import diff and source identity from standalone FILE.
+Refuse SQLite companions rather than copy incomplete source state."
+  (gnosis-import--check-source file)
   (let ((snapshot (make-temp-file "gnosis-import-diff-" nil ".db")))
     (unwind-protect
         (progn
           (copy-file file snapshot t)
+          (gnosis-import--check-source file)
           (let ((source-id (gnosis-import--file-sha256 snapshot))
                 (diff (gnosis-import--diff-snapshot snapshot)))
+            (gnosis-import--check-source file)
             (list (car diff) (cadr diff) source-id (nth 2 diff) (nth 3 diff))))
       (when (file-exists-p snapshot)
         (delete-file snapshot)))))
@@ -809,10 +869,13 @@ Initialize new study state for TODAY.  The caller owns the transaction."
          db "INSERT INTO thema_links (source, dest) VALUES (?, ?)"
          (list (car row) link))))))
 
-(defun gnosis-import--apply-snapshot (file new-ids changed-ids &optional destination)
+(defun gnosis-import--apply-snapshot
+    (file new-ids changed-ids &optional destination source validate)
   "Apply NEW-IDS and CHANGED-IDS from immutable snapshot FILE.
 When DESTINATION is non-nil, revalidate the reviewed destination state
-inside the write transaction before applying any change."
+inside the write transaction before applying any change.
+When SOURCE is non-nil, recheck its companions before writes and commit.
+Call optional VALIDATE before writes and commit to check the caller's owner."
   (let ((db (gnosis--ensure-db))
         (today (gnosis--date-to-int (gnosis-date)))
         attached)
@@ -823,44 +886,56 @@ inside the write transaction before applying any change."
             (setq attached t))
           (gnosis-import--format-version-in-db db "import_db")
           (gnosis-sqlite-with-transaction db
+            (when validate (funcall validate))
             (when (and destination
                        (not (equal destination
                                    (gnosis-import--destination-state
                                     db (append new-ids changed-ids)))))
               (user-error "Gnosis import destination changed; review the import again"))
             (gnosis-import--content-rows db "import_db" (append new-ids changed-ids))
-            (gnosis-import--write-changes db new-ids changed-ids today)))
+            (when source (gnosis-import--check-source source))
+            (gnosis-import--write-changes db new-ids changed-ids today)
+            (when source (gnosis-import--check-source source))
+            (when validate (funcall validate))))
       (when attached
         (let ((inhibit-quit t))
           (sqlite-execute db "DETACH DATABASE import_db"))))))
 
 (defun gnosis-import--apply-changes
-    (file new-ids changed-ids source-id &optional destination)
+    (file new-ids changed-ids source-id &optional destination validate)
   "Import from reviewed FILE pinned by SOURCE-ID.
 Insert NEW-IDS and update CHANGED-IDS.  When DESTINATION is non-nil,
-require the reviewed database and content rows to be unchanged."
+require the reviewed database and content rows to be unchanged.
+Refuse SQLite companions; FILE must remain a closed standalone source.
+Pass optional caller ownership check VALIDATE to the write transaction."
   (unless (and (stringp source-id)
                (string-match-p "\\`[0-9a-f]\\{64\\}\\'" source-id))
     (error "Invalid Gnosis import source identity"))
+  (gnosis-import--check-source file)
   (let ((snapshot (make-temp-file "gnosis-import-source-" nil ".db")))
     (unwind-protect
         (progn
           (copy-file file snapshot t)
+          (gnosis-import--check-source file)
           (unless (equal source-id (gnosis-import--file-sha256 snapshot))
             (error "Gnosis import source changed after review"))
           (gnosis-import--format-version snapshot)
-          (gnosis-import--apply-snapshot snapshot new-ids changed-ids destination))
+          (gnosis-import--apply-snapshot
+           snapshot new-ids changed-ids destination file validate))
       (when (file-exists-p snapshot)
         (delete-file snapshot)))))
 
 (defun gnosis-import-apply ()
-  "Apply the complete import diff."
+  "Apply the complete import diff while its preview still owns the request."
   (interactive nil gnosis-import-diff-mode)
-  (let ((new-ids gnosis-import--new-ids)
+  (let ((buffer (current-buffer))
+        (owner gnosis-import--owner)
+        (new-ids gnosis-import--new-ids)
         (changed-ids gnosis-import--changed-ids)
         (file gnosis-import--file)
         (source-id gnosis-import--source-id)
         (destination gnosis-import--destination))
+    (gnosis-import--check-preview buffer owner t)
     (unless (or new-ids changed-ids)
       (user-error "No changes to apply"))
     (unless (y-or-n-p
@@ -870,14 +945,21 @@ require the reviewed database and content rows to be unchanged."
       (user-error "Import cancelled"))
     (unless destination
       (user-error "Missing import destination; review the import again"))
+    (gnosis-import--check-preview buffer owner t)
     (gnosis-import--apply-changes
-     file new-ids changed-ids source-id destination)
+     file new-ids changed-ids source-id destination
+     (lambda () (gnosis-import--check-preview buffer owner t)))
     (gnosis-import--commit
      (length new-ids) (length changed-ids)
      (file-name-nondirectory file))
     (message "Applied: %d new, %d updated"
              (length new-ids) (length changed-ids))
-    (quit-window t)))
+    ;; A post-commit callback may have repurposed this buffer or selected
+    ;; another preview.  Never close that successor or the selected window.
+    (when (gnosis-import--view-owned-p buffer owner 'gnosis-import-diff-mode)
+      (with-current-buffer buffer (gnosis-import--retire-view))
+      (when-let* ((window (get-buffer-window buffer t)))
+        (quit-window t window)))))
 
 (defun gnosis-import--field-text (value)
   "Return display text for VALUE without conflating nil and empty strings."
@@ -912,17 +994,35 @@ DATA contains current and imported rows from `gnosis-import--content-rows'."
                  (capitalize (string-replace "_" " " name))
                  (nth index current) (nth index incoming) (null current)))
     (goto-char (point-min))
-    (special-mode)))
+    (set-buffer-modified-p nil)))
+
+(define-derived-mode gnosis-import-detail-mode special-mode "Gnosis Import Detail"
+  "Major mode for retained import details."
+  :interactive nil
+  (gnosis-import--initialize-view))
 
 (defun gnosis-import-view-detail ()
   "Show the retained, reviewed diff for the thema at point."
   (interactive nil gnosis-import-diff-mode)
-  (let* ((id (tabulated-list-get-id))
+  (gnosis-import--check-preview (current-buffer) gnosis-import--owner)
+  (let* ((preview (current-buffer))
+         (owner gnosis-import--owner)
+         (id (tabulated-list-get-id))
          (data (cdr (assoc id gnosis-import--details))))
     (unless data
       (user-error "No reviewed thema at point"))
-    (let ((buf (get-buffer-create
-                "*Gnosis Import Detail*")))
+    (unless (gnosis-import--view-owned-p
+             gnosis-import--detail-buffer owner 'gnosis-import-detail-mode)
+      (let ((buf (generate-new-buffer "*Gnosis Import Detail*")))
+        (with-current-buffer buf
+          (gnosis-import-detail-mode)
+          (unless (gnosis-import--view-owned-p
+                   buf gnosis-import--owner 'gnosis-import-detail-mode)
+            (user-error "Gnosis import detail buffer changed"))
+          (setq gnosis-import--owner owner))
+        (gnosis-import--check-preview preview owner)
+        (setq gnosis-import--detail-buffer buf)))
+    (let ((buf gnosis-import--detail-buffer))
       (with-current-buffer buf
         (gnosis-import--render-detail
          id (if (car data) "CHANGED" "NEW") data))
@@ -943,6 +1043,16 @@ DATA contains current and imported rows from `gnosis-import--content-rows'."
 
 \\{gnosis-import-diff-mode-map}"
   :interactive nil
+  (gnosis-import--initialize-view)
+  (let ((buffer (current-buffer))
+        (owner gnosis-import--owner))
+    (setq-local revert-buffer-function
+                (lambda (_ignore-auto _noconfirm)
+                  (gnosis-import--check-preview buffer owner)
+                  (with-current-buffer buffer
+                    (run-hooks 'tabulated-list-revert-hook))
+                  (gnosis-import--check-preview buffer owner)
+                  (with-current-buffer buffer (tabulated-list-print t)))))
   (setq tabulated-list-format
         [("Status" 8 t)
          ("ID" 12 t)
@@ -969,7 +1079,8 @@ DATA contains current and imported rows from `gnosis-import--content-rows'."
 ;;;###autoload
 (defun gnosis-import-db (file)
   "Import themata from SQLite database FILE.
-Shows a diff buffer for review before applying."
+Show a new diff buffer for review before applying.  Require a closed standalone
+source without SQLite companions; do not checkpoint or recover FILE."
   (interactive
    (list (read-file-name "Import database: ")))
   (let ((file (expand-file-name file)))
@@ -982,7 +1093,7 @@ Shows a diff buffer for review before applying."
       (if (and (null new-rows) (null changed-rows))
           (message "No new or changed themata in %s"
                    file)
-        (let ((buf (get-buffer-create
+        (let ((buf (generate-new-buffer
                     "*Gnosis Import*")))
           (with-current-buffer buf
             (gnosis-import-diff-mode)
@@ -994,6 +1105,7 @@ Shows a diff buffer for review before applying."
                   (mapcar #'car new-rows))
             (setq gnosis-import--changed-ids
                   (mapcar #'car changed-rows))
+            (gnosis-import--check-preview buf gnosis-import--owner)
             (gnosis-import--render-diff
              new-rows changed-rows))
           (pop-to-buffer buf))))))

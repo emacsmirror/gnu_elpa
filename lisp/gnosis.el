@@ -576,7 +576,7 @@ cloze/basic a string/list of the right answer(s)
 PARATHEMA: Parathema information to display after the answer
 TAGS: Tags to organize themata
 SUSPEND: Integer value of 1 or 0, where 1 suspends the card.
-LINKS: List of id links.
+LINKS: List of id links, stored as unique associations.
 REVIEW-IMAGE is optional image data and GNOSIS-ID is an optional ID.
 ACCEPTED-ALIASES is an optional list of explicitly accepted typed spellings."
   (cl-assert (stringp type) nil "Type must be a string")
@@ -605,7 +605,7 @@ ACCEPTED-ALIASES is an optional list of explicitly accepted typed spellings."
        (list gnosis-id (downcase type) keimenon hypothesis answer accepted-aliases))
       (gnosis-scheduler-initialize-thema gnosis-id today suspend)
       (gnosis--insert-into 'extras `([,gnosis-id ,parathema ,review-image]))
-      (cl-loop for link in links
+      (cl-loop for link in (seq-uniq links)
 	       do (gnosis--insert-into 'thema-links `([,gnosis-id ,link])))
       (cl-loop for tag in tags
 	       do (gnosis--insert-into 'thema-tag `([,gnosis-id ,tag]))))))
@@ -613,7 +613,8 @@ ACCEPTED-ALIASES is an optional list of explicitly accepted typed spellings."
 (cl-defun gnosis-update-thema (id keimenon hypothesis answer parathema tags links
 			       &optional type (accepted-aliases nil aliases-p))
   "Update thema ID with KEIMENON, HYPOTHESIS, ANSWER, and PARATHEMA.
-TAGS and LINKS replace existing associations; TYPE optionally changes type.
+TAGS and LINKS replace existing associations; repeated LINKS are stored once.
+TYPE optionally changes type.
 Omitted ACCEPTED-ALIASES preserves stored aliases; explicit nil clears them.
 
 If ID does not exist, TYPE is required to create it anew and issue a warning.
@@ -641,7 +642,7 @@ When `gnosis--id-cache' is bound, uses hash table for existence check."
 	  (gnosis-update 'extras `(= parathema ,parathema) `(= id ,id))
 	  ;; Re-sync links
 	  (gnosis--delete 'thema-links `(= source ,id))
-	  (cl-loop for link in links
+	  (cl-loop for link in (seq-uniq links)
 		   do (gnosis--insert-into 'thema-links `([,id ,link])))
 	  ;; Re-sync tags
 	  (gnosis--delete 'thema-tag `(= thema-id ,id))
@@ -853,7 +854,8 @@ Call inside the save transaction, before any thema writes."
                               (accepted-aliases nil aliases-p))
   "Add thema with TYPE and optional KEIMENON, HYPOTHESIS, and fields.
 The remaining optional fields are ANSWER, PARATHEMA, TAGS, EXAMPLE,
-and explicit ACCEPTED-ALIASES."
+and explicit ACCEPTED-ALIASES.
+Refuse TAGS that native Org cannot represent, before opening a draft."
   (interactive (list
 		(downcase (completing-read "Select type: " gnosis-thema-types))))
   (if (and (member (downcase type) '("model" "model-name" "image-region" "image-occlusion"))
@@ -864,6 +866,7 @@ and explicit ACCEPTED-ALIASES."
         (image-type (gnosis-add-image-thema image-type)))
     (when (get-buffer "*Gnosis NEW*")
       (user-error "Finish or cancel the existing *Gnosis NEW* draft first"))
+    (gnosis-tags--check-org tags)
     (let ((owner (gnosis--ensure-db)))
       (window-configuration-to-register :gnosis-edit)
       (pop-to-buffer "*Gnosis NEW*")
@@ -934,7 +937,9 @@ modify or save the source, or replace an existing creation draft."
       (gnosis-add-thema "basic" nil nil answer parathema))))
 
 (defun gnosis-edit-thema (id)
-  "Edit thema with ID without replacing an unfinished edit."
+  "Edit thema with ID without replacing an unfinished edit.
+Refuse stored tags that native Org cannot represent without changing them.
+Explicitly rename or remove those tags through the tag commands first."
   (when (and (get-buffer "*Gnosis Edit*")
              (buffer-modified-p (get-buffer "*Gnosis Edit*")))
     (user-error "Finish the existing Gnosis edit first"))
@@ -942,6 +947,7 @@ modify or save the source, or replace an existing creation draft."
          (original (gnosis--draft-content owner id)))
     (unless (car original)
       (user-error "Thema no longer exists; reopen the collection"))
+    (gnosis-tags--check-org (gnosis-get-tags-for-ids (list id)))
     (window-configuration-to-register :gnosis-edit)
     (pop-to-buffer "*Gnosis Edit*")
     (with-current-buffer "*Gnosis Edit*"

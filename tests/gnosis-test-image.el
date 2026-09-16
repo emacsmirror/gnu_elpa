@@ -37,7 +37,7 @@
   (let* ((reference (gnosis-image-import (gnosis-test-image--file) gnosis-test-image--regions))
          (id (gnosis-generate-id)))
     (gnosis-add-thema-fields (or type "image-region") "Select left" (list reference)
-                             '("left") "Explanation" '("image-test") 0 nil nil id)
+                             '("left") "Explanation" '("image_test") 0 nil nil id)
     id))
 
 (ert-deftest gnosis-image-real-header-and-immutable-import ()
@@ -897,6 +897,28 @@
          (unless (eq database gnosis-db) (gnosis-sqlite-close database))
          (when (buffer-live-p buffer) (kill-buffer buffer)))))))
 
+(ert-deftest gnosis-image-org-export-refuses-unrepresentable-tags ()
+  "Keep retained tag identities and media intact when Org cannot encode them."
+  (gnosis-test-with-db
+   (let* ((id (gnosis-test-image--add "image-occlusion"))
+          (reference (car (gnosis-get 'hypothesis 'themata `(= id ,id))))
+          (scene (gnosis-image-resolve reference "left"))
+          (before (gnosis-select '* 'themata)))
+     ;; Domain tags remain unrestricted; only native Org rendering refuses.
+     (gnosis-modify-thema-tags (list id) '("image-test") '("image_test"))
+     (with-temp-buffer
+       (org-mode)
+       (insert "Existing export text\n")
+       (let ((text (buffer-string)))
+         (should-error (gnosis-export--insert-themata (list id))
+                       :type 'user-error)
+         (should (equal text (buffer-string)))))
+     (gnosis-sqlite-close gnosis-db)
+     (setq gnosis-db (gnosis-db--open gnosis-dir))
+     (should (equal (gnosis-get-tags-for-ids (list id)) '("image-test")))
+     (should (equal before (gnosis-select '* 'themata)))
+     (should (equal scene (gnosis-image-resolve reference "left"))))))
+
 (ert-deftest gnosis-image-occlusion-legacy-edit-save-and-org-export ()
   (gnosis-test-with-db
    (save-window-excursion
@@ -912,12 +934,14 @@
                (gnosis-export--insert-themata (list id))
                (let ((row (car (gnosis-export-parse-themata))))
                  (should (equal (nth 3 row) (list reference "left" "hide-target")))
-                 (should (equal (nth 4 row) '("Left region")))))
+                 (should (equal (nth 4 row) '("Left region")))
+                 (should (equal (nth 6 row) '("image_test")))))
              (should (equal (gnosis-get 'hypothesis 'themata `(= id ,id)) (list reference)))
              (gnosis-edit-thema id)
              (let ((row (car (gnosis-export-parse-themata))))
                (should (equal (nth 3 row) (list reference "left" "hide-target")))
-               (should (equal (nth 4 row) '("Left region"))))
+               (should (equal (nth 4 row) '("Left region")))
+               (should (equal (nth 6 row) '("image_test"))))
              (goto-char (point-min))
              (search-forward "Left region")
              (replace-match "Edited human answer" t t)
@@ -926,10 +950,12 @@
              (setq gnosis-db (gnosis-db--open gnosis-dir))
              (should (equal (gnosis-get 'hypothesis 'themata `(= id ,id)) (list reference "left" "hide-target")))
              (should (equal (gnosis-get 'answer 'themata `(= id ,id)) '("Edited human answer")))
+             (should (equal (gnosis-get-tags-for-ids (list id)) '("image_test")))
              (gnosis-edit-thema id)
              (let ((row (car (gnosis-export-parse-themata))))
                (should (equal (nth 3 row) (list reference "left" "hide-target")))
-               (should (equal (nth 4 row) '("Edited human answer")))))
+               (should (equal (nth 4 row) '("Edited human answer")))
+               (should (equal (nth 6 row) '("image_test")))))
          (when (get-buffer "*Gnosis Edit*") (kill-buffer "*Gnosis Edit*")))
        ;; Resolving checks the immutable byte revision as well as manifest data.
        (should (equal scene (gnosis-image-resolve reference "left")))))))

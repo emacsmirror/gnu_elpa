@@ -871,6 +871,7 @@ Skip missing dates.  Do not create an entry."
   "Append template NAME to the dated entry at point, without saving.
 Prompt for a name from `gnosis-journal-templates' when NAME is nil.
 Expand headings relative to the entry, not the section at point.
+Leave point on a blank line after nonempty templates, within the date.
 Preserve existing text and IDs.  Quit or invalid input inserts nothing."
   (interactive)
   (let* ((date (or (gnosis-journal--date-at-point)
@@ -913,7 +914,11 @@ Preserve existing text and IDs.  Quit or invalid input inserts nothing."
                 (goto-char (point-max)))
               (unless (bolp) (insert "\n"))
               (insert body)
-              (unless (bolp) (insert "\n")))))))))
+              (unless (bolp) (insert "\n"))
+              ;; Keep a writable line before the next date, not on metadata.
+              (unless (eobp)
+                (backward-char 1)
+                (unless (bolp) (insert "\n"))))))))))
 
 (defun gnosis-journal--role-position (role &optional heading-p)
   "Return (POSITION . FALLBACK) for ROLE in this complete dated restriction.

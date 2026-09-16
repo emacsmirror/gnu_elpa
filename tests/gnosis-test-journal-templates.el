@@ -339,9 +339,198 @@
       (gnosis-journal-capture "First date")
       (gnosis-journal-date "2001-02-04")
       (should (equal (org-id-get) id))
-      (should (string-match-p "Following date" (buffer-string)))
+      (search-forward "Following date")
+      (should (equal (gnosis-journal--date-at-point) "2001-02-04"))
       (gnosis-journal-date "2001-02-03")
-      (should (string-match-p "First date" (buffer-string))))))
+      (search-forward "First date")
+      (should (equal (gnosis-journal--date-at-point) "2001-02-03")))))
+
+(ert-deftest gnosis-test-journal-templates-ordinary-writing-keeps-body ()
+  "Typing after insertion preserves template metadata and later captures."
+  (dolist (template '("Default" "Prose" "Newline" "Blank line"))
+    (dolist (following '(t nil))
+      (gnosis-test-journal-templates--with-layouts
+        (ert-info ((format "Template %s, following %S, layout %S"
+                           template following layout))
+          (gnosis-journal-date "2001-02-03")
+          (when following
+            (gnosis-journal-date "2001-02-04")
+            (gnosis-journal-capture "Following date")
+            (gnosis-journal-date "2001-02-04"))
+          (let ((sibling (and following
+                              (buffer-substring-no-properties (point) (point-max))))
+                (gnosis-journal-templates
+                 (append gnosis-journal-templates
+                         '(("Prose" . (lambda () "{*} Section\nTemplate prose"))
+                           ("Newline" . (lambda () "{*} Section\nTemplate prose\n"))
+                           ("Blank line" . (lambda () "{*} Section\nTemplate prose\n\n")))))
+                (gnosis-nodes-completing-read-func (lambda (&rest _) template)))
+            (gnosis-journal-date "2001-02-03")
+            (call-interactively (keymap-lookup gnosis-journal-prefix-map "i"))
+            ;; Type directly at the command's returned point, without RET or
+            ;; navigation that could conceal a cursor left on a metadata line.
+            (mapc (lambda (character)
+                    (let ((last-command-event character))
+                      (self-insert-command 1)))
+                  "Ordinary writing Ελληνικά")
+            (should (equal (buffer-substring-no-properties
+                            (line-beginning-position) (line-end-position))
+                           "Ordinary writing Ελληνικά"))
+            (should (equal (gnosis-journal--date-at-point) "2001-02-03"))
+            (should (equal (org-get-heading t t t t)
+                           (if (equal template "Default") "Goals" "Section")))
+            (if (equal template "Default")
+                (should (equal (org-entry-get nil "GNOSIS_JOURNAL_ROLES") "todos"))
+              (save-excursion
+                (forward-line -1)
+                (when (looking-at-p "^$") (forward-line -1))
+                (should (looking-at-p "Template prose$"))))
+            (gnosis-journal-add-todo "Later local task")
+            (should (equal (gnosis-journal--date-at-point) "2001-02-03"))
+            (gnosis-journal-capture "Later thought")
+            (should (equal (gnosis-journal--date-at-point) "2001-02-03"))
+            (save-excursion
+              (goto-char (point-min))
+              (search-forward "Ordinary writing Ελληνικά")
+              (should (equal (gnosis-journal--date-at-point) "2001-02-03")))
+            (when following
+              (gnosis-journal-date "2001-02-04")
+              (should (equal sibling
+                             (buffer-substring-no-properties (point) (point-max)))))))))))
+
+(ert-deftest gnosis-test-journal-templates-chained-writing-keeps-date ()
+  "Template, thoughts and local todos keep their date without repositioning."
+  (dolist (narrow '(nil t))
+    (gnosis-test-journal-templates--with-layouts
+      (gnosis-journal-date "2001-02-03")
+      (let ((id (org-id-get)))
+        (goto-char (point-max))
+        (insert (if layout "** Retained\n" "* Retained\n")
+                ":PROPERTIES:\n:ID: retained-section\n:END:\nExisting prose\n")
+        (gnosis-journal-date "2001-02-04")
+        (gnosis-journal-capture "Following date")
+        (gnosis-journal-date "2001-02-04")
+        (let ((following (buffer-substring-no-properties (point) (point-max))))
+          (gnosis-journal-date "2001-02-03")
+          (search-forward "Existing prose")
+          (when narrow (org-narrow-to-subtree))
+          (call-interactively (keymap-lookup gnosis-journal-prefix-map "i"))
+          ;; Do not navigate between commands: each uses the returned point.
+          (dolist (input '(("c" "Thought " "First thought\nΕλληνικά" "Daily Notes")
+                           ("c" "Thought " "Second thought" "Daily Notes")
+                           ("a" "Todo " "First local task" "Goals")
+                           ("c" "Thought " "Thought after task" "Daily Notes")
+                           ("a" "Todo " "Second local task" "Goals")))
+            (cl-letf (((symbol-function 'read-string-from-buffer)
+                       (lambda (prompt initial)
+                         (should (equal prompt (nth 1 input)))
+                         (should (equal initial ""))
+                         (nth 2 input))))
+              (call-interactively
+               (keymap-lookup gnosis-journal-prefix-map (car input))))
+            (save-excursion
+              (goto-char (point-min))
+              (search-forward (nth 2 input))
+              (should (equal (gnosis-journal--date-at-point) "2001-02-03"))
+              (should (equal (org-get-heading t t t t) (nth 3 input)))
+              (when (equal (car input) "a")
+                (beginning-of-line)
+                (should (looking-at-p (regexp-quote "+ [ ] ")))))
+            (should (equal (gnosis-journal--date-at-point) "2001-02-03")))
+          (gnosis-journal-date "2001-02-04")
+          (should (equal following
+                         (buffer-substring-no-properties (point) (point-max))))
+          (gnosis-journal-date "2001-02-03")
+          (should (equal (org-id-get) id))
+          (should (string-match-p
+                   (regexp-quote ":ID: retained-section\n:END:\nExisting prose\n")
+                   (buffer-string)))
+          (let ((text (buffer-string)))
+            (save-buffer)
+            (kill-buffer (current-buffer))
+            (gnosis-journal-date "2001-02-03")
+            (should (equal text (buffer-string)))))))))
+
+(ert-deftest gnosis-test-journal-templates-chained-source-tasks ()
+  "Linked tasks and later thoughts stay local across several dated entries."
+  (gnosis-test-journal-templates--with-layouts
+    (let* ((source (expand-file-name "tasks.org" gnosis-dir))
+           (source-text "* TODO Source task\n:PROPERTIES:\n:ID: source-task\n:END:\nKeep task body\n")
+           (dates '("2001-02-03" "2001-02-04" "2001-02-05")))
+      (with-temp-file source (insert source-text))
+      (dolist (date dates) (gnosis-journal-date date))
+      (dolist (date dates)
+        (gnosis-journal-date date)
+        (let ((id (org-id-get)))
+          ;; Collect no source tasks in the template, then explicitly link one.
+          (call-interactively (keymap-lookup gnosis-journal-prefix-map "i"))
+          (let ((gnosis-journal-todo-files (list source))
+                (gnosis-nodes-completing-read-func
+                 (lambda (_prompt choices) (car choices))))
+            (dolist (key '("a" "t" "t" "c"))
+              (cl-letf (((symbol-function 'read-string-from-buffer)
+                         (lambda (prompt initial)
+                           (should (equal prompt (if (equal key "c") "Thought " "Todo ")))
+                           (should (equal initial ""))
+                           (concat "Local " key " on " date))))
+                (call-interactively (keymap-lookup gnosis-journal-prefix-map key)))
+              (should (equal (gnosis-journal--date-at-point) date))))
+          (gnosis-journal-date date)
+          (should (equal (org-id-get) id))
+          (save-restriction
+            (when layout (org-narrow-to-subtree))
+            (let ((links 0))
+              (while (search-forward "[[id:source-task][Source task]]" nil t)
+                (cl-incf links)
+                (should (equal (gnosis-journal--date-at-point) date))
+                (should (equal (org-get-heading t t t t) "Goals")))
+              (should (= links 2)))
+            (dolist (key '("a" "c"))
+              (goto-char (point-min))
+              (search-forward (concat "Local " key " on " date))
+              (should (equal (gnosis-journal--date-at-point) date))
+              (should (equal (org-get-heading t t t t)
+                             (if (equal key "c") "Daily Notes" "Goals")))))
+          (save-buffer)))
+      ;; Saving the journals must neither complete nor edit the external task.
+      (with-temp-buffer
+        (insert-file-contents source)
+        (should (equal (buffer-string) source-text))
+        (org-mode)
+        (goto-char (point-min))
+        (should (equal (org-get-todo-state) "TODO"))
+        (should (equal (org-id-get) "source-task"))))))
+
+(ert-deftest gnosis-test-journal-templates-empty-and-cancel-keep-date ()
+  "An empty template and canceled prompts preserve narrowed dated content."
+  (gnosis-test-journal-templates--with-layouts
+    (gnosis-journal-date "2001-02-03")
+    (goto-char (point-max))
+    (insert (if layout "** Existing\nText\n" "* Existing\nText\n"))
+    (gnosis-journal-date "2001-02-04")
+    (gnosis-journal-date "2001-02-03")
+    (search-forward "Text")
+    (org-narrow-to-subtree)
+    (let ((text (buffer-string)) (pos (point))
+          (gnosis-nodes-completing-read-func
+           (lambda (&rest _) (signal 'quit nil))))
+      (should (condition-case nil
+                  (progn (call-interactively #'gnosis-journal-insert-template) nil)
+                (quit t)))
+      (should (buffer-narrowed-p))
+      (should (= pos (point)))
+      (should (equal text (buffer-string))))
+    (let ((text (save-restriction (widen) (buffer-string))))
+      (gnosis-journal-insert-template "Empty")
+      (should (equal (gnosis-journal--date-at-point) "2001-02-03"))
+      (should (equal text (buffer-string)))
+      (cl-letf (((symbol-function 'read-string-from-buffer)
+                 (lambda (&rest _) (signal 'quit nil))))
+        (should (condition-case nil
+                    (progn (call-interactively #'gnosis-journal-capture) nil)
+                  (quit t))))
+      (should (equal text (buffer-string)))
+      (should (equal (gnosis-journal--date-at-point) "2001-02-03")))))
 
 (ert-deftest gnosis-test-journal-routing-renamed-nested-thought ()
   "Thoughts use date-local properties, not literal heading titles."

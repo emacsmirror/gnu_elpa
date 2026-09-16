@@ -748,14 +748,33 @@ Restore the original layout and destroy only the owned viewer on every exit."
   (gnosis-image--decode scene)
   (when check (funcall check))
   (unless (image-type-available-p 'svg) (user-error "Native SVG support is required"))
-  (let ((buffer (generate-new-buffer "*Gnosis Image*")) owner)
+  (let* ((buffer (generate-new-buffer "*Gnosis Image*"))
+         (tick (with-current-buffer buffer (buffer-modified-tick)))
+         (created t)
+         (retire (lambda () (setq created nil)))
+         (created-p
+          (lambda ()
+            (and created (buffer-live-p buffer)
+                 (with-current-buffer buffer
+                   (and (eq major-mode 'fundamental-mode) (not buffer-file-name)
+                        (= tick (buffer-modified-tick)))))))
+         owner)
     (save-window-excursion
       (unwind-protect
           (progn
+            ;; Navigation can run callbacks before the viewer mode owns BUFFER.
+            ;; Retire even across a mode round trip or file detachment.
+            (with-current-buffer buffer
+              (add-hook 'change-major-mode-hook retire nil t)
+              (add-hook 'after-set-visited-file-name-hook retire nil t))
             (pop-to-buffer-same-window buffer)
             (when check (funcall check))
+            (unless (and (eq (current-buffer) buffer) (funcall created-p))
+              (user-error "Image viewer changed during setup"))
             (delete-other-windows)
             (when check (funcall check))
+            (unless (and (eq (current-buffer) buffer) (funcall created-p))
+              (user-error "Image viewer changed during setup"))
             (gnosis-image-mode)
             (setq owner gnosis-image--owner)
             (when check (funcall check))
@@ -777,9 +796,15 @@ Restore the original layout and destroy only the owned viewer on every exit."
             (with-current-buffer buffer
               (list (copy-tree gnosis-image--regions) gnosis-image--selection)))
         (when owner (setcdr owner nil))
+        (when (buffer-live-p buffer)
+          (with-current-buffer buffer
+            (remove-hook 'change-major-mode-hook retire t)
+            (remove-hook 'after-set-visited-file-name-hook retire t)))
         (when (and (buffer-live-p buffer)
-                   (with-current-buffer buffer
-                     (and (eq owner gnosis-image--owner) (gnosis-image--owned-p))))
+                   (or (funcall created-p)
+                       (with-current-buffer buffer
+                         (and owner (eq owner gnosis-image--owner)
+                              (gnosis-image--owned-p)))))
           (with-current-buffer buffer (setq gnosis-image--depth nil))
           (kill-buffer buffer))))))
 

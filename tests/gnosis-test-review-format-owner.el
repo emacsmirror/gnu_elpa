@@ -277,8 +277,8 @@ are substituted explicitly; Org formatting and lifetime hooks remain native."
                 (kill-buffer owner)))))))))
 
 (ert-deftest gnosis-format-owner-image-viewer-callbacks ()
-  "The image viewer checks its caller after decode, mode and render callbacks."
-  (dolist (boundary '(decode mode render))
+  "The image viewer checks its caller after decode, navigation, mode and render."
+  (dolist (boundary '(decode pop mode render))
     (gnosis-test-with-db
       (save-window-excursion
         (let* ((gnosis-review-buffer-name "*gnosis-format-image-viewer*")
@@ -290,7 +290,13 @@ are substituted explicitly; Org formatting and lifetime hooks remain native."
                             (with-current-buffer owner
                               (gnosis-test-active-owner--repurpose t)
                               (setq map (current-local-map)))))
-                (let ((gnosis-image-mode-hook
+                (let ((buffer-list-update-hook
+                       (list (lambda ()
+                               (when (and (eq boundary 'pop) (not viewer)
+                                          (string-prefix-p "*Gnosis Image*" (buffer-name)))
+                                 (setq viewer (current-buffer))
+                                 (retire)))))
+                      (gnosis-image-mode-hook
                        (list (lambda ()
                                (setq viewer (current-buffer)
                                      viewer-owner gnosis-image--owner)
@@ -313,6 +319,7 @@ are substituted explicitly; Org formatting and lifetime hooks remain native."
                   (should (equal "Successor unsaved text" (buffer-string)))
                   (should (eq map (current-local-map)))
                   (should (equal "Successor header" header-line-format))))
+            (when (buffer-live-p viewer) (kill-buffer viewer))
             (with-current-buffer owner (set-buffer-modified-p nil))
             (kill-buffer owner)))))))
 

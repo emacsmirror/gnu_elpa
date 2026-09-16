@@ -1089,5 +1089,83 @@
           (call-interactively (key-binding (kbd "q")))
           (should (= aborts 1)))))))
 
+(ert-deftest gnosis-image-creation-unwind ()
+  "Early error and quit destroy the untouched viewer and restore windows."
+  (dolist (boundary '(pop windows))
+    (dolist (failure '(error quit))
+      (save-window-excursion
+        (let ((origin (current-buffer))
+              (configuration (current-window-configuration))
+              viewer caught rendered entered)
+          (unwind-protect
+              (let ((buffer-list-update-hook
+                     (list (lambda ()
+                             (when (and (not viewer)
+                                        (string-prefix-p "*Gnosis Image*" (buffer-name)))
+                               (setq viewer (current-buffer))
+                               (when (eq boundary 'pop) (signal failure '("Early exit")))))))
+                    (checks 0))
+                (cl-letf (((symbol-function 'gnosis-image--decode) #'ignore)
+                          ((symbol-function 'image-type-available-p) (lambda (_) t))
+                          ((symbol-function 'gnosis-image--render) (lambda () (setq rendered t)))
+                          ((symbol-function 'recursive-edit) (lambda () (setq entered t))))
+                  (condition-case err
+                      (gnosis-image-input
+                       nil 'edit nil
+                       (lambda ()
+                         (when (and (eq boundary 'windows) (= (cl-incf checks) 3))
+                           (signal failure '("Early exit")))))
+                    ((error quit) (setq caught err))))
+                (should (equal caught (list failure "Early exit")))
+                (should viewer)
+                (should-not (buffer-live-p viewer))
+                (should-not rendered)
+                (should-not entered)
+                (should (eq origin (current-buffer)))
+                (should (compare-window-configurations configuration (current-window-configuration))))
+            (when (buffer-live-p viewer) (kill-buffer viewer))))))))
+
+(ert-deftest gnosis-image-creation-preserves-successor ()
+  "Never initialize or destroy a repurposed buffer, even if it is empty again."
+  (dolist (mutation '(text text-roundtrip mode mode-roundtrip file detach))
+    (save-window-excursion
+      (let (viewer rendered entered contents mode file tick map)
+        (unwind-protect
+            (let ((buffer-list-update-hook
+                   (list (lambda ()
+                           (when (and (not viewer)
+                                      (string-prefix-p "*Gnosis Image*" (buffer-name)))
+                             (setq viewer (current-buffer))
+                             (pcase mutation
+                               ((or 'text 'text-roundtrip)
+                                (insert "Successor text")
+                                (when (eq mutation 'text-roundtrip) (erase-buffer)))
+                               ((or 'mode 'mode-roundtrip)
+                                (text-mode)
+                                (when (eq mutation 'mode-roundtrip) (fundamental-mode)))
+                               ((or 'file 'detach)
+                                (set-visited-file-name
+                                 (make-temp-name (expand-file-name "gnosis-image-successor-" temporary-file-directory)) t)
+                                (when (eq mutation 'detach) (set-visited-file-name nil t))))
+                             (setq contents (buffer-string) mode major-mode file buffer-file-name
+                                   tick (buffer-modified-tick) map (current-local-map)))))))
+              (cl-letf (((symbol-function 'gnosis-image--decode) #'ignore)
+                        ((symbol-function 'image-type-available-p) (lambda (_) t))
+                        ((symbol-function 'gnosis-image--render) (lambda () (setq rendered t)))
+                        ((symbol-function 'recursive-edit) (lambda () (setq entered t))))
+                (should-error (gnosis-image-input nil 'edit) :type 'user-error))
+              (should-not rendered)
+              (should-not entered)
+              (should (buffer-live-p viewer))
+              (with-current-buffer viewer
+                (should (equal contents (buffer-string)))
+                (should (eq mode major-mode))
+                (should (equal file buffer-file-name))
+                (should (= tick (buffer-modified-tick)))
+                (should (eq map (current-local-map)))))
+          (when (buffer-live-p viewer)
+            (with-current-buffer viewer (set-buffer-modified-p nil))
+            (kill-buffer viewer)))))))
+
 (provide 'gnosis-test-image)
 ;;; gnosis-test-image.el ends here

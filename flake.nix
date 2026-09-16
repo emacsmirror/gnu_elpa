@@ -27,18 +27,19 @@
             (lib.splitString "\n" (builtins.readFile ./keymap-popup.el));
           version = lib.removePrefix ";; Version: " versionLine;
 
-          source = lib.cleanSourceWith {
-            src = ./.;
-            filter = path: type:
-              let
-                name = baseNameOf path;
-              in
-              lib.cleanSourceFilter path type
-              && !(builtins.elem name [ ".direnv" ".test-results" "refs" "result" ]
-                || lib.hasSuffix ".elc" name
-                || lib.hasSuffix ".info" name
-                || lib.hasSuffix ".texi" name
-                || lib.hasSuffix "~" name);
+          # Only package, test, and manual inputs belong in build sources.
+          # The Make frontend separately protects the initial Git flake copy.
+          source = lib.fileset.toSource {
+            root = ./.;
+            fileset = lib.fileset.unions [
+              ./keymap-popup.el
+              ./Makefile
+              ./LICENSE
+              ./docs/keymap-popup.org
+              (lib.fileset.fileFilter
+                (file: lib.hasSuffix "-tests.el" file.name)
+                ./tests)
+            ];
           };
 
           emacsWithPackages = emacsPackages.emacsWithPackages (epkgs: [

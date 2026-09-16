@@ -1515,7 +1515,8 @@ Plain checkboxes without ID links are journal prose."
 
 (defun gnosis-journal-db-sync (&optional force)
   "Sync journal entries in database.
-When FORCE, update all files.  Otherwise, only update changed files.
+Normally index changed files from disk, leaving visiting buffers untouched.
+When FORCE, rebuild all files using visiting contents when available.
 Only rebuild indexes; do not complete journal tasks."
   (gnosis-journal--file)
   (let* ((all-files (gnosis-journal--source-files))
@@ -1533,7 +1534,10 @@ Only rebuild indexes; do not complete journal tasks."
         (cl-loop for file in files
                  for i from 0
                  do (progn
-                      (gnosis-nodes-update-file file t)
+                      ;; Preserve live-buffer recovery on explicit rebuilds.
+                      (if force
+                          (gnosis-nodes-update-file file t)
+                        (gnosis-nodes--update-file file t))
                       (progress-reporter-update progress i)))
         (progress-reporter-done progress)))))
 

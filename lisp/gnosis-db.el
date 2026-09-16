@@ -62,7 +62,7 @@ Initialized lazily by `gnosis--ensure-db' on first use.")
 (defvar gnosis-testing nil
   "Change this to non-nil when running manual tests.")
 
-(defconst gnosis-db-version 10
+(defconst gnosis-db-version 11
   "Gnosis database version.")
 
 (defvar gnosis--id-cache nil
@@ -250,7 +250,8 @@ Uses `gnosis--id-cache' for O(1) collision checking when bound."
        (hypothesis text :not-null)
        (answer text :not-null)
        (source-guid text)
-       (accepted-aliases text)]))
+       (accepted-aliases text)
+       (rubric text)]))
     (scheduler-config
      ([(id integer :primary-key :not-null)
        (algorithm text :not-null)
@@ -690,14 +691,24 @@ Used for fresh databases only."
       (gnosis-db--create-encounter-guards db)
       (gnosis--db-set-version 10))))
 
+(defun gnosis-db--migrate-v11 ()
+  "Upgrade validated released schema 10 with independent nullable rubric storage."
+  (unless (= 10 (gnosis--db-version)) (error "Expected released schema 10"))
+  (let ((db (gnosis--ensure-db)))
+    (gnosis-db--check-schema db 10)
+    (gnosis-sqlite-with-transaction db
+      (gnosis-sqlite-execute db "ALTER TABLE themata ADD COLUMN rubric TEXT")
+      (gnosis--db-set-version 11))))
+
 (defun gnosis--db-run-migrations (current-version &optional no-commit)
   "Upgrade released CURRENT-VERSION to `gnosis-db-version'.
 Commit afterwards unless NO-COMMIT defers that until outer validation."
   (gnosis-sqlite-with-transaction (gnosis--ensure-db)
     (pcase current-version
-      (8 (gnosis-db--migrate-v9) (gnosis-db--migrate-v10))
-      (9 (gnosis-db--migrate-v10))
-      (10 nil)
+      (8 (gnosis-db--migrate-v9) (gnosis-db--migrate-v10) (gnosis-db--migrate-v11))
+      (9 (gnosis-db--migrate-v10) (gnosis-db--migrate-v11))
+      (10 (gnosis-db--migrate-v11))
+      (11 nil)
       (_ (error "Unsupported Gnosis migration source %s" current-version))))
   (when (and (not no-commit) (< current-version gnosis-db-version))
     (gnosis--commit-migration current-version gnosis-db-version)))
@@ -711,7 +722,7 @@ its absence or failure does not invalidate the database upgrade."
 
 (defconst gnosis-db-min-version 8
   "Oldest supported schema: released Gnosis 0.10.6.
-Released schema 8 upgrades through released 0.11.0 schema 9 to schema 10.
+Released schema 8 upgrades through schemas 9 and 10 to schema 11.
 Private development schemas require a separate, verified conversion.")
 
 (defconst gnosis-db--legacy-schemata
@@ -749,7 +760,7 @@ Private development schemas require a separate, verified conversion.")
                                      journal node-tag node-links)))
                 gnosis-db--schemata)))
     (9 (assq-delete-all 'practice-encounters (copy-sequence gnosis-db--schemata)))
-    (10 gnosis-db--schemata)
+    ((or 10 11) gnosis-db--schemata)
     (_ (error "Unsupported Gnosis schema %s" version))))
 
 (defun gnosis-db--compatible-columns-p (table schema actual &optional version)
@@ -757,11 +768,15 @@ Private development schemas require a separate, verified conversion.")
 Keep column order: positional readers and writers rely on it.  Only themata's
 observed nullable archive field, the equivalent composite tag key, and the
 historical text-affinity link source may differ from fresh storage.
-VERSION defaults to the current schema; older schemas do not yet have aliases."
+VERSION defaults to the current schema.  Schemas before 9 lack aliases;
+schemas before 11 lack rubric."
   (let* ((version (or version gnosis-db-version))
          (columns (append (car schema) nil))
-         (columns (if (and (eq table 'themata) (< version 9))
-                      (seq-remove (lambda (column) (eq (car column) 'accepted-aliases)) columns)
+         (columns (if (eq table 'themata)
+                      (seq-remove (lambda (column)
+                                    (or (and (< version 9) (eq (car column) 'accepted-aliases))
+                                        (and (< version 11) (eq (car column) 'rubric))))
+                                  columns)
                     columns))
          (expected
          (mapcar (lambda (column)
@@ -773,11 +788,10 @@ VERSION defaults to the current schema; older schemas do not yet have aliases."
     (or (equal actual expected)
         (pcase table
           ('themata
-           (or (equal actual (append expected '(("archived_at_us" "INTEGER" 0 nil 0))))
-               (and (>= version 9)
-                    (equal actual (append (butlast expected)
-                                          '(("archived_at_us" "INTEGER" 0 nil 0))
-                                          (last expected))))))
+           (let ((archive '("archived_at_us" "INTEGER" 0 nil 0)))
+             (and (= (length actual) (1+ (length expected)))
+                  (member archive (nthcdr 6 actual))
+                  (equal expected (remove archive actual)))))
           ('thema-tag
            (equal actual '(("thema_id" "INTEGER" 1 nil 1)
                            ("tag" "TEXT" 1 nil 2))))

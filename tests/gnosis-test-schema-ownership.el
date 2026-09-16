@@ -16,8 +16,7 @@
 
 (defun gnosis-test-ownership--add-evidence (id)
   "Create content and scheduled/practice evidence for thema ID."
-  (gnosis-add-thema-fields "basic" "Question" '("Hint") '("Answer")
-                           "Context" '("test") 0 nil nil id)
+  (gnosis-fixture-add-basic id "Question")
   (gnosis--insert-into 'thema-links `([,id "source-node"]))
   (let* ((event-id (gnosis-scheduler-event-id))
          (practice-id (format "practice-%s" id)))
@@ -156,12 +155,13 @@ COLUMN references PARENT's PARENT-COLUMN in the released fixture."
           (should-error (sqlite-select candidate "SELECT 1"))
           (should (equal before (gnosis-test-safety-snapshot file)))
           (should (gnosis--ensure-db))
-          (should (= 10 (gnosis--db-version)))
+          (should (= 11 (gnosis--db-version)))
           (should-not (gnosis-select '* 'practice-encounters))
           (should (equal (nth 2 before)
                          (assoc-delete-all
                           "practice_encounters"
-                          (nth 2 (gnosis-test-safety-snapshot file))))))))))
+                          (gnosis-test-safety-without-rubric
+                           (nth 2 (gnosis-test-safety-snapshot file)))))))))))
 
 (provide 'gnosis-test-schema-ownership)
 ;;; gnosis-test-schema-ownership.el ends here

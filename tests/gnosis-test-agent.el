@@ -284,7 +284,7 @@
               (gnosis-sqlite-close gnosis-db)
               (setq gnosis-db (gnosis-sqlite-open (expand-file-name "gnosis.db" dir)))
               (gnosis-db-init)
-              (should (= 10 (gnosis--db-version)))
+              (should (= 11 (gnosis--db-version)))
               (should (equal data (gnosis-get 'data 'study-history '(= session-id "old-session"))))
               (should (equal data (gnosis-get 'data 'study-session '(= id 1))))
               (should (equal before (gnosis-select '* 'practice-events)))

@@ -48,6 +48,8 @@
 (require 'gnosis-links)
 (require 'keymap-popup)
 
+(autoload 'gnosis-review-agent-eval "gnosis-agent-eval")
+
 ;;; Review vars
 
 (defvar gnosis-review-types '("Due themata"
@@ -1621,9 +1623,11 @@ snapshot, never a content archive or retrospective regrading rule."
            :hypothesis (vconcat (nth 2 row)) :expected-answers (vconcat (nth 3 row))
            :accepted-aliases (vconcat (nth 4 row)) :parathema (nth 5 row)
            :review-image (nth 6 row) :response response
-           :hints-available (vconcat (when (member (nth 0 row) '("basic" "cloze")) (nth 2 row)))
+           :hints-available (vconcat (when (member (nth 0 row) '("basic" "cloze" "agent-eval")) (nth 2 row)))
            :hints-shown (vconcat hints) :coaching nil
-           :match-rule (cond (tolerance (list :kind "text" :tolerance tolerance))
+           :match-rule (cond ((equal (nth 0 row) "agent-eval")
+                              (list :kind "agent-eval" :rubric (nth 7 row)))
+                             (tolerance (list :kind "text" :tolerance tolerance))
                              ((equal (plist-get response :kind) "self-grade")
                               (list :kind "self-grade"))
                              (t (list :kind "exact")))
@@ -1644,8 +1648,10 @@ snapshot, never a content archive or retrospective regrading rule."
 (defun gnosis-review--content-thema (id)
   "Read ID's response rules and presentation, excluding scheduling and tags."
   (mapcar (lambda (row)
-            (append row (car (gnosis-select '[parathema review-image]
-                                            'extras `(= id ,id)))))
+            (append row (or (car (gnosis-select '[parathema review-image]
+                                                'extras `(= id ,id)))
+                            '(nil nil))
+                    (list (gnosis-get 'rubric 'themata `(= id ,id)))))
           (gnosis-review--answer-thema id)))
 
 (define-error 'gnosis-review-content-changed "Review content changed" 'user-error)
@@ -1676,7 +1682,9 @@ RESULT permits an identical retry of the last committed persistent attempt."
                      (equal (nth 1 owner) (gnosis-review--content-thema id))))
       (signal 'gnosis-review-content-changed
               '("The content or encounter changed; resume the batch to answer again")))
-    (gnosis--validate-accepted-aliases (nth 0 row) (nth 3 row) (nth 4 row))))
+    (gnosis--validate-accepted-aliases (nth 0 row) (nth 3 row) (nth 4 row))
+    (gnosis--validate-agent-eval-fields
+     (nth 0 row) (nth 1 row) (nth 2 row) (nth 3 row) (nth 7 row))))
 
 (defun gnosis-review-basic (id)
   "Review basic type thema for ID."

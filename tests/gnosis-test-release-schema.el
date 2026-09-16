@@ -68,19 +68,19 @@
                    (t sql)))
                 gnosis-fixture-v9-ddl))))
         (gnosis-fixture-create-v9))
-      (gnosis-add-thema-fields "basic" "Keep" '("Hint") '("Answer")
-                               "Context" '("test") 0 nil nil 101)
+      (gnosis-fixture-add-basic 101 "Keep")
       (gnosis--insert-into 'practice-events '(["legacy" 101 "old" 1 1000000 1]))
       (let ((before (nth 2 (gnosis-test-safety-snapshot gnosis-test--db-file)))
             (asset (expand-file-name "assets/shared/fixture.bin" gnosis-dir)))
         (make-directory (file-name-directory asset) t)
         (with-temp-file asset (insert "Shared fixture bytes"))
         (gnosis-db-init)
-        (should (= 10 (gnosis--db-version)))
+        (should (= 11 (gnosis--db-version)))
         (should (equal before
                        (assoc-delete-all
                         "practice_encounters"
-                        (nth 2 (gnosis-test-safety-snapshot gnosis-test--db-file)))))
+                        (gnosis-test-safety-without-rubric
+                         (nth 2 (gnosis-test-safety-snapshot gnosis-test--db-file))))))
         (should-not (gnosis-select '* 'practice-encounters))
         (gnosis-study-accept-practice
          (gnosis-review--encounter
@@ -110,31 +110,31 @@
                          (buffer-string))))
         (should-not (sqlite-select gnosis-db "PRAGMA foreign_key_check"))))))
 
-(ert-deftest gnosis-release-schema-fresh-is-ten ()
+(ert-deftest gnosis-release-schema-fresh-is-eleven ()
   (gnosis-test-with-old-db
     (gnosis-db-init)
-    (should (= 10 (gnosis--db-version)))
-    (gnosis-db--check-schema gnosis-db 10)))
+    (should (= 11 (gnosis--db-version)))
+    (gnosis-db--check-schema gnosis-db 11)))
 
-(ert-deftest gnosis-release-schema-eight-opens-through-nine-as-complete-ten ()
+(ert-deftest gnosis-release-schema-eight-opens-through-nine-and-ten-as-eleven ()
   (gnosis-test-with-old-db
     (gnosis-test--create-v8-schema)
     (gnosis-db-init)
-    (should (= 10 (gnosis--db-version)))
+    (should (= 11 (gnosis--db-version)))
     (dolist (table '(study-history study-session scheduler-active practice-events
                     review-voids practice-voids))
       (should (gnosis-table-exists-p table)))
     (should (assoc 6 (sqlite-select gnosis-db "PRAGMA table_info(themata)")))
-    (gnosis-db--check-schema gnosis-db 10)))
+    (gnosis-db--check-schema gnosis-db 11)))
 
 (ert-deftest gnosis-release-schema-private-versions-are-refused ()
-  (dolist (version '(11 12 13))
+  (dolist (version '(12 13 14))
     (gnosis-test-with-old-db
       (gnosis-db-init)
       (gnosis--db-set-version version)
       (should-error (gnosis-db-init) :type 'user-error)
       (should (= version (gnosis--db-version))))))
-(ert-deftest gnosis-release-schema-ten-must-have-the-complete-layout ()
+(ert-deftest gnosis-release-schema-eleven-must-have-the-complete-layout ()
   (gnosis-test-with-old-db
     (gnosis-db-init)
     (sqlite-execute gnosis-db "DROP TABLE study_history")
@@ -142,7 +142,7 @@
     (let ((before (sqlite-select gnosis-db
                    "SELECT type, name, sql FROM sqlite_master ORDER BY type, name")))
       (should-error (gnosis-db-init))
-      (should (= 10 (gnosis--db-version)))
+      (should (= 11 (gnosis--db-version)))
       (should (equal before (sqlite-select gnosis-db
                              "SELECT type, name, sql FROM sqlite_master ORDER BY type, name"))))))
 
@@ -160,7 +160,7 @@
         "INSERT INTO practice_events VALUES ('legacy', 101, 'batch', 1, 1000000, 1)")
       (let ((rows (sqlite-select gnosis-db "SELECT * FROM practice_events")))
         (gnosis-db-init)
-        (should (= 10 (gnosis--db-version)))
+        (should (= 11 (gnosis--db-version)))
         (should (equal rows (sqlite-select gnosis-db "SELECT * FROM practice_events")))
         (should-not (sqlite-select gnosis-db "SELECT * FROM practice_encounters"))
         (should (equal fresh (sqlite-select gnosis-db

@@ -41,6 +41,8 @@
         ./lisp/gnosis-nodes.el
         ./lisp/gnosis-org.el
         ./lisp/gnosis-review.el
+        ./lisp/gnosis-agent-eval.el
+        ./lisp/gnosis-agent-eval-hermes.el
         ./lisp/gnosis-study.el
         ./lisp/gnosis-agent.el
         ./lisp/gnosis-scheduler.el

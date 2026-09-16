@@ -155,4 +155,14 @@
   (sqlite-execute gnosis-db "INSERT INTO scheduler_active VALUES (1, 1)")
   (sqlite-execute gnosis-db "PRAGMA user_version = 9"))
 
+(defun gnosis-fixture-add-basic (id question)
+  "Insert basic thema ID and QUESTION using the released common columns."
+  (gnosis-sqlite-execute
+   gnosis-db
+   "INSERT INTO themata (id, type, keimenon, hypothesis, answer) VALUES (?, ?, ?, ?, ?)"
+   (list id "basic" question '("Hint") '("Answer")))
+  (gnosis-scheduler-initialize-thema id (gnosis--today-int) 0)
+  (gnosis--insert-into 'extras `([,id "Context" nil]))
+  (gnosis--insert-into 'thema-tag `([,id "test"])))
+
 (provide 'gnosis-fixture-schema-v9)

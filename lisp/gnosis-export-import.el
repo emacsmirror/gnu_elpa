@@ -60,7 +60,7 @@
 					  &optional keimenon
 					  hypothesis answer
 					  parathema tags
-					  example accepted-aliases)
+					  example accepted-aliases rubric)
   "Insert thema for thema ID.
 
 TYPE: Thema type, refer to `gnosis-thema-types'
@@ -70,7 +70,8 @@ ANSWER: The revelation after KEIMENON
 PARATHEMA: The text where THEMA is derived from.
 TAGS: List of exact Org headline tags; refuse unrepresentable identities.
 EXAMPLE: Boolean value, if non-nil do not add properties for thema.
-ACCEPTED-ALIASES: Independent list of authored accepted spellings."
+ACCEPTED-ALIASES: Independent list of authored accepted spellings.
+RUBRIC: Independent grading guidance for agent-eval themata."
   (gnosis-tags--check-org tags)
   (when (and (equal (downcase type) "image-occlusion")
              hypothesis answer (not (string-match-p "\n- " hypothesis)))
@@ -82,7 +83,12 @@ ACCEPTED-ALIASES: Independent list of authored accepted spellings."
                               ((member (downcase type) '("image-region" "image-occlusion"))
                                "** Image resource")
                               (t "** Hypothesis")) . ,hypothesis)
-                      ("** Answer" . ,answer)
+                      ("** Answer" . ,(if (equal (downcase type) "agent-eval")
+                                           (org-escape-code-in-string (or answer ""))
+                                         answer))
+                      ,@(when (or rubric (equal (downcase type) "agent-eval"))
+                          (list (cons "** Rubric"
+                                      (org-escape-code-in-string (or rubric "")))))
                       ("** Parathema" . ,parathema)
                       ,@(when accepted-aliases
                           (list (cons "** Accepted aliases"
@@ -141,10 +147,10 @@ ACCEPTED-ALIASES: Independent list of authored accepted spellings."
 
 (defun gnosis-export-parse-themata (&optional separator)
   "Extract level-1 themata by field heading, using list SEPARATOR.
-Return (ID TYPE KEIMENON HYPOTHESIS ANSWER PARATHEMA TAGS LINE ALIASES).
-Missing aliases mean nil.  Reject duplicate and unknown field headings,
-malformed headline tag syntax, and content outside themata or their fields,
-without changing the draft."
+Return (ID TYPE KEIMENON HYPOTHESIS ANSWER PARATHEMA TAGS LINE ALIASES RUBRIC).
+Absent trailing fields may be omitted.  Missing aliases and rubric mean nil.
+Reject duplicate and unknown fields, malformed headline tag syntax, and
+content outside themata or their fields, without changing the draft."
   (let ((sep (or separator gnosis-export-separator))
         (document (org-element-parse-buffer)) results)
     (gnosis-export--check-structure document)
@@ -166,8 +172,12 @@ without changing the draft."
                                            '(("Keimenon" . 2) ("Hypothesis" . 3)
                                              ("Resource and starting view" . 3)
                                              ("Image resource" . 3) ("Answer" . 4)
-                                             ("Parathema" . 5) ("Accepted aliases" . 8)))))
-                         (raw (if (equal title "Accepted aliases")
+                                             ("Parathema" . 5) ("Accepted aliases" . 8)
+                                             ("Rubric" . 9)))))
+                         (literal (or (equal title "Rubric")
+                                      (and (equal (downcase type) "agent-eval")
+                                           (equal title "Answer"))))
+                         (raw (if (or literal (equal title "Accepted aliases"))
                                   ;; Org interpretation rewrites checkboxes and
                                   ;; spacing; aliases are literal authored text.
                                   (save-excursion
@@ -177,18 +187,29 @@ without changing the draft."
                                      (point) (org-element-property :end child)))
                                 (substring-no-properties
                                  (org-element-interpret-data (org-element-contents child)))))
-                         (text (if (equal title "Accepted aliases")
-                                   (string-trim raw "[\n\r]+" "[\n\r]+")
-                                 (string-trim raw))))
+                         (text (cond
+                                (literal
+                                 (org-unescape-code-in-string
+                                  (if (string-suffix-p "\n\n" raw)
+                                      (string-remove-suffix "\n\n" raw)
+                                    (string-remove-suffix "\n" raw))))
+                                ((equal title "Accepted aliases")
+                                 (string-trim raw "[\n\r]+" "[\n\r]+"))
+                                (t (string-trim raw)))))
                     (unless slot (user-error "Unknown thema field: %s" title))
                     (when (assq slot fields) (user-error "Duplicate thema field: %s" title))
-                    (push (cons slot (gnosis-export--parse-field title text sep)) fields))))
+                    (push (cons slot (if literal
+                                         (if (equal title "Answer") (list text) text)
+                                       (gnosis-export--parse-field title text sep)))
+                          fields))))
               (push (append
                      (list id type (alist-get 2 fields) (alist-get 3 fields)
                            (alist-get 4 fields) (alist-get 5 fields)
                            (org-element-property :tags headline)
                            (line-number-at-pos (org-element-property :begin headline)))
-                     (when (assq 8 fields) (list (alist-get 8 fields))))
+                     (cond ((assq 9 fields)
+                            (list (alist-get 8 fields) (alist-get 9 fields)))
+                           ((assq 8 fields) (list (alist-get 8 fields)))))
                     results)))))
       nil nil)
     results))
@@ -225,13 +246,14 @@ generate new thema id."
                  (mapconcat #'identity
                             (car fields)
                             gnosis-export-separator))
-         (concat (string-remove-prefix
-                  "\n" gnosis-export-separator)
-                 (mapconcat #'identity
-                            (cadr fields)
-                            gnosis-export-separator))
+         (if (equal (downcase (car thema-data)) "agent-eval")
+             (car (cadr fields))
+           (concat (string-remove-prefix
+                    "\n" gnosis-export-separator)
+                   (mapconcat #'identity (cadr fields) gnosis-export-separator)))
          (nth 4 thema-data)
-         tags nil (gnosis-get 'accepted-aliases 'themata `(= id ,id)))))))
+         tags nil (gnosis-get 'accepted-aliases 'themata `(= id ,id))
+         (gnosis-get 'rubric 'themata `(= id ,id)))))))
 
 (defun gnosis-save-thema (thema)
   "Save THEMA.
@@ -260,15 +282,35 @@ Returns nil on success, or an error message string on failure."
                type)
     (condition-case err
         (progn
+          (gnosis--validate-agent-eval-fields
+           type keimenon hypothesis answer (nth 9 thema))
           (let* ((aliases (nth 8 thema))
+                 (rubric (nth 9 thema))
                  (arguments (list id type keimenon hypothesis answer parathema
                                   tags 0 links))
-                 (maximum (cdr (func-arity thema-func))))
-            ;; Old third-party handlers can still save alias-free drafts.
-            ;; Never discard authored aliases for a handler that cannot save them.
-            (apply thema-func
-                   (if (and (null aliases) (eql maximum 9)) arguments
-                     (append arguments (list aliases)))))
+                 (maximum (cdr (func-arity thema-func)))
+                 (numeric-id (unless (equal id "NEW")
+                               (if (stringp id) (string-to-number id) id))))
+            ;; Full native drafts replace content.  Clear leftover rubric inside
+            ;; the same rollback-safe transaction as the type handler so any
+            ;; non-agent conversion cannot retain it, and a later handler error
+            ;; cannot leave a partial write.  Omitted rubric on the public
+            ;; update API still retains the stored value.
+            (gnosis-sqlite-with-transaction (gnosis--ensure-db)
+              (when (and numeric-id
+                         (not (equal (downcase type) "agent-eval")))
+                (gnosis-sqlite-execute
+                 (gnosis--ensure-db)
+                 "UPDATE themata SET rubric = ? WHERE id = ?"
+                 (list nil numeric-id)))
+              (apply thema-func
+                     (cond
+                      ((equal (downcase type) "agent-eval")
+                       (append arguments (list aliases rubric)))
+                      ;; Old third-party handlers can still save alias-free drafts.
+                      ;; Never discard authored aliases for a handler that cannot save them.
+                      ((and (null aliases) (eql maximum 9)) arguments)
+                      (t (append arguments (list aliases)))))))
           nil)
       (error
        (format "Line %s (id:%s): %s"
@@ -325,7 +367,8 @@ the draft.  Copy its text before cancelling and reopening to reconcile."
   keimenon TEXT NOT NULL,
   hypothesis TEXT NOT NULL,
   answer TEXT NOT NULL,
-  accepted_aliases TEXT)"
+  accepted_aliases TEXT,
+  rubric TEXT)"
   "SQL schema for the themata table in export databases.")
 
 (defconst gnosis-export--thema-tag-schema
@@ -350,24 +393,25 @@ the draft.  Copy its text before cancelling and reopening to reconcile."
   value TEXT)"
   "SQL schema for the gnosis_meta table in export databases.")
 
-(defconst gnosis-export-format-version 3
+(defconst gnosis-export-format-version 4
   "Current SQLite content export format version.")
 
 (defun gnosis-export--image-ids (db schema)
   "Return IDs with managed images in content DB SCHEMA, including malformed refs."
   (unless (member schema '("main" "import_db")) (error "Invalid content schema"))
-  (cl-loop for row in (gnosis-sqlite-select
-                      db (format "SELECT t.id, t.type, t.keimenon, t.hypothesis,
-                                         t.answer, e.parathema, e.review_image, %s
-                                  FROM %s.themata t LEFT JOIN %s.extras e ON t.id = e.id"
-                                 (if (seq-some
-                                      (lambda (column) (equal (nth 1 column) "accepted_aliases"))
-                                      (sqlite-select db (format "PRAGMA %s.table_info(themata)" schema)))
-                                     "t.accepted_aliases" "NULL")
-                                 schema schema))
-           when (or (member (downcase (nth 1 row)) '("image-region" "image-occlusion"))
-                    (gnosis-image-content-p (cddr row)))
-           collect (car row)))
+  (let* ((columns (mapcar #'cadr
+                          (sqlite-select db (format "PRAGMA %s.table_info(themata)" schema))))
+         (optional-columns
+          (mapconcat (lambda (name) (if (member name columns) (concat "t." name) "NULL"))
+                     '("accepted_aliases" "rubric") ", ")))
+    (cl-loop for row in (gnosis-sqlite-select
+                        db (format "SELECT t.id, t.type, t.keimenon, t.hypothesis,
+                                           t.answer, e.parathema, e.review_image, %s
+                                    FROM %s.themata t LEFT JOIN %s.extras e ON t.id = e.id"
+                                   optional-columns schema schema))
+             when (or (member (downcase (nth 1 row)) '("image-region" "image-occlusion"))
+                      (gnosis-image-content-p (cddr row)))
+             collect (car row))))
 
 (defun gnosis-import--format-version-in-db (db schema)
   "Return supported content format version from DB SCHEMA."
@@ -407,7 +451,7 @@ the draft.  Copy its text before cancelling and reopening to reconcile."
                          (string-match-p "\\`[0-9]+\\'" raw))
               (error "Invalid Gnosis content format version"))
             (let ((version (string-to-number raw)))
-              (unless (memq version (list 1 2 gnosis-export-format-version))
+              (unless (memq version (list 1 2 3 gnosis-export-format-version))
                 (error "Unsupported Gnosis content format version: %s"
                        version))
               version)))
@@ -487,7 +531,7 @@ Record COUNT as the expected number of exported themata."
       (gnosis-sqlite-execute db schema))
     (unless (and selection-p (null ids))
       (pcase-dolist (`(,table ,columns ,key)
-                    '(("themata" "id, type, keimenon, hypothesis, answer, accepted_aliases" "id")
+                    '(("themata" "id, type, keimenon, hypothesis, answer, accepted_aliases, rubric" "id")
                       ("extras" "id, parathema, review_image" "id")
                       ("thema_tag" "thema_id, tag" "thema_id")))
         (let ((sql (format "INSERT INTO export_db.%s SELECT %s FROM main.%s"
@@ -658,17 +702,27 @@ TAGS contains (THEMA-ID TAG) rows.  Preserve absent and empty values."
     (mapcar (lambda (row)
               (append (seq-take row 7)
                       (list (sort (copy-sequence (gethash (car row) by-id)) #'string<)
-                            (nth 7 row))))
+                            (nth 7 row) (nth 8 row))))
             rows)))
 
 (defun gnosis-import--alias-column (db schema)
   "Return alias SQL expression for content DB SCHEMA.
-Formats 1 and 2 have no aliases; format 3 must carry the column."
+Formats 1 and 2 have no aliases; formats 3 and later carry the column."
   (unless (member schema '("main" "import_db"))
     (error "Invalid Gnosis content schema"))
   (if (or (equal schema "main")
-          (= 3 (gnosis-import--format-version-in-db db schema)))
+          (>= (gnosis-import--format-version-in-db db schema) 3))
       "accepted_aliases"
+    "NULL"))
+
+(defun gnosis-import--rubric-column (db schema)
+  "Return rubric SQL expression for content DB SCHEMA.
+Formats before 4 have no rubric; format 4 must carry the column."
+  (unless (member schema '("main" "import_db"))
+    (error "Invalid Gnosis content schema"))
+  (if (or (equal schema "main")
+          (>= (gnosis-import--format-version-in-db db schema) 4))
+      "rubric"
     "NULL"))
 
 (defun gnosis-import--validate-alias-row (row)
@@ -682,18 +736,23 @@ Formats 1 and 2 have no aliases; format 3 must carry the column."
 (defun gnosis-import--content-rows (db schema ids)
   "Read content rows for IDS in DB SCHEMA.
 Each row contains ID, TYPE, KEIMENON, HYPOTHESIS, ANSWER, PARATHEMA,
-REVIEW-IMAGE, TAGS, and ALIASES, in that order.
+REVIEW-IMAGE, TAGS, ALIASES, and RUBRIC, in that order.
 TAGS is sorted; SQL NULL and empty strings remain distinct."
   (unless (member schema '("main" "import_db"))
     (error "Invalid Gnosis content schema"))
-  (mapcar #'gnosis-import--validate-alias-row
+  (mapcar (lambda (row)
+            (gnosis-import--validate-alias-row row)
+            (gnosis--validate-agent-eval-fields
+             (nth 1 row) (nth 2 row) (nth 3 row) (nth 4 row) (nth 9 row))
+            row)
    (gnosis-import--normalize-rows
    (gnosis-sqlite-select-batch
     db (format "SELECT t.id, t.type, t.keimenon, t.hypothesis, t.answer,
-                       e.parathema, e.review_image, %s
+                       e.parathema, e.review_image, %s, %s
                   FROM %s.themata t LEFT JOIN %s.extras e ON e.id = t.id
                  WHERE t.id IN (%%s) ORDER BY t.id"
-               (gnosis-import--alias-column db schema) schema schema)
+               (gnosis-import--alias-column db schema)
+               (gnosis-import--rubric-column db schema) schema schema)
     ids)
    (gnosis-sqlite-select-batch
     db (format "SELECT thema_id, tag FROM %s.thema_tag
@@ -701,7 +760,7 @@ TAGS is sorted; SQL NULL and empty strings remain distinct."
     ids))))
 
 (defconst gnosis-import--content-fields
-  '("type" "keimenon" "hypothesis" "answer" "parathema" "review_image" "tags" "accepted_aliases")
+  '("type" "keimenon" "hypothesis" "answer" "parathema" "review_image" "tags" "accepted_aliases" "rubric")
   "Field names in a normalized portable content row, after its ID.")
 
 (defun gnosis-import--change-plan (incoming current)
@@ -826,16 +885,18 @@ CHANGED-ROWS: (ID TYPE KEIMENON CHANGES), with (FIELD OLD NEW) changes."
   "Write NEW-IDS and CHANGED-IDS from the attached import database on DB.
 Initialize new study state for TODAY.  The caller owns the transaction."
   (gnosis-sqlite-execute-batch
-   db (format "INSERT INTO themata (id, type, keimenon, hypothesis, answer, accepted_aliases)
-       SELECT id, type, keimenon, hypothesis, answer, %s FROM import_db.themata
-        WHERE id IN (%%s)" (gnosis-import--alias-column db "import_db"))
+   db (format "INSERT INTO themata (id, type, keimenon, hypothesis, answer, accepted_aliases, rubric)
+       SELECT id, type, keimenon, hypothesis, answer, %s, %s FROM import_db.themata
+        WHERE id IN (%%s)" (gnosis-import--alias-column db "import_db")
+                   (gnosis-import--rubric-column db "import_db"))
    new-ids)
   (gnosis-sqlite-execute-batch
    db (format "UPDATE themata SET
-       (type, keimenon, hypothesis, answer, accepted_aliases) =
-         (SELECT type, keimenon, hypothesis, answer, %s FROM import_db.themata i
+       (type, keimenon, hypothesis, answer, accepted_aliases, rubric) =
+         (SELECT type, keimenon, hypothesis, answer, %s, %s FROM import_db.themata i
            WHERE i.id = themata.id)
-       WHERE id IN (%%s)" (gnosis-import--alias-column db "import_db"))
+       WHERE id IN (%%s)" (gnosis-import--alias-column db "import_db")
+                   (gnosis-import--rubric-column db "import_db"))
    changed-ids)
   (let ((ids (append new-ids changed-ids)))
     ;; Replace optional rows as well as values; never touch study history.

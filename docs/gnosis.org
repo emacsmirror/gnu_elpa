@@ -85,6 +85,7 @@ the interval between reviews based on performance.
 Themata support the following text question types:
 
 - *Basic*: A direct question with typed matching or reveal-and-self-grade.
+- *Agent-eval*: A free-text explanation assessed against a reference and rubric.
 - *Double*: Two prompts, each with its own answer, presented in sequence.
 - *MCQ* (Multiple Choice Question): The user selects one correct option
   from a list.
@@ -233,10 +234,11 @@ separately from regular nodes but use the same underlying mechanism.
 #+end_src
 
 
-** Upgrading to 0.12.0
+** Database Upgrade Compatibility
 
-Released Gnosis 0.11.0 databases upgrade from schema 9 to 10;
-0.10.6 databases upgrade from schema 8 through 9 to 10.  Separate
+Released Gnosis 0.12.0 databases upgrade from schema 10 to 11;
+0.11.0 and 0.10.6 databases upgrade through the preserved 9-to-10 and
+8-to-9 steps respectively.  Separate
 org-gnosis databases and older Gnosis schemas are not automatically
 imported.  Preserve their data and use matching older source or a
 separately verified conversion.  Follow the pre-first-open backup
@@ -786,7 +788,10 @@ Every thema shares a common set of fields:
   Its role differs by type: for MCQ it holds the list of answer choices,
   for basic it holds an optional hint, and for cloze and mc-cloze it
   holds hints corresponding to each gap.
-- *answer*: The correct answer or list of cloze gaps.
+- *answer*: The correct answer or list of cloze gaps.  For agent-eval, one
+  multiline reference answer.
+- *rubric*: Agent-eval grading guidance, separate from the reference answer
+  and teaching text.  State essential points and consequential errors.
 - *parathema* (/παράθεμα/, side-text): supplementary text shown after
   answering, used to add context or a longer explanation.
 - *tags*: A list of strings for organising, filtering, and selecting
@@ -796,7 +801,7 @@ Every thema shares a common set of fields:
 
 ** Thema Types
 
-Gnosis provides five thema types:
+Gnosis provides the following thema types:
 
 *** Basic
 
@@ -805,6 +810,66 @@ the answer is a single string.  An optional hypothesis serves as a hint
 displayed before the user types their response.  The comparison is
 case-insensitive and allows for a small Levenshtein distance, controlled
 by =gnosis-string-difference=.
+
+*** Agent-eval
+
+Choose =Agent-eval= in ~gnosis-add-thema~ for questions that need an explanation
+rather than a typed spelling.  Keimenon is the question.  Answer is one
+nonempty reference answer, even when it spans paragraphs or bullet lists.
+Rubric is a separate required, nonempty free-text field: explain which points
+are essential and which omissions or consequential errors make a response
+incorrect.  Hypothesis holds optional hints; Parathema holds teaching material
+and descriptive source links shown after answering.  Accepted aliases are not
+supported.
+
+For example, the native draft can contain:
+
+#+begin_example
+,** Keimenon
+Why does removing the cause reverse the effect in this example?
+,** Hypothesis
+- Explain the mechanism, not just the association.
+,** Answer
+The cause activates the intermediate mechanism.
+Removing it stops that mechanism, so the effect subsides.
+,** Rubric
+Essential: identify the intermediate mechanism and its direction.
+Consequential error: claiming the effect causes the original trigger.
+,** Parathema
+Review the causal chain and compare it with an association alone.
+- [[id:source-node-id][Source explanation]]
+#+end_example
+
+Save with =C-c C-c=; reopen normally to edit the reference and rubric.  These
+bodies are literal multiline text, not the list of independent accepted
+answers used by other types.  Hyphens, checkbox-looking text and spaces are
+preserved.  Lines starting with stars or =#+= are comma-escaped in the draft
+using Org's literal-code convention and unescaped on save.  The editor places
+two separator newlines after each body; they are not part of its value.
+Removing or blanking Rubric prevents an agent-eval save; it never reuses a
+hidden rubric from an older draft.
+
+The default ~gnosis-agent-eval-function~ is ~gnosis-agent-eval-hermes~.
+Install =emacs-hermes= with =hermes-request= support to use it.  Gnosis loads
+that optional integration only when evaluation is requested; ordinary authoring
+and other thema types do not require Hermes.  Customize
+~gnosis-agent-eval-hermes-profile~ to select the evaluator profile (default
+="default"=).  The profile owns its model, credentials and instructions.
+~gnosis-agent-eval-hermes-backend-url~ optionally selects a dedicated backend;
+its default nil uses Hermes's configured transport.  This selection does not
+change your default backend or current chat.  The chosen backend must provide
+the selected profile.
+Requests contain the question, reference answer, rubric and your response;
+choose a profile/provider suitable for that content.
+
+During review the question and hints stay in the review buffer.  Write your
+response in the separate native text-mode response buffer, then press
+=C-c C-c= to submit it for asynchronous evaluation.  Feedback appears inline
+after the response.  Press =C-c C-c= again to continue to the ordinary review
+actions.  =C-c C-k= cancels a pending evaluation while preserving your response
+for retry; =C-g= aborts without recording a grade.  Evaluator feedback is not a
+substitute for checking the source or deciding whether a rubric tests what you
+intend.
 
 *** Double
 
@@ -858,7 +923,8 @@ use the same quote trimming, whitespace removal, case folding and configured
 ~gnosis-string-difference~ tolerance, including the existing short-string
 exact-match rule. Reveal text and input-method selection still use the
 canonical Answer. Basic self-grading does not perform typed matching.
-Aliases are not supported on MCQ, cloze, MC-cloze, Image-region or Model Find.
+Aliases are not supported on Agent-eval, MCQ, cloze, MC-cloze, Image-region
+or Model Find.
 Double creates two basic themata; supplied aliases belong only to the forward
 question, not its reverse.
 
@@ -1813,10 +1879,11 @@ especially for large collections.
 :CUSTOM_ID: database-upgrades
 :END:
 
-Gnosis 0.12.0 uses database schema 10.  On first open, it upgrades released
-0.11.0 databases from schema 9 to 10.  Released 0.10.6 databases upgrade
-from schema 8 through 9 to 10 in the same open; installing 0.11.0 first
-is not necessary.  Unknown or private development layouts are refused;
+This version uses database schema 11.  On first open, it upgrades released
+0.12.0 databases from schema 10 to 11.  Released 0.11.0 and 0.10.6 databases
+upgrade from schemas 9 and 8 through the same preserved steps in one open;
+installing intermediate releases first is not necessary.  Unknown or private
+development layouts are refused;
 preserve a backup and use matching source or a separately verified
 conversion rather than changing the version number.
 
@@ -1833,22 +1900,26 @@ existing answers; old rows have no aliases.
 
 The 9-to-10 step adds =practice_encounters= and its integrity guards to
 retain accepted practice answers and context.  Existing content, schedules
-and study history are preserved; missing historical answers are not
-invented.  Both migration steps run within one transaction: schema, data
-and version changes roll back together on error or quit.
+and study history are preserved; missing historical answers are not invented.
+The 10-to-11 step adds nullable =themata.rubric= for agent-eval themata;
+existing rows retain their original answers and have no rubric.  All upgrade
+steps run in one transaction: schema, data and version changes roll back
+together on error or quit.
 
-Database schema versions are separate from portable content format 3,
-which carries aliases explicitly.
-Content formats 1 and 2 remain readable and supply no aliases. Alias-only
-changes and clears appear in import preview and participate in drift checks.
-Format 3 is still content-only: it does not bundle managed images or models.
+Database schema versions are separate from portable content format 4,
+which carries aliases and the separate rubric.  Content formats 1–3 remain
+readable: formats 1/2 supply no aliases, and formats 1–3 supply no rubric.
+Alias and rubric changes appear in import preview and participate in source
+and destination drift checks.  Format 4 is still content-only: it does not
+bundle managed images or models.
 
-Before the *first database open* with 0.12.0:
+Before the *first database open* with schema-11 code:
 
 1. Stop other Gnosis database and filesystem writers and close existing
    Gnosis connections.  Keep the package/source matching the old database
-   available for recovery: 0.11.0 for schema 9, or 0.10.6 for schema 8.
-2. Load the 0.12.0 code without opening a dashboard or starting review, and set
+   available for recovery: 0.12.0 for schema 10, 0.11.0 for schema 9,
+   or 0.10.6 for schema 8.
+2. Load the upgraded code without opening a dashboard or starting review, and set
    ~gnosis-dir~ to the existing data directory.  Run
    =M-x gnosis-backup-db= and choose a new backup filename.  With no
    Gnosis connection open, this version of the command reads the existing
@@ -1862,9 +1933,10 @@ Before the *first database open* with 0.12.0:
 
 For rollback, close every database owner before restoring the pre-upgrade
 database, its matching release source and the separately backed-up Org/media
-files.  Use a schema-9 backup with 0.11.0, or a schema-8 backup with 0.10.6.
-Never open a schema-10 database with 0.11.0 or 0.10.6, or a schema-9
-database with 0.10.6; there is no reverse migration.  Keep the upgraded
+files.  Use a schema-10 backup with 0.12.0, a schema-9 backup with 0.11.0,
+or a schema-8 backup with 0.10.6.  Never open a newer schema with source
+that supports only an older schema; there is no reverse migration.  Keep the
+upgraded
 data separately if needed: restoring the old backup does not retain work
 done since that backup.  A portable content export cannot restore schedules
 or session progress.  ~gnosis-backup-data~ requires an open connection,

@@ -12,8 +12,7 @@
     (unwind-protect
         (progn
           (gnosis-fixture-create-v9)
-          (gnosis-add-thema-fields "basic" "Retained question" '("Hint")
-                                   '("Answer") "Context" '("test") 0 nil nil 101)
+          (gnosis-fixture-add-basic 101 "Retained question")
           (gnosis-scheduler-accept-review (make-string 64 ?a) 101 'success
                                           1000000 20260913)
           (gnosis--insert-into 'practice-events
@@ -26,14 +25,15 @@
 (defun gnosis-test-startup--check-upgrade (before)
   "Check the published upgrade and retained rows from snapshot BEFORE."
   (should gnosis-db)
-  (should (= 10 (gnosis--db-version)))
-  (gnosis-db--check-schema gnosis-db 10)
+  (should (= 11 (gnosis--db-version)))
+  (gnosis-db--check-schema gnosis-db 11)
   (should-not (gnosis-select '* 'practice-encounters))
   (should (equal (nth 2 before)
                  (assoc-delete-all
                   "practice_encounters"
-                  (nth 2 (gnosis-test-safety-snapshot
-                          (expand-file-name "gnosis.db" gnosis-dir)))))))
+                  (gnosis-test-safety-without-rubric
+                   (nth 2 (gnosis-test-safety-snapshot
+                           (expand-file-name "gnosis.db" gnosis-dir))))))))
 
 (ert-deftest gnosis-startup-migration-without-git ()
   "Publish a valid upgrade on its first attempt even with retained Git metadata."
@@ -107,7 +107,7 @@
           (if (eq completion 'failure)
               (should (= 1 (length commands)))
             (should (equal (car commands)
-                           '("commit" "-m" "Migrate database v9 -> v10")))
+                           '("commit" "-m" "Migrate database v9 -> v11")))
             (when (eq completion 'success)
               (funcall callback nil "finished\n")))
           (should-not pushed)
@@ -177,7 +177,7 @@
             (should (file-directory-p gnosis-dir))
             (should (file-exists-p (expand-file-name "gnosis.db" gnosis-dir)))
             (should gnosis-db)
-            (gnosis-db--check-schema gnosis-db 10)
+            (gnosis-db--check-schema gnosis-db 11)
             (with-current-buffer gnosis-dashboard-buffer-name
               (should (derived-mode-p 'gnosis-dashboard-mode))))
         (when-let* ((buffer (get-buffer gnosis-dashboard-buffer-name)))

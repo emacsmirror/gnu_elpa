@@ -36,6 +36,17 @@
           (gnosis--insert-into 'activity-log '([20260906 3 1])))
       (sqlite-close gnosis-db))))
 
+(defun gnosis-test-safety-without-rubric (rows)
+  "Project current table ROWS onto their pre-rubric columns, checking NULLs."
+  (mapcar (lambda (entry)
+            (if (not (equal (car entry) "themata")) entry
+              (cons (car entry)
+                    (mapcar (lambda (row)
+                              (should-not (car (last row)))
+                              (butlast row))
+                            (cdr entry)))))
+          rows))
+
 (defun gnosis-test-safety-snapshot (file)
   "Return schema/version and all table rows of FILE without initialization."
   (let ((db (sqlite-open file)))
@@ -224,7 +235,7 @@
               (should (equal before (gnosis-test-safety-snapshot file)))))
           (should (= 2 (length handles)))
           (should (gnosis--ensure-db))
-          (should (= 10 (gnosis--db-version))))))))
+          (should (= 11 (gnosis--db-version))))))))
 
 (ert-deftest gnosis-db-safety-fresh-creation-quit-retries ()
   (gnosis-test-safety
@@ -235,7 +246,7 @@
       (should-not gnosis-db)
       (should-error (sqlite-select candidate "SELECT 1"))
       (should (gnosis--ensure-db))
-      (should (= 10 (gnosis--db-version))))))
+      (should (= 11 (gnosis--db-version))))))
 
 (ert-deftest gnosis-db-safety-connection-setup-cleanup ()
   (dolist (fault '(error quit))
@@ -266,13 +277,13 @@
         (should (equal before (gnosis-test-safety-snapshot file)))
         (should (equal before (gnosis-test-safety-snapshot backup)))
         (gnosis--ensure-db)
-        (should (= 10 (gnosis--db-version)))
+        (should (= 11 (gnosis--db-version)))
         (dolist (table (seq-remove
                        (lambda (entry) (member (car entry)
                          '("review" "review_log" "activity_log")))
                        (nth 2 before)))
           (should (equal (if (equal (car table) "themata")
-                             (mapcar (lambda (row) (append row '(nil))) (cdr table))
+                             (mapcar (lambda (row) (append row '(nil nil))) (cdr table))
                            (cdr table))
                          (sqlite-select gnosis-db (format "SELECT * FROM %s ORDER BY 1" (car table))))))
         (sqlite-close gnosis-db)
@@ -363,13 +374,13 @@ attributed to a historical source commit."
     (let ((before (gnosis-test-safety-snapshot
                    (expand-file-name "gnosis.db" gnosis-dir))))
       (gnosis--ensure-db)
-      (should (= 10 (gnosis--db-version)))
+      (should (= 11 (gnosis--db-version)))
       (dolist (table (seq-remove
                        (lambda (entry) (member (car entry)
                          '("review" "review_log" "activity_log")))
                        (nth 2 before)))
         (should (equal (if (equal (car table) "themata")
-                           (mapcar (lambda (row) (append row '(nil))) (cdr table))
+                           (mapcar (lambda (row) (append row '(nil nil))) (cdr table))
                          (cdr table))
                        (sqlite-select gnosis-db
                         (format "SELECT * FROM %s ORDER BY 1" (car table))))))
@@ -475,7 +486,7 @@ attributed to a historical source commit."
         (should-not gnosis-db)
         (should-error (sqlite-select candidate "SELECT 1"))
         (should (gnosis--ensure-db))
-        (should (= 10 (gnosis--db-version)))))))
+        (should (= 11 (gnosis--db-version)))))))
 
 (ert-deftest gnosis-db-safety-pull-rejects-changed-owner ()
   "A late pull must not close a replacement connection or use another directory."
@@ -517,7 +528,7 @@ attributed to a historical source commit."
       (should-not (file-exists-p (expand-file-name "gnosis.db" gnosis-dir)))
       (gnosis-test-safety-finish-pull (car callbacks))
       (should gnosis-db)
-      (should (= 10 (gnosis--db-version))))))
+      (should (= 11 (gnosis--db-version))))))
 
 (ert-deftest gnosis-db-safety-pull-retains-relative-directory-context ()
   "Successful completion uses the initiating directory, not its current buffer."
@@ -535,7 +546,7 @@ attributed to a historical source commit."
       (should gnosis-db)
       (should-not (eq old gnosis-db))
       (should-error (sqlite-select old "SELECT 1"))
-      (should (= 10 (gnosis--db-version))))))
+      (should (= 11 (gnosis--db-version))))))
 
 (ert-deftest gnosis-db-safety-printer-roundtrip-reopen ()
   "Nested compiled parameters survive a real database close and reopen."

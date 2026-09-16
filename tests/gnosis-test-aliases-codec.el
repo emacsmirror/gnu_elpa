@@ -81,7 +81,7 @@
             (gnosis-sqlite-execute db "UPDATE themata SET accepted_aliases = ? WHERE id = ?"
                                    (list '("Alias") id))
             (gnosis-export-db file)
-            (should (= 3 (gnosis-import--format-version file)))
+            (should (= 4 (gnosis-import--format-version file)))
             (gnosis-sqlite-execute db "UPDATE themata SET accepted_aliases = NULL WHERE id = ?" (list id))
             (let ((diff (gnosis-import--diff file)))
               (should (equal (nth 3 (car (cadr diff)))

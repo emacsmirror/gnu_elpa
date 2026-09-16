@@ -335,6 +335,20 @@ the type-specific payload and optional predicates."
       (keymap-popup--invalid context "definitions require a key string")))
    (t (keymap-popup--invalid context "invalid key or command %S" key))))
 
+(defun keymap-popup--key-events (key)
+  "Return native keymap events for key string KEY, or nil for nil.
+Expand Meta characters using `meta-prefix-char', as `define-key' does."
+  (when key
+    (cl-loop for event across (key-parse key)
+             if (and (integerp event) (/= 0 (logand event #x8000000)))
+             append (list meta-prefix-char (logand event (lognot #x8000000)))
+             else collect event)))
+
+(defun keymap-popup--same-key-p (a b)
+  "Return non-nil when key strings A and B name the same native events."
+  (and (stringp a) (stringp b)
+       (equal (keymap-popup--key-events a) (keymap-popup--key-events b))))
+
 (defun keymap-popup--parse-annotated-entry (key spec context runtime)
   "Parse annotated SPEC for command KEY in CONTEXT.
 RUNTIME means values have already been evaluated."
@@ -693,6 +707,19 @@ Do not follow KEYMAP's parent or evaluate `menu-item' filters."
           (setq map prefix)))
       (keymap-popup--raw-local-event-binding map (car events)))))
 
+(defun keymap-popup--declared-command (keymap key)
+  "Return the previously described command for KEY in KEYMAP.
+Consult local metadata, not live bindings: a user replacement must
+not acquire the original command's description on reload."
+  (when-let* ((meta (keymap-popup--raw-local-event-binding
+                    keymap 'keymap-popup))
+              (rows (keymap-popup--raw-local-event-binding meta 'descriptions)))
+    (plist-get
+     (seq-find (lambda (entry)
+                 (keymap-popup--same-key-p (plist-get entry :key) key))
+               (keymap-popup--flatten-with-groups rows))
+     :command)))
+
 (defun keymap-popup--bind-launcher (keymap key command)
   "Bind popup launcher COMMAND to KEY in KEYMAP.
 Signal an error instead of replacing an existing local binding."
@@ -809,7 +836,9 @@ per `keymap-popup-default-popup-key'), optional :exit-key KEY
 \(default per `keymap-popup-default-exit-key'), optional :parent
 KEYMAP, optional :description STRING-OR-FUNCTION, optional
 :persistent BOOL, followed by :group keywords and KEY (DESC ...)
-pairs."
+pairs.
+Reevaluation preserves the initialized keymap and its original
+anonymous commands, while refreshing descriptions and options."
   (declare (indent 1))
   (let* ((options (keymap-popup--extract-macro-opts
                    body keymap-popup--define-options
@@ -856,7 +885,11 @@ pairs."
              ;; Share function objects, not merely equal closure forms, between
              ;; the live bindings and descriptions.  Keep predicate layers apart.
              `((let ,(mapcar (lambda (pair)
-                              `(,(cdr pair) ,(plist-get (car pair) :command)))
+                              `(,(cdr pair)
+                                (or (and (boundp ',name)
+                                         (keymap-popup--declared-command
+                                          ,name ,(plist-get (car pair) :key)))
+                                    ,(plist-get (car pair) :command))))
                             commands)
                  ,@definition))
            definition))))
@@ -950,30 +983,15 @@ FN receives a group plist and returns a new group plist."
                         row))
             rows))
 
-(defun keymap-popup--add-entry-to-rows (rows entry group-name)
-  "Return ROWS with ENTRY appended to the first group named GROUP-NAME.
-Falls back to the first group if GROUP-NAME is not found.
-If ENTRY's key already appears in ROWS (in any group), the prior
-entry is removed first -- matching the replacement semantics of
-`keymap-set'."
-  (let* ((key (plist-get entry :key))
-         (scrubbed (if key
-                       (keymap-popup--remove-key-from-rows rows key)
-                     rows))
-         (target (or (and group-name
-                          (cl-loop for row in scrubbed
-                                   thereis (cl-find group-name row
-                                                    :key (lambda (group)
-                                                           (plist-get group :name))
-                                                    :test #'equal)))
-                     (caar scrubbed))))
-    (keymap-popup--map-groups
-     scrubbed
-     (lambda (group)
-       (if (eq group target)
-           (plist-put (copy-sequence group) :entries
-                      (append (plist-get group :entries) (list entry)))
-         group)))))
+(defun keymap-popup--add-entry-to-rows (rows entry target)
+  "Return ROWS with ENTRY appended to the group object TARGET."
+  (keymap-popup--map-groups
+   rows
+   (lambda (group)
+     (if (eq group target)
+         (plist-put (copy-sequence group) :entries
+                    (append (plist-get group :entries) (list entry)))
+       group))))
 
 (defun keymap-popup--remove-key-from-rows (rows key)
   "Return ROWS with entries matching KEY filtered out."
@@ -982,26 +1000,38 @@ entry is removed first -- matching the replacement semantics of
    (lambda (group)
      (plist-put (copy-sequence group) :entries
                 (cl-remove-if
-                 (lambda (e) (equal (plist-get e :key) key))
+                 (lambda (e) (keymap-popup--same-key-p (plist-get e :key) key))
                  (plist-get group :entries))))))
 
 ;;;###autoload
 (defun keymap-popup-add-entry (keymap key description command &optional group)
   "Add KEY binding with DESCRIPTION and COMMAND to KEYMAP.
-GROUP is the group name to add to (nil for the first group).
-Updates both the keymap and the popup descriptions."
+GROUP is the group name to add to (nil or missing means the first group).
+Updates both the keymap and the popup descriptions.  The destination
+group's :if predicate governs direct dispatch; :inapt-if remains
+popup-only.  Equivalent key spellings replace the same entry."
   (let ((descs (keymap-popup--meta keymap 'descriptions)))
     (or descs (user-error "No descriptions in keymap"))
-    (let ((entry (keymap-popup--parse-entry
-                  key (list description command) 'runtime)))
-      (keymap-set keymap key command)
+    (let* ((entry (keymap-popup--parse-entry
+                   key (list description command) 'runtime))
+           (rows (keymap-popup--remove-key-from-rows descs key))
+           (target (or (and group
+                            (cl-loop for row in rows
+                                     thereis (cl-find group row
+                                                      :key (lambda (item)
+                                                             (plist-get item :name))
+                                                      :test #'equal)))
+                       (caar rows))))
+      (keymap-set keymap key
+                  (keymap-popup--filter-binding command (plist-get target :if)))
       (setf (keymap-popup--meta keymap 'descriptions)
-            (keymap-popup--add-entry-to-rows descs entry group)))))
+            (keymap-popup--add-entry-to-rows rows entry target)))))
 
 ;;;###autoload
 (defun keymap-popup-remove-entry (keymap key)
   "Remove KEY binding from KEYMAP.
-Updates both the keymap and the popup descriptions."
+Updates both the keymap and the popup descriptions, including entries
+whose key spelling denotes the same native events as KEY."
   (let ((descriptions (keymap-popup--meta keymap 'descriptions)))
     (or descriptions (user-error "No descriptions in keymap"))
     (let ((remaining (keymap-popup--remove-key-from-rows descriptions key)))

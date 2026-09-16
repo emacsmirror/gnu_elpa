@@ -1192,7 +1192,7 @@ Enforcement moved to the wrapper; the binding never changes."
   "Outside a popup, an inapt key dispatches its real command."
   (let ((count 0))
     (eval `(keymap-popup-define keymap-popup--test-direct-inapt
-             "x" ("X" ,(lambda () (interactive) (setq count (1+ count)))
+             "x" ("X" ',(lambda () (interactive) (setq count (1+ count)))
                   :inapt-if (lambda () t)))
           t)
     (let ((binding (keymap-lookup keymap-popup--test-direct-inapt "x")))
@@ -1949,7 +1949,7 @@ find the command; the stored key must survive (render hides the
 entry independently)."
   (let* ((map (make-sparse-keymap))
          (wrapped (eval (keymap-popup--wrap-binding-form
-                         '(function next-line) (lambda () nil))
+                         '(function next-line) '(lambda () nil))
                         t))
          (entry (list :key "n" :description "Next" :type 'suffix
                       :command 'next-line :if (lambda () nil))))

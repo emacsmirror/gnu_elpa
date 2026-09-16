@@ -80,10 +80,14 @@ before adding a second path that writes the same state.
 
 ## Release boundary
 
-Until 0.11.0 is published, the only supported migration is released
-0.10.6 (schema 8) directly to the complete schema 9. Extend that one migration
-and fresh schema together; do not add development-version migrations. Private
-layouts require separately verified conversion, never automatic relabelling.
+Released 0.10.6 uses schema 8, 0.11.0 uses schema 9, and 0.12.0 uses
+schema 10. Preserve the 8-to-9 migration and the explicit 9-to-10 migration;
+opening schema 8 runs both steps. Fresh databases use schema 10. Further
+persistent changes must respect these released boundaries and keep migrations
+and fresh creation consistent; do not add private development-version migrations.
+Private layouts require separately verified conversion, never automatic
+relabelling. Before first open with upgraded code, preserve a non-migrating
+database backup, its matching release source, and separate Org/media backups.
 
 ## State and preservation
 

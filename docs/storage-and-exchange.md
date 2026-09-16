@@ -7,12 +7,17 @@ Use disposable databases for all probes, including failure and retry tests.
 
 ## Database release boundary
 
-Until 0.11.0 is published, released 0.10.6/schema 8 is the only migration
-source. Fresh databases use schema 9; the single 8-to-9 transaction creates
-the complete FSRS, practice, session-history and accepted-alias layout.
-Extend this migration and fresh creation together, not a chain of private
-schema versions. Unknown/private layouts fail closed and need a separately
-verified conversion; changing `user_version` is not migration validation.
+Released 0.10.6 uses schema 8, 0.11.0 uses schema 9, and 0.12.0 uses
+schema 10. Fresh databases use schema 10. Opening schema 8 runs the preserved
+8-to-9 step followed by 9-to-10; opening schema 9 runs only 9-to-10.
+The 8-to-9 step creates the FSRS, practice, session-history and accepted-alias
+layout. The 9-to-10 step adds `practice_encounters` and its integrity guards
+without inventing historical answers or changing existing content, schedules
+or study history. The outer transaction rolls back both steps on error or
+quit. Keep migrations and fresh creation consistent with these released
+boundaries, not a chain of private schema versions. Unknown/private layouts
+fail closed and need a separately verified conversion; changing `user_version`
+is not migration validation.
 
 The released fixture in `tests/gnosis-test-schema-v8.el` copies the actual
 0.10.6 declarations. Migration retains content (including known archive
@@ -34,8 +39,8 @@ deletion. Review must not skip or grade a card merely because deletion was
 offered and declined. See `tests/gnosis-test-deletion.el`.
 
 Singleton development cleanup is private tooling, not a public migration or
-a reason to disable normal deletion. The 8-to-9 release boundary above remains
-in force until 0.11.0 publication.
+a reason to disable normal deletion. Preserve the released schema boundaries
+above.
 
 ## Node-file deletion
 
@@ -258,6 +263,16 @@ editing preserves the reference but cannot transfer the assets.  The legacy
 schedules or study history. `gnosis-backup-db` in `lisp/gnosis-study.el`
 creates a SQLite snapshot retaining database evidence, not a backup of Org/media
 files. Keep that distinction explicit in commands and documentation.
+
+Before first open with upgraded code, close existing owners and use the
+non-migrating `gnosis-backup-db` implementation: it independently opens the
+existing `gnosis.db` under `gnosis-dir` and uses `VACUUM INTO`, never
+`gnosis--ensure-db` or schema initialization. Check the implementation rather
+than assuming an older command has this property. Keep separate Org, managed
+`assets/` and external-media backups. Rollback pairs a pre-upgrade schema-9
+database with 0.11.0 source, or a schema-8 database with 0.10.6 source, while
+all database owners are disconnected. There is no reverse migration from
+schema 10. See the manual's Database Upgrades and Rollback section.
 
 `lisp/gnosis-backup.el` owns versioned database-plus-managed-media snapshots.
 `gnosis-backup-data` captures an already-connected file-backed connection and

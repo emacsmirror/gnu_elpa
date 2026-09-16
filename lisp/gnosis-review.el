@@ -59,6 +59,11 @@
 (defvar gnosis-review-buffer-name "*gnosis*"
   "Review buffer name.")
 
+(defvar gnosis-review--display-buffer nil
+  "Captured destination for native review rendering and navigation.
+Bind around an encounter or action so renaming cannot redirect its output.
+Standalone display callers still use `gnosis-review-buffer-name'.")
+
 (defcustom gnosis-review-basic-input 'typed
   "Input style for basic questions.
 Typed answers use string comparison with a correctable verdict.
@@ -100,6 +105,26 @@ DATABASE is the owning open connection, never part of persisted data."
 (defvar-local gnosis-review--state nil
   "Buffer-local review state for the current session.")
 
+(defvar-local gnosis-review--retired nil
+  "Non-nil after this review buffer lost its native lifetime.")
+
+(defvar-local gnosis-review--setup-owner nil
+  "Identity of the current buffer setup, cleared on retirement.
+Setup retains this occurrence across hooks, even if a mode change clears
+the buffer-local variables or reenters setup in the same buffer.")
+
+(defun gnosis-review--watch-buffer (&optional owner)
+  "Reject a retired review buffer and watch its native lifetime.
+If OWNER is non-nil, require that exact setup occurrence and buffer."
+  (when (or gnosis-review--retired buffer-file-name
+            (and owner
+                 (not (and (eq owner gnosis-review--setup-owner)
+                           (eq (car owner) (current-buffer))))))
+    (user-error "Review buffer was repurposed; resume in a new buffer"))
+  (dolist (hook '(after-set-visited-file-name-hook change-major-mode-hook
+                 kill-buffer-hook))
+    (add-hook hook #'gnosis-review--retire-buffer nil t)))
+
 (defvar-local gnosis-review--summary-target nil
   "Database connection and frozen checkpoint displayed by this summary.
 The cons (DATABASE . DATA) owns only this connection and checkpoint, not
@@ -129,12 +154,26 @@ Sets `gnosis-mode', initializes state struct, and installs `:eval' header.
 Returns the buffer.  MODE defaults to due; practice never reschedules."
   (let ((buf (get-buffer-create gnosis-review-buffer-name)))
     (with-current-buffer buf
-      (when (and (not (eq major-mode 'gnosis-mode))
-                 (or buffer-file-name (> (buffer-size) 0)))
+      (when (or gnosis-review--retired buffer-file-name
+                (and (not (eq major-mode 'gnosis-mode)) (> (buffer-size) 0)))
         (user-error "Review buffer contains unrelated content; rename it first"))
-      (unless (eq major-mode 'gnosis-mode)
-	(gnosis-mode))
-      (gnosis-review--lookahead-cancel)
+      (let ((initialize (not (eq major-mode 'gnosis-mode)))
+            (owner (list buf)))
+        (if initialize
+            (let ((gnosis--mode-setup-function
+                   (lambda ()
+                     ;; Claim after the parent resets locals, but before the
+                     ;; mode body calls minor modes and their native hooks.
+                     (setq gnosis-review--setup-owner owner)
+                     (gnosis-review--watch-buffer owner)
+                     (lambda () (gnosis-review--watch-buffer owner)))))
+              (delay-mode-hooks (gnosis-mode)))
+          (setq gnosis-review--setup-owner owner)
+          (gnosis-review--watch-buffer owner))
+        (when initialize (run-mode-hooks))
+        (gnosis-review--watch-buffer owner)
+        (gnosis-review--lookahead-cancel)
+        (gnosis-review--watch-buffer owner))
       (setq gnosis-review--state
 	    (gnosis-review-state-create
 	     :mode (or mode 'due)
@@ -152,6 +191,25 @@ Returns the buffer.  MODE defaults to due; practice never reschedules."
     buf))
 
 ;;; Display functions
+
+(defvar gnosis-review--display-validate nil
+  "Validator captured before native encounter callbacks.
+Bind with `gnosis-review--display-buffer' through synchronous rendering.
+Deferred callbacks must retain their own encounter context.")
+
+(defun gnosis-review--display-validator ()
+  "Return the encounter validator, or capture this standalone display lifetime."
+  (or gnosis-review--display-validate
+      (let ((buffer (current-buffer))
+            (mode major-mode)
+            (owner (or gnosis-review--setup-owner
+                       (setq gnosis-review--setup-owner (list (current-buffer))))))
+        (gnosis-review--watch-buffer owner)
+        (lambda ()
+          (unless (buffer-live-p buffer) (user-error "Display buffer was killed"))
+          (with-current-buffer buffer
+            (gnosis-review--watch-buffer owner)
+            (unless (eq mode major-mode) (user-error "Display mode changed")))))))
 
 (defvar-local gnosis-review--layout nil
   "Last text tick, centering preference and displaying window sizes.")
@@ -262,136 +320,155 @@ When LITERAL is non-nil, skip link and image interpretation of STR."
 
 (defun gnosis-display-keimenon (str)
   "Display STR as keimenon."
-  (with-current-buffer gnosis-review-buffer-name
-    (gnosis-review--enable-layout)
-    (erase-buffer)
-    (insert "\n" (gnosis-review--format-string str))
-    (gnosis-insert-separator)
-    (when (and gnosis-review--running gnosis-review--state
-               (not (member (gnosis-get 'type 'themata
-                                        `(= id ,(car (gnosis-review-state-remaining gnosis-review--state))))
-                            '("model" "model-name"))))
-      (gnosis-review--lookahead-start))))
+  (with-current-buffer (or gnosis-review--display-buffer gnosis-review-buffer-name)
+    (let* ((validate (gnosis-review--display-validator))
+           (text (gnosis-review--format-string str)))
+      (funcall validate)
+      (gnosis-review--enable-layout)
+      (erase-buffer)
+      (funcall validate)
+      (insert "\n" text)
+      (funcall validate)
+      (gnosis-insert-separator)
+      (funcall validate)
+      (when (and gnosis-review--running gnosis-review--state
+                 (not (member (gnosis-get 'type 'themata
+                                          `(= id ,(car (gnosis-review-state-remaining gnosis-review--state))))
+                              '("model" "model-name"))))
+        (gnosis-review--lookahead-start))
+      (funcall validate))))
 
-(defun gnosis-display-image (keimenon)
-  "Display image link from KEIMENON in new window."
-  (let ((image-path (and (string-match "\\[file:\\(.*?\\)\\]" keimenon)
+(defun gnosis-display-image (keimenon &optional validate)
+  "Display image link from KEIMENON in new window.
+Call VALIDATE in the captured destination after file and window callbacks,
+when non-nil, before returning to or continuing work in that destination."
+  (let ((buffer (or gnosis-review--display-buffer
+                    (get-buffer gnosis-review-buffer-name)
+                    gnosis-review-buffer-name))
+        (image-path (and (string-match "\\[file:\\(.*?\\)\\]" keimenon)
 			 (match-string 1 keimenon))))
     (when image-path
+      (setq validate (or validate
+                         (with-current-buffer buffer (gnosis-review--display-validator))))
       (find-file-other-window image-path)
-      (switch-to-buffer-other-window gnosis-review-buffer-name))))
+      (when validate (with-current-buffer buffer (funcall validate)))
+      (switch-to-buffer-other-window buffer)
+      (when validate (with-current-buffer buffer (funcall validate))))))
 
 (defun gnosis-display-cloze-string (str clozes hints correct false)
   "Display STR with CLOZES and HINTS.
 
 Apply highlighting for CORRECT and FALSE; return the actually shown hints."
-  (let* ((cloze-str (gnosis-cloze-create str clozes))
+  (let* ((gnosis-review--display-buffer
+          (or gnosis-review--display-buffer (get-buffer gnosis-review-buffer-name)))
+         (gnosis-review--display-validate
+          (with-current-buffer gnosis-review--display-buffer (gnosis-review--display-validator)))
+         (cloze-str (gnosis-cloze-create str clozes))
          (hinted (gnosis-cloze-add-hints cloze-str hints nil t))
 	 (str-with-hints (car hinted))
 	 (str-with-c-answers
 	  (gnosis-cloze-highlight str-with-hints correct 'gnosis-face-correct))
 	 (final (gnosis-cloze-mark-false str-with-c-answers false)))
+    (funcall gnosis-review--display-validate)
     (gnosis-display-keimenon final)
     (cdr hinted)))
 
 (defun gnosis-display-basic-answer (answer success user-input)
-  "Display ANSWER.
-
-When SUCCESS nil, display USER-INPUT as well"
-  (with-current-buffer gnosis-review-buffer-name
-    (goto-char (point-max))
-    (insert "\n\n"
-            (gnosis-review--format-string
-             (concat (propertize "Answer:" 'face 'gnosis-face-directions)
-                     " "
-                     (propertize (gnosis-image-format-string answer)
-                                 'face 'gnosis-face-correct))
-             t))
-    ;; Insert user wrong answer
-    (when (not success)
-      (insert "\n"
-              (gnosis-review--format-string
-               (concat (propertize "Your answer:" 'face 'gnosis-face-directions)
-                       " " (propertize user-input 'face 'gnosis-face-false))
-               t)))))
+  "Display ANSWER and, unless SUCCESS, the literal USER-INPUT."
+  (with-current-buffer (or gnosis-review--display-buffer gnosis-review-buffer-name)
+    (let* ((validate (gnosis-review--display-validator))
+           (text (gnosis-review--format-string
+                  (concat (propertize "Answer:" 'face 'gnosis-face-directions)
+                          " " (propertize (gnosis-image-format-string answer)
+                                          'face 'gnosis-face-correct)) t))
+           (wrong (unless success
+                    (gnosis-review--format-string
+                     (concat (propertize "Your answer:" 'face 'gnosis-face-directions)
+                             " " (propertize user-input 'face 'gnosis-face-false)) t))))
+      (funcall validate)
+      (goto-char (point-max))
+      (insert "\n\n" text (if wrong (concat "\n" wrong) ""))
+      (funcall validate))))
 
 (defun gnosis-display-hint (hint)
   "Display HINT."
-  (let ((hint (or hint "")))
-    (unless (string-empty-p hint)
+  (unless (or (null hint) (string-empty-p hint))
+    (let* ((validate (gnosis-review--display-validator))
+           (text (gnosis-review--format-string
+                  (propertize hint 'face 'gnosis-face-hint))))
+      (funcall validate)
       (goto-char (point-max))
-      (and (not (string-empty-p hint))
-	   (insert "\n"
-		   (gnosis-review--format-string
-		    (propertize hint 'face 'gnosis-face-hint))))
-      (gnosis-insert-separator))))
+      (insert "\n" text)
+      (funcall validate)
+      (gnosis-insert-separator)
+      (funcall validate))))
 
 (defun gnosis-display-cloze-user-answer (user-input &optional false)
-  "Display USER-INPUT answer for cloze thema upon failed review.
-
-If FALSE t, use gnosis-face-false face"
-  (goto-char (point-max))
-  (insert "\n\n"
-          (gnosis-review--format-string
-           (concat (propertize "Your answer:" 'face 'gnosis-face-directions)
-                   " "
-                   (propertize user-input 'face
-                               (if false 'gnosis-face-false 'gnosis-face-correct)))
-           t))
-  (insert "\n"))
+  "Display literal USER-INPUT, using the incorrect face when FALSE is non-nil."
+  (let* ((validate (gnosis-review--display-validator))
+         (text (gnosis-review--format-string
+                (concat (propertize "Your answer:" 'face 'gnosis-face-directions)
+                        " " (propertize user-input 'face
+                                        (if false 'gnosis-face-false 'gnosis-face-correct))) t)))
+    (funcall validate)
+    (goto-char (point-max))
+    (insert "\n\n" text "\n")
+    (funcall validate)))
 
 (defun gnosis-display-correct-answer-mcq (answer user-choice)
-  "Display correct ANSWER & USER-CHOICE for MCQ thema."
-  (goto-char (point-max))
-  (insert "\n\n"
-          (gnosis-review--format-string
-	   (format "%s %s\n%s %s"
-		   (propertize "Correct Answer:" 'face 'gnosis-face-directions)
-		   (propertize answer 'face 'gnosis-face-correct)
-		   (propertize "Your answer:" 'face 'gnosis-face-directions)
-		   (propertize user-choice 'face (if (string= answer user-choice)
-						     'gnosis-face-correct
-						   'gnosis-face-false))))
-	  "\n")
-  (gnosis-insert-separator))
+  "Display correct ANSWER and USER-CHOICE for an MCQ thema."
+  (let* ((validate (gnosis-review--display-validator))
+         (text (gnosis-review--format-string
+                (format "%s %s\n%s %s"
+                        (propertize "Correct Answer:" 'face 'gnosis-face-directions)
+                        (propertize answer 'face 'gnosis-face-correct)
+                        (propertize "Your answer:" 'face 'gnosis-face-directions)
+                        (propertize user-choice 'face (if (string= answer user-choice)
+                                                        'gnosis-face-correct
+                                                      'gnosis-face-false))))))
+    (funcall validate)
+    (goto-char (point-max))
+    (insert "\n\n" text "\n")
+    (funcall validate)
+    (gnosis-insert-separator)
+    (funcall validate)))
 
 (defun gnosis-display-parathema (parathema)
-  "Display PARATHEMA."
+  "Display PARATHEMA only if its destination survives formatting callbacks."
   (when (and parathema (not (string-empty-p parathema)))
-    (goto-char (point-max))
-    (insert "\n"
-	    (gnosis-review--format-string
-	     (gnosis-org-format-string parathema))
-	    "\n")))
+    (let* ((validate (gnosis-review--display-validator))
+           (text (gnosis-review--format-string (gnosis-org-format-string parathema))))
+      (funcall validate)
+      (goto-char (point-max))
+      (insert "\n" text "\n")
+      (funcall validate))))
 
 (defun gnosis-display-next-review (interval success)
   "Display INTERVAL as next review date.
 SUCCESS controls the face used when overriding a previous display."
-  (with-current-buffer gnosis-review-buffer-name
-    (if (null interval)
-        (progn
-          (goto-char (point-max))
-          (unless (save-excursion (search-backward "Practice: schedule unchanged" nil t))
-            (insert (propertize "\n\nPractice: schedule unchanged" 'face 'shadow))))
-      (let ((next-review-msg (format "\n\n%s %s"
-				   (propertize "Next review:" 'face 'gnosis-face-directions)
-				   (propertize
-				    (replace-regexp-in-string
-				     "[]()[:space:]]"
-				     (lambda (match)
-				       (if (string= match " ") "/" ""))
-				     (format "%s" interval) t t)
-				    'face 'gnosis-face-next-review))))
-      (if (search-backward "Next review" nil t)
-	  ;; Delete previous result, and override with new -- this
-	  ;; occurs only when used for overriding review result.
-          (progn (delete-region (point) (progn (end-of-line) (point)))
-		 (insert (propertize (replace-regexp-in-string "\n" "" next-review-msg)
-				     'face (if success 'gnosis-face-correct
-					     'gnosis-face-false))))
-	;; Default behaviour
-	(goto-char (point-max))
-	(insert (gnosis-review--format-string next-review-msg)))))))
+  (with-current-buffer (or gnosis-review--display-buffer gnosis-review-buffer-name)
+    (let* ((validate (gnosis-review--display-validator))
+           (message (when interval
+                      (concat (propertize "Next review:" 'face 'gnosis-face-directions)
+                              " " (propertize
+                                   (replace-regexp-in-string
+                                    "[]()[:space:]]"
+                                    (lambda (match) (if (string= match " ") "/" ""))
+                                    (format "%s" interval) t t)
+                                   'face 'gnosis-face-next-review))))
+           (text (and message (gnosis-review--format-string message))))
+      (funcall validate)
+      (cond
+       ((null interval)
+        (goto-char (point-max))
+        (unless (save-excursion (search-backward "Practice: schedule unchanged" nil t))
+          (insert (propertize "\n\nPractice: schedule unchanged" 'face 'shadow))))
+       ((search-backward "Next review" nil t)
+        (delete-region (point) (line-end-position))
+        (funcall validate)
+        (insert (propertize message 'face (if success 'gnosis-face-correct 'gnosis-face-false))))
+       (t (goto-char (point-max)) (insert "\n\n" text)))
+      (funcall validate))))
 
 ;;; Link view mode
 
@@ -404,16 +481,22 @@ SUCCESS controls the face used when overriding a previous display."
 					  "SELECT title FROM nodes WHERE id IN (%s)"
 					  links)))))
 
-(defun gnosis-view-linked-node (id)
-  "Visit linked node(s) for thema ID."
+(defun gnosis-view-linked-node (id &optional validate)
+  "Visit linked node(s) for thema ID.
+When non-nil, call VALIDATE before and after navigation callbacks."
+  (when validate (funcall validate))
   (let* ((ids (gnosis-select 'dest 'thema-links `(= source ,id) t))
          (candidates (and ids (gnosis-study-topic-candidates ids))))
     (unless candidates (user-error "No indexed source for this thema"))
     (let ((node (cdr (assoc (completing-read "Source: " candidates nil t)
                             candidates))))
+      (when validate (funcall validate))
       (window-configuration-to-register :gnosis-link-view)
+      (when validate (funcall validate))
       (gnosis-nodes-goto-id node)
-      (gnosis-link-view-mode))))
+      (when validate (funcall validate))
+      (gnosis-link-view-mode)
+      (when validate (funcall validate)))))
 
 (defun gnosis-link-view--exit ()
   "Exit link view mode."
@@ -892,7 +975,8 @@ poll timer and either prepared fields or a transferred foreground context.")
 CHECKPOINT supplies the pre-acceptance state during an authorized advancement."
   (let ((state gnosis-review--state)
         (id (plist-get slot :id)))
-    (and (eq slot gnosis-review--lookahead)
+    (and (not gnosis-review--retired) (not buffer-file-name)
+         (eq slot gnosis-review--lookahead)
          (eq (plist-get slot :buffer) (current-buffer))
          (eq (plist-get slot :database) gnosis-db)
          (eq (plist-get slot :state) state)
@@ -938,7 +1022,8 @@ are silent; the actual encounter retains its normal responsive loading path."
   (when (and gnosis-review--running gnosis-review--state
              (not gnosis-review--lookahead))
     (condition-case nil
-        (when-let* ((id (cadr (gnosis-review-state-remaining gnosis-review--state)))
+        (when-let* ((_ (progn (gnosis-review--watch-buffer) t))
+                    (id (cadr (gnosis-review-state-remaining gnosis-review--state)))
                     (eligible (gnosis-study-eligible-p id))
                     (thema (gnosis-review--content-thema id))
                     (row (car thema))
@@ -948,15 +1033,16 @@ are silent; the actual encounter retains its normal responsive loading path."
                             :checkpoint (copy-tree (gnosis-review--state-data gnosis-review--state))
                             :advanced nil :job nil :timer nil :fields nil :foreground nil)))
             (setq gnosis-review--lookahead slot)
-            (add-hook 'kill-buffer-hook #'gnosis-review--lookahead-cancel nil t)
-            (add-hook 'change-major-mode-hook #'gnosis-review--lookahead-cancel nil t)
             (setf (plist-get slot :timer)
                   (run-at-time 0.5 0.5 #'gnosis-review--lookahead-poll slot)
                   (plist-get slot :job)
                   (gnosis-model-prepare
                    (car row) (nth 2 row) (nth 3 row)
                    (lambda (fields failure)
-                     (gnosis-review--lookahead-delivered slot fields failure))))))
+                     (gnosis-review--lookahead-delivered slot fields failure))))
+            (unless (or (eq slot gnosis-review--lookahead)
+                        (plist-get slot :foreground))
+              (gnosis-model-cancel-preparation (plist-get slot :job)))))
       (error (gnosis-review--lookahead-cancel)))))
 
 (defun gnosis-review--lookahead-advance (checkpoint)
@@ -999,6 +1085,17 @@ asset bytes before attachment; pending delivery follows the same path."
 
 (defvar-local gnosis-review--model-context nil
   "Owned model encounter context, present only during native input.")
+
+(defun gnosis-review--retire-buffer ()
+  "Retire encounter owners before cancelling their outstanding work.
+File association is permanent retirement, even if the file is later detached.
+Do not unwind native hooks; the old input can still be cancelled normally."
+  (let ((context gnosis-review--model-context))
+    (setq gnosis-review--retired t gnosis-review--state nil
+          gnosis-review--setup-owner nil)
+    (when context (setf (plist-get context :cancelled) t))
+    (gnosis-review--lookahead-cancel)
+    (when context (gnosis-review--model-retire context))))
 (declare-function canvas-3d-detach "canvas-3d")
 (defvar canvas-3d-mode-map)
 (defvar canvas-3d-selection-hook)
@@ -1063,14 +1160,24 @@ asset bytes before attachment; pending delivery follows the same path."
 (defun gnosis-review-model-cancel ()
   "Cancel model input without accepting an answer."
   (interactive)
-  (gnosis-review--lookahead-cancel)
-  (when gnosis-review--model-context
-    (setf (plist-get gnosis-review--model-context :cancelled) t)
-    (gnosis-model-cancel-preparation (plist-get gnosis-review--model-context :preparation))
-    (gnosis-review--model-detach gnosis-review--model-context)
-    (when (= (recursion-depth)
-             (1+ (plist-get gnosis-review--model-context :depth)))
-      (abort-recursive-edit))))
+  (let ((context gnosis-review--model-context))
+    ;; Cancelling lookahead may reenter foreground delivery.
+    (when context (setf (plist-get context :cancelled) t))
+    (gnosis-review--lookahead-cancel)
+    (when context
+      (gnosis-review--model-retire context)
+      (when (and (eq gnosis-review--model-context context)
+                 (= (recursion-depth) (1+ (plist-get context :depth))))
+        (abort-recursive-edit)))))
+
+(defun gnosis-review--model-retire (context)
+  "Retire CONTEXT before invoking preparation cancellation callbacks."
+  (setf (plist-get context :cancelled) t)
+  (gnosis-model-cancel-preparation (plist-get context :preparation))
+  (when (buffer-live-p (plist-get context :buffer))
+    (with-current-buffer (plist-get context :buffer)
+      (when (eq gnosis-review--model-context context)
+        (gnosis-review--model-detach context)))))
 
 (defun gnosis-review--model-selection (selection)
   "Retain explicit SELECTION for this encounter without grading."
@@ -1094,7 +1201,8 @@ PREPARING checks only ownership, before verified fields have arrived."
   (let ((owner (plist-get context :buffer))
         (state (plist-get context :state))
         (id (plist-get context :id)))
-    (unless (and (not (plist-get context :cancelled))
+    (unless (and (not gnosis-review--retired) (not buffer-file-name)
+                 (not (plist-get context :cancelled))
                  (not (plist-get context :result))
                  (buffer-live-p owner)
                  (eq owner (current-buffer))
@@ -1109,6 +1217,8 @@ PREPARING checks only ownership, before verified fields have arrived."
                        (equal (plist-get context :state-data)
                               (gnosis-review--state-data stored)))))
       (user-error "Model encounter is outdated; resume the original session"))
+    (when-let* ((content (plist-get context :content)))
+      (gnosis-review--content-check id content))
     (let ((row (car (plist-get context :thema))))
       (gnosis--validate-accepted-aliases (nth 0 row) (nth 3 row) (nth 4 row))
       (unless preparing
@@ -1202,6 +1312,7 @@ Defer attachment while the encounter is hidden; never select another buffer."
               (when failure (user-error "%s" failure))
               (if-let* ((window (get-buffer-window (current-buffer) t)))
                   (with-selected-window window
+                    (gnosis-review--model-check context t)
                     (gnosis-model-check-fields fields)
                     (save-excursion
                       (goto-char (point-max))
@@ -1213,6 +1324,7 @@ Defer attachment while the encounter is hidden; never select another buffer."
                                            (frame-char-height))))) t
                        (and (eq (plist-get fields :response) 'name) (plist-get fields :target))
                        (plist-get fields :verified)))
+                    (gnosis-review--model-check context t)
                     (setf (plist-get context :fields) fields
                           (plist-get context :process) canvas-3d--process
                           (plist-get context :attachment) canvas-3d--image)
@@ -1237,15 +1349,18 @@ Missing assets and cancellation never produce a grade."
   (unless gnosis-review--state
     (user-error "Start a review session before answering a model"))
   (let* ((owner (current-buffer))
+         (gnosis-review--display-buffer owner)
          (state gnosis-review--state)
          (content-owner (gnosis-review--content-owner id))
+         (gnosis-review--display-validate
+          (lambda () (gnosis-review--content-check id content-owner)))
          (thema (gnosis-review--answer-thema id))
          (row (car thema))
          (map (current-local-map))
          (header header-line-format)
          (context (list :buffer owner :state state :id id :database (gnosis--ensure-db)
                         :state-data (copy-tree (gnosis-review--state-data state))
-                        :thema (copy-tree thema) :fields nil :map map
+                        :thema (copy-tree thema) :content content-owner :fields nil :map map
                         :aliases (copy-tree (nth 4 row)) :error nil :preparation nil
                         :display-timer nil
                         :tolerance gnosis-string-difference :input nil
@@ -1257,18 +1372,19 @@ Missing assets and cancellation never produce a grade."
         (progn
           (goto-char (point-max))
           (insert "\n")
+          (funcall gnosis-review--display-validate)
           (setq-local gnosis-review--model-context context)
           (use-local-map (gnosis-review--model-input-map map))
           (setq-local header-line-format '(:eval (gnosis-review--model-header)))
           (add-hook 'canvas-3d-selection-hook #'gnosis-review--model-selection nil t)
-          (add-hook 'kill-buffer-hook #'gnosis-review-model-cancel nil t)
-          (add-hook 'change-major-mode-hook #'gnosis-review-model-cancel nil t)
           (goto-char (point-min))
           (unless (gnosis-review--lookahead-take context)
+            (gnosis-review--model-check context t)
             (setf (plist-get context :preparation)
                   (gnosis-model-prepare
                    (car row) (nth 2 row) (nth 3 row)
                    (lambda (fields failure) (gnosis-review--model-prepared context fields failure)))))
+          (gnosis-review--model-check context t)
           (recursive-edit)
           (when (plist-get context :error) (user-error "%s" (plist-get context :error)))
           (unless (plist-get context :result) (user-error "Model input cancelled"))
@@ -1304,19 +1420,20 @@ Missing assets and cancellation never produce a grade."
                (gnosis-review--result-date (cdr (plist-get context :result)))
                (car (plist-get context :result)))))
           (plist-get context :result))
-      (gnosis-model-cancel-preparation (plist-get context :preparation))
+      (gnosis-review--model-retire context)
       (when (timerp (plist-get context :display-timer))
         (cancel-timer (plist-get context :display-timer)))
       (when (buffer-live-p owner)
         (with-current-buffer owner
-          ;; A mode change already retired the old buffer-local encounter.
+          ;; Retired input must not restore its map or header over a successor.
           (when (eq gnosis-review--model-context context)
-            (gnosis-review--model-detach context)
-            (setq gnosis-review--model-context nil header-line-format header)
-            (use-local-map map)
-            (remove-hook 'canvas-3d-selection-hook #'gnosis-review--model-selection t)
-            (remove-hook 'kill-buffer-hook #'gnosis-review-model-cancel t)
-            (remove-hook 'change-major-mode-hook #'gnosis-review-model-cancel t)))))))
+            (setq gnosis-review--model-context nil)
+            (when (condition-case nil
+                      (progn (gnosis-review--content-check id content-owner) t)
+                    (user-error nil))
+              (setq header-line-format header)
+              (use-local-map map))
+            (remove-hook 'canvas-3d-selection-hook #'gnosis-review--model-selection t)))))))
 
 (defun gnosis-review-model-name (id)
   "Review ID by inspecting its highlighted target and typing its name."
@@ -1343,6 +1460,7 @@ Missing assets and cancellation never produce a grade."
 
 (defun gnosis-review--image-owner (id)
   "Validate image content for ID and retain its exact encounter owner, or nil."
+  (gnosis-review--watch-buffer)
   (let* ((thema (gnosis-review--image-thema id)) (row (car thema))
          (references (gnosis-image-references (butlast row))))
     (when (or references (member (downcase (car row)) '("image-region" "image-occlusion")))
@@ -1370,21 +1488,33 @@ Missing assets and cancellation never produce a grade."
 
 (defun gnosis-review--image (id)
   "Present region thema ID with explicit click and submit."
-  (let* ((owner (gnosis-review--image-owner id))
+  (let* ((gnosis-review--display-buffer (current-buffer))
+         (content-owner (gnosis-review--content-owner id))
+         (gnosis-review--display-validate
+          (lambda ()
+            (with-current-buffer (nth 2 content-owner)
+              (gnosis-review--content-check id content-owner))))
+         (owner (gnosis-review--image-owner id))
          (row (car (cadr owner)))
          (reference (car (nth 2 row))) (target (car (nth 3 row)))
          (scene (gnosis-image-resolve reference target))
          (label (alist-get 'label (seq-find (lambda (r) (equal target (alist-get 'id r)))
                                           (alist-get 'regions scene))))
+         (prompt (gnosis-org-format-string (nth 1 row)))
+         (validate (lambda ()
+                     (with-current-buffer (nth 2 content-owner)
+                       (gnosis-review--content-check id content-owner)
+                       (gnosis-review--image-check id owner))))
          (input (progn
-                  (gnosis-display-keimenon (gnosis-org-format-string (nth 1 row)))
-                  (gnosis-image-input (cons (cons 'prompt (gnosis-org-format-string (nth 1 row))) scene)
-                                      'region target
-                                      (lambda () (gnosis-review--image-check id owner)))))
+                  (gnosis-display-keimenon prompt)
+                  (gnosis-image-input (cons (cons 'prompt prompt) scene)
+                                      'region target validate)))
          (success (equal target (cadr input))))
+    (funcall gnosis-review--display-validate)
     (gnosis-review--image-check id owner)
     (let ((result (gnosis-review--encounter
-                   (plist-put (gnosis-review-algorithm id success) :image owner)
+                   (plist-put (plist-put (gnosis-review-algorithm id success)
+                                        :content content-owner) :image owner)
                    (append (seq-take row 4) (list (nth 6 row) (nth 4 row) (nth 5 row)))
                    (list :kind "region" :selected-target (cadr input)) nil nil)))
       (gnosis-display-basic-answer
@@ -1401,7 +1531,13 @@ Missing assets and cancellation never produce a grade."
 
 (defun gnosis-review-image-occlusion (id)
   "Review occlusion ID inline with a typed answer, then reveal and give feedback."
-  (let* ((owner (gnosis-review--image-owner id))
+  (let* ((gnosis-review--display-buffer (current-buffer))
+         (content-owner (gnosis-review--content-owner id))
+         (gnosis-review--display-validate
+          (lambda ()
+            (with-current-buffer (nth 2 content-owner)
+              (gnosis-review--content-check id content-owner))))
+         (owner (gnosis-review--image-owner id))
          (row (car (cadr owner)))
          (fields (gnosis-image-occlusion-fields (nth 2 row) (nth 3 row)))
          (target (cadar fields)) (answer (caadr fields))
@@ -1412,10 +1548,12 @@ Missing assets and cancellation never produce a grade."
      (concat (gnosis-org-format-string (nth 1 row)) "\n\n"
              (gnosis-image-mask scene target nil nil policy)))
     (let ((input (gnosis--read-string-with-input-method "Answer: " answer)))
+      (funcall gnosis-review--display-validate)
       (gnosis-review--image-check id owner)
       (let* ((success (gnosis-answer-match-p answer input aliases tolerance))
              (result (gnosis-review--encounter
-                      (plist-put (gnosis-review-algorithm id success) :image owner)
+                      (plist-put (plist-put (gnosis-review-algorithm id success)
+                                            :content content-owner) :image owner)
                       (list (nth 0 row) (nth 1 row) (car fields) (list answer)
                             aliases (nth 4 row) (nth 5 row))
                       (list :kind "text" :text input) nil tolerance)))
@@ -1429,15 +1567,28 @@ Missing assets and cancellation never produce a grade."
 
 ;;; Type-specific review
 
+(defun gnosis-review--display-question (id owner keimenon)
+  "Display KEIMENON for ID only while its captured OWNER remains current."
+  (gnosis-review--content-check id owner)
+  (gnosis-display-image keimenon (lambda () (gnosis-review--content-check id owner)))
+  ;; Org mode hooks run during formatting; check before replacing the view.
+  (let ((text (gnosis-org-format-string keimenon)))
+    (gnosis-review--content-check id owner)
+    (gnosis-display-keimenon text))
+  ;; Rendering may start preparation; refuse before hints or answer input.
+  (gnosis-review--content-check id owner))
+
 (defun gnosis-review-mcq (id)
   "Review MCQ thema with ID."
-  (let* ((owner (gnosis-review--content-owner id))
+  (let* ((gnosis-review--display-buffer (current-buffer))
+         (owner (gnosis-review--content-owner id))
+         (gnosis-review--display-validate
+          (lambda () (gnosis-review--content-check id owner)))
          (data (car (cadr owner)))
          (keimenon (nth 1 data))
          (answer (car (nth 3 data)))
          (parathema (nth 5 data)))
-    (gnosis-display-image keimenon)
-    (gnosis-display-keimenon (gnosis-org-format-string keimenon))
+    (gnosis-review--display-question id owner keimenon)
     (let* ((user-choice (gnosis-mcq-answer id))
            (_ (gnosis-review--content-check id owner))
 	   (success (string= answer user-choice))
@@ -1480,10 +1631,15 @@ snapshot, never a content archive or retrospective regrading rule."
 
 (defun gnosis-review--content-owner (id)
   "Capture ID's content and optional encounter owner before input."
+  (gnosis-review--session-check nil (current-buffer))
+  (gnosis-review--watch-buffer)
+  (unless gnosis-review--setup-owner
+    (setq gnosis-review--setup-owner (list (current-buffer))))
   (list (gnosis--ensure-db) (copy-tree (gnosis-review--content-thema id))
         (current-buffer) gnosis-review--state
         (and gnosis-review--state
-             (copy-tree (gnosis-review--state-data gnosis-review--state)))))
+             (copy-tree (gnosis-review--state-data gnosis-review--state)))
+        gnosis-review--setup-owner))
 
 (defun gnosis-review--content-thema (id)
   "Read ID's response rules and presentation, excluding scheduling and tags."
@@ -1499,9 +1655,11 @@ snapshot, never a content archive or retrospective regrading rule."
 RESULT permits an identical retry of the last committed persistent attempt."
   (let ((state (nth 3 owner)) (snapshot (nth 4 owner))
         (row (car (nth 1 owner))))
-    (unless (and (eq (car owner) (gnosis--ensure-db))
+    (unless (and (not gnosis-review--retired) (not buffer-file-name)
+                 (eq (car owner) (gnosis--ensure-db))
                  (buffer-live-p (nth 2 owner)) (eq (current-buffer) (nth 2 owner))
                  (eq gnosis-review--state state)
+                 (eq gnosis-review--setup-owner (nth 5 owner))
                  (or (null state)
                      (equal snapshot (gnosis-review--state-data state))
                      (and result (gnosis-review-state-persistent-p state)
@@ -1510,6 +1668,10 @@ RESULT permits an identical retry of the last committed persistent attempt."
                                  (gnosis-review-state-session-id state))
                           (equal (plist-get result :event-id)
                                  (gnosis-review-state-last-event state))))
+                 (or (null state) (not (gnosis-review-state-persistent-p state))
+                     (when-let* ((stored (gnosis-review--read-session)))
+                       (equal (gnosis-review--state-data state)
+                              (gnosis-review--state-data stored))))
                  (or (gnosis-review--edited-content-p id result)
                      (equal (nth 1 owner) (gnosis-review--content-thema id))))
       (signal 'gnosis-review-content-changed
@@ -1518,7 +1680,10 @@ RESULT permits an identical retry of the last committed persistent attempt."
 
 (defun gnosis-review-basic (id)
   "Review basic type thema for ID."
-  (let* ((owner (gnosis-review--content-owner id))
+  (let* ((gnosis-review--display-buffer (current-buffer))
+         (owner (gnosis-review--content-owner id))
+         (gnosis-review--display-validate
+          (lambda () (gnosis-review--content-check id owner)))
          (data (car (cadr owner)))
 	 (keimenon (nth 1 data))
 	 (hypothesis (car (nth 2 data)))
@@ -1527,9 +1692,7 @@ RESULT permits an identical retry of the last committed persistent attempt."
          (tolerance gnosis-string-difference)
 	 (parathema (gnosis-get 'parathema 'extras
 				`(= id ,id))))
-    (gnosis-review--content-check id owner)
-    (gnosis-display-image keimenon)
-    (gnosis-display-keimenon (gnosis-org-format-string keimenon))
+    (gnosis-review--display-question id owner keimenon)
     (gnosis-display-hint hypothesis)
     (let* ((self-grade (or (eq gnosis-review-basic-input 'self-grade)
                             (gnosis-image-content-p answer)))
@@ -1540,6 +1703,7 @@ RESULT permits an identical retry of the last committed persistent attempt."
             (if self-grade
                 (progn
                   (read-char-choice "Recall first; press SPC to reveal: " '(?\s))
+                  (gnosis-review--content-check id owner)
                   (gnosis-display-basic-answer answer t "")
                   (gnosis-display-parathema parathema)
                   (= (read-char-choice "Recalled the checklist?  y yes, n no: " '(?y ?n)) ?y))
@@ -1599,7 +1763,10 @@ Returns (NEW-UNREVEALED NEW-HINTS NEW-REVEALED)."
 
 (defun gnosis-review-cloze (id)
   "Review cloze type thema for ID."
-  (let* ((owner (gnosis-review--content-owner id))
+  (let* ((gnosis-review--display-buffer (current-buffer))
+         (owner (gnosis-review--content-owner id))
+         (gnosis-review--display-validate
+          (lambda () (gnosis-review--content-check id owner)))
          (data (car (cadr owner)))
 	 (keimenon (nth 1 data))
 	 (all-clozes (nth 3 data))
@@ -1657,7 +1824,10 @@ Returns (NEW-UNREVEALED NEW-HINTS NEW-REVEALED)."
 
 (defun gnosis-review-mc-cloze (id)
   "Review mc-cloze type thema for ID."
-  (let* ((owner (gnosis-review--content-owner id))
+  (let* ((gnosis-review--display-buffer (current-buffer))
+         (owner (gnosis-review--content-owner id))
+         (gnosis-review--display-validate
+          (lambda () (gnosis-review--content-check id owner)))
          (data (car (cadr owner)))
 	 (keimenon (nth 1 data))
 	 (cloze (nth 3 data))
@@ -1690,6 +1860,41 @@ Returns (NEW-UNREVEALED NEW-HINTS NEW-REVEALED)."
 
 ;;; Session management
 
+(defvar gnosis-review--session-validate nil
+  "Validator retaining the running batch's original buffer and setup.
+Never recapture this authority after navigation or between presentations.")
+
+(defun gnosis-review--session-validator (state)
+  "Capture STATE's buffer lifetime and database before session callbacks.
+The returned function also accepts an optional frozen checkpoint.  Detached
+nonpersistent queue computations do not acquire a native buffer lifetime."
+  (if (not (or (gnosis-review-state-persistent-p state)
+               (eq state gnosis-review--state)))
+      (lambda (&optional _checkpoint _destination) nil)
+    (let ((buffer (current-buffer))
+          (setup (or gnosis-review--setup-owner
+                     (setq gnosis-review--setup-owner (list (current-buffer)))))
+          (database (gnosis--ensure-db)))
+      (lambda (&optional checkpoint destination)
+        (unless (buffer-live-p buffer) (user-error "Review buffer was killed"))
+        (with-current-buffer buffer
+          (gnosis-review--watch-buffer setup)
+          (unless (and (eq state gnosis-review--state)
+                       (or (null destination) (eq buffer destination))
+                       (eq database (gnosis--ensure-db))
+                       (or (null checkpoint)
+                           (equal checkpoint (gnosis-review--state-data state))))
+            (user-error "Review session changed; resume the batch again"))
+          (when (gnosis-review-state-persistent-p state)
+            (gnosis-review--check-database state)
+            (gnosis-review--check-action-target
+             (cons database (gnosis-review--state-data state)))))))))
+
+(defun gnosis-review--session-check (&optional checkpoint destination)
+  "Validate the batch owner, optional CHECKPOINT and input DESTINATION."
+  (when gnosis-review--session-validate
+    (funcall gnosis-review--session-validate checkpoint destination)))
+
 (defun gnosis-review--display-thema (id)
   "Display thema with ID and call the appropriate review func.
 Returns (TYPE (SUCCESS . ALGORITHM-RESULT))."
@@ -1697,10 +1902,13 @@ Returns (TYPE (SUCCESS . ALGORITHM-RESULT))."
          (func-name (intern (format "gnosis-review-%s"
 				    (downcase type)))))
     (if (fboundp func-name)
-        (progn
-	  (window-configuration-to-register :gnosis-pre-image)
+        (let ((owner (gnosis-review--content-owner id)))
+          (window-configuration-to-register :gnosis-pre-image)
+          (gnosis-review--content-check id owner)
           (let* ((image-owner (gnosis-review--image-owner id))
+                 (_ (gnosis-review--content-check id owner))
                  (answer (funcall func-name id)))
+            (gnosis-review--content-check id owner)
             (when image-owner
               (gnosis-review--image-check id image-owner)
               (setcdr answer (plist-put (cdr answer) :image image-owner)))
@@ -1723,8 +1931,11 @@ Displays the thema, processes the review result, advances the bounded
 remaining queue, and forces header redisplay.  Return STATE.
 
 This is a helper function for `gnosis-review-session'."
-  (let ((remaining (gnosis-review-state-remaining state))
+  (let ((gnosis-review--session-validate
+         (or gnosis-review--session-validate (gnosis-review--session-validator state)))
+        (remaining (gnosis-review-state-remaining state))
         (checkpoint (copy-tree (gnosis-review--state-data state))))
+    (gnosis-review--session-check checkpoint (current-buffer))
     (unless (equal thema (car remaining))
       (error "Review queue is out of order"))
     (pcase-let* ((gnosis-review--monkeytype-text nil)
@@ -1743,10 +1954,13 @@ This is a helper function for `gnosis-review-session'."
                   (vector (list :kind "copy-practice" :text text))))))
       (let* ((disposition (gnosis-review-actions success thema result))
              (failed-p (gnosis-review--failed-disposition-p disposition))
-             (requeued (gnosis-review-state-requeued state)))
+             (requeued (gnosis-review-state-requeued state))
+             (accepted (copy-tree (gnosis-review--state-data state))))
+        (gnosis-review--session-check accepted)
         ;; Use jump-to-register after first review.
         (when (get-register :gnosis-pre-image)
           (jump-to-register :gnosis-pre-image))
+        (gnosis-review--session-check accepted)
         (if (gnosis-review-state-persistent-p state)
             (when (eq disposition :deleted)
               (gnosis-review--skip state thema))
@@ -1765,7 +1979,9 @@ This is a helper function for `gnosis-review-session'."
                 (if requeue-p (append rest (list thema)) rest)
                 (gnosis-review-state-requeued state)
                 (if requeue-p (cons thema requeued) requeued)))))
-    (gnosis-review--lookahead-advance checkpoint)
+    (let ((advanced (copy-tree (gnosis-review--state-data state))))
+      (gnosis-review--lookahead-advance checkpoint)
+      (gnosis-review--session-check advanced))
     (force-mode-line-update)
     state)))
 
@@ -1775,15 +1991,25 @@ This is a helper function for `gnosis-review-session'."
 Return STATE after completion."
   (if (null (gnosis-review-state-remaining state))
       (progn (message "No themata for review.") state)
-    (while (gnosis-review-state-remaining state)
-      (let ((id (car (gnosis-review-state-remaining state))))
-        (if (gnosis-study-eligible-p id)
-            (progn
-              (pop-to-buffer-same-window gnosis-review-buffer-name)
-              ;; Do not restore source windows or the preceding answer image.
-              (delete-other-windows)
-              (gnosis-review-process-thema id state))
-          (gnosis-review--skip state id))))
+    (let ((buffer (current-buffer))
+          (gnosis-review--session-validate
+           (or gnosis-review--session-validate (gnosis-review--session-validator state))))
+      (while (gnosis-review-state-remaining state)
+        (gnosis-review--session-check)
+        (let ((id (car (gnosis-review-state-remaining state)))
+              (checkpoint (copy-tree (gnosis-review--state-data state))))
+          (if (gnosis-study-eligible-p id)
+              (progn
+                (gnosis-review--session-check checkpoint)
+                (pop-to-buffer-same-window buffer)
+                (gnosis-review--session-check checkpoint)
+                ;; Do not restore source windows or the preceding answer image.
+                (delete-other-windows)
+                (gnosis-review--session-check checkpoint)
+                (gnosis-review-process-thema id state))
+            (gnosis-review--session-check checkpoint)
+            (gnosis-review--skip state id))
+          (gnosis-review--session-check))))
     state))
 
 (defun gnosis-review-practice-projection (state events)
@@ -1887,8 +2113,11 @@ or granting summary actions authority over a different current connection."
                 (format "Targets reached: %d   Attempt limit (target unmet): %d   Unfinished: %d   Excluded: %d\n"
                         (plist-get progress :target-reached) (plist-get progress :attempt-limit)
                         (plist-get progress :unfinished) (plist-get progress :excluded))))
-      (gnosis-review-summary-mode)
-      (setq gnosis-review--summary-target target))
+      ;; Establish authority before hooks can retire this buffer.
+      (delay-mode-hooks
+        (gnosis-review-summary-mode)
+        (setq gnosis-review--summary-target target))
+      (run-mode-hooks))
     (pop-to-buffer buf)))
 
 (keymap-popup-define gnosis-review-summary-mode-map
@@ -1905,10 +2134,33 @@ or granting summary actions authority over a different current connection."
   :group "Navigate"
   "q" ("Quit" quit-window))
 
+(defun gnosis-review--retire-summary ()
+  "Retire the summary's authority when its buffer is repurposed."
+  (setq gnosis-review--summary-target nil))
+
 (define-derived-mode gnosis-review-summary-mode special-mode "Study Summary"
   "Inspect truthful study outcomes; use h for continuation and repair.
 Resume, discard and undo act only on the displayed checkpoint in its original
-open database.  Reopen a summary after the checkpoint or connection changes.")
+open database.  Reopen a summary after the checkpoint or connection changes.
+Visiting a file permanently retires this summary's actions."
+  (add-hook 'after-set-visited-file-name-hook #'gnosis-review--retire-summary nil t)
+  (add-hook 'change-major-mode-hook #'gnosis-review--retire-summary nil t))
+
+(defun gnosis-review--summary-owner ()
+  "Return the current summary buffer and target, or nil outside summaries."
+  (when (derived-mode-p 'gnosis-review-summary-mode)
+    (cons (current-buffer) gnosis-review--summary-target)))
+
+(defun gnosis-review--check-summary-owner (owner)
+  "Reject a retired summary OWNER; nil imposes no buffer ownership."
+  (when owner
+    (unless (and (buffer-live-p (car owner))
+                 (with-current-buffer (car owner)
+                   (and (derived-mode-p 'gnosis-review-summary-mode)
+                        (not buffer-file-name)
+                        gnosis-review--summary-target
+                        (eq gnosis-review--summary-target (cdr owner)))))
+      (user-error "Study summary buffer changed; reopen the summary first"))))
 
 (defun gnosis-review--check-action-target (target)
   "Reject TARGET unless its database and frozen checkpoint are still current.
@@ -1919,13 +2171,10 @@ Check at the action boundary, including after prompts or buffer setup hooks."
                         (gnosis-review--state-data state))))
     (user-error "Study summary or session changed; inspect the current batch first")))
 
-(defun gnosis-review--action-target ()
-  "Return the caller's database and checkpoint for a retained-session action.
-Summary commands own the displayed snapshot; elsewhere use the current batch."
-  (let ((target (if (derived-mode-p 'gnosis-review-summary-mode)
-                    (or gnosis-review--summary-target
-                        (user-error "No study checkpoint belongs to this summary"))
-                  (gnosis-review--session-target))))
+(defun gnosis-review--action-target (owner)
+  "Return summary OWNER's database/checkpoint, or the current batch for nil."
+  (gnosis-review--check-summary-owner owner)
+  (let ((target (if owner (cdr owner) (gnosis-review--session-target))))
     (gnosis-review--check-action-target target)
     target))
 
@@ -1966,17 +2215,32 @@ and batch replacement; it must signal if the caller no longer owns the action."
   "Present STATE in BUF with frozen input policy and restored windows."
   (let ((gnosis-review-basic-input (gnosis-review-state-basic-input state))
         (reviewed (gnosis-review-state-reviewed state))
+        (checkpoint (copy-tree (gnosis-review--state-data state)))
+        (gnosis-review--session-validate
+         (with-current-buffer buf (gnosis-review--session-validator state)))
         (gnosis-review--running (gnosis-review-state-session-id state)))
+    (gnosis-review--session-check checkpoint)
     (unwind-protect
         (save-window-excursion
           (pop-to-buffer-same-window buf)
+          (gnosis-review--session-check checkpoint)
           (delete-other-windows)
+          (gnosis-review--session-check checkpoint)
           (catch 'review-loop (gnosis-review-session state))
-          (when (> (gnosis-review-state-reviewed state) reviewed)
-            (gnosis-review-commit (- (gnosis-review-state-reviewed state) reviewed))))
-      (when (buffer-live-p buf)
-        (with-current-buffer buf (gnosis-review--lookahead-cancel)))
-      (gnosis-review--show-summary state)))
+          (gnosis-review--session-check)
+          (let ((finished (copy-tree (gnosis-review--state-data state))))
+            (when (> (gnosis-review-state-reviewed state) reviewed)
+              (gnosis-review-commit (- (gnosis-review-state-reviewed state) reviewed)))
+            (gnosis-review--session-check finished)))
+      ;; Window restoration and cancellation may run native callbacks too.
+      ;; Never cancel a successor's preparation or steal its view for a summary.
+      (when (condition-case nil
+                (progn (gnosis-review--session-check) t)
+              (user-error nil))
+        (let ((finished (copy-tree (gnosis-review--state-data state))))
+          (with-current-buffer buf (gnosis-review--lookahead-cancel))
+          (gnosis-review--session-check finished)
+          (gnosis-review--show-summary state)))))
   state)
 
 ;;;###autoload
@@ -1984,24 +2248,33 @@ and batch replacement; it must signal if the caller no longer owns the action."
   "Resume the unfinished frozen batch, discarding any unaccepted reveal.
 From a summary, require its original database and unchanged checkpoint."
   (interactive)
-  (gnosis-review--resume (gnosis-review--action-target)))
+  (let ((owner (gnosis-review--summary-owner)))
+    (gnosis-review--resume
+     (gnosis-review--action-target owner)
+     (lambda () (gnosis-review--check-summary-owner owner)))))
 
-(defun gnosis-review--resume (target)
-  "Resume exact database/checkpoint TARGET, independently of the current buffer."
+(defun gnosis-review--resume (target &optional validate)
+  "Resume exact database/checkpoint TARGET, independently of the current buffer.
+Optional VALIDATE checks the caller before setup and checkpoint mutation."
   (when gnosis-review--running (user-error "Finish the active review first"))
+  (when validate (funcall validate))
   (gnosis-review--check-action-target target)
   (let ((state (or (gnosis-review--read-session) (user-error "No study session"))))
     (unless (gnosis-review-state-remaining state) (user-error "Batch is complete"))
-    ;; Invalidate any deferred adapter launch before entering native input.
-    (when (gnosis-review-state-launch-token state)
-      (gnosis-sqlite-with-transaction (gnosis--ensure-db)
-        (gnosis-review--check-action-target target)
-        (setf (gnosis-review-state-launch-token state) nil)
-        (gnosis-review--save-session state)))
-    (let ((buf (gnosis-review--setup-buffer nil)))
+    ;; Setup can run hooks while the deferred launch token is still current.
+    (let ((buf (let ((gnosis-review--running (gnosis-review-state-session-id state)))
+                 (gnosis-review--setup-buffer nil))))
+      (when validate (funcall validate))
+      (gnosis-review--check-action-target target)
+      ;; Setup hooks must not retire the caller before this checkpoint write.
+      ;; Invalidate any deferred adapter launch before entering native input.
+      (when (gnosis-review-state-launch-token state)
+        (gnosis-sqlite-with-transaction (gnosis--ensure-db)
+          (when validate (funcall validate))
+          (gnosis-review--check-action-target target)
+          (setf (gnosis-review-state-launch-token state) nil)
+          (gnosis-review--save-session state)))
       (with-current-buffer buf (setq gnosis-review--state state))
-      (gnosis-review--check-action-target
-       (cons (car target) (gnosis-review--state-data state)))
       (gnosis-review--run-state buf state))))
 
 ;;;###autoload
@@ -2010,9 +2283,11 @@ From a summary, require its original database and unchanged checkpoint."
 From a summary, require its original database and unchanged checkpoint."
   (interactive)
   (when gnosis-review--running (user-error "Finish the active review first"))
-  (let ((target (gnosis-review--action-target)))
+  (let* ((owner (gnosis-review--summary-owner))
+         (target (gnosis-review--action-target owner)))
     (when (y-or-n-p "Discard batch progress (keep accepted grades)? ")
       (gnosis-sqlite-with-transaction (car target)
+        (gnosis-review--check-summary-owner owner)
         (gnosis-review--check-action-target target)
         (when-let* ((state (gnosis-review--read-session)))
           (setf (gnosis-review-state-cancelled-p state) t
@@ -2036,9 +2311,11 @@ or superseded targets.  Re-answer with a fresh attempt identity.
 From a summary, require its original database and unchanged checkpoint."
   (interactive)
   (when gnosis-review--running (user-error "Quit the active review before undo"))
-  (let* ((target (gnosis-review--action-target))
+  (let* ((owner (gnosis-review--summary-owner))
+         (target (gnosis-review--action-target owner))
          (restored
           (gnosis-sqlite-with-transaction (car target)
+            (gnosis-review--check-summary-owner owner)
             (gnosis-review--check-action-target target)
             (let* ((state (or (gnosis-review--read-session) (user-error "No retained session")))
              (slot (gnosis-review-state-undo state))
@@ -2153,12 +2430,22 @@ be called with new SUCCESS value plus THEMA."
   "View linked node(s) for THEMA.
 SUCCESS is the review result.
 RESULT is the algorithm result to thread through."
-  (if (gnosis-get-linked-nodes thema)
-      (progn (gnosis-view-linked-node thema)
-	     (recursive-edit))
-    (message (format "No linked nodes for thema: %d" thema))
-    (sleep-for 0.5))
-  (gnosis-review-actions success thema result))
+  (let* ((origin (current-buffer))
+         (validate (lambda ()
+                     (unless (buffer-live-p origin)
+                       (user-error "Review buffer no longer exists"))
+                     (with-current-buffer origin
+                       (gnosis-review--check-result-content thema result)))))
+    (funcall validate)
+    (if (gnosis-get-linked-nodes thema)
+        (progn (gnosis-view-linked-node thema validate)
+               (funcall validate)
+               (recursive-edit))
+      (message "No linked nodes for thema: %d" thema)
+      (sleep-for 0.5))
+    (funcall validate)
+    (with-current-buffer origin
+      (gnosis-review-actions success thema result))))
 
 (defun gnosis-review--accept (id success result)
   "Accept ID and SUCCESS using RESULT, preserving its identity on retry."
@@ -2182,7 +2469,11 @@ Return :deleted only after confirmed deletion completes.  Declining
 deletion returns to the action prompt with the same pending result.
 
 To customize the keybindings, adjust `gnosis-review-keybindings'."
-  (let* ((prompt
+  (gnosis-review--check-result-content id result)
+  (let* ((gnosis-review--display-buffer (current-buffer))
+         (gnosis-review--display-validate
+          (lambda () (gnosis-review--check-result-content id result)))
+         (prompt
 	  (concat "Action: %sext, %sverride result, "
 		  "%suspend, %selete, %sdit thema, "
 		  "%siew link, %suit (accept), f flag needs_work: "))
@@ -2192,6 +2483,7 @@ To customize the keybindings, adjust `gnosis-review-keybindings'."
 			  (lambda (str) (propertize str 'face 'match))
 			  '("n" "o" "s" "d" "e" "v" "q")))
 		  '(?n ?o ?s ?d ?e ?v ?q ?f))))
+    (gnosis-review--check-result-content id result)
     (pcase choice
       (?n (gnosis-review--accept id success result))
       (?o (gnosis-review-action--override success id result))

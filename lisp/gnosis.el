@@ -1042,14 +1042,25 @@ Return thema ids for themata that match QUERY."
     (setq global-mode-string (remove gnosis--modeline-entry global-mode-string)))
   (force-mode-line-update))
 
+(defvar gnosis--mode-setup-function nil
+  "Optional caller initializer for `gnosis-mode'.
+Called after the parent mode resets local variables, before minor-mode
+hooks can run.  Return a function that checks the caller's ownership;
+it is called after each callback-capable initialization operation.
+Bind only around the intended mode invocation; nested modes do not inherit it.")
+
 (define-derived-mode gnosis-mode special-mode "Gnosis"
   "Gnosis Mode."
   :interactive nil
-  (read-only-mode 0)
-  (display-line-numbers-mode 0)
-  ;; Initialize centering based on user preference
-  (setq-local gnosis-center-content gnosis-center-content-during-review)
-  :lighter " gnosis-mode")
+  (let* ((setup gnosis--mode-setup-function)
+         (gnosis--mode-setup-function nil)
+         (validate (and setup (funcall setup))))
+    (read-only-mode 0)
+    (when validate (funcall validate))
+    (display-line-numbers-mode 0)
+    (when validate (funcall validate))
+    ;; Initialize centering only while the caller still owns this mode entry.
+    (setq-local gnosis-center-content gnosis-center-content-during-review)))
 
 (provide 'gnosis)
 ;;; gnosis.el ends here

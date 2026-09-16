@@ -7,7 +7,9 @@ ENV_MAKE = $(MAKE) --no-print-directory
 ifeq ($(USE_NIX),1)
 ifeq ($(IN_NIX_SHELL),)
 ifneq ($(NIX),)
-ENV_MAKE = nix develop path:. --command $(MAKE) --no-print-directory USE_NIX=0
+# A local reference uses Git's tracked files in a checkout, and also works
+# in a source archive.  Do not use path: here: it copies ignored files too.
+ENV_MAKE = nix develop . --command $(MAKE) --no-print-directory USE_NIX=0
 endif
 endif
 endif
@@ -16,7 +18,7 @@ EMACS_CMD ?= emacs
 EMACS_OPTS ?= -Q --batch
 
 SRCS = keymap-popup.el
-TESTS = tests/keymap-popup-tests.el
+TESTS = $(wildcard tests/*-tests.el)
 BATCH = $(EMACS_CMD) $(EMACS_OPTS)
 
 ORG = docs/keymap-popup.org
@@ -39,7 +41,8 @@ test:
 
 do-test:
 	@echo "Testing $(TESTS)..."
-	@$(BATCH) -l ert -l $(SRCS) -l $(TESTS) -f ert-run-tests-batch-and-exit
+	@$(BATCH) -L . -L tests -l ert $(foreach src,$(SRCS),-l $(src)) \
+	  $(foreach test,$(TESTS),-l $(test)) -f ert-run-tests-batch-and-exit
 
 # Native minibuffer tests need a terminal, not batch stdin (util-linux script).
 test-native:
@@ -56,7 +59,13 @@ lint:
 
 do-lint:
 	@echo "Running checkdoc..."
-	@$(BATCH) --eval '(checkdoc-file "$(SRCS)")'
+	@$(BATCH) --eval '(require (quote checkdoc))' \
+	  --eval "(let ((diagnostics nil) (report checkdoc-create-error-function)) \
+	    (let ((checkdoc-create-error-function \
+	           (lambda (&rest args) (push args diagnostics) (apply report args)))) \
+	      (dolist (file (quote ($(foreach src,$(SRCS),\"$(src)\")))) \
+	        (checkdoc-file file))) \
+	    (when diagnostics (kill-emacs 1)))"
 	@echo "Running package-lint..."
 	@$(BATCH) --eval '(package-initialize)' \
 	  --eval '(require (quote package-lint))' \
@@ -81,8 +90,6 @@ do-dev: do-compile do-lint do-test
 load:
 	@emacsclient --eval "(progn \
 	  (add-to-list (quote load-path) \"$(CURDIR)\") \
-	  (when (boundp (quote keymap-popup-display-action)) \
-	    (makunbound (quote keymap-popup-display-action))) \
 	  (load-file \"$(CURDIR)/$(SRCS)\"))" > /dev/null
 	@printf "\033[32mLoaded keymap-popup into Emacs\033[0m\n"
 

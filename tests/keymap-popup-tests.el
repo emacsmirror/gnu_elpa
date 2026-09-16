@@ -33,8 +33,7 @@ PROPERTIES may supply active-state and session values used by a test."
                         :backend backend
                         :persistent-hook
                         (plist-get properties :persistent-hook))))
-    (with-current-buffer buf
-      (setq-local keymap-popup--session session))))
+    (keymap-popup--init-session buf session)))
 
 ;;; Parser tests
 
@@ -1042,7 +1041,9 @@ PROPERTIES may supply active-state and session values used by a test."
            :group "C"
            "a" ("Child A" ignore))
         t)
-  (let* ((all (keymap-popup--collect-descriptions keymap-popup--test-shadow-child))
+  (let* ((all (keymap-popup--resolve-descriptions
+               (keymap-popup--collect-descriptions keymap-popup--test-shadow-child)
+               keymap-popup--test-shadow-child))
          (group-names (cl-loop for row in all
                                append (mapcar (lambda (g) (plist-get g :name)) row)))
          (entries (cl-loop for row in all
@@ -1192,7 +1193,7 @@ Enforcement moved to the wrapper; the binding never changes."
   "Outside a popup, an inapt key dispatches its real command."
   (let ((count 0))
     (eval `(keymap-popup-define keymap-popup--test-direct-inapt
-             "x" ("X" ,(lambda () (interactive) (setq count (1+ count)))
+             "x" ("X" ',(lambda () (interactive) (setq count (1+ count)))
                   :inapt-if (lambda () t)))
           t)
     (let ((binding (keymap-lookup keymap-popup--test-direct-inapt "x")))
@@ -1949,7 +1950,7 @@ find the command; the stored key must survive (render hides the
 entry independently)."
   (let* ((map (make-sparse-keymap))
          (wrapped (eval (keymap-popup--wrap-binding-form
-                         '(function next-line) (lambda () nil))
+                         '(function next-line) '(lambda () nil))
                         t))
          (entry (list :key "n" :description "Next" :type 'suffix
                       :command 'next-line :if (lambda () nil))))

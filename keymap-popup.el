@@ -141,7 +141,10 @@ no explicit :exit-key, for both `keymap-popup-define' and
   :group 'keymap-popup)
 
 (defconst keymap-popup--buffer-name "*keymap-popup*"
-  "Name of the singleton buffer used to display the popup.")
+  "Preferred name for a newly allocated popup buffer.")
+
+(defvar keymap-popup--buffer nil
+  "Buffer owning the current popup session, or nil.")
 
 ;;; Faces
 
@@ -334,6 +337,20 @@ the type-specific payload and optional predicates."
     (when (eq mode 'define)
       (keymap-popup--invalid context "definitions require a key string")))
    (t (keymap-popup--invalid context "invalid key or command %S" key))))
+
+(defun keymap-popup--key-events (key)
+  "Return native keymap events for key string KEY, or nil for nil.
+Expand Meta characters using `meta-prefix-char', as `define-key' does."
+  (when key
+    (cl-loop for event across (key-parse key)
+             if (and (integerp event) (/= 0 (logand event #x8000000)))
+             append (list meta-prefix-char (logand event (lognot #x8000000)))
+             else collect event)))
+
+(defun keymap-popup--same-key-p (a b)
+  "Return non-nil when key strings A and B name the same native events."
+  (and (stringp a) (stringp b)
+       (equal (keymap-popup--key-events a) (keymap-popup--key-events b))))
 
 (defun keymap-popup--parse-annotated-entry (key spec context runtime)
   "Parse annotated SPEC for command KEY in CONTEXT.
@@ -693,6 +710,19 @@ Do not follow KEYMAP's parent or evaluate `menu-item' filters."
           (setq map prefix)))
       (keymap-popup--raw-local-event-binding map (car events)))))
 
+(defun keymap-popup--declared-command (keymap key)
+  "Return the previously described command for KEY in KEYMAP.
+Consult local metadata, not live bindings: a user replacement must
+not acquire the original command's description on reload."
+  (when-let* ((meta (keymap-popup--raw-local-event-binding
+                    keymap 'keymap-popup))
+              (rows (keymap-popup--raw-local-event-binding meta 'descriptions)))
+    (plist-get
+     (seq-find (lambda (entry)
+                 (keymap-popup--same-key-p (plist-get entry :key) key))
+               (keymap-popup--flatten-with-groups rows))
+     :command)))
+
 (defun keymap-popup--bind-launcher (keymap key command)
   "Bind popup launcher COMMAND to KEY in KEYMAP.
 Signal an error instead of replacing an existing local binding."
@@ -809,7 +839,9 @@ per `keymap-popup-default-popup-key'), optional :exit-key KEY
 \(default per `keymap-popup-default-exit-key'), optional :parent
 KEYMAP, optional :description STRING-OR-FUNCTION, optional
 :persistent BOOL, followed by :group keywords and KEY (DESC ...)
-pairs."
+pairs.
+Reevaluation preserves the initialized keymap and its original
+anonymous commands, while refreshing descriptions and options."
   (declare (indent 1))
   (let* ((options (keymap-popup--extract-macro-opts
                    body keymap-popup--define-options
@@ -856,7 +888,11 @@ pairs."
              ;; Share function objects, not merely equal closure forms, between
              ;; the live bindings and descriptions.  Keep predicate layers apart.
              `((let ,(mapcar (lambda (pair)
-                              `(,(cdr pair) ,(plist-get (car pair) :command)))
+                              `(,(cdr pair)
+                                (or (and (boundp ',name)
+                                         (keymap-popup--declared-command
+                                          ,name ,(plist-get (car pair) :key)))
+                                    ,(plist-get (car pair) :command))))
                             commands)
                  ,@definition))
            definition))))
@@ -950,30 +986,15 @@ FN receives a group plist and returns a new group plist."
                         row))
             rows))
 
-(defun keymap-popup--add-entry-to-rows (rows entry group-name)
-  "Return ROWS with ENTRY appended to the first group named GROUP-NAME.
-Falls back to the first group if GROUP-NAME is not found.
-If ENTRY's key already appears in ROWS (in any group), the prior
-entry is removed first -- matching the replacement semantics of
-`keymap-set'."
-  (let* ((key (plist-get entry :key))
-         (scrubbed (if key
-                       (keymap-popup--remove-key-from-rows rows key)
-                     rows))
-         (target (or (and group-name
-                          (cl-loop for row in scrubbed
-                                   thereis (cl-find group-name row
-                                                    :key (lambda (group)
-                                                           (plist-get group :name))
-                                                    :test #'equal)))
-                     (caar scrubbed))))
-    (keymap-popup--map-groups
-     scrubbed
-     (lambda (group)
-       (if (eq group target)
-           (plist-put (copy-sequence group) :entries
-                      (append (plist-get group :entries) (list entry)))
-         group)))))
+(defun keymap-popup--add-entry-to-rows (rows entry target)
+  "Return ROWS with ENTRY appended to the group object TARGET."
+  (keymap-popup--map-groups
+   rows
+   (lambda (group)
+     (if (eq group target)
+         (plist-put (copy-sequence group) :entries
+                    (append (plist-get group :entries) (list entry)))
+       group))))
 
 (defun keymap-popup--remove-key-from-rows (rows key)
   "Return ROWS with entries matching KEY filtered out."
@@ -982,26 +1003,38 @@ entry is removed first -- matching the replacement semantics of
    (lambda (group)
      (plist-put (copy-sequence group) :entries
                 (cl-remove-if
-                 (lambda (e) (equal (plist-get e :key) key))
+                 (lambda (e) (keymap-popup--same-key-p (plist-get e :key) key))
                  (plist-get group :entries))))))
 
 ;;;###autoload
 (defun keymap-popup-add-entry (keymap key description command &optional group)
   "Add KEY binding with DESCRIPTION and COMMAND to KEYMAP.
-GROUP is the group name to add to (nil for the first group).
-Updates both the keymap and the popup descriptions."
+GROUP is the group name to add to (nil or missing means the first group).
+Updates both the keymap and the popup descriptions.  The destination
+group's :if predicate governs direct dispatch; :inapt-if remains
+popup-only.  Equivalent key spellings replace the same entry."
   (let ((descs (keymap-popup--meta keymap 'descriptions)))
     (or descs (user-error "No descriptions in keymap"))
-    (let ((entry (keymap-popup--parse-entry
-                  key (list description command) 'runtime)))
-      (keymap-set keymap key command)
+    (let* ((entry (keymap-popup--parse-entry
+                   key (list description command) 'runtime))
+           (rows (keymap-popup--remove-key-from-rows descs key))
+           (target (or (and group
+                            (cl-loop for row in rows
+                                     thereis (cl-find group row
+                                                      :key (lambda (item)
+                                                             (plist-get item :name))
+                                                      :test #'equal)))
+                       (caar rows))))
+      (keymap-set keymap key
+                  (keymap-popup--filter-binding command (plist-get target :if)))
       (setf (keymap-popup--meta keymap 'descriptions)
-            (keymap-popup--add-entry-to-rows descs entry group)))))
+            (keymap-popup--add-entry-to-rows rows entry target)))))
 
 ;;;###autoload
 (defun keymap-popup-remove-entry (keymap key)
   "Remove KEY binding from KEYMAP.
-Updates both the keymap and the popup descriptions."
+Updates both the keymap and the popup descriptions, including entries
+whose key spelling denotes the same native events as KEY."
   (let ((descriptions (keymap-popup--meta keymap 'descriptions)))
     (or descriptions (user-error "No descriptions in keymap"))
     (let ((remaining (keymap-popup--remove-key-from-rows descriptions key)))
@@ -1031,6 +1064,10 @@ other non-string values.  Collapse runs of whitespace and truncate to
          (truncate-string-to-width
           collapsed keymap-popup--max-description-width nil nil t))))
 
+(defun keymap-popup--pad-width (string width)
+  "Pad STRING with spaces to display WIDTH, preserving text properties."
+  (concat string (make-string (max 0 (- width (string-width string))) ?\s)))
+
 (defun keymap-popup--render-entry (entry &optional prefix-mode key-width)
   "Render ENTRY into a formatted line, or nil if :if hides it.
 When PREFIX-MODE is non-nil, entries with :c-u are highlighted and
@@ -1047,7 +1084,7 @@ KEY-WIDTH pads the key column for alignment."
               (c-u-desc (plist-get entry :c-u))
               (raw-key (plist-get entry :key))
               (padded-key (if key-width
-                              (string-pad raw-key key-width)
+                              (keymap-popup--pad-width raw-key key-width)
                             raw-key))
               (key-str (propertize padded-key 'face 'keymap-popup-key))
               (value-str (if (eq type 'switch)
@@ -1077,7 +1114,7 @@ rendered with the inapt face."
        (let* ((group-inapt (keymap-popup--inapt-active-p group))
               (entries (plist-get group :entries))
               (key-width (cl-loop for entry in entries
-				  maximize (length (plist-get entry :key))))
+				  maximize (string-width (plist-get entry :key))))
               (header (and-let* ((raw-name (plist-get group :name))
 				 (name (keymap-popup--resolve-description raw-name)))
 			(propertize name 'face (if group-inapt
@@ -1107,7 +1144,7 @@ Shorter columns are padded with blank lines."
          (padded-cols (cl-mapcar
                        (lambda (col width)
                          (let ((padded (mapcar (lambda (line)
-                                                 (string-pad line width))
+                                                 (keymap-popup--pad-width line width))
                                                col))
                                (blanks (make-list (- max-height (length col))
                                                   (make-string width ?\s))))
@@ -1235,6 +1272,14 @@ values live beside them.")
   "Return PROPERTY from BUF's popup session."
   (plist-get (keymap-popup--session-state buf) property))
 
+(defun keymap-popup--popup-buffer ()
+  "Return the live buffer owning the active popup, or nil."
+  (and (buffer-live-p keymap-popup--buffer)
+       (not (buffer-local-value 'buffer-file-name keymap-popup--buffer))
+       (keymap-popup--session-state keymap-popup--buffer)
+       (not (keymap-popup--session-get keymap-popup--buffer :closing))
+       keymap-popup--buffer))
+
 (defun keymap-popup--active-get (buf property)
   "Return PROPERTY from BUF's active popup state."
   (plist-get (keymap-popup--session-get buf :active) property))
@@ -1242,6 +1287,8 @@ values live beside them.")
 (defun keymap-popup--set-session (buf &rest properties)
   "Replace PROPERTIES in BUF's popup session."
   (with-current-buffer buf
+    (unless keymap-popup--session
+      (error "Popup session is no longer active"))
     (setq-local keymap-popup--session
                 (apply #'keymap-popup--plist-with
                        keymap-popup--session properties))))
@@ -1271,7 +1318,7 @@ Entries with nil :key (annotated entries before key resolution)
 are preserved as-is.  Groups and rows that end up empty are removed."
   (let ((seen (make-hash-table :test 'equal)))
     (cl-labels ((keep-entry (e)
-                  (let ((k (plist-get e :key)))
+                  (let ((k (keymap-popup--key-events (plist-get e :key))))
                     (cond ((null k) e)
                           ((gethash k seen) nil)
                           (t (puthash k t seen) e))))
@@ -1283,27 +1330,48 @@ are preserved as-is.  Groups and rows that end up empty are removed."
 	       (seq-keep #'keep-row descriptions))))
 
 (defun keymap-popup--collect-descriptions (keymap)
-  "Collect descriptions from KEYMAP and all its parent keymaps.
-Walks the native parent chain via `keymap-parent'.  When a key is
-bound in both child and parent, the child's entry wins and the
-parent's is dropped, matching the dispatch behavior of inherited
-keymaps."
-  (keymap-popup--dedupe-descriptions
-   (cl-loop for map = keymap then (keymap-parent map)
-            while map
-            when (keymap-popup--meta map 'descriptions)
-            append it)))
+  "Collect descriptions from KEYMAP, its components and parents.
+Visit local metadata in native keymap traversal order.  Copy groups
+with their :source-maps so resolution can reject filtered-out paths
+before applying key precedence.  Shared parents may have more than
+one path.  Keep all candidates, including unresolved annotation keys."
+  (let ((rows nil))
+    (cl-labels
+        ((visit (map sources)
+           (let* ((sources (cons map sources))
+                  (tail
+                   (map-keymap-internal
+                    (lambda (event binding)
+                      (when (and (eq event 'keymap-popup) (keymapp binding))
+                        (push (keymap-popup--map-groups
+                               (lookup-key binding [descriptions])
+                               (lambda (group)
+                                 (plist-put (copy-sequence group)
+                                            :source-maps sources)))
+                              rows)))
+                    map)))
+             ;; Retain component boundaries: a filtered child masks its
+             ;; parent, even if another composed component has a binding.
+             (while (and (consp tail) (keymapp (car tail)))
+               (visit (car tail) sources)
+               (setq tail (cdr tail)))
+             (when tail
+               (visit (if (keymapp tail) tail (cons 'keymap tail)) sources)))))
+      (visit keymap nil))
+    (apply #'append (nreverse rows))))
 
 (defun keymap-popup--find-entry-with-group (descriptions key-str)
   "Return (ENTRY . GROUP) matching KEY-STR in DESCRIPTIONS."
-  (cl-loop for row in descriptions
-           thereis (cl-loop for group in row
-                            for entry = (cl-find
-                                         key-str (plist-get group :entries)
-                                         :key (lambda (item)
-                                                (plist-get item :key))
-                                         :test #'equal)
-                            when entry return (cons entry group))))
+  (let ((key (keymap-popup--key-events key-str)))
+    (cl-loop for row in descriptions
+             thereis (cl-loop for group in row
+                              for entry = (cl-find
+                                           key (plist-get group :entries)
+                                           :key (lambda (item)
+                                                  (keymap-popup--key-events
+                                                   (plist-get item :key)))
+                                           :test #'equal)
+                              when entry return (cons entry group)))))
 
 (defun keymap-popup--find-entry-by-key (descriptions key-str)
   "Find the entry matching KEY-STR in DESCRIPTIONS.
@@ -1322,6 +1390,16 @@ target.  Inapt-key handling is folded into the keep-pred via
         (and (eq (plist-get entry :type) 'keymap)
              (plist-get entry :target)))))
 
+(defun keymap-popup--active-descriptions (buf)
+  "Return BUF's descriptions resolved against current native bindings."
+  (let* ((active (keymap-popup--session-get buf :active))
+         (candidates (plist-get active :description-candidates))
+         (source (keymap-popup--session-get buf :source)))
+    (if candidates
+        (with-current-buffer (if (buffer-live-p source) source (current-buffer))
+          (keymap-popup--resolve-descriptions candidates (plist-get active :keymap)))
+      (plist-get active :descriptions))))
+
 (defun keymap-popup--inapt-key-p (buf key-str)
   "Return non-nil when KEY-STR is currently inapt in BUF's popup.
 Checks both the entry's own :inapt-if and its containing group's;
@@ -1330,14 +1408,18 @@ Returns nil when BUF is dead (the popup already closed)."
   (and (buffer-live-p buf)
        (pcase-let ((`(,entry . ,group)
                      (keymap-popup--find-entry-with-group
-                      (keymap-popup--active-get buf :descriptions) key-str)))
+                      (keymap-popup--active-descriptions buf) key-str)))
          (and entry
               (or (keymap-popup--inapt-active-p entry)
                   (keymap-popup--inapt-active-p group))))))
 
 (defun keymap-popup--write-rendered (buf rendered-rows)
   "Write RENDERED-ROWS to popup BUF and refit its backend."
-  (let* ((window (get-buffer-window buf t))
+  (unless (keymap-popup--session-state buf)
+    (error "Popup session is no longer active"))
+  (let* ((window (if (plist-member (keymap-popup--session-state buf) :window)
+                     (keymap-popup--display-window buf)
+                   (get-buffer-window buf t)))
          ;; `window-body-width' includes the continuation column.
          (width (and window (max 1 (1- (window-body-width window)))))
          (content (keymap-popup--render-columns rendered-rows width)))
@@ -1367,9 +1449,10 @@ Resolves the docstring for mode-line display."
     (let* ((session (keymap-popup--session-state buf))
            (active (plist-get session :active))
            (source (plist-get session :source))
-           (descriptions (plist-get active :descriptions))
+           (descriptions (keymap-popup--active-descriptions buf))
            (docstring (plist-get active :docstring))
            (prefix (plist-get session :prefix-mode)))
+      (keymap-popup--set-active buf :descriptions descriptions)
       (with-current-buffer (if (buffer-live-p source) source buf)
         (let ((resolved (and docstring
                              (keymap-popup--resolve-description docstring))))
@@ -1398,36 +1481,69 @@ the global map."
                             (key-description keys)))
            ((and stored (null (keymap-lookup keymap stored))) entry)))))))
 
+(defun keymap-popup--resolve-entry-path (entry sources)
+  "Resolve ENTRY from its origin through SOURCES to the active keymap.
+Follow rebinding at each step, not the final key in every ancestor.
+A live binding must survive the whole path; otherwise a filtered-out
+component could donate metadata to another component's binding.
+When the final key is unbound, retain its hidden-key fallback."
+  (cl-loop with resolved = entry
+           for source in sources
+           do (setq resolved (and resolved
+                                  (keymap-popup--resolve-key resolved source)))
+           for key = (plist-get resolved :key)
+           for binding = (and key (keymap-lookup source key))
+           collect binding into bindings
+           finally return
+           (and resolved
+                (or (null binding)
+                    (if (plist-get entry :command)
+                        (seq-every-p (lambda (value) (eq value binding)) bindings)
+                      ;; Runtime submenus are popup-only overrides.  Native
+                      ;; prefixes may merge into a new composed keymap.
+                      (seq-every-p #'identity bindings)))
+                resolved)))
+
 (defun keymap-popup--resolve-descriptions (rows keymap)
   "Resolve entry keys in ROWS against KEYMAP's current bindings.
-Drops annotated entries whose command has no binding, then removes
-duplicates introduced when annotated entries resolve to the same key."
+Drop unbound annotations and metadata from filtered-out components
+when another component supplies the binding.  Preserve hidden keys
+when the whole map has no binding.  Only then remove duplicate keys."
   (keymap-popup--dedupe-descriptions
    (keymap-popup--map-groups
     rows
     (lambda (group)
-      (plist-put (copy-sequence group) :entries
-                 (cl-loop for entry in (plist-get group :entries)
-                          when (keymap-popup--resolve-key entry keymap)
-                          collect it))))))
+      (plist-put
+       (copy-sequence group) :entries
+       (seq-keep (lambda (entry)
+                   (keymap-popup--resolve-entry-path
+                    entry (or (plist-get group :source-maps) (list keymap))))
+                 (plist-get group :entries)))))))
 
 ;;; Display backends
 
+(defun keymap-popup--display-window (buf)
+  "Return BUF's owned display window if it still displays BUF."
+  (let ((window (keymap-popup--session-get buf :window)))
+    (and (window-live-p window)
+         (eq (window-buffer window) buf)
+         window)))
+
 (defun keymap-popup--show-side-window (buf)
-  "Display BUF in a side window."
-  (display-buffer buf (append keymap-popup-display-action
-                              '((window-height . fit-window-to-buffer)))))
+  "Display BUF and retain the chosen window in its session."
+  (let ((window (display-buffer buf keymap-popup-display-action)))
+    (keymap-popup--set-session buf :window window)
+    window))
 
 (defun keymap-popup--fit-side-window (buf)
-  "Refit the side window displaying BUF."
-  (when-let* ((win (get-buffer-window buf))
-              (_ (window-live-p win)))
-    (fit-window-to-buffer win)))
+  "Refit the display window owned by BUF."
+  (when-let* ((window (keymap-popup--display-window buf)))
+    (fit-window-to-buffer window)))
 
 (defun keymap-popup--hide-side-window (buf)
-  "Delete the side window displaying BUF."
-  (when-let* ((win (get-buffer-window buf)))
-    (delete-window win)))
+  "Retire BUF's display, restoring a reused window natively."
+  (when-let* ((window (keymap-popup--display-window buf)))
+    (quit-restore-window window 'killing)))
 
 (defun keymap-popup--show-child-frame (buf)
   "Display BUF in a child frame centered on the parent.
@@ -1442,7 +1558,10 @@ Frame parameters are taken from `keymap-popup-child-frame-parameters'."
                    (visibility . nil)
                    ,@keymap-popup-child-frame-parameters)))
          (win (frame-root-window frame)))
+    ;; Record allocation before any fitting or user-visible operation can fail.
+    (keymap-popup--set-session buf :frame frame)
     (set-window-buffer win buf)
+    (keymap-popup--set-session buf :window win)
     (set-window-dedicated-p win t)
     (fit-frame-to-buffer frame)
     (let ((x (/ (- (frame-pixel-width parent) (frame-pixel-width frame)) 2))
@@ -1452,17 +1571,18 @@ Frame parameters are taken from `keymap-popup-child-frame-parameters'."
     (redirect-frame-focus frame parent)))
 
 (defun keymap-popup--fit-child-frame (buf)
-  "Refit the child frame displaying BUF."
-  (when-let* ((win (get-buffer-window buf t))
-              (frame (window-frame win))
-              (_ (frame-parent frame)))
+  "Refit the child frame owned by BUF."
+  (when-let* ((frame (keymap-popup--session-get buf :frame))
+              ((frame-live-p frame))
+              ((keymap-popup--display-window buf)))
     (fit-frame-to-buffer frame)))
 
 (defun keymap-popup--hide-child-frame (buf)
-  "Delete the child frame displaying BUF."
-  (when-let* ((win (get-buffer-window buf t))
-              (frame (window-frame win))
-              (_ (frame-parent frame)))
+  "Delete the child frame allocated for BUF."
+  (when-let* ((frame (keymap-popup--session-get buf :frame))
+              ((frame-live-p frame))
+              ((or (null (keymap-popup--session-get buf :window))
+                   (keymap-popup--display-window buf))))
     (delete-frame frame)))
 
 (defun keymap-popup-backend-side-window ()
@@ -1478,12 +1598,24 @@ Frame parameters are taken from `keymap-popup-child-frame-parameters'."
         :hide #'keymap-popup--hide-child-frame))
 
 (defun keymap-popup--prepare-buffer ()
-  "Create and configure the popup buffer."
-  (let ((buf (get-buffer-create keymap-popup--buffer-name)))
-    (with-current-buffer buf
-      (pcase-dolist (`(,var . ,val) keymap-popup-buffer-parameters)
-        (set (make-local-variable var) val)))
-    buf))
+  "Allocate and configure a new popup buffer without claiming a name."
+  (let ((buf (generate-new-buffer keymap-popup--buffer-name))
+        (complete nil))
+    (setq keymap-popup--buffer buf)
+    (unwind-protect
+        (progn
+          (with-current-buffer buf
+            (pcase-dolist (`(,var . ,val) keymap-popup-buffer-parameters)
+              (set (make-local-variable var) val)))
+          (setq complete t)
+          buf)
+      (unless complete
+        (when (eq keymap-popup--buffer buf)
+          (setq keymap-popup--buffer nil))
+        (condition-case err
+            (kill-buffer buf)
+          ((error quit) (message "Popup cleanup failed: %s"
+                                 (error-message-string err))))))))
 
 ;; `internal-{push,pop}-keymap' are the only public path for manipulating
 ;; `overriding-terminal-local-map'; `set-transient-map' itself uses them.
@@ -1496,7 +1628,7 @@ Frame parameters are taken from `keymap-popup-child-frame-parameters'."
 
 (defun keymap-popup--suspend ()
   "Suspend the popup's transient maps for minibuffer input."
-  (when-let* ((buf (get-buffer keymap-popup--buffer-name))
+  (when-let* ((buf (keymap-popup--popup-buffer))
               (session (keymap-popup--session-state buf)))
     (unless (plist-get session :suspended-depth)
       (keymap-popup--set-session
@@ -1507,7 +1639,7 @@ Frame parameters are taken from `keymap-popup-child-frame-parameters'."
 
 (defun keymap-popup--resume ()
   "Resume the popup's transient maps after minibuffer input."
-  (when-let* ((buf (get-buffer keymap-popup--buffer-name))
+  (when-let* ((buf (keymap-popup--popup-buffer))
               (session (keymap-popup--session-state buf))
               (depth (plist-get session :suspended-depth))
               ((= depth (minibuffer-depth))))
@@ -1529,24 +1661,34 @@ INCLUDE-ACTIVE includes the active transient map as well as parents."
                   exit))
               states)))
 
-(defun keymap-popup--close-session (buf include-active)
-  "Deactivate BUF's session maps.
+(defun keymap-popup--close-session (session include-active)
+  "Deactivate SESSION's captured maps after marking its buffer closing.
 INCLUDE-ACTIVE also deactivates the active transient map."
-  (let* ((session (keymap-popup--session-state buf))
-         (active (plist-get session :active))
-         (exits (keymap-popup--session-exit-functions
-                 session include-active)))
-    (keymap-popup--set-session
-     buf :active (keymap-popup--plist-with active :exit-function nil)
-     :stack nil :closing t)
-    (mapc #'funcall exits)))
+  (let ((exits (keymap-popup--session-exit-functions session include-active))
+        (failure nil))
+    (dolist (exit exits)
+      (condition-case err
+          (funcall exit)
+        ((error quit) (unless failure (setq failure err)))))
+    (when failure (signal (car failure) (cdr failure)))))
 
-(defun keymap-popup--remove-session-hooks (buf)
-  "Remove global hooks owned by BUF's popup session."
+(defun keymap-popup--remove-session-hooks (session)
+  "Remove global hooks owned by the captured SESSION."
   (remove-hook 'minibuffer-setup-hook #'keymap-popup--suspend)
   (remove-hook 'minibuffer-exit-hook #'keymap-popup--resume)
-  (when-let* ((hook (keymap-popup--session-get buf :persistent-hook)))
+  (when-let* ((hook (plist-get session :persistent-hook)))
     (remove-hook 'post-command-hook hook)))
+
+(defun keymap-popup--clear-session (buf)
+  "Detach BUF from its session and native lifecycle hooks."
+  (with-current-buffer buf
+    (setq keymap-popup--session nil)
+    (when (eq keymap-popup--buffer buf)
+      (setq keymap-popup--buffer nil))
+    (remove-hook 'kill-buffer-hook #'keymap-popup--kill-buffer-cleanup t)
+    (remove-hook 'change-major-mode-hook #'keymap-popup--kill-buffer-cleanup t)
+    (remove-hook 'after-set-visited-file-name-hook
+                 #'keymap-popup--kill-buffer-cleanup t)))
 
 (defun keymap-popup--hide-session (buf)
   "Hide the display owned by BUF's popup session."
@@ -1554,21 +1696,53 @@ INCLUDE-ACTIVE also deactivates the active transient map."
               (hide (plist-get backend :hide)))
     (funcall hide buf)))
 
+(defun keymap-popup--cleanup (buf &optional keep-buffer)
+  "Retire BUF's session, completing internal cleanup after callback failures.
+With KEEP-BUFFER, leave BUF alive for its native kill or mode change.
+Otherwise kill BUF only while the closing session still owns it.
+Signal the first cleanup failure after attempting the remaining steps."
+  (when (and (buffer-live-p buf)
+             (or (eq keymap-popup--buffer buf)
+                 (keymap-popup--session-state buf)))
+    (save-current-buffer
+      (let* ((session (keymap-popup--session-state buf))
+             (closing (and session (keymap-popup--set-session buf :closing t)))
+             (failure nil)
+             (inhibit-quit t))
+        ;; Retire captured input resources even if a callback repurposes BUF.
+        (dolist (step (list (lambda () (keymap-popup--close-session session t))
+                            (lambda () (keymap-popup--remove-session-hooks session))
+                            (lambda ()
+                              (when (eq (keymap-popup--session-state buf) closing)
+                                (keymap-popup--hide-session buf)))))
+          (condition-case err
+              (funcall step)
+            ((error quit) (unless failure (setq failure err)))))
+        (when (and (buffer-live-p buf)
+                   (eq (keymap-popup--session-state buf) closing))
+          (with-current-buffer buf
+            (keymap-popup--clear-session buf)
+            (unless (or keep-buffer buffer-file-name)
+              (condition-case err
+                  (kill-buffer buf)
+                ((error quit) (unless failure (setq failure err)))))))
+        (when failure (signal (car failure) (cdr failure)))))))
+
 (defun keymap-popup--kill-buffer-cleanup ()
-  "Release the popup session when its buffer is killed directly."
-  (let ((buf (current-buffer)))
-    (unless (keymap-popup--session-get buf :closing)
-      (keymap-popup--close-session buf t)
-      (keymap-popup--remove-session-hooks buf)
-      (keymap-popup--hide-session buf))))
+  "Retire popup resources before buffer death or an ownership change."
+  (when keymap-popup--session
+    (if (plist-get keymap-popup--session :closing)
+        ;; Closing suppresses recursive cleanup, not ownership retirement.
+        (keymap-popup--clear-session (current-buffer))
+      ;; A backend failure must not veto the native kill or mode change.
+      (condition-case err
+          (keymap-popup--cleanup (current-buffer) t)
+        ((error quit) (message "Popup cleanup failed: %s"
+                               (error-message-string err)))))))
 
 (defun keymap-popup--teardown (buf)
   "Remove the popup display for BUF and kill it."
-  (when (buffer-live-p buf)
-    (keymap-popup--close-session buf nil)
-    (keymap-popup--remove-session-hooks buf)
-    (keymap-popup--hide-session buf)
-    (kill-buffer buf)))
+  (keymap-popup--cleanup buf))
 
 (defun keymap-popup--make-keep-pred (buf)
   "Return a keep-pred for `set-transient-map'.
@@ -1601,9 +1775,13 @@ Reads state from BUF.  Consumes the reentering flag on read."
             ((equal key-str (plist-get active :exit-key)) nil)
             ((eq this-command 'keyboard-quit) nil)
             ((keymap-popup--inapt-key-p buf key-str) t)
-            ((plist-get session :persistent))
+            ((plist-get session :persistent)
+             ;; Ordinary suffixes inherit their native binding, so settle
+             ;; presentation before dispatch, even if the command signals.
+             (keymap-popup--consume-prefix buf)
+             t)
             (t (keymap-popup--keep-popup-p
-                (plist-get active :descriptions) key-str)))))))
+                (keymap-popup--active-descriptions buf) key-str)))))))
 
 (defun keymap-popup--make-on-exit (buf)
   "Return an on-exit callback for `set-transient-map' closing BUF.
@@ -1627,13 +1805,14 @@ otherwise tears down completely."
 
 (defun keymap-popup--state-for-keymap (keymap)
   "Derive navigation state from KEYMAP."
-  (keymap-popup--make-state
-   keymap
-   (keymap-popup--resolve-descriptions
-    (keymap-popup--collect-descriptions keymap) keymap)
-   (keymap-popup--meta keymap 'description)
-   (or (keymap-popup--meta keymap 'exit-key)
-       keymap-popup-default-exit-key)))
+  (let ((candidates (keymap-popup--collect-descriptions keymap)))
+    (keymap-popup--plist-with
+     (keymap-popup--make-state
+      keymap (keymap-popup--resolve-descriptions candidates keymap)
+      (keymap-popup--meta keymap 'description)
+      (or (keymap-popup--meta keymap 'exit-key)
+          keymap-popup-default-exit-key))
+     :description-candidates candidates)))
 
 (defun keymap-popup--resolve-submenu-target (target)
   "Return TARGET's keymap value or signal a clear user error."
@@ -1649,6 +1828,7 @@ otherwise tears down completely."
          (session (keymap-popup--session-state buf))
          (parent (plist-get session :active))
          (child (keymap-popup--state-for-keymap child-keymap))
+         (stack (cons parent (plist-get session :stack)))
          (content (with-current-buffer buf (buffer-string)))
          (position (with-current-buffer buf (point)))
          (complete nil))
@@ -1658,14 +1838,16 @@ otherwise tears down completely."
     (unwind-protect
         (progn
           (keymap-popup--set-session
-           buf :active child :stack (cons parent (plist-get session :stack))
+           buf :active child :stack stack
            :prefix-mode nil)
           (keymap-popup--refresh buf)
           (keymap-popup--activate-transient-map buf)
           (setq complete t))
       ;; A failed callback must not leave child state driving the parent map.
-      ;; Restore the saved text without re-running the failing backend.
-      (when (and (not complete) (buffer-live-p buf))
+      ;; Restore only this still-owned push, never a retired or replaced view.
+      (when (and (not complete)
+                 (eq (keymap-popup--popup-buffer) buf)
+                 (eq (keymap-popup--session-get buf :stack) stack))
         (with-current-buffer buf
           (setq keymap-popup--session session)
           (let ((inhibit-read-only t))
@@ -1678,7 +1860,7 @@ otherwise tears down completely."
 When toggling on, activates `universal-argument-map' so that
 subsequent digit and `negative-argument' keys refine the prefix."
   (interactive)
-  (when-let* ((buf (get-buffer keymap-popup--buffer-name)))
+  (when-let* ((buf (keymap-popup--popup-buffer)))
     (let ((enabled (not (keymap-popup--session-get buf :prefix-mode))))
       (keymap-popup--set-session buf :prefix-mode enabled)
       (setq prefix-arg (and enabled '(4)))
@@ -1714,27 +1896,35 @@ binding, which may be nil."
     cmd))
 
 (defun keymap-popup--consume-prefix (buf)
-  "Consume prefix mode owned by popup BUF."
+  "Clear prefix presentation owned by popup BUF before command dispatch.
+Leave native prefix arguments to the command loop, including any new
+prefix established by the command.  Refresh before dispatch so errors
+and quits cannot leave consumed prefix highlighting behind."
   (when (keymap-popup--session-get buf :prefix-mode)
     (keymap-popup--set-session buf :prefix-mode nil)
-    (setq prefix-arg nil)))
+    (keymap-popup--refresh buf)))
 
 (defun keymap-popup--dispatch-entry (keymap entry buf)
-  "Dispatch KEYMAP's popup ENTRY for BUF."
+  "Dispatch KEYMAP's popup ENTRY for BUF.
+If BUF's session expired after native key lookup, call the live source
+binding instead of attempting navigation in the expired popup."
   (let ((key (plist-get entry :key)))
-    (if (keymap-popup--inapt-key-p buf key)
-        (keymap-popup--refuse-inapt buf)
+    (cond
+     ((or (not (keymap-popup--session-state buf))
+          (keymap-popup--session-get buf :closing))
+      (keymap-popup--call-real-binding keymap key))
+     ((keymap-popup--inapt-key-p buf key)
+      (keymap-popup--refuse-inapt buf))
+     (t
       (pcase-exhaustive (plist-get entry :type)
         ('keymap
          (keymap-popup--push-submenu buf (plist-get entry :target)))
-        ('switch
-         (when (keymap-popup--call-real-binding keymap key)
-           (keymap-popup--consume-prefix buf))
-         (keymap-popup--refresh buf))
-        ('suffix
+        ((or 'switch 'suffix)
+         (keymap-popup--consume-prefix buf)
          (keymap-popup--call-real-binding keymap key)
-         (when (plist-get entry :stay-open)
-           (keymap-popup--refresh buf)))))))
+         (when (or (eq (plist-get entry :type) 'switch)
+                   (plist-get entry :stay-open))
+           (keymap-popup--refresh buf))))))))
 
 (defun keymap-popup--entry-needs-override-p (entry group)
   "Return non-nil when ENTRY in GROUP needs popup dispatch."
@@ -1744,18 +1934,45 @@ binding, which may be nil."
                  (plist-get entry :inapt-if)
                  (plist-get group :inapt-if)))))
 
-(defun keymap-popup--entry-override (keymap entry group buf)
-  "Return KEYMAP override for ENTRY in GROUP and BUF, or nil."
+(defun keymap-popup--entry-override (keymap entry group buf descriptions)
+  "Return KEYMAP override for ENTRY in GROUP and BUF, or nil.
+Select the native winning entry from DESCRIPTIONS at lookup time."
   (and-let* ((key (plist-get entry :key))
              ((keymap-popup--entry-needs-override-p entry group)))
-    (let ((pred (keymap-popup--combine-preds
-                 (plist-get group :if) (plist-get entry :if))))
-      (cons key
-            (keymap-popup--filter-binding
-             (lambda ()
-               (interactive)
-               (keymap-popup--dispatch-entry keymap entry buf))
-             pred)))))
+    (cons key
+          (list 'menu-item ""
+                (lambda ()
+                  (interactive)
+                  (let ((current (keymap-popup--find-entry-by-key
+                                  (keymap-popup--resolve-descriptions descriptions keymap)
+                                  key)))
+                    (if current
+                        (keymap-popup--dispatch-entry keymap current buf)
+                      (keymap-popup--call-real-binding keymap key))))
+                :filter
+                (lambda (binding)
+                  (pcase-let ((`(,winner . ,owner)
+                               (keymap-popup--find-entry-with-group
+                                (keymap-popup--resolve-descriptions descriptions keymap)
+                                key)))
+                    (cond
+                     ((null winner) (keymap-lookup keymap key))
+                     ((not (keymap-popup--entry-needs-override-p winner owner)) binding)
+                     ((and (keymap-popup--if-allows-p owner)
+                           (keymap-popup--if-allows-p winner)) binding))))))))
+
+(defun keymap-popup--entry-potential-keys (entry keymap)
+  "Return ENTRY's stored, resolved and existing native keys in KEYMAP.
+A filter can move the selected description to an ordinary command alias
+while the popup remains open.  These keys only reserve handlers; lookup
+and dispatch still select the current native description and binding."
+  (delete-dups
+   (delq nil
+         (append (list (plist-get entry :key)
+                       (plist-get (keymap-popup--resolve-key entry keymap) :key))
+                 (when-let* ((command (plist-get entry :command)))
+                   (mapcar #'key-description
+                           (where-is-internal command (list keymap))))))))
 
 (defun keymap-popup--description-overrides (keymap descriptions buf)
   "Return popup entry overrides for KEYMAP, DESCRIPTIONS, and BUF."
@@ -1763,9 +1980,13 @@ binding, which may be nil."
    (lambda (row)
      (mapcan
       (lambda (group)
-        (seq-keep (lambda (entry)
-                    (keymap-popup--entry-override keymap entry group buf))
-                  (plist-get group :entries)))
+        (mapcan (lambda (entry)
+                  (seq-keep (lambda (key)
+                              (keymap-popup--entry-override
+                               keymap (plist-put (copy-sequence entry) :key key)
+                               group buf descriptions))
+                            (keymap-popup--entry-potential-keys entry keymap)))
+                (plist-get group :entries)))
       row))
    descriptions))
 
@@ -1789,12 +2010,8 @@ here at keypress time."
 Deactivates every transient map in a nested popup session and
 removes the popup display."
   (interactive)
-  (when-let* ((buf (get-buffer keymap-popup--buffer-name)))
-    (keymap-popup--close-session buf t)
-    (when (buffer-live-p buf)
-      (keymap-popup--remove-session-hooks buf)
-      (keymap-popup--hide-session buf)
-      (kill-buffer buf))))
+  (when-let* ((buf (keymap-popup--popup-buffer)))
+    (keymap-popup--cleanup buf)))
 
 (defun keymap-popup--make-session (keymap &optional active)
   "Derive a popup session for KEYMAP and the current buffer.
@@ -1817,14 +2034,19 @@ Use ACTIVE instead of deriving the initial navigation state when non-nil."
   "Install SESSION in BUF and arrange cleanup on buffer death."
   (with-current-buffer buf
     (setq-local keymap-popup--session session)
-    (add-hook 'kill-buffer-hook #'keymap-popup--kill-buffer-cleanup nil t)))
+    (setq keymap-popup--buffer buf)
+    (add-hook 'kill-buffer-hook #'keymap-popup--kill-buffer-cleanup nil t)
+    (add-hook 'change-major-mode-hook #'keymap-popup--kill-buffer-cleanup nil t)
+    (add-hook 'after-set-visited-file-name-hook
+              #'keymap-popup--kill-buffer-cleanup nil t)))
 
 (defun keymap-popup--activate-transient-map (buf)
   "Build and activate the transient map for BUF's active state."
   (let* ((active (keymap-popup--session-get buf :active))
          (wrapper (keymap-popup--build-wrapper-map
                    (plist-get active :keymap)
-                   (plist-get active :descriptions)
+                   (or (plist-get active :description-candidates)
+                       (plist-get active :descriptions))
                    buf
                    (plist-get active :exit-key))))
     (keymap-popup--set-active buf :wrapper-map wrapper)
@@ -1858,22 +2080,29 @@ dispatch.  Sub-menu keys push a navigation stack.
     (or (keymap-popup--descriptions-present-p
          (plist-get active :descriptions))
         (user-error "No descriptions in keymap"))
-    (when (get-buffer keymap-popup--buffer-name)
-      (keymap-popup-dismiss))
+    (keymap-popup-dismiss)
     (let ((session (keymap-popup--make-session keymap active))
-          (buf (keymap-popup--prepare-buffer)))
-      (keymap-popup--init-session buf session)
-      (let ((rendered-rows (keymap-popup--refresh buf)))
-        (funcall (plist-get (plist-get session :backend) :show) buf)
-        ;; The display action decides the real window width.  Reflow
-        ;; the resolved columns after showing; do not call dynamic
-        ;; descriptions and predicates a second time.
-        (keymap-popup--write-rendered buf rendered-rows))
-      (keymap-popup--activate-transient-map buf)
-      (add-hook 'minibuffer-setup-hook #'keymap-popup--suspend)
-      (add-hook 'minibuffer-exit-hook #'keymap-popup--resume)
-      (when (plist-get session :persistent)
-        (keymap-popup--install-persistent-hook buf)))))
+          (buf (keymap-popup--prepare-buffer))
+          (complete nil))
+      (unwind-protect
+          (progn
+            (keymap-popup--init-session buf session)
+            (let ((rendered-rows (keymap-popup--refresh buf)))
+              (funcall (plist-get (plist-get session :backend) :show) buf)
+              ;; Reflow saved columns at the chosen window's actual width.
+              (keymap-popup--write-rendered buf rendered-rows))
+            (keymap-popup--activate-transient-map buf)
+            (add-hook 'minibuffer-setup-hook #'keymap-popup--suspend)
+            (add-hook 'minibuffer-exit-hook #'keymap-popup--resume)
+            (when (plist-get session :persistent)
+              (keymap-popup--install-persistent-hook buf))
+            (setq complete t))
+        (unless complete
+          ;; Preserve the launch error or quit, even if :hide also fails.
+          (condition-case err
+              (keymap-popup--cleanup buf)
+            ((error quit) (message "Popup cleanup failed: %s"
+                                   (error-message-string err)))))))))
 
 (provide 'keymap-popup)
 ;;; keymap-popup.el ends here

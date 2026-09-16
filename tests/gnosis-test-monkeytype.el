@@ -123,5 +123,95 @@
         (when-let* ((buffer (get-buffer gnosis-monkeytype-buffer-name)))
           (kill-buffer buffer))))))
 
+(defun gnosis-test-monkeytype--type (character)
+  "Type CHARACTER through the exercise's self-insert binding."
+  (let ((this-command 'self-insert-command)
+        (last-command-event character))
+    (call-interactively (key-binding (vector character)))))
+
+(ert-deftest gnosis-monkeytype-completes-before-trailing-newlines ()
+  (dolist (text '("abc" "abc\n" "abc\n\n" "αβ\n\n"))
+    (let ((gnosis-monkeytype-buffer-name " *gnosis-test-monkeytype*")
+          (gnosis-script-input-method-alist nil)
+          (original (copy-sequence text))
+          (completed 0)
+          measured)
+      (save-window-excursion
+        (unwind-protect
+            (cl-letf (((symbol-function 'recursive-edit)
+                       (lambda ()
+                         (should (equal text (buffer-string)))
+                         (catch 'finished
+                           (mapc #'gnosis-test-monkeytype--type
+                                 (string-trim-right text "\n+")))))
+                      ((symbol-function 'exit-recursive-edit)
+                       (lambda ()
+                         (setq completed (1+ completed))
+                         (throw 'finished t)))
+                      ((symbol-function 'gnosis-monkeytype--calculate-wpm)
+                       (lambda (target _start)
+                         (setq measured target)
+                         (should (equal text (buffer-string)))
+                         (should (eq (get-text-property (1- (point)) 'face)
+                                     'gnosis-monkeytype-face-correct)))))
+              (gnosis-monkeytype text)
+              (should (= completed 1))
+              (should (equal measured text))
+              (should (equal text original))
+              (should-not (get-buffer gnosis-monkeytype-buffer-name)))
+          (when-let* ((buffer (get-buffer gnosis-monkeytype-buffer-name)))
+            (kill-buffer buffer)))))))
+
+(ert-deftest gnosis-monkeytype-keeps-internal-blank-lines-and-rejects-mistakes ()
+  (let ((gnosis-monkeytype-buffer-name " *gnosis-test-monkeytype*")
+        (gnosis-script-input-method-alist nil)
+        completed)
+    (save-window-excursion
+      (unwind-protect
+          (cl-letf (((symbol-function 'recursive-edit)
+                     (lambda ()
+                       (catch 'finished
+                         (mapc #'gnosis-test-monkeytype--type "ab")
+                         ;; Advance one line as before, not over internal blanks.
+                         (should (= (point) 4))
+                         (should-not completed)
+                         (call-interactively (key-binding (kbd "RET")))
+                         (should (= (point) 5))
+                         (gnosis-test-monkeytype--type ?c)
+                         (gnosis-test-monkeytype--type ?x)
+                         (should (= (point) 6))
+                         (should-not completed)
+                         (should (equal (buffer-string) "ab\n\ncd\n\n"))
+                         (gnosis-test-monkeytype--type ?d))))
+                    ((symbol-function 'exit-recursive-edit)
+                     (lambda () (setq completed t) (throw 'finished t))))
+            (gnosis-monkeytype "ab\n\ncd\n\n")
+            (should completed)
+            (should-not (get-buffer gnosis-monkeytype-buffer-name)))
+        (when-let* ((buffer (get-buffer gnosis-monkeytype-buffer-name)))
+          (kill-buffer buffer))))))
+
+(ert-deftest gnosis-monkeytype-empty-targets-remain-cancellable ()
+  ;; No new typing or automatic-completion policy for empty exercises.
+  (dolist (text '("" "\n" "\n\n"))
+    (let ((gnosis-monkeytype-buffer-name " *gnosis-test-monkeytype*")
+          (gnosis-script-input-method-alist nil)
+          entered)
+      (save-window-excursion
+        (unwind-protect
+            (cl-letf (((symbol-function 'recursive-edit)
+                       (lambda ()
+                         (setq entered t)
+                         (should (equal text (buffer-string)))
+                         (call-interactively (key-binding (kbd "RET")))
+                         (call-interactively (key-binding (kbd "C-c C-k")))))
+                      ((symbol-function 'gnosis-monkeytype--calculate-wpm)
+                       (lambda (&rest _) (ert-fail "Empty target was scored"))))
+              (should (catch 'monkeytype-loop (gnosis-monkeytype text)))
+              (should entered)
+              (should-not (get-buffer gnosis-monkeytype-buffer-name)))
+          (when-let* ((buffer (get-buffer gnosis-monkeytype-buffer-name)))
+            (kill-buffer buffer)))))))
+
 (provide 'gnosis-test-monkeytype)
 ;;; gnosis-test-monkeytype.el ends here

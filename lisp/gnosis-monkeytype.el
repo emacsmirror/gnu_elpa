@@ -123,8 +123,10 @@ answer quotes and append the answer for basic questions without changing ROW."
             (put-text-property (1- end) end
                                'face 'gnosis-monkeytype-face-correct)
             (goto-char end)
-            ;; Check if complete
-            (when (= end (1+ (length gnosis-monkeytype-string)))
+            ;; Line breaks need not be typed, including a trailing blank tail.
+            (when (save-excursion
+                    (skip-chars-forward "\n")
+                    (eobp))
 	      (gnosis-monkeytype--calculate-wpm
 	       gnosis-monkeytype-string gnosis-monkeytype--start-time)
 	      (kill-buffer (current-buffer))

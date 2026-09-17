@@ -56,7 +56,7 @@ def egl_check(python: str) -> None:
         raise RuntimeError(result.stderr.decode(errors="replace").strip())
     area = size * size
     length = 8 + 4 * area
-    if len(result.stdout) != 2 * length + 64:
+    if len(result.stdout) != 2 * length + 88:
         raise RuntimeError("Wrong packet length")
     frames = [result.stdout[i * length:(i + 1) * length] for i in range(2)]
     for seq, packet in enumerate(frames, 1):
@@ -65,11 +65,11 @@ def egl_check(python: str) -> None:
     color, marked = [packet[8:] for packet in frames]
     if color == marked:
         raise RuntimeError("Selected highlight failed")
-    background = struct.unpack(">4sIIIIfff", result.stdout[2 * length:2 * length + 32])
-    stale = struct.unpack(">4sIIIIfff", result.stdout[2 * length + 32:])
-    if background != (b"C3P3", 3, 2, 0, 0, 0, 0, 0):
+    background = struct.unpack(">4sIIIIddd", result.stdout[2 * length:2 * length + 44])
+    stale = struct.unpack(">4sIIIIddd", result.stdout[2 * length + 44:])
+    if background != (b"C3P4", 3, 2, 0, 0, 0, 0, 0):
         raise RuntimeError("Wrong compact background pick")
-    if stale != (b"C3P3", 4, 1, 0xffffffff, 0, 0, 0, 0):
+    if stale != (b"C3P4", 4, 1, 0xffffffff, 0, 0, 0, 0):
         raise RuntimeError("Stale frame was not refused")
     print(result.stderr.decode(errors="replace").strip())
     print(json.dumps({"frames": 2, "picks": 2, "bytes": len(result.stdout),

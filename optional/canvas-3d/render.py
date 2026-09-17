@@ -210,11 +210,10 @@ class Renderer:
         self.program["highlight_kind"].value = kind
         self.program["highlight_point"].value = tuple(point)
         self.program["highlight_radius"].value = radius
-        for index, (_, faces) in enumerate(self.meshes):
+        if kind == 3:
             marks = np.zeros(len(faces), dtype="f4")
-            if index == mesh and kind == 3:
-                marks[region] = 1
-            self.mark_buffers[index].write(np.repeat(marks, 3).tobytes())
+            marks[region] = 1
+            self.mark_buffers[mesh].write(np.repeat(marks, 3).tobytes())
         return mesh
 
     def _draw(self, size, yaw=0, pitch=0, zoom=1, selected=0, highlight=None):

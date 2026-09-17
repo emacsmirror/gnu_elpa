@@ -118,17 +118,50 @@
       (when (file-exists-p dir) (delete-directory dir t)))))
 
 (ert-deftest gnosis-test-authoring-anki-cleanup-finalize-failure ()
-  "Finalization errors release the import's temporary resources once."
-  (gnosis-test-with-db
-    (let ((cleaned 0))
-      (cl-letf (((symbol-function 'gnosis-anki--commit-import)
-                 (lambda (&rest _) (error "Controlled finalization failure"))))
-        (condition-case nil
-            (gnosis-anki--chunk-insert gnosis-db nil nil 0 0
-                                       (gnosis--today-int)
-                                       (lambda () (cl-incf cleaned)) "test.apkg")
-          (error nil))
-        (should (= cleaned 1))))))
+  "Finalization errors and quits retain committed rows after extraction cleanup."
+  (dolist (fault '(error quit))
+    (gnosis-test-with-db
+      (let* ((dir (make-temp-file "gnosis-anki-finalize-" t))
+             (file (expand-file-name "collection.anki2" dir))
+             (items '((:guid "finalize" :type "basic" :keimenon "Q"
+                            :hypothesis ("") :answer ("A")
+                            :parathema "" :tags ("test"))))
+             pending reached)
+        (unwind-protect
+            (cl-letf (((symbol-function 'gnosis-anki--parse-anki-db)
+                       (lambda (_) (cons 0 items)))
+                      ((symbol-function 'run-with-timer)
+                       (lambda (_delay _repeat fn &rest args)
+                         (push (lambda () (apply fn args)) pending))))
+              (with-temp-file file (insert "Prepared collection"))
+              (gnosis-anki--import-db file t "imported" t "test.apkg")
+              (should-not (file-exists-p dir))
+              (should (= 1 (length pending)))
+              (let ((before (sqlite-select gnosis-db "SELECT * FROM themata")))
+                (should (= 1 (length before)))
+                (cl-letf (((symbol-function 'gnosis-anki--commit-import)
+                           (lambda (count source)
+                             (setq reached (list count source))
+                             (signal fault '("Controlled finalization failure")))))
+                  (let ((result (condition-case err (funcall (pop pending))
+                                  (quit err))))
+                    (when (eq fault 'quit)
+                      (should (equal result '(quit "Controlled finalization failure"))))))
+                (should (equal reached '(1 "test.apkg")))
+                (should-not pending)
+                ;; Retry the prepared note; completion failure is not SQL failure.
+                (gnosis-anki--import-db "prepared.anki2")
+                (should-not pending)
+                (should (equal before (sqlite-select gnosis-db "SELECT * FROM themata")))
+                (dolist (table '(extras scheduler_baseline scheduler_state))
+                  (should (= 1 (caar (sqlite-select
+                                     gnosis-db (format "SELECT COUNT(*) FROM %s" table))))))
+                (let ((id (caar before)))
+                  (should (= 1 (gnosis-get 'suspended 'scheduler-state `(= thema-id ,id))))
+                  (should (equal (sort (gnosis-select 'tag 'thema-tag `(= thema-id ,id) t)
+                                       #'string<)
+                                 '("imported" "test"))))))
+          (when (file-exists-p dir) (delete-directory dir t)))))))
 
 (defun gnosis-test-authoring--file-bytes (file)
   "Return FILE's literal contents."

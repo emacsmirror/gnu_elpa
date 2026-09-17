@@ -486,16 +486,20 @@ With a prefix argument, use advanced numeric input instead of the canvas."
   (let* ((owner (current-buffer))
          (mode major-mode)
          (tick (buffer-chars-modified-tick))
-         (themata (gnosis-export-parse-themata))
+         (themata (save-restriction (widen) (gnosis-export-parse-themata)))
          (thema (car themata)))
     (unless (and (= (length themata) 1) (member (downcase (nth 1 thema)) '("model" "model-name")))
       (user-error "Attach a scene in a single model thema draft"))
     (pcase-let ((`(,hypothesis ,answer)
                  (gnosis-model--read-fields
                   (if (equal (downcase (nth 1 thema)) "model-name")
-                      (let ((fields (gnosis-model-fields "model-name" (nth 3 thema) (nth 4 thema))))
-                        (list (cons (plist-get fields :resource) (cddr (nth 3 thema)))
-                              (list (plist-get fields :target))))
+                      (let ((hypothesis (nth 3 thema)) (answer (nth 4 thema)))
+                        (unless (and (= (length hypothesis) 5) (seq-every-p #'stringp hypothesis)
+                                     (= (length answer) 1) (stringp (car answer))
+                                     (not (string-empty-p (string-trim (car answer)))))
+                          (user-error "Model Name needs resource, target, camera and an authored answer"))
+                        (list (cons (car hypothesis) (cddr hypothesis))
+                              (list (cadr hypothesis))))
                     (when (= (length (nth 3 thema)) 4)
                       (list (nth 3 thema) (nth 4 thema)))))))
       (unless (and (buffer-live-p owner)
@@ -603,7 +607,7 @@ rather than parsing topology again."
       (let ((points (vconcat (nreverse vertices))))
         (vconcat (mapcar (lambda (face)
                            (let ((triangle (mapcar (lambda (i) (aref points i)) face)))
-                             (gnosis-model--barycentric (car triangle) triangle)
+                             (gnosis-model--triangle-frame triangle)
                              triangle))
                          (nreverse faces)))))))
 
@@ -802,35 +806,27 @@ POINTS optionally supplies verified target coordinates instead of GEOMETRY."
   (let* ((kind (alist-get 'kind (gnosis-model-target scene expected)))
          (mesh (plist-get hit :mesh))
          (point (plist-get hit :point))
-         (face (plist-get hit :face)))
-    (alist-get 'id
-               (car (sort
-                     (seq-filter
-                      (lambda (target)
-                        (and (equal kind (alist-get 'kind target))
-                             (equal mesh (alist-get 'mesh target))
-                             (pcase kind
-                               ("object" t)
-                               ("region" (member face (alist-get 'faces target)))
-                               ("point" (and point
-                                             (<= (apply #'+ (cl-mapcar
-                                                              (lambda (a b) (expt (- a b) 2)) point
-                                                              (if points (cdr (assoc (alist-get 'id target) points))
-                                                                (gnosis-model--point target (cdr (assoc mesh geometry))))))
-                                                 (expt (alist-get 'tolerance target) 2)))))))
-                      (gnosis-model--targets scene))
-                     (lambda (a b)
-                       (let ((distance
-                              (lambda (target)
-                                (if (equal kind "point")
-                                    (apply #'+ (cl-mapcar
-                                                (lambda (x y) (expt (- x y) 2)) point
-                                                (if points (cdr (assoc (alist-get 'id target) points))
-                                                                (gnosis-model--point target (cdr (assoc mesh geometry))))))
-                                  0))))
-                         (let ((da (funcall distance a)) (db (funcall distance b)))
-                           (if (= da db) (string< (alist-get 'id a) (alist-get 'id b))
-                             (< da db))))))))))
+         (face (plist-get hit :face))
+         (scored
+          (cl-loop for target in (gnosis-model--targets scene)
+                   when (and (equal kind (alist-get 'kind target))
+                             (equal mesh (alist-get 'mesh target)))
+                   append
+                   (let ((distance
+                          (pcase kind
+                            ("object" 0)
+                            ("region" (when (member face (alist-get 'faces target)) 0))
+                            ("point"
+                             (when point
+                               (let ((d (apply #'+ (cl-mapcar
+                                                    (lambda (a b) (expt (- a b) 2)) point
+                                                    (if points (cdr (assoc (alist-get 'id target) points))
+                                                      (gnosis-model--point target (cdr (assoc mesh geometry))))))))
+                                 (when (<= d (expt (alist-get 'tolerance target) 2)) d)))))))
+                     (when distance (list (cons distance (alist-get 'id target))))))))
+    (cdar (sort scored (lambda (a b)
+                         (if (= (car a) (car b)) (string< (cdr a) (cdr b))
+                           (< (car a) (car b))))))))
 
 (defun gnosis-model-selection (fields)
   "Return current owned surface selection resolved against FIELDS.
@@ -873,21 +869,69 @@ Return nil for background; reject stale or in-flight renderer state."
     (user-error "Click a surface and wait for the renderer"))
   (copy-tree canvas-3d--selection))
 
+(defun gnosis-model--product-error (a b product)
+  "Return the rounding residual of finite A times B stored in PRODUCT.
+Split normalized binary64 significands so even large off-plane coordinates
+cannot overflow the splitter.  Underflow still limits representable residuals."
+  (let* ((a-parts (frexp a)) (b-parts (frexp b))
+         (shift (+ (cdr a-parts) (cdr b-parts)))
+         (a (car a-parts)) (b (car b-parts))
+         (as (* 134217729.0 a)) (bs (* 134217729.0 b))
+         (ah (- as (- as a))) (bh (- bs (- bs b)))
+         (al (- a ah)) (bl (- b bh))
+         (scaled (ldexp product (- shift))))
+    ;; Dekker's product residual; keep the subtractions in this order.
+    (ldexp (- (* al bl) (- (- (- scaled (* ah bh)) (* al bh)) (* ah bl)))
+           shift)))
+
+(defun gnosis-model--determinant (a b c d)
+  "Return A times B minus C times D, compensating cancelled products."
+  (let* ((ab (* a b)) (cd (* c d)) (difference (- ab cd)))
+    (if (or (zerop ab) (zerop cd)
+            (not (< (abs difference) 1.0e+INF))
+            (>= (abs difference) (* 0.5 (max (abs ab) (abs cd)))))
+        difference
+      ;; Close same-sign products subtract exactly.  Recover the residuals
+      ;; their individual multiplications rounded away; this is not an area
+      ;; epsilon, and an exactly zero determinant remains zero.
+      (+ difference (- (gnosis-model--product-error a b ab)
+                       (gnosis-model--product-error c d cd))))))
+
+(defun gnosis-model--cross (u v)
+  "Return the compensated cross product of three-coordinate vectors U and V."
+  (list (gnosis-model--determinant (nth 1 u) (nth 2 v) (nth 2 u) (nth 1 v))
+        (gnosis-model--determinant (nth 2 u) (nth 0 v) (nth 0 u) (nth 2 v))
+        (gnosis-model--determinant (nth 0 u) (nth 1 v) (nth 1 u) (nth 0 v))))
+
+(defun gnosis-model--triangle-frame (triangle)
+  "Return scaled edges, nonzero normal and binary scale exponent of TRIANGLE.
+Power-of-two scaling avoids uniform-scale underflow without rounding edges by
+an arbitrary divisor.  This is not an exact orientation predicate."
+  (let* ((u (cl-mapcar #'- (nth 1 triangle) (car triangle)))
+         (v (cl-mapcar #'- (nth 2 triangle) (car triangle)))
+         (shift (- (cdr (frexp (apply #'max (mapcar #'abs (append u v)))))))
+         (u (mapcar (lambda (x) (ldexp x shift)) u))
+         (v (mapcar (lambda (x) (ldexp x shift)) v))
+         (normal (gnosis-model--cross u v)))
+    (when (seq-every-p #'zerop normal) (user-error "Degenerate surface triangle"))
+    (list u v normal shift)))
+
 (defun gnosis-model--barycentric (point triangle)
-  "Return barycentric coordinates of POINT on TRIANGLE."
-  (let* ((a (nth 0 triangle))
-         (v0 (cl-mapcar #'- (nth 1 triangle) a))
-         (v1 (cl-mapcar #'- (nth 2 triangle) a))
-         (v2 (cl-mapcar #'- point a))
-         (dot (lambda (u v) (apply #'+ (cl-mapcar #'* u v))))
-         (d00 (funcall dot v0 v0)) (d01 (funcall dot v0 v1))
-         (d11 (funcall dot v1 v1)) (d20 (funcall dot v2 v0))
-         (d21 (funcall dot v2 v1))
-         (den (- (* d00 d11) (* d01 d01))))
-    (when (<= den 0) (user-error "Degenerate surface triangle"))
-    (let* ((v (/ (- (* d11 d20) (* d01 d21)) (float den)))
-           (w (/ (- (* d00 d21) (* d01 d20)) (float den)))
-           (values (mapcar (lambda (n) (max 0.0 (min 1.0 n))) (list (- 1 v w) v w)))
+  "Return clamped barycentric coordinates of POINT projected onto TRIANGLE."
+  (pcase-let* ((`(,u ,v ,normal ,shift) (gnosis-model--triangle-frame triangle))
+               (r (mapcar (lambda (x) (ldexp x shift))
+                          (cl-mapcar #'- point (car triangle))))
+               (m (apply #'max (mapcar #'abs normal)))
+               (q (mapcar (lambda (x) (/ x m)) normal))
+               (dot (lambda (a b) (apply #'+ (cl-mapcar #'* a b))))
+               (den (* m (funcall dot q q)))
+               (beta (/ (funcall dot (gnosis-model--cross r v) q) den))
+               (gamma (/ (funcall dot (gnosis-model--cross u r) q) den))
+               (raw (list (- 1 beta gamma) beta gamma)))
+    ;; Do not let clamping turn nonrepresentable arithmetic into a target.
+    (unless (seq-every-p (lambda (x) (< (abs x) 1.0e+INF)) raw)
+      (user-error "Surface coordinates exceed numeric precision"))
+    (let* ((values (mapcar (lambda (n) (max 0.0 (min 1.0 n))) raw))
            (sum (apply #'+ values)))
       (mapcar (lambda (n) (/ n sum)) values))))
 

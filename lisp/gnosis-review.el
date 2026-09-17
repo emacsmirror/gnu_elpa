@@ -36,6 +36,7 @@
 
 ;;; Code:
 
+(require 'button)
 (require 'gnosis)
 (require 'gnosis-db)
 (require 'gnosis-scheduler)
@@ -73,6 +74,23 @@ Self-grade asks for recall, reveals the answer/checklist and parathema,
 then asks for binary success.  Neither revealing nor editing accepts a grade."
   :type '(choice (const typed) (const self-grade))
   :group 'gnosis)
+
+(defvar gnosis-practice-completed-hook nil
+  "Hook run with one event after a native practice batch completes.
+Each function receives a fresh API v1 plist: :api-version 1, :mode
+\"practice\", :session-id, :database (main SQLite filename), and :connection
+for the originating open connection.  No answers are included.  Bind
+`gnosis-db' to :connection when querying origin results with
+`gnosis-agent-results'; do not assume the current database is the origin.
+
+Delivery is synchronous, after evidence/checkpoint commit, input teardown
+and summary presentation.  Errors and quits in one subscriber are reported
+without preventing others.  Subscribers should be quick and read-only;
+there is no sandbox or durable delivery queue.  A crash can lose delivery.
+Reopening a summary does not notify.  Undo and subsequent completion may
+notify again: deduplicate by (:database :session-id), or query results again
+when tracking corrections.  Empty, cancelled and unfinished batches do not
+notify.  No optional agent integration is required.")
 
 ;;; Review state
 
@@ -2121,6 +2139,20 @@ or granting summary actions authority over a different current connection."
                 (format "Targets reached: %d   Attempt limit (target unmet): %d   Unfinished: %d   Excluded: %d\n"
                         (plist-get progress :target-reached) (plist-get progress :attempt-limit)
                         (plist-get progress :unfinished) (plist-get progress :excluded))))
+      (when (and (eq 'practice (gnosis-review-state-mode state))
+                 (gnosis-review-state-selected state)
+                 (null (gnosis-review-state-remaining state))
+                 (not (gnosis-review-state-cancelled-p state)))
+        (insert "\nScheduled review uses current questions from this selection, due only.\n"
+                "New cards are not capped; newly accepted answers affect scheduling.\n"
+                "Practice evidence is never converted or replayed as FSRS grades.\n")
+        (insert-text-button "Scheduled review"
+                            'action (lambda (_button)
+                                      (gnosis-review--check-summary-owner (cons buf target))
+                                      (with-current-buffer buf
+                                        (gnosis-review-summary-scheduled)))
+                            'follow-link t)
+        (insert "\n"))
       ;; Establish authority before hooks can retire this buffer.
       (delay-mode-hooks
         (gnosis-review-summary-mode)
@@ -2136,6 +2168,9 @@ or granting summary actions authority over a different current connection."
   "c" ("Continue with another batch" gnosis-review-continue)
   "d" ("Discard progress" gnosis-review-discard)
   "u" ("Undo last accepted grade" gnosis-review-undo)
+  :group "Practice"
+  "s" ("Scheduled review" gnosis-review-summary-scheduled
+       :if #'gnosis-review--completed-practice-summary-p)
   :group "Repair"
   "w" ("Repair questions" gnosis-study-repair)
   "t" ("Study topic" gnosis-study-topic)
@@ -2186,6 +2221,62 @@ Check at the action boundary, including after prompts or buffer setup hooks."
     (gnosis-review--check-action-target target)
     target))
 
+(defun gnosis-review--completed-practice-summary-p ()
+  "Return non-nil if this summary displays a completed nonempty practice batch."
+  (let ((data (cdr gnosis-review--summary-target)))
+    (and (eq 'practice (plist-get data :mode))
+         (plist-get data :selected)
+         (null (plist-get data :remaining))
+         (not (plist-get data :cancelled-p)))))
+
+(defun gnosis-review--scheduled-selection (ids)
+  "Classify original IDS against current eligibility and native due dates.
+Return (ID . REASON) pairs, with reason due, deleted, suspended, ineligible
+or not-due.  Like explicit topic review, do not apply the global new limit."
+  (mapcar (lambda (id)
+            (cons id (cond ((not (gnosis-get 'id 'themata `(= id ,id))) 'deleted)
+                           ((equal 1 (gnosis-get 'suspended 'scheduler-state
+                                                `(= thema-id ,id))) 'suspended)
+                           ((not (gnosis-study-eligible-p id)) 'ineligible)
+                           ((gnosis-review-is-due-today-p id) 'due)
+                           (t 'not-due))))
+          ids))
+
+(defun gnosis-review-summary-scheduled ()
+  "Start a separate scheduled review from this completed practice summary.
+Resolve original selected IDs against current content and due dates.  Like
+explicit topic review, include new cards without the global new-card cap.
+Show exclusions and confirm before replacing the checkpoint.  Only newly
+accepted answers affect scheduling; never convert practice evidence."
+  (interactive nil gnosis-review-summary-mode)
+  (when gnosis-review--running (user-error "Finish the active review first"))
+  (let* ((owner (or (gnosis-review--summary-owner)
+                    (user-error "Open a completed practice summary first")))
+         (target (gnosis-review--action-target owner)))
+    (unless (gnosis-review--completed-practice-summary-p)
+      (user-error "This is not a completed practice batch"))
+    (let* ((ids (plist-get (cdr target) :selected))
+           (selection (gnosis-review--scheduled-selection ids))
+           (counts (mapcar (lambda (reason)
+                             (seq-count (lambda (row) (eq reason (cdr row))) selection))
+                           '(due deleted suspended ineligible not-due)))
+           (description (apply #'format
+                               "Due: %d; excluded: %d deleted, %d suspended, %d ineligible, %d not yet due"
+                               counts))
+           (validate (lambda ()
+                       (gnosis-review--check-summary-owner owner)
+                       (gnosis-review--check-action-target target)
+                       (unless (equal selection (gnosis-review--scheduled-selection ids))
+                         (user-error "Eligibility changed; request scheduled review again")))))
+      (if (zerop (car counts))
+          (message "No scheduled review to start.  %s" description)
+        (when (y-or-n-p (concat description
+                               ".  New cards are not capped.  New answers affect scheduling.  Start scheduled review? "))
+          (funcall validate)
+          (gnosis-review-loop
+           (mapcar #'car (seq-filter (lambda (row) (eq 'due (cdr row))) selection))
+           'due target validate))))))
+
 (defun gnosis-review-loop (collector &optional mode target validate)
   "Review one finite batch from COLLECTOR in MODE, defaulting to due.
 COLLECTOR is a list of IDs or a function called exactly once.  Deduplicate
@@ -2219,36 +2310,76 @@ and batch replacement; it must signal if the caller no longer owns the action."
         (gnosis-review--replace-session state target)
         (gnosis-review--run-state buf state)))))
 
+(defun gnosis-review--completion-event (state)
+  "Return a notification for completed practice STATE, or nil.
+Call only after checking the committed checkpoint and its original owner."
+  (when (and (gnosis-review-state-persistent-p state)
+             (eq 'practice (gnosis-review-state-mode state))
+             (> (gnosis-review-state-initial state) 0)
+             (> (gnosis-review-state-reviewed state) 0)
+             (not (gnosis-review-state-cancelled-p state))
+             (null (gnosis-review-state-remaining state)))
+    (list :api-version 1 :mode "practice"
+          :session-id (copy-sequence (gnosis-review-state-session-id state))
+          :database (nth 2 (assoc 0 (sqlite-select
+                                    (gnosis-review-state-database state)
+                                    "PRAGMA database_list")))
+          :connection (gnosis-review-state-database state))))
+
+(defun gnosis-review--notify-completion (event)
+  "Deliver completed EVENT without giving subscribers a core continuation."
+  (run-hook-wrapped
+   'gnosis-practice-completed-hook
+   (lambda (function)
+     (condition-case err
+         (save-current-buffer
+           (save-match-data
+             ;; Isolate the flat payload, including mutable strings, from both
+             ;; retained state and other subscribers.  The connection is shared.
+             (funcall function (mapcar (lambda (value)
+                                        (if (stringp value) (copy-sequence value) value))
+                                      event))))
+       ((error quit) (message "Gnosis completion subscriber failed: %s"
+                              (error-message-string err))))
+     nil)))
+
 (defun gnosis-review--run-state (buf state)
   "Present STATE in BUF with frozen input policy and restored windows."
-  (let ((gnosis-review-basic-input (gnosis-review-state-basic-input state))
-        (reviewed (gnosis-review-state-reviewed state))
-        (checkpoint (copy-tree (gnosis-review--state-data state)))
-        (gnosis-review--session-validate
-         (with-current-buffer buf (gnosis-review--session-validator state)))
-        (gnosis-review--running (gnosis-review-state-session-id state)))
-    (gnosis-review--session-check checkpoint)
+  (let (completion)
     (unwind-protect
-        (save-window-excursion
-          (pop-to-buffer-same-window buf)
+        (let ((gnosis-review-basic-input (gnosis-review-state-basic-input state))
+              (reviewed (gnosis-review-state-reviewed state))
+              (checkpoint (copy-tree (gnosis-review--state-data state)))
+              (gnosis-review--session-validate
+               (with-current-buffer buf (gnosis-review--session-validator state)))
+              (gnosis-review--running (gnosis-review-state-session-id state)))
           (gnosis-review--session-check checkpoint)
-          (delete-other-windows)
-          (gnosis-review--session-check checkpoint)
-          (catch 'review-loop (gnosis-review-session state))
-          (gnosis-review--session-check)
-          (let ((finished (copy-tree (gnosis-review--state-data state))))
-            (when (> (gnosis-review-state-reviewed state) reviewed)
-              (gnosis-review-commit (- (gnosis-review-state-reviewed state) reviewed)))
-            (gnosis-review--session-check finished)))
-      ;; Window restoration and cancellation may run native callbacks too.
-      ;; Never cancel a successor's preparation or steal its view for a summary.
-      (when (condition-case nil
-                (progn (gnosis-review--session-check) t)
-              (user-error nil))
-        (let ((finished (copy-tree (gnosis-review--state-data state))))
-          (with-current-buffer buf (gnosis-review--lookahead-cancel))
-          (gnosis-review--session-check finished)
-          (gnosis-review--show-summary state)))))
+          (unwind-protect
+              (save-window-excursion
+                (pop-to-buffer-same-window buf)
+                (gnosis-review--session-check checkpoint)
+                (delete-other-windows)
+                (gnosis-review--session-check checkpoint)
+                (catch 'review-loop (gnosis-review-session state))
+                (gnosis-review--session-check)
+                (let ((finished (copy-tree (gnosis-review--state-data state))))
+                  (when (> (gnosis-review-state-reviewed state) reviewed)
+                    (gnosis-review-commit (- (gnosis-review-state-reviewed state) reviewed)))
+                  (gnosis-review--session-check finished)))
+            ;; Window restoration and cancellation may run native callbacks too.
+            ;; Never cancel a successor's preparation or steal its view for a summary.
+            (when (condition-case nil
+                      (progn (gnosis-review--session-check) t)
+                    (user-error nil))
+              (let ((finished (copy-tree (gnosis-review--state-data state))))
+                (with-current-buffer buf (gnosis-review--lookahead-cancel))
+                (gnosis-review--session-check finished)
+                (when (plist-get checkpoint :remaining)
+                  (setq completion (gnosis-review--completion-event state)))
+                (gnosis-review--show-summary state)))))
+      ;; The running/input bindings have unwound and the summary is already
+      ;; presented.  Reentrant subscribers get no subsequent core UI or writes.
+      (when completion (gnosis-review--notify-completion completion))))
   state)
 
 ;;;###autoload

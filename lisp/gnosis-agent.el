@@ -32,14 +32,13 @@
   "Pending launch records, owned by exact database, session and token.")
 
 (defun gnosis-agent--session (session-id)
-  "Read the exact agent practice SESSION-ID, never the latest batch."
+  "Read the exact practice SESSION-ID, never the latest batch."
   (unless (and (stringp session-id) (not (string-empty-p session-id)))
     (user-error "Session ID must be a nonempty string"))
   (let ((data (gnosis-get 'data 'study-history `(= session-id ,session-id))))
     (unless (and (equal 1 (plist-get data :version))
-                 (eq 'practice (plist-get data :mode))
-                 (plist-get data :policy))
-      (user-error "Unknown agent practice session: %s" session-id))
+                 (eq 'practice (plist-get data :mode)))
+      (user-error "Unknown practice session: %s" session-id))
     (gnosis-review--check-frozen-policy (plist-get data :policy))
     (apply #'gnosis-review-state-create :persistent-p t
            :database (gnosis--ensure-db) (cddr data))))
@@ -162,7 +161,6 @@ scheduled sessions and cancelled reservations return nil."
   (gnosis-sqlite-with-transaction (gnosis--ensure-db)
     (when-let* ((state (gnosis-review--read-session))
                 ((eq (gnosis-review-state-mode state) 'practice))
-                ((gnosis-review-state-policy state))
                 ((not (gnosis-review-state-cancelled-p state))))
       (gnosis-agent-status (gnosis-review-state-session-id state)))))
 
@@ -170,6 +168,8 @@ scheduled sessions and cancelled reservations return nil."
   "Return API v1 status and progress for exact SESSION-ID.
 Statuses are pending, running, unfinished, completed and cancelled strings.
 Pending is process-local: after restart a reserved batch is unfinished.
+Native topic practice is supported too: :policy and :targets are nil for
+its legacy one-retry policy.
 Cancelled includes batches ended early by a replacement, never completion.
 Their remaining IDs record abandoned membership, not resumable active work.
 Return :api-version 1, :session-id, :database (connected main filename),
@@ -195,7 +195,8 @@ Use `json-serialize' with :false-object :false and :null-object nil."
                               gnosis-agent--launches))
            (policy (copy-sequence (gnosis-review-state-policy state)))
            (projection (gnosis-review-practice-projection state events)))
-      (unless (plist-get policy :consecutive) (setq policy (plist-put policy :consecutive :false)))
+      (when (and policy (not (plist-get policy :consecutive)))
+        (setq policy (plist-put policy :consecutive :false)))
       (list :api-version 1 :session-id session-id :mode "practice"
             :database (nth 2 (assoc 0 (sqlite-select (gnosis--ensure-db) "PRAGMA database_list")))
             :status (cond ((gnosis-review-state-cancelled-p state) "cancelled")
@@ -207,7 +208,7 @@ Use `json-serialize' with :false-object :false and :null-object nil."
             :selected-ids (vconcat (gnosis-review-state-selected state))
             :policy policy :selection (gnosis-review-state-selection state)
             :summary (gnosis-review-summary projection)
-            :targets (gnosis-review-policy-summary projection)
+            :targets (when policy (gnosis-review-policy-summary projection))
             :remaining-ids (vconcat (gnosis-review-state-remaining state)))))
 
 (defun gnosis-agent--item (state id events)
@@ -217,17 +218,22 @@ Use `json-serialize' with :false-object :false and :null-object nil."
          (ordered (mapcar (lambda (row) (= 3 (nth 5 row))) effective))
          (first-correct (seq-position ordered t))
          (outcomes (reverse ordered))
-         (progress (gnosis-review-policy-progress (gnosis-review-state-policy state) outcomes))
+         (progress (when (gnosis-review-state-policy state)
+                     (gnosis-review-policy-progress (gnosis-review-state-policy state) outcomes)))
          (deleted (not (gnosis-get 'id 'themata `(= id ,id))))
          (excluded (or deleted (member id (gnosis-review-state-skipped state)))))
     (list :thema-id id
-          :reason (if excluded "excluded" (plist-get progress :reason))
+          :reason (cond (excluded "excluded")
+                        (progress (plist-get progress :reason))
+                        ((member id (gnosis-review-state-remaining state)) "unfinished")
+                        (t "completed"))
           :deleted (if deleted t :false)
           :attempts (length effective) :total-attempts (length rows)
           :first-outcome (when effective (if (car ordered) "success" "failure"))
           :attempts-to-first-correct (and first-correct (1+ first-correct))
           :retries-to-first-correct first-correct
-          :successes (plist-get progress :successes)
+          :successes (if progress (plist-get progress :successes)
+                       (seq-count #'identity outcomes))
           :target (plist-get progress :target)
           :events
           (vconcat (mapcar
@@ -252,6 +258,8 @@ shown hints and the original pre-override outcome.  Nil means unavailable;
 legacy events are never supplemented with current question content.
 Items also include total-attempts (including voids), first-outcome and nullable
 attempts-to-first-correct/retries-to-first-correct from effective evidence.
+Native practice without a frozen policy has nil :target, total accepted
+successes at :successes, and reasons completed, unfinished or excluded.
 Effective grades alone determine first/retry counts and policy progress.
 Hard thema deletion removes owned events; deleted membership remains visible.
 Completion and immediate repetition are not mastery or calibrated retention."

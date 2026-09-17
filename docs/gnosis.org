@@ -1649,6 +1649,85 @@ ID and uses Org structure, not graph traversal.  An ID-less heading
 belongs to its enclosing node, so questions linked to that owner are
 included even if their source passage lies outside that heading.
 
+*** Scheduled Review After Practice
+
+A completed, nonempty practice summary offers a *Scheduled review* button
+and the =s= binding (~gnosis-review-summary-scheduled~).  This is an
+explicit new session, not conversion of practice results: only newly
+accepted scheduled answers affect FSRS.  Nothing starts automatically.
+
+The command resolves the original selected IDs against current questions,
+so repairs made after practice are used.  Its confirmation shows counts of
+deleted, suspended, otherwise ineligible and not-yet-due exclusions.
+Selection is due-only, including eligible new cards.  Like explicit topic
+review, it does not apply =gnosis-new-themata-limit=; unrelated due cards
+cannot displace this selection.  It never unsuspends cards.
+
+Declining, =C-g=, an empty selection or setup failure leaves the completed
+checkpoint intact.  Starting review preserves the practice history and
+encounters and installs a separate scheduled checkpoint.  The old summary
+then becomes stale: activating it again cannot launch a duplicate batch.
+A summary from another database connection or a changed checkpoint is also
+refused.  Current eligibility is checked again after confirmation and setup;
+if it changes, request the action again to inspect the new counts.
+
+*** Practice Completion Notifications
+
+=gnosis-practice-completed-hook= is an optional, agent-neutral hook.  Each
+function receives one fresh plist after a nonempty native practice batch
+with accepted evidence completes.  The evidence and final checkpoint have
+committed, native input has unwound, and the summary has been presented.
+Native resume and ~gnosis-agent-resume~ use the same completion path.
+Cancelled, interrupted, still-unfinished, empty and wholly unattempted
+batches do not notify.  Completion means the finite queue ended, not mastery
+or attainment of every practice target.
+
+The API v1 event has these fields; it contains no answers or question text:
+
+- =:api-version=: =1=.
+- =:mode=: ="practice"=.
+- =:session-id=: the retained batch identity.
+- =:database=: the originating main SQLite filename, not =gnosis-dir=.
+- =:connection=: the originating open SQLite connection (an Emacs object,
+  not JSON data).  A consumer must check/use this origin rather than assume
+  that the current connection still owns the notification.
+
+Subscribers should be quick and read-only.  For example, an integration
+can explicitly query detailed results, which can include answers:
+
+#+begin_src emacs-lisp
+(require 'gnosis-agent)
+(defun my-practice-completed (event)
+  (let* ((gnosis-db (plist-get event :connection))
+         (result (gnosis-agent-results (plist-get event :session-id))))
+    (message "Practice completed: %d accepted attempts"
+             (plist-get (plist-get result :summary) :attempts))))
+(add-hook 'gnosis-practice-completed-hook #'my-practice-completed)
+#+end_src
+
+The read-only status/results API also supports native practice without a
+frozen target policy.  For these legacy one-retry batches, =:policy= and
+=:targets= are nil.  Per-item =:target= is nil, =:successes= counts effective
+accepted successes, and =:reason= is ="completed"=, ="unfinished"= or
+="excluded"=.  Existing frozen-policy results retain their target semantics.
+
+Delivery is synchronous and best-effort, not a persistent message queue.
+An error or quit from one subscriber is reported without preventing other
+subscribers or rolling back accepted evidence.  Reentrant callbacks have
+no subsequent core summary rendering, input or checkpoint write to redirect;
+this is not a sandbox for extensions.  No integration dependency is loaded
+by the hook itself.
+
+Reopening a summary never emits another completion transition.  There is
+no automatic replay on restart: a crash between commit and notification
+can lose delivery.  Consumers can recover by querying retained results.
+Use the pair =(:database :session-id)= as the stable batch deduplication
+identity while retaining the database at that path.  Moving or replacing a
+database requires the consumer to manage that identity explicitly; the path
+is not a database UUID.  Undo followed by completion can notify again for
+the same batch.  Consumers tracking corrections should requery its results
+rather than treating notification as immutable answer evidence.
+
 *** Legacy Review Ahead
 
 ~gnosis-review-topic~ retains its schedule-affecting semantics.  It

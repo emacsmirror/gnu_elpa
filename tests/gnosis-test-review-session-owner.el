@@ -8,7 +8,7 @@
 ;;; Code:
 
 (require 'gnosis-test-summary-owner)
-(require 'gnosis-test-review-active-owner)
+(require 'gnosis-review-test-support)
 
 (defun gnosis-test-session-owner--replace (buffer mutation)
   "Apply MUTATION to BUFFER and return its successor view snapshot."

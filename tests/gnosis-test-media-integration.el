@@ -3,6 +3,7 @@
 (require 'ert)
 (require 'gnosis-test-db-safety)
 (require 'gnosis-test-helpers)
+(require 'gnosis-review)
 
 (defun gnosis-test-media--old-database (&optional archive)
   "Create released schema 8, optionally retaining ARCHIVE metadata."
@@ -220,7 +221,7 @@
           (should (= 0 (caar (sqlite-select gnosis-db "SELECT count(*) FROM review_events")))))))))
 
 (ert-deftest gnosis-media-image-policy-alias-and-binary-acceptance ()
-  (require 'gnosis-test-image-targets)
+  (require 'gnosis-image-test-support)
   (dolist (mode '(scheduled practice))
     (dolist (policy '("hide-target" "hide-all"))
       (gnosis-test-safety
@@ -264,8 +265,7 @@
               (should (= 1 (caar (sqlite-select gnosis-db "SELECT count(*) FROM review_events")))))))))))
 
 (ert-deftest gnosis-media-model-find-and-name-target-acceptance ()
-  (require 'gnosis-test-model)
-  (require 'gnosis-test-model-targets)
+  (require 'gnosis-model-test-support)
   (dolist (mode '(scheduled practice))
     (dolist (case '(("model" "whole" 0 (8 4 0) nil t)
                     ("model" "tip" 0 (8 4 0) nil t)
@@ -343,8 +343,7 @@
       state)))
 
 (ert-deftest gnosis-media-name-recursive-owner-faults ()
-  (require 'gnosis-test-model)
-  (require 'gnosis-test-model-targets)
+  (require 'gnosis-model-test-support)
   (dolist (mode '(scheduled practice))
     (dolist (fault '(aliases frame retired-session mode quit renderer-death successor))
       (gnosis-test-safety
@@ -407,8 +406,7 @@
                 (when (process-live-p process) (delete-process process))))))))))
 
 (ert-deftest gnosis-media-name-pending-rule-drift ()
-  (require 'gnosis-test-model)
-  (require 'gnosis-test-model-targets)
+  (require 'gnosis-model-test-support)
   (dolist (mode '(scheduled practice))
     (gnosis-test-safety
       (gnosis--ensure-db)

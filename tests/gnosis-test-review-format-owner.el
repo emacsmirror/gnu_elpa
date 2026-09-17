@@ -4,7 +4,9 @@
 ;; Org hooks are real; terminal media fixtures do not claim decoded pixels.
 
 ;;; Code:
-(require 'gnosis-test-review-active-owner)
+(require 'gnosis-review-test-support)
+(require 'gnosis-model-test-support)
+(require 'gnosis-image-test-support)
 
 (defun gnosis-test-format--case (mode kind phase mutation &optional native)
   "Exercise MODE, KIND and formatting PHASE across MUTATION.

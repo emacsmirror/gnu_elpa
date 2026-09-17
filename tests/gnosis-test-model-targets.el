@@ -4,7 +4,7 @@
 ;;; Code:
 (require 'ert)
 (require 'gnosis-model)
-(require 'gnosis-test-helpers)
+(require 'gnosis-model-test-support)
 (require 'gnosis-export-import)
 
 ;; Declare optional renderer state for interpreted tests without loading it.
@@ -18,16 +18,6 @@
 (defvar canvas-3d--yaw 0)
 (defvar canvas-3d--pitch 0)
 (defvar canvas-3d--zoom 1)
-
-(defun gnosis-test-model-targets--fixture ()
-  "Create original quad geometry and return a versioned scene filename."
-  (let ((dir (expand-file-name "surface-source" gnosis-dir)))
-    (make-directory dir t)
-    (with-temp-file (expand-file-name "surface.obj" dir)
-      (insert "v 0 0 0\nv 10 0 0\nv 10 10 0\nv 0 10 0\nf -4 -3 -2 -1\n"))
-    (with-temp-file (expand-file-name "scene.json" dir)
-      (insert "{\"version\":2,\"objects\":[{\"id\":\"mesh\",\"label\":\"Surface\",\"path\":\"surface.obj\"}],\"targets\":[{\"id\":\"whole\",\"label\":\"Whole\",\"mesh\":\"mesh\",\"kind\":\"object\"},{\"id\":\"tip\",\"label\":\"Tip\",\"mesh\":\"mesh\",\"kind\":\"point\",\"face\":0,\"barycentric\":[0.2,0.4,0.4],\"tolerance\":1},{\"id\":\"patch\",\"label\":\"Patch\",\"mesh\":\"mesh\",\"kind\":\"region\",\"faces\":[1]}],\"initial_view\":[0,0,1],\"license\":\"CC0\",\"source\":\"Original test fixture\"}"))
-    (expand-file-name "scene.json" dir)))
 
 (ert-deftest gnosis-model-targets-topology-and-domain-policy ()
   (gnosis-test-with-db

@@ -5,19 +5,12 @@
 
 ;;; Code:
 (require 'ert)
-(require 'gnosis-test-review-content)
-(require 'gnosis-test-model)
-(require 'gnosis-test-image)
+(require 'gnosis-review-test-support)
+(require 'gnosis-model-test-support)
+(require 'gnosis-image-test-support)
 
-(defun gnosis-test-active-owner--repurpose (&optional detach)
-  "Associate this buffer with a successor file, optionally DETACH it."
-  (set-visited-file-name (expand-file-name "successor.org" gnosis-dir) t)
-  (should (eq major-mode 'gnosis-mode))
-  (erase-buffer)
-  (insert "Successor unsaved text")
-  (setq-local header-line-format "Successor header")
-  (use-local-map (make-sparse-keymap))
-  (when detach (set-visited-file-name nil t)))
+;; Keep this native hook binding dynamic before the mode is loaded lazily.
+(defvar display-line-numbers-mode-hook)
 
 (ert-deftest gnosis-active-owner-pending-actions ()
   "All retained actions refuse association and detach without changing evidence."
@@ -391,16 +384,6 @@
   (setq-local header-line-format "Successor header")
   (use-local-map (make-sparse-keymap)))
 
-(defun gnosis-test-active-owner--seed (mode)
-  "Keep accepted evidence and an unfinished checkpoint for MODE."
-  (gnosis-test-content--add "basic")
-  (with-temp-buffer
-    (gnosis-mode)
-    (gnosis-test-content--state mode)
-    (let ((answer (gnosis-test-content--answer "basic")))
-      (gnosis-review-result 222 (car answer) (cdr answer)))
-    (gnosis-test-content--state mode)))
-
 (ert-deftest gnosis-active-owner-setup-minor-mode-body ()
   "Both native mode-body hooks must preserve successors and old evidence."
   (dolist (mode '(due practice))
@@ -517,24 +500,6 @@
                                                    'review-events 'practice-events)))))
           (when (eq mode 'practice)
             (should (equal schedule (gnosis-select '* 'scheduler-state)))))))))
-
-(defun gnosis-test-active-owner--rename ()
-  "Rename this owner and return a foreign draft at its former name."
-  (let ((name (buffer-name)))
-    (rename-buffer (generate-new-buffer-name "*gnosis-renamed-owner*"))
-    (let ((draft (get-buffer-create name)))
-      (with-current-buffer draft
-        (insert "Successor draft")
-        (setq-local header-line-format "Successor header")
-        (use-local-map (make-sparse-keymap)))
-      draft)))
-
-(defun gnosis-test-active-owner--draft-unchanged (draft map)
-  "Assert DRAFT's text, header and MAP are unchanged."
-  (with-current-buffer draft
-    (should (equal "Successor draft" (buffer-string)))
-    (should (equal "Successor header" header-line-format))
-    (should (eq map (current-local-map)))))
 
 (ert-deftest gnosis-active-owner-name-replacement-input ()
   "Feedback follows the captured owner, never a new same-name draft."

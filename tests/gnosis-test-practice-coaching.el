@@ -1,7 +1,7 @@
 ;;; gnosis-test-practice-coaching.el --- Accepted coaching evidence -*- lexical-binding: t; -*-
 
 (require 'gnosis-test-agent)
-(require 'gnosis-test-review-content)
+(require 'gnosis-review-test-support)
 
 (ert-deftest gnosis-coaching-native-summary-excludes-deleted-evidence ()
   (gnosis-test-agent

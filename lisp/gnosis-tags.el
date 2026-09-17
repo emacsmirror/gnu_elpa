@@ -42,19 +42,18 @@
 (defun gnosis-get-tags-for-ids (ids)
   "Return unique tags for thema IDS."
   (when ids
-    (mapcar #'car
-	    (gnosis-sqlite-select-batch (gnosis--ensure-db)
-					"SELECT DISTINCT tag FROM thema_tag WHERE thema_id IN (%s)"
-					ids))))
+    (delete-dups
+     (mapcar #'car
+             (gnosis-sqlite-select-batch
+              (gnosis--ensure-db)
+              "SELECT DISTINCT tag FROM thema_tag WHERE thema_id IN (%s)"
+              ids)))))
 
 (defun gnosis-collect-tag-thema-ids (tags &optional ids)
   "Collect thema IDS for TAGS."
   (cl-assert (listp tags))
   (if (null tags) ids
-    (gnosis-collect-tag-thema-ids (cdr tags)
-                                  (append ids
-                                          (gnosis-get-tag-themata
-                                           (car tags))))))
+    (append ids (cl-loop for tag in tags append (gnosis-get-tag-themata tag)))))
 
 (defun gnosis-get-tag-themata (tag)
   "Return thema ids for TAG."
@@ -115,13 +114,13 @@ This is an authoring boundary, not a restriction on stored tag identities."
   (save-excursion
     (let ((input (delete-dups
 		  (completing-read-multiple
-		   "Tags (separated by ,): " (gnosis-get-tags--unique))))
-	  (current-tags (org-get-tags)))
-      (outline-up-heading 99)
+		   "Tags (separated by ,): " (gnosis-get-tags--unique)))))
+      (org-back-to-heading t)
+      (while (org-up-heading-safe))
       (when input
         (gnosis-tags--check-org input)
 	(setf gnosis-previous-thema-tags input)
-        (org-set-tags (append input current-tags))))))
+        (org-set-tags (append input (org-get-tags)))))))
 
 (defun gnosis-tag-rename (tag &optional new-tag)
   "Rename TAG to NEW-TAG, merging if NEW-TAG already exists.
@@ -192,20 +191,15 @@ Batched to stay within SQL variable limits."
       (dolist (tag add-tags)
         (let* ((max-vars (gnosis-sqlite--max-variable-number db))
                (batch-size (/ max-vars 2))
-               (encoded-tag (gnosis-sqlite--serialize tag))
-               (offset 0)
-               (total (length ids)))
-          (while (< offset total)
-            (let* ((end (min (+ offset batch-size) total))
-                   (chunk (cl-subseq ids offset end))
-                   (placeholders (mapconcat (lambda (_) "(?, ?)") chunk ", "))
+               (encoded-tag (gnosis-sqlite--serialize tag)))
+          (dolist (chunk (seq-partition ids batch-size))
+            (let* ((placeholders (mapconcat (lambda (_) "(?, ?)") chunk ", "))
                    (params (cl-loop for id in chunk
                                     append (list id encoded-tag))))
               (sqlite-execute db
 			      (format "INSERT OR IGNORE INTO thema_tag (thema_id, tag) VALUES %s"
 				      placeholders)
-			      params)
-              (setq offset end))))))))
+			      params))))))))
 
 (provide 'gnosis-tags)
 ;;; gnosis-tags.el ends here

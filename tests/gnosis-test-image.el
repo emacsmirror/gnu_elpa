@@ -3,7 +3,7 @@
 ;; Original RGB PNG fixture with real compressed pixels and checksums.
 ;;; Code:
 (require 'ert)
-(require 'gnosis-test-helpers)
+(require 'gnosis-image-test-support)
 (require 'gnosis-review)
 (require 'gnosis-export-import)
 
@@ -17,28 +17,6 @@
        (should-error (apply #'gnosis-add-thema-fields
                             (append (list "basic") fields (list nil 0 nil)))))
      (should-not (gnosis-select 'id 'themata)))))
-
-(defun gnosis-test-image--file ()
-  "Write an original valid 8 by 6 RGB PNG and return its path."
-  (let ((file (expand-file-name "original.png" gnosis-dir))
-        (coding-system-for-write 'no-conversion))
-    (with-temp-file file
-      (set-buffer-multibyte nil)
-      (insert (base64-decode-string
-               "iVBORw0KGgoAAAANSUhEUgAAAAgAAAAGCAIAAABxZ0isAAAAEUlEQVR4nGP4UKGBFTEMpAQAIGBLAbAg65EAAAAASUVORK5CYII=")))
-    file))
-
-(defconst gnosis-test-image--regions
-  '(((id . "left") (label . "Left region") (rect . (0.0 0.0 0.4 0.8)))
-    ((id . "right") (label . "Right region") (rect . (0.5 0.1 0.4 0.8)))))
-
-(defun gnosis-test-image--add (&optional type)
-  "Return a new image thema ID of TYPE in the disposable database."
-  (let* ((reference (gnosis-image-import (gnosis-test-image--file) gnosis-test-image--regions))
-         (id (gnosis-generate-id)))
-    (gnosis-add-thema-fields (or type "image-region") "Select left" (list reference)
-                             '("left") "Explanation" '("image_test") 0 nil nil id)
-    id))
 
 (ert-deftest gnosis-image-real-header-and-immutable-import ()
   (gnosis-test-with-db
@@ -377,41 +355,7 @@
            (when (get-buffer name) (kill-buffer name))))))))
 
 (ert-deftest gnosis-image-native-keymap-edit-delete-and-cancel ()
-  (gnosis-test-with-db
-   (let* ((file (gnosis-test-image--file))
-          (reference (gnosis-image-import file gnosis-test-image--regions))
-          (scene (gnosis-image-resolve reference)))
-     (save-window-excursion
-       (with-temp-buffer
-         (switch-to-buffer (current-buffer))
-         (gnosis-image-mode)
-         (setq gnosis-image--regions (copy-tree gnosis-test-image--regions)
-               gnosis-image--purpose 'edit gnosis-image--selection "left"
-               gnosis-image--depth 0)
-         (let ((cancelled 0) (accepted 0))
-           (cl-letf (((symbol-function 'gnosis-image--render) #'ignore)
-                     ((symbol-function 'y-or-n-p)
-                      (lambda (prompt)
-                        (should (equal prompt "Remove this target from the new image revision? "))
-                        t))
-                     ((symbol-function 'recursion-depth) (lambda () 1))
-                     ((symbol-function 'abort-recursive-edit) (lambda () (cl-incf cancelled)))
-                     ((symbol-function 'exit-recursive-edit) (lambda () (cl-incf accepted))))
-             (execute-kbd-macro "d")
-             (should (equal '("right") (mapcar (lambda (r) (alist-get 'id r)) gnosis-image--regions)))
-             (execute-kbd-macro "q")
-             (should (= cancelled 1))
-             (should-not gnosis-image--accepted)
-             (execute-kbd-macro (kbd "RET"))
-             (should (= accepted 1))
-             (should gnosis-image--accepted)
-             (setq gnosis-image--depth nil)))))
-     (should (equal gnosis-test-image--regions (alist-get 'regions (gnosis-image-resolve reference))))
-     (let ((revised (gnosis-image-import file (cdr gnosis-test-image--regions))))
-       (should-not (equal reference revised))
-       (should (equal gnosis-test-image--regions (alist-get 'regions scene)))
-       (should (gnosis-image-resolve reference "left"))
-       (should-error (gnosis-image-resolve revised "left"))))))
+  (gnosis-test-image--delete-cancel gnosis-test-image--regions))
 
 (ert-deftest gnosis-image-format-values-and-owned-refresh ()
   (gnosis-test-with-db
@@ -768,64 +712,7 @@
            (kill-buffer buffer)))))))
 
 (ert-deftest gnosis-image-occlusion-feedback-restores-source-through-resize ()
-  ;; Exercise real review, mask, SVG construction and refresh; only native
-  ;; decoding/image creation and minibuffer input are replaced in batch.
-  (dolist (correct '(nil t))
-    (gnosis-test-with-db
-     (save-window-excursion
-       (let* ((id (gnosis-test-image--add "image-occlusion"))
-              (reference (car (gnosis-get 'hypothesis 'themata `(= id ,id))))
-              (scene (gnosis-image-resolve reference))
-              (snapshot (copy-tree scene))
-              (buffer (gnosis-review--setup-buffer (list id)))
-              (width 40) rendered source)
-         (unwind-protect
-             (progn
-               (switch-to-buffer buffer)
-               (cl-letf (((symbol-function 'gnosis-image--decode) #'ignore)
-                         ((symbol-function 'image-type-available-p) (lambda (_) t))
-                         ((symbol-function 'window-body-width) (lambda (&rest _) width))
-                         ((symbol-function 'window-body-height) (lambda (&rest _) 1000))
-                         ((symbol-function 'svg-image)
-                          (lambda (svg &rest _)
-                            (setq rendered svg)
-                            '(image :type svg)))
-                         ((symbol-function 'gnosis--read-string-with-input-method)
-                          (lambda (&rest _)
-                            (setq source (copy-tree (dom-by-tag rendered 'image)))
-                            (should (= (length source) 1))
-                            (should (equal (mapcar #'dom-text (dom-by-tag rendered 'text)) '("?")))
-                            (should (= (length (dom-by-tag rendered 'rect)) 2))
-                            (let ((mask (car (dom-by-tag rendered 'rect))))
-                              (should (equal (dom-attr mask 'fill) "#202020"))
-                              (should (= (dom-attr mask 'fill-opacity) 1))
-                              (should (= (dom-attr mask 'width) 3.2)))
-                            (if correct "Left region" "Other answer"))))
-                 (should (eq correct (car (gnosis-review-image-occlusion id))))
-                 (should (equal source (dom-by-tag rendered 'image)))
-                 (should-not (dom-by-tag rendered 'text))
-                 (should-not (dom-by-tag rendered 'rect))
-                 (should (string-match-p "Answer: Left region" (buffer-string)))
-                 (unless correct
-                   (should (string-match-p "Your answer: Other answer" (buffer-string))))
-                 (goto-char (point-max))
-                 (set-buffer-modified-p nil)
-                 (let ((text (buffer-substring-no-properties (point-min) (point-max)))
-                       (position (point)))
-                   (setq width 36)
-                   (run-hooks 'window-configuration-change-hook)
-                   (should (= (dom-attr rendered 'width) 4))
-                   (should (= (length (dom-by-tag rendered 'image)) 1))
-                   (should (equal (dom-attr (car source) 'xlink:href)
-                                  (dom-attr (car (dom-by-tag rendered 'image)) 'xlink:href)))
-                   (should-not (dom-by-tag rendered 'text))
-                   (should-not (dom-by-tag rendered 'rect))
-                   (should (equal text (buffer-substring-no-properties (point-min) (point-max))))
-                   (should (= position (point)))
-                   (should-not (buffer-modified-p))))
-               (should (equal snapshot (gnosis-image-resolve reference)))
-               (should-not (gnosis-select '* 'review-events)))
-           (kill-buffer buffer)))))))
+  (gnosis-test-image--feedback-resize gnosis-test-image--regions nil '(3.2)))
 
 (ert-deftest gnosis-image-occlusion-distinct-text-fields ()
   (gnosis-test-with-db
@@ -835,37 +722,7 @@
 
 
 (ert-deftest gnosis-image-occlusion-native-author-save-reopen ()
-  (gnosis-test-with-db
-   (save-window-excursion
-     (let ((gnosis-save-hook nil) (file (gnosis-test-image--file)))
-       (unwind-protect
-           (progn
-             (cl-letf (((symbol-function 'read-file-name) (lambda (&rest _) file))
-                       ((symbol-function 'read-string) (lambda (&rest _) ""))
-                       ((symbol-function 'gnosis-image-edit-regions)
-                        (lambda (_) (copy-tree gnosis-test-image--regions)))
-                       ((symbol-function 'completing-read) (lambda (_ choices &rest _) (caar choices))))
-               (gnosis-add-image-thema "image-occlusion"))
-             (insert "Name the masked structure")
-             (let* ((row (car (gnosis-export-parse-themata)))
-                    (reference (car (nth 3 row))))
-               (should (equal (nth 3 row) (list reference "left" "hide-target")))
-               (should (equal (nth 4 row) '("Left region")))
-               (goto-char (point-min))
-               (search-forward "Left region")
-               (replace-match "Editable anatomy" t t)
-               (call-interactively (key-binding (kbd "C-c C-c")))
-               (let* ((id (car (gnosis-select 'id 'themata nil t)))
-                      (before (gnosis-select '* 'themata)))
-                 (should (equal '("Editable anatomy") (gnosis-get 'answer 'themata `(= id ,id))))
-                 (gnosis-sqlite-close gnosis-db)
-                 (setq gnosis-db (gnosis-db--open gnosis-dir))
-                 (gnosis-edit-thema id)
-                 (should (equal (nth 3 (car (gnosis-export-parse-themata))) (list reference "left" "hide-target")))
-                 (call-interactively (key-binding (kbd "C-c C-c")))
-                 (should (equal before (gnosis-select '* 'themata))))))
-         (dolist (name '("*Gnosis NEW*" "*Gnosis Edit*"))
-           (when (get-buffer name) (kill-buffer name))))))))
+  (gnosis-test-image--author-roundtrip gnosis-test-image--regions "hide-target"))
 
 (ert-deftest gnosis-image-occlusion-typed-cancel-and-owner-guards ()
   (dolist (fault '(quit state mode thema resource database))
@@ -920,45 +777,7 @@
      (should (equal scene (gnosis-image-resolve reference "left"))))))
 
 (ert-deftest gnosis-image-occlusion-legacy-edit-save-and-org-export ()
-  (gnosis-test-with-db
-   (save-window-excursion
-     (let* ((id (gnosis-test-image--add "image-occlusion"))
-            (reference (car (gnosis-get 'hypothesis 'themata `(= id ,id))))
-            (scene (gnosis-image-resolve reference "left"))
-            (gnosis-save-hook nil))
-       (unwind-protect
-           (progn
-             ;; Org export must decode to canonical fields without writing the row.
-             (with-temp-buffer
-               (org-mode)
-               (gnosis-export--insert-themata (list id))
-               (let ((row (car (gnosis-export-parse-themata))))
-                 (should (equal (nth 3 row) (list reference "left" "hide-target")))
-                 (should (equal (nth 4 row) '("Left region")))
-                 (should (equal (nth 6 row) '("image_test")))))
-             (should (equal (gnosis-get 'hypothesis 'themata `(= id ,id)) (list reference)))
-             (gnosis-edit-thema id)
-             (let ((row (car (gnosis-export-parse-themata))))
-               (should (equal (nth 3 row) (list reference "left" "hide-target")))
-               (should (equal (nth 4 row) '("Left region")))
-               (should (equal (nth 6 row) '("image_test"))))
-             (goto-char (point-min))
-             (search-forward "Left region")
-             (replace-match "Edited human answer" t t)
-             (call-interactively (key-binding (kbd "C-c C-c")))
-             (gnosis-sqlite-close gnosis-db)
-             (setq gnosis-db (gnosis-db--open gnosis-dir))
-             (should (equal (gnosis-get 'hypothesis 'themata `(= id ,id)) (list reference "left" "hide-target")))
-             (should (equal (gnosis-get 'answer 'themata `(= id ,id)) '("Edited human answer")))
-             (should (equal (gnosis-get-tags-for-ids (list id)) '("image_test")))
-             (gnosis-edit-thema id)
-             (let ((row (car (gnosis-export-parse-themata))))
-               (should (equal (nth 3 row) (list reference "left" "hide-target")))
-               (should (equal (nth 4 row) '("Edited human answer")))
-               (should (equal (nth 6 row) '("image_test")))))
-         (when (get-buffer "*Gnosis Edit*") (kill-buffer "*Gnosis Edit*")))
-       ;; Resolving checks the immutable byte revision as well as manifest data.
-       (should (equal scene (gnosis-image-resolve reference "left")))))))
+  (gnosis-test-image--legacy-roundtrip gnosis-test-image--regions))
 
 (ert-deftest gnosis-image-resolver-paths-are-authoritative ()
   (gnosis-test-with-db

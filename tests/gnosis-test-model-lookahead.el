@@ -1,6 +1,6 @@
 ;;; gnosis-test-model-lookahead.el --- One-card preparation tests -*- lexical-binding: t; -*-
 
-(require 'gnosis-test-model)
+(require 'gnosis-model-test-support)
 
 (ert-deftest gnosis-model-lookahead-ready-and-pending-transfer ()
   (dolist (ready '(nil t))

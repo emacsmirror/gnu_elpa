@@ -10,7 +10,7 @@
 
 ;;; Code:
 
-(require 'gnosis-test-model)
+(require 'gnosis-model-test-support)
 
 (defvar canvas-3d--process)
 

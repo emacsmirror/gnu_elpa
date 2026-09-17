@@ -5,43 +5,11 @@
 
 ;;; Code:
 (require 'ert)
-(require 'gnosis-test-helpers)
+(require 'gnosis-review-test-support)
+(require 'gnosis-image-test-support)
+(require 'gnosis-model-test-support)
 (require 'gnosis-review)
 (require 'gnosis-export-import)
-
-(defun gnosis-test-content--add (kind)
-  "Create a disposable question of KIND."
-  (gnosis-add-thema-fields kind "The old answer"
-                           (cond ((equal kind "basic") nil)
-                                 ((equal kind "cloze") '("hint"))
-                                 (t '("old" "new")))
-                           '("old") "Explanation" nil 0 nil nil 222))
-
-(defun gnosis-test-content--state (mode)
-  "Retain a review state for MODE in the current buffer."
-  (setq-local gnosis-review--state
-              (gnosis-review-state-create
-               :mode mode :persistent-p t :database gnosis-db
-               :session-id (gnosis-scheduler-event-id)
-               :event-id (gnosis-scheduler-event-id)
-               :remaining '(222) :selected '(222) :initial 1 :total 1))
-  (gnosis-review--save-session gnosis-review--state))
-
-(defun gnosis-test-content--evidence ()
-  "Read all scheduled/practice evidence and session projections."
-  (mapcar (lambda (table)
-            (gnosis-sqlite-select gnosis-db (concat "SELECT * FROM " table)))
-          '("review_events" "practice_events" "scheduler_state"
-            "study_session" "study_history")))
-
-(defun gnosis-test-content--answer (kind &optional during-input input)
-  "Review KIND with INPUT, calling DURING-INPUT at the input boundary."
-  (let ((gnosis-review-buffer-name (buffer-name)))
-    (cl-letf (((symbol-function 'gnosis-completing-read)
-             (lambda (&rest _) (when during-input (funcall during-input)) (or input "old")))
-            ((symbol-function 'gnosis--read-string-with-input-method)
-             (lambda (&rest _) (when during-input (funcall during-input)) (or input "old"))))
-      (funcall (intern (concat "gnosis-review-" kind)) 222))))
 
 (ert-deftest gnosis-test-content-input-drift ()
   "Each response kind rejects drift before producing a pending grade."
@@ -96,74 +64,6 @@
             (should-not (gnosis-review-state-remaining gnosis-review--state))
             (when (eq mode 'practice)
               (should (equal scheduled (gnosis-sqlite-select gnosis-db "SELECT * FROM scheduler_state"))))))))))
-
-(defun gnosis-test-content--edit-field (field text)
-  "Replace native draft FIELD's body with TEXT, adding absent fields."
-  (goto-char (point-min))
-  (if (re-search-forward (concat "^\\*\\* " (regexp-quote field) "[ \t]*$") nil t)
-      (progn
-        (forward-line 1)
-        (let ((start (point))
-              (end (if (re-search-forward "^\\*\\* " nil t)
-                       (line-beginning-position) (point-max))))
-          (delete-region start end)
-          (goto-char start)
-          (insert text "\n\n")))
-    (goto-char (point-max))
-    (insert "\n** " field "\n" text "\n")))
-
-(defun gnosis-test-content--edit-actions (answer edits &optional final after-edit)
-  "Run public review ANSWER through native EDITS and FINAL actions.
-EDITS contains field alists, nil for unchanged save, or `cancel'.
-Call AFTER-EDIT in the original buffer after each edit.  Return the exact
-answer passed to acceptance; also prove editing itself writes no evidence."
-  (let* ((origin (current-buffer))
-         (gnosis-review-buffer-name (buffer-name))
-         (displayed (buffer-string))
-         (before (gnosis-test-content--evidence))
-         (gnosis-save-hook nil)
-         (gnosis-review-editing-p nil)
-         (accept (symbol-function 'gnosis-review-result))
-         (final (or final '(?n)))
-         accepted)
-    (unwind-protect
-        (cl-letf (((symbol-function 'recursive-edit)
-                   (lambda ()
-                     (should (derived-mode-p 'gnosis-edit-mode))
-                     (let ((edit (pop edits)))
-                       (if (eq edit 'cancel)
-                           (gnosis-test-content--edit-field "Keimenon" "Uncommitted change")
-                         (dolist (field edit)
-                           (gnosis-test-content--edit-field (car field) (cdr field))))
-                       (cl-letf (((symbol-function 'exit-recursive-edit) #'ignore))
-                         (call-interactively
-                          (key-binding (kbd (if (eq edit 'cancel) "C-c C-k" "C-c C-c"))))))
-                     (set-buffer origin)
-                     (when after-edit (funcall after-edit))))
-                  ((symbol-function 'read-char-choice)
-                   (lambda (&rest _)
-                     (should (string-prefix-p (car (split-string displayed "Next review:"))
-                                              (buffer-string)))
-                     (should (equal before (gnosis-test-content--evidence)))
-                     (if edits ?e (or (pop final) (ert-fail "Unexpected action prompt")))))
-                  ((symbol-function 'gnosis-review-result)
-                   (lambda (id success result)
-                     (setq accepted (cons success result))
-                     (dolist (key '(:event-id :reviewed-at-us :review-day :content :image :model))
-                       (should (equal (plist-get (cdr answer) key) (plist-get result key))))
-                     (funcall accept id success result))))
-          (catch 'review-loop (gnosis-review-actions (car answer) 222 (cdr answer)))
-          (should-not edits)
-          (should-not final)
-          (should (= (if (car accepted) 3 1)
-                     (caar (sqlite-select gnosis-db
-                             (concat "SELECT rating FROM "
-                                     (if (eq (plist-get (cdr accepted) :mode) 'practice)
-                                         "practice_events" "review_events"))))))
-          accepted)
-      (when (get-buffer "*Gnosis Edit*")
-        (with-current-buffer "*Gnosis Edit*" (set-buffer-modified-p nil))
-        (kill-buffer "*Gnosis Edit*")))))
 
 (ert-deftest gnosis-test-content-edit-action ()
   "Native e/save/Next or Quit accepts the original answer exactly once."
@@ -434,8 +334,6 @@ answer passed to acceptance; also prove editing itself writes no evidence."
 
 (ert-deftest gnosis-test-content-media-edit-actions ()
   "Image, model and combined owners preserve outcomes but retain stale guards."
-  (require 'gnosis-test-image)
-  (require 'gnosis-test-model)
   (dolist (kind '("model" "model-name" "image-region" "image-occlusion" "basic"))
     (dolist (mode '(due practice))
       (dolist (success '(nil t))

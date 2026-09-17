@@ -39,6 +39,7 @@
 ;;; Code:
 
 (require 'cl-lib)
+(require 'seq)
 
 ;;; Connection management
 
@@ -201,17 +202,11 @@ EXTRA-PARAMS are additional bound parameters prepended to each batch
 No-op when IDS is nil."
   (when ids
     (let* ((max-vars (gnosis-sqlite--max-variable-number db))
-           (batch-size (- max-vars (length extra-params)))
-           (offset 0)
-           (total (length ids)))
-      (while (< offset total)
-        (let* ((end (min (+ offset batch-size) total))
-               (chunk (cl-subseq ids offset end))
-               (placeholders (mapconcat (lambda (_) "?") chunk ", "))
-               (params (append (gnosis-sqlite--encode-params extra-params)
-                               (gnosis-sqlite--encode-params chunk))))
-          (sqlite-execute db (format sql placeholders) params)
-          (setq offset end))))))
+           (batch-size (- max-vars (length extra-params))))
+      (dolist (chunk (seq-partition ids batch-size))
+        (gnosis-sqlite-execute
+         db (format sql (mapconcat (lambda (_) "?") chunk ", "))
+         (append extra-params chunk nil))))))
 
 (defun gnosis-sqlite-select-batch (db sql ids &optional extra-params)
   "Execute SELECT SQL on DB for batched IDS, accumulating results.
@@ -220,21 +215,11 @@ EXTRA-PARAMS are additional bound parameters prepended to each batch.
 Returns all decoded rows concatenated across batches."
   (when ids
     (let* ((max-vars (gnosis-sqlite--max-variable-number db))
-           (batch-size (- max-vars (length extra-params)))
-           (offset 0)
-           (total (length ids))
-           (all-rows nil))
-      (while (< offset total)
-        (let* ((end (min (+ offset batch-size) total))
-               (chunk (cl-subseq ids offset end))
-               (placeholders (mapconcat (lambda (_) "?") chunk ", "))
-               (params (append (gnosis-sqlite--encode-params extra-params)
-                               (gnosis-sqlite--encode-params chunk)))
-               (rows (gnosis-sqlite--decode-rows
-                      (sqlite-select db (format sql placeholders) params))))
-          (setq all-rows (nconc all-rows rows))
-          (setq offset end)))
-      all-rows)))
+           (batch-size (- max-vars (length extra-params))))
+      (cl-loop for chunk in (seq-partition ids batch-size)
+               append (gnosis-sqlite-select
+                       db (format sql (mapconcat (lambda (_) "?") chunk ", "))
+                       (append extra-params chunk nil))))))
 
 ;;; S-expression compiler: identifiers
 

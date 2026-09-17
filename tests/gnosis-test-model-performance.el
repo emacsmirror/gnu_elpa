@@ -1,6 +1,6 @@
 ;;; gnosis-test-model-performance.el --- Model preparation regressions -*- lexical-binding: t; -*-
 
-(require 'gnosis-test-model)
+(require 'gnosis-model-test-support)
 
 (ert-deftest gnosis-model-review-does-not-reparse-prepared-geometry ()
   (gnosis-test-with-db

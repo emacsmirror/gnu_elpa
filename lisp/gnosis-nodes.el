@@ -484,15 +484,58 @@ EXTRAS: The template to be inserted at the start."
       (gnosis-nodes-mode 1))))
 
 (defun gnosis-nodes-find--with-tags (&optional prompt entries)
-  "Select gnosis node with tags from ENTRIES.
-PROMPT: Prompt message."
-  (replace-regexp-in-string
-   "  #[^[:space:]]+" ""
-   (funcall gnosis-nodes-completing-read-func
-	    (or prompt "Select gnosis node: ")
-	    (gnosis-nodes-find--tag-with-tag-prop
-	     (or entries
-		 (gnosis-nodes-select '[title tags] 'nodes))))))
+  "Select a node title from tagged ENTRIES using PROMPT.
+ENTRIES contains (TITLE TAGS) rows.  Preserve literal title text."
+  (let* ((rows (or entries (gnosis-nodes-select '[title tags] 'nodes)))
+         (candidates (cl-mapcar #'cons
+                               (gnosis-nodes-find--tag-with-tag-prop rows)
+                               (mapcar #'car rows)))
+         (choice (funcall gnosis-nodes-completing-read-func
+                          (or prompt "Select gnosis node: ")
+                          (mapcar #'car candidates))))
+    (or (cdr (assoc choice candidates)) choice)))
+
+(defun gnosis-nodes--completion-candidates (rows &optional show-tags)
+  "Return an alist of unique labels and IDs for ROWS.
+ROWS contains (ID TITLE FILE TAGS) lists; TAGS may be omitted.
+When SHOW-TAGS is non-nil, include tags in labels.  Distinguish duplicate
+labels by file, then occurrence, reserving literal labels first."
+  (let* ((labels (if show-tags
+                     (gnosis-nodes-find--tag-with-tag-prop
+                      (mapcar (lambda (row) (list (cadr row) (nth 3 row))) rows))
+                   (mapcar #'cadr rows)))
+         (counts (make-hash-table :test #'equal))
+         (used (make-hash-table :test #'equal)))
+    (dolist (label labels)
+      (puthash label (1+ (gethash label counts 0)) counts)
+      (puthash label t used))
+    (cl-mapcar
+     (lambda (row title)
+       (cons (if (= 1 (gethash title counts)) title
+               (let* ((base (format "%s — %s" title (nth 2 row)))
+                      (label (cl-loop for n from 1
+                                      for candidate = (if (= n 1) base
+                                                        (format "%s <%d>" base n))
+                                      unless (gethash candidate used)
+                                      return candidate)))
+                 (puthash label t used)
+                 label))
+             (car row)))
+     rows labels)))
+
+(defun gnosis-nodes--read-node (prompt rows &optional require-match)
+  "Read a node with PROMPT, retaining the selected row from ROWS.
+ROWS contains (ID TITLE FILE TAGS) lists.  Also accept a literal title
+from ROWS for existing completion customizations.  Return (nil NEW-TITLE)
+for unmatched input unless REQUIRE-MATCH is non-nil."
+  (let* ((candidates (gnosis-nodes--completion-candidates rows gnosis-nodes-show-tags))
+         (choice (funcall gnosis-nodes-completing-read-func
+                          prompt (mapcar #'car candidates)))
+         (id (cdr (assoc choice candidates))))
+    (or (assoc id rows)
+        (cl-find choice rows :key #'cadr :test #'equal)
+        (if require-match (user-error "No node selected")
+          (list nil choice)))))
 
 (defun gnosis-nodes--find (prompt entries-with-tags entries)
   "PROMPT user to select from ENTRIES.
@@ -507,28 +550,31 @@ instead."
 
 ;;;###autoload
 (defun gnosis-nodes-find (&optional title file id directory templates)
-  "Select gnosis node.
-If there is no ID for TITLE, create a new FILE with TITLE as TOPIC in
-DIRECTORY."
+  "Select a node by ID, or create a new FILE for an unmatched TITLE.
+Use DIRECTORY and TEMPLATES for creation.  An explicit ID takes precedence
+over TITLE and never creates a new node."
   (interactive)
   (gnosis-nodes-ensure-directories)
-  (let* ((title (or title (if gnosis-nodes-show-tags
-			      (gnosis-nodes-find--with-tags)
-			    (funcall gnosis-nodes-completing-read-func
-				     "Select gnosis node: "
-				     (gnosis-nodes-select 'title 'nodes)))))
-	 (file (or file (caar (gnosis-nodes-select 'file 'nodes `(= title ,title)))))
-	 (id (or id (caar (gnosis-nodes-select 'id 'nodes `(= title ,title)))))
-	 (directory (or directory gnosis-nodes-dir))
-	 (templates (or templates gnosis-nodes-templates)))
-    (cond ((null file)
-	   (gnosis-nodes--create-file title directory
-				      (gnosis-nodes-select-template templates)))
-	  ((file-exists-p (expand-file-name file directory))
-	   (gnosis-nodes-goto-id id))
-	  (t (error "File %s does not exist.  \
-Try `gnosis-nodes-db-force-sync' to resolve this"
-		    file)))))
+  (let* ((node (cond (id (car (gnosis-nodes-select
+                              '[id title file tags] 'nodes `(= id ,id))))
+                     (title (car (gnosis-nodes-select
+                                  '[id title file tags] 'nodes `(= title ,title))))
+                     (t (gnosis-nodes--read-node
+                         "Select gnosis node: "
+                         (gnosis-nodes-select '[id title file tags] 'nodes)))))
+         (title (or (cadr node) title))
+         (file (or file (nth 2 node)))
+         (id (or id (car node)))
+         (directory (or directory gnosis-nodes-dir)))
+    (cond ((and id (not file)) (user-error "No indexed file for node %s" id))
+          ((null file)
+           (gnosis-nodes--create-file
+            title directory (gnosis-nodes-select-template
+                             (or templates gnosis-nodes-templates))))
+          ((file-exists-p (expand-file-name file directory))
+           (gnosis-nodes-goto-id id))
+          (t (error "File %s does not exist.  \
+Try `gnosis-nodes-db-force-sync' to resolve this" file)))))
 
 (defun gnosis-nodes--nodes-by-tag (tag)
   "Return all node IDs associated with TAG.
@@ -543,11 +589,11 @@ Uses the node-tag junction table for proper querying."
 			       "Select tag: "
 			       (gnosis-nodes--all-tags))))
 	 (nodes-ids (gnosis-nodes--nodes-by-tag tag))
-	 (node-titles (gnosis-nodes-select
-		       'title 'nodes
-		       `(in id ,(vconcat nodes-ids)) t))
-	 (node (completing-read "Select node: " node-titles nil t)))
-    (gnosis-nodes-find node)))
+         (node (gnosis-nodes--read-node
+                "Select node: "
+                (gnosis-nodes-select '[id title file tags] 'nodes
+                                     `(in id ,(vconcat nodes-ids))) t)))
+    (gnosis-nodes-find (cadr node) (nth 2 node) (car node))))
 
 (defun gnosis-nodes--journal-file-p (file)
   "Return non-nil if FILE belongs to the configured journal."
@@ -607,16 +653,17 @@ the appropriate template list."
 
 ;;;###autoload
 (defun gnosis-nodes-insert (arg &optional journal-p)
-  "Insert gnosis node link.
-If called with ARG, prompt for custom link description.
+  "Insert a gnosis node link with its full indexed title as description.
+If called with ARG, prompt for a custom description; an active region
+supplies the description instead.  Preserve the insertion origin.
 If JOURNAL-P is non-nil, retrieve/create node as a journal entry."
   (interactive "P")
   (let* ((table (if journal-p 'journal 'nodes))
-         (node (gnosis-nodes--find "Select gnosis node: "
-                                   (gnosis-nodes-select '[title tags] table)
-                                   (gnosis-nodes-select 'title table)))
-         (id (car (gnosis-nodes-select 'id table `(= title ,node) t)))
-	 (title (car (last (split-string node ":"))))
+         (node (gnosis-nodes--read-node
+                "Select gnosis node: "
+                (gnosis-nodes-select '[id title file tags] table)))
+         (id (car node))
+         (title (cadr node))
          (desc (cond ((use-region-p)
                       (buffer-substring-no-properties
                        (region-beginning) (region-end)))
@@ -624,14 +671,16 @@ If JOURNAL-P is non-nil, retrieve/create node as a journal entry."
                      (t title))))
     (unless id
       (save-window-excursion
-        (gnosis-nodes--create-file
-         node (if journal-p
-                  (gnosis-nodes--journal-dir)
-                gnosis-nodes-dir))
-        (save-buffer)
-        (setf id (car (gnosis-nodes-select 'id table `(= title ,node) t)))))
-    (org-insert-link nil (format "id:%s" id) desc)
-    (unless id (message "Created new node: %s" node))))
+        (save-excursion
+          (save-restriction
+            (gnosis-nodes--create-file
+             title (if journal-p (gnosis-nodes--journal-dir) gnosis-nodes-dir))
+            (save-buffer)
+            (widen)
+            (goto-char (point-min))
+            (setq id (org-id-get))))))
+    (unless id (user-error "Node %s has no root ID" title))
+    (org-insert-link nil (format "id:%s" id) desc)))
 
 (defun gnosis-nodes--filetags ()
   "Return list of current filetags, or nil, ignoring narrowing."
@@ -696,14 +745,14 @@ At a heading, add TAG to heading tags.  Otherwise, add to #+FILETAGS."
   (interactive)
   (let* ((id (gnosis-org-get-id))
 	 (source-ids (gnosis-nodes-select 'source 'node-links `(= dest ,id) t))
-	 (titles (when source-ids
-		   (mapcar #'car
-			   (gnosis-sqlite-select-batch (gnosis--ensure-db)
-						       "SELECT title FROM nodes WHERE id IN (%s)"
-						       source-ids)))))
-    (if titles
-	(gnosis-nodes-find
-	 (completing-read "Backlink: " titles))
+	 (rows (when source-ids
+                 (gnosis-sqlite-select-batch
+                  (gnosis--ensure-db)
+                  "SELECT id, title, file, tags FROM nodes WHERE id IN (%s)"
+                  source-ids))))
+    (if rows
+        (let ((node (gnosis-nodes--read-node "Backlink: " rows t)))
+          (gnosis-nodes-find (cadr node) (nth 2 node) (car node)))
       (message "No backlinks found for current node"))))
 
 (defun gnosis-nodes-get-nodes-data (&optional node-ids)
@@ -743,7 +792,7 @@ Returns a list of (ID TITLE BACKLINK-COUNT) for each node."
 
 (defun gnosis-nodes-goto-id (&optional id)
   "Visit file for ID.
-Enable `gnosis-nodes-mode' for a resolved node or journal destination.
+Enable `gnosis-nodes-mode' and widen a resolved node or journal destination.
 If file or id are not found, use `org-open-at-point' without changing modes.
 Refuse unresolved basename ownership before visiting another file."
   (interactive)
@@ -760,6 +809,7 @@ Refuse unresolved basename ownership before visiting another file."
 	      (expand-file-name
                (car (gnosis-nodes-select 'file 'nodes `(= id ,id) t))
 	       gnosis-nodes-dir))
+             (widen)
 	     (org-id-goto id)
              (gnosis-nodes-mode 1))
 	    ((gnosis-nodes-select 'file 'journal `(= id ,id))
@@ -768,6 +818,7 @@ Refuse unresolved basename ownership before visiting another file."
 	       (car (gnosis-nodes-select 'file 'journal
 				         `(= id ,id) t))
 	       (gnosis-nodes--journal-dir)))
+             (widen)
 	     (org-id-goto id)
              (gnosis-nodes-mode 1))
             ((progn

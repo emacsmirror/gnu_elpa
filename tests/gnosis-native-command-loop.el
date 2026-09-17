@@ -10,7 +10,7 @@
 ;;; Code:
 
 (require 'ert)
-(require 'gnosis-test-review-content)
+(require 'gnosis-review-test-support)
 (require 'gnosis-journal)
 
 (defvar gnosis-native--inputs nil)

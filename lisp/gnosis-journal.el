@@ -499,8 +499,9 @@ FILE is nil in separate-file mode.  DIR is not created."
     (user-error "Journal destination changed during template selection")))
 
 (defun gnosis-journal--buffer-state (file)
-  "Return FILE's visiting buffer identity and edit state, or nil."
-  (when-let* ((buffer (and file (get-file-buffer file))))
+  "Return FILE's physical visiting buffer identity and edit state, or nil.
+Keep the actual visited filename to detect reassociation during input."
+  (when-let* ((buffer (and file (find-buffer-visiting file))))
     (with-current-buffer buffer
       (list buffer buffer-file-name major-mode (buffer-chars-modified-tick)))))
 
@@ -669,7 +670,7 @@ MARKER and TICK are set only for a live Org buffer.  DIGEST is a
 content hash for disk-only or non-Org live buffers.  Prefer a live
 visiting buffer over disk.  Do not change the source major mode,
 point, or narrowing."
-  (if-let* ((buf (get-file-buffer file)))
+  (if-let* ((buf (find-buffer-visiting file)))
       (with-current-buffer buf
         (save-excursion
           (save-restriction
@@ -876,12 +877,12 @@ Preserve existing text and IDs.  Quit or invalid input inserts nothing."
   (interactive)
   (let* ((date (or (gnosis-journal--date-at-point)
                    (user-error "No dated journal entry at point")))
-         (file buffer-file-name)
          (entry (gnosis-journal--unique-entry date))
+         (file (nth 2 entry))
          (destination (gnosis-journal--destination))
          (state (gnosis-journal--buffer-state file))
          (config (gnosis-journal--capture-config)))
-    (unless (and file entry (equal file (nth 2 entry)))
+    (unless (and file entry (eq (current-buffer) (car state)))
       (user-error "Not in the selected journal entry"))
     (let ((name (or name (funcall gnosis-nodes-completing-read-func
                                  "Insert journal template: "
@@ -1025,13 +1026,16 @@ Keep template function identity, not a copy of closure-local state."
 (defun gnosis-journal--capture-context ()
   "Capture date, entry, file, buffer and configuration before any input.
 Visit an existing target without changing its contents."
-  (let* ((date (or (and buffer-file-name
-                       (gnosis-nodes--journal-file-p buffer-file-name)
-                       (gnosis-journal--date-at-point))
-                  (format-time-string "%Y-%m-%d")))
+  (let* ((single (gnosis-journal--file))
+         (date (or (and buffer-file-name
+                        (or (gnosis-nodes--journal-file-p buffer-file-name)
+                            (and single
+                                 (eq (current-buffer) (find-buffer-visiting single))))
+                        (gnosis-journal--date-at-point))
+                   (format-time-string "%Y-%m-%d")))
          (entry (gnosis-journal--unique-entry date))
-         (file (or (nth 2 entry) (gnosis-journal--file))))
-    (when (and file (file-exists-p file) (not (get-file-buffer file)))
+         (file (or (nth 2 entry) single)))
+    (when (and file (file-exists-p file) (not (find-buffer-visiting file)))
       (find-file-noselect file))
     (list :date date :entry entry :file file
           :state (gnosis-journal--buffer-state file)
@@ -1092,7 +1096,8 @@ mode changes are not undone."
     (widen)
     (unless gnosis-nodes-mode (gnosis-nodes-mode 1))
     (unless (and (derived-mode-p 'org-mode)
-                 (equal buffer-file-name file))
+                 buffer-file-name
+                 (gnosis-journal--physical-equal buffer-file-name file))
       (user-error "Journal buffer changed during initialization"))
     (unless (equal (plist-get context :config) (gnosis-journal--capture-config))
       (user-error "Journal configuration changed during input"))
@@ -1102,6 +1107,7 @@ mode changes are not undone."
     (unless (or single (and (not (file-exists-p file)) (= (buffer-size) 0)))
       (user-error "Journal file is not empty; preserve its contents before retrying"))
     (let ((owner (current-buffer))
+          (visited buffer-file-name)
           (mode major-mode))
       (atomic-change-group
         (when (and single (= (buffer-size) 0))
@@ -1116,8 +1122,8 @@ mode changes are not undone."
           (goto-char begin)
           (org-id-get-create)
           (unless (and (eq (current-buffer) owner)
-                       (eq (get-file-buffer file) owner)
-                       (equal buffer-file-name file)
+                       (eq (find-buffer-visiting file) owner)
+                       (equal buffer-file-name visited)
                        (eq major-mode mode))
             (user-error "Journal buffer changed during ID creation"))
           (goto-char (point-max))
@@ -1205,10 +1211,9 @@ edits unsaved.  Do not complete tasks or save the journal."
   (interactive)
   (let* ((context (gnosis-journal--capture-context))
          (todos (gnosis-journal-get-todos))
-         (source-modes
+         (source-states
           (mapcar (lambda (todo)
-                    (when-let* ((buffer (get-file-buffer (nth 2 todo))))
-                      (cons buffer (buffer-local-value 'major-mode buffer))))
+                    (gnosis-journal--buffer-state (nth 2 todo)))
                   todos))
          (candidates
           (cl-loop for todo in todos
@@ -1233,7 +1238,8 @@ edits unsaved.  Do not complete tasks or save the journal."
          (user-error "Canceled"))
        (let ((template (gnosis-journal--capture-template context 'todos)))
          (unless id
-           (let* ((state (plist-get context :state))
+           (let* ((source (assq (find-buffer-visiting file) source-states))
+                  (state (plist-get context :state))
                   (same (and state marker (eq (car state) (marker-buffer marker))))
                   (position (and same (marker-position marker)))
                   (before (and same
@@ -1243,8 +1249,8 @@ edits unsaved.  Do not complete tasks or save the journal."
                                    (buffer-substring-no-properties
                                     (point-min) (point-max)))))))
              (setq id (gnosis-journal--create-task-id
-                       title file begin marker tick line digest
-                       (cdr (assq (get-file-buffer file) source-modes))))
+                       title (or (nth 1 source) file) begin marker tick line digest
+                       (nth 2 source)))
              (when same
                (gnosis-journal--accept-task-id context before position id))))
          (gnosis-journal--insert-capture

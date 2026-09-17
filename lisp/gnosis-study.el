@@ -80,6 +80,22 @@ Keep Org IDs in the values, not the labels."
   (and (gnosis-get 'id 'themata `(= id ,id))
        (equal 0 (gnosis-get 'suspended 'scheduler-state `(= thema-id ,id)))))
 
+(defun gnosis-study--topic-linked-ids (nodes)
+  "Return unique raw thema IDs linked directly to NODES, in query order.
+Do not filter eligibility, expand the graph, shuffle or limit membership."
+  (when nodes
+    (delete-dups
+     (gnosis-select 'source 'thema-links `(in dest ,(vconcat nodes)) t))))
+
+(defun gnosis-study--eligible-ids (ids rows today)
+  "Filter IDS in order using (ID SUSPENDED DUE-DAY) ROWS.
+When TODAY is non-nil, exclude rows due after that logical day."
+  (let ((eligible (make-hash-table :test #'eql)))
+    (pcase-dolist (`(,id ,suspended ,due-day) rows)
+      (when (and (equal suspended 0) (or (not today) (<= due-day today)))
+        (puthash id t eligible)))
+    (seq-filter (lambda (id) (gethash id eligible)) ids)))
+
 (defun gnosis-study-topic-ids (nodes &optional due fwd back)
   "Return unique eligible themata linked to NODES.
 When DUE is non-nil, exclude not-due items.  FWD and BACK are explicit
@@ -91,17 +107,15 @@ bounded graph depths, both defaulting to zero.  Ignore the daily new limit."
                         (mapcar (lambda (id)
                                   (gnosis-collect-nodes-at-depth id fwd back))
                                 nodes))))
-         (ids (when nodes
-                (delete-dups
-                 (gnosis-select 'source 'thema-links
-                                `(in dest ,(vconcat nodes)) t)))))
-    (seq-filter
-     (lambda (id)
-       (and (gnosis-study-eligible-p id)
-            (or (not due)
-                (<= (gnosis-get 'due-day 'scheduler-state `(= thema-id ,id))
-                    (gnosis--today-int)))))
-     ids)))
+         (ids (gnosis-study--topic-linked-ids nodes))
+         (rows (when ids
+                 (gnosis-sqlite-select-batch
+                  (gnosis--ensure-db)
+                  "SELECT t.id, s.suspended, s.due_day FROM themata t
+                    JOIN scheduler_state s ON s.thema_id = t.id
+                   WHERE t.id IN (%s)"
+                  ids))))
+    (gnosis-study--eligible-ids ids rows (and due (gnosis--today-int)))))
 
 (defun gnosis-study-composition (ids)
   "Return counts for unique IDS as a plist.
@@ -280,6 +294,11 @@ rather than on either boundary."
              when (equal calendar (gnosis-date nil (cons time 1000000)))
              collect (list time id))))
 
+(defun gnosis-study--activity-counts (scheduled practice)
+  "Combine SCHEDULED activity row with the PRACTICE attempt count."
+  (list :total (+ (nth 1 scheduled) practice)
+        :scheduled (nth 1 scheduled) :practice practice :new (nth 2 scheduled)))
+
 (defun gnosis-study-activity (&optional date)
   "Return accepted study attempt counts for logical DATE as a plist.
 DATE defaults to today, as a YYYYMMDD integer.  Return :total, :scheduled,
@@ -289,11 +308,10 @@ Scheduled dates remain as recorded, including legacy daily aggregates.
 Practice timestamps use the current local timezone and `gnosis-day-start-hour';
 historical practice did not retain its original day-boundary settings."
   (let* ((today (gnosis-date))
-         (date (or date (gnosis--date-to-int today)))
-         (scheduled (gnosis-review-activity date))
-         (practice (length (gnosis-study--practice-day-events date))))
-    (list :total (+ (nth 1 scheduled) practice)
-          :scheduled (nth 1 scheduled) :practice practice :new (nth 2 scheduled))))
+         (date (or date (gnosis--date-to-int today))))
+    (gnosis-study--activity-counts
+     (gnosis-review-activity date)
+     (length (gnosis-study--practice-day-events date)))))
 
 (defun gnosis-study-practice-history ()
   "Return practice session plists from retained event evidence.
@@ -416,7 +434,7 @@ This explicitly adopts the current database for subsequent row commands."
                   (delete-dups
                    (append (gnosis-get-tag-themata "needs_work")
                            (mapcar #'car (seq-filter (lambda (row) (> (cadr row) 1)) evidence))))
-                (gnosis-select 'source 'thema-links `(= dest ,gnosis-study--topic) t)))
+                (gnosis-study--topic-linked-ids (list gnosis-study--topic))))
          (counts (gnosis-study-composition ids)))
     (setq tabulated-list-entries
           (mapcar
@@ -697,12 +715,12 @@ Do not fit parameters or claim personalized calibration from these counts."
              AND event_id NOT IN (SELECT event_id FROM review_voids)"
          (list date))))
 
-(defun gnosis-study--day-source-nodes (date)
+(defun gnosis-study--day-source-nodes (date practice)
   "Return unique source completion pairs for event-level activity on DATE.
 Pairs are (LABEL . ID) from `gnosis-study-topic-candidates'.  Ignore
-legacy scheduled aggregates, which have no event-level themata."
-  (let* ((practice (mapcar #'cadr (gnosis-study--practice-day-events date)))
-         (scheduled
+legacy scheduled aggregates, which have no event-level themata.
+PRACTICE contains the effective practice rows already read for DATE."
+  (let* ((scheduled
           (mapcar #'car
                   (gnosis-sqlite-select
                    (gnosis--ensure-db)
@@ -710,7 +728,7 @@ legacy scheduled aggregates, which have no event-level themata."
                      WHERE review_day = ?
                        AND event_id NOT IN (SELECT event_id FROM review_voids)"
                    (list date))))
-         (ids (delete-dups (delq nil (append practice scheduled))))
+         (ids (delete-dups (delq nil (append (mapcar #'cadr practice) scheduled))))
          (nodes (when ids
                   (delete-dups
                    (gnosis-select 'dest 'thema-links
@@ -719,10 +737,12 @@ legacy scheduled aggregates, which have no event-level themata."
 
 (defun gnosis-study--day-payload (date)
   "Return display data for logical DATE as a plist."
-  (list :date date
-        :activity (gnosis-study-activity date)
-        :scheduled-events (gnosis-study--day-scheduled-events date)
-        :sources (gnosis-study--day-source-nodes date)))
+  (let ((practice (gnosis-study--practice-day-events date)))
+    (list :date date
+          :activity (gnosis-study--activity-counts
+                     (gnosis-review-activity date) (length practice))
+          :scheduled-events (gnosis-study--day-scheduled-events date)
+          :sources (gnosis-study--day-source-nodes date practice))))
 
 (defun gnosis-study-day--buffer ()
   "Return the owned study-day buffer.
@@ -731,7 +751,8 @@ Refuse to reuse unrelated or file-visiting buffers with the same name."
     (when (and buffer
                (not (with-current-buffer buffer
                       (and (not buffer-file-name)
-                           (derived-mode-p 'gnosis-study-day-mode)))))
+                           (derived-mode-p 'gnosis-study-day-mode)
+                           (eq (car gnosis-study--day-owner) buffer)))))
       (user-error "Buffer %s is not a Gnosis study-day view; rename it first"
                   gnosis-study-day-buffer-name))
     (or buffer (generate-new-buffer gnosis-study-day-buffer-name))))
@@ -879,6 +900,36 @@ NODE is an Org ID.  OWNER and DATE must be this rendering's identity."
   (add-hook 'change-major-mode-hook #'gnosis-study-day--detach nil t)
   (add-hook 'after-set-visited-file-name-hook #'gnosis-study-day--detach nil t))
 
+(defun gnosis-study-day--initialize ()
+  "Initialize a fresh view without reclaiming a pre-mode hook's successor."
+  (let* ((buffer (current-buffer))
+         retired
+         (retire (lambda () (setq retired t))))
+    ;; Keep retirement outside the locals cleared by nested mode changes.
+    (add-hook 'change-major-mode-hook retire nil t)
+    (add-hook 'after-set-visited-file-name-hook retire nil t)
+    (let ((hooks change-major-mode-hook))
+      (setq-local change-major-mode-hook
+                  (list
+                   (lambda ()
+                     ;; Restore native hooks for nested mode changes, but
+                     ;; check each outer callback before the parent resets
+                     ;; locals or continues setup in a different buffer.
+                     (setq-local change-major-mode-hook hooks)
+                     (run-hook-wrapped
+                      'change-major-mode-hook
+                      (lambda (function)
+                        (unless (eq function retire) (funcall function))
+                        (when (or retired (not (eq buffer (current-buffer))))
+                          (user-error "Study-day view is stale; refresh or reopen it"))
+                        nil))))))
+    (unwind-protect
+        (delay-mode-hooks (gnosis-study-day-mode))
+      (when (buffer-live-p buffer)
+        (with-current-buffer buffer
+          (remove-hook 'change-major-mode-hook retire t)
+          (remove-hook 'after-set-visited-file-name-hook retire t))))))
+
 ;;;###autoload
 (defun gnosis-study-day (&optional date)
   "Show a read-only view of accepted study activity for DATE.
@@ -892,11 +943,15 @@ or study evidence."
          (payload (gnosis-study--day-payload date))
          (buffer (gnosis-study-day--buffer)))
     (with-current-buffer buffer
-      (unless (derived-mode-p 'gnosis-study-day-mode)
-        (gnosis-study-day-mode))
-      (let ((owner (cons (current-buffer) database)))
-        (setq gnosis-study--day date
-              gnosis-study--day-owner owner)
+      (let ((initialize (not (derived-mode-p 'gnosis-study-day-mode)))
+            (owner (cons buffer database)))
+        (when initialize (gnosis-study-day--initialize))
+        ;; Claim after the parent resets locals, before native mode hooks.
+        ;; Retirement or nested setup must not restore this occurrence.
+        (setq gnosis-study--day-owner owner)
+        (when initialize (save-current-buffer (run-mode-hooks)))
+        (gnosis-study-day--check-owner owner)
+        (setq gnosis-study--day date)
         (gnosis-study--insert-day payload owner)))
     (pop-to-buffer buffer)))
 

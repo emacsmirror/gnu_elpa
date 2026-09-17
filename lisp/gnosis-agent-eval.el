@@ -107,6 +107,13 @@ Leave without grading with \\[gnosis-agent-eval-quit]."
                       t)
                   (error nil)))))))
 
+(defun gnosis-agent-eval--cancel (cancel)
+  "Invoke cancellation function CANCEL without leaking its buffer or quit."
+  (when (functionp cancel)
+    (save-current-buffer
+      (condition-case err (funcall cancel)
+        ((error quit) (message "Evaluator cancellation: %s" (error-message-string err)))))))
+
 (defun gnosis-agent-eval--stop (context)
   "Retire CONTEXT's attempt before cancelling its timer and evaluator."
   (let ((cancel (plist-get context :cancel)))
@@ -115,9 +122,7 @@ Leave without grading with \\[gnosis-agent-eval-quit]."
     (when (timerp (plist-get context :timer))
       (cancel-timer (plist-get context :timer)))
     (setf (plist-get context :timer) nil)
-    (when (functionp cancel)
-      (condition-case err (funcall cancel)
-        ((error quit) (message "Evaluator cancellation: %s" (error-message-string err)))))))
+    (gnosis-agent-eval--cancel cancel)))
 
 (defun gnosis-agent-eval--retire ()
   "Retire this response encounter without touching any successor."
@@ -257,7 +262,7 @@ input, selects a window or invokes a scheduler."
                       (setf (plist-get context :cancel) cancel)
                     (gnosis-agent-eval--settle context attempt nil
                                              "Evaluator did not return a cancellation function"))
-                (when (functionp cancel) (funcall cancel))))
+                (gnosis-agent-eval--cancel cancel)))
           (error (gnosis-agent-eval--settle context attempt nil (error-message-string err)))))))))
 
 ;;;###autoload

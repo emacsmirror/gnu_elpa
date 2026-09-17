@@ -214,8 +214,9 @@ usable file path.  Do not create the file."
 
 (defun gnosis-journal--parse-file (file function)
   "Call FUNCTION in FILE's live buffer or a temp copy of its disk text.
+Use a live buffer visiting the same physical file, even through an alias.
 Signal ordinary read, permission and decryption errors."
-  (if-let* ((buf (get-file-buffer file)))
+  (if-let* ((buf (find-buffer-visiting file)))
       (with-current-buffer buf
         (save-excursion
           (save-restriction
@@ -257,13 +258,6 @@ separate daily file's root node."
                        headings))
          (or headings (and root (list root))))))))
 
-(defun gnosis-journal--single-file-entries ()
-  "Return entries from the configured single file, if present.
-Read only that file or its live buffer."
-  (when-let* ((file (gnosis-journal--file)))
-    (when (or (get-file-buffer file) (file-regular-p file))
-      (gnosis-journal--file-entries file))))
-
 (defun gnosis-journal--indexed-entries ()
   "Return journal entries from SQLite without reading Org files."
   (cl-loop for (id title file) in (gnosis-nodes-select '[id title file] 'journal)
@@ -271,22 +265,6 @@ Read only that file or its live buffer."
            when (file-exists-p path)
            collect (list (gnosis-journal--title-date title)
                          title path id)))
-
-(defun gnosis-journal--live-separate-entries ()
-  "Return entries from live buffers visiting separate journal files."
-  (let ((single (gnosis-journal--file))
-        (dir (gnosis-journal--directory))
-        entries)
-    (dolist (buf (buffer-list))
-      (when-let* ((file (buffer-file-name buf)))
-        (when (and (file-directory-p dir)
-                   (file-in-directory-p file dir)
-                   (not (and single (gnosis-journal--physical-equal file single))))
-          (with-current-buffer buf
-            (when (derived-mode-p 'org-mode)
-              (setq entries
-                    (append entries (gnosis-journal--file-entries file))))))))
-    entries))
 
 (defun gnosis-journal--physical-equal (a b)
   "Return non-nil if A and B name the same physical file."
@@ -308,22 +286,28 @@ Enumerate filenames only; callers choose which contents to inspect."
      :test #'gnosis-journal--physical-equal)))
 
 (defun gnosis-journal--inspected-files ()
-  "Return files whose live or configured source is fully inspected."
-  (let ((files (mapcar (lambda (entry)
-                         (expand-file-name (nth 2 entry)))
-                       (append (gnosis-journal--single-file-entries)
-                               (gnosis-journal--live-separate-entries)))))
-    (when-let* ((single (ignore-errors (gnosis-journal--file))))
-      (when (or (get-file-buffer single) (file-regular-p single))
-        (push (expand-file-name single) files)))
-    (cl-delete-duplicates files :test #'gnosis-journal--physical-equal)))
+  "Return configured and live journal files to inspect, configured first.
+Keep each physical file once, independently of whether it has entries."
+  (let ((single (gnosis-journal--file))
+        (dir (gnosis-journal--directory)))
+    (cl-delete-duplicates
+     (append (when (and single (or (get-file-buffer single)
+                                   (file-regular-p single)))
+               (list single))
+             (cl-loop for buffer in (buffer-list)
+                      for file = (buffer-file-name buffer)
+                      when (and file (file-directory-p dir)
+                                (file-in-directory-p file dir)
+                                (with-current-buffer buffer
+                                  (derived-mode-p 'org-mode)))
+                      collect file))
+     :test #'gnosis-journal--physical-equal :from-end t)))
 
 (defun gnosis-journal--entries ()
   "Return journal entries, with inspected source superseding the index.
 Do not read archived files."
-  (let* ((source (append (gnosis-journal--single-file-entries)
-                         (gnosis-journal--live-separate-entries)))
-         (inspected (gnosis-journal--inspected-files))
+  (let* ((inspected (gnosis-journal--inspected-files))
+         (source (mapcan #'gnosis-journal--file-entries inspected))
          (index (cl-remove-if
                  (lambda (entry)
                    (let ((file (expand-file-name (nth 2 entry))))
@@ -368,11 +352,31 @@ before the first archive sync.  Do not read unrelated archived files."
        (or (equal (nth 1 entry) title) (equal (car entry) title)))
      entries)))
 
-(defun gnosis-journal--titles ()
-  "Return titles of existing journal entries without reading archives."
-  (delete-dups
-   (mapcar (lambda (entry) (nth 1 entry))
-           (gnosis-journal--entries))))
+(defun gnosis-journal--read-entry ()
+  "Read a source-qualified entry or a new title without reading archives.
+Tags decorate candidates, never identify targets.  Refuse ambiguous titles."
+  (let* ((entries (gnosis-journal--entries))
+         (tags (and gnosis-nodes-show-tags
+                    (gnosis-nodes-select '[id tags] 'journal)))
+         (labels (gnosis-nodes-find--tag-with-tag-prop
+                  (mapcar (lambda (entry)
+                            (list (nth 1 entry)
+                                  (cadr (assoc (nth 3 entry) tags))))
+                          entries)))
+         (candidates (cl-mapcar #'cons labels entries))
+         (choice (funcall gnosis-nodes-completing-read-func
+                          "Select journal entry: " labels))
+         (entry (cdr (assoc choice candidates))))
+    (when (and entry
+               (or (> (cl-count choice labels :test #'equal) 1)
+                   (> (cl-count-if
+                       (lambda (other)
+                         (or (equal (nth 1 entry) (nth 1 other))
+                             (equal (nth 1 entry) (car other))))
+                       entries)
+                      1)))
+      (user-error "Ambiguous journal title: %s" (nth 1 entry)))
+    (or entry choice)))
 
 (defun gnosis-journal--unique-entry (title)
   "Return the unique (DATE TITLE FILE ID) entry named TITLE, or nil.
@@ -434,7 +438,12 @@ Try `gnosis-nodes-db-force-sync' to resolve this" file))
 Try `gnosis-nodes-db-force-sync' to resolve this" title file))
                  (t
                   (goto-char (car positions))
-                  (unless (gnosis-journal--heading-matches-p title date)
+                  (unless (or (gnosis-journal--heading-matches-p title date)
+                              (seq-some
+                               (lambda (node)
+                                 (and (equal (plist-get node :id) id)
+                                      (equal (plist-get node :title) title)))
+                               (gnosis-org-buffer-data)))
                     (user-error "Journal entry %s is missing from %s.  \
 Try `gnosis-nodes-db-force-sync' to resolve this" title file))))))
         (t
@@ -598,13 +607,15 @@ Use PREPARED template text when PREPARED-P is non-nil."
     (gnosis-journal--assert-destination file db dir)
     (gnosis-nodes--create-file title (gnosis-journal--dir) body)))
 
-(defun gnosis-journal--visit-or-create (title)
-  "Visit TITLE in the configured layout, creating it if needed."
-  (if-let* ((entry (gnosis-journal--unique-entry title)))
+(defun gnosis-journal--visit-or-create (target)
+  "Visit TARGET, a selected entry or title, creating a new title if needed."
+  (if-let* ((entry (if (stringp target)
+                      (gnosis-journal--unique-entry target)
+                    target)))
       (gnosis-journal--goto-entry entry)
     (if (gnosis-journal--file)
-        (gnosis-journal--create-heading title)
-      (gnosis-journal--create-separate title))))
+        (gnosis-journal--create-heading target)
+      (gnosis-journal--create-separate target))))
 
 ;;; Task collection
 
@@ -662,10 +673,9 @@ point, or narrowing."
       (with-current-buffer buf
         (save-excursion
           (save-restriction
+            (widen)
             (if (derived-mode-p 'org-mode)
-                (progn
-                  (widen)
-                  (gnosis-journal--collect-todos file t))
+                (gnosis-journal--collect-todos file t)
               (let ((text (buffer-substring-no-properties (point-min)
                                                           (point-max))))
                 (with-temp-buffer
@@ -709,8 +719,8 @@ IDs remain plain text and cannot complete external tasks."
                                 (format "%s [ ] %s\n"
                                         gnosis-journal-bullet-point-char
                                         (if id
-                                            (format "[[id:%s][%s]]" id
-                                                    todo-title)
+                                            (org-link-make-string
+                                             (concat "id:" id) todo-title)
                                           todo-title))))))))
     (or todos-string "")))
 
@@ -764,13 +774,7 @@ this function no longer mutates task files."
 (defun gnosis-journal-find (&optional title)
   "Find journal entry for TITLE."
   (interactive)
-  (gnosis-journal--file)
-  (let ((title (or title (gnosis-nodes--find
-                          "Select journal entry: "
-                          (gnosis-nodes-select '[title tags] 'journal)
-                          (or (gnosis-journal--titles)
-                              (gnosis-nodes-select 'title 'journal))))))
-    (gnosis-journal--visit-or-create title)))
+  (gnosis-journal--visit-or-create (or title (gnosis-journal--read-entry))))
 
 ;;;###autoload
 (defun gnosis-journal-insert (arg)
@@ -778,7 +782,6 @@ this function no longer mutates task files."
 If called with prefix ARG, use a custom link description.
 Create the entry if needed.  Do not save the journal."
   (interactive "P")
-  (gnosis-journal--file)
   (gnosis-journal--insert-link arg))
 
 (defun gnosis-journal--insert-link (arg)
@@ -786,11 +789,8 @@ Create the entry if needed.  Do not save the journal."
 ARG non-nil prompts for a custom description.  Do not save an
 already dirty journal buffer.  Validate the selected target in
 its source, then restore origin point and restriction before inserting."
-  (let* ((node (gnosis-nodes--find "Select gnosis node: "
-                                   (gnosis-nodes-select '[title tags] 'journal)
-                                   (or (gnosis-journal--titles)
-                                       (gnosis-nodes-select 'title 'journal))))
-         (title (or (car (last (split-string node ":"))) node))
+  (let* ((node (gnosis-journal--read-entry))
+         (title (if (stringp node) node (nth 1 node)))
          (desc (cond ((use-region-p)
                       (buffer-substring-no-properties
                        (region-beginning) (region-end)))
@@ -1249,8 +1249,8 @@ edits unsaved.  Do not complete tasks or save the journal."
                (gnosis-journal--accept-task-id context before position id))))
          (gnosis-journal--insert-capture
           context 'todos
-          (format "%s [ ] [[id:%s][%s]]"
-                  gnosis-journal-bullet-point-char id title)
+          (format "%s [ ] %s" gnosis-journal-bullet-point-char
+                  (org-link-make-string (concat "id:" id) title))
           template))))))
 
 (defun gnosis-journal--accept-task-id (context before position id)

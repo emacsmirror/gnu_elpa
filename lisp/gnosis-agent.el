@@ -135,11 +135,9 @@ Refuse active native input.  The human answers later; this records no grade."
                  (topics (delete-dups (copy-sequence topic-ids)))
                  (unknown (seq-remove (lambda (id) (gnosis-get 'id 'nodes `(= id ,id))) topics)))
             (when unknown (user-error "Unknown topics: %S" unknown))
-            (let* ((candidates (sort (delete-dups
-                                      (copy-sequence
-                                       (or thema-ids
-                                           (gnosis-select 'source 'thema-links
-                                                          `(in dest ,(vconcat topics)) t)))) #'<))
+            (let* ((candidates (sort (if thema-ids
+                                         (delete-dups (copy-sequence thema-ids))
+                                       (gnosis-study--topic-linked-ids topics)) #'<))
                    (eligible (seq-filter #'gnosis-study-eligible-p candidates))
                    (ids (seq-take eligible limit))
                    (selection (list :limit limit :candidates (length candidates)

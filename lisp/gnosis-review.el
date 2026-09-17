@@ -375,23 +375,26 @@ when non-nil, before returning to or continuing work in that destination."
       (switch-to-buffer-other-window buffer)
       (when validate (with-current-buffer buffer (funcall validate))))))
 
-(defun gnosis-display-cloze-string (str clozes hints correct false)
-  "Display STR with CLOZES and HINTS.
-
-Apply highlighting for CORRECT and FALSE; return the actually shown hints."
+(defun gnosis-display-cloze-string (str clozes hints correct false &optional remaining)
+  "Display STR with CLOZES and HINTS; return the actually shown hints.
+Apply highlighting for CORRECT and FALSE answer strings.  With REMAINING,
+a vector of original blank indices (including the empty vector), CLOZES
+and HINTS are the complete original lists, CORRECT is unused and FALSE
+requests failed feedback instead of masking remaining blanks."
   (let* ((gnosis-review--display-buffer
           (or gnosis-review--display-buffer (get-buffer gnosis-review-buffer-name)))
          (gnosis-review--display-validate
           (with-current-buffer gnosis-review--display-buffer (gnosis-review--display-validator)))
-         (cloze-str (gnosis-cloze-create str clozes))
-         (hinted (gnosis-cloze-add-hints cloze-str hints nil t))
-	 (str-with-hints (car hinted))
-	 (str-with-c-answers
-	  (gnosis-cloze-highlight str-with-hints correct 'gnosis-face-correct))
-	 (final (gnosis-cloze-mark-false str-with-c-answers false)))
+         (rendered
+          (if remaining
+              (gnosis-cloze--render (gnosis-org-format-string str) clozes
+                                    (append remaining nil) hints false)
+            (let* ((hinted (gnosis-cloze-add-hints (gnosis-cloze-create str clozes) hints nil t))
+                   (corrected (gnosis-cloze-highlight (car hinted) correct 'gnosis-face-correct)))
+              (cons (gnosis-cloze-mark-false corrected false) (cdr hinted))))))
     (funcall gnosis-review--display-validate)
-    (gnosis-display-keimenon final)
-    (cdr hinted)))
+    (gnosis-display-keimenon (car rendered))
+    (cdr rendered)))
 
 (defun gnosis-display-basic-answer (answer success user-input)
   "Display ANSWER and, unless SUCCESS, the literal USER-INPUT."
@@ -463,6 +466,9 @@ Apply highlighting for CORRECT and FALSE; return the actually shown hints."
       (insert "\n" text "\n")
       (funcall validate))))
 
+(defvar-local gnosis-review--status nil
+  "Overlay delimiting this setup's scheduling status, never authored prose.")
+
 (defun gnosis-display-next-review (interval success)
   "Display INTERVAL as next review date.
 SUCCESS controls the face used when overriding a previous display."
@@ -478,16 +484,25 @@ SUCCESS controls the face used when overriding a previous display."
                                    'face 'gnosis-face-next-review))))
            (text (and message (gnosis-review--format-string message))))
       (funcall validate)
-      (cond
-       ((null interval)
-        (goto-char (point-max))
-        (unless (save-excursion (search-backward "Practice: schedule unchanged" nil t))
-          (insert (propertize "\n\nPractice: schedule unchanged" 'face 'shadow))))
-       ((search-backward "Next review" nil t)
-        (delete-region (point) (line-end-position))
+      (let ((replace (and (overlayp gnosis-review--status)
+                          (eq (overlay-buffer gnosis-review--status) (current-buffer))
+                          (eq (overlay-get gnosis-review--status 'owner)
+                              gnosis-review--setup-owner))))
+        (if replace
+            (progn
+              (goto-char (overlay-start gnosis-review--status))
+              (delete-region (point) (overlay-end gnosis-review--status)))
+          (goto-char (point-max))
+          (insert "\n\n"))
         (funcall validate)
-        (insert (propertize message 'face (if success 'gnosis-face-correct 'gnosis-face-false))))
-       (t (goto-char (point-max)) (insert "\n\n" text)))
+        (let ((start (point)))
+          (insert (cond ((null interval) (propertize "Practice: schedule unchanged" 'face 'shadow))
+                        (replace (propertize message 'face (if success 'gnosis-face-correct 'gnosis-face-false)))
+                        (t text)))
+          (funcall validate)
+          (setq gnosis-review--status (make-overlay start (point)))
+          (overlay-put gnosis-review--status 'evaporate t)
+          (overlay-put gnosis-review--status 'owner gnosis-review--setup-owner)))
       (funcall validate))))
 
 ;;; Link view mode
@@ -671,16 +686,17 @@ instant once when REVIEWED-AT-US is also omitted."
 
 (defun gnosis-review--override-result (result success)
   "Return RESULT preview recomputed for binary SUCCESS."
-  (if (eq (plist-get result :mode) 'practice)
-      (plist-put (copy-sequence result) :outcome (if success 'success 'failure))
-    (let ((pending (gnosis-review--pending-result
-                    (plist-get result :thema-id) success
-                    (plist-get result :event-id) (plist-get result :reviewed-at-us)
-                    (plist-get result :review-day))))
-      (dolist (key '(:model :image :content :edited-content :encounter))
-        (when (plist-member result key)
-          (setq pending (plist-put pending key (plist-get result key)))))
-      pending)))
+  (let ((pending (copy-sequence result)))
+    ;; Merge only recomputed facts; the constructor retains nil/default semantics.
+    (cl-loop for (key value) on
+             (if (eq (plist-get result :mode) 'practice)
+                 (list :outcome (if success 'success 'failure))
+               (gnosis-review--pending-result
+                (plist-get result :thema-id) success
+                (plist-get result :event-id) (plist-get result :reviewed-at-us)
+                (plist-get result :review-day)))
+             by #'cddr do (setq pending (plist-put pending key value)))
+    pending))
 
 (defun gnosis-review--result-date (result)
   "Return next review date from pending RESULT."
@@ -1773,29 +1789,6 @@ Returns a cons; ='(position . user-input) if correct,
 				:test #'gnosis-compare-strings)))
     (cons position user-input)))
 
-(defun gnosis-review-cloze--update-state
-    (position unrevealed-clozes unrevealed-hints
-	      all-clozes revealed-clozes)
-  "Return updated cloze state after correct match at POSITION.
-UNREVEALED-CLOZES, UNREVEALED-HINTS: remaining items.
-ALL-CLOZES: original list for sort ordering.
-REVEALED-CLOZES: previously matched items.
-Returns (NEW-UNREVEALED NEW-HINTS NEW-REVEALED)."
-  (let* ((matched (nth position unrevealed-clozes))
-	 (new-revealed
-	  (cl-sort (cons matched revealed-clozes)
-		   #'< :key (lambda (c)
-			      (cl-position c all-clozes))))
-	 (new-unrevealed
-	  (append (cl-subseq unrevealed-clozes 0 position)
-		  (cl-subseq unrevealed-clozes (1+ position))))
-	 (new-hints
-	  (if (< position (length unrevealed-hints))
-	      (append (cl-subseq unrevealed-hints 0 position)
-		      (cl-subseq unrevealed-hints (1+ position)))
-	    unrevealed-hints)))
-    (list new-unrevealed new-hints new-revealed)))
-
 (defun gnosis-review-cloze (id)
   "Review cloze type thema for ID."
   (let* ((gnosis-review--display-buffer (current-buffer))
@@ -1810,44 +1803,28 @@ Returns (NEW-UNREVEALED NEW-HINTS NEW-REVEALED)."
          (responses nil)
          (shown-hints nil)
          (tolerance gnosis-string-difference)
-	 (revealed-clozes '())
-	 (unrevealed-clozes all-clozes)
-	 (unrevealed-hints all-hints)
-	 (parathema (nth 5 data))
-	 (success t))
+         (parathema (nth 5 data))
+         (success t))
     (setq shown-hints (gnosis-display-cloze-string
-                       keimenon unrevealed-clozes unrevealed-hints nil nil))
-    (catch 'done
-      (while unrevealed-clozes
-	(let* ((input (let ((gnosis-string-difference tolerance))
-                         (gnosis-review-cloze--input unrevealed-clozes)))
-	       (position (car input)))
-          (gnosis-review--content-check id owner)
-          (push (list :text (cdr input) :remaining-blank-indices (vconcat indices)
-                      :matched-blank-index (and position (nth position indices))) responses)
-          (when position (setq indices (seq-remove (lambda (i) (= i (nth position indices))) indices)))
-	  (if position
-	      (pcase-let ((`(,new-unrev ,new-hints ,new-rev)
-			   (gnosis-review-cloze--update-state
-			    position unrevealed-clozes
-			    unrevealed-hints all-clozes
-			    revealed-clozes)))
-		(setq unrevealed-clozes new-unrev
-		      unrevealed-hints new-hints
-		      revealed-clozes new-rev)
-                (setq shown-hints
-                      (append shown-hints
-                              (gnosis-display-cloze-string
-                               keimenon unrevealed-clozes
-                               unrevealed-hints revealed-clozes nil))))
-	    (gnosis-display-cloze-string
-	     keimenon nil nil
-	     revealed-clozes unrevealed-clozes)
-	    (gnosis-display-cloze-user-answer (cdr input))
-	    (setq success nil
-		  gnosis-review--monkeytype-text
-		  (car unrevealed-clozes))
-	    (throw 'done nil)))))
+                       keimenon all-clozes all-hints nil nil (vconcat indices)))
+    (while (and indices success)
+      (let* ((remaining (mapcar (lambda (i) (nth i all-clozes)) indices))
+             (input (let ((gnosis-string-difference tolerance))
+                      (gnosis-review-cloze--input remaining)))
+             (position (car input)))
+        (gnosis-review--content-check id owner)
+        (push (list :text (cdr input) :remaining-blank-indices (vconcat indices)
+                    :matched-blank-index (and position (nth position indices))) responses)
+        (if position
+            (progn
+              (setq indices (remq (nth position indices) indices))
+              (setq shown-hints
+                    (append shown-hints
+                            (gnosis-display-cloze-string
+                             keimenon all-clozes all-hints nil nil (vconcat indices)))))
+          (gnosis-display-cloze-string keimenon all-clozes all-hints nil t (vconcat indices))
+          (gnosis-display-cloze-user-answer (cdr input) t)
+          (setq success nil gnosis-review--monkeytype-text (car remaining)))))
     (gnosis-review--content-check id owner)
     (let ((result (gnosis-review--encounter
                    (plist-put (gnosis-review-algorithm id success) :content owner) data
@@ -2515,7 +2492,7 @@ The encountered question, answer rules, resources and owner remain intact."
 
 (defun gnosis-review-action--edit (success thema result)
   "Edit THEMA's future presentations, preserving pending SUCCESS and RESULT.
-Return to the same review actions after native save or cancel.  A save
+Return (SUCCESS . RESULT) after native save or cancel.  A save
 acknowledges only this edit's content, never another encounter or write."
   (gnosis-review--check-result-content thema result)
   (let ((origin (current-buffer))
@@ -2533,7 +2510,7 @@ acknowledges only this edit's content, never another encounter or write."
                         (plist-put (copy-sequence result) :edited-content (car receipt))
                       result)))
         (gnosis-review--check-result-content thema result)
-        (gnosis-review-actions success thema result)))))
+        (cons success result)))))
 
 (defun gnosis-review-action--quit (success thema result)
   "Quit review session.
@@ -2553,31 +2530,26 @@ the review session."
   (throw 'review-loop t))
 
 (defun gnosis-review-action--suspend (success thema result)
-  "Suspend/Unsuspend THEMA.
-RESULT is the algorithm result to thread through.
-
-This function should be used with `gnosis-review-actions', which
-should be recursively called using SUCCESS and THEMA."
+  "Suspend/unsuspend THEMA, returning unchanged (SUCCESS . RESULT)."
   (gnosis-toggle-suspend-themata
    (list thema) nil nil
    (lambda () (gnosis-review--check-result-content thema result)))
-  (gnosis-review-actions success thema result))
+  (cons success result))
 
 (defun gnosis-review-action--override (success thema result)
   "Override pending RESULT for THEMA by flipping binary SUCCESS.
 
-This function should be used with `gnosis-review-actions', which will
-be called with new SUCCESS value plus THEMA."
+Return the new (SUCCESS . RESULT) to the action reader."
+  (gnosis-review--check-result-content thema result)
   (let* ((success (not success))
          (new-result (gnosis-review--override-result result success)))
     (gnosis-display-next-review
      (gnosis-review--result-date new-result) success)
-    (gnosis-review-actions success thema new-result)))
+    (cons success new-result)))
 
 (defun gnosis-review-action--view-link (success thema result)
   "View linked node(s) for THEMA.
-SUCCESS is the review result.
-RESULT is the algorithm result to thread through."
+Return unchanged (SUCCESS . RESULT) after source navigation."
   (let* ((origin (current-buffer))
          (validate (lambda ()
                      (unless (buffer-live-p origin)
@@ -2599,8 +2571,7 @@ RESULT is the algorithm result to thread through."
       (message "No linked nodes for thema: %d" thema)
       (sleep-for 0.5))
     (funcall validate)
-    (with-current-buffer origin
-      (gnosis-review-actions success thema result))))
+    (cons success result)))
 
 (defun gnosis-review--accept (id success result)
   "Accept ID and SUCCESS using RESULT, preserving its identity on retry."
@@ -2629,30 +2600,35 @@ To customize the keybindings, adjust `gnosis-review-keybindings'."
          (gnosis-review--display-validate
           (lambda () (gnosis-review--check-result-content id result)))
          (prompt
-	  (concat "Action: %sext, %sverride result, "
-		  "%suspend, %selete, %sdit thema, "
-		  "%siew link, %suit (accept), f flag needs_work: "))
-	 (choice (read-char-choice
-		  (apply #'format prompt
-			 (mapcar
-			  (lambda (str) (propertize str 'face 'match))
-			  '("n" "o" "s" "d" "e" "v" "q")))
-		  '(?n ?o ?s ?d ?e ?v ?q ?f))))
-    (gnosis-review--check-result-content id result)
-    (pcase choice
-      (?n (gnosis-review--accept id success result))
-      (?o (gnosis-review-action--override success id result))
-      (?s (gnosis-review-action--suspend success id result))
-      (?d (if (gnosis-delete-thema
-               id nil (lambda () (gnosis-review--check-result-content id result)))
-              :deleted
-            (gnosis-review-actions success id result)))
-      (?f (gnosis-review--check-result-content id result)
-          (gnosis-study-flag id)
-          (gnosis-review-actions success id result))
-      (?e (gnosis-review-action--edit success id result))
-      (?v (gnosis-review-action--view-link success id result))
-      (?q (gnosis-review-action--quit success id result)))))
+          (apply #'format
+                 (concat "Action: %sext, %sverride result, "
+                         "%suspend, %selete, %sdit thema, "
+                         "%siew link, %suit (accept), f flag needs_work: ")
+                 (mapcar (lambda (str) (propertize str 'face 'match))
+                         '("n" "o" "s" "d" "e" "v" "q")))))
+    (catch 'done
+      (while t
+        ;; A callback may select another buffer; never adopt it as the owner.
+        (unless (buffer-live-p gnosis-review--display-buffer)
+          (user-error "Review buffer no longer exists"))
+        (with-current-buffer gnosis-review--display-buffer
+          (gnosis-review--check-result-content id result)
+          (let ((choice (read-char-choice prompt '(?n ?o ?s ?d ?e ?v ?q ?f))))
+            (gnosis-review--check-result-content id result)
+            (let ((next
+                   (pcase choice
+                     (?n (throw 'done (gnosis-review--accept id success result)))
+                     (?o (gnosis-review-action--override success id result))
+                     (?s (gnosis-review-action--suspend success id result))
+                     (?d (when (gnosis-delete-thema
+                                id nil (lambda () (gnosis-review--check-result-content id result)))
+                           (throw 'done :deleted)))
+                     (?f (gnosis-review--check-result-content id result)
+                         (gnosis-study-flag id) nil)
+                     (?e (gnosis-review-action--edit success id result))
+                     (?v (gnosis-review-action--view-link success id result))
+                     (?q (gnosis-review-action--quit success id result)))))
+              (when next (setq success (car next) result (cdr next))))))))))
 
 ;;; Monkeytype integration
 

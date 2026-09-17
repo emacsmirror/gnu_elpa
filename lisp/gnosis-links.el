@@ -83,6 +83,13 @@ hash table's key order."
 
 ;;; Bulk link operations
 
+(defun gnosis--links-check-owner (db)
+  "Refuse link mutations after the initiating connection DB is replaced."
+  (unless (and (eq db gnosis-db)
+               (condition-case nil (sqlite-select db "SELECT 1")
+                 (error nil)))
+    (user-error "Link database changed; restart the command")))
+
 (defun gnosis--themata-to-update (themata string node-id)
   "Return pairs for THEMATA after replacing STRING with a link to NODE-ID."
   (cl-loop for thema in themata
@@ -120,7 +127,8 @@ initiating context is no longer valid; its return value is ignored."
     (user-error "String cannot be empty"))
   (unless node-id
     (user-error "Node not found"))
-  (let* ((themata (gnosis-select '[id keimenon] 'themata
+  (let* ((db (gnosis--ensure-db))
+         (themata (gnosis-select '[id keimenon] 'themata
                                  `(in id ,(vconcat ids))))
          (updates (gnosis--themata-to-update
                    themata string node-id)))
@@ -132,7 +140,16 @@ initiating context is no longer valid; its return value is ignored."
              (format "Replace '%s' in %d themata? "
                      string (length updates)))
         (when validate-owner (funcall validate-owner))
-        (gnosis--update-themata-keimenon updates node-id)
+        (gnosis--links-check-owner db)
+        (gnosis-sqlite-with-transaction db
+          (dolist (update updates)
+            (unless (equal-including-properties
+                     (gnosis-sqlite-select db
+                                          "SELECT id, keimenon FROM themata WHERE id = ?"
+                                          (list (car update)))
+                     (list (assoc (car update) themata)))
+              (user-error "Thema changed; restart bulk linking")))
+          (gnosis--update-themata-keimenon updates node-id))
         (gnosis--commit-bulk-link (length updates) string)
         (message "Updated %d themata with links to '%s'"
                  (length updates) string)
@@ -141,14 +158,17 @@ initiating context is no longer valid; its return value is ignored."
 (defun gnosis-bulk-link-string (string node-id)
   "Replace all STRING instances in thema keimenon with a link to NODE-ID."
   (interactive
-   (let* ((string (read-string "String to replace: "))
-          (nodes (gnosis-select '[id title] 'nodes))
+   (let* ((db (gnosis--ensure-db))
+          (string (read-string "String to replace: "))
+          (nodes (progn (gnosis--links-check-owner db)
+                        (gnosis-select '[id title] 'nodes)))
           (node-title (gnosis-completing-read
                        "Select node: "
                        (mapcar #'cadr nodes)))
           (node-id (car (cl-find node-title nodes
                                  :key #'cadr
                                  :test #'string=))))
+     (gnosis--links-check-owner db)
      (list string node-id)))
   (gnosis-bulk-link-themata
    (gnosis-collect-thema-ids :query string)
@@ -560,80 +580,74 @@ deleted."
                    " %d missing; node-links %d removed")
            orphaned stale missing (or node-links-removed 0))))
 
+(defun gnosis--links-plan-state (db)
+  "Return DB's exact source, index and node membership for link maintenance."
+  (mapcar (lambda (sql) (sqlite-select db sql))
+          '("SELECT id, keimenon FROM themata ORDER BY id"
+            "SELECT id, parathema FROM extras ORDER BY id"
+            "SELECT source, dest FROM thema_links ORDER BY source, dest"
+            "SELECT source, dest FROM node_links ORDER BY source, dest"
+            "SELECT id FROM nodes ORDER BY id"
+            "SELECT id FROM journal ORDER BY id")))
+
+(defun gnosis--links-maintain (sync)
+  "Remove broken links; with SYNC, also insert links to available nodes.
+Capture the plan and its owner before confirmation, without holding a
+transaction across the prompt.  Refuse changes to any of its inputs."
+  (let* ((db (gnosis--ensure-db))
+         (state (gnosis--links-plan-state db))
+         (orphaned (gnosis--orphaned-link-dests))
+         (stale (gnosis--stale-links))
+         (missing (and sync (gnosis--missing-links)))
+         (available (and sync (gnosis--all-node-ids)))
+         (insertable (seq-filter (lambda (link) (member (cadr link) available))
+                                 missing))
+         (broken (cl-remove-duplicates
+                  (append (gnosis--node-links-missing-dest)
+                          (gnosis--node-links-missing-source))
+                  :test #'equal)))
+    (if (not (or orphaned stale insertable broken))
+        (message (cond ((not sync) "No broken links found")
+                       (missing "%d missing links have unavailable targets")
+                       (t "All links are in sync"))
+                 (length missing))
+      (when (y-or-n-p
+             (format (concat "Remove %d orphaned + %d stale thema-links,"
+                             " %d broken node-links%s? ")
+                     (length orphaned) (length stale) (length broken)
+                     (if sync (format ", add %d missing" (length insertable)) "")))
+        (gnosis--links-check-owner db)
+        (gnosis-sqlite-with-transaction db
+          (unless (equal state (gnosis--links-plan-state db))
+            (user-error "Link plan changed; restart the command"))
+          (gnosis--delete-orphaned-links orphaned)
+          (gnosis--delete-stale-links stale)
+          (gnosis--delete-broken-node-links broken)
+          (when sync
+            (gnosis--insert-missing-links insertable)
+            (setq missing (gnosis--missing-links))))
+        (gnosis--commit-link-cleanup (length orphaned) (length stale)
+                                    (length insertable) (length broken))
+        (message (concat "Removed %d orphaned + %d stale thema-links,"
+                         " %d broken node-links%s")
+                 (length orphaned) (length stale) (length broken)
+                 (if sync
+                     (format "; added %d missing, %d unavailable targets remain"
+                             (length insertable) (length missing))
+                   ""))))))
+
 ;;;###autoload
 (defun gnosis-links-cleanup ()
   "Remove orphaned or stale thema-links and broken node-links."
   (interactive)
-  (let ((orphaned-dests (gnosis--orphaned-link-dests))
-        (stale (gnosis--stale-links))
-        (nl-broken
-         (append (gnosis--node-links-missing-dest)
-                 (gnosis--node-links-missing-source))))
-    (setq nl-broken
-          (cl-remove-duplicates nl-broken
-                                :test #'equal))
-    (if (and (null orphaned-dests) (null stale)
-             (null nl-broken))
-        (message "No broken links found")
-      (when (y-or-n-p
-             (format
-              (concat "Remove %d orphaned"
-                      " + %d stale thema-links,"
-                      " %d broken node-links? ")
-              (length orphaned-dests)
-              (length stale) (length nl-broken)))
-        (gnosis-sqlite-with-transaction (gnosis--ensure-db)
-          (gnosis--delete-orphaned-links orphaned-dests)
-          (gnosis--delete-stale-links stale)
-          (gnosis--delete-broken-node-links nl-broken))
-        (gnosis--commit-link-cleanup
-         (length orphaned-dests) (length stale)
-         0 (length nl-broken))
-        (message
-         (concat "Removed %d orphaned"
-                 " + %d stale thema-links,"
-                 " %d broken node-links")
-         (length orphaned-dests)
-         (length stale) (length nl-broken))))))
+  (gnosis--links-maintain nil))
 
 ;;;###autoload
 (defun gnosis-links-sync ()
-  "Resync links by removing broken entries and inserting missing ones."
+  "Remove broken links and insert missing links to known nodes or journals.
+Authored links to unavailable targets remain unchanged and are reported."
   (interactive)
-  (let ((orphaned-dests (gnosis--orphaned-link-dests))
-        (stale (gnosis--stale-links))
-        (missing (gnosis--missing-links))
-        (nl-broken
-         (cl-remove-duplicates
-          (append (gnosis--node-links-missing-dest)
-                  (gnosis--node-links-missing-source))
-          :test #'equal)))
-    (if (and (null orphaned-dests) (null stale)
-             (null missing) (null nl-broken))
-        (message "All links are in sync")
-      (when (y-or-n-p
-             (format
-              (concat "Sync: remove %d orphaned"
-                      " + %d stale thema-links,"
-                      " %d broken node-links,"
-                      " add %d missing? ")
-              (length orphaned-dests) (length stale)
-              (length nl-broken) (length missing)))
-        (gnosis-sqlite-with-transaction (gnosis--ensure-db)
-          (gnosis--delete-orphaned-links orphaned-dests)
-          (gnosis--delete-stale-links stale)
-          (gnosis--delete-broken-node-links nl-broken)
-          (gnosis--insert-missing-links missing))
-        (gnosis--commit-link-cleanup
-         (length orphaned-dests) (length stale)
-         (length missing) (length nl-broken))
-        (message
-         (concat "Synced: removed %d orphaned"
-                 " + %d stale thema-links,"
-                 " %d broken node-links,"
-                 " added %d missing")
-         (length orphaned-dests) (length stale)
-         (length nl-broken) (length missing))))))
+  (gnosis--links-maintain t))
 
 (provide 'gnosis-links)
 ;;; gnosis-links.el ends here

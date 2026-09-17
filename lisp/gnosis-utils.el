@@ -30,6 +30,7 @@
 
 (require 'cl-lib)
 (require 'subr-x)
+(require 'ol)
 
 (defun gnosis-utils-trim-quotes (str)
   "Remove prefix and suffix quotes for STR."
@@ -60,17 +61,13 @@ Optionally, use custom DEFAULT-FACE."
            nil t))))
     (buffer-string)))
 
-(defconst gnosis-utils--org-link-re
-  "\\[\\[[^]]*\\]\\[[^]]*\\]\\]\\|\\[\\[[^]]*\\]\\]"
-  "Regexp matching Org mode links: [[target][desc]] or [[target]].")
-
 (defun gnosis-utils-string-outside-links-p (text string)
   "Return non-nil if STRING appears in TEXT outside of org-links."
   (let ((case-fold-search t)
         (target (regexp-quote string))
         (pos 0))
     (catch 'found
-      (while (string-match gnosis-utils--org-link-re text pos)
+      (while (string-match org-link-bracket-re text pos)
         (when (string-match-p target (substring text pos (match-beginning 0)))
           (throw 'found t))
         (setq pos (match-end 0)))
@@ -85,15 +82,15 @@ Returns (MODIFIED-P . NEW-TEXT)."
         (link-fn (lambda (match) (format "[[id:%s][%s]]" node-id match)))
         (pos 0)
         (parts nil))
-    (while (string-match gnosis-utils--org-link-re text pos)
+    (while (string-match org-link-bracket-re text pos)
       (push (replace-regexp-in-string
              target link-fn
-             (substring text pos (match-beginning 0)) t)
+             (substring text pos (match-beginning 0)) t t)
             parts)
       (push (match-string 0 text) parts)
       (setq pos (match-end 0)))
     (push (replace-regexp-in-string
-           target link-fn (substring text pos) t)
+           target link-fn (substring text pos) t t)
           parts)
     (let ((new-text (apply #'concat (nreverse parts))))
       (cons (not (string= text new-text)) new-text))))

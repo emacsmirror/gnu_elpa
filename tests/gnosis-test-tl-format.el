@@ -30,7 +30,7 @@
                                                 (memq property '(face help-echo)))
                                      (get-text-property pos property)))
                                  '(tabulated-list-id tabulated-list-entry
-                                   face help-echo)))))
+                                   tabulated-list-column-name face help-echo)))))
 
 (ert-deftest gnosis-test-tl-format-render-path-parity ()
   "Full, appended and replaced cells have identical text and geometry."
@@ -61,16 +61,15 @@
                     (let ((full (gnosis-test-tl-format--snapshot)))
                       (gnosis-tl-replace-entry 91 cols)
                       (should (equal full (gnosis-test-tl-format--snapshot)))
-                      ;; Column-name properties remain a replacement-only aid;
-                      ;; bulk rendering deliberately avoids those intervals.
                       (should (equal "Tail" (get-text-property
                                              (- (point-max) 2)
                                              'tabulated-list-column-name)))
                       (let ((inhibit-read-only t)) (erase-buffer))
                       (gnosis-tl-append-entries (list entry))
                       (should (equal full (gnosis-test-tl-format--snapshot)))
-                      (should-not (get-text-property
-                                   (- (point-max) 2) 'tabulated-list-column-name))
+                      (should (equal "Tail" (get-text-property
+                                             (- (point-max) 2)
+                                             'tabulated-list-column-name)))
                       (should (equal-including-properties original
                                                           (aref cols 0))))))))))))))
 
@@ -199,6 +198,34 @@
           (dolist (name (list gnosis-dashboard-buffer-name "*Gnosis Edit*"))
             (when-let* ((buffer (get-buffer name)))
               (kill-buffer buffer))))))))
+
+(ert-deftest gnosis-test-tl-native-sorter-characterization ()
+  "Keep guarded native comparison, ties and caller-owned lists unchanged."
+  (let* ((rows '((1 ["λ" "2"]) (2 [("Alpha" help-echo "a") "10"])
+                 (3 ["Alpha" "10"]) (4 ["Zulu" "1"])))
+         (before (copy-tree rows t)))
+    (with-temp-buffer
+      (tabulated-list-mode)
+      (setq tabulated-list-format
+            [("Name" 12 t)
+             ("Number" 4 (lambda (a b)
+                           (< (string-to-number (aref (cadr a) 1))
+                              (string-to-number (aref (cadr b) 1)))))
+             ("Unsortable" 3 nil)])
+      (dolist (key '(nil (nil) ("Unsortable") ("Unsortable" . t)))
+        (setq tabulated-list-sort-key key)
+        (should-not (gnosis-tl--get-sorter)))
+      (setq tabulated-list-sort-key '("Missing"))
+      (should-error (gnosis-tl--get-sorter))
+      (dolist (case '((("Name") 2 3 4 1)
+                      (("Name" . t) 1 4 2 3)
+                      (("Number") 4 1 2 3)
+                      (("Number" . t) 2 3 1 4)))
+        (setq tabulated-list-sort-key (car case))
+        (should (equal (cdr case)
+                       (mapcar #'car (sort (copy-sequence rows)
+                                           (gnosis-tl--get-sorter)))))
+        (should (equal before rows))))))
 
 (provide 'gnosis-test-tl-format)
 ;;; gnosis-test-tl-format.el ends here

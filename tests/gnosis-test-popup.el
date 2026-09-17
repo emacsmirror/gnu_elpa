@@ -129,31 +129,55 @@
         (should (string-match-p "Popup question" (buffer-string)))
         (should-not gnosis-dashboard--history)))))
 
+(defun gnosis-test-popup--nodes ()
+  "Create stored rows and open their owned nodes collection."
+  (gnosis--insert-into
+   'nodes '(["a" "a.org" "Alpha" 0 nil "0" "a"]
+            ["b" "b.org" "Beta" 0 nil "0" "b"]
+            ["c" "c.org" "Charlie" 0 nil "0" "c"]))
+  (gnosis--insert-into 'node-links '(["a" "b"] ["a" "c"] ["c" "b"]))
+  (dolist (node '("c" "c" "a"))
+    (gnosis--insert-into
+     'thema-links
+     (list (vector (gnosis-test--add-basic-thema "Question" "Answer") node))))
+  (gnosis-dashboard-output-nodes))
+
 (ert-deftest gnosis-test-popup-sorting-dispatch ()
-  "Popup and direct sorting bindings preserve direction and reset point."
-  (gnosis-test-popup-with-buffer
-    (tabulated-list-mode)
-    (setq tabulated-list-format
-          [("Title" 12 t) ("Links" 8 gnosis-dashboard-sort-count)
-           ("Backlinks" 10 gnosis-dashboard-sort-count)
-           ("Themata" 8 gnosis-dashboard-sort-count)]
-          tabulated-list-entries
-          '(("a" ["Alpha" "1" "3" "2"])
-            ("b" ["Beta" "3" "2" "1"])
-            ("c" ["Charlie" "2" "1" "3"])))
-    (dolist (popup '(nil t))
-      (pcase-dolist (`(,key ,column ,reverse ,first)
-                    '(("C-t" "Title" nil "a") ("l" "Links" t "b")
-                      ("b" "Backlinks" t "a") ("t" "Themata" t "c")))
-        (if popup
-            (gnosis-test-popup--visible gnosis-dashboard-nodes-sort-map
-                                       (list column))
-          (use-local-map gnosis-dashboard-nodes-sort-map))
-        (goto-char (point-max))
-        (gnosis-test-popup--key key)
-        (should (equal tabulated-list-sort-key (cons column reverse)))
-        (should (= (point) (point-min)))
-        (should (equal (tabulated-list-get-id) first))))))
+  "Owned node sorts preserve direction and marks and reset point."
+  (gnosis-test-with-db
+    (gnosis-test-popup-with-buffer
+      (gnosis-test-popup--nodes)
+      (gnosis-dashboard--goto-id "b")
+      (gnosis-test-popup--key "m")
+      (dolist (route '(key popup retained))
+        (pcase-dolist (`(,key ,column ,reverse ,first)
+                      '(("C-t" "Title" nil "a") ("l" "Links" t "a")
+                        ("b" "Backlinks" t "b") ("t" "Themata" t "c")))
+          (goto-char (point-max))
+          (pcase route
+            ('key
+             (let ((overriding-local-map gnosis-dashboard-nodes-sort-map))
+               (gnosis-test-popup--key key)))
+            ('popup
+             (gnosis-test-popup--key "s")
+             (let ((popup (get-buffer keymap-popup--buffer-name)))
+               (should (get-buffer-window popup))
+               (should (string-match-p column
+                                       (with-current-buffer popup (buffer-string)))))
+             (gnosis-test-popup--key key))
+            ('retained
+             (call-interactively
+              (lookup-key gnosis-dashboard-nodes-sort-map (kbd key)))))
+          (should (equal tabulated-list-sort-key (cons column reverse)))
+          (should (= (point) (point-min)))
+          (should (equal (tabulated-list-get-id) first))
+          (should (equal gnosis-dashboard--selected-ids '("b")))
+          (should
+           (equal '("b")
+                  (mapcar (lambda (overlay)
+                            (tabulated-list-get-id (overlay-start overlay)))
+                          (seq-filter (lambda (overlay) (overlay-get overlay 'gnosis-mark))
+                                      (overlays-in (point-min) (point-max)))))))))))
 
 (ert-deftest gnosis-test-popup-rebuild-dispatch ()
   "Rebuild passes the same force flag, while cancellation does nothing."

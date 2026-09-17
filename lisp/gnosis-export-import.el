@@ -177,9 +177,9 @@ content outside themata or their fields, without changing the draft."
                          (literal (or (equal title "Rubric")
                                       (and (equal (downcase type) "agent-eval")
                                            (equal title "Answer"))))
-                         (raw (if (or literal (equal title "Accepted aliases"))
+                         (raw (if (or literal (member title '("Accepted aliases" "Answer")))
                                   ;; Org interpretation rewrites checkboxes and
-                                  ;; spacing; aliases are literal authored text.
+                                  ;; spacing; retain authored answers and aliases.
                                   (save-excursion
                                     (goto-char (org-element-property :begin child))
                                     (forward-line 1)
@@ -227,7 +227,7 @@ generate new thema id."
     (dolist (id id-values)
       (let* ((thema-data
               (append (gnosis-select
-                      '[type keimenon hypothesis answer]
+                      '[type keimenon hypothesis answer accepted-aliases rubric]
                       'themata `(= id ,id) t)
                      (gnosis-select 'parathema 'extras
                                     `(= id ,id) t)))
@@ -251,9 +251,8 @@ generate new thema id."
            (concat (string-remove-prefix
                     "\n" gnosis-export-separator)
                    (mapconcat #'identity (cadr fields) gnosis-export-separator)))
-         (nth 4 thema-data)
-         tags nil (gnosis-get 'accepted-aliases 'themata `(= id ,id))
-         (gnosis-get 'rubric 'themata `(= id ,id)))))))
+         (nth 6 thema-data)
+         tags nil (nth 4 thema-data) (nth 5 thema-data))))))
 
 (defun gnosis-save-thema (thema)
   "Save THEMA.
@@ -321,40 +320,43 @@ Returns nil on success, or an error message string on failure."
 (defun gnosis-save ()
   "Save all themata in the current native draft, ignoring narrowing.
 Refuse changed database ownership or original content without discarding
-the draft.  Copy its text before cancelling and reopening to reconcile."
+the draft.  Copy its text before cancelling and reopening to reconcile.
+A committed draft cannot save again if closing it is interrupted or vetoed."
   (interactive nil gnosis-edit-mode)
   (gnosis--draft-check-owner)
   (let* ((gc-cons-threshold most-positive-fixnum)
          (themata (save-restriction
                     (widen)
                     (gnosis-export-parse-themata)))
-         (gnosis--id-cache
-          (let ((ht (make-hash-table :test 'equal)))
-            (dolist (id (gnosis-select 'id 'themata nil t) ht)
-              (puthash id t ht))))
          (errors nil)
          (receipt gnosis--draft-save-receipt)
          (saved-content nil)
          (edited-id (string-to-number (caar themata))))
-    (catch 'gnosis-save-failed
-      (gnosis-sqlite-with-transaction gnosis--draft-db
-        (gnosis--draft-validate themata)
-        (cl-loop for thema in themata
-                 for err = (gnosis-save-thema thema)
-                 when err do (push err errors))
-        (when errors
-          (throw 'gnosis-save-failed nil))
-        (when (and receipt gnosis--draft-original)
-          (setq saved-content
-                (list gnosis--draft-db (car gnosis--draft-original)
-                      (seq-take (gnosis--draft-content
-                                 gnosis--draft-db (car gnosis--draft-original)) 2))))))
+    ;; Allow cancellation during validation/writes, but settle a committed
+    ;; occurrence before quit delivery or arbitrary editor teardown callbacks.
+    (let ((inhibit-quit t))
+      (catch 'gnosis-save-failed
+        (gnosis-sqlite-with-transaction gnosis--draft-db
+          (let ((inhibit-quit nil))
+            (gnosis--draft-validate themata)
+            (cl-loop for thema in themata
+                     for err = (gnosis-save-thema thema)
+                     when err do (push err errors))
+            (when errors
+              (throw 'gnosis-save-failed nil))
+            (when (and receipt gnosis--draft-original)
+              (setq saved-content
+                    (list gnosis--draft-db (car gnosis--draft-original)
+                          (seq-take (gnosis--draft-content
+                                     gnosis--draft-db (car gnosis--draft-original)) 2)))))))
+      (unless errors
+        (setq gnosis--draft-saved-p t)
+        (when receipt (setcar receipt saved-content))))
     (if errors
         (user-error
          "Failed to import %d thema(ta):\n%s"
          (length errors)
          (mapconcat #'identity (nreverse errors) "\n"))
-      (when receipt (setcar receipt saved-content))
       (gnosis-edit-quit)
       (run-hook-with-args 'gnosis-save-hook edited-id))))
 
@@ -659,10 +661,16 @@ Record COUNT as the expected number of exported themata."
       (sqlite-execute db "INSERT INTO export_db.gnosis_meta (key, value)
                           VALUES (?, ?)" row))))
 
+(defun gnosis-export--check-owner (db)
+  "Reject an export when DB is no longer the active connection."
+  (unless (eq db gnosis-db)
+    (user-error "Gnosis database changed; start the export again")))
+
 (defun gnosis-export--replace-file (db file ids selection-p count)
   "Atomically replace FILE with exported content from DB.
 IDS, SELECTION-P and COUNT describe the reviewed selection.  Build and
 validate a private sibling first; preserve FILE on error or quit."
+  (gnosis-export--check-owner db)
   (gnosis-export--check-destination db file)
   (let ((scratch (make-temp-file
                   (expand-file-name ".gnosis-export-" (file-name-directory file))
@@ -682,6 +690,7 @@ validate a private sibling first; preserve FILE on error or quit."
           (gnosis-export--validate scratch count)
           (let ((inhibit-quit t))
             (gnosis-export--check-destination db file)
+            (gnosis-export--check-owner db)
             (rename-file scratch file t)))
       (when (file-exists-p scratch)
         (delete-file scratch)))))
@@ -698,11 +707,15 @@ Reject active database and companion aliases, and destinations with SQLite
 companions.  Replace an existing FILE only after completing and validating
 the export; errors preserve the previous file."
   (interactive
-   (let ((filter (gnosis-tags-filter-prompt)))
-     (list (read-file-name "Export database: "
-                           nil nil nil "gnosis-export.gnosis")
-           (car filter) (cdr filter)
-           (y-or-n-p "Include suspended themata? "))))
+   (let* ((db (gnosis--ensure-db))
+          (filter (prog1 (gnosis-tags-filter-prompt)
+                    (gnosis-export--check-owner db)))
+          (file (prog1 (read-file-name "Export database: "
+                                      nil nil nil "gnosis-export.gnosis")
+                  (gnosis-export--check-owner db)))
+          (suspended (prog1 (y-or-n-p "Include suspended themata? ")
+                       (gnosis-export--check-owner db))))
+     (list file (car filter) (cdr filter) suspended)))
   (let* ((db (gnosis--ensure-db))
          (file (expand-file-name file))
          (suspended-ids

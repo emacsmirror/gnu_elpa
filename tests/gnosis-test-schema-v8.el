@@ -104,9 +104,8 @@
     (gnosis-sqlite-execute db stmt))
   ;; source_guid index: created by v8 migration for existing DBs,
   ;; or here for fresh DBs where the column already exists
-  (gnosis-db--migrate-step "create source_guid index"
-			   (gnosis-sqlite-execute db
-						  "CREATE INDEX IF NOT EXISTS idx_themata_source_guid ON themata(source_guid)")))
+  (gnosis-sqlite-execute db
+                         "CREATE INDEX IF NOT EXISTS idx_themata_source_guid ON themata(source_guid)"))
 
 (defun gnosis-test--create-v8-schema ()
   "Create all tables declared by released Gnosis 0.10.6, at schema 8."

@@ -137,9 +137,12 @@
             nativeBuildInputs = [
               emacsWithDependencies
               pkgs.gnumake
+              pkgs.git
               pkgs.texinfo
             ];
             dontConfigure = true;
+            # Named-zone tests must not depend on host timezone data.
+            TZDIR = "${pkgs.tzdata}/share/zoneinfo";
             buildPhase = ''
               runHook preBuild
               export HOME="$TMPDIR/home"
@@ -201,6 +204,7 @@
                   pkgs.bash
                   pkgs.coreutils
                   pkgs.gnumake
+                  pkgs.git
                   pkgs.gnugrep
                   pkgs.texinfo
                 ];
@@ -216,6 +220,7 @@
                   export XDG_CONFIG_HOME="$work/config"
                   export XDG_DATA_HOME="$work/data"
                   export XDG_STATE_HOME="$work/state"
+                  export TZDIR="${pkgs.tzdata}/share/zoneinfo"
                   cd "$work/project"
                   make GNOSIS_ENV_WRAPPED=1 ENV= EMACS=emacs ${target} "$@"
                 '';
@@ -241,6 +246,7 @@
         in
         {
           default = pkgs.mkShellNoCC {
+            TZDIR = "${pkgs.tzdata}/share/zoneinfo";
             packages = [
               pkgs.git
               pkgs.gnumake

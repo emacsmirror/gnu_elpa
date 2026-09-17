@@ -501,19 +501,28 @@ SUCCESS controls the face used when overriding a previous display."
 					  "SELECT title FROM nodes WHERE id IN (%s)"
 					  links)))))
 
+(declare-function gnosis-lecture-sources "gnosis-lecture" (text))
+(declare-function gnosis-lecture-open "gnosis-lecture" (path &optional argument validate))
+
 (defun gnosis-view-linked-node (id &optional validate)
-  "Visit linked node(s) for thema ID.
+  "Visit linked nodes or external lecture sources for thema ID.
 When non-nil, call VALIDATE before and after navigation callbacks."
   (when validate (funcall validate))
   (let* ((ids (gnosis-select 'dest 'thema-links `(= source ,id) t))
-         (candidates (and ids (gnosis-study-topic-candidates ids))))
+         (candidates (append (and ids (gnosis-study-topic-candidates ids))
+                             (progn
+                               (require 'gnosis-lecture)
+                               (gnosis-lecture-sources
+                                (gnosis-get 'parathema 'extras `(= id ,id)))))))
     (unless candidates (user-error "No indexed source for this thema"))
     (let ((node (cdr (assoc (completing-read "Source: " candidates nil t)
                             candidates))))
       (when validate (funcall validate))
       (window-configuration-to-register :gnosis-link-view)
       (when validate (funcall validate))
-      (gnosis-nodes-goto-id node)
+      (if (and (consp node) (eq (car node) 'lecture))
+          (gnosis-lecture-open (cdr node) nil validate)
+        (gnosis-nodes-goto-id node))
       (when validate (funcall validate))
       (gnosis-link-view-mode)
       (when validate (funcall validate)))))
@@ -2576,10 +2585,17 @@ RESULT is the algorithm result to thread through."
                      (with-current-buffer origin
                        (gnosis-review--check-result-content thema result)))))
     (funcall validate)
-    (if (gnosis-get-linked-nodes thema)
-        (progn (gnosis-view-linked-node thema validate)
-               (funcall validate)
-               (recursive-edit))
+    (if (or (gnosis-get-linked-nodes thema)
+            (progn (require 'gnosis-lecture)
+                   (gnosis-lecture-sources (gnosis-get 'parathema 'extras `(= id ,thema)))))
+        (condition-case err
+            (progn (gnosis-view-linked-node thema validate)
+                   (funcall validate)
+                   (recursive-edit))
+          (gnosis-lecture-error
+           (funcall validate)
+           (pop-to-buffer origin)
+           (message "%s" (error-message-string err))))
       (message "No linked nodes for thema: %d" thema)
       (sleep-for 0.5))
     (funcall validate)

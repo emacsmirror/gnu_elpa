@@ -95,7 +95,7 @@
     (let* ((id (gnosis-test-agent-eval--add))
            (file (expand-file-name "content.db" gnosis-dir)))
       (gnosis-export-db file)
-      (should (= 4 (gnosis-import--format-version file)))
+      (should (= 5 (gnosis-import--format-version file)))
       (gnosis-update 'themata '(= rubric "Changed rubric") `(= id ,id))
       (let ((diff (gnosis-import--diff file)))
         (should (equal (nth 3 (car (cadr diff)))

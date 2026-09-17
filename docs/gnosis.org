@@ -1009,9 +1009,48 @@ a grade, including images in hidden answers or explanations.
 
 Gnosis copies images into =assets/<revision>/= beside the connected database;
 the portable Org link uses the =gnosis-image:= scheme. Keep that directory
-with database backups. Content-only SQLite export/import refuses managed
-image content because it does not bundle the assets. TIFF and DICOM are not
-supported; no converter, medical atlas or external image service is required.
+with database backups. SQLite content export/import bundles ordinary inline
+managed images. Region and occlusion thema types remain unsupported by content
+exchange; use database-plus-assets backups for those. TIFF and DICOM are not
+supported. Ordinary raster attachments need no external converter.
+
+*** Lecture illustrations in Parathema
+
+Use =C-c C-l= (~gnosis-lecture-attach~) in a single thema draft to attach
+an existing PNG/JPEG or one physical page of a local PDF.  The command
+always appends to *Parathema*, regardless of point.  PDF page numbers are
+1-based physical pages, not printed slide numbers or PDF page labels.
+
+PDF extraction requires Poppler's =pdftoppm=.  It runs asynchronously,
+fitting the page within 1800 pixels, with a 60-second deadline.  Cancel
+with =C-c C-x= (~gnosis-lecture-cancel~).  Changing the draft while rendering
+refuses the late insertion; save or cancellation never inserts into a
+successor draft.  Missing files, unsupported rasters, invalid pages and
+conversion errors leave the draft unchanged.  Sources must be local and
+at most 100 MiB; managed rasters retain the ordinary image limits.
+
+Save with =C-c C-c=, then review normally.  The illustration is hidden
+until the answer, in both scheduled review and practice, and fits the
+review window.  Ordinary question images keep their existing behavior.
+Unavailable managed pixels stop the encounter rather than recording an
+incorrect answer.
+
+The attachment includes an actionable =gnosis-lecture:= citation to the
+original path and physical page.  During review, choose *View source* from
+the normal actions, then select the lecture.  Return with =C-c C-c= to the
+same pending answer.  PDFs open through native DocView or configured
+pdf-tools; =pdfinfo= (also from Poppler) verifies the physical page before
+navigation.  The citation is a local external reference, not an archived
+lecture: moving or replacing the original can make it unavailable or
+change its contents.  Keep originals separately.  Missing originals do
+not prevent review of the managed extracted image.
+
+SQLite content export includes the managed illustration, its immutable
+manifest and citation.  Import validates the bundled bytes before applying
+content.  It never copies the full PDF, follows external file links, or
+fetches network sources.  Export files therefore remain usable after
+moving to another machine even when the original PDF is absent; source
+navigation still requires that external original at the retained path.
 
 *** Models: Find and Name
 
@@ -1985,12 +2024,16 @@ existing rows retain their original answers and have no rubric.  All upgrade
 steps run in one transaction: schema, data and version changes roll back
 together on error or quit.
 
-Database schema versions are separate from portable content format 4,
-which carries aliases and the separate rubric.  Content formats 1–3 remain
-readable: formats 1/2 supply no aliases, and formats 1–3 supply no rubric.
-Alias and rubric changes appear in import preview and participate in source
-and destination drift checks.  Format 4 is still content-only: it does not
-bundle managed images or models.
+Database schema versions are separate from portable content format 5,
+which carries aliases, the separate rubric and bundled inline managed images.
+Content formats 1–4 remain readable without media: formats 1/2 supply no
+aliases, and formats 1–3 supply no rubric.  Alias and rubric changes appear
+in import preview and participate in source and destination drift checks.
+Format 5 bundles only referenced image manifests and raster bytes, not
+external originals, model resources, schedules or study history.  Region
+and occlusion thema types remain unsupported.  Failed or cancelled import
+can leave unreferenced immutable images, but never commits content before
+its images are available.  Sharing an Org draft alone does not bundle media.
 
 Before the *first database open* with schema-11 code:
 

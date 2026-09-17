@@ -37,6 +37,7 @@
         ./lisp/gnosis-assets.el
         ./lisp/gnosis-backup.el
         ./lisp/gnosis-image.el
+        ./lisp/gnosis-lecture.el
         ./lisp/gnosis-model.el
         ./lisp/gnosis-nodes.el
         ./lisp/gnosis-org.el

@@ -1018,10 +1018,15 @@ Explicitly rename or remove those tags through the tag commands first."
     (setf gnosis-review-editing-p nil)
     (exit-recursive-edit)))
 
+(autoload 'gnosis-lecture-attach "gnosis-lecture" nil t)
+(autoload 'gnosis-lecture-cancel "gnosis-lecture" nil t)
+
 (defvar-keymap gnosis-edit-mode-map
   :doc "gnosis org mode map"
   "C-c C-c" #'gnosis-save
   "C-c C-a" #'gnosis-image-attach
+  "C-c C-l" #'gnosis-lecture-attach
+  "C-c C-x" #'gnosis-lecture-cancel
   "C-c C-q" #'gnosis-tags-prompt
   "C-c C-o" #'gnosis-nodes-goto-id
   "C-c C-k" #'gnosis-edit-quit)

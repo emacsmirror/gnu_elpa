@@ -393,7 +393,7 @@ the draft.  Copy its text before cancelling and reopening to reconcile."
   value TEXT)"
   "SQL schema for the gnosis_meta table in export databases.")
 
-(defconst gnosis-export-format-version 4
+(defconst gnosis-export-format-version 5
   "Current SQLite content export format version.")
 
 (defun gnosis-export--image-ids (db schema)
@@ -413,6 +413,103 @@ the draft.  Copy its text before cancelling and reopening to reconcile."
                       (gnosis-image-content-p (cddr row)))
              collect (car row))))
 
+(defun gnosis-export--image-references (db schema)
+  "Return sorted unique inline image references from content DB SCHEMA."
+  (unless (member schema '("main" "import_db" "export_db"))
+    (error "Invalid image exchange schema"))
+  (sort (delete-dups
+         (gnosis-image-references
+          (gnosis-sqlite-select
+           db (format "SELECT t.keimenon, t.hypothesis, t.answer,
+                              t.accepted_aliases, t.rubric, e.parathema, e.review_image
+                         FROM %s.themata t LEFT JOIN %s.extras e ON t.id = e.id"
+                      schema schema)))) #'string<))
+
+(defun gnosis-export--image-bytes (file)
+  "Return base64-encoded literal bytes of FILE."
+  (with-temp-buffer
+    (set-buffer-multibyte nil)
+    (insert-file-contents-literally file)
+    (base64-encode-string (buffer-string) t)))
+
+(defun gnosis-export--write-images (db)
+  "Bundle referenced managed images in DB's attached export database."
+  (sqlite-execute db "CREATE TABLE export_db.gnosis_media (
+                       reference TEXT PRIMARY KEY, manifest TEXT, raster TEXT)")
+  (dolist (reference (gnosis-export--image-references db "export_db"))
+    (let* ((scene (gnosis-image-resolve reference))
+           (manifest (gnosis-assets-file (alist-get 'directory scene) "image.json")))
+      (sqlite-execute db "INSERT INTO export_db.gnosis_media VALUES (?, ?, ?)"
+                      (list reference (gnosis-export--image-bytes manifest)
+                            (gnosis-export--image-bytes (alist-get 'path scene))))
+      (gnosis-image-resolve reference))))
+
+(defun gnosis-import--image-bytes (encoded limit)
+  "Decode canonical base64 ENCODED, bounded to LIMIT bytes."
+  (unless (and (stringp encoded) (<= (length encoded) (* 2 limit)))
+    (user-error "Bundled image exceeds its size limit"))
+  (let ((bytes (base64-decode-string encoded)))
+    (unless (and (<= (length bytes) limit)
+                 (equal encoded (base64-encode-string bytes t)))
+      (user-error "Invalid bundled image encoding"))
+    bytes))
+
+(defun gnosis-import--images (db schema &optional publish)
+  "Validate bundled inline images in content DB SCHEMA.
+When PUBLISH is non-nil, publish verified bytes beside the active database.
+Otherwise use only private temporary files, never the destination asset root.
+An interrupted publication may leave unreferenced immutable revisions."
+  (when (= (gnosis-import--format-version-in-db db schema) 5)
+    (unless (equal (mapcar (lambda (row) (list (nth 1 row) (upcase (nth 2 row)) (nth 5 row)))
+                          (sqlite-select db (format "PRAGMA %s.table_info(gnosis_media)" schema)))
+                   '(("reference" "TEXT" 1) ("manifest" "TEXT" 0) ("raster" "TEXT" 0)))
+      (user-error "Missing or invalid bundled image table"))
+    (let* ((references (gnosis-export--image-references db schema))
+           (rows (sqlite-select db (format "SELECT reference, length(manifest), length(raster)
+                                            FROM %s.gnosis_media ORDER BY reference" schema)))
+           (root (make-temp-file "gnosis-image-exchange-" t)))
+      (unwind-protect
+          (progn
+            (unless (and (equal references (mapcar #'car rows))
+                         (<= (length rows) 10000)
+                         (seq-every-p (lambda (row)
+                                        (and (integerp (nth 1 row)) (<= (nth 1 row) 262144)
+                                             (integerp (nth 2 row)) (<= (nth 2 row) (* 100 1024 1024))))
+                                      rows))
+              (user-error "Bundled images do not match content or exceed limits"))
+            (dolist (reference references)
+              (unless (string-match-p "\\`[0-9a-f]\\{64\\}/image\\.json\\'" reference)
+                (user-error "Invalid bundled image reference"))
+              (let* ((revision (substring reference 0 64))
+                     (directory (expand-file-name revision root))
+                     (row (car (sqlite-select
+                                db (format "SELECT manifest, raster FROM %s.gnosis_media WHERE reference = ?" schema)
+                                (list reference))))
+                     (manifest-bytes (gnosis-import--image-bytes (car row) 131072))
+                     (manifest (json-parse-string (decode-coding-string manifest-bytes 'utf-8)
+                                                  :object-type 'alist :array-type 'list :null-object nil))
+                     (name (gnosis-assets--name (alist-get 'file manifest)))
+                     (raster (gnosis-import--image-bytes (cadr row) (* 50 1024 1024))))
+                (when (equal name "image.json") (user-error "Invalid bundled raster filename"))
+                (make-directory directory)
+                (dolist (entry (list (cons "image.json" manifest-bytes) (cons name raster)))
+                  (let ((coding-system-for-write 'no-conversion))
+                    (with-temp-file (expand-file-name (car entry) directory)
+                      (set-buffer-multibyte nil)
+                      (insert (cdr entry)))))
+                (gnosis-image--manifest manifest directory)
+                (gnosis-assets-validate root revision (list "image.json" name))))
+            ;; Validate the entire bundle before publishing any revision.
+            (when publish
+              (dolist (reference references)
+                (let* ((revision (substring reference 0 64))
+                       (directory (expand-file-name revision root))
+                       (names (directory-files directory nil "\\`[^.]")))
+                  (gnosis-assets-root db)
+                  (unless (equal revision (gnosis-assets-import directory names))
+                    (user-error "Bundled image changed during publication"))))))
+        (delete-directory root t)))))
+
 (defun gnosis-import--format-version-in-db (db schema)
   "Return supported content format version from DB SCHEMA."
   (unless (member schema '("main" "import_db"))
@@ -421,13 +518,19 @@ the draft.  Copy its text before cancelling and reopening to reconcile."
          db (format "SELECT id FROM %s.themata WHERE lower(type) IN (?, ?)" schema)
          '("model" "model-name"))
     (user-error "Model resource content import is unsupported; assets are not bundled"))
-  (when (gnosis-export--image-ids db schema)
-    (user-error "Managed image content import is unsupported; assets are not bundled"))
+  (when (gnosis-sqlite-select
+         db (format "SELECT id FROM %s.themata WHERE lower(type) IN (?, ?)" schema)
+         '("image-region" "image-occlusion"))
+    (user-error "Region and occlusion content import is unsupported"))
   (let ((objects
          (sqlite-select
           db (format "SELECT type, name FROM %s.sqlite_master
                        WHERE lower(name) = 'gnosis_meta'" schema))))
-    (if (null objects) 1
+    (if (null objects)
+        (progn
+          (when (gnosis-export--image-ids db schema)
+            (user-error "Managed image import needs bundled content format 5"))
+          1)
       (unless (and (= (length objects) 1)
                    (equal "table" (caar objects)))
         (error "Invalid Gnosis metadata object"))
@@ -443,7 +546,10 @@ the draft.  Copy its text before cancelling and reopening to reconcile."
         (unless (equal columns '(("key" "TEXT" 1) ("value" "TEXT" 0)))
           (error "Invalid Gnosis metadata schema"))
         (cond
-         ((null versions) 1)
+         ((null versions)
+          (when (gnosis-export--image-ids db schema)
+            (user-error "Managed image import needs bundled content format 5"))
+          1)
          ((and (= (length versions) 1)
                (equal "format_version" (caar versions)))
           (let ((raw (cadar versions)))
@@ -451,9 +557,11 @@ the draft.  Copy its text before cancelling and reopening to reconcile."
                          (string-match-p "\\`[0-9]+\\'" raw))
               (error "Invalid Gnosis content format version"))
             (let ((version (string-to-number raw)))
-              (unless (memq version (list 1 2 3 gnosis-export-format-version))
+              (unless (memq version (list 1 2 3 4 gnosis-export-format-version))
                 (error "Unsupported Gnosis content format version: %s"
                        version))
+              (when (and (< version 5) (gnosis-export--image-ids db schema))
+                (user-error "Managed image import needs content format 5 with bundled images"))
               version)))
          (t (error "Invalid Gnosis format-version metadata")))))))
 
@@ -461,7 +569,8 @@ the draft.  Copy its text before cancelling and reopening to reconcile."
   "Return supported content format version of SQLite FILE."
   (let ((db (sqlite-open file)))
     (unwind-protect
-        (gnosis-import--format-version-in-db db "main")
+        (prog1 (gnosis-import--format-version-in-db db "main")
+          (gnosis-import--images db "main"))
       (sqlite-close db))))
 
 (defun gnosis-import--file-sha256 (file)
@@ -502,7 +611,9 @@ Never remove, recover or checkpoint another owner's companion files."
   "Validate completed export FILE containing COUNT themata."
   (let ((db (gnosis-sqlite-open file)))
     (unwind-protect
-        (unless (and (= (gnosis-import--format-version-in-db db "main")
+        (progn
+          (gnosis-import--images db "main")
+          (unless (and (= (gnosis-import--format-version-in-db db "main")
                         gnosis-export-format-version)
                      (equal '(("ok")) (sqlite-select db "PRAGMA integrity_check"))
                      (null (sqlite-select db "PRAGMA foreign_key_check"))
@@ -510,10 +621,10 @@ Never remove, recover or checkpoint another owner's companion files."
                      (equal (number-to-string count)
                             (caar (sqlite-select db "SELECT value FROM gnosis_meta
                                                     WHERE key = 'thema_count'")))
-                     (equal '(("extras") ("gnosis_meta") ("thema_tag") ("themata"))
+                     (equal '(("extras") ("gnosis_media") ("gnosis_meta") ("thema_tag") ("themata"))
                             (sqlite-select db "SELECT name FROM sqlite_master
                                                WHERE type = 'table' ORDER BY name")))
-          (error "Invalid completed Gnosis export"))
+          (error "Invalid completed Gnosis export")))
       (sqlite-close db))))
 
 (defun gnosis-export--write-content (db ids selection-p count)
@@ -540,6 +651,7 @@ Record COUNT as the expected number of exported themata."
               (gnosis-sqlite-execute-batch
                db (concat sql " WHERE " key " IN (%s)") ids)
             (gnosis-sqlite-execute db sql)))))
+    (gnosis-export--write-images db)
     ;; Metadata is plain text, not EmacSQL-encoded content.
     (dolist (row `(("format_version" ,(number-to-string gnosis-export-format-version))
                    ("exported_at" ,(format-time-string "%Y-%m-%dT%H:%M:%S"))
@@ -609,9 +721,10 @@ the export; errors preserve the previous file."
                     (gnosis-sqlite-select db "SELECT id FROM themata WHERE lower(type) IN (?, ?)"
                                           '("model" "model-name")))
       (user-error "Model resource content export is unsupported; back up DB and assets together"))
-    (when (seq-some (lambda (id) (or (not selection-p) (member id ids)))
-                    (gnosis-export--image-ids db "main"))
-      (user-error "Managed image content export is unsupported; back up DB and assets together"))
+    (when (seq-some (lambda (row) (or (not selection-p) (member (car row) ids)))
+                    (gnosis-sqlite-select db "SELECT id FROM themata WHERE lower(type) IN (?, ?)"
+                                          '("image-region" "image-occlusion")))
+      (user-error "Region and occlusion content export is unsupported"))
     (gnosis-export--check-destination db file)
     (when (called-interactively-p 'any)
       (unless (y-or-n-p (format "Export %d themata to %s? " count file))
@@ -941,6 +1054,10 @@ Call optional VALIDATE before writes and commit to check the caller's owner."
             (sqlite-execute db "ATTACH DATABASE ? AS import_db" (list file))
             (setq attached t))
           (gnosis-import--format-version-in-db db "import_db")
+          (when validate (funcall validate))
+          ;; Publish immutable images before retriable SQL writes.  Failure may
+          ;; leave unreferenced revisions, never rows with missing payloads.
+          (gnosis-import--images db "import_db" t)
           (gnosis-sqlite-with-transaction db
             (when validate (funcall validate))
             (when (and destination

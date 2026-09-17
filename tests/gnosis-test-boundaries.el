@@ -27,6 +27,20 @@
               (ert-info ((buffer-string)) (should (equal status 0))))))
       (delete-directory dir t))))
 
+(ert-deftest gnosis-test-boundaries-cold-lecture-compile ()
+  "Compile lecture authoring alone without relying on earlier Org loads."
+  (gnosis-test-boundaries--cold
+   '(progn
+      (require 'bytecomp)
+      (let* ((source (locate-library "gnosis-lecture.el"))
+             (output (make-temp-file "gnosis-lecture-compile-" nil ".elc"))
+             (byte-compile-error-on-warn t)
+             (byte-compile-dest-file-function (lambda (_file) output)))
+        (unwind-protect
+            (unless (byte-compile-file source)
+              (error "Cold lecture compilation failed"))
+          (delete-file output))))))
+
 (ert-deftest gnosis-test-boundaries-cold-graph-owner ()
   "Traverse actual links after requiring their owner, without commands or views."
   (gnosis-test-boundaries--cold

@@ -40,19 +40,6 @@
   :type 'directory
   :group 'gnosis)
 
-(defmacro gnosis-db--migrate-step (description &rest body)
-  "Run BODY; on error, log a debug warning with DESCRIPTION.
-Used in idempotent migration steps where errors indicate
-the operation was already applied."
-  (declare (indent 1) (debug t))
-  `(condition-case err
-       (progn ,@body)
-     (error
-      (display-warning 'gnosis
-		       (format "Migration: %s: %s"
-			       ,description (error-message-string err))
-		       :debug))))
-
 ;; Directory creation deferred to gnosis--ensure-db
 
 (defvar gnosis-db nil
@@ -66,9 +53,9 @@ Initialized lazily by `gnosis--ensure-db' on first use.")
   "Gnosis database version.")
 
 (defvar gnosis--id-cache nil
-  "Hash table of existing thema IDs, bound during batch import.
-When non-nil, `gnosis-generate-id' and `gnosis-update-thema' use this
-for O(1) lookups instead of querying the database per thema.")
+  "Hash table of existing and reserved thema IDs during batch import.
+When non-nil, `gnosis-generate-id' checks and reserves IDs here before
+asynchronous insertion.  Reservations do not establish stored content.")
 
 ;;; Connection
 
@@ -569,9 +556,8 @@ Used for fresh databases only."
         ON review_events(review_day)"))
   ;; source_guid index: created by v8 migration for existing DBs,
   ;; or here for fresh DBs where the column already exists
-  (gnosis-db--migrate-step "create source_guid index"
-			   (gnosis-sqlite-execute db
-						  "CREATE INDEX IF NOT EXISTS idx_themata_source_guid ON themata(source_guid)")))
+  (gnosis-sqlite-execute db
+                         "CREATE INDEX IF NOT EXISTS idx_themata_source_guid ON themata(source_guid)"))
 
 (defun gnosis--db-has-tables-p ()
   "Return non-nil if the database has user tables."

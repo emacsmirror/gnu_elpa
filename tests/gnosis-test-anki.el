@@ -1165,7 +1165,6 @@ and explanation; SKIPPED counts rejected items, or one for an empty note."
              (source-b (expand-file-name "b.anki2" gnosis-dir))
              (gnosis-anki--chunk-size 1)
              (writer (symbol-function 'gnosis-anki--bulk-insert-chunk))
-             (cleaned 0)
              (writes 0)
              pending commits)
         (gnosis-test-anki--overlap-source source-a 'double '(1 2))
@@ -1186,9 +1185,8 @@ and explanation; SKIPPED counts rejected items, or one for an empty note."
               (condition-case err
                   (gnosis-anki--chunk-insert
                    gnosis-db (list items) '((9001 9002)) 2 0
-                   (gnosis--today-int) (lambda () (cl-incf cleaned)) source-b)
+                   (gnosis--today-int) source-b)
                 (quit (should (eq (car err) failure))))))
-          (should (= cleaned 1))
           (should (= writes 2))
           (should (equal (sqlite-select gnosis-db "SELECT source_guid FROM themata")
                          '(("guid1"))))
@@ -1228,7 +1226,7 @@ and explanation; SKIPPED counts rejected items, or one for an empty note."
                                 "Anki import complete: %d imported, %d skipped")
                      (push args completions)))))
         (gnosis-anki--chunk-insert gnosis-db (list items) '((701 702 703 704))
-                                  4 0 today nil "mixed.anki2" "extra" t)
+                                  4 0 today "mixed.anki2" "extra" t)
         (funcall pending)
         (should (equal completions '((3 1))))
         (should (equal (gnosis-sqlite-select
@@ -1242,7 +1240,7 @@ and explanation; SKIPPED counts rejected items, or one for an empty note."
                          '("extra" "tag"))))
         ;; A chunk that became entirely redundant still completes cleanly.
         (gnosis-anki--chunk-insert gnosis-db (list (list (car items))) '((800))
-                                  1 0 today nil "redundant.anki2")
+                                  1 0 today "redundant.anki2")
         (funcall pending)
         (should (equal completions '((0 1) (3 1))))
         (should (= 4 (length (gnosis-select 'id 'themata))))))))
@@ -1344,7 +1342,6 @@ and explanation; SKIPPED counts rejected items, or one for an empty note."
             (db-a gnosis-db)
             (dir-a gnosis-dir)
             (gnosis-anki--chunk-size 1)
-            (cleaned 0)
             pending)
        (gnosis-test-anki--overlap-source source 'basic '(1 2))
        (let ((items (cdr (gnosis-anki--parse-anki-db source))))
@@ -1353,13 +1350,12 @@ and explanation; SKIPPED counts rejected items, or one for an empty note."
                       (setq pending (lambda () (apply fn args))))))
            (gnosis-anki--chunk-insert
             db-a (mapcar #'list items) '((901) (902)) 2 0
-            (gnosis--today-int) (lambda () (cl-incf cleaned)) source)
+            (gnosis--today-int) source)
            (when (= completed-chunks 2) (funcall pending))
            (sqlite-close db-a)
            (gnosis-test-with-db
             (let ((db-b gnosis-db) (dir-b gnosis-dir) (gnosis-testing nil))
               (funcall pending)
-              (should (= cleaned 1))
               (should (eq gnosis-db db-b))
               (should (equal gnosis-dir dir-b))
               (should-not (sqlite-select db-b "SELECT * FROM themata"))

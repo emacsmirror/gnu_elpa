@@ -639,8 +639,7 @@ TYPE optionally changes type.
 Omitted ACCEPTED-ALIASES preserves stored aliases; explicit nil clears them.
 Omitted RUBRIC preserves it; explicit nil clears it for non-agent types.
 
-If ID does not exist, TYPE is required to create it anew and issue a warning.
-When `gnosis--id-cache' is bound, uses hash table for existence check."
+If ID does not exist, TYPE is required to create it anew and issue a warning."
   (let* ((id (if (stringp id) (string-to-number id) id))
 	 (current-type (gnosis-get 'type 'themata `(= id ,id)))
          (accepted-aliases (if aliases-p accepted-aliases
@@ -654,9 +653,7 @@ When `gnosis--id-cache' is bound, uses hash table for existence check."
       (gnosis-model-resolve hypothesis answer))
     (when (equal (downcase (or type current-type "")) "model-name")
       (gnosis-model-fields (or type current-type) hypothesis answer))
-    (if (if gnosis--id-cache
-	    (gethash id gnosis--id-cache)
-	  (member id (gnosis-select 'id 'themata nil t)))
+    (if (gnosis-get 'id 'themata `(= id ,id))
 	(gnosis-sqlite-with-transaction (gnosis--ensure-db)
 	  ;; Single multi-column UPDATE for themata
 	  (gnosis-sqlite-execute (gnosis--ensure-db)
@@ -807,6 +804,8 @@ ACCEPTED-ALIASES must be nil: cloze answers are separate required blanks."
 	    (let* ((contents (gnosis-cloze-extract-contents keimenon))
 		   (clozes (gnosis-cloze-extract-answers contents))
 		   (hints (gnosis-cloze-extract-hints contents)))
+              (unless clozes
+                (user-error "Cloze requires an answer or at least one inline blank"))
 	      (cl-loop for cloze in clozes
 		       for hint in hints
 		       do (gnosis-add-thema-fields type keimenon-clean hint cloze
@@ -847,6 +846,10 @@ ACCEPTED-ALIASES must be nil for choice-based responses."
 (defvar-local gnosis--draft-original nil
   "Original edit content as (ID . SNAPSHOT), or nil for a creation draft.")
 
+(defvar-local gnosis--draft-saved-p nil
+  "Non-nil after this draft occurrence committed successfully.
+Retain this disposition if native buffer teardown is vetoed or interrupted.")
+
 (defvar-local gnosis--draft-save-receipt nil
   "Optional one-cell receipt owned by this native edit occurrence.
 A successful save fills its car with (DATABASE ID CONTENT), before closing
@@ -863,7 +866,9 @@ review can acknowledge this write without replacing the answered content.")
             "SELECT dest FROM thema_links WHERE source = ? ORDER BY dest")))
 
 (defun gnosis--draft-check-owner ()
-  "Refuse saving a draft without its original live database connection."
+  "Refuse a saved draft or one without its original live connection."
+  (when gnosis--draft-saved-p
+    (user-error "Draft already saved; copy its text or cancel to close it"))
   (unless (and gnosis--draft-db (eq gnosis-db gnosis--draft-db)
                (condition-case nil
                    (sqlite-select gnosis--draft-db "SELECT 1")

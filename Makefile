@@ -5,7 +5,8 @@
 ifneq ($(MAKECMDGOALS),_test-summary)
 .NOTPARALLEL:
 endif
-.PHONY: all doc autoload autoload-smoke compile lint lint-checkdoc \
+.PHONY: all help test-canvas _test-canvas _test-canvas-ert \
+	doc autoload autoload-smoke compile lint lint-checkdoc \
 	lint-package-lint test check dev load clean \
 	_doc _autoload _autoload-smoke _compile _lint _lint-checkdoc \
 	_lint-package-lint _test _test-summary _check _dev
@@ -22,10 +23,12 @@ NIX_FLAGS ?= --no-write-lock-file
 GNOSIS_ENV_WRAPPED ?=
 JOBS ?= $(shell nproc 2>/dev/null || printf '4')
 TEST_RESULTS := .test-results
+ERT_REQUIRED_TESTS ?=
+CANVAS_PYTHON ?= $(CURDIR)/optional/canvas-3d/.venv/bin/python
 
 LISP_DIR := lisp
-TEST_DIR := tests
-LOAD_PATH := -L $(LISP_DIR) -L $(TEST_DIR) $(EXTRA_LOAD_PATH)
+TEST_DIR ?= tests
+LOAD_PATH := -L $(LISP_DIR) -L $(TEST_DIR) -L tests/tooling $(EXTRA_LOAD_PATH)
 AUTOLOADS := $(LISP_DIR)/gnosis-autoloads.el
 ORG := docs/gnosis.org
 TEXI := docs/gnosis.texi
@@ -64,12 +67,19 @@ TEST_SUPPORT := $(TEST_DIR)/gnosis-test-db.el \
 	$(TEST_DIR)/gnosis-test-helpers.el $(TEST_DIR)/gnosis-test-schema-v8.el
 TESTS := $(filter-out $(TEST_SUPPORT), \
 	$(wildcard $(TEST_DIR)/gnosis-test-*.el))
-TEST_STAMPS := $(patsubst tests/%.el,$(TEST_RESULTS)/%.stamp,$(TESTS))
+TEST_STAMPS := $(patsubst $(TEST_DIR)/%.el,$(TEST_RESULTS)/%.stamp,$(TESTS))
 
 all: check
 
+help:
+	@printf '%s\n' 'dev: lint, compile, autoload, core ERT and manual gates' \
+		'test: core ERT (JOBS=N, TESTS="tests/gnosis-test-NAME.el")' \
+		'test-canvas: opt-in Python/EGL and canvas/model ERT; no installation' \
+		'  Set EMACS, CANVAS_PYTHON and EXTRA_LOAD_PATH for prepared tools.' \
+		'  Ordinary test/check/dev do not require Python, EGL or native canvas.'
+
 doc autoload autoload-smoke compile lint lint-checkdoc lint-package-lint \
-test check dev:
+test test-canvas check dev:
 	@if test -z "$(GNOSIS_ENV_WRAPPED)" && test -z "$$IN_NIX_SHELL" \
 		&& command -v "$(NIX)" >/dev/null 2>&1; then \
 		exec "$(NIX)" develop $(NIX_FLAGS) --command \
@@ -122,31 +132,47 @@ _compile: _autoload
 		-f batch-byte-compile $(SOURCES)
 
 _test: _autoload
+
+_test _test-canvas-ert:
 	@rm -rf $(TEST_RESULTS)
 	@mkdir -p $(TEST_RESULTS)
 	@$(MAKE) --no-print-directory -j$(JOBS) -Otarget _test-summary
 
-$(TEST_RESULTS)/%.stamp: tests/%.el
+$(TEST_RESULTS)/%.stamp: $(TEST_DIR)/%.el
 	@tmp=$$(mktemp -d); log="$(TEST_RESULTS)/$*.log"; \
+	receipt="$(CURDIR)/$(TEST_RESULTS)/$*.receipt"; n=0; status=FAIL; \
+	rm -f "$$receipt"; \
 	trap 'rm -rf "$$tmp"' 0 1 2 3 15; \
 	mkdir -p "$$tmp/home" "$$tmp/cache" "$$tmp/config" \
 		"$$tmp/share" "$$tmp/state" "$$tmp/gnosis"; \
 	if HOME="$$tmp/home" XDG_CACHE_HOME="$$tmp/cache" \
 		XDG_CONFIG_HOME="$$tmp/config" XDG_DATA_HOME="$$tmp/share" \
 		XDG_STATE_HOME="$$tmp/state" GNOSIS_TEST_DIR="$$tmp/gnosis" \
+		GNOSIS_TEST_RECEIPT="$$receipt" \
 		$(ENV) $(EMACS) $(EMACS_OPTS) $(LOAD_PATH) -l ert \
 			--eval="(setq gnosis-dir \
 			  (file-name-as-directory (getenv \"GNOSIS_TEST_DIR\")) \
 			  gnosis-testing t gnosis-vc-auto-push nil \
 			  load-prefer-newer t)" \
-			--eval="(require '$*)" -f ert-run-tests-batch-and-exit > "$$log" 2>&1; then \
-		status=OK; \
+			--eval="(require 'gnosis-tooling-runner)" \
+			--eval="(require '$*)" \
+			--eval="(gnosis-tooling-run-tests '($(ERT_REQUIRED_TESTS)))" > "$$log" 2>&1; then \
+		exited=0; \
 	else \
-		status=FAIL; \
+		exited=1; \
 	fi; \
-	n=$$(grep -o 'Ran [0-9][0-9]*' "$$log" | grep -o '[0-9][0-9]*' || true); \
+	if test -f "$$receipt" && test "$$(wc -l < "$$receipt")" -eq 1 \
+		&& ! LC_ALL=C grep -qvx 'completed [0-9][0-9]*' "$$receipt"; then \
+		read completed n < "$$receipt"; \
+		if test "$$exited" -eq 0; then status=OK; fi; \
+	else \
+		printf '%s\n' 'Missing or invalid ERT completion receipt' >> "$$log"; \
+	fi; \
 	if test "$$status" = OK; then \
 		printf '  OK %s (%s tests)\n' "$<" "$${n:-0}"; \
+		if test -n "$(ERT_REQUIRED_TESTS)"; then \
+			while IFS= read -r line; do printf '%s\n' "$$line"; done < "$$log"; \
+		fi; \
 		rm -f "$$log"; \
 	else \
 		printf 'FAIL %s (%s tests)\n' "$<" "$${n:-0}"; \
@@ -160,7 +186,7 @@ _test-summary: $(TEST_STAMPS)
 		read status n < "$$stamp"; total=$$((total + n)); \
 		if test "$$status" = FAIL; then \
 			failed=$$((failed + 1)); \
-			failed_files="$$failed_files tests/$$(basename "$$stamp" .stamp).el"; \
+			failed_files="$$failed_files $(TEST_DIR)/$$(basename "$$stamp" .stamp).el"; \
 		else \
 			passed=$$((passed + 1)); \
 		fi; \
@@ -174,6 +200,15 @@ _test-summary: $(TEST_STAMPS)
 			"$$failed_files"; \
 	fi; \
 	test "$$failed" -eq 0
+
+# Keep native rendering entirely outside the core verification dependency set.
+_test-canvas:
+	@cd optional/canvas-3d && $(ENV) "$(CANVAS_PYTHON)" -B \
+		-m unittest -v test_protocol test_render test_geometry
+	@GNOSIS_CANVAS_PYTHON="$(CANVAS_PYTHON)" $(MAKE) GNOSIS_ENV_WRAPPED=1 \
+		TEST_DIR=tests/tooling TESTS=tests/tooling/gnosis-tooling-canvas.el \
+		EXTRA_LOAD_PATH="$(EXTRA_LOAD_PATH) -L optional/canvas-3d" \
+		ERT_REQUIRED_TESTS=canvas-3d-model-translated-highlight-is-pickable _test-canvas-ert
 
 _check: _compile _autoload-smoke _test
 

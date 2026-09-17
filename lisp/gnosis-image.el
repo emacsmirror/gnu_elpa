@@ -60,17 +60,26 @@ Reject malformed managed links rather than silently displaying missing media."
            for value = (aref bytes i) then (+ (* value 256) (aref bytes i))
            finally return value))
 
+(defun gnosis-image--source-bytes (file)
+  "Return bounded bytes of local regular raster FILE, allowing any basename."
+  (let ((file (gnosis-assets--local-path file)))
+    (gnosis-assets--local-path (file-name-directory file))
+    (unless (and (file-regular-p file) (file-readable-p file))
+      (user-error "Image file unavailable: %s" file))
+    (when (> (file-attribute-size (file-attributes file)) (* 32 1024 1024))
+      (user-error "Image exceeds 32 MiB"))
+    (with-temp-buffer
+      (set-buffer-multibyte nil)
+      (insert-file-contents-literally file)
+      (when (> (buffer-size) (* 32 1024 1024)) (user-error "Image exceeds 32 MiB"))
+      (buffer-string))))
+
 (defun gnosis-image--dimensions (file)
   "Return (WIDTH HEIGHT TYPE) from bounded local PNG or JPEG FILE headers.
 This checks header structure, not compressed pixel validity.  Native display
 must decode the payload separately.  Limit pixels to 40 million and 16384/axis."
-  (let* ((file (gnosis-assets-file (file-name-directory file) (file-name-nondirectory file)))
-         (size (file-attribute-size (file-attributes file)))
-         (bytes (with-temp-buffer
-                  (set-buffer-multibyte nil)
-                  (when (> size (* 32 1024 1024)) (user-error "Image exceeds 32 MiB"))
-                  (insert-file-contents-literally file)
-                  (buffer-string)))
+  (let* ((bytes (gnosis-image--source-bytes file))
+         (size (length bytes))
          (dimensions
           (cond
            ((and (>= size 33) (equal (substring bytes 0 8) "\211PNG\r\n\032\n")
@@ -194,7 +203,30 @@ Include private `directory' and `path' entries for the verified local payload."
 
 (defun gnosis-image-import (file &optional regions source attribution)
   "Import PNG/JPEG FILE with REGIONS, SOURCE and ATTRIBUTION; return reference.
-Metadata is optional and never guessed.  Identical imports share a revision."
+Metadata is optional and never guessed.  Identical imports share a revision.
+External filenames need not satisfy the managed asset basename grammar."
+  (let* ((file (expand-file-name file))
+         (name (condition-case nil (gnosis-assets--name (file-name-nondirectory file))
+                 (user-error nil))))
+    (if (and name (not (equal name "image.json")))
+        (gnosis-image--import file regions source attribution)
+      (let* ((database (gnosis--ensure-db))
+             (dimensions (gnosis-image--dimensions file))
+             (hash (secure-hash 'sha256 (gnosis-image--source-bytes file)))
+             (stage (make-temp-file "gnosis-image-source-" t))
+             (copy (expand-file-name (if (eq (nth 2 dimensions) 'png) "image.png" "image.jpg") stage)))
+        (unwind-protect
+            (progn
+              (copy-file file copy)
+              (unless (and (equal hash (gnosis-assets-hash copy))
+                           (equal hash (secure-hash 'sha256 (gnosis-image--source-bytes file))))
+                (user-error "Image source changed during copying"))
+              (gnosis-assets-root database)
+              (gnosis-image--import copy regions source attribution))
+          (delete-directory stage t))))))
+
+(defun gnosis-image--import (file regions source attribution)
+  "Publish confined raster FILE with REGIONS, SOURCE and ATTRIBUTION."
   (let* ((file (expand-file-name file))
          (dimensions (gnosis-image--dimensions file))
          (plural (seq-some (lambda (r) (assq 'rects r)) (gnosis-image--regions regions)))
@@ -236,19 +268,22 @@ Only one/two-field legacy forms default to hide-target."
 (defun gnosis-image-occlusion-fields (hypothesis answer)
   "Return canonical occlusion (HYPOTHESIS ANSWER) fields.
 HYPOTHESIS holds resource and stable target; ANSWER holds editable text.
-For historical resource-only hypotheses derive text from the pinned label."
+Canonical fields need no media access, so unavailable resources remain editable.
+Only historical resource-only hypotheses derive text from the pinned label.
+Use `gnosis-image-validate-fields' to validate resources before saving."
   (unless (and (proper-list-p hypothesis) (memq (length hypothesis) '(1 2 3))
                (seq-every-p #'stringp hypothesis)
                (proper-list-p answer) (= (length answer) 1)
                (stringp (car answer)) (not (string-empty-p (string-trim (car answer)))))
     (user-error "Occlusion needs resource, target and a nonempty text answer"))
-  (let* ((target (if (cdr hypothesis) (cadr hypothesis) (car answer)))
-         (scene (gnosis-image-resolve (car hypothesis) target))
+  (let* ((policy (gnosis-image-occlusion-policy hypothesis))
+         (target (if (cdr hypothesis) (cadr hypothesis) (car answer)))
          (text (if (cdr hypothesis) (car answer)
-                 (alist-get 'label
-                            (seq-find (lambda (r) (equal target (alist-get 'id r)))
-                                      (alist-get 'regions scene))))))
-    (list (list (car hypothesis) target (gnosis-image-occlusion-policy hypothesis)) (list text))))
+                 (condition-case nil
+                     (alist-get 'label (gnosis-image-target
+                                        (gnosis-image-resolve (car hypothesis) target) target))
+                   (error (user-error "Restore the legacy image to recover its answer before replacement"))))))
+    (list (list (car hypothesis) target policy) (list text))))
 
 (defun gnosis-image-validate-fields (type keimenon hypothesis answer parathema
                                           &optional review-image)
@@ -256,7 +291,8 @@ For historical resource-only hypotheses derive text from the pinned label."
   (mapc #'gnosis-image-resolve
         (gnosis-image-references (list keimenon hypothesis answer parathema review-image)))
   (when (equal (downcase type) "image-occlusion")
-    (gnosis-image-occlusion-fields hypothesis answer))
+    (let ((fields (gnosis-image-occlusion-fields hypothesis answer)))
+      (gnosis-image-resolve (caar fields) (cadar fields))))
   (when (equal (downcase type) "image-region")
     (unless (and (proper-list-p hypothesis) (= (length hypothesis) 1)
                  (proper-list-p answer) (= (length answer) 1) (stringp (car answer)))
@@ -812,25 +848,49 @@ Restore the original layout and destroy only the owned viewer on every exit."
   "Edit SCENE rectangles graphically and return accepted plain region values."
   (car (gnosis-image-input scene 'edit)))
 
+(defun gnosis-image--publish (reference regions source attribution)
+  "Publish REGIONS, SOURCE and ATTRIBUTION over the exact original REFERENCE.
+Verify the private original copy before replacing its manifest."
+  (let* ((database (gnosis--ensure-db))
+         (root (gnosis-assets-root database))
+         (scene (gnosis-image-resolve reference))
+         (revision (substring reference 0 64))
+         (names (list "image.json" (alist-get 'file scene)))
+         (stage (make-temp-file "gnosis-image-edit-" t)))
+    (unwind-protect
+        (progn
+          (dolist (name names)
+            (copy-file (gnosis-assets-file (alist-get 'directory scene) name)
+                       (expand-file-name name stage)))
+          (unless (equal revision (gnosis-assets-revision stage names))
+            (user-error "Image resource changed during copying"))
+          (gnosis-assets-validate root revision names)
+          (gnosis-assets-root database)
+          (gnosis-image-import (expand-file-name (alist-get 'file scene) stage)
+                               regions source attribution))
+      (delete-directory stage t))))
+
 (defun gnosis-image--read-resource (&optional reference regions-p)
   "Read or reuse REFERENCE, optionally editing regions when REGIONS-P.
 Return immutable managed reference.  Prompts never assign guessed provenance."
   (let* ((database (gnosis--ensure-db))
-         (old (and reference (gnosis-image-resolve reference)))
-         (reuse (and old (y-or-n-p "Reuse this image? ")))
-         (file (if reuse (alist-get 'path old) (read-file-name "PNG or JPEG: " nil nil t)))
+         (reuse (and reference (y-or-n-p "Reuse this image? ")))
+         (old (and reuse (gnosis-image-resolve reference)))
+         (file (unless reuse (read-file-name "PNG or JPEG: " nil nil t)))
          (source (read-string "Source (optional): " (and reuse (alist-get 'source old))))
          (attribution (read-string "Attribution/license (optional): "
                                    (and reuse (alist-get 'attribution old))))
          (pinned (progn
                    (gnosis-assets-root database)
-                   (gnosis-image-import file (and reuse (alist-get 'regions old)) source attribution)))
+                   (if reuse
+                       (gnosis-image--publish reference (alist-get 'regions old) source attribution)
+                     (gnosis-image-import file nil source attribution))))
          (scene (gnosis-image-resolve pinned))
-         (regions (if regions-p (gnosis-image-edit-regions scene) (alist-get 'regions scene))))
+         (regions (when regions-p (gnosis-image-edit-regions scene))))
     (gnosis-assets-root database)
     ;; Recursive editing can outlive the pixels and manifest it displayed.
     (gnosis-image-resolve pinned)
-    (gnosis-image-import (alist-get 'path scene) regions source attribution)))
+    (if regions-p (gnosis-image--publish pinned regions source attribution) pinned)))
 
 (defun gnosis-image--read-fields (&optional reference occlusion policy)
   "Read graphical fields, reusing REFERENCE, with text for OCCLUSION and POLICY."
@@ -871,7 +931,8 @@ and database ownership through all prompts and cancellation."
   (interactive nil gnosis-edit-mode)
   (let* ((owner (current-buffer)) (tick (buffer-chars-modified-tick))
          (position (point)) (database (gnosis--ensure-db))
-         (themata (gnosis-export-parse-themata)) (thema (car themata))
+         (themata (save-restriction (widen) (gnosis-export-parse-themata)))
+         (thema (car themata))
          (type (downcase (or (nth 1 thema) "")))
          (image-p (member type '("image-region" "image-occlusion"))))
     (unless (= (length themata) 1) (user-error "Attach in a single thema draft"))

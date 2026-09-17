@@ -1,0 +1,400 @@
+;;; gnosis-test-image-authoring.el --- Media attachment regressions -*- lexical-binding: t; -*-
+(require 'ert)
+(require 'gnosis-image-test-support)
+(require 'gnosis-model-test-support)
+
+(defmacro gnosis-test-image-authoring-with-db (&rest body)
+  "Run BODY with owned media fixture storage."
+  (declare (indent 0) (debug t))
+  `(gnosis-test-with-db
+     (let ((temporary-file-directory (expand-file-name "tmp/" gnosis-dir)))
+       (make-directory temporary-file-directory)
+       ,@body)))
+
+(defconst gnosis-test-image-authoring-black
+  (base64-decode-string "iVBORw0KGgoAAAANSUhEUgAAAAgAAAAGCAIAAABxZ0isAAAADElEQVR4nGNgGIwAAACWAAGzNRKNAAAAAElFTkSuQmCC"))
+(defun gnosis-test-image-authoring-write-black (file)
+  (let ((coding-system-for-write 'no-conversion))
+    (write-region gnosis-test-image-authoring-black nil file nil 'silent)))
+(defun gnosis-test-image-authoring-key (key command)
+  (should (eq (key-binding (kbd key)) command))
+  (execute-kbd-macro (kbd key)))
+(defun gnosis-test-image-authoring-evidence ()
+  (mapcar (lambda (table)
+            (cons table (sqlite-select gnosis-db (format "SELECT * FROM %s ORDER BY 1" table))))
+          '(scheduler_baseline scheduler_state review_events review_voids
+            practice_events practice_voids study_session study_history)))
+(defun gnosis-test-image-authoring-all-rows ()
+  (cons (mapcar (lambda (table)
+                 (sqlite-select gnosis-db (format "SELECT * FROM %s ORDER BY 1" table)))
+               '(themata extras thema_tag thema_links))
+        (gnosis-test-image-authoring-evidence)))
+(defun gnosis-test-image-authoring-seed (reference &optional type)
+  (gnosis-add-thema-fields (or type "image-occlusion") "Question"
+                          (if (equal type "image-region") (list reference) (list reference "left" "hide-all"))
+                          (if (equal type "image-region") '("left") '("Authored answer"))
+                          "Explanation" '("test") 0 nil nil 12345
+                          (unless (equal type "image-region") '("Alias")))
+  (gnosis-scheduler-accept-review (make-string 64 ?a) 12345 'success 1000000 (gnosis--today-int))
+  (sqlite-execute gnosis-db
+                  "INSERT INTO practice_events VALUES ('practice', 12345, 'session', 1, 1000000, 3)")
+  (should (= 1 (length (gnosis-select '* 'review-events))))
+  (should (= 1 (length (gnosis-select '* 'practice-events)))))
+(defun gnosis-test-image-authoring-resources ()
+  (let ((root (gnosis-assets-root)))
+    (and (file-directory-p root) (directory-files root nil "^[^.].*"))))
+(defun gnosis-test-image-authoring-stages ()
+  (let ((root (gnosis-assets-root)))
+    (append (and (file-directory-p root) (directory-files root nil "^\\.import-"))
+            (directory-files temporary-file-directory nil "^gnosis-image-\\(source\\|edit\\)-"))))
+(defun gnosis-test-image-authoring-kill-drafts ()
+  (dolist (name '("*Gnosis NEW*" "*Gnosis Edit*"))
+    (when-let* ((buffer (get-buffer name)))
+      (with-current-buffer buffer (set-buffer-modified-p nil))
+      (kill-buffer buffer))))
+(defmacro gnosis-test-image-authoring-prompts (&rest body)
+  `(cl-letf (((symbol-function 'y-or-n-p) (lambda (&rest _) t))
+             ((symbol-function 'gnosis-image-edit-regions)
+              (lambda (scene) (copy-tree (alist-get 'regions scene))))
+             ((symbol-function 'completing-read)
+              (lambda (prompt choices &rest _)
+                (if (string-prefix-p "Label visibility" prompt) "hide-all" (caar choices)))))
+     ,@body))
+
+(ert-deftest gnosis-test-image-authoring-prompt-drift-refused ()
+  (dolist (type '("image-region" "image-occlusion"))
+   (dolist (boundary '("Reuse" "Source" "Attribution"))
+    (dolist (mutation '(raster manifest))
+      (gnosis-test-image-authoring-with-db
+        (save-window-excursion
+          (let* ((original (gnosis-test-image--file))
+                 (reference (gnosis-image-import original gnosis-test-image--regions))
+                 (scene (gnosis-image-resolve reference))
+                 (path (alist-get 'path scene))
+                 (manifest (expand-file-name "image.json" (alist-get 'directory scene)))
+                 (gnosis-save-hook nil) changed)
+            (unwind-protect
+                (progn
+                  (gnosis-test-image-authoring-seed reference type)
+                  (gnosis-edit-thema 12345)
+                  ;; Settle lazy redisplay properties before the exact snapshot.
+                  (font-lock-ensure)
+                  (let ((before (buffer-string)) (rows (gnosis-test-image-authoring-all-rows))
+                        (resources (gnosis-test-image-authoring-resources))
+                        (mutate (lambda (prompt)
+                                  (when (and (not changed) (string-prefix-p boundary prompt))
+                                    (setq changed t)
+                                    (if (eq mutation 'raster)
+                                        (gnosis-test-image-authoring-write-black path)
+                                      (write-region " " nil manifest t 'silent))))))
+                    (gnosis-test-image-authoring-prompts
+                     (cl-letf (((symbol-function 'y-or-n-p)
+                                (lambda (prompt) (funcall mutate prompt) t))
+                               ((symbol-function 'read-string)
+                                (lambda (prompt initial &rest _)
+                                  (funcall mutate prompt) initial)))
+                       (should-error (gnosis-test-image-authoring-key "C-c C-a" 'gnosis-image-attach))))
+                    (should changed)
+                    (should (equal-including-properties before (buffer-string)))
+                    (should (equal rows (gnosis-test-image-authoring-all-rows)))
+                    (should (equal resources (gnosis-test-image-authoring-resources)))
+                    (should-not (gnosis-test-image-authoring-stages))))
+              (gnosis-test-image-authoring-kill-drafts)))))))))
+
+(ert-deftest gnosis-test-image-authoring-b1-same-owner-positive ()
+  (gnosis-test-image-authoring-with-db
+    (save-window-excursion
+      (let* ((original (gnosis-test-image--file))
+             (reference (gnosis-image-import original gnosis-test-image--regions "Original source" "Author"))
+             (scene (gnosis-image-resolve reference))
+             (raster-hash (gnosis-assets-hash (alist-get 'path scene)))
+             (manifest-hash (gnosis-assets-hash (expand-file-name "image.json" (alist-get 'directory scene))))
+             (gnosis-save-hook nil))
+        (unwind-protect
+            (progn
+              (gnosis-test-image-authoring-seed reference)
+              (let ((evidence (gnosis-test-image-authoring-evidence)))
+                (gnosis-edit-thema 12345)
+                (let ((before (car (gnosis-export-parse-themata))))
+                  (gnosis-test-image-authoring-prompts
+                   (cl-letf (((symbol-function 'read-string)
+                              (lambda (prompt initial &rest _)
+                                (if (string-prefix-p "Source" prompt) "Updated source" initial))))
+                     (gnosis-test-image-authoring-key "C-c C-a" 'gnosis-image-attach)))
+                  (let* ((after (car (gnosis-export-parse-themata)))
+                         (new-reference (car (nth 3 after)))
+                         (new-scene (gnosis-image-resolve new-reference)))
+                    (should-not (equal reference new-reference))
+                    (should (equal "Updated source" (alist-get 'source new-scene)))
+                    (should (equal raster-hash (gnosis-assets-hash (alist-get 'path new-scene))))
+                    (dolist (index '(0 1 2 4 5 6 8)) (should (equal (nth index before) (nth index after))))
+                    (gnosis-test-image-authoring-key "C-c C-c" 'gnosis-save)
+                    (gnosis-sqlite-close gnosis-db)
+                    (setq gnosis-db (gnosis-db--open gnosis-dir))
+                    (gnosis-edit-thema 12345)
+                    (should (equal new-reference (car (nth 3 (car (gnosis-export-parse-themata))))))
+                    (should (equal evidence (gnosis-test-image-authoring-evidence)))
+                    (should (equal raster-hash (gnosis-assets-hash (alist-get 'path scene))))
+                    (should (equal manifest-hash (gnosis-assets-hash (expand-file-name "image.json" (alist-get 'directory scene)))))
+                    (should (gnosis-image-resolve reference))
+                    (message "VALIDATION same-owner: metadata revision saved/reopened; original, raster, answer, aliases, policy and nonempty evidence preserved")))))
+          (gnosis-test-image-authoring-kill-drafts))))))
+
+(ert-deftest gnosis-test-image-authoring-b1-exact-copy-drift-refused ()
+  "Keep the existing exact-raster-copy defense in both publication phases."
+  (dolist (kind '(raster manifest))
+   (dolist (phase '(1 2))
+    (gnosis-test-image-authoring-with-db
+      (save-window-excursion
+        (let* ((original (gnosis-test-image--file))
+               (reference (gnosis-image-import original gnosis-test-image--regions "Original source" "Author"))
+               (scene (gnosis-image-resolve reference))
+               (path (if (eq kind 'raster) (alist-get 'path scene)
+                       (expand-file-name "image.json" (alist-get 'directory scene))))
+               (bytes (with-temp-buffer (set-buffer-multibyte nil)
+                                        (insert-file-contents-literally path) (buffer-string)))
+               (original-hash (gnosis-assets-hash path))
+               (copy (symbol-function 'copy-file))
+               (gnosis-save-hook nil) (copies 0) injected)
+          (unwind-protect
+              (progn
+                (gnosis-test-image-authoring-seed reference)
+                (let ((rows (gnosis-test-image-authoring-all-rows)) (resources (gnosis-test-image-authoring-resources)))
+                  (gnosis-edit-thema 12345)
+                  (let ((before (buffer-string)))
+                    (gnosis-test-image-authoring-prompts
+                     (cl-letf (((symbol-function 'read-string) (lambda (_ initial &rest _) initial))
+                               ((symbol-function 'copy-file)
+                                (lambda (src dst &rest args)
+                                  (when (equal src path) (cl-incf copies))
+                                  (if (and (equal src path) (= copies phase))
+                                      (unwind-protect
+                                          (progn
+                                            (setq injected t)
+                                            (if (eq kind 'raster) (gnosis-test-image-authoring-write-black path)
+                                              (write-region " " nil path t 'silent))
+                                            (apply copy src dst args))
+                                        (let ((coding-system-for-write 'no-conversion))
+                                          (write-region bytes nil path nil 'silent)))
+                                    (apply copy src dst args)))))
+                       (should-error (gnosis-test-image-authoring-key "C-c C-a" 'gnosis-image-attach) :type 'user-error)))
+                    (should injected)
+                    (should (equal before (buffer-string)))
+                    (should (equal rows (gnosis-test-image-authoring-all-rows)))
+                    (should (equal resources (gnosis-test-image-authoring-resources)))
+                    (should-not (gnosis-test-image-authoring-stages))
+                    (should (equal original-hash (gnosis-assets-hash path)))
+                    (should (gnosis-image-resolve reference))
+                    ;; Retry after restoration takes the ordinary path.
+                    (gnosis-test-image-authoring-prompts
+                     (cl-letf (((symbol-function 'read-string) (lambda (_ initial &rest _) initial)))
+                       (gnosis-test-image-authoring-key "C-c C-a" 'gnosis-image-attach)))
+                    (should (equal reference (car (nth 3 (car (gnosis-export-parse-themata))))))
+                    (should (equal rows (gnosis-test-image-authoring-all-rows)))
+                    (message "VALIDATION exact-copy phase %d: rejected changed copied raster despite restored source; draft, original and evidence unchanged; stage cleaned; retry succeeds" phase))))
+            (gnosis-test-image-authoring-kill-drafts))))))))
+
+(ert-deftest gnosis-test-image-authoring-b1-quit-preserves-owned-state ()
+  (dolist (boundary '(prompt copy))
+    (gnosis-test-image-authoring-with-db
+      (save-window-excursion
+        (let* ((original (gnosis-test-image--file))
+               (reference (gnosis-image-import original gnosis-test-image--regions "Original source" "Author"))
+               (scene (gnosis-image-resolve reference))
+               (raster-hash (gnosis-assets-hash (alist-get 'path scene)))
+               (copy (symbol-function 'copy-file))
+               (gnosis-save-hook nil) reached)
+          (unwind-protect
+              (progn
+                (gnosis-test-image-authoring-seed reference)
+                (let ((rows (gnosis-test-image-authoring-all-rows)) (resources (gnosis-test-image-authoring-resources)))
+                  (gnosis-edit-thema 12345)
+                  (let ((draft (buffer-string)))
+                    (gnosis-test-image-authoring-prompts
+                     (cl-letf (((symbol-function 'read-string)
+                                (lambda (_ initial &rest _)
+                                  (when (eq boundary 'prompt)
+                                    (setq reached t) (signal 'quit nil))
+                                  initial))
+                               ((symbol-function 'copy-file)
+                                (lambda (&rest args)
+                                  (if (eq boundary 'copy)
+                                      (progn (setq reached t) (signal 'quit nil))
+                                    (apply copy args)))))
+                       (should (eq 'quit (condition-case nil
+                                             (gnosis-test-image-authoring-key "C-c C-a" 'gnosis-image-attach)
+                                           (quit 'quit))))))
+                    (should reached)
+                    (should (equal draft (buffer-string)))
+                    (should (equal rows (gnosis-test-image-authoring-all-rows)))
+                    (should (equal resources (gnosis-test-image-authoring-resources)))
+                    (should-not (gnosis-test-image-authoring-stages))
+                    (should (equal raster-hash (gnosis-assets-hash (alist-get 'path scene))))
+                    (should (gnosis-image-resolve reference))
+                    (message "VALIDATION quit at %s: draft, resource, original raster and nonempty evidence unchanged; owned stage cleaned" boundary))))
+            (gnosis-test-image-authoring-kill-drafts)))))))
+
+(ert-deftest gnosis-test-image-authoring-u1-public-source-filenames ()
+  (dolist (name '("simple.png" "Ανατομία.png" "Anatomy image.png" "Anatomy[left].png"
+                  "image.json" ".image.png" "Ανατομία εικόνα [αριστερά].png"))
+    (gnosis-test-image-authoring-with-db
+      (save-window-excursion
+        (let* ((source (gnosis-test-image--file))
+               (file (expand-file-name name gnosis-dir)) (gnosis-save-hook nil))
+          (copy-file source file)
+          (unwind-protect
+              (progn
+                (gnosis-add-thema "basic" "Question" "Hint" "Answer" "Explanation")
+                (goto-char (point-min)) (search-forward "Question")
+                (cl-letf (((symbol-function 'read-file-name) (lambda (&rest _) file))
+                          ((symbol-function 'read-string) (lambda (&rest _) "Attribution")))
+                  (gnosis-test-image-authoring-key "C-c C-a" 'gnosis-image-attach))
+                (gnosis-test-image-authoring-key "C-c C-c" 'gnosis-save)
+                (let ((id (car (gnosis-select 'id 'themata nil t))))
+                  (gnosis-sqlite-close gnosis-db)
+                  (setq gnosis-db (gnosis-db--open gnosis-dir))
+                  (gnosis-edit-thema id)
+                  (let* ((reference (car (gnosis-image-references (buffer-string))))
+                         (scene (gnosis-image-resolve reference)))
+                    (should (equal (gnosis-assets-hash source) (gnosis-assets-hash (alist-get 'path scene))))
+                    (should (equal "Attribution" (alist-get 'source scene)))
+                    (should (equal "Attribution" (alist-get 'attribution scene)))))
+                (should-not (gnosis-test-image-authoring-stages)))
+            (gnosis-test-image-authoring-kill-drafts)))))))
+
+(ert-deftest gnosis-test-image-authoring-m2-inline-repeated-import ()
+  (gnosis-test-image-authoring-with-db
+    (save-window-excursion
+      (let ((file (gnosis-test-image--file))
+            (import (symbol-function 'gnosis-image-import))
+            (gnosis-save-hook nil) calls)
+        (unwind-protect
+            (progn
+              (gnosis-add-thema "basic" "Question" "Hint" "Answer" "Explanation")
+              (goto-char (point-min)) (search-forward "Question")
+              (cl-letf (((symbol-function 'read-file-name) (lambda (&rest _) file))
+                        ((symbol-function 'read-string) (lambda (&rest _) ""))
+                        ((symbol-function 'gnosis-image-import)
+                         (lambda (&rest args)
+                           (let ((reference (apply import args)))
+                             (push (cons args reference) calls)
+                             reference))))
+                (gnosis-test-image-authoring-key "C-c C-a" 'gnosis-image-attach))
+              (should (= 1 (length calls)))
+              (should (equal (list (cdar calls)) (gnosis-image-references (buffer-string))))
+              (message "VALIDATION M2: one import, pinned reference %s, no region editor" (cdar calls)))
+          (gnosis-test-image-authoring-kill-drafts))))))
+
+(ert-deftest gnosis-test-image-authoring-managed-confinement-controls ()
+  (gnosis-test-image-authoring-with-db
+    (dolist (name '("../escape.png" "/tmp/escape.png" "sub/file.png" "." ".." "x[1].png" "x y.png"))
+      (should-error (gnosis-assets--name name) :type 'user-error))
+    (let* ((source (gnosis-test-image--file)) (link (expand-file-name "linked.png" gnosis-dir)))
+      (make-symbolic-link source link)
+      (should-error (gnosis-image-import link) :type 'user-error))
+    (message "VALIDATION managed confinement: traversal, absolute/nested names, special names and symlink source refused")))
+
+
+(ert-deftest gnosis-test-image-authoring-external-copy-faults-and-jpeg ()
+  (gnosis-test-image-authoring-with-db
+    (let* ((original (gnosis-test-image--file))
+           (file (expand-file-name "Ανατομία [left].png" gnosis-dir))
+           (copy (symbol-function 'copy-file)))
+      (copy-file original file)
+      (dolist (fault '(drift error quit))
+        (let (stage)
+          (cl-letf (((symbol-function 'copy-file)
+                     (lambda (src dst &rest args)
+                       (if (equal src file)
+                           (progn
+                             (setq stage (file-name-directory dst))
+                             (if (eq fault 'drift)
+                                 (unwind-protect
+                                     (progn (gnosis-test-image-authoring-write-black file)
+                                            (apply copy src dst args))
+                                   (funcall copy original file t))
+                               (signal fault '("Copy interrupted"))))
+                         (apply copy src dst args)))))
+            (should (memq (condition-case err (gnosis-image-import file)
+                            ((error quit) (car err))) '(user-error error quit))))
+          (should stage)
+          (should-not (file-exists-p stage))))
+      (let* ((reference (gnosis-image-import file nil "Πηγή" "CC0 [notice]"))
+             (scene (gnosis-image-resolve reference)))
+        (should (equal reference (gnosis-image-import file nil "Πηγή" "CC0 [notice]")))
+        (should (equal (gnosis-assets-hash original) (gnosis-assets-hash (alist-get 'path scene))))))
+    (save-window-excursion
+      (let ((file (expand-file-name "Εικόνα [gray].jpg" gnosis-dir)) (gnosis-save-hook nil))
+        (let ((coding-system-for-write 'no-conversion))
+          (write-region
+           (base64-decode-string "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAMCAgICAgMCAgIDAwMDBAYEBAQEBAgGBgUGCQgKCgkICQkKDA8MCgsOCwkJDRENDg8QEBEQCgwSExIQEw8QEBD/wAALCAAGAAgBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAAB//EABsQAAAHAQAAAAAAAAAAAAAAAAABBQcZU5PS/9oACAEBAAA/ACmWx0K1HUuh/9k=")
+           nil file nil 'silent))
+        (unwind-protect
+            (progn
+              (gnosis-add-thema "basic" "Question" nil "Answer" "Explanation")
+              (goto-char (point-min)) (search-forward "Question")
+              (cl-letf (((symbol-function 'read-file-name) (lambda (&rest _) file))
+                        ((symbol-function 'read-string) (lambda (&rest _) "Πηγή [notice]")))
+                (gnosis-test-image-authoring-key "C-c C-a" 'gnosis-image-attach))
+              (gnosis-test-image-authoring-key "C-c C-c" 'gnosis-save)
+              (let ((id (car (gnosis-select 'id 'themata nil t))))
+                (gnosis-sqlite-close gnosis-db)
+                (setq gnosis-db (gnosis-db--open gnosis-dir))
+                (gnosis-edit-thema id)
+                (let* ((scene (gnosis-image-resolve (car (gnosis-image-references (buffer-string)))))
+                       (bytes (with-temp-buffer (set-buffer-multibyte nil)
+                                                (insert-file-contents-literally file) (buffer-string))))
+                  (should (equal (secure-hash 'sha256 bytes) (gnosis-assets-hash (alist-get 'path scene))))
+                  (should (equal "Πηγή [notice]" (alist-get 'source scene)))
+                  (should (equal "Πηγή [notice]" (alist-get 'attribution scene)))
+                  (when (display-graphic-p) (should (gnosis-image--decode scene))))))
+          (gnosis-test-image-authoring-kill-drafts))))))
+
+(ert-deftest gnosis-test-image-authoring-foreign-stages-preserved ()
+  "Ignore other suites' live stages while checking our actual attach cleanup."
+  (let ((foreign (mapcar (lambda (prefix) (make-temp-file prefix t))
+                         '("gnosis-image-source-" "gnosis-image-edit-"))))
+    (unwind-protect
+        (progn
+          (dolist (dir foreign)
+            (with-temp-file (expand-file-name "live" dir) (insert "Foreign live editor")))
+          (let ((before (mapcar (lambda (dir)
+                                 (list (directory-files dir) (file-modes dir)
+                                       (file-attribute-modification-time (file-attributes dir))
+                                       (gnosis-assets-hash (expand-file-name "live" dir)))) foreign)))
+            (dolist (name '(gnosis-test-image-authoring-u1-public-source-filenames
+                            gnosis-test-image-authoring-b1-quit-preserves-owned-state
+                            gnosis-test-image-authoring-prompt-drift-refused
+                            gnosis-test-image-authoring-external-copy-faults-and-jpeg))
+              (funcall (ert-test-body (ert-get-test name))))
+            (should (equal before
+                           (mapcar (lambda (dir)
+                                     (list (directory-files dir) (file-modes dir)
+                                           (file-attribute-modification-time (file-attributes dir))
+                                           (gnosis-assets-hash (expand-file-name "live" dir)))) foreign)))))
+      ;; Remove only this control's exact paths, never a shared prefix scan.
+      (mapc (lambda (dir) (delete-directory dir t)) foreign))))
+
+(ert-deftest gnosis-test-image-authoring-owned-leak-detected ()
+  "Detect a deliberately unremoved source stage created by the real importer."
+  (gnosis-test-image-authoring-with-db
+    (let* ((original (gnosis-test-image--file))
+           (file (expand-file-name "Anatomy image.png" gnosis-dir))
+           (delete (symbol-function 'delete-directory)) leaked)
+      (copy-file original file)
+      (unwind-protect
+          (progn
+            (cl-letf (((symbol-function 'delete-directory)
+                       (lambda (directory &rest args)
+                         (if (and (file-in-directory-p directory temporary-file-directory)
+                                  (string-prefix-p "gnosis-image-source-" (file-name-nondirectory directory)))
+                             (setq leaked directory)
+                           (apply delete directory args)))))
+              (should (gnosis-image-resolve (gnosis-image-import file))))
+            (should leaked)
+            (should (equal (list (file-name-nondirectory leaked)) (gnosis-test-image-authoring-stages)))
+            (should-error (should-not (gnosis-test-image-authoring-stages)) :type 'ert-test-failed))
+        (when leaked (funcall delete leaked t))))))
+
+(provide 'gnosis-test-image-authoring)
+;;; gnosis-test-image-authoring.el ends here

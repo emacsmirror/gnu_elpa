@@ -13,7 +13,8 @@
 (defun keymap-popup-test--session (buf descriptions &rest properties)
   "Install a popup session in BUF for DESCRIPTIONS.
 PROPERTIES may supply active-state and session values used by a test."
-  (let* ((backend (or (plist-get properties :backend)
+  (let* ((source-live (list (make-symbol "test-source")))
+         (backend (or (plist-get properties :backend)
                       (list :show #'ignore :fit #'ignore :hide #'ignore)))
          (active (keymap-popup--make-state
                   (plist-get properties :keymap)
@@ -25,6 +26,8 @@ PROPERTIES may supply active-state and session values used by a test."
                   :wrapper-map (plist-get properties :wrapper-map)
                   :exit-function (plist-get properties :exit-function)))
          (session (list :source (or (plist-get properties :source) buf)
+                        :source-live source-live
+                        :source-retire (lambda () (setcar source-live nil))
                         :active active
                         :stack (plist-get properties :stack)
                         :prefix-mode (plist-get properties :prefix-mode)

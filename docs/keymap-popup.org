@@ -362,6 +362,33 @@ to =warning=, all other entries dim with =shadow=, and
 command with =current-prefix-arg= set, exactly like any
 =interactive "P"= command.
 
+** Mouse activation
+
+A single left click on an enabled entry's key or description selects the
+original source window and invokes its current key binding there, without
+moving source point.  The action may then select another window normally.
+Pending prefix arguments, switches, submenus and =:stay-open= work as
+with keyboard input.  Entry text uses native hover highlighting.
+
+Activation requires a matching left-button press and release on the same
+entry in the same popup navigation state.  A release alone, or one after
+replacing the popup or changing its submenu, does not activate an entry.
+
+Headings, padding and blank space are inert.  Disabled or hidden entries,
+changed bindings and drags do not activate an old action.  Popup clicks
+are ignored while a minibuffer prompt is active, including presses whose
+release arrives after the prompt closes.  Inert clicks leave the selected
+window unchanged; clicks outside the popup retain their ordinary bindings.
+If the source window no longer displays the source buffer, mouse activation
+is refused rather than redirecting an action to a different buffer.
+Reinitializing the source's major mode or changing its visited file retires
+the old popup's mouse activation; open a new popup to use the new source
+context.  Renaming the buffer alone does not retire it.
+
+The replay check runs before native transient-map teardown.  As with typed
+keys, subsequent command hooks can still change the command's buffer or
+other execution context.
+
 * Prompting and re-entry
 :PROPERTIES:
 :CUSTOM_ID: prompting

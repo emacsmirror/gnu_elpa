@@ -99,7 +99,16 @@
                            (list
                             (lambda ()
                               (redisplay t)
-                              (let ((popup-pos (posn-at-point 1 popup-window))
+                              (let ((popup-pos
+                                     (posn-at-point
+                                      (if (memq target '(entry press))
+                                          (with-current-buffer buf
+                                            (save-excursion
+                                              (goto-char (point-min))
+                                              (search-forward "Action")
+                                              (- (point) 6)))
+                                        1)
+                                      popup-window))
                                     (reader-pos (posn-at-point (point)))
                                     (outside-pos
                                      (posn-at-point 1 outside-window)))
@@ -109,9 +118,10 @@
                                 (setq unread-command-events
                                       (append
                                        (pcase target
-                                         ('popup
+                                         ((or 'popup 'entry)
                                           (list (list 'down-mouse-1 popup-pos)
                                                 (list 'mouse-1 popup-pos)))
+                                         ('press (list (list 'down-mouse-1 popup-pos)))
                                          ('reader (list (list 'mouse-1 reader-pos)))
                                          ('outside
                                           (list (list 'mouse-1 outside-pos)
@@ -140,7 +150,27 @@
                     (should (eq (keymap-popup--active-get buf :keymap)
                                 (if nested child root)))
                     (should-not (keymap-popup--session-get buf :suspended-depth))
-                    (execute-kbd-macro (kbd "a"))
+                    (when (eq target 'press)
+                      ;; A press begun in the reader cannot authorize a
+                      ;; release after that reader has returned or quit.
+                      (redisplay t)
+                      (let ((position
+                             (posn-at-point
+                              (with-current-buffer buf
+                                (save-excursion
+                                  (goto-char (point-min))
+                                  (search-forward "Action")
+                                  (- (point) 6)))
+                              popup-window)))
+                        (should position)
+                        (execute-kbd-macro (vector (list 'mouse-1 position)))
+                        (should-not action-buffer)
+                        (should (equal (buffer-string) "Draft"))
+                        (execute-kbd-macro
+                         (vector (list 'down-mouse-1 position)
+                                 (list 'mouse-1 position)))))
+                    (unless (eq target 'press)
+                      (execute-kbd-macro (kbd "a")))
                     (should (eq action-buffer source))
                     (should (equal (buffer-string) "Draft!"))
                     (when nested
@@ -163,7 +193,7 @@
 (ert-deftest keymap-popup-native-test-reader-mouse ()
   "Popup clicks preserve native readers; other targets retain native dispatch."
   (skip-unless (not noninteractive))
-  (dolist (target '(none popup reader outside))
+  (dolist (target '(none popup entry press reader outside))
     (dolist (persistent '(nil t))
       (dolist (nested '(nil t))
         (dolist (abort '(nil t))

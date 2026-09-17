@@ -1083,9 +1083,13 @@ KEY-WIDTH pads the key column for alignment."
                       raw-desc))
               (c-u-desc (plist-get entry :c-u))
               (raw-key (plist-get entry :key))
+              (mouse-props (unless inapt
+                             (list 'keymap-popup--entry entry
+                                   'mouse-face 'highlight)))
+              (click-key (apply #'propertize raw-key mouse-props))
               (padded-key (if key-width
-                              (keymap-popup--pad-width raw-key key-width)
-                            raw-key))
+                              (keymap-popup--pad-width click-key key-width)
+                            click-key))
               (key-str (propertize padded-key 'face 'keymap-popup-key))
               (value-str (if (eq type 'switch)
                              (propertize
@@ -1096,8 +1100,10 @@ KEY-WIDTH pads the key column for alignment."
               (c-u-str (and c-u-desc
                             (propertize (format " (%s)" c-u-desc)
                                         'face (if prefix-mode 'warning 'shadow))))
-              (line (format "  %s  %s%s%s" key-str desc value-str
-                            (or c-u-str ""))))
+              (line (concat "  " key-str "  "
+                            (apply #'propertize
+                                   (concat desc value-str (or c-u-str ""))
+                                   mouse-props))))
 	 (cond
 	  (inapt (propertize line 'face 'keymap-popup-inapt))
 	  ((and prefix-mode (not c-u-desc))
@@ -1127,7 +1133,9 @@ rendered with the inapt face."
 	 (and lines
               (let ((result (if header (cons header lines) lines)))
                 (if group-inapt
-		    (mapcar (lambda (line) (propertize line 'face 'keymap-popup-inapt))
+		    (mapcar (lambda (line)
+                              (propertize line 'face 'keymap-popup-inapt
+                                          'keymap-popup--entry nil 'mouse-face nil))
 			    result)
                   result))))))
 
@@ -1673,9 +1681,15 @@ INCLUDE-ACTIVE also deactivates the active transient map."
     (when failure (signal (car failure) (cdr failure)))))
 
 (defun keymap-popup--remove-session-hooks (session)
-  "Remove global hooks owned by the captured SESSION."
+  "Remove hooks owned by the captured SESSION."
   (remove-hook 'minibuffer-setup-hook #'keymap-popup--suspend)
   (remove-hook 'minibuffer-exit-hook #'keymap-popup--resume)
+  (when-let* ((source (plist-get session :source))
+              ((buffer-live-p source))
+              (retire (plist-get session :source-retire)))
+    (with-current-buffer source
+      (remove-hook 'change-major-mode-hook retire t)
+      (remove-hook 'after-set-visited-file-name-hook retire t)))
   (when-let* ((hook (plist-get session :persistent-hook)))
     (remove-hook 'post-command-hook hook)))
 
@@ -1744,6 +1758,125 @@ Signal the first cleanup failure after attempting the remaining steps."
   "Remove the popup display for BUF and kill it."
   (keymap-popup--cleanup buf))
 
+(defun keymap-popup--ignore-mouse ()
+  "Ignore a popup mouse event without consuming its pending prefix."
+  (interactive)
+  (prefix-command-preserve-state)
+  ;; Emacs 29 does not restore this part of native prefix history.
+  (setq current-prefix-arg last-prefix-arg))
+
+(defun keymap-popup--mouse-entry (buf position)
+  "Return BUF's entry at mouse POSITION, excluding non-text areas."
+  (let ((window (posn-window position))
+        (point (posn-point position)))
+    (when (and (eq window (keymap-popup--display-window buf))
+               (null (posn-area position))
+               (integerp point))
+      (with-current-buffer buf
+        (when (and (<= (point-min) point) (< point (point-max)))
+          (get-text-property point 'keymap-popup--entry))))))
+
+(defun keymap-popup--mouse-owner-p (buf wrapper session)
+  "Return non-nil if BUF and WRAPPER still own SESSION's mouse source.
+This check runs no predicates or menu filters."
+  (let ((source (plist-get session :source))
+        (window (plist-get session :source-window))
+        (lifetime (plist-get session :source-live)))
+    (and (car lifetime)
+         (eq lifetime (keymap-popup--session-get buf :source-live))
+         (eq buf (keymap-popup--popup-buffer))
+         (not (active-minibuffer-window))
+         (buffer-live-p source)
+         (window-live-p window)
+         (eq (window-buffer window) source)
+         (eq (selected-window) window)
+         (eq (current-buffer) source)
+         (eq wrapper (keymap-popup--active-get buf :wrapper-map)))))
+
+(defun keymap-popup--mouse-current-p (buf wrapper entry)
+  "Return non-nil when ENTRY is available in BUF through WRAPPER."
+  (let ((session (keymap-popup--session-state buf))
+        (key (plist-get entry :key)))
+    (and entry
+         (keymap-popup--mouse-owner-p buf wrapper session)
+         (pcase-let ((`(,current . ,group)
+                      (keymap-popup--find-entry-with-group
+                       (keymap-popup--active-descriptions buf) key)))
+           (and (equal entry current)
+                (keymap-popup--if-allows-p current)
+                (keymap-popup--if-allows-p group)
+                (not (keymap-popup--inapt-active-p current))
+                (not (keymap-popup--inapt-active-p group))
+                (keymap-lookup (keymap-popup--active-get buf :keymap) key)
+                (commandp (key-binding (key-parse key)))))
+         ;; Predicates and menu filters can run Lisp; recheck ownership.
+         (keymap-popup--mouse-owner-p buf wrapper session))))
+
+(defun keymap-popup--mouse-replay (buf wrapper entry)
+  "Replay BUF's ENTRY as native keys, qualified by WRAPPER and source.
+A one-command guard rejects stale queued input before native teardown.
+Like keyboard input, dispatch remains subject to later command hooks."
+  (let* ((keys (key-parse (plist-get entry :key)))
+         (session (keymap-popup--session-state buf))
+         (epoch (keymap-popup--session-get buf :mouse-epoch))
+         (events (mapcar (lambda (event) (cons t event))
+                         (listify-key-sequence keys)))
+         (guard (make-symbol "keymap-popup--mouse-replay")))
+    (fset guard
+          (lambda ()
+            (remove-hook 'pre-command-hook guard)
+            (let ((command this-command))
+              ;; Predicate errors must fail closed even when Emacs demotes
+              ;; an error in `pre-command-hook' and continues dispatch.
+              (setq this-command #'keymap-popup--ignore-mouse)
+              (unwind-protect
+                  (when (and (equal keys (this-command-keys-vector))
+                             (keymap-popup--mouse-current-p buf wrapper entry)
+                             (eq command (key-binding keys))
+                             ;; Even the final lookup can run a menu filter.
+                             (keymap-popup--mouse-owner-p buf wrapper session)
+                             (eq epoch (keymap-popup--session-get buf :mouse-epoch)))
+                    (setq this-command command))
+                (when (eq this-command #'keymap-popup--ignore-mouse)
+                  ;; Remove only this replay's as-yet unread events.
+                  (setq unread-command-events
+                        (seq-remove (lambda (event) (memq event events))
+                                    unread-command-events)))))))
+    (add-hook 'pre-command-hook guard -90)
+    (setq unread-command-events (append events unread-command-events))))
+
+(defun keymap-popup--mouse (event)
+  "Handle owned popup EVENT without selecting its display window.
+Only a matched left-button press and release activates an entry.
+Replay its key, not a saved command, so native lookup, remapping and
+popup policy apply."
+  (interactive "e")
+  (keymap-popup--ignore-mouse)
+  (when-let* ((buf (keymap-popup--popup-buffer)))
+    (let* ((entry (keymap-popup--mouse-entry buf (event-start event)))
+           (wrapper (keymap-popup--active-get buf :wrapper-map))
+           (epoch (keymap-popup--session-get buf :mouse-epoch))
+           (window (keymap-popup--session-get buf :source-window))
+           (press (keymap-popup--session-get buf :mouse-press)))
+      (keymap-popup--set-session buf :mouse-press nil)
+      (pcase (car event)
+        ('down-mouse-1
+         (unless (active-minibuffer-window)
+           (keymap-popup--set-session buf :mouse-press (cons wrapper entry))))
+        ('mouse-1
+         (when (and press
+                    (eq wrapper (car press))
+                    (equal entry (cdr press))
+                    (not (active-minibuffer-window))
+                    (window-live-p window)
+                    (eq (window-buffer window)
+                        (keymap-popup--session-get buf :source))
+                    (with-selected-window window
+                      (keymap-popup--mouse-current-p buf wrapper entry))
+                    (eq epoch (keymap-popup--session-get buf :mouse-epoch)))
+           (select-window window)
+           (keymap-popup--mouse-replay buf wrapper entry)))))))
+
 (defun keymap-popup--make-keep-pred (buf)
   "Return a keep-pred for `set-transient-map'.
 Reads state from BUF.  Consumes the reentering flag on read."
@@ -1757,12 +1890,12 @@ Reads state from BUF.  Consumes the reentering flag on read."
                   (let ((window (posn-window (event-start last-input-event))))
                     (and (window-live-p window)
                          (eq (window-buffer window) buf))))
-             ;; Help is not an action target.  Do not let a mouse command
-             ;; select it (even during a prompt), or receive a window
-             ;; destroyed by teardown.
-             (setq this-command #'ignore)
+             ;; Consume the position before any suffix can retire its window.
+             ;; This hook remains active while maps are suspended for a reader.
+             (setq this-command #'keymap-popup--mouse)
              (keymap-popup--set-session buf :reentering nil)
              t)
+            ((eq this-command #'keymap-popup--ignore-mouse) t)
             ((active-minibuffer-window) t)
             ((plist-get session :reentering)
              (keymap-popup--set-session buf :reentering nil)
@@ -1799,6 +1932,7 @@ otherwise tears down completely."
               (progn
                 (keymap-popup--set-session
                  buf :active (car stack) :stack (cdr stack)
+                 :mouse-press nil :mouse-epoch (make-symbol "mouse-navigation")
                  :reentering t :prefix-mode nil)
                 (keymap-popup--refresh buf))
             (keymap-popup--teardown buf)))))))
@@ -1839,6 +1973,7 @@ otherwise tears down completely."
         (progn
           (keymap-popup--set-session
            buf :active child :stack stack
+           :mouse-press nil :mouse-epoch (make-symbol "mouse-navigation")
            :prefix-mode nil)
           (keymap-popup--refresh buf)
           (keymap-popup--activate-transient-map buf)
@@ -2016,22 +2151,34 @@ removes the popup display."
 (defun keymap-popup--make-session (keymap &optional active)
   "Derive a popup session for KEYMAP and the current buffer.
 Use ACTIVE instead of deriving the initial navigation state when non-nil."
-  (list :source (current-buffer)
-        :active (or active (keymap-popup--state-for-keymap keymap))
-        :stack nil
-        :prefix-mode nil
-        :reentering nil
-        :suspended-depth nil
-        :closing nil
-        :persistent (pcase (keymap-popup--meta keymap 'persistent)
-                      ('yes t)
-                      ('no nil)
-                      (_ keymap-popup-persistent))
-        :backend (funcall keymap-popup-backend)
-        :persistent-hook nil))
+  (let ((source-live (list (make-symbol "keymap-popup-source"))))
+    (list :source (current-buffer)
+          :source-window (selected-window)
+          :source-live source-live
+          :source-retire (lambda () (setcar source-live nil))
+          :mouse-press nil
+          :mouse-epoch (make-symbol "mouse-navigation")
+          :active (or active (keymap-popup--state-for-keymap keymap))
+          :stack nil
+          :prefix-mode nil
+          :reentering nil
+          :suspended-depth nil
+          :closing nil
+          :persistent (pcase (keymap-popup--meta keymap 'persistent)
+                        ('yes t)
+                        ('no nil)
+                        (_ keymap-popup-persistent))
+          :backend (funcall keymap-popup-backend)
+          :persistent-hook nil)))
 
 (defun keymap-popup--init-session (buf session)
   "Install SESSION in BUF and arrange cleanup on buffer death."
+  ;; A live buffer object can acquire a new mode or document.  Retire the
+  ;; captured lifetime, not a buffer-local flag that mode setup can erase.
+  (with-current-buffer (plist-get session :source)
+    (let ((retire (plist-get session :source-retire)))
+      (add-hook 'change-major-mode-hook retire nil t)
+      (add-hook 'after-set-visited-file-name-hook retire nil t)))
   (with-current-buffer buf
     (setq-local keymap-popup--session session)
     (setq keymap-popup--buffer buf)

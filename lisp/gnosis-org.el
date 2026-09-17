@@ -103,8 +103,8 @@ Returns (title tags id).  ID will be nil if no file-level ID exists."
     (list title tags id)))
 
 (defun gnosis-org--combine-tags (inherited-tags headline-tags)
-  "Combine INHERITED-TAGS and HEADLINE-TAGS, removing duplicates."
-  (delete-dups (append (or inherited-tags '()) (or headline-tags '()))))
+  "Combine INHERITED-TAGS and HEADLINE-TAGS without changing either list."
+  (delete-dups (append inherited-tags headline-tags nil)))
 
 (defun gnosis-org--parse-headlines-recursive
     (element parent-id parent-title parent-tags)
@@ -113,40 +113,32 @@ ELEMENT can be the parsed-data (org-data) or a headline element.
 PARENT-ID is the ID of nearest ancestor with ID (or 0).
 PARENT-TITLE is the hierarchical title path (only from ancestors with IDs).
 PARENT-TAGS are the inherited tags from ancestors."
-  (let (results)
-    (org-element-map (org-element-contents element) 'headline
-      (lambda (headline)
-        (let* ((current-id (org-element-property :ID headline))
-               (title (org-element-property :raw-value headline))
-               (level (org-element-property :level headline))
-               (headline-tags (org-element-property :tags headline))
-               (combined-tags (gnosis-org--combine-tags
-                               parent-tags headline-tags)))
-          (if current-id
-              (let* ((clean-title (gnosis-org-adjust-title
-                                   (string-trim title)))
-                     (full-title (if parent-title
-                                     (concat parent-title ":" clean-title)
-                                   clean-title))
-                     (entry (list :id current-id
-                                  :title full-title
-                                  :tags combined-tags
-                                  :master (or parent-id 0)
-                                  :level level))
-                     (children (gnosis-org--parse-headlines-recursive
-				headline
-				current-id
-				full-title
-				combined-tags)))
-                (setq results (append results (cons entry children))))
-            (let ((children (gnosis-org--parse-headlines-recursive
-                             headline
-                             parent-id
-                             parent-title
-                             combined-tags)))
-              (setq results (append results children))))))
-      nil nil 'headline)
-    results))
+  ;; Each callback returns a fresh result spine, never the input Org tree.
+  (apply #'nconc
+         (org-element-map (org-element-contents element) 'headline
+           (lambda (headline)
+             (let* ((current-id (org-element-property :ID headline))
+                    (title (org-element-property :raw-value headline))
+                    (level (org-element-property :level headline))
+                    (headline-tags (org-element-property :tags headline))
+                    (combined-tags (gnosis-org--combine-tags
+                                    parent-tags headline-tags)))
+               (if current-id
+                   (let* ((clean-title (gnosis-org-adjust-title
+                                        (string-trim title)))
+                          (full-title (if parent-title
+                                          (concat parent-title ":" clean-title)
+                                        clean-title))
+                          (entry (list :id current-id
+                                       :title full-title
+                                       :tags combined-tags
+                                       :master (or parent-id 0)
+                                       :level level)))
+                     (cons entry (gnosis-org--parse-headlines-recursive
+                                  headline current-id full-title combined-tags)))
+                 (gnosis-org--parse-headlines-recursive
+                  headline parent-id parent-title combined-tags))))
+           nil nil 'headline)))
 
 (defun gnosis-org-buffer-data (&optional data)
   "Parse DATA in current buffer for topics & headlines.

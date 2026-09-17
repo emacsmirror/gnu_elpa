@@ -324,7 +324,7 @@ Includes `gnosis-test-with-dashboard-state' for isolation."
           (id3 (gnosis-test--add-basic-thema "Q3" "A3")))
      (gnosis-test-with-dashboard-buffer
       (with-current-buffer gnosis-dashboard-buffer-name
-        (tabulated-list-mode)
+        (gnosis-dashboard-themata-mode)
         (setq tabulated-list-format [("Col" 10 t)])
         (tabulated-list-init-header)
         (setq tabulated-list-entries
@@ -364,7 +364,7 @@ Includes `gnosis-test-with-dashboard-state' for isolation."
    (let* ((id1 (gnosis-test--add-basic-thema "Original Q" "A1")))
      (gnosis-test-with-dashboard-buffer
       (with-current-buffer gnosis-dashboard-buffer-name
-        (tabulated-list-mode)
+        (gnosis-dashboard-themata-mode)
         (setq tabulated-list-format [("K" 10 t) ("H" 10 t) ("A" 10 t)
                                      ("T" 10 t) ("Ty" 10 t) ("S" 5 t)])
         (tabulated-list-init-header)

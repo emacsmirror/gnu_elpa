@@ -300,5 +300,178 @@
     (should-error (call-interactively (local-key-binding (kbd "S")))
                   :type 'user-error)))
 
+(defun gnosis-test-dashboard-navigation--snapshot ()
+  "Return rendered contents, membership, point, marks and navigation history."
+  (list (gnosis-test-dashboard-owner--view) (point)
+        (copy-tree tabulated-list-entries)
+        (copy-sequence gnosis-dashboard-nodes-current-ids)
+        (copy-tree gnosis-dashboard--history)))
+
+(ert-deftest gnosis-dashboard-navigation-results-characterization ()
+  "Result commands push once, restore IDs, and leave empty views unchanged."
+  (gnosis-test-dashboard-owner--with-databases
+    (let ((gnosis-nodes-dir (expand-file-name "nodes/" gnosis-dir)))
+      (gnosis-test-dashboard-navigation--node "n1" "One" "n2")
+      (gnosis-test-dashboard-navigation--node "n2" "Two")
+      (gnosis-test-dashboard-navigation--node "n3" "Isolated")
+      (gnosis--insert-into 'thema-links '([42 "n2"]))
+      (dolist (case '((gnosis-dashboard-nodes-show-links "n1" nil ("n2") "f")
+                      (gnosis-dashboard-nodes-show-backlinks "n2" nil ("n1") "b")
+                      (gnosis-dashboard-nodes-show-themata-links "n2" nil (42) "t")
+                      (gnosis-dashboard-nodes-show-isolated "n1" nil ("n3") "i")
+                      (gnosis-dashboard-nodes-show-due "n1" nil ("n2") "d")
+                      (gnosis-dashboard-nodes-search-by-title "n1" "Two" ("n2") "SPC C-t Two RET")
+                      (gnosis-dashboard-nodes-filter-by-title "n1" "Two" ("n2") "l C-t Two RET")
+                      (gnosis-dashboard-nodes-search-by-content "n1" "Needle" ("n1" "n2" "n3") "SPC c Needle RET")
+                      (gnosis-dashboard-nodes-filter-by-content "n1" "Needle" ("n1" "n2" "n3") "l c Needle RET")
+                      (gnosis-dashboard-nodes-search-by-tag "n1" "tag" ("n1" "n2" "n3") "SPC t tag RET")
+                      (gnosis-dashboard-nodes-filter-by-tag "n1" "tag" ("n1" "n2" "n3") "l t tag RET")))
+        (ert-info ((format "%S" (car case)))
+          (gnosis-dashboard-output-nodes)
+          (setq gnosis-dashboard--history nil)
+          (gnosis-dashboard--goto-id (nth 1 case))
+          (let ((buffer (current-buffer)))
+            (if noninteractive
+                (cl-letf (((symbol-function 'read-string)
+                           (lambda (&rest _) (nth 2 case)))
+                          ((symbol-function 'completing-read)
+                           (lambda (&rest _) (nth 2 case))))
+                  ;; Native interactive "s" bypasses Lisp read-string in batch.
+                  (if (memq (car case) '(gnosis-dashboard-nodes-search-by-title
+                                        gnosis-dashboard-nodes-search-by-content))
+                      (funcall (car case) (nth 2 case))
+                    (call-interactively (car case))))
+              (execute-kbd-macro (kbd (nth 4 case))))
+            (should (eq buffer (current-buffer)))
+            (should (equal (sort (mapcar #'car tabulated-list-entries)
+                                 (lambda (a b) (string< (format "%s" a) (format "%s" b))))
+                           (nth 3 case)))
+            (should (= 1 (length gnosis-dashboard--history)))
+            (if noninteractive
+                (call-interactively (key-binding (kbd "q")))
+              (execute-kbd-macro (kbd "q")))
+            (should (equal (nth 1 case) (tabulated-list-get-id)))
+            (should-not gnosis-dashboard--history))))
+      ;; Empty membership is real: every node is connected, the only linked
+      ;; thema is suspended, and a literal percent query matches no node.
+      (gnosis-test-dashboard-navigation--node "n3" "Isolated" "n1")
+      (gnosis-toggle-suspend-themata '(42) 1 t)
+      (dolist (command '(gnosis-dashboard-nodes-show-links
+                         gnosis-dashboard-nodes-show-backlinks
+                         gnosis-dashboard-nodes-show-themata-links
+                         gnosis-dashboard-nodes-show-isolated
+                         gnosis-dashboard-nodes-show-due
+                         gnosis-dashboard-nodes-search-by-title
+                         gnosis-dashboard-nodes-filter-by-title
+                         gnosis-dashboard-nodes-search-by-content
+                         gnosis-dashboard-nodes-filter-by-content
+                         gnosis-dashboard-nodes-search-by-tag
+                         gnosis-dashboard-nodes-filter-by-tag))
+        (gnosis-dashboard-output-nodes)
+        (gnosis-dashboard--goto-id
+         (if (eq command 'gnosis-dashboard-nodes-show-links) "n2" "n3"))
+        (let ((id (tabulated-list-get-id)))
+          (call-interactively (key-binding (kbd "m")))
+          (gnosis-dashboard--goto-id id))
+        (gnosis-dashboard--push-current-view)
+        (let ((before (gnosis-test-dashboard-navigation--snapshot))
+              (history gnosis-dashboard--history) messages)
+          (cl-letf (((symbol-function 'read-string) (lambda (&rest _) "Missing %s"))
+                    ((symbol-function 'completing-read) (lambda (&rest _) "Missing %s"))
+                    ((symbol-function 'message)
+                     (lambda (format &rest args) (push (apply #'format format args) messages))))
+            (if (memq command '(gnosis-dashboard-nodes-search-by-title
+                                gnosis-dashboard-nodes-search-by-content))
+                (funcall command "Missing %s")
+              (call-interactively command)))
+          (should (equal
+                   messages
+                   (list (pcase command
+                           ('gnosis-dashboard-nodes-show-links
+                            "No forward links found for this node")
+                           ('gnosis-dashboard-nodes-show-backlinks
+                            "No backlinks found for this node")
+                           ('gnosis-dashboard-nodes-show-themata-links
+                            "No themata link to this node")
+                           ('gnosis-dashboard-nodes-show-isolated
+                            "No isolated nodes found")
+                           ('gnosis-dashboard-nodes-show-due
+                            "No nodes linked to due themata")
+                           ('gnosis-dashboard-nodes-search-by-title
+                            "No nodes found with title matching 'Missing %s'")
+                           ('gnosis-dashboard-nodes-search-by-content
+                            "No nodes found matching 'Missing %s'")
+                           ('gnosis-dashboard-nodes-search-by-tag
+                            "No nodes found with tag 'Missing %s'")
+                           ('gnosis-dashboard-nodes-filter-by-tag
+                            "No nodes in current view have tag 'Missing %s'")
+                           (_ "No nodes in current view match 'Missing %s'")))))
+          (should (equal before (gnosis-test-dashboard-navigation--snapshot)))
+          (should (eq history gnosis-dashboard--history)))))))
+
+(ert-deftest gnosis-dashboard-navigation-result-key-identity ()
+  "Result actions retain public named commands in their native keymaps."
+  (dolist (binding '((gnosis-dashboard-nodes-mode-map "f" gnosis-dashboard-nodes-show-links)
+                    (gnosis-dashboard-nodes-mode-map "b" gnosis-dashboard-nodes-show-backlinks)
+                    (gnosis-dashboard-nodes-mode-map "t" gnosis-dashboard-nodes-show-themata-links)
+                    (gnosis-dashboard-nodes-mode-map "i" gnosis-dashboard-nodes-show-isolated)
+                    (gnosis-dashboard-nodes-mode-map "d" gnosis-dashboard-nodes-show-due)
+                    (gnosis-dashboard-nodes-search-map "C-t" gnosis-dashboard-nodes-search-by-title)
+                    (gnosis-dashboard-nodes-search-map "c" gnosis-dashboard-nodes-search-by-content)
+                    (gnosis-dashboard-nodes-search-map "t" gnosis-dashboard-nodes-search-by-tag)
+                    (gnosis-dashboard-nodes-filter-map "C-t" gnosis-dashboard-nodes-filter-by-title)
+                    (gnosis-dashboard-nodes-filter-map "c" gnosis-dashboard-nodes-filter-by-content)
+                    (gnosis-dashboard-nodes-filter-map "t" gnosis-dashboard-nodes-filter-by-tag)))
+    (should (eq (lookup-key (symbol-value (car binding)) (kbd (cadr binding)))
+                (nth 2 binding)))
+    (should (commandp (nth 2 binding)))))
+
+(ert-deftest gnosis-dashboard-navigation-native-prompt-ownership ()
+  "Native filter cancellation/refusal differs from deliberate global adoption."
+  (skip-unless (not noninteractive))
+  (gnosis-test-dashboard-owner--with-databases
+    (let ((gnosis-nodes-dir (expand-file-name "nodes/" original-dir)))
+      (gnosis-test-dashboard-navigation--node "n1" "One")
+      (let ((gnosis-db successor-db)
+            (gnosis-dir successor-dir)
+            (gnosis-nodes-dir (expand-file-name "nodes/" successor-dir)))
+        (gnosis-test-dashboard-navigation--node "n1" "One"))
+      (dolist (action '(cancel replace global))
+        (dolist (query '(("C-t" "One") ("c" "Needle") ("t" "tag")))
+          (setq gnosis-db original-db gnosis-dir original-dir
+                gnosis-nodes-dir (expand-file-name "nodes/" original-dir))
+          (gnosis-dashboard-output-nodes)
+          (execute-kbd-macro (kbd "m"))
+          (gnosis-dashboard--goto-id "n1")
+          (gnosis-dashboard--push-current-view)
+          (let ((before (gnosis-test-dashboard-navigation--snapshot))
+                (keys (format "%s %s" (if (eq action 'global) "SPC" "l")
+                              (car query)))
+                entered)
+            (minibuffer-with-setup-hook
+                (lambda ()
+                  (setq entered t)
+                  (unless (eq action 'cancel)
+                    (setq gnosis-db successor-db gnosis-dir successor-dir
+                          gnosis-nodes-dir (expand-file-name "nodes/" successor-dir)))
+                  (setq unread-command-events
+                        (append (listify-key-sequence
+                                 (kbd (if (eq action 'cancel) "C-g"
+                                        (concat (cadr query) " RET"))))
+                                unread-command-events)))
+              (if (eq action 'replace)
+                  (should-error (execute-kbd-macro (kbd keys)) :type 'user-error)
+                (condition-case nil (execute-kbd-macro (kbd keys))
+                  (quit (should (eq action 'cancel))))))
+            (should entered)
+            (should (= 0 (minibuffer-depth)))
+            (if (eq action 'global)
+                (progn
+                  (should (eq gnosis-dashboard--database successor-db))
+                  (should (equal '("n1") gnosis-dashboard-nodes-current-ids))
+                  (should-not gnosis-dashboard--history)
+                  (should-not gnosis-dashboard--selected-ids))
+              (should (equal before (gnosis-test-dashboard-navigation--snapshot))))))))))
+
 (provide 'gnosis-test-dashboard-navigation)
 ;;; gnosis-test-dashboard-navigation.el ends here

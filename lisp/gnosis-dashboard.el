@@ -420,8 +420,16 @@ With prefix arg, prompt for count.  Default 0 (never reviewed)."
   (interactive)
   (gnosis-dashboard--back))
 
-(keymap-popup-define gnosis-dashboard-common-map
+(defvar-keymap gnosis-dashboard-table-map
+  :doc "Native table commands guarded by the collection lifetime."
   :parent tabulated-list-mode-map
+  "<remap> <tabulated-list-sort>" #'gnosis-dashboard--sort
+  "<remap> <tabulated-list-col-sort>" #'gnosis-dashboard--col-sort
+  "<remap> <tabulated-list-widen-current-column>" #'gnosis-dashboard--widen-column
+  "<remap> <tabulated-list-narrow-current-column>" #'gnosis-dashboard--narrow-column)
+
+(keymap-popup-define gnosis-dashboard-common-map
+  :parent gnosis-dashboard-table-map
   :group "Common"
   "g" ("Refresh" gnosis-dashboard-return :stay-open t)
   :group "Mark"
@@ -508,7 +516,15 @@ Settle pending rendering and re-sort when a sort key is active."
       (puthash (car entry) entry update-map))
     (setq tabulated-list-entries
           (mapcar (lambda (entry)
-                    (or (gethash (car entry) update-map) entry))
+                    (if-let* ((replacement (gethash (car entry) update-map)))
+                        (progn
+                          (when tabulated-list--original-order
+                            (puthash replacement
+                                     (gethash entry tabulated-list--original-order)
+                                     tabulated-list--original-order)
+                            (remhash entry tabulated-list--original-order))
+                          replacement)
+                      entry))
                   tabulated-list-entries))
     (if tabulated-list-sort-key
         (gnosis-tl-print t)
@@ -524,7 +540,11 @@ Settle pending rendering before deleting the affected lines."
   (let ((id-set (make-hash-table :test 'equal)))
     (dolist (id ids) (puthash id t id-set))
     (setq tabulated-list-entries
-          (cl-remove-if (lambda (entry) (gethash (car entry) id-set))
+          (cl-remove-if (lambda (entry)
+                          (when (gethash (car entry) id-set)
+                            (when tabulated-list--original-order
+                              (remhash entry tabulated-list--original-order))
+                            t))
                         tabulated-list-entries)
           gnosis-dashboard-themata-current-ids
           (cl-remove-if (lambda (id) (gethash id id-set))
@@ -613,6 +633,11 @@ snapshots that must survive native table commands."
   (unless buffer-file-name
     (let* ((size (max 1 gnosis-dashboard-render-chunk-size))
            (first-chunk (seq-take entries size)))
+      ;; Native sorting indexes entry objects.  Seed its one rank table from
+      ;; the entire logical collection, not the initially displayed prefix.
+      (setq-local tabulated-list--original-order (make-hash-table :test 'eq))
+      (cl-loop for entry in entries for rank from 0
+               do (puthash entry rank tabulated-list--original-order))
       (setq tabulated-list-entries first-chunk
             gnosis-dashboard--pending-entries (nthcdr size entries))
       (gnosis-tl-print)
@@ -940,7 +965,7 @@ Translates {n}, {n,}, {n,m} to \\{n\\}, \\{n,\\}, \\{n,m\\}."
 
 (defvar-keymap gnosis-dashboard-history-mode-map
   :doc "Keymap for recorded Gnosis study activity."
-  :parent tabulated-list-mode-map
+  :parent gnosis-dashboard-table-map
   "RET" #'gnosis-dashboard-history-details)
 
 (define-derived-mode gnosis-dashboard-history-mode tabulated-list-mode "Gnosis History"
@@ -956,6 +981,7 @@ Translates {n}, {n,}, {n,m} to \\{n\\}, \\{n,\\}, \\{n,m\\}."
          ("Type" 17 t)
          ("Summary" 0 t)])
   (setq tabulated-list-sort-key '("Date" . t))
+  (gnosis-dashboard--protect-rendering 'history)
   (add-hook 'tabulated-list-revert-hook #'gnosis-dashboard-history-refresh nil t)
   (tabulated-list-init-header))
 
@@ -1004,6 +1030,7 @@ and sort order; read effective counts again rather than replaying a snapshot."
             (gnosis-dashboard--history-entries
              (or history (gnosis-review-activity)) (gnosis-study-practice-history)))))
     (setq tabulated-list-entries entries
+          tabulated-list--original-order nil
           gnosis-dashboard--database database)
     (tabulated-list-print t)))
 
@@ -1143,6 +1170,57 @@ Reset dashboard navigation history before opening these views."
   "x" ("Import/Export" :keymap gnosis-dashboard-import-export-map)
   "!" ("Maintenance" :keymap gnosis-dashboard-maintenance-map))
 
+(defun gnosis-dashboard--protect-rendering (kind)
+  "Guard native rendering and retained reverts for this view of KIND.
+The native groups callback runs before sorting or erasing; return nil to
+keep the ordinary ungrouped table.  A row-printer check would be too late."
+  (let ((buffer (current-buffer))
+        (mode major-mode)
+        check)
+    (setq check
+          (lambda (&rest _)
+            (unless (and (eq buffer (current-buffer))
+                         (eq mode major-mode)
+                         (eq check tabulated-list-groups)
+                         (eq kind gnosis-dashboard--buffer-owner)
+                         (not buffer-file-name))
+              (user-error "Collection view changed; reopen it first"))
+            nil))
+    (setq-local tabulated-list-groups check)
+    (add-function :before (local 'revert-buffer-function) check))
+  (add-hook 'after-set-visited-file-name-hook
+            #'gnosis-dashboard--retire-file-view nil t))
+
+(defun gnosis-dashboard--check-rendering ()
+  "Refuse native commands before they change a retired view's state."
+  (unless (functionp tabulated-list-groups)
+    (user-error "Open a Gnosis collection first"))
+  (funcall tabulated-list-groups))
+
+(defun gnosis-dashboard--sort (&optional column)
+  "Sort by native COLUMN, after checking the collection lifetime."
+  (interactive "P")
+  (gnosis-dashboard--check-rendering)
+  (tabulated-list-sort column))
+
+(defun gnosis-dashboard--col-sort (event)
+  "Sort the native header at EVENT in its owned window."
+  (interactive "e")
+  (with-current-buffer (window-buffer (posn-window (event-start event)))
+    (gnosis-dashboard--check-rendering)
+    (tabulated-list-col-sort event)))
+
+(defun gnosis-dashboard--widen-column (count)
+  "Widen the native column by COUNT after checking the view."
+  (interactive "p")
+  (gnosis-dashboard--check-rendering)
+  (tabulated-list-widen-current-column count))
+
+(defun gnosis-dashboard--narrow-column (count)
+  "Narrow the native column by COUNT after checking the view."
+  (interactive "p")
+  (gnosis-dashboard--widen-column (- count)))
+
 (defun gnosis-dashboard--retire-file-view ()
   "Retire collection authority after a visited filename change.
 Detaching the file must not revive the former database or selection."
@@ -1162,8 +1240,7 @@ Detaching the file must not revive the former database or selection."
   (add-hook 'change-major-mode-hook #'gnosis-dashboard--cancel-load nil t)
   (add-hook 'kill-buffer-hook #'gnosis-dashboard--cancel-load nil t)
   ;; File association keeps the major mode but retires its former work.
-  (add-hook 'after-set-visited-file-name-hook
-            #'gnosis-dashboard--retire-file-view nil t)
+  (gnosis-dashboard--protect-rendering 'dashboard)
   (when (fboundp 'keymap-popup-dismiss)
     (keymap-popup-dismiss))
   (setq-local header-line-format nil)
@@ -1521,6 +1598,16 @@ Returns list of (ID [TITLE LINK-COUNT BACKLINK-COUNT THEMATA-LINKS-COUNT])."
 	 (list id (vector title link-count backlink-count themata-links-count))))
      nodes-data)))
 
+(defun gnosis-dashboard-nodes--show-results (ids empty-message &optional display-fn)
+  "Display nonempty IDS after saving the current view to navigation history.
+Otherwise display EMPTY-MESSAGE literally, leaving the view unchanged.
+DISPLAY-FN defaults to `gnosis-dashboard-output-nodes'."
+  (if ids
+      (progn
+        (gnosis-dashboard--push-current-view)
+        (funcall (or display-fn #'gnosis-dashboard-output-nodes) ids))
+    (message "%s" empty-message)))
+
 (defun gnosis-dashboard-nodes--show-related
     (get-ids-fn no-results-msg &optional display-fn)
   "Show related items for the node at point.
@@ -1530,13 +1617,8 @@ NO-RESULTS-MSG is displayed when no related items are found.
 DISPLAY-FN displays results, defaults to `gnosis-dashboard-output-nodes'."
   (gnosis-dashboard--command-owner)
   (let* ((node-id (tabulated-list-get-id))
-         (related-ids (funcall get-ids-fn node-id))
-         (display-fn (or display-fn #'gnosis-dashboard-output-nodes)))
-    (if related-ids
-        (progn
-          (gnosis-dashboard--push-current-view)
-          (funcall display-fn related-ids))
-      (message "%s" no-results-msg))))
+         (related-ids (funcall get-ids-fn node-id)))
+    (gnosis-dashboard-nodes--show-results related-ids no-results-msg display-fn)))
 
 (defun gnosis-dashboard-nodes-show-links ()
   "Show forward links of the node at point."
@@ -1587,11 +1669,7 @@ Isolated nodes have no backlinks, no forward links, and no themata links."
 					  (not (gethash id fwd-set))
 					  (not (gethash id themata-set)))
 				collect id)))
-    (if isolated-ids
-        (progn
-          (gnosis-dashboard--push-current-view)
-          (gnosis-dashboard-output-nodes isolated-ids))
-      (message "No isolated nodes found"))))
+    (gnosis-dashboard-nodes--show-results isolated-ids "No isolated nodes found")))
 
 (defun gnosis-dashboard-nodes-search-by-title (query)
   "Search ALL nodes by title for QUERY.
@@ -1605,12 +1683,8 @@ Searches the database for nodes whose titles contain the search term."
 				for title = (nth 1 node)
 				when (string-match-p (regexp-quote query) title)
 				collect id)))
-    (if matching-ids
-        (progn
-          ;; Save current view to history
-          (gnosis-dashboard--push-current-view)
-          (gnosis-dashboard-output-nodes matching-ids))
-      (message "No nodes found with title matching '%s'" query))))
+    (gnosis-dashboard-nodes--show-results
+     matching-ids (format "No nodes found with title matching '%s'" query))))
 
 (defun gnosis-dashboard-nodes-filter-by-title (&optional query)
   "Filter CURRENT nodes by title for QUERY.
@@ -1633,12 +1707,8 @@ Only searches within currently displayed nodes."
 				  for title = (nth 1 node)
 				  when (string-match-p (regexp-quote query) title)
 				  collect id)))
-      (if matching-ids
-          (progn
-            ;; Save current view to history
-            (gnosis-dashboard--push-current-view)
-            (gnosis-dashboard-output-nodes matching-ids))
-	(message "No nodes in current view match '%s'" query)))))
+      (gnosis-dashboard-nodes--show-results
+       matching-ids (format "No nodes in current view match '%s'" query)))))
 
 (defun gnosis-dashboard-nodes-search-by-content (query)
   "Search all nodes for QUERY in files under `gnosis-nodes-dir'."
@@ -1646,11 +1716,8 @@ Only searches within currently displayed nodes."
   (when (string-empty-p query)
     (user-error "Search query cannot be empty"))
   (let ((matching-ids (gnosis-nodes-search-content query)))
-    (if matching-ids
-        (progn
-          (gnosis-dashboard--push-current-view)
-          (gnosis-dashboard-output-nodes matching-ids))
-      (message "No nodes found matching '%s'" query))))
+    (gnosis-dashboard-nodes--show-results
+     matching-ids (format "No nodes found matching '%s'" query))))
 
 (defun gnosis-dashboard-nodes-filter-by-content (&optional query)
   "Filter current nodes by searching their files for QUERY."
@@ -1664,11 +1731,8 @@ Only searches within currently displayed nodes."
       (user-error "Search query cannot be empty"))
     (let ((matching-ids (gnosis-nodes-search-content
 			 query gnosis-dashboard-nodes-current-ids)))
-      (if matching-ids
-          (progn
-            (gnosis-dashboard--push-current-view)
-            (gnosis-dashboard-output-nodes matching-ids))
-	(message "No nodes in current view match '%s'" query)))))
+      (gnosis-dashboard-nodes--show-results
+       matching-ids (format "No nodes in current view match '%s'" query)))))
 
 (defun gnosis-dashboard-nodes-search-by-tag (tag)
   "Search ALL nodes by TAG."
@@ -1679,11 +1743,8 @@ Only searches within currently displayed nodes."
   (when (string-empty-p tag)
     (user-error "Tag cannot be empty"))
   (let ((matching-ids (gnosis-nodes--nodes-by-tag tag)))
-    (if matching-ids
-        (progn
-          (gnosis-dashboard--push-current-view)
-          (gnosis-dashboard-output-nodes matching-ids))
-      (message "No nodes found with tag '%s'" tag))))
+    (gnosis-dashboard-nodes--show-results
+     matching-ids (format "No nodes found with tag '%s'" tag))))
 
 (defun gnosis-dashboard-nodes-filter-by-tag (&optional tag)
   "Filter CURRENT nodes by TAG."
@@ -1701,11 +1762,8 @@ Only searches within currently displayed nodes."
             (cl-intersection
              gnosis-dashboard-nodes-current-ids
              nodes-with-tag :test #'equal)))
-      (if matching-ids
-          (progn
-            (gnosis-dashboard--push-current-view)
-            (gnosis-dashboard-output-nodes matching-ids))
-	(message "No nodes in current view have tag '%s'" tag)))))
+      (gnosis-dashboard-nodes--show-results
+       matching-ids (format "No nodes in current view have tag '%s'" tag)))))
 
 (defun gnosis-dashboard-nodes-show-due ()
   "Show nodes linked to today's due themata."
@@ -1716,11 +1774,7 @@ Only searches within currently displayed nodes."
                       (gnosis-select 'dest 'thema-links
                                      `(in source ,(vconcat due-thema-ids)) t)
                       :test #'equal))))
-    (if node-ids
-        (progn
-          (gnosis-dashboard--push-current-view)
-          (gnosis-dashboard-output-nodes node-ids))
-      (message "No nodes linked to due themata"))))
+    (gnosis-dashboard-nodes--show-results node-ids "No nodes linked to due themata")))
 
 (defun gnosis-dashboard-nodes-back ()
   "Go back to the previous nodes view, or to main dashboard if at top level."
@@ -1743,6 +1797,7 @@ Only searches within currently displayed nodes."
   "Sort nodes dashboard by COLUMN.
 If ASCENDING is non-nil, sort in ascending order, otherwise descending.
 Moves cursor to the beginning of the buffer after sorting."
+  (gnosis-dashboard--check-rendering)
   (setq tabulated-list-sort-key (cons column (not ascending)))
   (tabulated-list-init-header)
   (tabulated-list-print t)

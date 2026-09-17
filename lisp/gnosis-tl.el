@@ -34,9 +34,8 @@
 ;;    eliminating per-mutation Elisp hook dispatch.  Standard
 ;;    `tabulated-list-print' does NOT use this flag.
 ;;
-;; 2. Skip `tabulated-list-column-name' text properties (one per
-;;    column per entry).  Instead, `gnosis-tl--column-at-point'
-;;    computes the column from cursor position and format widths.
+;; 2. Precompute column formats while retaining native column-name
+;;    properties for sorting, movement and width commands.
 ;;
 ;; Also provides single-entry replace/delete operations that avoid
 ;; re-rendering the entire buffer when only one line changes.
@@ -147,25 +146,12 @@ walking through `tabulated-list-format' widths starting from
 ;;; Sorting
 
 (defun gnosis-tl--get-sorter ()
-  "Return a comparison function for `tabulated-list-entries', or nil.
-Mirrors `tabulated-list--get-sorter': uses `tabulated-list-sort-key'
-and `tabulated-list-format' to build the comparator.  Returns nil
-when no sort key is set or the column is not sortable."
-  (when (and tabulated-list-sort-key
-             (car tabulated-list-sort-key))
-    (let* ((sort-col (car tabulated-list-sort-key))
-           (n (tabulated-list--column-number sort-col))
-           (sorter (nth 2 (aref tabulated-list-format n))))
-      (when (eq sorter t)
-        (setq sorter (lambda (a b)
-                       (let ((a (aref (cadr a) n))
-                             (b (aref (cadr b) n)))
-                         (string< (if (stringp a) a (car a))
-                                  (if (stringp b) b (car b)))))))
-      (when sorter
-        (if (cdr tabulated-list-sort-key)
-            (lambda (a b) (funcall sorter b a))
-          sorter)))))
+  "Return the native comparison function, or nil for an unsortable column."
+  (when (and (car tabulated-list-sort-key)
+             (nth 2 (aref tabulated-list-format
+                          (tabulated-list--column-number
+                           (car tabulated-list-sort-key)))))
+    (tabulated-list--get-sorter)))
 
 ;;; Bulk rendering
 
@@ -176,7 +162,7 @@ FORMAT is the `tabulated-list-format' vector.  PADDING is the
 
 Uses pre-computed format strings and an ASCII fast-path to
 minimise per-entry overhead.  Properties set per line:
-`tabulated-list-id', `tabulated-list-entry'."
+`tabulated-list-id', `tabulated-list-entry' and column names."
   (let* ((specs (gnosis-tl--column-specs format))
          (n-cols (length specs))
          (last-idx (1- n-cols))
@@ -213,7 +199,8 @@ minimise per-entry overhead.  Properties set per line:
                  ;; Tabs and control characters are ASCII too, but their
                  ;; display width is not their character count.
                  (ascii-p (not (string-match-p "[^ -~]" text)))
-                 (width (aref widths i)))
+                 (width (aref widths i))
+                 (start (point)))
             (if (= i last-idx)
                 ;; Last column -- no padding, just truncate if needed
                 (insert (if (and ascii-p (<= len width))
@@ -232,7 +219,9 @@ minimise per-entry overhead.  Properties set per line:
                 ;; a gap which still needs padding before the next cell.
                 (insert (gnosis-tl--pad-column
                          text width (aref pad-rights i)
-                         (aref right-aligns i))))))
+                         (aref right-aligns i)))))
+            (put-text-property start (point) 'tabulated-list-column-name
+                               (car (aref format i))))
           (setq i (1+ i)))
         (insert ?\n)
         (add-text-properties beg (point)

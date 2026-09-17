@@ -236,13 +236,13 @@ Only the illustration is bundled by content export, never the original PDF."
           (if pdf
               (let* ((directory (plist-get job :directory))
                      (output (generate-new-buffer " *Gnosis PDF extraction*")))
+                (setf (plist-get job :output) output)
                 ;; Render a private snapshot; verify the source again at publication.
                 (copy-file file (expand-file-name "source.pdf" directory))
                 (unless (equal (plist-get job :digest)
                                (gnosis-lecture--digest (expand-file-name "source.pdf" directory)))
                   (user-error "Lecture source changed while copying; attach again"))
-                (setf (plist-get job :output) output
-                      (plist-get job :process)
+                (setf (plist-get job :process)
                       (make-process
                        :name "gnosis-lecture" :buffer output :noquery t
                        :command (list (executable-find "pdftoppm") "-f" (number-to-string page)

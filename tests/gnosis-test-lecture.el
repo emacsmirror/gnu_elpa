@@ -89,6 +89,84 @@
         (should-not gnosis-lecture--job)
         (should-not (file-exists-p (gnosis-assets-root))))))))
 
+(defun gnosis-test-lecture--retired (job)
+  "Assert that JOB owns no live attachment resources in the current draft."
+  (should-not gnosis-lecture--job)
+  (should-not (file-exists-p (plist-get job :directory)))
+  (should-not (buffer-live-p (plist-get job :output)))
+  (should-not (memq (plist-get job :timer) timer-list))
+  (when-let* ((process (plist-get job :process)))
+    (should-not (process-live-p process))))
+
+(defun gnosis-test-lecture--snapshot-failure-retry (fault)
+  "Inject snapshot FAULT, assert cleanup, then retry in the same draft."
+  (gnosis-test-with-db
+   (let* ((pdf (expand-file-name "lecture.pdf" gnosis-dir))
+          (png (gnosis-test-lecture--png))
+          (copy (symbol-function 'copy-file))
+          (make (symbol-function 'make-process))
+          (buffers (buffer-list))
+          job)
+     (with-temp-file pdf (insert "%PDF snapshot-lifecycle fixture"))
+     (unwind-protect
+         (gnosis-test-lecture--draft
+          (let ((before (buffer-string)))
+            (cl-letf (((symbol-function 'executable-find) (lambda (_) shell-file-name)))
+              (cl-letf (((symbol-function 'copy-file)
+                         (lambda (from to &rest args)
+                           (apply copy from to args)
+                           (when (equal (file-name-nondirectory to) "source.pdf")
+                             (setq job gnosis-lecture--job)
+                             (pcase fault
+                               ('error (signal 'file-error '("Snapshot copy failed")))
+                               ('quit (signal 'quit nil))
+                               ('drift (with-temp-file to (insert "changed bytes"))))))))
+                (should
+                 (eq (pcase fault ('error 'file-error) ('quit 'quit) ('drift 'user-error))
+                     (condition-case err (gnosis-lecture-attach pdf 2)
+                       ((error quit) (car err))))))
+              (should job)
+              (should (equal before (buffer-string)))
+              (gnosis-test-lecture--retired job)
+              ;; Check independently of the job: an unregistered output leaks too.
+              (should-not
+               (seq-filter (lambda (buffer)
+                             (string-prefix-p " *Gnosis PDF extraction*" (buffer-name buffer)))
+                           (seq-difference (buffer-list) buffers)))
+              (should-not (file-exists-p (gnosis-assets-root)))
+              ;; Substitute only the external renderer; publication stays native.
+              (cl-letf (((symbol-function 'make-process)
+                         (lambda (&rest args)
+                           (copy-file png (concat (car (last (plist-get args :command))) ".png"))
+                           (funcall make :name "gnosis-lecture-retry" :noquery t
+                                    :buffer (plist-get args :buffer)
+                                    :command (list shell-file-name shell-command-switch "exit 0")
+                                    :sentinel (plist-get args :sentinel)))))
+                (setq job (gnosis-lecture-attach pdf 2)))
+              (let ((deadline (+ (float-time) 5)))
+                (while (and gnosis-lecture--job (< (float-time) deadline))
+                  (accept-process-output (plist-get job :process) 0.02)))
+              (gnosis-test-lecture--retired job)
+              (should (= (process-exit-status (plist-get job :process)) 0))
+              (let* ((text (nth 5 (car (gnosis-export-parse-themata))))
+                     (references (gnosis-image-references text)))
+                (should (= (length references) 1))
+                (should (equal (alist-get 'source (gnosis-image-resolve (car references)))
+                               (gnosis-lecture--citation pdf 2)))))))
+       (when job (gnosis-lecture--cleanup job))
+       (dolist (buffer (seq-difference (buffer-list) buffers))
+         (when (string-prefix-p " *Gnosis PDF extraction*" (buffer-name buffer))
+           (kill-buffer buffer)))))))
+
+(ert-deftest gnosis-lecture-pdf-copy-error-cleanup-and-retry ()
+  (gnosis-test-lecture--snapshot-failure-retry 'error))
+
+(ert-deftest gnosis-lecture-pdf-copy-quit-cleanup-and-retry ()
+  (gnosis-test-lecture--snapshot-failure-retry 'quit))
+
+(ert-deftest gnosis-lecture-pdf-copy-drift-cleanup-and-retry ()
+  (gnosis-test-lecture--snapshot-failure-retry 'drift))
+
 (ert-deftest gnosis-lecture-prompts-cannot-retarget-draft ()
   (gnosis-test-with-db
    (let ((file (gnosis-test-lecture--png)))
@@ -223,8 +301,7 @@
               (accept-process-output (plist-get job :process) 0.02)))
           ;; Also deliver a queued stale callback after explicit retirement.
           (funcall sentinel (plist-get job :process) "finished\n")
-          (should-not gnosis-lecture--job)
-          (should-not (file-exists-p (plist-get job :directory)))
+          (gnosis-test-lecture--retired job)
           (if (eq case 'success)
               (should (gnosis-image-references (nth 5 (car (gnosis-export-parse-themata)))))
             (should-not (gnosis-image-references (buffer-string)))

@@ -581,70 +581,35 @@
 
 ;; ---- Group 5: Tag filter tests ----
 
-(ert-deftest gnosis-test-parse-filter-mixed ()
-  "Parse mixed +/- tags into include and exclude lists."
-  (let ((result (gnosis-tags--parse-filter '("+math" "-history" "+science"))))
-    (should (equal (car result) '("math" "science")))
-    (should (equal (cdr result) '("history")))))
+(ert-deftest gnosis-test-parse-filter ()
+  "Parse prefixed tags in order, ignoring bare entries."
+  (pcase-dolist (`(,label ,input ,include ,exclude)
+                '((gnosis-test-parse-filter-mixed
+                   ("+math" "-history" "+science") ("math" "science") ("history"))
+                  (gnosis-test-parse-filter-include-only ("+a" "+b") ("a" "b") nil)
+                  (gnosis-test-parse-filter-exclude-only ("-x" "-y") nil ("x" "y"))
+                  (gnosis-test-parse-filter-ignores-no-prefix
+                   ("bare" "+good" "-bad") ("good") ("bad"))
+                  (gnosis-test-parse-filter-empty nil nil nil)))
+    (ert-info ((symbol-name label))
+      (should (equal (cons include exclude) (gnosis-tags--parse-filter input))))))
 
-(ert-deftest gnosis-test-parse-filter-include-only ()
-  "Parse only include tags."
-  (let ((result (gnosis-tags--parse-filter '("+a" "+b"))))
-    (should (equal (car result) '("a" "b")))
-    (should (null (cdr result)))))
-
-(ert-deftest gnosis-test-parse-filter-exclude-only ()
-  "Parse only exclude tags."
-  (let ((result (gnosis-tags--parse-filter '("-x" "-y"))))
-    (should (null (car result)))
-    (should (equal (cdr result) '("x" "y")))))
-
-(ert-deftest gnosis-test-parse-filter-ignores-no-prefix ()
-  "Entries without +/- prefix are silently ignored."
-  (let ((result (gnosis-tags--parse-filter '("bare" "+good" "-bad"))))
-    (should (equal (car result) '("good")))
-    (should (equal (cdr result) '("bad")))))
-
-(ert-deftest gnosis-test-parse-filter-empty ()
-  "Empty input returns (nil . nil)."
-  (let ((result (gnosis-tags--parse-filter nil)))
-    (should (null (car result)))
-    (should (null (cdr result)))))
-
-(ert-deftest gnosis-test-filter-by-tags-include ()
-  "Include filter returns only themata with the specified tags."
-  (gnosis-test-with-db
-    (gnosis-test--add-basic-thema "Q1" "A1" '("math"))
-    (gnosis-test--add-basic-thema "Q2" "A2" '("history"))
-    (gnosis-test--add-basic-thema "Q3" "A3" '("math" "science"))
-    (let ((ids (gnosis-filter-by-tags '("math") nil)))
-      (should (= 2 (length ids))))))
-
-(ert-deftest gnosis-test-filter-by-tags-exclude ()
-  "Exclude filter removes themata with the specified tags."
-  (gnosis-test-with-db
-    (gnosis-test--add-basic-thema "Q1" "A1" '("math"))
-    (gnosis-test--add-basic-thema "Q2" "A2" '("history"))
-    (gnosis-test--add-basic-thema "Q3" "A3" '("science"))
-    (let ((ids (gnosis-filter-by-tags nil '("math"))))
-      (should (= 2 (length ids))))))
-
-(ert-deftest gnosis-test-filter-by-tags-include-and-exclude ()
-  "Include + exclude: include first, then subtract excluded."
-  (gnosis-test-with-db
-    (gnosis-test--add-basic-thema "Q1" "A1" '("math" "easy"))
-    (gnosis-test--add-basic-thema "Q2" "A2" '("math" "hard"))
-    (gnosis-test--add-basic-thema "Q3" "A3" '("history"))
-    (let ((ids (gnosis-filter-by-tags '("math") '("hard"))))
-      (should (= 1 (length ids))))))
-
-(ert-deftest gnosis-test-filter-by-tags-empty ()
-  "No include or exclude returns all themata."
-  (gnosis-test-with-db
-    (gnosis-test--add-basic-thema "Q1" "A1" '("a"))
-    (gnosis-test--add-basic-thema "Q2" "A2" '("b"))
-    (let ((ids (gnosis-filter-by-tags nil nil)))
-      (should (= 2 (length ids))))))
+(ert-deftest gnosis-test-filter-by-tags ()
+  "Include matching themata, then subtract exclusions; nil selects all."
+  (pcase-dolist (`(,label ,tags ,include ,exclude ,expected)
+                '((gnosis-test-filter-by-tags-include
+                   (("math") ("history") ("math" "science")) ("math") nil (1 3))
+                  (gnosis-test-filter-by-tags-exclude
+                   (("math") ("history") ("science")) nil ("math") (2 3))
+                  (gnosis-test-filter-by-tags-include-and-exclude
+                   (("math" "easy") ("math" "hard") ("history")) ("math") ("hard") (1))
+                  (gnosis-test-filter-by-tags-empty (("a") ("b")) nil nil (1 2))))
+    (ert-info ((symbol-name label))
+      (gnosis-test-with-db
+        (cl-loop for thema-tags in tags for id from 1
+                 do (gnosis-test--add-basic-thema
+                     (format "Q%d" id) (format "A%d" id) thema-tags nil id))
+        (should (equal expected (sort (gnosis-filter-by-tags include exclude) #'<)))))))
 
 ;; ---- Group 6: ID cache tests ----
 

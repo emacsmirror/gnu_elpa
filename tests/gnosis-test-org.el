@@ -181,6 +181,98 @@
       (should (member "inherited" (plist-get child :tags)))
       (should (member "own" (plist-get child :tags))))))
 
+(ert-deftest gnosis-test-org-parse-headlines-preserve-tree ()
+  "Preserve exact node preorder, ownership, tags, links and the input tree."
+  (dolist (root '(nil t))
+    (with-temp-buffer
+      (org-mode)
+      (when root
+        (insert ":PROPERTIES:\n:ID: root\n:END:\n"))
+      (insert "#+TITLE: Root [[id:title][Ω]]\n#+FILETAGS: :file:shared:\n"
+              "#+begin_example\n#+FILETAGS: :literal:\n#+end_example\n"
+              "#+FILETAGS: shared later\n"
+              "* No ID :bridge:shared:\n[[id:bridge-link]]\n"
+              "** [[id:branch-title][Branch]] :own:shared:after:\n"
+              ":PROPERTIES:\n:ID: branch\n:END:\n"
+              "*** No ID either :between:own:\n[[id:nested-link]]\n"
+              "**** [[id:deep-title][Deep α]] :leaf:own:last:\n"
+              ":PROPERTIES:\n:ID: deep\n:END:\n"
+              "*** Cousin :cousin:\n:PROPERTIES:\n:ID: cousin\n:END:\n"
+              "* Other :other:\n:PROPERTIES:\n:ID: other\n:END:\n"
+              "** Empty branch :unused:\n")
+      (let* ((parsed (org-element-parse-buffer))
+             (print-circle t)
+             (print-level nil)
+             (print-length nil)
+             (before (prin1-to-string parsed))
+             (prefix (if root "Root Ω:" ""))
+             (parent (if root "root" 0))
+             (expected
+              (append
+               (when root
+                 '((:title "Root Ω" :id "root" :tags ("file" "shared" "later")
+                    :master 0 :level 0)))
+               `((:id "branch" :title ,(concat prefix "Branch")
+                  :tags ("file" "shared" "later" "bridge" "own" "after")
+                  :master ,parent :level 2)
+                 (:id "deep" :title ,(concat prefix "Branch:Deep α")
+                  :tags ("file" "shared" "later" "bridge" "own" "after"
+                         "between" "leaf" "last")
+                  :master "branch" :level 4)
+                 (:id "cousin" :title ,(concat prefix "Branch:Cousin")
+                  :tags ("file" "shared" "later" "bridge" "own" "after" "cousin")
+                  :master "branch" :level 3)
+                 (:id "other" :title ,(concat prefix "Other")
+                  :tags ("file" "shared" "later" "other")
+                  :master ,parent :level 1)))))
+        (should (equal (gnosis-org-buffer-data parsed) expected))
+        (should (equal (prin1-to-string parsed) before))
+        (should (equal (gnosis-org-collect-id-links parsed)
+                       (append (when root '(("bridge-link" . "root")))
+                               '(("branch-title" . "branch")
+                                 ("nested-link" . "branch")
+                                 ("deep-title" . "deep")))))
+        ;; Reusing the same AST must give the same complete result.
+        (should (equal (gnosis-org-buffer-data parsed) expected))
+        (should (equal (prin1-to-string parsed) before))))))
+
+(ert-deftest gnosis-test-org-parse-headlines-linear-sibling-collection ()
+  "Wide and nested siblings retain preorder without quadratic list copies."
+  (dolist (shape '((32 1) (256 1) (1024 1) (32 8) (128 8)))
+    (pcase-let ((`(,width ,depth) shape))
+      (with-temp-buffer
+        (org-mode)
+        (insert "#+TITLE: Rootless\n#+FILETAGS: :file:\n")
+        (dotimes (branch width)
+          (dotimes (level depth)
+            (insert (format "%s Level %d\n:PROPERTIES:\n:ID: %d-%d\n:END:\n"
+                            (make-string (1+ level) ?*) level branch level))))
+        (let* ((parsed (org-element-parse-buffer))
+               (append-function (symbol-function 'append))
+               (copies 0)
+               (expected
+                (cl-loop for branch below width append
+                         (cl-loop for level below depth collect
+                                  (list :id (format "%d-%d" branch level)
+                                        :title (mapconcat
+                                                (lambda (n) (format "Level %d" n))
+                                                (number-sequence 0 level) ":")
+                                        :tags '("file")
+                                        :master (if (zerop level) 0
+                                                  (format "%d-%d" branch (1- level)))
+                                        :level (1+ level))))))
+          ;; Count only copied node-result spines, not Org or tag lists.
+          ;; A linear allowance permits copying each fresh subtree once.
+          (cl-letf (((symbol-function 'append)
+                     (lambda (&rest lists)
+                       (dolist (items (butlast lists))
+                         (when (and (consp (car-safe items))
+                                    (eq (caar items) :id))
+                           (cl-incf copies (length items))))
+                       (apply append-function lists))))
+            (should (equal (gnosis-org-buffer-data parsed) expected)))
+          (should (<= copies (* width depth depth))))))))
+
 ;;; ---- Group 7: gnosis-org-buffer-data ----
 
 (ert-deftest gnosis-test-org-buffer-data-journal-migration ()

@@ -26,6 +26,7 @@
 ;;; Code:
 
 (require 'cl-lib)
+(require 'seq)
 (require 'gnosis-utils)
 
 (defvar gnosis-face-cloze)
@@ -74,27 +75,32 @@ or comma continues only when it sits between ASCII digits."
   (not (or (gnosis-cloze--adjacent-continues-p string start end t)
            (gnosis-cloze--adjacent-continues-p string start end nil))))
 
-(defun gnosis-cloze--occurrence (string needle &optional from)
+(defun gnosis-cloze--occurrence (string needle &optional from excluded)
   "Return (START . END) for NEEDLE in STRING at or after FROM.
 Prefer the first standalone occurrence; if none exist, use the first
 substring occurrence.  FROM is 0-based and defaults to 0.  Honor
 `case-fold-search' and the current case table.  Use standard syntax for
-word characters.  Return nil when NEEDLE is absent."
+word characters.  Skip spans overlapping EXCLUDED (START . END) pairs.
+Return nil when NEEDLE is absent."
   (save-match-data
     (let ((quoted (regexp-quote needle))
           (search-spaces-regexp nil)
           (limit (length string))
           first)
       (with-syntax-table (standard-syntax-table)
-        (cl-loop for pos = (or from 0) then (max (1+ beg) end)
+        ;; An overlapping match can hide a later disjoint starting position.
+        (cl-loop for pos = (or from 0) then (1+ beg)
                  while (<= pos limit)
                  for matched = (string-match quoted string pos)
                  while matched
                  for beg = (match-beginning 0)
                  for end = (match-end 0)
-                 unless first do (setq first (cons beg end))
-                 when (gnosis-cloze--standalone-p string beg end)
-                   return (cons beg end)
+                 unless (seq-some (lambda (span)
+                                    (and (< beg (cdr span)) (< (car span) end)))
+                                  excluded)
+                 do (unless first (setq first (cons beg end)))
+                 and when (gnosis-cloze--standalone-p string beg end)
+                 return (cons beg end)
                  finally return first)))))
 
 (defun gnosis-cloze-highlight (str answers face &optional default-face)
@@ -184,23 +190,46 @@ With WITH-EVIDENCE, return (TEXT . SHOWN-HINTS), retaining only inserted hints."
                  (goto-char (match-end 0)))) ; Move point to end of match
       (if with-evidence (cons (buffer-string) (nreverse shown)) (buffer-string)))))
 
-(defun gnosis-cloze-mark-false (str answers)
-  "Mark contents of STR as false for ANSWERS.
+(defun gnosis-cloze--render (str answers remaining hints &optional failed)
+  "Return (TEXT . SHOWN-HINTS) for original ANSWERS in STR.
+REMAINING contains original blank indices, never answer strings.  Mask them
+with their corresponding HINTS, or, when FAILED, mark the first remaining
+blank false and the rest unanswered.  Mark other blanks correct.  Assign
+each occurrence once before projecting any class, preserving token matching."
+  (let ((case-fold-search (default-value 'case-fold-search))
+        spans replacements shown)
+    (cl-loop for answer in answers for index from 0
+             for text = (gnosis-utils-trim-quotes answer)
+             for span = (with-case-table (standard-case-table)
+                          (gnosis-cloze--occurrence str text nil spans))
+             when span do
+             (push span spans)
+             (let* ((pending (memq index remaining))
+                    (hint (and pending (not failed) (nth index hints)))
+                    (hint (and hint (not (member hint '("" "nil" "\"\""))) hint))
+                    (replacement
+                     (if (and pending (not failed))
+                         (gnosis-cloze--replace text (list text)
+                                               (if hint (format "(%s)" hint) gnosis-cloze-string))
+                       (gnosis-cloze-highlight
+                        text (list text)
+                        (cond ((not pending) 'gnosis-face-correct)
+                              ((= index (car remaining)) 'gnosis-face-false)
+                              (t 'gnosis-face-unanswered))))))
+               (when hint (push (cons (car span) hint) shown))
+               (push (cons span replacement) replacements)))
+    ;; Right-to-left replacement retains all original character positions.
+    (cons (cl-reduce
+           (lambda (text entry)
+             (concat (substring text 0 (caar entry)) (cdr entry)
+                     (substring text (cdar entry))))
+           (sort replacements (lambda (a b) (> (caar a) (caar b))))
+           :initial-value (copy-sequence str))
+          (mapcar #'cdr (sort shown (lambda (a b) (< (car a) (car b))))))))
 
-First item of answers will be marked as false, while the rest unanswered."
-  (let* ((false (car answers))
-	 (unanswered (cdr answers))
-         (str-with-false (and answers
-			      (gnosis-cloze-highlight str (list false)
-						      'gnosis-face-false)))
-	 final)
-    (if unanswered
-	(setq final (gnosis-cloze-highlight str-with-false
-					    (if (listp unanswered) unanswered
-					      (list unanswered))
-					    'gnosis-face-unanswered))
-      (setq final (or str-with-false str)))
-    final))
+(defun gnosis-cloze-mark-false (str answers)
+  "Mark the first occurrence in STR for ANSWERS false, the rest unanswered."
+  (car (gnosis-cloze--render str answers (number-sequence 0 (1- (length answers))) nil t)))
 
 (defun gnosis-cloze-check (sentence clozes)
   "Return t if each of CLOZES has a preferred occurrence in SENTENCE.

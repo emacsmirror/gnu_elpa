@@ -443,12 +443,10 @@
            (pending (gnosis-review--pending-result
                      1 t gnosis-test-scheduler--event-id 1000000 today))
            overridden final-success)
-      (cl-letf (((symbol-function 'gnosis-display-next-review) #'ignore)
-                ((symbol-function 'gnosis-review-actions)
-                 (lambda (success _id result)
-                   (setq final-success success
-                         overridden result))))
-        (gnosis-review-action--override t 1 pending))
+      (cl-letf (((symbol-function 'gnosis-display-next-review) #'ignore))
+        (let ((next (gnosis-review-action--override t 1 pending)))
+          (setq final-success (car next)
+                overridden (cdr next))))
       (should-not final-success)
       (should (= 3 (plist-get (plist-get pending :preview) :rating)))
       (should (= 1 (plist-get (plist-get overridden :preview) :rating)))

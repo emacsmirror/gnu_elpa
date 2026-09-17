@@ -889,7 +889,7 @@ Name-only `.org.gpg' fixtures are not encryption proof."
       (make-directory gnosis-journal-dir t)
       (unwind-protect
           (save-window-excursion
-            (cl-letf (((symbol-function 'gnosis-nodes--find)
+            (cl-letf ((gnosis-nodes-completing-read-func
                        (lambda (&rest _) "Linked")))
               (with-temp-buffer
                 (org-mode)
@@ -928,7 +928,7 @@ Name-only `.org.gpg' fixtures are not encryption proof."
             (re-search-forward "^HERE$")
             (beginning-of-line)
             (should (equal (org-get-heading t t t t) "2026-01-03"))
-            (cl-letf (((symbol-function 'gnosis-nodes--find)
+            (cl-letf ((gnosis-nodes-completing-read-func
                        (lambda (&rest _) "2026-01-01")))
               (gnosis-journal-insert nil))
             (should (equal (org-get-heading t t t t) "2026-01-03"))
@@ -975,7 +975,7 @@ Name-only `.org.gpg' fixtures are not encryption proof."
             (goto-char (point-min))
             (re-search-forward "^HERE$")
             (beginning-of-line)
-            (cl-letf (((symbol-function 'gnosis-nodes--find)
+            (cl-letf ((gnosis-nodes-completing-read-func
                        (lambda (&rest _) "2026-01-01")))
               (gnosis-journal-insert nil))
             (should (equal (org-get-heading t t t t) "2026-01-03"))
@@ -1069,7 +1069,7 @@ Name-only `.org.gpg' fixtures are not encryption proof."
             (re-search-forward "keep goals")
             (end-of-line)
             (setq origin-point (point))
-            (cl-letf (((symbol-function 'gnosis-nodes--find)
+            (cl-letf ((gnosis-nodes-completing-read-func
                        (lambda (&rest _) "Linked")))
               (gnosis-journal-insert nil))
             (should (buffer-narrowed-p))
@@ -1672,7 +1672,7 @@ Name-only `.org.gpg' fixtures are not encryption proof."
       (unwind-protect
           (save-window-excursion
             (setq origin (get-buffer-create " *gnosis-journal-link-origin*"))
-            (cl-letf (((symbol-function 'gnosis-nodes--find)
+            (cl-letf ((gnosis-nodes-completing-read-func
                        (lambda (&rest _) "Unsaved link target")))
               (with-current-buffer origin
                 (org-mode)
@@ -1821,7 +1821,7 @@ Name-only `.org.gpg' fixtures are not encryption proof."
       (unwind-protect
           (save-window-excursion
             (setq origin (get-buffer-create " *gnosis-journal-sep-origin*"))
-            (cl-letf (((symbol-function 'gnosis-nodes--find)
+            (cl-letf ((gnosis-nodes-completing-read-func
                        (lambda (&rest _) "SeparateTarget"))
                       ((symbol-function 'gnosis-nodes-insert)
                        (lambda (&rest _)

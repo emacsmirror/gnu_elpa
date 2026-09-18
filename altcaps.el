@@ -142,7 +142,7 @@ Also see `altcaps-force-character-casing'."
   :type '(choice
           (const :tag "Start with lower case" downcase)
           (const :tag "Start with upper case" upcase))
-  :package-version '(altcaps . "1.3.0")
+  :package-version '(altcaps . "1.4.0")
   :group 'altcaps)
 
 (defun altcaps-transform (string)

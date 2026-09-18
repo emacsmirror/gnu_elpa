@@ -173,11 +173,11 @@ usable file path.  Do not create the file."
     file))
 
 (defun gnosis-journal--file-p (file)
-  "Return non-nil if FILE is the configured single journal file."
+  "Return non-nil if FILE names the configured journal or a physical alias."
   (when-let* ((single (gnosis-journal--configured-file)))
     (and file
          (not (file-directory-p single))
-         (equal (expand-file-name file) (expand-file-name single)))))
+         (gnosis-journal--physical-equal file single))))
 
 ;;; Dates and entries
 

@@ -2672,14 +2672,14 @@ Return unchanged (SUCCESS . RESULT) after source navigation."
     "Next"))
 
 (defun gnosis-review--feedback-override-label ()
-  "Describe the cached alternate outcome and schedule without database reads."
+  "Describe the cached current outcome and schedule without database reads."
   (if gnosis-review--feedback
-      (concat "Mark "
+      (concat "Override · "
               (propertize
-               (if (plist-get gnosis-review--feedback :success) "incorrect" "correct")
-               'face (if (plist-get gnosis-review--feedback :success) 'error 'success))
+               (if (plist-get gnosis-review--feedback :success) "Correct" "Incorrect")
+               'face (if (plist-get gnosis-review--feedback :success) 'success 'error))
               " · " (gnosis-review--feedback-date
-                       (plist-get gnosis-review--feedback :alternate)))
+                       (plist-get gnosis-review--feedback :result)))
     "Override result"))
 
 (defvar-keymap gnosis-review-feedback-mode-map

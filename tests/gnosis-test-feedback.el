@@ -21,17 +21,29 @@
                 ((symbol-function 'gnosis-review--override-result)
                  (lambda (&rest _) (ert-fail "Rendering recomputed the preview"))))
         (should (equal (gnosis-review--feedback-next-label) "Next · 2026-09-21"))
-        (let ((label (gnosis-review--feedback-override-label)))
-          (should (equal label "Mark incorrect · 2026-09-20"))
-          (should (eq (get-text-property 5 'face label) 'error))
-          (should (eq (get-text-property (1- (length label)) 'face label)
-                      'keymap-popup-value)))
-        (setf (plist-get gnosis-review--feedback :success) nil
-              (plist-get gnosis-review--feedback :result) '(:mode practice)
+        (dolist (success '(t nil))
+          (setf (plist-get gnosis-review--feedback :success) success
+                (plist-get gnosis-review--feedback :result) (if success result alternate)
+                (plist-get gnosis-review--feedback :alternate) (if success alternate result))
+          (let ((label (gnosis-review--feedback-override-label)))
+            (should (equal label (if success
+                                    "Override · Correct · 2026-09-21"
+                                  "Override · Incorrect · 2026-09-20")))
+            (should (eq (get-text-property (length "Override · ") 'face label)
+                        (if success 'success 'error)))
+            (should (eq (get-text-property (1- (length label)) 'face label)
+                        'keymap-popup-value))))
+        (setf (plist-get gnosis-review--feedback :result) '(:mode practice)
               (plist-get gnosis-review--feedback :alternate) '(:mode practice))
         (should (equal (gnosis-review--feedback-next-label) "Next · schedule unchanged"))
-        (should (equal (gnosis-review--feedback-override-label)
-                       "Mark correct · schedule unchanged"))))))
+        (dolist (success '(t nil))
+          (setf (plist-get gnosis-review--feedback :success) success)
+          (let ((label (gnosis-review--feedback-override-label)))
+            (should (equal label (if success
+                                    "Override · Correct · schedule unchanged"
+                                  "Override · Incorrect · schedule unchanged")))
+            (should (eq (get-text-property (length "Override · ") 'face label)
+                        (if success 'success 'error)))))))))
 
 (ert-deftest gnosis-feedback-selection-is-depth-qualified-and-provisional ()
   (with-temp-buffer

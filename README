@@ -1,5 +1,5 @@
 #+TITLE: ELPA-Admin README
-#+DATE: 2022-12-11
+#+DATE: 2026-09-19
 
 Copyright (C) 2010-2026 Free Software Foundation, Inc. \\
 See the end of the file for license conditions.
@@ -229,7 +229,8 @@ the form
 
 where NAME is one of:
 ** =name= The name of the ELPA archive, used in the HTML pages.
-** =url= The public URL of the ELPA archive.
+** =release-url= The public URL of the ELPA archive.
+** =devel-url= The public URL of the ELPA-devel archive.
 ** =gitrepo=  The base URL of the Git repository holding the packages.
 ** =branch-prefix= A prefix added to the packages's branches in the gitrepo.
 ** =release-branch-prefix= Same but for the release branches.
@@ -241,6 +242,8 @@ where NAME is one of:
 ** =sandbox-extra-ro-dirs= Additional directories to make readable to `bwrap`.
 ** =debug= If non-nil, emit more detailed messages.
 ** =copyright-file= Name of a file containing copyright check exceptions.
+** =sister-archive-name= Name of a related archive
+** =sister-archive-url= URL of the related archive
 
 * Make targets
 

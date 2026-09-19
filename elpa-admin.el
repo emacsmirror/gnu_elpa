@@ -68,8 +68,7 @@
 (defvar elpaa--gitrepo "emacs/nongnu.git")
 (defvar elpaa--release-url "https://elpa.gnu.org/nongnu/")
 (defvar elpaa--url elpaa--release-url)
-(defvar elpaa--sister-archive-url "https://elpa.nongnu.org/")
-(defvar elpaa--sister-archive-release-path "release/")
+(defvar elpaa--sister-archive-url "https://elpa.nongnu.org/release")
 (defvar elpaa--sister-archive-name "GNU")
 
 (defvar elpaa--devel-url "https://elpa.gnu.org/nongnu-devel/")
@@ -2154,8 +2153,7 @@ in case of cyclic dependencies."
              (lambda (pkg-name)
                (let ((pref (if (file-exists-p (format "%s/%s.tar" elpaa--release-subdir pkg-name))
                                ""
-                             (file-name-concat elpaa--sister-archive-url
-                                               elpaa--sister-archive-release-path))))
+                             elpaa--sister-archive-url)))
                  (format "<a href=\"%s%s.html\">%s</a> (<a href=\"%s%s.tar\">.tar</a>)"
                          pref pkg-name pkg-name pref pkg-name)))
              reqs "</dd><dd>")

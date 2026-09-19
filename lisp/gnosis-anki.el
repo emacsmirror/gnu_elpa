@@ -754,13 +754,14 @@ Uses raw `sqlite-select' because source_guid is stored without
     cache))
 
 (defun gnosis-anki--import-db
-    (db-file &optional tmp-p extra-tag suspend source-file)
+    (db-file &optional tmp-p extra-tag suspend source-file validate)
   "Import notes from Anki database at DB-FILE asynchronously.
 Parses all notes, then bulk-inserts in chunks using timers so
 Emacs stays responsive.  When TMP-P is non-nil, clean up DB-FILE
 and its temp directory after parsing, including on failure.
 EXTRA-TAG is appended to each thema's tags.  SUSPEND imports as
-suspended.  SOURCE-FILE is the original import path for the Git commit message."
+suspended.  SOURCE-FILE is the original import path for the Git commit message.
+Call optional VALIDATE after parsing and before starting writes."
   (let* ((parse-result (unwind-protect
                            (gnosis-anki--parse-anki-db db-file)
                          ;; Prepared notes own all data needed by the timers.
@@ -768,7 +769,9 @@ suspended.  SOURCE-FILE is the original import path for the Git commit message."
          (skipped (car parse-result))
          (prepared (cdr parse-result))
          ;; Filter out duplicates by GUID
-         (guid-cache (gnosis-anki--build-guid-cache))
+         (guid-cache (progn
+                       (when validate (funcall validate))
+                       (gnosis-anki--build-guid-cache)))
          (deduped (cl-remove-if
                    (lambda (item)
                      (let ((guid (plist-get item :guid)))
@@ -787,6 +790,7 @@ suspended.  SOURCE-FILE is the original import path for the Git commit message."
              (id-chunks (mapcar (lambda (chunk)
                                   (gnosis-generate-ids (length chunk)))
                                 chunks)))
+        (when validate (funcall validate))
         (gnosis-anki--chunk-insert
          (gnosis--ensure-db) chunks id-chunks total skipped
          (gnosis--today-int)
@@ -796,19 +800,34 @@ suspended.  SOURCE-FILE is the original import path for the Git commit message."
 ;;;###autoload
 (defun gnosis-import-anki (file)
   "Import Anki FILE (.apkg, .anki2 or .anki21) into gnosis.
-Direct collection files must be quiescent standalone SQLite databases."
-  (interactive "fAnki file (.apkg, .anki2, .anki21): ")
-  (unless (file-exists-p file)
-    (user-error "File not found: %s" file))
-  (unless (member (file-name-extension file) '("apkg" "anki2" "anki21"))
-    (user-error "Unsupported file type: %s (use .apkg, .anki2 or .anki21)" file))
-  (let ((extra-tag (let ((tag (read-string
-                               "Tag for imported themata (empty to skip): ")))
-                     (if (string-empty-p tag) nil tag)))
-        (suspend (y-or-n-p "Import as suspended?"))
-        (archive-p (equal (file-name-extension file) "apkg")))
-    (gnosis-anki--import-db (if archive-p (gnosis-anki--extract-db file) file)
-                            archive-p extra-tag suspend file)))
+Direct collection files must be quiescent standalone SQLite databases.
+Prompt for FILE when nil.  Refuse destination changes during input or
+preparation; cancelled input does not open an uninitialized destination."
+  (interactive (list nil))
+  (let* ((db gnosis-db)
+         (directory (expand-file-name gnosis-dir))
+         (validate
+          (lambda ()
+            (unless (and (eq db gnosis-db)
+                         (or db (equal directory (expand-file-name gnosis-dir))))
+              (user-error "Gnosis database changed; start the import again"))))
+         (file (or file (read-file-name "Anki file (.apkg, .anki2, .anki21): "
+                                        nil nil t))))
+    (funcall validate)
+    (unless (file-exists-p file)
+      (user-error "File not found: %s" file))
+    (unless (member (file-name-extension file) '("apkg" "anki2" "anki21"))
+      (user-error "Unsupported file type: %s (use .apkg, .anki2 or .anki21)" file))
+    (let* ((tag (prog1 (read-string "Tag for imported themata (empty to skip): ")
+                  (funcall validate)))
+           (suspend (prog1 (y-or-n-p "Import as suspended?")
+                      (funcall validate)))
+           (archive-p (equal (file-name-extension file) "apkg")))
+      ;; Acquire a lazy destination only after all input has been accepted.
+      (setq db (gnosis--ensure-db))
+      (gnosis-anki--import-db (if archive-p (gnosis-anki--extract-db file) file)
+                             archive-p (unless (string-empty-p tag) tag)
+                             suspend file validate))))
 
 (provide 'gnosis-anki)
 ;;; gnosis-anki.el ends here

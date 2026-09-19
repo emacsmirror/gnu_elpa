@@ -2186,10 +2186,11 @@ in case of cyclic dependencies."
                   (if files (concat "is not in " elpaa--name " ELPA any more")
                     "has not been released yet")
                   ".</dd>\n")
-        (let* ((file (cdr (assoc latest files)))
-               (attrs (file-attributes (file-chase-links (expand-file-name file)))))
+        (let* ((file (file-chase-links (expand-file-name (cdr (assoc latest files)))))
+               (base (file-name-nondirectory file))
+               (attrs (file-attributes file)))
           (insert (format "<dt>Latest</dt> <dd><a href=%S>%s</a> (<a href=%S>.sig</a>), %s, %s</dd>\n"
-                          file (elpaa--html-quote file) (concat file ".sig")
+                          base (elpaa--html-quote base) (concat base ".sig")
                           (format-time-string "%Y-%b-%d" (nth 5 attrs))
                           (elpaa--html-bytes-format (nth 7 attrs))))))
       ;; FIXME: Use `elpaa--maintainers'?

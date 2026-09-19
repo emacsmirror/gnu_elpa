@@ -115,12 +115,15 @@ This is an authoring boundary, not a restriction on stored tag identities."
     (let ((input (delete-dups
 		  (completing-read-multiple
 		   "Tags (separated by ,): " (gnosis-get-tags--unique)))))
-      (org-back-to-heading t)
-      (while (org-up-heading-safe))
-      (when input
-        (gnosis-tags--check-org input)
-	(setf gnosis-previous-thema-tags input)
-        (org-set-tags (append input (org-get-tags)))))))
+      (save-restriction
+        ;; A narrowed field or body heading is not the owning thema.
+        (widen)
+        (org-back-to-heading t)
+        (while (org-up-heading-safe))
+        (when input
+          (gnosis-tags--check-org input)
+          (setf gnosis-previous-thema-tags input)
+          (org-set-tags (append input (org-get-tags))))))))
 
 (defun gnosis-tag-rename (tag &optional new-tag)
   "Rename TAG to NEW-TAG, merging if NEW-TAG already exists.

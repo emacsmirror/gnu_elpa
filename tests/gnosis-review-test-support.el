@@ -87,7 +87,7 @@ answer passed to acceptance; also prove editing itself writes no evidence."
                           (key-binding (kbd (if (eq edit 'cancel) "C-c C-k" "C-c C-c"))))))
                      (set-buffer origin)
                      (when after-edit (funcall after-edit))))
-                  ((symbol-function 'read-char-choice)
+                  ((symbol-function 'gnosis-review--read-action)
                    (lambda (&rest _)
                      (should (string-prefix-p (car (split-string displayed "Next review:"))
                                               (buffer-string)))

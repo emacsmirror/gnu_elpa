@@ -2536,13 +2536,14 @@ the review session."
    (lambda () (gnosis-review--check-result-content thema result)))
   (cons success result))
 
-(defun gnosis-review-action--override (success thema result)
+(defun gnosis-review-action--override (success thema result &optional alternate)
   "Override pending RESULT for THEMA by flipping binary SUCCESS.
 
-Return the new (SUCCESS . RESULT) to the action reader."
+Return the new (SUCCESS . RESULT) to the action reader.
+Use cached ALTERNATE when supplied, matching the preview shown in the popup."
   (gnosis-review--check-result-content thema result)
   (let* ((success (not success))
-         (new-result (gnosis-review--override-result result success)))
+         (new-result (or alternate (gnosis-review--override-result result success))))
     (gnosis-display-next-review
      (gnosis-review--result-date new-result) success)
     (cons success new-result)))
@@ -2584,6 +2585,218 @@ Return unchanged (SUCCESS . RESULT) after source navigation."
          (unless (y-or-n-p (format "%s; retry this grade? " (error-message-string err)))
            (signal (car err) (cdr err))))))))
 
+(defvar-local gnosis-review--feedback nil
+  "Owned feedback reader context, or nil outside post-answer input.")
+
+(defun gnosis-review--feedback-check ()
+  "Return the current feedback context after validating its input owner."
+  (unless (and gnosis-review--feedback
+               (eq (plist-get gnosis-review--feedback :buffer) (current-buffer))
+               (= (plist-get gnosis-review--feedback :depth) (recursion-depth)))
+    (user-error "No active feedback input in this buffer"))
+  (gnosis-review--check-result-content
+   (plist-get gnosis-review--feedback :id)
+   (plist-get gnosis-review--feedback :result))
+  gnosis-review--feedback)
+
+(defun gnosis-review--feedback-select (choice)
+  "Select CHOICE and exit only the owned feedback reader."
+  (let ((context (gnosis-review--feedback-check)))
+    (setf (plist-get context :choice) choice)
+    (exit-recursive-edit)))
+
+(defun gnosis-review-feedback-next ()
+  "Accept the pending answer and continue reviewing."
+  (interactive nil gnosis-review-feedback-mode)
+  (gnosis-review--feedback-select ?n))
+
+(defun gnosis-review-feedback-override ()
+  "Override the pending answer without accepting it."
+  (interactive nil gnosis-review-feedback-mode)
+  (gnosis-review--feedback-select ?o))
+
+(defun gnosis-review-feedback-quit ()
+  "Accept the pending answer and quit reviewing."
+  (interactive nil gnosis-review-feedback-mode)
+  (gnosis-review--feedback-select ?q))
+
+(defun gnosis-review-feedback-edit ()
+  "Edit the thema without changing its pending answer."
+  (interactive nil gnosis-review-feedback-mode)
+  (gnosis-review--feedback-select ?e))
+
+(defun gnosis-review-feedback-source ()
+  "Visit the pending thema's source."
+  (interactive nil gnosis-review-feedback-mode)
+  (gnosis-review--feedback-select ?v))
+
+(defun gnosis-review-feedback-flag ()
+  "Flag the pending thema as needing work."
+  (interactive nil gnosis-review-feedback-mode)
+  (gnosis-review--feedback-select ?f))
+
+(defun gnosis-review-feedback-suspend ()
+  "Toggle suspension of the pending thema."
+  (interactive nil gnosis-review-feedback-mode)
+  (gnosis-review--feedback-select ?s))
+
+(defun gnosis-review-feedback-delete ()
+  "Request confirmation to delete the pending thema."
+  (interactive nil gnosis-review-feedback-mode)
+  (gnosis-review--feedback-select ?d))
+
+(defun gnosis-review-feedback-cancel ()
+  "Abort feedback input without accepting the pending answer."
+  (interactive nil gnosis-review-feedback-mode)
+  ;; Cancellation belongs to the input depth, not to still-valid content.
+  ;; A retired encounter must remain cancellable without accepting it.
+  (unless (and gnosis-review--feedback
+               (= (plist-get gnosis-review--feedback :depth) (recursion-depth)))
+    (user-error "No active feedback input in this buffer"))
+  (abort-recursive-edit))
+
+(defun gnosis-review--feedback-date (result)
+  "Return a faced scheduling label for cached pending RESULT."
+  (propertize
+   (if (eq (plist-get result :mode) 'practice)
+       "schedule unchanged"
+     (pcase (gnosis-review--result-date result)
+       (`(,year ,month ,day) (format "%04d-%02d-%02d" year month day))))
+   'face 'keymap-popup-value))
+
+(defun gnosis-review--feedback-next-label ()
+  "Describe acceptance using the cached pending schedule."
+  (if gnosis-review--feedback
+      (concat "Next · " (gnosis-review--feedback-date
+                         (plist-get gnosis-review--feedback :result)))
+    "Next"))
+
+(defun gnosis-review--feedback-override-label ()
+  "Describe the cached alternate outcome and schedule without database reads."
+  (if gnosis-review--feedback
+      (concat "Mark "
+              (propertize
+               (if (plist-get gnosis-review--feedback :success) "incorrect" "correct")
+               'face (if (plist-get gnosis-review--feedback :success) 'error 'success))
+              " · " (gnosis-review--feedback-date
+                       (plist-get gnosis-review--feedback :alternate)))
+    "Override result"))
+
+(defvar-keymap gnosis-review-feedback-mode-map
+  :doc "Keymap for post-answer review input."
+  "n" #'gnosis-review-feedback-next
+  "o" #'gnosis-review-feedback-override
+  "q" #'gnosis-review-feedback-quit
+  "e" #'gnosis-review-feedback-edit
+  "v" #'gnosis-review-feedback-source
+  "f" #'gnosis-review-feedback-flag
+  "s" #'gnosis-review-feedback-suspend
+  "d" #'gnosis-review-feedback-delete
+  "?" #'gnosis-review-feedback-menu
+  "C-g" #'gnosis-review-feedback-cancel)
+
+(keymap-popup-annotate gnosis-review-feedback-mode-map
+  :exit-key "C-g"
+  :persistent nil
+  :description "Review answer"
+  :group "Review"
+  gnosis-review-feedback-next #'gnosis-review--feedback-next-label
+  gnosis-review-feedback-override #'gnosis-review--feedback-override-label
+  gnosis-review-feedback-quit "Accept & quit"
+  :row
+  :group "Content"
+  gnosis-review-feedback-edit "Edit"
+  gnosis-review-feedback-source "View source"
+  :group "Manage"
+  gnosis-review-feedback-flag "Flag needs_work"
+  gnosis-review-feedback-suspend "Suspend / unsuspend"
+  gnosis-review-feedback-delete "Delete")
+
+(defun gnosis-review--feedback-show ()
+  "Show feedback help and retain its exact disposable popup buffer."
+  (let* ((reader gnosis-review--feedback)
+         (origin (current-buffer))
+         (backend (funcall keymap-popup-backend))
+         (show (plist-get backend :show))
+         (claimed nil)
+         (keymap-popup-backend
+          (lambda ()
+            (plist-put (copy-sequence backend) :show
+                       (lambda (popup)
+                         ;; Capture before display callbacks can replace the
+                         ;; source or open an unrelated successor popup.
+                         (unless claimed
+                           (setq claimed t)
+                           (setf (plist-get reader :popup) popup))
+                         (funcall show popup))))))
+    (keymap-popup gnosis-review-feedback-mode-map)
+    (unless (and (buffer-live-p origin)
+                 (eq reader (buffer-local-value 'gnosis-review--feedback origin)))
+      (user-error "Feedback input was replaced"))
+    (with-current-buffer origin
+      (gnosis-review--check-result-content
+       (plist-get reader :id) (plist-get reader :result)))))
+
+(defun gnosis-review-feedback-menu ()
+  "Show the pending answer's feedback actions."
+  (interactive nil gnosis-review-feedback-mode)
+  (gnosis-review--feedback-check)
+  (gnosis-review--feedback-show))
+
+(define-minor-mode gnosis-review-feedback-mode
+  "Expose post-answer actions while preserving ordinary review navigation.
+The popup opens automatically; \\<gnosis-review-feedback-mode-map>\\[gnosis-review-feedback-menu] reopens it.
+Dismiss the popup with `C-g' without accepting an answer.  Outside the
+popup, \\[gnosis-review-feedback-cancel] aborts the pending input."
+  :interactive nil
+  :lighter nil
+  :keymap gnosis-review-feedback-mode-map)
+
+(defun gnosis-review--read-action (context)
+  "Read one feedback action for owned CONTEXT through the native command loop.
+CONTEXT contains :id, :success and :result; cache its :alternate preview
+before showing the popup.  Return an action character without accepting it."
+  (let* ((buffer (current-buffer))
+         (reader (append (list :buffer buffer :depth (1+ (recursion-depth))
+                               :choice nil :popup nil)
+                         context)))
+    (setf (plist-get context :alternate)
+          (gnosis-review--override-result (plist-get context :result)
+                                          (not (plist-get context :success))))
+    (unwind-protect
+        (progn
+          (pop-to-buffer buffer)
+          (unless (eq (current-buffer) buffer)
+            (user-error "Feedback destination changed"))
+          (gnosis-review--check-result-content
+           (plist-get context :id) (plist-get context :result))
+          (setq gnosis-review--feedback reader)
+          (gnosis-review-feedback-mode 1)
+          (unless (and (eq (current-buffer) buffer)
+                       (eq gnosis-review--feedback reader))
+            (user-error "Feedback input was replaced"))
+          (gnosis-review--check-result-content
+           (plist-get context :id) (plist-get context :result))
+          (gnosis-review--feedback-show)
+          (unless (and (eq (current-buffer) buffer)
+                       (eq gnosis-review--feedback reader))
+            (user-error "Feedback input was replaced"))
+          (gnosis-review--check-result-content
+           (plist-get context :id) (plist-get context :result))
+          (recursive-edit)
+          (or (plist-get reader :choice) (signal 'quit nil)))
+      (when (and (plist-get reader :popup)
+                 (eq (plist-get reader :popup) (keymap-popup--popup-buffer)))
+        (keymap-popup-dismiss))
+      (when (buffer-live-p buffer)
+        (with-current-buffer buffer
+          (when (eq gnosis-review--feedback reader)
+            (gnosis-review-feedback-mode -1)
+            (when (buffer-live-p buffer)
+              (with-current-buffer buffer
+                (when (eq gnosis-review--feedback reader)
+                  (setq gnosis-review--feedback nil))))))))))
+
 (defun gnosis-review-actions (success id result)
   "Specify action during review of thema.
 
@@ -2594,18 +2807,11 @@ RESULT: Return value of `gnosis-review-algorithm'.
 Return :deleted only after confirmed deletion completes.  Declining
 deletion returns to the action prompt with the same pending result.
 
-To customize the keybindings, adjust `gnosis-review-keybindings'."
+Customize `gnosis-review-feedback-mode-map' to change feedback bindings."
   (gnosis-review--check-result-content id result)
   (let* ((gnosis-review--display-buffer (current-buffer))
          (gnosis-review--display-validate
-          (lambda () (gnosis-review--check-result-content id result)))
-         (prompt
-          (apply #'format
-                 (concat "Action: %sext, %sverride result, "
-                         "%suspend, %selete, %sdit thema, "
-                         "%siew link, %suit (accept), f flag needs_work: ")
-                 (mapcar (lambda (str) (propertize str 'face 'match))
-                         '("n" "o" "s" "d" "e" "v" "q")))))
+          (lambda () (gnosis-review--check-result-content id result))))
     (catch 'done
       (while t
         ;; A callback may select another buffer; never adopt it as the owner.
@@ -2613,12 +2819,14 @@ To customize the keybindings, adjust `gnosis-review-keybindings'."
           (user-error "Review buffer no longer exists"))
         (with-current-buffer gnosis-review--display-buffer
           (gnosis-review--check-result-content id result)
-          (let ((choice (read-char-choice prompt '(?n ?o ?s ?d ?e ?v ?q ?f))))
+          (let* ((context (list :id id :success success :result result :alternate nil))
+                 (choice (gnosis-review--read-action context)))
             (gnosis-review--check-result-content id result)
             (let ((next
                    (pcase choice
                      (?n (throw 'done (gnosis-review--accept id success result)))
-                     (?o (gnosis-review-action--override success id result))
+                     (?o (gnosis-review-action--override
+                          success id result (plist-get context :alternate)))
                      (?s (gnosis-review-action--suspend success id result))
                      (?d (when (gnosis-delete-thema
                                 id nil (lambda () (gnosis-review--check-result-content id result)))

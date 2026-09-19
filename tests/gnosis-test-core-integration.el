@@ -89,7 +89,7 @@
                    ((symbol-function 'message)
                     (lambda (fmt &rest args) (push (apply #'format fmt args) messages)))
                    ((symbol-function 'read-string) (lambda (&rest _) "Answer"))
-                   ((symbol-function 'read-char-choice) (lambda (&rest _) ?n)))
+                   ((symbol-function 'gnosis-review--read-action) (lambda (&rest _) ?n)))
                 (gnosis-review-loop (list id) mode)
                 (should (derived-mode-p 'gnosis-review-summary-mode))
                 (should (= (length processes) 1))

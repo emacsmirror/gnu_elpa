@@ -175,7 +175,7 @@
         ;; Existing override preserves the captured content, including rubric.
         (let ((overridden (gnosis-review--override-result (cdr result) t)))
           (should (equal (plist-get overridden :content) (plist-get (cdr result) :content)))
-          (cl-letf (((symbol-function 'read-char-choice) (lambda (&rest _) ?n)))
+          (cl-letf (((symbol-function 'gnosis-review--read-action) (lambda (&rest _) ?n)))
             (gnosis-review-actions t id overridden)))
         (should (= 1 (length (gnosis-select '* (if (eq mode 'practice) 'practice-events 'review-events)))))
         (when (eq mode 'practice)
@@ -239,7 +239,7 @@
         (should (= cancelled 3))
         (should-not (car result))
         (should (equal before (gnosis-test-eval--evidence)))
-        (cl-letf (((symbol-function 'read-char-choice) (lambda (&rest _) ?n)))
+        (cl-letf (((symbol-function 'gnosis-review--read-action) (lambda (&rest _) ?n)))
           (gnosis-review-actions (car result) id (cdr result)))
         (should (= 1 (length (gnosis-select '* (if (eq mode 'practice) 'practice-events 'review-events)))))
         (if (eq mode 'practice)
@@ -310,7 +310,7 @@
                                                  '("Mechanism\nand consequence")
                                                  nil nil nil rubric))))
                       (should (equal before (gnosis-test-eval--evidence)))
-                      (cl-letf (((symbol-function 'read-char-choice) (lambda (&rest _) ?n)))
+                      (cl-letf (((symbol-function 'gnosis-review--read-action) (lambda (&rest _) ?n)))
                         (gnosis-review-actions (car result) id (cdr result)))
                       (if (eq mode 'practice)
                           (progn

@@ -78,7 +78,7 @@ Only text input, action choice and fixture timers are substituted."
                    (should (equal evidence-before (gnosis-test-cloze-quality--evidence)))
                    (unless remaining (ert-fail "Unexpected extra input"))
                    (pop remaining)))
-                ((symbol-function 'read-char-choice)
+                ((symbol-function 'gnosis-review--read-action)
                  (lambda (&rest _)
                    (should (equal evidence-before (gnosis-test-cloze-quality--evidence)))
                    (setq feedback (buffer-string)) ?q)))

@@ -61,7 +61,7 @@
       (let ((before (gnosis-test-activity-snapshot)))
         (cl-letf (((symbol-function 'gnosis--read-string-with-input-method)
                    (lambda (&rest _) (pop answers)))
-                  ((symbol-function 'read-char-choice) (lambda (&rest _) ?n)))
+                  ((symbol-function 'gnosis-review--read-action) (lambda (&rest _) ?n)))
           (gnosis-review-loop (list id) 'practice))
         (with-temp-buffer
           (funcall gnosis-dashboard-module-today-stats)
@@ -81,7 +81,7 @@
       (should-not (gnosis-study-practice-history))
       (cl-letf (((symbol-function 'gnosis--read-string-with-input-method)
                  (lambda (&rest _) (pop answers)))
-                ((symbol-function 'read-char-choice) (lambda (&rest _) ?n)))
+                ((symbol-function 'gnosis-review--read-action) (lambda (&rest _) ?n)))
         (gnosis-agent--launch (car gnosis-agent--launches)))
       (should-not answers)
       (should (equal '(:total 3 :scheduled 0 :practice 3 :new 0)

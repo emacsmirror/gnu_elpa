@@ -398,7 +398,7 @@ attributed to a historical source commit."
       (let ((scheduler (gnosis-select '* 'scheduler-state)))
         (cl-letf (((symbol-function 'gnosis--read-string-with-input-method)
                    (lambda (&rest _) "answer"))
-                  ((symbol-function 'read-char-choice) (lambda (&rest _) ?n)))
+                  ((symbol-function 'gnosis-review--read-action) (lambda (&rest _) ?n)))
           (gnosis-review-loop '(2) 'practice))
         (should (= 1 (length (gnosis-select '* 'practice-events))))
         (should (equal scheduler (gnosis-select '* 'scheduler-state))))

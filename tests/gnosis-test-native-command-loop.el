@@ -85,6 +85,10 @@
   "Due/practice native edit, save and cancel retain pending acceptance."
   (gnosis-test-native--run 'review))
 
+(ert-deftest gnosis-test-native-feedback ()
+  "Native feedback supports browsing, popup control and owned acceptance."
+  (gnosis-test-native--run 'feedback))
+
 (ert-deftest gnosis-test-native-journal ()
   "Repeated multiline capture and local TODOs retain dates across reopening."
   (gnosis-test-native--run 'journal))

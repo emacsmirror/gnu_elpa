@@ -249,7 +249,7 @@
                  (setq shown (gnosis-test-cloze-token--plain
                               (get-buffer gnosis-review-buffer-name)))
                  input))
-              ((symbol-function 'read-char-choice) (lambda (&rest _) ?n)))
+              ((symbol-function 'gnosis-review--read-action) (lambda (&rest _) ?n)))
       (let ((state (gnosis-review-loop (list id) mode)))
         (setq success (cdar (gnosis-review-state-outcomes state)))))
     (setq events (append (gnosis-select '* 'review-events)

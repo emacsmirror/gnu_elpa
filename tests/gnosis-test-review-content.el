@@ -226,7 +226,7 @@
                                (gnosis-review--save-session successor))))
                           (setq expected (gnosis-test-content--evidence))))))
                 (unwind-protect
-                    (cl-letf (((symbol-function 'read-char-choice) (lambda (&rest _) (pop choices)))
+                    (cl-letf (((symbol-function 'gnosis-review--read-action) (lambda (&rest _) (pop choices)))
                               ((symbol-function 'y-or-n-p) (lambda (&rest _) nil))
                               ((symbol-function 'recursive-edit)
                                (lambda ()
@@ -268,7 +268,7 @@
                    (save (symbol-function 'gnosis-save-thema))
                    (choices '(?e ?n)))
               (unwind-protect
-                  (cl-letf (((symbol-function 'read-char-choice) (lambda (&rest _) (pop choices)))
+                  (cl-letf (((symbol-function 'gnosis-review--read-action) (lambda (&rest _) (pop choices)))
                             ((symbol-function 'recursive-edit)
                              (lambda ()
                                (when (eq fault 'replacement)

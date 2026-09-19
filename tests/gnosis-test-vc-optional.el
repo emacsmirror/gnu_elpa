@@ -26,7 +26,7 @@
          (buffers (buffer-list)))
     (unwind-protect
         (cl-letf (((symbol-function 'read-string) (lambda (&rest _) "Answer"))
-                  ((symbol-function 'read-char-choice)
+                  ((symbol-function 'gnosis-review--read-action)
                    (lambda (&rest _) (if quit-after-first ?q ?n))))
           (let ((state (gnosis-review-loop (if b (list a b) (list a)) mode)))
             (should (= (gnosis-review-state-reviewed state) 1))

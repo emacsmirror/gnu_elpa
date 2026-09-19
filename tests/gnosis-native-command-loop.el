@@ -64,14 +64,12 @@
               (gnosis-native--log "PASS monkeytype cancel=%S depth=0" cancel)))))
     (advice-remove 'gnosis-monkeytype--calculate-wpm #'gnosis-native--completed)))
 
-(defun gnosis-native--read (original prompt &rest arguments)
-  "Observe PROMPT and arrange terminal input before invoking ORIGINAL.
-ARGUMENTS are passed unchanged; the real minibuffer/action reader runs."
-  (when (string-prefix-p "Action:" prompt)
-    (should (equal gnosis-native--before (gnosis-test-content--evidence)))
-    (should gnosis-native--inputs)
-    (gnosis-native--input (pop gnosis-native--inputs)))
-  (apply original prompt arguments))
+(defun gnosis-native--read (original context)
+  "Observe feedback CONTEXT and arrange input before invoking ORIGINAL."
+  (should (equal gnosis-native--before (gnosis-test-content--evidence)))
+  (should gnosis-native--inputs)
+  (gnosis-native--input (pop gnosis-native--inputs))
+  (funcall original context))
 
 (defun gnosis-native--edit (&rest _)
   "Position the actual editor at Answer, then type and save or cancel."
@@ -95,7 +93,7 @@ ARGUMENTS are passed unchanged; the real minibuffer/action reader runs."
   "Exercise due/practice edit-save-Next and edit-cancel-Next."
   (unwind-protect
       (progn
-        (advice-add 'read-char-choice :around #'gnosis-native--read)
+        (advice-add 'gnosis-review--read-action :around #'gnosis-native--read)
         (advice-add 'gnosis-review-result :around #'gnosis-native--accept)
         (advice-add 'gnosis-edit-thema :after #'gnosis-native--edit)
         (dolist (mode '(due practice))
@@ -149,9 +147,106 @@ ARGUMENTS are passed unchanged; the real minibuffer/action reader runs."
                       (when-let* ((buffer (get-buffer name)))
                         (with-current-buffer buffer (set-buffer-modified-p nil))
                         (kill-buffer buffer))))))))))
-    (advice-remove 'read-char-choice #'gnosis-native--read)
+    (advice-remove 'gnosis-review--read-action #'gnosis-native--read)
     (advice-remove 'gnosis-edit-thema #'gnosis-native--edit)
     (advice-remove 'gnosis-review-result #'gnosis-native--accept)))
+
+(defun gnosis-native--feedback-dismissed ()
+  "Verify native dismissal and movement left the answer pending."
+  (interactive)
+  (should-not (keymap-popup--popup-buffer))
+  (should (= (point) (point-min)))
+  (should-not (plist-get gnosis-review--feedback :choice))
+  (should (equal gnosis-native--before (gnosis-test-content--evidence)))
+  (gnosis-native--log "PASS feedback dismissed movement=t evidence=unchanged")
+  (when gnosis-native--cancel (gnosis-native--input "\7")))
+
+(defun gnosis-native--feedback-retire ()
+  "Retire the native feedback owner, refuse stale actions, then cancel it."
+  (interactive)
+  (set-visited-file-name (expand-file-name "retired" gnosis-dir) t)
+  (set-visited-file-name nil t)
+  (should-error (gnosis-review-feedback-next) :type 'user-error)
+  (should (equal gnosis-native--before (gnosis-test-content--evidence)))
+  (gnosis-native--log "PASS feedback retired binding refused evidence=unchanged")
+  (gnosis-native--input "\7"))
+
+(defun gnosis-native--feedback-open (&rest _)
+  "Inspect the real rendered popup before sending the next native input."
+  (let* ((context gnosis-review--feedback)
+         (popup (keymap-popup--popup-buffer))
+         (text (with-current-buffer popup (buffer-string))))
+    (should (equal gnosis-native--before (gnosis-test-content--evidence)))
+    (dolist (label '("Review" "Content" "Manage" "Edit" "View source"
+                     "Flag needs_work" "Suspend / unsuspend" "Delete" "Accept & quit"))
+      (should (string-search label text)))
+    (should (string-search (gnosis-review--feedback-next-label) text))
+    (should (string-search (gnosis-review--feedback-override-label) text))
+    (dolist (key '(:event-id :reviewed-at-us :review-day))
+      (should (equal (plist-get (plist-get context :result) key)
+                     (plist-get (plist-get context :alternate) key))))
+    (should gnosis-native--inputs)
+    ;; C-g is a quit event: send only after recursive input is running,
+    ;; rather than racing the synchronous popup setup boundary.
+    (run-at-time 0.05 nil #'gnosis-native--input (pop gnosis-native--inputs))))
+
+(defun gnosis-native--feedback ()
+  "Exercise real popup dismissal, reopening, overrides, acceptance and abort."
+  (unwind-protect
+      (progn
+        (keymap-set gnosis-review-feedback-mode-map "C-c C-t"
+                    #'gnosis-native--feedback-dismissed)
+        (keymap-set gnosis-review-feedback-mode-map "C-c C-r"
+                    #'gnosis-native--feedback-retire)
+        (advice-add 'gnosis-review--feedback-show :after #'gnosis-native--feedback-open)
+        (dolist (mode '(due practice))
+          (dolist (terminal '(next quit abort retired))
+            (gnosis-test-with-db
+              (gnosis-test-content--add "basic")
+              (let* ((gnosis-review-buffer-name "*Native Feedback*")
+                     (owner (gnosis-review--setup-buffer '(222) mode)))
+                (unwind-protect
+                    (with-current-buffer owner
+                      (switch-to-buffer owner)
+                      (gnosis-test-content--state mode)
+                      (let* ((gnosis-review-basic-input 'typed)
+                             (pending (progn
+                                        (gnosis-native--input "old\r")
+                                        (cdr (gnosis-review-basic 222))))
+                             (gnosis-native--before (gnosis-test-content--evidence))
+                             (schedule (gnosis-select '* 'scheduler-state))
+                             (gnosis-native--cancel (eq terminal 'abort))
+                             (gnosis-native--inputs
+                              (pcase terminal
+                                ('next '("\7\33<\3\24?" "o" "o" "\7n"))
+                                ('quit '("o" "o" "q"))
+                                ('abort '("\7\33<\3\24"))
+                                ('retired '("\7\3\22"))))
+                             (outcome (condition-case nil
+                                          (catch 'review-loop (gnosis-review-actions t 222 pending))
+                                        (quit 'cancelled))))
+                        (should-not gnosis-native--inputs)
+                        (should (= (recursion-depth) 0))
+                        (should-not gnosis-review-feedback-mode)
+                        (should-not gnosis-review--feedback)
+                        (should-not (keymap-popup--popup-buffer))
+                        (if (memq terminal '(abort retired))
+                            (progn
+                              (should (eq outcome 'cancelled))
+                              (should (equal gnosis-native--before (gnosis-test-content--evidence))))
+                          (should (= 1 (length (gnosis-select
+                                                '* (if (eq mode 'due)
+                                                       'review-events 'practice-events)))))
+                          (should (= 3 (gnosis-get 'rating
+                                                  (if (eq mode 'due) 'review-events 'practice-events)
+                                                  '(= thema-id 222)))))
+                        (when (eq mode 'practice)
+                          (should (equal schedule (gnosis-select '* 'scheduler-state))))
+                        (gnosis-native--log "PASS feedback mode=%S terminal=%S depth=0" mode terminal)))
+                  (when (buffer-live-p owner)
+                    (with-current-buffer owner (set-buffer-modified-p nil))
+                    (kill-buffer owner))))))))
+    (advice-remove 'gnosis-review--feedback-show #'gnosis-native--feedback-open)))
 
 (defun gnosis-native--keys (keys)
   "Run native KEYS, restoring current buffer to the selected window."
@@ -202,11 +297,15 @@ ARGUMENTS are passed unchanged; the real minibuffer/action reader runs."
       (widen)
       (let ((before (buffer-string)))
         (dolist (key '("c" "a"))
-          (should-error
-           (gnosis-native--keys
-            (vconcat (kbd (concat "C-c j " key))
-                     "Discard this\nsecond line" (kbd "C-c C-k")))
-           :type 'user-error)
+          (let ((error-data
+                 (should-error
+                  (gnosis-native--keys
+                   (vconcat (kbd (concat "C-c j " key))
+                            "Discard this\nsecond line" (kbd "C-c C-k")))
+                  :type 'error)))
+            ;; Emacs 32 signals plain error here; earlier versions use
+            ;; user-error.  Require the native abort, not just any failure.
+            (should (equal (cdr error-data) '("Aborted edit"))))
           (set-buffer (get-file-buffer gnosis-journal-file))
           (should (equal before (buffer-string)))
           (should (= (recursion-depth) 0)))
@@ -239,6 +338,7 @@ ARGUMENTS are passed unchanged; the real minibuffer/action reader runs."
         (pcase (getenv "GNOSIS_NATIVE_JOURNEY")
           ("monkeytype" (gnosis-native--monkeytype))
           ("review" (gnosis-native--review))
+          ("feedback" (gnosis-native--feedback))
           ("journal" (gnosis-native--journal))
           (_ (error "Unknown native journey")))
         (should (= (recursion-depth) 0))

@@ -912,7 +912,7 @@
         (should (eq (car pair) (equal target "triangle")))
         (should-not (gnosis-select '* 'review-events))
         (should (equal before (gnosis-select '* 'scheduler-state)))
-        (cl-letf (((symbol-function 'read-char-choice) (lambda (&rest _) ?n)))
+        (cl-letf (((symbol-function 'gnosis-review--read-action) (lambda (&rest _) ?n)))
           (should (plist-get (gnosis-review-actions (car pair) model result) :inserted-p)))
         (let ((events (gnosis-select '* 'review-events))
               (state (gnosis-select '* 'scheduler-state))

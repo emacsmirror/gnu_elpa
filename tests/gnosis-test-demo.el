@@ -156,7 +156,7 @@
                    (lambda (_prompt options &rest _)
                      (let ((choice (or (pop choices) (ert-fail "Unexpected choice"))))
                        (should (member choice options)) choice)))
-                  ((symbol-function 'read-char-choice)
+                  ((symbol-function 'gnosis-review--read-action)
                    (lambda (&rest _)
                      (cl-incf actions)
                      (should (string-search

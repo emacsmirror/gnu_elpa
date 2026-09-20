@@ -4,11 +4,10 @@
 #+options: ':nil toc:nil num:nil author:nil email:nil
 #+startup: content
 #+export_file_name: ffs-changelog.html
-#+html_head: <link rel="stylesheet" href="../../dek.css?v=20260518" type="text/css" />
-#+html_link_home: ../..
+#+html_link_home: ../home.html
 
 The newest release is at the top.  For further details, please consult
-the ~ffs~ manual: <https://kelar.org/~bandali/gnu/emacs/ffs.html>.
+the ~ffs~ manual: <https://www.kelar.org/~bandali/ffs/ffs.html>.
 
 #+toc: headlines 1 insert TOC here, with one headline level
 
@@ -87,7 +86,7 @@ the replacement new user options, with a default value of nil:
 - ~ffs-hide-header-line~
 
 Their value is buffer-local, and may be set globally using
-~setq-default~.  See the [[https://kelar.org/~bandali/gnu/emacs/ffs.html#Sample-configuration][sample configuration]] in the manual for an
+~setq-default~.  See the [[https://www.kelar.org/~bandali/ffs/ffs.html#Sample-configuration][sample configuration]] in the manual for an
 example of how to customize them.
 
 The new ~ffs-page-delimiter~ user option defines the page delimiter
@@ -130,7 +129,7 @@ implementation and published version =0.1.0= of what is now =ffs= in
 my [[https://git.kelar.org/~bandali/configs][personal configs repository]].
 
 I used this implementation for presenting my LibrePlanet 2022 talk,
-[[https://kelar.org/~bandali/essays/net-beyond-web.html][The Net beyond the Web]].
+[[https://www.kelar.org/~bandali/net-beyond-web.html][The Net beyond the Web]].
 
 I picked "ffs" as the package name, the acronym for form feed slides.
 

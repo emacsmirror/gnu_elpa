@@ -2228,7 +2228,6 @@ in case of cyclic dependencies."
         ;; FIXME: Avoid having to move up a directory to access
         ;; elpa-archive and the package metadata.
         (elpaa--html-insert-reqs pkg-spec))
-      (insert (format "<dt>Badge</dt><dd><img src=\"%s.svg\"/></dd>\n" (elpaa--html-quote name)))
       (elpaa--html-insert-docs pkg-spec)
       (insert "</dl>")
       (insert (format "<p>To install this package from Emacs, use %s%s.</p>"

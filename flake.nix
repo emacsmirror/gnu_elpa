@@ -3,7 +3,7 @@
 
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
   inputs.keymap-popup = {
-    url = "git+https://git.thanosapollo.org/emacs-keymap-popup.git";
+    url = "git+https://git.thanosapollo.org/emacs-keymap-popup.git?ref=refs/tags/0.4.4";
     flake = false;
   };
 
@@ -75,7 +75,7 @@
           };
           keymapPopup = emacsPackages.melpaBuild {
             pname = "keymap-popup";
-            version = "0.4.3";
+            version = "0.4.4";
             src = keymap-popup;
             packageRequires = [ ];
           };
@@ -120,7 +120,7 @@
           };
           keymapPopup = emacsPackages.melpaBuild {
             pname = "keymap-popup";
-            version = "0.4.3";
+            version = "0.4.4";
             src = keymap-popup;
             packageRequires = [ ];
           };

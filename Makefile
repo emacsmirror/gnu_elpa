@@ -226,7 +226,7 @@ _lint-package-lint:
 	@set -eu; for file in $(PACKAGE_LINT_SOURCES); do \
 		$(ENV) $(EMACS) $(EMACS_OPTS) $(LOAD_PATH) \
 			--eval="(package-initialize)" \
-			--eval="(dolist (spec '((keymap-popup (0 4 3)) \
+			--eval="(dolist (spec '((keymap-popup (0 4 4)) \
 			                         (compat (31 0 0 2)))) \
 			  (push (list (car spec) \
 			    (package-desc-create :name (car spec) \

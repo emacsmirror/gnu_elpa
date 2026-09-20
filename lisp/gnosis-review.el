@@ -2672,7 +2672,7 @@ Return unchanged (SUCCESS . RESULT) after source navigation."
     "Next"))
 
 (defun gnosis-review--feedback-override-label ()
-  "Describe the cached current outcome and schedule without database reads."
+  "Describe the current outcome and schedule from cached feedback."
   (if gnosis-review--feedback
       (concat "Override · "
               (propertize

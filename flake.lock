@@ -3,15 +3,16 @@
     "keymap-popup": {
       "flake": false,
       "locked": {
-        "lastModified": 1787512214,
-        "narHash": "sha256-kmX2e5csdprth1RtnrhSnr5RTtBKd43bzAg3ipLQ2pg=",
-        "ref": "refs/heads/master",
-        "rev": "51569cc03e7baba51005d08e6019c24c1a4794c9",
-        "revCount": 148,
+        "lastModified": 1789616641,
+        "narHash": "sha256-5OrUUJOF/69EUZ7Q2cvEHgSvTkvZHSP/NXT5fD5baYg=",
+        "ref": "refs/tags/0.4.4",
+        "rev": "17d0305391021a2c217d531a436e29475c8563f2",
+        "revCount": 162,
         "type": "git",
         "url": "https://git.thanosapollo.org/emacs-keymap-popup.git"
       },
       "original": {
+        "ref": "refs/tags/0.4.4",
         "type": "git",
         "url": "https://git.thanosapollo.org/emacs-keymap-popup.git"
       }

@@ -180,8 +180,11 @@
     (dolist (label '("Review" "Content" "Manage" "Edit" "View source"
                      "Flag needs_work" "Suspend / unsuspend" "Delete" "Accept & quit"))
       (should (string-search label text)))
-    (should (string-search (gnosis-review--feedback-next-label) text))
-    (should (string-search (gnosis-review--feedback-override-label) text))
+    ;; Popup descriptions use the dependency's bounded display width.
+    (should (string-search (keymap-popup--resolve-description
+                            (gnosis-review--feedback-next-label)) text))
+    (should (string-search (keymap-popup--resolve-description
+                            (gnosis-review--feedback-override-label)) text))
     (dolist (key '(:event-id :reviewed-at-us :review-day))
       (should (equal (plist-get (plist-get context :result) key)
                      (plist-get (plist-get context :alternate) key))))
@@ -297,15 +300,36 @@
       (widen)
       (let ((before (buffer-string)))
         (dolist (key '("c" "a"))
-          (let ((error-data
-                 (should-error
-                  (gnosis-native--keys
-                   (vconcat (kbd (concat "C-c j " key))
-                            "Discard this\nsecond line" (kbd "C-c C-k")))
-                  :type 'error)))
-            ;; Emacs 32 signals plain error here; earlier versions use
-            ;; user-error.  Require the native abort, not just any failure.
-            (should (equal (cdr error-data) '("Aborted edit"))))
+          (let* ((text "Discard this\nsecond line")
+                 aborts
+                 (observe-abort
+                  (lambda (&rest _)
+                    (push (list (current-buffer) (recursion-depth)
+                                this-command (buffer-string))
+                          aborts))))
+            (unwind-protect
+                (progn
+                  (advice-add 'string-edit-abort :before observe-abort)
+                  (let ((error-data
+                         (should-error
+                          (gnosis-native--keys
+                           (vconcat (kbd (concat "C-c j " key))
+                                    text (kbd "C-c C-k")))
+                          :type 'error)))
+                    ;; Emacs 30 exits before its abort callback's error,
+                    ;; returning the original empty string.  Emacs 32
+                    ;; propagates "Aborted edit" through recursive-edit.
+                    (should (member (cdr error-data)
+                                    '(("Aborted edit") ("Journal note is empty"))))))
+              (advice-remove 'string-edit-abort observe-abort))
+            ;; Observe the real cancel command, not merely an empty-note error.
+            (should (= (length aborts) 1))
+            (pcase-let ((`((,editor ,depth ,command ,draft)) aborts))
+              (should (= depth 1))
+              (should (eq command 'string-edit-abort))
+              (should (string-suffix-p text draft))
+              (should-not (buffer-live-p editor)))
+            (gnosis-native--log "PASS journal cancel=%s native-abort=t" key))
           (set-buffer (get-file-buffer gnosis-journal-file))
           (should (equal before (buffer-string)))
           (should (= (recursion-depth) 0)))

@@ -318,6 +318,7 @@ History is disabled."
 (defun gnosis-insert-separator ()
   "Insert a line separator."
   (insert "\n" (propertize " " 'display '(space :width text)
+                           'gnosis-display-layout 'independent
                            'face 'gnosis-face-separator)))
 
 (defun gnosis-center-current-line ()
@@ -417,6 +418,9 @@ images using `org-format-latex'."
               (when-let* ((display (overlay-get ov 'display)))
                 (put-text-property (overlay-start ov) (overlay-end ov)
                                    'display display)
+                (when (memq (car-safe display) '(image space))
+                  (put-text-property (overlay-start ov) (overlay-end ov)
+                                     'gnosis-display-layout 'independent))
                 (delete-overlay ov))))
         (error (message "LaTeX preview: %s" (error-message-string err)))))
     (gnosis-image-format-string (buffer-string))))

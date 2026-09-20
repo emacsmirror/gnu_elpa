@@ -243,6 +243,21 @@ Deferred callbacks must retain their own encounter context.")
   (setq gnosis-review--layout-overlays nil
         gnosis-review--layout nil))
 
+(defun gnosis-review--independent-layout-p (start end &optional string)
+  "Return non-nil if START to END contains independently laid out content.
+Inspect STRING when non-nil, otherwise the current buffer.  Media and
+separators declare `gnosis-display-layout' as `independent'.  Also recognize
+native image and stretch-space specifications supplied by external media
+writers or already rendered buffers.  Inline typography such as Org's
+raise/height specifications is ordinary text, not a layout boundary."
+  (or (text-property-any start end 'gnosis-display-layout 'independent string)
+      (let ((position start))
+        (while (and (< position end)
+                    (not (memq (car-safe (get-text-property position 'display string))
+                               '(image space))))
+          (setq position (next-single-property-change position 'display string end)))
+        (< position end))))
+
 (defun gnosis-review--refresh-layout (&rest _ignored)
   "Update review line prefixes for each displaying window.
 Short lines are centered using window-specific pixel measurements; long
@@ -266,7 +281,7 @@ with unchanged text and widths."
                     (width (window-body-width window t)))
                 ;; Images and separators have their own display geometry.
                 (unless (or (= start end)
-                            (text-property-not-all start end 'display nil))
+                            (gnosis-review--independent-layout-p start end))
                   (let* ((truncate-lines t)
                          (pixels (car (window-text-pixel-size
                                        window start end (1+ width))))
@@ -317,7 +332,7 @@ newlines, where redisplay extends them into otherwise empty display space."
 (defun gnosis-review--format-string (str &optional literal)
   "Format STR with stable filling and no window-dependent padding.
 When centering is enabled, fill prose once to `fill-column'.  Preserve
-explicit line breaks and display-bearing lines, including image properties.
+explicit line breaks and independent media geometry, including image properties.
 Keep inline link and cloze faces off newlines, including filled breaks.
 Narrow windows wrap the resulting text natively without rewriting it.
 When LITERAL is non-nil, skip link and image interpretation of STR."
@@ -329,7 +344,7 @@ When LITERAL is non-nil, skip link and image interpretation of STR."
          text
        (mapconcat
         (lambda (line)
-          (if (text-property-not-all 0 (length line) 'display nil line)
+          (if (gnosis-review--independent-layout-p 0 (length line) line)
               line
             (with-temp-buffer
               (setq fill-column column)
@@ -337,6 +352,21 @@ When LITERAL is non-nil, skip link and image interpretation of STR."
               (fill-region (point-min) (point-max))
               (buffer-string))))
         (split-string text "\n") "\n")))))
+
+(defun gnosis-review--append-section (text validate before &optional after separator)
+  "Append formatted TEXT as a review section in the current buffer.
+Call VALIDATE before and after buffer mutations.  BEFORE and AFTER are
+structural strings, not authored text; insert them without inheriting
+inline properties.  When SEPARATOR is non-nil, append its independently
+managed geometry after the section.  Formatting must finish before calling
+this function, so its callbacks cannot partially replace an owned view."
+  (funcall validate)
+  (goto-char (point-max))
+  (insert before text (or after ""))
+  (funcall validate)
+  (when separator
+    (gnosis-insert-separator)
+    (funcall validate)))
 
 (defun gnosis-display-keimenon (str)
   "Display STR as keimenon."
@@ -346,11 +376,7 @@ When LITERAL is non-nil, skip link and image interpretation of STR."
       (funcall validate)
       (gnosis-review--enable-layout)
       (erase-buffer)
-      (funcall validate)
-      (insert "\n" text)
-      (funcall validate)
-      (gnosis-insert-separator)
-      (funcall validate)
+      (gnosis-review--append-section text validate "\n" nil t)
       (when (and gnosis-review--running gnosis-review--state
                  (not (member (gnosis-get 'type 'themata
                                           `(= id ,(car (gnosis-review-state-remaining gnosis-review--state))))
@@ -408,10 +434,8 @@ requests failed feedback instead of masking remaining blanks."
                     (gnosis-review--format-string
                      (concat (propertize "Your answer:" 'face 'gnosis-face-directions)
                              " " (propertize user-input 'face 'gnosis-face-false)) t))))
-      (funcall validate)
-      (goto-char (point-max))
-      (insert "\n\n" text (if wrong (concat "\n" wrong) ""))
-      (funcall validate))))
+      (gnosis-review--append-section
+       (concat text (if wrong (concat "\n" wrong) "")) validate "\n\n"))))
 
 (defun gnosis-display-hint (hint)
   "Display HINT."
@@ -419,12 +443,7 @@ requests failed feedback instead of masking remaining blanks."
     (let* ((validate (gnosis-review--display-validator))
            (text (gnosis-review--format-string
                   (propertize hint 'face 'gnosis-face-hint))))
-      (funcall validate)
-      (goto-char (point-max))
-      (insert "\n" text)
-      (funcall validate)
-      (gnosis-insert-separator)
-      (funcall validate))))
+      (gnosis-review--append-section text validate "\n" nil t))))
 
 (defun gnosis-display-cloze-user-answer (user-input &optional false)
   "Display literal USER-INPUT, using the incorrect face when FALSE is non-nil."
@@ -433,10 +452,7 @@ requests failed feedback instead of masking remaining blanks."
                 (concat (propertize "Your answer:" 'face 'gnosis-face-directions)
                         " " (propertize user-input 'face
                                         (if false 'gnosis-face-false 'gnosis-face-correct))) t)))
-    (funcall validate)
-    (goto-char (point-max))
-    (insert "\n\n" text "\n")
-    (funcall validate)))
+    (gnosis-review--append-section text validate "\n\n" "\n")))
 
 (defun gnosis-display-correct-answer-mcq (answer user-choice)
   "Display correct ANSWER and USER-CHOICE for an MCQ thema."
@@ -449,22 +465,14 @@ requests failed feedback instead of masking remaining blanks."
                         (propertize user-choice 'face (if (string= answer user-choice)
                                                         'gnosis-face-correct
                                                       'gnosis-face-false))))))
-    (funcall validate)
-    (goto-char (point-max))
-    (insert "\n\n" text "\n")
-    (funcall validate)
-    (gnosis-insert-separator)
-    (funcall validate)))
+    (gnosis-review--append-section text validate "\n\n" "\n" t)))
 
 (defun gnosis-display-parathema (parathema)
   "Display PARATHEMA only if its destination survives formatting callbacks."
   (when (and parathema (not (string-empty-p parathema)))
     (let* ((validate (gnosis-review--display-validator))
            (text (gnosis-review--format-string (gnosis-org-format-string parathema))))
-      (funcall validate)
-      (goto-char (point-max))
-      (insert "\n" text "\n")
-      (funcall validate))))
+      (gnosis-review--append-section text validate "\n" "\n"))))
 
 (defvar-local gnosis-review--status nil
   "Overlay delimiting this setup's scheduling status, never authored prose.")

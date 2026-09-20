@@ -303,5 +303,81 @@
         (should (equal-including-properties answer answer-snapshot))
         (should (equal-including-properties input input-snapshot))))))
 
+(ert-deftest gnosis-review-layout-org-citation-retains-inline-typography ()
+  "Org subscripts are text, not independently positioned media."
+  (gnosis-test-review-layout--with-buffer
+    (let* ((gnosis-latex-preview nil)
+           (citation "Evidence: lecture_notes_2026.pdf, p. 12")
+           (fontified (gnosis-org-format-string citation))
+           (position (text-property-not-all 0 (length fontified)
+                                            'display nil fontified))
+           (display (and position (get-text-property position 'display fontified))))
+      (should position)
+      (gnosis-display-keimenon "Question")
+      (gnosis-display-basic-answer "Answer" nil "Literal_input")
+      (gnosis-display-parathema citation)
+      (goto-char (point-min))
+      (search-forward citation)
+      (let ((start (match-beginning 0)))
+        (should (equal display (get-text-property (+ start position) 'display)))
+        (should (gnosis-test-review-layout--prefix (selected-window) start)))
+      (gnosis-display-next-review '(2026 10 1) t)
+      (gnosis-display-next-review '(2026 10 2) nil)
+      (gnosis-display-next-review '(2026 10 3) t)
+      (goto-char (point-min))
+      (should (search-forward citation nil t))
+      (should (search-forward "Next review:" nil t))
+      (should-not (search-forward "Next review:" nil t)))))
+
+(ert-deftest gnosis-review-layout-fills-org-inline-display-prose ()
+  "Fill long scientific prose without discarding native subscript properties."
+  (let* ((gnosis-center-content t)
+         (gnosis-latex-preview nil)
+         (fill-column 25)
+         (text (gnosis-org-format-string
+                "The H_2 molecule has properties discussed in this long explanation.\n\nΕλληνικά"))
+         (snapshot (copy-sequence text))
+         (result (gnosis-review--format-string text)))
+    (should (seq-every-p (lambda (line) (<= (string-width line) fill-column))
+                         (split-string result "\n")))
+    (should (text-property-not-all 0 (length result) 'display nil result))
+    (should (string-suffix-p "\n\nΕλληνικά" result))
+    (should (equal-including-properties text snapshot))))
+
+(ert-deftest gnosis-review-layout-explicit-geometry-is-not-prose ()
+  "Keep independent blocks intact even without a native display property."
+  (gnosis-test-review-layout--with-buffer
+    (let* ((fill-column 12)
+           (block (propertize "   Renderer owns this entire block   "
+                              'gnosis-display-layout 'independent))
+           (snapshot (copy-sequence block)))
+      (gnosis-display-keimenon (concat "Prose\n" block "\nTail"))
+      (goto-char (point-min))
+      (search-forward block)
+      (should (equal-including-properties
+               block (buffer-substring (match-beginning 0) (match-end 0))))
+      (should-not (gnosis-test-review-layout--prefix
+                   (selected-window) (line-beginning-position)))
+      (forward-line 1)
+      (should (gnosis-test-review-layout--prefix (selected-window) (point)))
+      (should (equal-including-properties block snapshot)))))
+
+(ert-deftest gnosis-review-layout-latex-image-retains-independent-geometry ()
+  "Transfer native LaTeX image ownership without classifying subscripts as media."
+  (let* ((gnosis-center-content t)
+         (gnosis-latex-preview t)
+         (fill-column 5)
+         (image '(image :type svg :data "disposable test image")))
+    ;; Avoid external TeX processes, but exercise the real overlay transfer.
+    (cl-letf (((symbol-function 'org-format-latex)
+               (lambda (&rest _)
+                 (overlay-put (make-overlay (point-min) (point-max))
+                              'display image))))
+      (let* ((text (gnosis-org-format-string "$x + y$"))
+             (result (gnosis-review--format-string text)))
+        (should (equal-including-properties text result))
+        (should (eq 'independent (get-text-property 0 'gnosis-display-layout result)))
+        (should (equal image (get-text-property 0 'display result)))))))
+
 (provide 'gnosis-test-review-layout)
 ;;; gnosis-test-review-layout.el ends here

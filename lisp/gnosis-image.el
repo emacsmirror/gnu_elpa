@@ -336,7 +336,9 @@ Forward ACCEPTED-ALIASES only when supplied, preserving omitted updates."
         (setcdr image (plist-put (cdr image) :max-height
                                  (max 1 (- (window-body-height window t) 80))))
         (setq result (concat result (substring text start begin)
-                             (propertize " " 'display image 'gnosis-image-reference reference))
+                             (propertize " " 'display image
+                                          'gnosis-display-layout 'independent
+                                          'gnosis-image-reference reference))
               start end)))
     (concat result (substring text start))))
 

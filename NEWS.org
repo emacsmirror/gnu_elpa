@@ -3,6 +3,61 @@
 + [[https://git.thanosapollo.org/gnosis/][Upstream]]
 + [[https://thanosapollo.org/log/gnosis/][Changelog]]
 
+* 0.13.0
+#+date: 2026/09/20
+
+** Upgrading
++ Require keymap-popup 0.4.4 for post-answer popup ownership and cleanup.
++ Upgrade released schema 10 to schema 11 to add optional thema rubrics.
+  Existing answers, schedules and study history are preserved.  Released
+  schema 8 and 9 databases upgrade through the existing migration steps.
++ Back up the database, Org files and media before the first database open
+  with this version.  Downgrading to 0.12.0 requires its matching schema-10
+  backup, not a database already upgraded to schema 11.
++ Portable content format 5 includes ordinary managed images.  Exports
+  carry image bytes, but not original PDFs, region/occlusion cards or 3D
+  models.  Back up managed assets with ~gnosis-backup-data~ and preserve
+  original PDFs and other external source files separately.
+
+** Review and practice
++ Add rubric-based free-response questions with asynchronous evaluation.
+  Reviewers can inspect and override provisional feedback before accepting
+  a result.  Evaluation errors and cancellation do not record failed grades.
+  The optional evaluator receives the question, reference answer, rubric
+  and response; configure its backend before using this question type.
++ Show post-answer actions in a popup with the pending result and next
+  review date.  Practice feedback reports that the schedule is unchanged.
++ Add practice-completion notifications and scheduled review from completed
+  practice summaries through ~gnosis-review-summary-scheduled~, preserving
+  separate practice evidence.
++ Preserve the answered occurrence through editing, source navigation and
+  callbacks.  Replaced sessions, deleted cards and foreign databases cannot
+  receive stale grades or actions.
++ Complete typing exercises whose target ends with a newline.
+
+** Authoring and illustrations
++ Attach lecture illustrations to explanations with ~gnosis-lecture-attach~,
+  including local PDF page extraction and links to the original source.
++ Preserve complete drafts, source links and literal Org content through
+  narrowed editing, validation, cancellation and interrupted saves.
++ Resolve thema tags outside narrowing without changing question headings.
++ Preserve Anki model fields and note kinds, and refuse imports whose
+  destination database changes while input is being collected.
++ Preserve managed image paths and draft resources; improve model picking
+  precision and reject geometry changes during target publication.
+
+** Journals, navigation and reliability
++ Keep journal capture and template insertion inside the selected date,
+  including files visited through symbolic or hard links.
++ Preserve exact node selections, native metadata and source targets;
+  reconcile external file changes without indexing stale buffer contents.
++ Preserve dashboard selection, sorting and rendering ownership across
+  prompts and buffer changes.  Reduce repeated topic and study-day reads.
++ Validate scheduler ownership constraints when opening databases and keep
+  startup independent of optional Git integration.
++ Expand native command-loop regression coverage and require explicit test
+  completion receipts so interrupted suites cannot report success.
+
 * 0.12.0
 #+date: 2026/09/15
 

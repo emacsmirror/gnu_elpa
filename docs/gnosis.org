@@ -243,7 +243,7 @@ org-gnosis databases and older Gnosis schemas are not automatically
 imported.  Preserve their data and use matching older source or a
 separately verified conversion.  Follow the pre-first-open backup
 procedure in [[#database-upgrades][Database Upgrades and Rollback]] before opening an existing
-database with 0.12.0.
+database with 0.13.0.
 
 ** Version Control
 

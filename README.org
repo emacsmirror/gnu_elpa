@@ -59,7 +59,7 @@ Open =M-x gnosis-dashboard= to start, or =C-h i g (gnosis) RET= for
 the installed manual.  See [[file:docs/gnosis.org::#installation][Installation and Setup]] for directories and
 configuration.  Existing users: back up the old database, Org files and
 media *before the first database open* with upgraded code; see the
-manual's [[file:docs/gnosis.org::#database-upgrades][Database Upgrades and Rollback]] section for 0.12.0 (schema 10).
+manual's [[file:docs/gnosis.org::#database-upgrades][Database Upgrades and Rollback]] section for 0.13.0 (schema 11).
 
 ** Optional 3D support
 

@@ -6,7 +6,7 @@
 ;; Keywords: extensions
 ;; URL: https://git.thanosapollo.org/emacs-gnosis
 
-;; Version: 0.12.0
+;; Version: 0.13.0
 
 ;; Package-Requires: ((emacs "29.1") (compat "29.1.4.2")
 ;;                     (keymap-popup "0.4.4"))

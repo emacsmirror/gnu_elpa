@@ -97,6 +97,39 @@ For maintainers, this can also be useful to get a preview of how your
 package will look like before a release is cut.
 </p>
 
+<h2 id="badges">Badges</h2>
+
+<p>
+Every package on ELPA gets two <q>badges</q> (sometimes
+also <q>shields</q>).  These are small images that include the package
+name and the latest release number, that you can link to from other
+websites.  Here are two examples for how this looks like
+for <a href="https://elpa.gnu.org/packages/auctex.html">AUCTeX</a>:
+</p>
+
+<center>
+<img src="https://elpa.gnu.org/packages/auctex.svg" alt="Release Badge for GNU AUCTeX" />
+&emsp;
+<img src="https://elpa.gnu.org/devel/auctex.svg" alt="Development Badge for GNU AUCTeX" />
+</center>
+</p>
+
+<p>
+To use these images yourself, we recommend you copy one of the
+template from below, depending on your prefer markup language (you can
+always infer the URL for the badge by replacing <code>.html</code>
+from the package page URL with <code>.svg</code>):
+</p>
+
+<dl>
+<dt>HTML</dt><dd><pre>&lt;a href="https://elpa.gnu.org/packages/<var>FOO</var>.html"&gt;&lt;img src="https://elpa.gnu.org/packages/<var>FOO</var>.svg"&gt;&lt;/a&gt;</pre>
+</dd>
+<dt>Markdown</dt><dd><pre>[![https://elpa.gnu.org/packages/<var>FOO</var>.svg](https://elpa.gnu.org/packages/<var>FOO</var>.html)]</pre>
+</dd>
+<dt>Org mode</dt><dd><pre>[[[[https://elpa.gnu.org/packages/<var>FOO</var>.svg]]]][https://elpa.gnu.org/packages/<var>FOO</var>.html]</pre>
+</dd>
+</dl>
+
 <h2 id="contact">Contact</h2>
 
 <p>

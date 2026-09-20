@@ -1505,7 +1505,8 @@ PROGRAM, DESTINATION, ARGS is like in `elpaa--call'."
   (if (not elpaa--sandbox)
       (apply #'elpaa--call destination args)
     (elpaa--message "call-sandboxed %S" args)
-    (let ((dd (expand-file-name default-directory))) ;No `~' allowed!
+    ;; `--bind' doesn't allow ~ and doesn't like symlink destinations either.
+    (let ((dd (file-truename (expand-file-name default-directory))))
       (setq args (nconc `("--bind" ,dd ,dd) args)))
     (when (file-directory-p "/var/lib/texmf")
       ;; Hack for LaTeX.
@@ -2801,6 +2802,8 @@ If WITH-CORE is non-nil, it means we manage :core packages as well."
   (let* ((pkg (car pkg-spec))
          (default-directory (elpaa--pkg-root pkg-spec))
          (ignores (elpaa--spec-get pkg-spec :ignored-files))
+         ;; FIXME: Why ignore non-directory files that don't end in `.el'
+         ;; if we return only those files that end in `.el' anyway?
          (all-ignores '("." ".." ".git" ".dir-locals.el" ".mailmap"
                         ".github" ".travis.yml"
                         "test" "tests"))

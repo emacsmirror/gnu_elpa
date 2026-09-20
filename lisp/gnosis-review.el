@@ -75,6 +75,20 @@ then asks for binary success.  Neither revealing nor editing accepts a grade."
   :type '(choice (const typed) (const self-grade))
   :group 'gnosis)
 
+(defcustom gnosis-practice-retry-distance 10
+  "Position of a failed practice retry among subsequent presentations.
+The value must be a positive integer: 1 retries next, and 10 allows nine
+intervening presentations.  With fewer remaining items, retry at the tail.
+This affects only eligible failed practice retries, not retry limits,
+successful continuations, scheduled review order or FSRS scheduling.
+Changing this option affects future failures, not already queued retries."
+  :type 'natnum
+  :set (lambda (symbol value)
+         (unless (and (integerp value) (> value 0))
+           (user-error "Practice retry distance must be a positive integer"))
+         (set-default symbol value))
+  :group 'gnosis)
+
 (defvar gnosis-practice-completed-hook nil
   "Hook run with one event after a native practice batch completes.
 Each function receives a fresh API v1 plist: :api-version 1, :mode
@@ -897,10 +911,30 @@ An empty selection retains only its report, leaving the current batch intact."
         (gnosis-review--save-history state)))
     state))
 
-(defun gnosis-review--advance (state id success eligible next-event &optional skipped)
+(defun gnosis-review--retry-queue (remaining id distance)
+  "Return REMAINING with ID inserted at positive ordinal DISTANCE.
+A nil DISTANCE appends ID.  Leave the input list unchanged."
+  (if (null distance)
+      (append remaining (list id))
+    (unless (and (integerp distance) (> distance 0))
+      (user-error "Practice retry distance must be a positive integer"))
+    (let ((offset (min (1- distance) (length remaining))))
+      (append (seq-take remaining offset) (list id) (nthcdr offset remaining)))))
+
+(defun gnosis-review--practice-distance (state)
+  "Return the validated retry distance for practice STATE, otherwise nil."
+  (when (eq (gnosis-review-state-mode state) 'practice)
+    (unless (and (integerp gnosis-practice-retry-distance)
+                 (> gnosis-practice-retry-distance 0))
+      (user-error "Practice retry distance must be a positive integer"))
+    gnosis-practice-retry-distance))
+
+(defun gnosis-review--advance (state id success eligible next-event
+                                    &optional skipped retry-distance)
   "Return a fresh STATE advanced after ID and SUCCESS, or SKIPPED presentation.
 ELIGIBLE says whether ID can be retried.  NEXT-EVENT is the next attempt ID.
-Read no database or clock and leave STATE and its prior snapshots unchanged."
+RETRY-DISTANCE places failed practice retries; nil retains tail placement.
+Read no options, database or clock; leave STATE and its snapshots unchanged."
   (let* ((state (copy-gnosis-review-state state))
          (rest (cdr (gnosis-review-state-remaining state)))
          (retry (and (not skipped)
@@ -918,7 +952,12 @@ Read no database or clock and leave STATE and its prior snapshots unchanged."
                       (and (not success)
                            (not (member id (gnosis-review-state-requeued state)))))))
          (tail (and retry eligible)))
-    (setf (gnosis-review-state-remaining state) (if tail (append rest (list id)) rest)
+    (setf (gnosis-review-state-remaining state)
+          (if tail
+              (gnosis-review--retry-queue
+               rest id (and (eq (gnosis-review-state-mode state) 'practice)
+                            (not success) retry-distance))
+            rest)
           (gnosis-review-state-event-id state) next-event)
     ;; Retain why a required continuation was dropped, independently of its
     ;; accepted grade and of later eligibility changes.
@@ -968,6 +1007,7 @@ Read no database or clock and leave STATE and its prior snapshots unchanged."
 (defun gnosis-review-result (id success result)
   "Atomically accept RESULT for ID/SUCCESS and settle durable session progress."
   (let* ((state gnosis-review--state)
+         (retry-distance (and state (gnosis-review--practice-distance state)))
          (persistent (and state (gnosis-review-state-persistent-p state)))
          (db (gnosis--ensure-db))
          (accepted
@@ -992,7 +1032,7 @@ Read no database or clock and leave STATE and its prior snapshots unchanged."
                   (let* ((before (plist-put (gnosis-review--state-data stored) :undo nil))
                          (next (gnosis-review--advance
                                 stored id success (gnosis-study-eligible-p id)
-                                (gnosis-scheduler-event-id))))
+                                (gnosis-scheduler-event-id) nil retry-distance)))
                     (setf (gnosis-review-state-undo next)
                           (list :event-id (plist-get result :event-id) :thema-id id
                                 :correction-id (gnosis-scheduler-event-id) :before before)
@@ -1954,6 +1994,7 @@ This is a helper function for `gnosis-review-session'."
   (let ((gnosis-review--session-validate
          (or gnosis-review--session-validate (gnosis-review--session-validator state)))
         (remaining (gnosis-review-state-remaining state))
+        (retry-distance (gnosis-review--practice-distance state))
         (checkpoint (copy-tree (gnosis-review--state-data state))))
     (gnosis-review--session-check checkpoint (current-buffer))
     (unless (equal thema (car remaining))
@@ -1996,7 +2037,9 @@ This is a helper function for `gnosis-review-session'."
           (when requeue-p
             (cl-incf (gnosis-review-state-total state)))
           (setf (gnosis-review-state-remaining state)
-                (if requeue-p (append rest (list thema)) rest)
+                (if requeue-p
+                    (gnosis-review--retry-queue rest thema retry-distance)
+                  rest)
                 (gnosis-review-state-requeued state)
                 (if requeue-p (cons thema requeued) requeued)))))
     (let ((advanced (copy-tree (gnosis-review--state-data state))))

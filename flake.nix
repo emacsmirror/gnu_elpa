@@ -46,6 +46,7 @@
         ./lisp/gnosis-agent-eval-hermes.el
         ./lisp/gnosis-study.el
         ./lisp/gnosis-agent.el
+        ./lisp/gnosis-agent-content.el
         ./lisp/gnosis-scheduler.el
         ./lisp/gnosis-sqlite.el
         ./lisp/gnosis-tags.el

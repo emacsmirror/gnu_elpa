@@ -37,7 +37,7 @@ INFO := docs/gnosis.info
 MODULES := gnosis-sqlite gnosis-tl gnosis-utils gnosis-answer gnosis-org \
 	gnosis-logical-day gnosis-fsrs gnosis-cloze gnosis-db gnosis-assets gnosis-backup gnosis-model gnosis-image gnosis-lecture gnosis-scheduler gnosis-vc \
 	gnosis-tags gnosis-links gnosis-monkeytype \
-	gnosis-nodes gnosis-journal gnosis gnosis-study gnosis-review gnosis-agent-eval gnosis-agent-eval-hermes gnosis-agent gnosis-dashboard \
+	gnosis-nodes gnosis-journal gnosis gnosis-study gnosis-review gnosis-agent-eval gnosis-agent-eval-hermes gnosis-agent gnosis-agent-content gnosis-dashboard \
 	gnosis-export-import gnosis-anki
 SOURCES := $(addprefix $(LISP_DIR)/,$(addsuffix .el,$(MODULES)))
 PACKAGE_LINT_SOURCES := $(LISP_DIR)/gnosis.el \

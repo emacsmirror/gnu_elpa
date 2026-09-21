@@ -211,6 +211,12 @@ Buffers are always killed upon exiting Dired.
 Large files are previewed in ~hexl-mode~ mode. The user can disable
 this mode by typing =C-c C-c=.
 
+#+vindex: dired-preview-enable-local-variables
+By default the preview window does not evaluate any local variables.
+The user option ~dired-preview-enable-local-variables~ can be set to
+~t~ to change this behaviour. [ The ~dired-preview-enable-local-variables~
+is part of {{{development-version}}}. ]
+
 I took inspiration for ~dired-preview~ from the now unmaintained
 ~peep-dired~ package by Adam Sokolnicki: <https://github.com/asok/peep-dired>.
 My original plan was to volunteer to maintain ~peep-dired~ but I
@@ -380,7 +386,7 @@ matters.
 
 + Ideas and/or user feedback :: Alex Popescu, Bruno Boal, Ed Hamilton,
   Karthik Chikmagalur, Peter Prevos, Ramon Diaz-Uriarte, Yiyu Zhou,
-  abdulnafe-t, artelse, dasoju, fab6, Inkbottle00, qhga.
+  abdulnafe-t, artelse, dasoju, fab6, hayatama, Inkbottle00, qhga.
 
 * GNU Free Documentation License
 :PROPERTIES:

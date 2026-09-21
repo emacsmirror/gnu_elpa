@@ -274,6 +274,13 @@ in the `dired-preview-with-window' macro."
   :package-version '(dired-preview . "0.7.0")
   :group 'dired-preview)
 
+(defcustom dired-preview-enable-local-variables nil
+  "When non-nil, enable local variables.
+This can slow down the creation of the preview window."
+  :type 'boolean
+  :package-version '(dired-preview . "0.8.0")
+  :group 'dired-preview)
+
 (defvar dired-preview--buffers nil
   "List with buffers of previewed files.")
 
@@ -476,14 +483,18 @@ FILE."
      (t
       (cons 'text file)))))
 
+(defun dired-preview--use-local-value-p ()
+  "Get `dired-preview-enable-local-variables' for `dired-preview-with-file-setup'."
+  dired-preview-enable-local-variables)
+
 (defmacro dired-preview-with-file-setup (&rest body)
   "Run BODY while setting up the right preview environment."
   (declare (indent 0))
   `(cl-letf (((symbol-function 'recentf-track-opened-file) #'ignore))
      (let ((file (cdr file))
            (inhibit-message t)
-           (enable-dir-local-variables nil)
-           (enable-local-variables nil)
+           (enable-dir-local-variables (dired-preview--use-local-value-p))
+           (enable-local-variables (dired-preview--use-local-value-p))
            (vc-handled-backends nil)
            (find-file-hook nil)
            (inhibit-x-resources t)

@@ -150,8 +150,7 @@ Top level block comments are highlighted with `font-lock-comment-face'.")
   '((t :weight bold :inherit font-lock-escape-face))
   "Face for #\\ in character literals.")
 
-(defface lisp-ts-mode-character-name
-  '((t :inherit font-lock-builtin-face))
+(defface lisp-ts-mode-character-name '((t :inherit font-lock-builtin-face))
   "Face for the names of characters in character literals.")
 
 (defface lisp-ts-mode-positive-read-conditional
@@ -191,6 +190,12 @@ Top level block comments are highlighted with `font-lock-comment-face'.")
   '((t :weight extra-bold
        :inherit (font-lock-warning-face lisp-ts-mode-comma)))
   "Face for ,. (unquote nconc).")
+
+(defface lisp-ts-mode-0-bit '((t :inherit success))
+  "Face for 0s in #b0 rationals and #*0 bit vectors.")
+
+(defface lisp-ts-mode-1-bit '((t :inherit error))
+  "Face for 1s in #b1 rationals and #*1 bit vectors.")
 
 (defconst lisp-ts-mode--block-comment-faces
   [font-lock-comment-face
@@ -389,12 +394,6 @@ arguments."
          (add-face-text-property (point) nend 'font-lock-comment-face))
         ("block_comment" (lisp-ts-mode--fontify-nested-comments node 0))))))
 
-(defface lisp-ts-mode-0-bit '((t :inherit success))
-  "Face for 0s in #b0 rationals and #*0 bit vectors.")
-
-(defface lisp-ts-mode-1-bit '((t :inherit error))
-  "Face for 1s in #b1 rationals and #*1 bit vectors.")
-
 (defun lisp-ts-mode--fontify-bits (node override start end &rest _)
   "Fontify 0s and 1s in the rational or bit_vector treesit NODE.
 See `treesit-font-lock-settings' for the meaning of the remaining
@@ -511,10 +510,36 @@ and the character's name is given the face
     (quote reader-macro character bits))
   "`lisp-ts-mode' settings for `treesit-font-lock-feature-list'.")
 
-;; unfortunately the generic treesit implementations of some commands like
-;; `forward-sexp' and `up-list' don't seem to play nice with this mode, so we
-;; reinvent the wheeel a bit. but FIXME: try to get the native treesit ones to
-;; work
+(defun lisp-ts-mode--extend-fl-region ()
+  "Added to `font-lock-extend-region-functions' in `lisp-ts-mode'.
+
+Prevents the font-lock region from starting or ending in the middle of
+an expression or comment."
+  (defvar font-lock-beg)
+  (defvar font-lock-end)
+  (let* ((thing '(or sexp "block_comment" "line_comment"))
+         (beg-node (lisp-ts-mode--thing-node-at-pos thing font-lock-beg t))
+         (change-beg (and beg-node (< (ts-node-start beg-node)
+                                      font-lock-beg
+                                      (ts-node-end beg-node)))))
+    (when change-beg
+      (setq font-lock-beg (ts-node-start beg-node)))
+    (or (cond*
+          ((and beg-node (< (ts-node-start beg-node)
+                            font-lock-end
+                            (ts-node-end beg-node)))
+           (setq font-lock-end (ts-node-end beg-node)))
+          ((eq (ts-node-end beg-node) font-lock-end) nil)
+          ((bind-and*
+            (end-node (lisp-ts-mode--thing-node-at-pos thing (1- font-lock-end) t))
+            (_ (< (ts-node-start end-node)
+                  font-lock-end
+                  (ts-node-end end-node))))
+           (setq font-lock-end (ts-node-end end-node))))
+        change-beg)))
+
+
+;;; utilities for identifying nodes and parsers
 
 ;; we need this instead of `treesit-thing-at' to catch nodes directly preceding
 ;; POS
@@ -583,6 +608,45 @@ NODE is expected to be the parser's root node."
       ((app ts-node-type "format_group")
        (lisp-ts-mode--format-directive-at-pos child pos)))))
 
+;; NOTE: these 2 are also used by `gaudy-cl-mode'
+(defun lisp-ts-mode--parser-ranges (parser)
+  "Return an object that saves PARSER's ranges in order to restore them later.
+The value is a pair (PARSER . RANGE-MARKERS) where PARSER is the same as
+the argument and RANGE-MARKERS are the `treesit-parser-included-ranges'
+of PARSER with the boundaries as markers instead of integers. Call
+`lisp-ts-mode--restore-parser-ranges' to reset PARSER's ranges to the
+current positions of the markers."
+  (cons parser (mapcar (lambda (r)
+                         (cons (copy-marker (car r) t)
+                               (copy-marker (cdr r) t)))
+                       (ts-parser-included-ranges parser))))
+
+(defun lisp-ts-mode--restore-parser-ranges (prange &optional kill-markers)
+  "Update the ranges for the parser state PRANGE.
+PRANGE is an object returned by `lisp-ts-mode--parser-ranges'. Update
+the parser's included ranges to the current positions of the markers in
+PRANGE. If KILL-MARKERS is non-nil, set the markers to point nowhere.
+This is intended to only be used with parsers containing a single range,
+because it doesn't verify that the new ranges don't overlap."
+  (let ((p (car prange))
+        (newranges ()))
+    (pcase-dolist (`(,lo . ,hi) (cdr prange))
+      (when (> hi lo)
+        ;; (pulse-momentary-highlight-region lo hi)
+        ;; (sit-for 0.5)
+        (push (cons (marker-position lo)
+                    (marker-position hi))
+              newranges))
+      (when kill-markers
+        (set-marker lo nil)
+        (set-marker hi nil)))
+    (ts-parser-set-included-ranges
+     p (or (nreverse newranges)
+           ;; range of nil means the whole buffer, so give it an empty range
+           '((1 . 1))))))
+
+
+;;; FORMAT string indentation
 (defcustom lisp-ts-mode-format-indent-auto-escape-eol "~@"
   "Whether a ~<newline> directive is inserted when indenting format strings.
 
@@ -599,10 +663,8 @@ whitespace of the output."
                          :default "~:@_~")
                  (string :tag "String used anywhere else" :default "~@")))
   :safe (lambda (v)
-          (or (symbolp v)
-              (stringp v)
-              (and (consp v)
-                   (stringp (car v))
+          (or (atom v)
+              (and (stringp (car v))
                    (stringp (cdr v))))))
 
 (defcustom lisp-ts-mode-format-indent-predicate
@@ -756,43 +818,6 @@ format_string node which contains point. Return the column to indent to."
       (t (goto-char (ts-node-start starter))
          (current-column)))))
 
-;; NOTE: these 2 are also used by `gaudy-cl-mode'
-(defun lisp-ts-mode--parser-ranges (parser)
-  "Return an object that saves PARSER's ranges in order to restore them later.
-The value is a pair (PARSER . RANGE-MARKERS) where PARSER is the same as
-the argument and RANGE-MARKERS are the `treesit-parser-included-ranges'
-of PARSER with the boundaries as markers instead of integers. Call
-`lisp-ts-mode--restore-parser-ranges' to reset PARSER's ranges to the
-current positions of the markers."
-  (cons parser (mapcar (lambda (r)
-                         (cons (copy-marker (car r) t)
-                               (copy-marker (cdr r) t)))
-                       (ts-parser-included-ranges parser))))
-
-(defun lisp-ts-mode--restore-parser-ranges (prange &optional kill-markers)
-  "Update the ranges for the parser state PRANGE.
-PRANGE is an object returned by `lisp-ts-mode--parser-ranges'. Update
-the parser's included ranges to the current positions of the markers in
-PRANGE. If KILL-MARKERS is non-nil, set the markers to point nowhere.
-This is intended to only be used with parsers containing a single range,
-because it doesn't verify that the new ranges don't overlap."
-  (let ((p (car prange))
-        (newranges ()))
-    (pcase-dolist (`(,lo . ,hi) (cdr prange))
-      (when (> hi lo)
-        ;; (pulse-momentary-highlight-region lo hi)
-        ;; (sit-for 0.5)
-        (push (cons (marker-position lo)
-                    (marker-position hi))
-              newranges))
-      (when kill-markers
-        (set-marker lo nil)
-        (set-marker hi nil)))
-    (ts-parser-set-included-ranges
-     p (or (nreverse newranges)
-           ;; range of nil means the whole buffer, so give it an empty range
-           '((1 . 1))))))
-
 (defun lisp-ts-mode--indent-format-line (parser)
   "Indent the current line, which should start within the range of PARSER.
 PARSER is a `cl-format' treesit parser. If there is nothing to indent,
@@ -884,57 +909,8 @@ where indentation stops, defaulting to the end of the sexp."
         (funcall orig)
       lindent)))
 
-(defun lisp-ts-mode-up-list (arg escape-strings no-syntax-crossing)
-  "Used as `up-list-function' in `lisp-ts-mode'."
-  (if (not no-syntax-crossing)
-      (up-list-default-function arg escape-strings no-syntax-crossing)
-    (let* ((pred '(or "\\`string\\'" list))
-           (node (lisp-ts-mode--thing-node-at-pos pred))
-           (backwards-p (minusp arg))
-           (arg (truncate (abs arg)))
-           (parent nil))
-      (unless (or (= (ts-node-start node) (point))
-                  (= (ts-node-end node) (point)))
-        (and (equal (ts-node-type node) "string")
-             (not escape-strings)
-             (plusp arg)
-             (error "At top level"))
-        (decf arg))
-      (while (and (plusp arg)
-                  (setq parent (ts-parent-until node 'list)))
-        (decf arg)
-        (setq node parent))
-      (goto-char (if backwards-p
-                     (ts-node-start node)
-                   (ts-node-end node))))))
-
-(defun lisp-ts-mode--extend-fl-region ()
-  "Added to `font-lock-extend-region-functions' in `lisp-ts-mode'.
-
-Prevents the font-lock region from starting or ending in the middle of
-an expression."
-  (defvar font-lock-beg)
-  (defvar font-lock-end)
-  (let* ((thing '(or sexp "block_comment" "line_comment"))
-         (beg-node (lisp-ts-mode--thing-node-at-pos thing font-lock-beg t))
-         (change-beg (and beg-node (< (ts-node-start beg-node)
-                                      font-lock-beg
-                                      (ts-node-end beg-node)))))
-    (when change-beg
-      (setq font-lock-beg (ts-node-start beg-node)))
-    (or (cond*
-          ((and beg-node (< (ts-node-start beg-node)
-                            font-lock-end
-                            (ts-node-end beg-node)))
-           (setq font-lock-end (ts-node-end beg-node)))
-          ((eq (ts-node-end beg-node) font-lock-end) nil)
-          ((bind-and*
-            (end-node (lisp-ts-mode--thing-node-at-pos thing (1- font-lock-end) t))
-            (_ (< (ts-node-start end-node)
-                  font-lock-end
-                  (ts-node-end end-node))))
-           (setq font-lock-end (ts-node-end end-node))))
-        change-beg)))
+
+;;; syntax-propertize stuff
 
 (defconst lisp-ts-mode--syntax-propertize-query
   (when (fboundp 'ts-query-compile)
@@ -1052,6 +1028,121 @@ character."
             (put-text-property prefix-end (ts-node-end node)
                                'syntax-table
                                lisp-ts-mode--format-directive-syntax-table)))))))
+
+
+;;; imenu
+;; we don't use `treesit-simple-imenu-settings' because it's not designed to
+;; work with this type of grammar. *every* rule would need to match *every* list
+;; node, then use a predicate which carefully checks if that list node seems to
+;; be a defun. that's probably very slow (tho i didn't check), and the
+;; implementation would look very complicated and ugly. instead, we just use one
+;; big exhaustive query in a custom `imenu-create-index-function'. the GROUPED
+;; argument to `treesit-query-capture' really comes in handy here.
+
+;; TODO: cffi/sb-alien types
+(defvar lisp-ts-mode--imenu-query
+  (let ((make-query
+         (lambda (operators name-query)
+           `(list
+             :anchor
+             (interned_symbol
+              name:
+              ((symbol_tokens) @operator
+               ,(if (listp operators)
+                    `(:match? @operator ,(concat "\\`" (regexp-opt operators) "\\'"))
+                  `(:eq? @operator ,operators))))
+             :anchor ,@name-query))))
+    `(,(funcall make-query "defun" '([(symbol) (list :anchor (symbol))] @function))
+      ,(funcall make-query '("defmacro" "define-modify-macro") '((symbol) @macro))
+      ,(funcall make-query '("defgeneric" "defmethod")
+                '([(symbol) (list :anchor (symbol))] @generic))
+      ,(funcall make-query "defclass" '((symbol) @class))
+      ,(funcall make-query "define-condition" '((symbol) @condition))
+      ,(funcall make-query "defstruct" '([(symbol) @struct
+                                          (list :anchor (symbol) @struct)]))
+      ,(funcall make-query "deftype" '((symbol) @type-specifier))
+      ,(funcall make-query '("defvar"
+                             "defparameter"
+                             "defconstant"
+                             "define-constant"
+                             "define-symbol-macro")
+                '((symbol) @variable))
+      ,(funcall make-query '("defsetf" "define-setf-expander")
+                '((symbol) @setf-expander))
+      ,(funcall make-query "def-ir1-translator" ;sbcl
+                '((symbol) @special-operator))
+      ,(funcall make-query "define-declaration" ;cltl2
+                '((symbol) @declaration))
+      ,(funcall make-query '("defpattern" "defpattern-inline") ;trivia
+                '((symbol) @pattern))
+      ,(funcall make-query '("define-compiler-macro"
+                             ;; the rest are sbcl, and probly ccl
+                             "deftransform"
+                             "deftransforms"
+                             "defoptimizer"
+                             "defoptimizers"
+                             "define-source-transform")
+                '([(symbol) (list)] @optimizer))))
+  "Query used to generate `imenu' list in `lisp-ts-mode'.")
+
+(defun lisp-ts-mode--imenu ()
+  (defvar imenu-use-markers)
+  (setq lisp-ts-mode--imenu-query
+        (ts-query-compile 'common-lisp lisp-ts-mode--imenu-query))
+  (let ((alist ()))
+    (dolist (cgroup (ts-query-capture ts-primary-parser lisp-ts-mode--imenu-query
+                                      nil nil nil t))
+      (pcase-exhaustive cgroup
+        (`((operator . ,op-node) (,type . ,name-node))
+         (push (cons (concat (ts-node-text op-node) " " (ts-node-text name-node))
+                     (let ((pos (ts-node-start (ts-node-parent op-node))))
+                       (if imenu-use-markers
+                           (copy-marker pos t)
+                         pos)))
+               (alist-get type alist)))))
+    (mapcar (pcase-lambda (`(,capture . ,entries))
+              (cons (pcase capture
+                      ((or 'function 'generic) "Functions")
+                      ((or 'struct 'class 'condition 'type-specifier) "Types")
+                      ('variable "Variables")
+                      ('pattern "Patterns")
+                      ;; not sure where to put setf-expander
+                      ((or 'macro 'setf-expander) "Macros")
+                      ('special-operator "Special Operators")
+                      ('optimizer "Optimizer"))
+                    entries))
+            alist)))
+
+
+;;; frontend
+
+;; unfortunately the generic treesit implementations of some commands like
+;; `forward-sexp' and `up-list' don't seem to play nice with this mode, so we
+;; reinvent the wheeel a bit. but FIXME: try to get the native treesit ones to
+;; work
+(defun lisp-ts-mode-up-list (arg escape-strings no-syntax-crossing)
+  "Used as `up-list-function' in `lisp-ts-mode'."
+  (if (not no-syntax-crossing)
+      (up-list-default-function arg escape-strings no-syntax-crossing)
+    (let* ((pred '(or "\\`string\\'" list))
+           (node (lisp-ts-mode--thing-node-at-pos pred))
+           (backwards-p (minusp arg))
+           (arg (truncate (abs arg)))
+           (parent nil))
+      (unless (or (= (ts-node-start node) (point))
+                  (= (ts-node-end node) (point)))
+        (and (equal (ts-node-type node) "string")
+             (not escape-strings)
+             (plusp arg)
+             (error "At top level"))
+        (decf arg))
+      (while (and (plusp arg)
+                  (setq parent (ts-parent-until node 'list)))
+        (decf arg)
+        (setq node parent))
+      (goto-char (if backwards-p
+                     (ts-node-start node)
+                   (ts-node-end node))))))
 
 (defvar-keymap lisp-ts-mode--mode-line-map
   "<mode-line> <mouse-1>" #'lisp-ts-mode-toggle-comment-style)
@@ -1195,6 +1286,7 @@ This should be set before `lisp-ts-mode' is activated.")
   (setq-local comment-end-skip "[ \t]*\\(\\s>\\||#\\)")
   (setq-local font-lock-comment-end-skip "|#")
   (setq imenu-case-fold-search t)
+  (setq imenu-create-index-function #'lisp-ts-mode--imenu)
   (setq-local lisp-fill-paragraphs-as-doc-string nil) ;specifically designed for elisp
   (setq-local comment-quote-nested nil)
   (when (static-if (fboundp 'ts-ensure-installed)
@@ -1397,7 +1489,7 @@ format grammar automatically."
        (syntax-ppss-flush-cache (point-min))
        (font-lock-flush))))
 
-;; declare doesn't work in `define-minor-mode'
+;; `declare' doesn't work in `define-minor-mode'
 (function-put 'lisp-ts-format-support-mode 'completion-predicate
               (lambda (_cmd buf)
                 (with-current-buffer buf

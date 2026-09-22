@@ -167,6 +167,15 @@ main ffs presentation slides buffer (`ffs--slides-buffer').")
 (defvar-local ffs--default-face-height-cookie nil
   "Cookie returned from `face-remap-add-relative', for later removal.")
 
+(defvar ffs--pkg-dir
+  (and-let* ((file (or (and load-in-progress load-file-name)
+                       (eval-when-compile (macroexp-file-name))
+                       (locate-library "ffs")))
+             (dir (file-name-directory file)))
+    dir)
+  "The directory where `ffs' is located.")
+
+
 ;;;; Slide count / presentation progress
 
 (declare-function page--what-page "page")
@@ -553,6 +562,17 @@ A numeric ARG serves as a repeat count."
         (setq c (+ c 1))
         (ffs-goto-next))
       (fringe-mode fringe))))
+
+(defun ffs-news ()
+  "Show ffs news in a manner similar to `view-emacs-news'."
+  (interactive)
+  (if ffs--pkg-dir
+      (progn
+        (find-file (expand-file-name "NEWS" ffs--pkg-dir))
+        (when (fboundp 'emacs-news-view-mode)
+          (emacs-news-view-mode))
+        (goto-address-mode 1))
+    (message "Could not find ffs NEWS file")))
 
 
 ;;;; Main minor modes

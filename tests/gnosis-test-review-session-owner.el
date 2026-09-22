@@ -129,9 +129,15 @@
                        (setq fired t
                              view (gnosis-test-session-owner--replace owner mutation))))))
       (with-temp-file file
-        (insert "#+title: Source\n* Source\n:PROPERTIES:\n:ID: source\n:END:\nPassage\n"))
+        (insert "#+title: Source\n* Source\n:PROPERTIES:\n:ID: source\n:END:\nPassage\n")
+        (when (eq boundary 'completion)
+          (insert "* Other source\n:PROPERTIES:\n:ID: other-source\n:END:\nOther passage\n")))
       (gnosis-nodes-update-file file)
       (gnosis--insert-into 'thema-links '([222 "source"]))
+      ;; A sole source now opens directly.  Exercise completion ownership
+      ;; with a genuinely plural selection, not an unreachable prompt.
+      (when (eq boundary 'completion)
+        (gnosis--insert-into 'thema-links '([222 "other-source"])))
       (switch-to-buffer owner)
       (gnosis-test-content--state mode)
       (setq answer (gnosis-test-content--answer "basic")

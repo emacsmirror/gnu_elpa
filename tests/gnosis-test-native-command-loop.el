@@ -93,5 +93,9 @@
   "Repeated multiline capture and local TODOs retain dates across reopening."
   (gnosis-test-native--run 'journal))
 
+(ert-deftest gnosis-test-native-sources ()
+  "Source open, choice, cancel and return preserve both modes' pending input."
+  (gnosis-test-native--run 'sources))
+
 (provide 'gnosis-test-native-command-loop)
 ;;; gnosis-test-native-command-loop.el ends here

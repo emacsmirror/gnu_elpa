@@ -341,6 +341,77 @@
           (should (equal (cdr entry) (org-id-get))))
         (kill-buffer (get-file-buffer gnosis-journal-file))))))
 
+(defun gnosis-native--sources ()
+  "Exercise optional source choice, direct open and cancellation in both modes."
+  (require 'gnosis-lecture)
+  (dolist (mode '(due practice))
+    (dolist (scenario '(sole choose cancel lecture missing))
+      (gnosis-test-with-db
+        (let* ((gnosis-nodes-dir gnosis-dir)
+               (node-file (expand-file-name "source.org" gnosis-dir))
+               (image-file (expand-file-name "lecture.png" gnosis-dir))
+               (source-id "ordered-source")
+               (gnosis-review-buffer-name "*Native Source Review*")
+               (gnosis-review-basic-input 'typed)
+               (gnosis-monkeytype-enable nil)
+               (gnosis-center-content nil)
+               (opened 0) (prompts 0)
+               (gnosis-native--inputs '("v" "q"))
+               (gnosis-native--accepted nil))
+          (with-temp-file node-file
+            (insert ":PROPERTIES:\n:ID: ordered-source\n:END:\n#+title: Amino acids\n\nSource prose.\n"))
+          (gnosis-nodes-update-file node-file)
+          (let ((coding-system-for-write 'no-conversion))
+            (with-temp-file image-file
+              (set-buffer-multibyte nil)
+              (insert (base64-decode-string
+                       "iVBORw0KGgoAAAANSUhEUgAAAAgAAAAGCAIAAABxZ0isAAAAEUlEQVR4nGP4UKGBFTEMpAQAIGBLAbAg65EAAAAASUVORK5CYII="))))
+          (gnosis-add-thema-fields
+           "basic" "Question" nil '("old")
+           (concat "Explanation\n"
+                   (unless (memq scenario '(lecture missing))
+                     (format "[[id:%s][Amino acids]]\n" source-id))
+                   (unless (eq scenario 'sole)
+                     (gnosis-lecture--citation image-file nil)))
+           nil 0 (unless (memq scenario '(lecture missing)) (list source-id)) nil 222)
+          (when (eq scenario 'missing) (delete-file image-file))
+          (let* ((owner (gnosis-review--setup-buffer '(222) mode))
+                 (pick (lambda ()
+                         (cl-incf prompts)
+                         (gnosis-native--input (if (eq scenario 'cancel) "\7" "Amino acids\r"))))
+                 (visit (lambda ()
+                          (when gnosis-link-view-mode
+                            (cl-incf opened)
+                            (should (equal (file-truename buffer-file-name)
+                                           (file-truename (if (eq scenario 'lecture) image-file node-file))))
+                            (gnosis-native--input "\3\3")))))
+            (unwind-protect
+                (progn
+                  (switch-to-buffer owner)
+                  (gnosis-test-content--state mode)
+                  (gnosis-native--input "old\r")
+                  (let* ((gnosis-native--answer (gnosis-review-basic 222))
+                         (gnosis-native--before (gnosis-test-content--evidence))
+                         (schedule (gnosis-select '* 'scheduler-state))
+                         (minibuffer-setup-hook (cons pick minibuffer-setup-hook))
+                         (gnosis-link-view-mode-hook (list visit)))
+                    (advice-add 'gnosis-review--read-action :around #'gnosis-native--read)
+                    (advice-add 'gnosis-review-result :around #'gnosis-native--accept)
+                    (catch 'review-loop (gnosis-review-actions t 222 (cdr gnosis-native--answer)))
+                    (should gnosis-native--accepted)
+                    (should-not gnosis-native--inputs)
+                    (should (= prompts (if (memq scenario '(choose cancel)) 1 0)))
+                    (should (= opened (if (memq scenario '(cancel missing)) 0 1)))
+                    (should (= (recursion-depth) 0))
+                    (when (eq mode 'practice)
+                      (should (equal schedule (gnosis-select '* 'scheduler-state))))))
+              (advice-remove 'gnosis-review--read-action #'gnosis-native--read)
+              (advice-remove 'gnosis-review-result #'gnosis-native--accept)
+              (dolist (buffer (list owner (get-file-buffer node-file) (get-file-buffer image-file)))
+                (when (buffer-live-p buffer) (kill-buffer buffer)))))
+          (gnosis-native--log "PASS sources mode=%S scenario=%S opened=%d prompts=%d"
+                              mode scenario opened prompts))))))
+
 (defun gnosis-native--run ()
   "Run the selected native journey and exit with an explicit receipt."
   (condition-case error-data
@@ -364,6 +435,7 @@
           ("review" (gnosis-native--review))
           ("feedback" (gnosis-native--feedback))
           ("journal" (gnosis-native--journal))
+          ("sources" (gnosis-native--sources))
           (_ (error "Unknown native journey")))
         (should (= (recursion-depth) 0))
         (gnosis-native--log "PASS native journey depth=0")

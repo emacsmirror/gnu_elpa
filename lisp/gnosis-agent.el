@@ -32,13 +32,13 @@
   "Pending launch records, owned by exact database, session and token.")
 
 (defun gnosis-agent--session (session-id)
-  "Read the exact practice SESSION-ID, never the latest batch."
+  "Read the exact study SESSION-ID, never the latest batch."
   (unless (and (stringp session-id) (not (string-empty-p session-id)))
     (user-error "Session ID must be a nonempty string"))
   (let ((data (gnosis-get 'data 'study-history `(= session-id ,session-id))))
     (unless (and (equal 1 (plist-get data :version))
-                 (eq 'practice (plist-get data :mode)))
-      (user-error "Unknown practice session: %s" session-id))
+                 (memq (plist-get data :mode) '(practice due)))
+      (user-error "Unknown study session: %s" session-id))
     (gnosis-review--check-frozen-policy (plist-get data :policy))
     (apply #'gnosis-review-state-create :persistent-p t
            :database (gnosis--ensure-db) (cddr data))))
@@ -85,8 +85,8 @@ boundary; neither accepts a pending grade."
                 (let ((gnosis-review-buffer-name (plist-get record :buffer-name)))
                   (gnosis-review--resume
                    (cons (plist-get record :db) (gnosis-review--state-data state))))))))
-      (quit (message "Gnosis practice interrupted; resume the same session"))
-      (error (message "Gnosis practice stopped: %s" (error-message-string err))))))
+      (quit (message "Gnosis study interrupted; resume the same session"))
+      (error (message "Gnosis study stopped: %s" (error-message-string err))))))
 
 (defun gnosis-agent--schedule (state)
   "Schedule exact STATE for native input after returning to the event loop."
@@ -111,7 +111,7 @@ boundary; neither accepts a pending grade."
           (setf (plist-get record :timer) (run-with-timer 0 nil #'gnosis-agent--launch record))
         (error
          (gnosis-agent--release record)
-         (message "Practice reserved but not launched: %s" (error-message-string err)))))))
+         (message "Study reserved but not launched: %s" (error-message-string err)))))))
 
 (cl-defun gnosis-agent-start-practice (&key thema-ids topic-ids limit policy)
           "Reserve native practice and return API v1 status immediately.
@@ -150,6 +150,89 @@ Refuse active native input.  The human answers later; this records no grade."
               (gnosis-agent--schedule state)
               (gnosis-agent-status (gnosis-review-state-session-id state)))))
 
+(defun gnosis-agent--group-selection (tags thema-groups limit due)
+  "Resolve ordered TAGS or THEMA-GROUPS with unique LIMIT and DUE eligibility.
+Return selection metadata with explicit per-group dispositions.  First
+membership wins, even when excluded.  Tag members use ascending integer IDs;
+explicit groups retain their input order.  Never shuffle caller input."
+  (unless (and (integerp limit) (> limit 0)
+               (if tags (null thema-groups) thema-groups)
+               (proper-list-p (or tags thema-groups))
+               (if tags
+                   (seq-every-p (lambda (tag) (and (stringp tag) (not (string-empty-p tag)))) tags)
+                 (seq-every-p (lambda (ids) (and (proper-list-p ids) (seq-every-p #'integerp ids)))
+                              thema-groups)))
+    (user-error "Supply ordered tags or thema groups and a positive unique limit"))
+  (let* ((groups (if tags
+                     (mapcar (lambda (tag) (sort (gnosis-get-tag-themata tag) #'<)) tags)
+                   (copy-tree thema-groups)))
+         (all (delete-dups (apply #'append (copy-tree groups))))
+         (rows (when all
+                 (gnosis-sqlite-select-batch
+                  (gnosis--ensure-db)
+                  "SELECT t.id, s.suspended, s.due_day FROM themata t
+                    JOIN scheduler_state s ON s.thema_id = t.id WHERE t.id IN (%s)" all)))
+         (eligible (gnosis-study--eligible-ids all rows (and due (gnosis--today-int))))
+         (selected (seq-take eligible limit))
+         (seen nil)
+         (reports
+          (cl-loop for group in groups for index from 0 collect
+                   (let* ((members (delete-dups (copy-sequence group)))
+                          (overlap (seq-intersection members seen))
+                          (owned (seq-difference members seen)))
+                     (setq seen (append seen owned))
+                     (list :tag (nth index tags) :requested-ids (vconcat group)
+                           :overlap-ids (vconcat overlap)
+                           :excluded-ids (vconcat (seq-difference owned eligible))
+                           :omitted-ids (vconcat (seq-difference
+                                                 (seq-intersection owned eligible) selected))
+                           :selected-ids (vconcat (seq-intersection owned selected)))))))
+    (list :limit limit :candidates (length all) :eligible (length eligible)
+          :selected (length selected) :shortfall (max 0 (- limit (length selected)))
+          :omitted-by-limit (max 0 (- (length eligible) limit))
+          :excluded-ids (vconcat (seq-difference all eligible))
+          :groups (vconcat reports))))
+
+(defun gnosis-agent--start-groups (mode tags thema-groups limit policy)
+  "Reserve MODE using TAGS or THEMA-GROUPS, LIMIT and practice POLICY."
+  (let* ((target (gnosis-review--session-target))
+         (selection (gnosis-agent--group-selection tags thema-groups limit (eq mode 'due)))
+         (ids (mapcan (lambda (group) (append (plist-get group :selected-ids) nil))
+                      (append (plist-get selection :groups) nil)))
+         (state (gnosis-review--reserve-batch ids mode policy selection target)))
+    (gnosis-agent--schedule state)
+    (gnosis-agent-status (gnosis-review-state-session-id state))))
+
+(cl-defun gnosis-agent-start-practice-groups (&key tags thema-groups limit policy)
+  "Reserve ordered practice from TAGS or THEMA-GROUPS and return API v1 status.
+Supply exactly one nonempty list: TAGS (strings, each defining one group),
+or THEMA-GROUPS (lists of integer IDs, including empty groups).  LIMIT is a
+required positive unique-item limit across groups.  POLICY uses the same
+frozen rules as `gnosis-agent-start-practice'.
+
+Group order is caller order.  Tag members use ascending IDs; explicit groups
+retain their order.  First membership wins overlaps.  Exclude missing and
+suspended items before limiting.  Selection :groups reports requested,
+overlap, excluded, omitted-by-limit and selected IDs, including empty groups.
+Persist those groups and the actual queue for resume, without reselecting tags.
+Initial presentations stay grouped; ordinary retries and successful policy
+continuations may cross group boundaries.  Their spacing and policy do not
+change.  Practice never changes FSRS.  Empty selection preserves the current
+batch; invalid arguments refuse before replacement.  Native human input is
+deferred as in `gnosis-agent-start-practice'."
+  (gnosis-agent--start-groups 'practice tags thema-groups limit policy))
+
+(cl-defun gnosis-agent-start-review-groups (&key tags thema-groups limit)
+  "Reserve ordered scheduled review from TAGS or THEMA-GROUPS with LIMIT.
+Use the group format and dispositions of `gnosis-agent-start-practice-groups'.
+Also exclude items not due on the current logical day.  Like explicit topic
+review, do not apply the global daily new-item cap.  Ordering never changes
+due dates; native acceptance uses ordinary FSRS and scheduled retry policy.
+Return API v1 status; use `gnosis-agent-status', `gnosis-agent-resume' and
+`gnosis-agent-cancel' with the returned session ID.  Detailed
+`gnosis-agent-results' remains practice-only."
+  (gnosis-agent--start-groups 'due tags thema-groups limit nil))
+
 (defun gnosis-agent-current-practice ()
   "Return status for the current practice reservation, or nil.
 Read only the connected database's exact active checkpoint, including a
@@ -167,13 +250,17 @@ scheduled sessions and cancelled reservations return nil."
 Statuses are pending, running, unfinished, completed and cancelled strings.
 Pending is process-local: after restart a reserved batch is unfinished.
 Native topic practice is supported too: :policy and :targets are nil for
-its legacy one-retry policy.
+its legacy one-retry policy.  Scheduled batches return their native summary;
+:schedule-updated is t when they retain accepted outcomes, otherwise :false.
+Practice always returns :false.  Opening a source does not accept an outcome.
 Cancelled includes batches ended early by a replacement, never completion.
 Their remaining IDs record abandoned membership, not resumable active work.
 Return :api-version 1, :session-id, :database (connected main filename),
-:mode, :status, :schedule-updated :false,
+:mode (\"practice\" or \"due\"), :status, :schedule-updated,
 :selected-ids and :remaining-ids vectors, frozen :policy, :selection counts,
 :summary effective first/retry grade counts, and :targets reason counts.
+Ordered batches additionally retain :selection :groups as documented by
+`gnosis-agent-start-practice-groups'.
 Selection records limit, candidates, eligible, selected, shortfall,
 omitted-by-limit, excluded-ids and topic-ids.  Targets count target-reached,
 attempt-limit, unfinished and excluded items.  Summary needs-work counts
@@ -192,17 +279,18 @@ Use `json-serialize' with :false-object :false and :null-object nil."
                                      (equal token (plist-get record :token))))
                               gnosis-agent--launches))
            (policy (copy-sequence (gnosis-review-state-policy state)))
-           (projection (gnosis-review-practice-projection state events)))
+           (practice (eq (gnosis-review-state-mode state) 'practice))
+           (projection (if practice (gnosis-review-practice-projection state events) state)))
       (when (and policy (not (plist-get policy :consecutive)))
         (setq policy (plist-put policy :consecutive :false)))
-      (list :api-version 1 :session-id session-id :mode "practice"
+      (list :api-version 1 :session-id session-id :mode (if practice "practice" "due")
             :database (nth 2 (assoc 0 (sqlite-select (gnosis--ensure-db) "PRAGMA database_list")))
             :status (cond ((gnosis-review-state-cancelled-p state) "cancelled")
                           ((equal gnosis-review--running session-id) "running")
                           ((null (gnosis-review-state-remaining state)) "completed")
                           (pending "pending")
                           (t "unfinished"))
-            :schedule-updated :false
+            :schedule-updated (if (and (not practice) (gnosis-review-state-outcomes state)) t :false)
             :selected-ids (vconcat (gnosis-review-state-selected state))
             :policy policy :selection (gnosis-review-state-selection state)
             :summary (gnosis-review-summary projection)
@@ -263,7 +351,9 @@ Hard thema deletion removes owned events; deleted membership remains visible.
 Completion and immediate repetition are not mastery or calibrated retention."
   (gnosis-sqlite-with-transaction (gnosis--ensure-db)
     (let* ((state (gnosis-agent--session session-id))
-           (events (gnosis-study-practice-events session-id t)))
+           (events (if (eq (gnosis-review-state-mode state) 'practice)
+                       (gnosis-study-practice-events session-id t)
+                     (user-error "Detailed results are practice-only; use gnosis-agent-status"))))
       (append (gnosis-agent--status state events)
               (list :items (vconcat (mapcar (lambda (id) (gnosis-agent--item state id events))
                                             (gnosis-review-state-selected state))))))))

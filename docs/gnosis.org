@@ -1036,9 +1036,12 @@ Unavailable managed pixels stop the encounter rather than recording an
 incorrect answer.
 
 The attachment includes an actionable =gnosis-lecture:= citation to the
-original path and physical page.  During review, choose *View source* from
-the normal actions, then select the lecture.  Return with =C-c C-c= to the
-same pending answer.  PDFs open through native DocView or configured
+original path and physical page.  In practice or scheduled review, *View source*
+in the normal post-answer actions (=v=) is optional: a sole source opens
+directly, and multiple linked nodes or lectures use completion.  Return with
+=C-c C-c= to the same pending answer; cancelling the source picker likewise
+returns without accepting or changing that answer.  There is no mandatory
+source introduction or separate learning mode.  PDFs open through native DocView or configured
 pdf-tools; =pdfinfo= (also from Poppler) verifies the physical page before
 navigation.  The citation is a local external reference, not an archived
 lecture: moving or replacing the original can make it unavailable or
@@ -1687,6 +1690,56 @@ IDs in the accessible buffer.  It requires an existing enclosing source
 ID and uses Org structure, not graph traversal.  An ID-less heading
 belongs to its enclosing node, so questions linked to that owner are
 included even if their source passage lies outside that heading.
+
+*** Ordered Related Groups
+
+The optional =gnosis-agent= library can reserve a native batch in a chosen
+group order, without answering for the learner:
+
+#+begin_src emacs-lisp
+(require 'gnosis-agent)
+(gnosis-agent-start-practice-groups
+ :tags '("amino_acids" "proteins") :limit 30
+ :policy '(:successes-required 1 :successes-after-failure 1
+           :max-attempts-per-thema nil))
+;; A separate scheduled batch, restricted to currently due items:
+(gnosis-agent-start-review-groups
+ :tags '("amino_acids" "proteins") :limit 30)
+;; Alternatively, retain explicit within-group order (use actual thema IDs):
+(gnosis-agent-start-practice-groups
+ :thema-groups '((103 101) (102 105)) :limit 4)
+#+end_src
+
+Supply either an ordered list of tags or an ordered list of ID lists, not
+both.  Each tag is a group, with its members in ascending ID order.
+Explicit ID lists retain their order.  First membership wins overlaps;
+no thema receives a duplicate initial presentation.  Missing and suspended
+items are excluded; scheduled review also excludes not-yet-due items.
+Like explicitly selected topic review, this scheduled API ignores the
+global new-item cap, but never forces future-due cards into review.
+The required positive =:limit= caps unique eligible items across all groups.
+
+The returned API v1 status includes =:session-id=, =:selected-ids=,
+=:remaining-ids= and =:selection=.  Selection contains a =:groups= vector
+with each group's =:tag= (nil for explicit IDs), =:requested-ids=,
+=:overlap-ids=, =:excluded-ids=, =:omitted-ids= (by the limit), and
+=:selected-ids=.  Unmatched tags and empty groups remain visible with no
+selected members.  Entirely empty selections return a history-only report
+without replacing an unfinished batch.  Invalid input changes no batch.
+
+Initial presentations follow group order.  Failed retries retain the
+existing spacing rule, and successful practice continuations retain their
+frozen policy; either can cross group boundaries.  Groups are not mastery
+barriers, and grouping does not alter retry distance.  Membership, original
+groups and the actual remaining queue persist across restart.  Resume does
+not re-resolve changed tags or reorder retained retries.
+
+Native ~gnosis-review-resume~ and ~gnosis-agent-resume~ resume the same
+batch.  Use ~gnosis-agent-status~ with its exact session ID for either mode;
+~gnosis-agent-cancel~ ends an interrupted batch without deleting evidence.
+~gnosis-agent-results~ supplies detailed practice evidence only.
+Practice never updates FSRS.  Scheduled acceptance uses the normal FSRS
+path; merely reserving a batch or opening a source records no grade.
 
 *** Scheduled Review After Practice
 

@@ -4,9 +4,9 @@
 @settitle ffs: form feed-separated plain text presentations
 @documentencoding UTF-8
 @documentlanguage en
-@set STABLEDATE 2026-05-21
-@set STABLEVERSION 0.2.2
-@set DEVELVERSION 0.2.3-git
+@set STABLEDATE 2026-09-22
+@set STABLEVERSION 0.2.3
+@set DEVELVERSION 0.2.4-git
 @c %**end of header
 
 @copying

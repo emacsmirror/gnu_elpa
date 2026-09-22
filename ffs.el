@@ -5,7 +5,7 @@
 ;; Author: Amin Bandali <bandali@gnu.org>
 ;; Maintainer: Amin Bandali <bandali@gnu.org>
 ;; URL: https://git.kelar.org/~bandali/ffs
-;; Version: 0.2.3-git
+;; Version: 0.2.3
 ;; Package-Requires: ((emacs "27.1"))
 ;; Keywords: convenience, focus, narrowing, outlines, presentation, text
 
@@ -46,7 +46,7 @@
 ;;
 ;; Refer to the manual for more details on ffs's user options and
 ;; usage, a sample configuration, and other pieces of information:
-;; <https://kelar.org/~bandali/gnu/emacs/ffs.html>.
+;; <https://www.kelar.org/~bandali/ffs/ffs.html>.
 
 ;; FIXME: Add some comparison with related packages like `logos',
 ;; `org-present', `org-tree-slide', `dslide', etc.

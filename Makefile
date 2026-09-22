@@ -27,7 +27,7 @@
 
 .POSIX:
 .PHONY: all doc clean
-.SUFFIXES: .org .texi .info .html
+.SUFFIXES: .texi .info .html
 
 EMACS = emacs
 MAKEINFO = makeinfo
@@ -49,5 +49,3 @@ clean:
 
 ffs.info: ffs.texi
 ffs.html: ffs.texi ffs.css
-ffs-changelog.html: CHANGELOG.html CHANGELOG.org
-	@[ -e CHANGELOG.html ] && $(MV) CHANGELOG.html ffs-changelog.html || true

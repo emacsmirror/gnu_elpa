@@ -1,0 +1,155 @@
+ffs NEWS
+
+Copyright (c) 2022-2026 Free Software Foundation, Inc.
+See the end of the file for license conditions.
+
+Please send bug reports to the maintainer 'bandali@gnu.org'.
+
+This file is about changes in ffs, for form feed-separated
+plain text presentations in GNU Emacs.  For further details,
+please consult the ffs manual:
+https://www.kelar.org/~bandali/ffs/ffs.html
+
+
+* Changes in upcoming ffs
+
+TBD
+
+
+* Changes in ffs 0.2.2 (2026-05-21)
+
+First release of ffs on GNU ELPA.
+
+The attempted build of ffs 0.2.1 within GNU ELPA build sandbox failed
+with an 'Error: void-function (org-texinfo-kbd-macro)' due to use of
+'#+macro: kbd (eval (org-texinfo-kbd-macro $1))' in ffs.org for better
+formatting of key sequences in the exported Texinfo copy.  This seems
+to have happened for the specific case of generating a plain text
+README using 'ox-ascii' where ELPA didn't load 'ox-texinfo'.  To try
+and mitigate this, a 'README.md' has been added for use as the package
+README instead of ffs.org.  If not sufficient, a Texinfo copy of the
+ffs manual will be shipped instead of the Org one in the next release.
+
+ffs 0.2.2 also includes small fixes and improvements throughout
+'ffs.el' from Stefan Monnier, and additional feedback to be addressed
+in future releases.
+
+
+* Changes in ffs 0.2.1 (2026-05-20)
+
+The attempted build of ffs 0.2.0 within GNU ELPA build sandbox failed
+with a "Cannot include file" error on the "#+include: fdl.org" in the
+manual.  So, as a workaround, we switch to using the official Texinfo
+copy of the GNU FDL license rather than an Org copy.
+
+
+* Changes in ffs 0.2.0 (2026-05-19)
+
+First release of ffs intended for GNU ELPA.
+
+After a few years of inactivity, in early 2026 I decided to dust off
+'ffs.el', polish and document it, and offer for inclusion in GNU ELPA
+as a proper package.
+
+** Default value of 'ffs-default-face-height' changed to nil
+
+To minimize unexpected and/or unnecessary changes out-of-the-box, the
+default value of 'ffs-default-face-height' has been changed to nil.
+
+** 'ffs-edit-buffer-name' demoted from user option to variable
+
+This is not an important user-facing setting, so to help avoid
+overwhelming users with many options, this has been demoted from a
+user option to a variable.
+
+** Several new user options for customizing ffs's behaviour
+
+As part of the effort to bring ffs more in line with the conventions
+of other existing Emacs packages, the mechanisms for toggling various
+parts of Emacs's interface to minimize visual clutter were changed
+from being minor modes to being customizable user options.  These are
+the replacement new user options, with a default value of nil:
+
+. 'ffs-hide-cursor'
+. 'ffs-hide-mode-line'
+. 'ffs-hide-header-line'
+
+Their value is buffer-local, and may be set globally using
+'setq-default'.  See the "(ffs) Sample configuration" manual node
+for an example of how to customize them:
+
+https://www.kelar.org/~bandali/ffs/ffs.html#Sample-configuration
+
+The new 'ffs-page-delimiter' user option defines the page delimiter
+inserted by 'ffs-edit-done' when inserting a new slide.  Emacs's
+'page-delimiter' regexp should be able to match 'ffs-page-delimiter's
+value, so if you use a custom 'page-delimiter' be sure to customize
+'ffs-page-delimiter' accordingly.
+
+The new 'ffs-echo-progress' user option controls whether to display in
+echo area the progress through the slides.  When non-nil, changing
+slides will also display the progress through the slides in the echo
+area.  The format of the displayed progress can be customized using
+the new 'ffs-echo-progress-format' user option.
+
+The new 'ffs-edit-display-buffer-alist' user option may be used to
+control the Window configuration for the 'ffs-edit' buffer.  By
+default, it will display the 'ffs-edit' buffer in the same window.
+
+The new 'ffs-edit-done-hook' user option may be used to define hooks
+to be run at the end of 'ffs-edit-done' after returning to the main
+ffs presentation buffer.
+
+Lastly, a new 'ffs-find-speaker-notes-function' variable was added to
+allow customizing the find function used for opening the speaker's
+notes file, defaulting to 'find-file-other-frame'.
+
+
+* Changes in ffs 0.1.0 (2022-05-19)
+
+Initial publication of 'ffs.el' as part of my personal configurations
+for GNU Emacs.
+
+My first attempt at this concept was a now-archived 'ffsanim.el'
+a major mode implementation that used Emacs's 'animate' library
+to animate slide texts onto the screen.
+
+https://git.kelar.org/~bandali/ffs/tree/ffsanim.el?id=aed420fca1af108e023eabf2b527850b559cd24c
+
+Shortly after realizing the shortcomings of that approach,
+I abandoned it in favour a minor mode implementation and
+published version 0.1.0 of what is now 'ffs' in my personal
+configs repository.
+
+https://git.kelar.org/~bandali/configs
+
+I used this implementation for presenting my LibrePlanet 2022 talk,
+The Net beyond the Web.
+
+https://www.kelar.org/~bandali/net-beyond-web.html
+
+I picked "ffs" as the package name, the acronym for form feed slides.
+
+
+----------------------------------------------------------------------
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+
+Local variables:
+coding: utf-8
+mode: outline
+mode: emacs-news
+paragraph-separate: "[ 	
+                        ]*$"
+end:

@@ -63,11 +63,11 @@ Current development target is @value{DEVELVERSION}.
 Package name (GNU ELPA):
 @uref{https://elpa.gnu.org/packages/ffs.html, @samp{ffs}}
 @item
-Official manual:
+Manual:
 @uref{https://www.kelar.org/~bandali/ffs/ffs.html}
 @item
-Change log:
-@uref{https://www.kelar.org/~bandali/ffs/ffs-changelog.html}
+NEWS:
+@uref{https://www.kelar.org/~bandali/ffs/NEWS}
 @item
 Git repository:
 @uref{https://git.kelar.org/~bandali/ffs}

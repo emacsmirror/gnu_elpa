@@ -13,7 +13,13 @@ https://www.kelar.org/~bandali/ffs/ffs.html
 
 * Changes in upcoming ffs
 
-TBD
+** New 'ffs-news' command for viewing ffs NEWS
+
+The new 'ffs-news' convenience command tries to find and open the ffs
+NEWS file - this very file - included with ffs.  The NEWS file is the
+continuation of the previous CHANGELOG.org file, now maintained in
+plain text.  Relatedly, the ffs manual was also changed from Org to
+being maintained in Texinfo form directly.
 
 
 * Changes in ffs 0.2.2 (2026-05-21)

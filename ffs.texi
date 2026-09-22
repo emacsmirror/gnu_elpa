@@ -1,0 +1,458 @@
+\input texinfo                  @c -*- texinfo -*-
+@c %**start of header
+@setfilename ffs.info
+@settitle ffs: form feed-separated plain text presentations
+@documentencoding UTF-8
+@documentlanguage en
+@set STABLEDATE 2026-05-21
+@set STABLEVERSION 0.2.2
+@set DEVELVERSION 0.2.3-git
+@c %**end of header
+
+@copying
+Copyright @copyright{} 2022--2026 Free Software Foundation, Inc.
+
+@quotation
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.3 or
+any later version published by the Free Software Foundation; with no
+Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.
+A copy of the license is included in the section entitled
+``GNU Free Documentation License.''
+@end quotation
+@end copying
+
+@dircategory Emacs misc features
+@direntry
+* FFS: (ffs).  Simple form feed-separated plain text presentations.
+@end direntry
+
+@finalout
+@titlepage
+@title ffs: form feed-separated plain text presentations
+@author Amin Bandali (@email{bandali@@gnu.org})
+@page
+@vskip 0pt plus 1filll
+@insertcopying
+@end titlepage
+
+@ifplaintext
+@contents
+@sp 1
+@end ifplaintext
+
+@ifnottex
+@node Top
+@top ffs: form feed-separated plain text presentations
+
+@insertcopying
+
+This manual, written by Amin Bandali, introduces @samp{ffs} and its
+user options, and provides every other piece of information pertinent
+to it.
+
+This manual corresponds to @samp{ffs} stable version
+@value{STABLEVERSION}, released on @value{STABLEDATE}.
+Any reference to a newer feature which does not yet
+form part of the latest tagged commit is marked as such.
+
+Current development target is @value{DEVELVERSION}.
+
+@itemize
+@item
+Package name (GNU ELPA):
+@uref{https://elpa.gnu.org/packages/ffs.html, @samp{ffs}}
+@item
+Official manual:
+@uref{https://www.kelar.org/~bandali/ffs/ffs.html}
+@item
+Change log:
+@uref{https://www.kelar.org/~bandali/ffs/ffs-changelog.html}
+@item
+Git repository:
+@uref{https://git.kelar.org/~bandali/ffs}
+@item
+Backronyms: fabulous foolproof slides - for freedom's sake -
+ffs flips slides
+@end itemize
+
+Dedicated to the loving memory of
+@uref{https://www.kelar.org/~bandali/farangis.html,
+Farangis Yousefinia}.
+
+@end ifnottex
+
+@menu
+* Overview::
+* Installation::
+* Sample configuration::
+* Default key bindings::
+* Acknowledgements::
+* GNU Free Documentation License::
+* Indices::
+
+@detailmenu
+--- The Detailed Node Listing ---
+
+Installation
+
+* GNU ELPA package::
+* Manual installation::
+
+Default key bindings
+
+* @code{ffs-mode-map}::
+* @code{ffs-present-mode-map}::
+* @code{ffs-toggle-prefix-map}::
+* @code{ffs-edit-mode-map}::
+
+Indices
+
+* Function index::
+* Variable index::
+* Concept index::
+
+@end detailmenu
+@end menu
+
+@node Overview
+@chapter Overview
+
+This package provides a simple presentation mode which can be applied
+to any buffer for reading, writing, editing, and presenting slides.
+Slides are separated using the @code{page-delimiter}, by default the
+@samp{^L} character, known as the form feed, which can be inserted
+using @kbd{C-q C-l}.  Commands are provided for moving between those
+pages, aka slides.  These motions work even when narrowing is in
+effect (and they preserve it).  Through detailed explanations and
+concrete examples, this manual hopes to demonstrate that @code{ffs}
+is designed to be simple and flexible, and easy to use and extend.
+
+ffs does not define any global key bindings.  You can define a key
+binding for @code{ffs-mode} in the @code{global-map} like so:
+
+@lisp
+(global-set-key (kbd "C-c f s") #'ffs-mode)
+@end lisp
+
+On Emacs 29 or later, you can use the newer keymap functions, for
+instance:
+
+@lisp
+(keymap-global-set "C-c f s" #'ffs-mode)
+@end lisp
+
+For convenience, @code{ffs} is provided as an alias for
+@code{ffs-mode}.
+
+Once enabled, @code{ffs-mode} puts the buffer in read-only mode by
+setting @code{buffer-read-only}, and provides convenient key bindings
+for moving between, editing, and inserting slides.  These are
+available in the @code{ffs-mode-map} keymap.
+
+@findex ffs-present-mode
+@vindex ffs-default-face-height
+@vindex ffs-hide-cursor
+@vindex ffs-hide-mode-line
+@vindex ffs-hide-header-line
+When ready to present your slides, you can enable
+@code{ffs-present-mode}, by default bound to the
+@kbd{s} key in @code{ffs-mode-map} to start a presentation.
+Several user options are provided for customizing the appearance
+of the buffer during presentations, for using a different
+@samp{height} for the @code{default} face
+(@code{ffs-default-face-height}), hiding the cursor
+(@code{ffs-hide-cursor}), hiding the mode line
+(@code{ffs-hide-mode-line}), and hiding the header line
+(@code{ffs-hide-header-line}).
+
+@node Installation
+@chapter Installation
+
+@menu
+* GNU ELPA package::
+* Manual installation::
+@end menu
+
+@node GNU ELPA package
+@section GNU ELPA package
+
+The package is available as @samp{ffs}.  Simply do:
+
+@example
+M-x package-refresh-contents
+M-x package-install
+@end example
+
+And search for it.
+
+GNU ELPA provides the latest stable release.  Folks who prefer to
+follow the development process in order to report bugs or suggest
+changes can use the version of the package from the GNU-devel ELPA@.
+
+@node Manual installation
+@section Manual installation
+
+Assuming your Emacs files are found in @samp{~/.emacs.d/}, execute
+the following commands in a shell:
+
+@example
+# Make a directory for local lisp files and packages
+mkdir ~/.emacs.d/lisp
+
+# Go to the new directory
+cd ~/.emacs.d/lisp/
+
+# Clone the ffs source repository
+git clone https://git.kelar.org/~bandali/ffs
+@end example
+
+Then, in your @code{user-init-file} (@samp{init.el} or equivalent)
+add:
+
+@lisp
+;; Make Elisp files in the directory available
+(add-to-list 'load-path "~/.emacs.d/lisp/ffs")
+@end lisp
+
+Then restart your Emacs session or simply evaluate that expression
+(using @kbd{C-x C-e}) so Emacs can find the package.
+
+On Emacs 31 or later, you can use the new User Lisp feature,
+where Emacs Lisp files in the directory specified by
+@code{user-lisp-directory} and its subdirectories will be
+recursively byte-compiled, scraped for autoload cookies, and
+ensured to be in @code{load-path}.  So all you need is to designate
+@samp{~/.emacs.d/lisp/} as your @code{user-lisp-directory} in your
+@code{early-init-file} (@samp{early-init.el}) like so:
+
+@lisp
+(setq user-lisp-directory (locate-user-emacs-file "lisp/"))
+@end lisp
+
+@node Sample configuration
+@chapter Sample configuration
+
+@cindex Package configuration
+
+@code{ffs} tries to make as few opinionated choices as possible
+out-of-the-box, following the principle of least surprise.
+
+@lisp
+(require 'ffs)
+
+;; You can add a global key binding for enabling `ffs-mode'.
+
+(global-set-key (kbd "C-c f s") #'ffs-mode)
+
+;; These user options apply when `ffs-present-mode' is enabled.
+;; Their value is buffer-local.
+
+(setq-default
+ ffs-hide-cursor t
+ ffs-hide-mode-line t
+ ffs-hide-header-line t)
+
+;; You can add hooks to `ffs-mode-hook' or `ffs-present-mode-hook' for
+;; hooks that are run every time `ffs-mode' or `ffs-present-mode' are
+;; enabled and disabled.
+
+;; The following sample hook is run when `ffs-present-mode' is enabled
+;; and it disables `flyspell-mode', `show-paren-local-mode', and
+;; `display-fill-column-indicator-mode', and re-enables them when
+;; `ffs-present-mode' is disabled, to prevent visual distractions
+;; from them during presentations.
+
+(add-hook
+ 'ffs-present-mode-hook
+ (lambda ()
+   (let ((arg (if ffs-present-mode -1 1)))
+     (mapc
+      (lambda (mode) (funcall mode arg))
+      '(flyspell-mode
+        show-paren-local-mode
+        display-fill-column-indicator-mode)))))
+
+;; You can also add keys to `ffs-mode-map' for use when `ffs-mode' is
+;; enabled.  For keys that may be only relevant during presentations,
+;; you can add them to `ffs-present-mode-map'.
+@end lisp
+
+@node Default key bindings
+@chapter Default key bindings
+
+This section documents the default key bindings of the various keymaps
+of @code{ffs}.  Care was taken to choose intuitive mnemonic-based keys
+for commands familiar from other existing similar keymaps, but you may
+override them if you so choose to.
+
+@menu
+* @code{ffs-mode-map}::
+* @code{ffs-present-mode-map}::
+* @code{ffs-toggle-prefix-map}::
+* @code{ffs-edit-mode-map}::
+@end menu
+
+@node @code{ffs-mode-map}
+@section @code{ffs-mode-map}
+
+The @code{ffs-mode-map} is the main keymap of @code{ffs-mode}, used
+both when preparing slides with @code{ffs-mode} enabled as well as
+while presenting them with @code{ffs-present-mode} enabled:
+
+@multitable {@code{ffs-find-speaker-notes-file}} {@kbd{C-_}, @kbd{C-/}, @kbd{C-x u}}
+@headitem Command
+@tab Key binding(s)
+@item @code{ffs-goto-previous}
+@tab @kbd{p}, @kbd{@key{DEL}}, @kbd{[}
+@item @code{ffs-goto-next}
+@tab @kbd{n}, @kbd{@key{SPC}}, @kbd{]}
+@item @code{ffs-goto-first}
+@tab @kbd{<}
+@item @code{ffs-goto-last}
+@tab @kbd{>}
+@item @code{ffs-start}
+@tab @kbd{s}
+@item @code{ffs-stop-or-quit}
+@tab @kbd{q}
+@item @code{ffs-edit}
+@tab @kbd{e}, @kbd{C-c '}
+@item @code{ffs-new-above}
+@tab @kbd{O}
+@item @code{ffs-new-below}
+@tab @kbd{o}
+@item @code{ffs-find-speaker-notes-file}
+@tab @kbd{S}
+@item @code{narrow-to-page}
+@tab @kbd{N}
+@item @code{widen}
+@tab @kbd{W}
+@item @code{undo}
+@tab @kbd{C-_}, @kbd{C-/}, @kbd{C-x u}
+@item @code{ffs-toggle-prefix-map}
+@tab @kbd{t}
+@item @code{describe-mode}
+@tab @kbd{?}
+@end multitable
+
+@node @code{ffs-present-mode-map}
+@section @code{ffs-present-mode-map}
+
+The @code{ffs-present-mode-map} keymap used when
+@code{ffs-present-mode} is active (during presentations)
+inherits the key bindings of its parent keymap
+@code{ffs-mode-map}, with the following changes:
+
+@multitable {@code{ffs-stop-or-quit}} {Key binding(s)}
+@headitem Command
+@tab Key binding(s)
+@item @code{ffs-stop-or-quit}
+@tab @kbd{s}
+@end multitable
+
+@node @code{ffs-toggle-prefix-map}
+@section @code{ffs-toggle-prefix-map}
+
+The @code{ffs-toggle-prefix-map} keymap, by default bound to @kbd{t}
+in @code{ffs-mode-map}, maps the following commands:
+
+@multitable {@code{ffs-toggle-hide-header-line}} {Key binding(s)}
+@headitem Command
+@tab Key binding(s)
+@item @code{ffs-toggle-echo-progress}
+@tab @kbd{e}
+@item @code{ffs-toggle-hide-cursor}
+@tab @kbd{c}
+@item @code{ffs-toggle-hide-mode-line}
+@tab @kbd{m}
+@item @code{ffs-toggle-hide-header-line}
+@tab @kbd{h}
+@item @code{ffs-toggle-dark-mode}
+@tab @kbd{d}
+@end multitable
+
+@node @code{ffs-edit-mode-map}
+@section @code{ffs-edit-mode-map}
+
+The @code{ffs-edit-mode-map} keymap for @code{ffs-edit-mode} is
+used in @code{ffs-edit} buffers, when editing an existing slide
+or inserting a new one:
+
+@multitable {@code{ffs-edit-discard}} {Key binding(s)}
+@headitem Command
+@tab Key binding(s)
+@item @code{ffs-edit-discard}
+@tab @kbd{C-c C-k}
+@item @code{ffs-edit-done}
+@tab @kbd{C-c C-c}
+@end multitable
+
+@node Acknowledgements
+@chapter Acknowledgements
+
+@cindex Contributors
+
+@code{ffs} is meant to be a collective effort.  Every bit of help
+matters and is greatly appreciated.
+
+@table @asis
+@item Author/maintainer
+Amin Bandali.
+
+@item Contributions to code or the manual
+Protesilaos, Stefan Monnier.
+
+@item Ideas and/or user feedback
+Protesilaos.
+@end table
+
+@code{ffs} and its author owe a debt of gratitude to Protesilaos for
+rounds of code review and feedback for improving and polishing the
+package in preparation for submission to GNU ELPA@.  You can watch
+videos of these sessions on the author's website:
+
+@itemize
+@item
+@uref{https://www.kelar.org/~bandali/ffs-code-review-prot.html,
+FFS code review with Protesilaos}
+@item
+@uref{https://www.kelar.org/~bandali/ffs-emacs-ext-prot.html,
+FFS code review and Emacs extensibility with Protesilaos}
+@end itemize
+
+Further, inspiration for parts of @code{ffs}'s implementation was
+gratefully drawn from Protesilaos's
+@uref{https://protesilaos.com/emacs/logos, Logos} package for Emacs.
+
+@node GNU Free Documentation License
+@appendix GNU Free Documentation License
+
+@cindex FDL, GNU Free Documentation License
+
+@include fdl.texi
+
+@node Indices
+@chapter Indices
+
+@menu
+* Function index::
+* Variable index::
+* Concept index::
+@end menu
+
+@node Function index
+@section Function index
+
+@printindex fn
+
+@node Variable index
+@section Variable index
+
+@printindex vr
+
+@node Concept index
+@section Concept index
+
+@printindex cp
+
+@bye

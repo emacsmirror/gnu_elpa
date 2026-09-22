@@ -31,20 +31,13 @@
 
 EMACS = emacs
 MAKEINFO = makeinfo
-MAKEINFO_html_opts = --html --no-split --css-ref="$(CSS_REF)"
-DOC = ffs.texi ffs.info ffs.html
-
-CSS_REF = ../../dek.css?v=20260516
+MAKEINFO_html_opts = --html --no-split --css-include="ffs.css"
+DOC = ffs.info ffs.html
 
 all: doc
 doc: $(DOC)
 clean:
 	$(RM) $(DOC)
-
-.org.texi:
-	@echo "Generating $@ from $<"
-	@$(EMACS) --batch "$<" \
-	  -l 'ox-texinfo' -f org-texinfo-export-to-texinfo
 
 .texi.info:
 	@echo "Generating $@ from $<"
@@ -54,16 +47,7 @@ clean:
 	@echo "Generating $@ from $<"
 	$(MAKEINFO) $(MAKEINFO_html_opts) $<
 
-.org.html:
-	@echo "Generating $@ from $<"
-	@$(EMACS) --batch \
-	  --load "$$HOME/.emacs.d/lisp/bandali-oxen" \
-	  --eval '(setq enable-local-variables :all)' \
-	  --find-file "$<" \
-	  --funcall ox-bhtml-export-to-html
-
-ffs.texi: ffs.org
 ffs.info: ffs.texi
-ffs.html: ffs.texi
+ffs.html: ffs.texi ffs.css
 ffs-changelog.html: CHANGELOG.html CHANGELOG.org
 	@[ -e CHANGELOG.html ] && $(MV) CHANGELOG.html ffs-changelog.html || true

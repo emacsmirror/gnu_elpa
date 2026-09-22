@@ -296,6 +296,7 @@ enable, and restore them on disable.")
 
 Populated from `typewriter--overridden-variables'.")
 
+;;;###autoload
 (define-minor-mode typewriter-mode
   "A minor mode emulating a strict typewriter.
 

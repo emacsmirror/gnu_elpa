@@ -118,31 +118,6 @@ Returns a single string with tabulated-list text properties attached."
                            line)
       line)))
 
-;;; Column position detection
-
-(defun gnosis-tl--column-at-point ()
-  "Return the column index at point from cursor position.
-Computes which tabulated-list column the cursor is in by
-walking through `tabulated-list-format' widths starting from
-`tabulated-list-padding'."
-  (let* ((col (current-column))
-         (pos (- col (or tabulated-list-padding 0)))
-         (n-cols (length tabulated-list-format))
-         (last-idx (1- n-cols))
-         (accum 0))
-    (if (< pos 0)
-        0
-      (cl-loop for i below n-cols
-               for spec = (aref tabulated-list-format i)
-               for width = (nth 1 spec)
-               for pad-right = (if (= i last-idx) 0
-                                 (or (plist-get (nthcdr 3 spec)
-						:pad-right)
-                                     1))
-               do (setq accum (+ accum width pad-right))
-               when (< pos accum) return i
-               finally return last-idx))))
-
 ;;; Sorting
 
 (defun gnosis-tl--get-sorter ()
@@ -274,29 +249,12 @@ same entry ID and column."
       (goto-char (point-min)))))
 
 (defun gnosis-tl-sort (&optional n)
-  "Sort the current tabulated-list by column at point.
-Like `tabulated-list-sort' but re-renders with `gnosis-tl-print'.
-With numeric prefix N, sort the Nth column.  With prefix -1,
-restore original order."
+  "Sort by native column N, honoring the current mode's command remapping.
+With N equal to -1, restore the original order.  See `tabulated-list-sort'."
   (interactive "P")
-  (when (and n (or (>= n (length tabulated-list-format))
-                   (< n -1)))
-    (user-error "Invalid column number"))
-  (if (equal n -1)
-      (progn
-        (setq tabulated-list-sort-key nil)
-        (tabulated-list-init-header)
-        (gnosis-tl-print t))
-    (let ((name (car (aref tabulated-list-format
-                           (if n n (gnosis-tl--column-at-point))))))
-      (unless (nth 2 (assoc name (append tabulated-list-format nil)))
-        (user-error "Cannot sort by %s" name))
-      (if (equal name (car tabulated-list-sort-key))
-          (setcdr tabulated-list-sort-key
-                  (not (cdr tabulated-list-sort-key)))
-        (setq tabulated-list-sort-key (cons name nil)))
-      (tabulated-list-init-header)
-      (gnosis-tl-print t))))
+  (funcall (or (command-remapping #'tabulated-list-sort)
+               #'tabulated-list-sort)
+           n))
 
 ;;; Single-entry buffer operations
 

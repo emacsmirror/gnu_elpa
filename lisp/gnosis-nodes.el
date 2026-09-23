@@ -287,15 +287,29 @@ JOURNAL retains FILE's journal classification across physical deletion."
                                 (gnosis-nodes--legacy-journal-ids journal-file ids))))
             (list journal-file owned ids)))))))
 
+(cl-defun gnosis-nodes--node-file-owner
+    (file &optional (owners (gnosis-sqlite-select
+                            (gnosis--ensure-db)
+                            "SELECT DISTINCT file FROM nodes ORDER BY file")))
+  "Return the retained ordinary index pathname physically identical to FILE.
+OWNERS contains index filename rows, defaulting to the current node index.
+Without an indexed physical owner, return FILE unchanged.  IDs alone never
+establish physical ownership."
+  (or (seq-find
+       (lambda (owner) (file-equal-p file owner))
+       (mapcar (lambda (row) (expand-file-name (car row) gnosis-nodes-dir)) owners))
+      file))
+
 (defun gnosis-nodes--update-file (file &optional journal buffer)
   "Replace the index of FILE atomically, preserving incoming links.
 If JOURNAL is non-nil, index journal entries instead of regular nodes.
 When BUFFER is non-nil, parse its widened contents instead of reading FILE.
 Signal parsing or storage errors without changing the previous index."
   (let* ((info (gnosis-nodes--file-info file buffer))
-         (full-path (expand-file-name
-                     file (if journal (gnosis-nodes--journal-dir)
-                            gnosis-nodes-dir)))
+         (full-path (let ((path (expand-file-name
+                                 file (if journal (gnosis-nodes--journal-dir)
+                                        gnosis-nodes-dir))))
+                      (if journal path (gnosis-nodes--node-file-owner path))))
          (mtime (format-time-string
                  "%s" (file-attribute-modification-time
                        (file-attributes full-path)))))
@@ -385,8 +399,21 @@ Unresolved basename ownership requires `gnosis-nodes-db-force-sync'."
   (ignore index-only)
   (let* ((file (or file (buffer-file-name)))
 	 (journal-p (gnosis-nodes--journal-file-p file))
-	 (buf (and file (get-file-buffer file))))
+	 (buf (and file (find-buffer-visiting file))))
     (gnosis-nodes--update-file file journal-p buf)))
+
+(defun gnosis-nodes--deletion-state (file)
+  "Return FILE's identity and raw byte digest for deletion confirmation.
+Exclude access time, which reading FILE can change.  Retain symlink identity
+as well as target bytes.  A missing file returns nil."
+  (when-let* ((attributes (file-attributes file 'integer)))
+    (setf (nth 4 attributes) nil)
+    (list attributes
+          (when (file-regular-p file)
+            (with-temp-buffer
+              (set-buffer-multibyte nil)
+              (insert-file-contents-literally file)
+              (secure-hash 'sha256 (current-buffer)))))))
 
 (defun gnosis-nodes--check-delete-ownership (file)
   "Validate retained index ownership before physically deleting FILE."
@@ -428,13 +455,16 @@ requires `gnosis-nodes-db-force-sync'."
     (when (file-directory-p file)
       (user-error "%s is a directory, not a node file" file))
     (let ((gnosis-db (gnosis--ensure-db))
-          (exists (or (file-exists-p file) (file-symlink-p file))))
+          (exists (or (file-exists-p file) (file-symlink-p file)))
+          (confirmed-state (gnosis-nodes--deletion-state file)))
       (when (and recovery (not (eq (cadr recovery) gnosis-db)))
         (user-error "Deletion recovery belongs to another database"))
       (when (memq gnosis-db gnosis-sqlite--transaction-dbs)
         (user-error "Cannot delete a node file inside a database transaction"))
       (when (y-or-n-p (if exists (format "Delete file: %s? " file)
                        (format "File missing; reconcile index for %s? " file)))
+        (unless (equal confirmed-state (gnosis-nodes--deletion-state file))
+          (user-error "File changed; retry deletion of %s" file))
         ;; Retain source evidence for legacy ownership and recovery until the
         ;; index commits, including when FILE was not previously visited.
         (let* ((buffer (or (gnosis-nodes--file-buffer file)
@@ -463,8 +493,8 @@ requires `gnosis-nodes-db-force-sync'."
               (when (and (nth 2 gnosis-nodes--deleted-file)
                          (not (equal journal-rows (nth 3 gnosis-nodes--deleted-file))))
                 (user-error "Journal index changed since deletion; sync surviving files"))))
-          (unless (equal exists (or (file-exists-p file) (file-symlink-p file)))
-            (user-error "File existence changed; retry deletion of %s" file))
+          (unless (equal confirmed-state (gnosis-nodes--deletion-state file))
+            (user-error "File changed; retry deletion of %s" file))
           (unwind-protect
               (condition-case err
                   (progn
@@ -595,6 +625,14 @@ labels by file, then occurrence, reserving literal labels first."
              (car row)))
      rows labels)))
 
+(defun gnosis-nodes--unique-title (title rows)
+  "Return the unique row in ROWS whose title is TITLE, or nil.
+Refuse ambiguous literal titles rather than selecting an arbitrary ID."
+  (let ((matches (seq-filter (lambda (row) (equal title (cadr row))) rows)))
+    (when (cdr matches)
+      (user-error "Ambiguous node title %s; select a disambiguated label" title))
+    (car matches)))
+
 (defun gnosis-nodes--read-node (prompt rows &optional require-match)
   "Read a node with PROMPT, retaining the selected row from ROWS.
 ROWS contains (ID TITLE FILE TAGS) lists.  Also accept a literal title
@@ -605,7 +643,7 @@ for unmatched input unless REQUIRE-MATCH is non-nil."
                           prompt (mapcar #'car candidates)))
          (id (cdr (assoc choice candidates))))
     (or (assoc id rows)
-        (cl-find choice rows :key #'cadr :test #'equal)
+        (gnosis-nodes--unique-title choice rows)
         (if require-match (user-error "No node selected")
           (list nil choice)))))
 
@@ -629,8 +667,9 @@ over TITLE and never creates a new node."
   (gnosis-nodes-ensure-directories)
   (let* ((node (cond (id (car (gnosis-nodes-select
                               '[id title file tags] 'nodes `(= id ,id))))
-                     (title (car (gnosis-nodes-select
-                                  '[id title file tags] 'nodes `(= title ,title))))
+                     (title (gnosis-nodes--unique-title
+                             title (gnosis-nodes-select
+                                    '[id title file tags] 'nodes `(= title ,title))))
                      (t (gnosis-nodes--read-node
                          "Select gnosis node: "
                          (gnosis-nodes-select '[id title file tags] 'nodes)))))
@@ -805,11 +844,13 @@ At a heading, add TAG to heading tags.  Otherwise, add to #+FILETAGS."
 	  (gnosis-nodes--all-tags))))
   (let ((id (gnosis-org-get-id))
 	(org-id-track-globally nil))
-    (org-id-goto id)
-    (if (org-current-level)
-	(org-set-tags (cl-union tags (org-get-tags nil t) :test #'string=))
-      (dolist (tag tags)
-	(gnosis-nodes-insert-filetag tag)))))
+    (unless id (user-error "No enclosing node ID"))
+    (org-with-wide-buffer
+     (org-id-goto id)
+     (if (org-current-level)
+         (org-set-tags (cl-union tags (org-get-tags nil t) :test #'string=))
+       (dolist (tag tags)
+         (gnosis-nodes-insert-filetag tag))))))
 
 ;;;###autoload
 (defun gnosis-nodes-visit-backlinks ()
@@ -918,24 +959,32 @@ Reading errors propagate so sync cannot silently accept an unreadable file."
        (file-regular-p file)))
 
 (defun gnosis-nodes--files ()
-  "Return regular Org files throughout the node directory, except journals."
-  (seq-filter
-   (lambda (file)
-     (and (gnosis-nodes--org-file-p file)
-          (not (gnosis-nodes--journal-file-p file))))
-   (directory-files-recursively gnosis-nodes-dir "\\.org\\(?:\\.gpg\\)?$"
-                                nil
-                                (lambda (directory)
-                                  (not (gnosis-nodes--journal-file-p
-                                        (file-name-as-directory directory)))))))
+  "Return distinct physical Org sources, except journals.
+Prefer retained indexed pathnames over newly discovered aliases."
+  (let ((owners (gnosis-sqlite-select
+                 (gnosis--ensure-db) "SELECT DISTINCT file FROM nodes ORDER BY file")))
+   (cl-delete-duplicates
+    (mapcar
+     (lambda (file) (gnosis-nodes--node-file-owner file owners))
+    (seq-filter
+     (lambda (file)
+       (and (gnosis-nodes--org-file-p file)
+            (not (gnosis-nodes--journal-file-p file))))
+     (directory-files-recursively
+      gnosis-nodes-dir "\\.org\\(?:\\.gpg\\)?$" nil
+      (lambda (directory)
+        (not (gnosis-nodes--journal-file-p
+              (file-name-as-directory directory)))))))
+    :test #'file-equal-p :from-end t)))
 
-(defun gnosis-nodes-db-update-files (&optional force)
+(defun gnosis-nodes-db-update-files (&optional force source-files)
   "Sync node files with progress reporting.
 Normally index changed files from disk, leaving visiting buffers untouched.
 When FORCE, rebuild all files using visiting contents when available.
-Only rebuild indexes; do not complete journal TODOs."
+Only rebuild indexes; do not complete journal TODOs.
+SOURCE-FILES, when non-nil, retains discovery made before a forced purge."
   (gnosis-nodes-ensure-directories)
-  (let* ((all-files (gnosis-nodes--files))
+  (let* ((all-files (or source-files (gnosis-nodes--files)))
          (files (if force
                     all-files
                   (cl-remove-if-not
@@ -972,7 +1021,8 @@ When FORCE (prefix arg), rebuild from scratch."
   (let ((gc-cons-threshold most-positive-fixnum))
     (gnosis-nodes-ensure-directories)
     (message "Syncing nodes database...")
-    (gnosis-sqlite-with-transaction (gnosis--ensure-db)
+    (let ((source-files (gnosis-nodes--files)))
+     (gnosis-sqlite-with-transaction (gnosis--ensure-db)
       (when force
 	(gnosis-nodes--purge-tables)
 	(message "Purged all node/journal tables for rebuild."))
@@ -982,7 +1032,7 @@ When FORCE (prefix arg), rebuild from scratch."
       (message "Syncing journal files...")
       (require 'gnosis-journal)
       (gnosis-journal-db-sync force)
-      (gnosis-nodes-db-update-files force))
+      (gnosis-nodes-db-update-files force source-files)))
     (message "Node sync complete!")))
 
 ;;;###autoload

@@ -280,8 +280,8 @@
                                  (gnosis-update 'themata '(= answer '("foreign")) '(= id 222)))
                                (cl-letf (((symbol-function 'exit-recursive-edit) #'ignore)
                                          ((symbol-function 'gnosis-save-thema)
-                                          (lambda (thema)
-                                            (prog1 (funcall save thema)
+                                          (lambda (thema &optional return-ids)
+                                            (prog1 (funcall save thema return-ids)
                                               (when (eq fault 'rollback) (error "Injected save failure"))))))
                                  (call-interactively (key-binding
                                                       (kbd (if (eq fault 'cancel-foreign)

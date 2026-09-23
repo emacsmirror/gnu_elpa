@@ -100,14 +100,15 @@
                      (setq callback sentinel))))
           (gnosis--ensure-db)
           ;; No command has completed: even a blocked hook cannot delay open.
-          (should (equal commands '(("add" "gnosis.db"))))
+          (should (equal commands '(("add" "--" "gnosis.db"))))
           (gnosis-test-startup--check-upgrade before)
           (funcall callback nil
                    (if (eq completion 'failure) "exited abnormally\n" "finished\n"))
           (if (eq completion 'failure)
               (should (= 1 (length commands)))
             (should (equal (car commands)
-                           '("commit" "-m" "Migrate database v9 -> v11")))
+                           '("commit" "--only" "-m" "Migrate database v9 -> v11"
+                             "--" "gnosis.db")))
             (when (eq completion 'success)
               (funcall callback nil "finished\n")))
           (should-not pushed)

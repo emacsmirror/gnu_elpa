@@ -190,6 +190,18 @@ With WITH-EVIDENCE, return (TEXT . SHOWN-HINTS), retaining only inserted hints."
                  (goto-char (match-end 0)))) ; Move point to end of match
       (if with-evidence (cons (buffer-string) (nreverse shown)) (buffer-string)))))
 
+(defun gnosis-cloze--spans (str answers)
+  "Return disjoint preferred spans in STR for ANSWERS, in answer order.
+A missing occurrence is nil.  Match using the native renderer's case rules."
+  (let ((case-fold-search (default-value 'case-fold-search)) spans)
+    (with-case-table (standard-case-table)
+      (mapcar (lambda (answer)
+                (let ((span (gnosis-cloze--occurrence
+                             str (gnosis-utils-trim-quotes answer) nil spans)))
+                  (when span (push span spans))
+                  span))
+              answers))))
+
 (defun gnosis-cloze--render (str answers remaining hints &optional failed)
   "Return (TEXT . SHOWN-HINTS) for original ANSWERS in STR.
 REMAINING contains original blank indices, never answer strings.  Mask them
@@ -197,13 +209,11 @@ with their corresponding HINTS, or, when FAILED, mark the first remaining
 blank false and the rest unanswered.  Mark other blanks correct.  Assign
 each occurrence once before projecting any class, preserving token matching."
   (let ((case-fold-search (default-value 'case-fold-search))
-        spans replacements shown)
+        replacements shown)
     (cl-loop for answer in answers for index from 0
              for text = (gnosis-utils-trim-quotes answer)
-             for span = (with-case-table (standard-case-table)
-                          (gnosis-cloze--occurrence str text nil spans))
+             for span in (gnosis-cloze--spans str answers)
              when span do
-             (push span spans)
              (let* ((pending (memq index remaining))
                     (hint (and pending (not failed) (nth index hints)))
                     (hint (and hint (not (member hint '("" "nil" "\"\""))) hint))
@@ -232,14 +242,11 @@ each occurrence once before projecting any class, preserving token matching."
   (car (gnosis-cloze--render str answers (number-sequence 0 (1- (length answers))) nil t)))
 
 (defun gnosis-cloze-check (sentence clozes)
-  "Return t if each of CLOZES has a preferred occurrence in SENTENCE.
+  "Return t if CLOZES have disjoint preferred occurrences in SENTENCE.
+Reserve spans in answer order, exactly as the native renderer does.
 A match may be standalone or, when no standalone remains, the legacy
 substring occurrence."
-  (and (cl-every (lambda (cloze)
-                   (gnosis-cloze--occurrence
-                    sentence (gnosis-utils-trim-quotes cloze)))
-                 clozes)
-       t))
+  (and (cl-every #'identity (gnosis-cloze--spans sentence clozes)) t))
 
 ;; TODO: use a better name to indicate that it also removes hints from STRING.
 (defun gnosis-cloze-remove-tags (string)

@@ -138,7 +138,13 @@ Refuse active native input.  The human answers later; this records no grade."
             (let* ((candidates (sort (if thema-ids
                                          (delete-dups (copy-sequence thema-ids))
                                        (gnosis-study--topic-linked-ids topics)) #'<))
-                   (eligible (seq-filter #'gnosis-study-eligible-p candidates))
+                   (rows (when candidates
+                           (gnosis-sqlite-select-batch
+                            (gnosis--ensure-db)
+                            "SELECT t.id, s.suspended, s.due_day FROM themata t
+                              JOIN scheduler_state s ON s.thema_id = t.id
+                             WHERE t.id IN (%s)" candidates)))
+                   (eligible (gnosis-study--eligible-ids candidates rows nil))
                    (ids (seq-take eligible limit))
                    (selection (list :limit limit :candidates (length candidates)
                                     :eligible (length eligible) :selected (length ids)

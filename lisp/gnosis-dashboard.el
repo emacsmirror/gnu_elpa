@@ -1229,6 +1229,48 @@ Detaching the file must not revive the former database or selection."
         gnosis-dashboard--database nil
         gnosis-dashboard--selected-ids nil))
 
+(defun gnosis-dashboard--refresh-entries ()
+  "Read current collection data before native revert redraws the table.
+Preserve the selected membership and sort key.  Retire pending rows only
+once the fresh query succeeds, so canceled callbacks cannot append stale data."
+  (gnosis-dashboard--check-rendering)
+  (let* ((database (gnosis--ensure-db))
+         (entries
+          (pcase major-mode
+            ('gnosis-dashboard-themata-mode
+             (gnosis-dashboard--output-themata
+              gnosis-dashboard-themata-current-ids))
+            ('gnosis-dashboard-tags-mode
+             (let ((counts (make-hash-table :test 'equal)))
+               (pcase-dolist (`(,tag ,count)
+                             (gnosis-sqlite-select
+                              database "SELECT tag, COUNT(*) FROM thema_tag GROUP BY tag"))
+                 (puthash tag count counts))
+               (cl-loop for tag in gnosis-dashboard-tags-current
+                        for count = (gethash tag counts)
+                        when count
+                        collect (list tag (vector tag (number-to-string count))))))
+            ('gnosis-dashboard-nodes-mode
+             (when gnosis-dashboard-nodes-current-ids
+               (gnosis-dashboard-nodes--data gnosis-dashboard-nodes-current-ids)))
+            (_ (user-error "Open a Gnosis collection first"))))
+         (ids (mapcar #'car entries)))
+    (gnosis-dashboard--cancel-load)
+    (setq gnosis-dashboard--selected-ids
+          (and (eq database gnosis-dashboard--database)
+               (seq-intersection gnosis-dashboard--selected-ids ids #'equal))
+          gnosis-dashboard--database database
+          tabulated-list-entries entries
+          tabulated-list--original-order (make-hash-table :test 'eq))
+    (cl-loop for entry in entries for rank from 0
+             do (puthash entry rank tabulated-list--original-order))
+    (pcase major-mode
+      ('gnosis-dashboard-themata-mode
+       (setq gnosis-dashboard-themata-current-ids ids))
+      ('gnosis-dashboard-tags-mode (setq gnosis-dashboard-tags-current ids))
+      ('gnosis-dashboard-nodes-mode
+       (setq gnosis-dashboard-nodes-current-ids ids)))))
+
 (defun gnosis-dashboard--common-setup ()
   "Common buffer setup for all dashboard views."
   (gnosis-dashboard--cancel-load)
@@ -1241,6 +1283,8 @@ Detaching the file must not revive the former database or selection."
   (add-hook 'kill-buffer-hook #'gnosis-dashboard--cancel-load nil t)
   ;; File association keeps the major mode but retires its former work.
   (gnosis-dashboard--protect-rendering 'dashboard)
+  (add-hook 'tabulated-list-revert-hook
+            #'gnosis-dashboard--refresh-entries nil t)
   (when (fboundp 'keymap-popup-dismiss)
     (keymap-popup-dismiss))
   (setq-local header-line-format nil)
@@ -1305,6 +1349,7 @@ Detaching the file must not revive the former database or selection."
 (defun gnosis-dashboard-mark-toggle ()
   "Toggle mark on the current item in the tabulated-list."
   (interactive)
+  (gnosis-dashboard--check-rendering)
   (let ((inhibit-read-only t)
         (entry (tabulated-list-get-entry))
 	(id (tabulated-list-get-id)))
@@ -1324,6 +1369,7 @@ Detaching the file must not revive the former database or selection."
 (defun gnosis-dashboard-unmark-all ()
   "Unmark all items in the tabulated-list."
   (interactive)
+  (gnosis-dashboard--check-rendering)
   (let ((inhibit-read-only t))
     (setq gnosis-dashboard--selected-ids nil)
     (remove-overlays nil nil 'gnosis-mark t)
@@ -1332,6 +1378,7 @@ Detaching the file must not revive the former database or selection."
 (defun gnosis-dashboard-unmark ()
   "Remove the mark from the current row and advance one line."
   (interactive)
+  (gnosis-dashboard--check-rendering)
   (if-let* ((id (tabulated-list-get-id)))
       (progn
         (setq gnosis-dashboard--selected-ids
@@ -1344,6 +1391,7 @@ Detaching the file must not revive the former database or selection."
 (defun gnosis-dashboard-mark-all ()
   "Mark all items in the tabulated-list buffer and collect their IDs."
   (interactive)
+  (gnosis-dashboard--check-rendering)
   (when (derived-mode-p 'tabulated-list-mode)
     (let ((inhibit-read-only t))
       ;; Clear existing marks

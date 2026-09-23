@@ -68,10 +68,11 @@ Short-circuits when STR contains no HTML markup or entities."
         ("</?\\(?:div\\|p\\|li\\|tr\\|h[1-6]\\)\\(?:[[:space:]][^>]*\\)?>" . "\n")
         ("<[^>]+>" . "")
         ("&nbsp;" . " ")
-        ("&amp;" . "&")
         ("&lt;" . "<")
         ("&gt;" . ">")
         ("&quot;" . "\"")
+        ;; Decode ampersands last: emitted entity text is literal.
+        ("&amp;" . "&")
         ("\\[sound:[^]]*\\]" . "")
         ("\n\\{3,\\}" . "\n\n"))
       str))))
@@ -290,6 +291,24 @@ Try ZSTD first, fall back to 7Z.  Returns path to decompressed DB."
   "Return t for a converted ANSWER with non-whitespace text."
   (and (stringp answer) (not (string-empty-p (string-trim answer)))))
 
+(defun gnosis-anki--cloze-question (text)
+  "Convert cloze TEXT to a question with contiguous typed answers.
+Keep HTML emphasis when it does not split an answer.  Otherwise remove
+only HTML emphasis tags within that deletion, preserving literal
+punctuation and markup outside deletions.  Decode entities only during
+final conversion, never by substituting an already decoded answer."
+  (gnosis-anki--html-to-org
+   (replace-regexp-in-string
+    "{\\{1,2\\}c[0-9]+:\\{1,2\\}\\(\\(?:.\\|\n\\)*?\\)\\(::[^{}]*\\)?}\\{1,2\\}"
+    (lambda (deletion)
+      (save-match-data
+        (let* ((raw (gnosis-cloze-remove-tags deletion))
+               (answer (gnosis-anki--html-to-org raw t)))
+          (if (string-search answer (gnosis-anki--html-to-org raw))
+              raw
+            (replace-regexp-in-string "</?[biu]>" "" raw)))))
+    text t t)))
+
 (defun gnosis-anki--parse-cloze-note (flds tag-str seg-cache seen &optional model-info)
   "Parse a cloze note from FLDS string with TAG-STR.
 SEG-CACHE and SEEN are shared tag-parsing caches.
@@ -315,7 +334,7 @@ never remove individual answers and shift the remaining hints."
          (contents (gnosis-cloze-extract-contents text))
          (clozes (gnosis-cloze-extract-answers contents))
          (hints (gnosis-cloze-extract-hints contents))
-         (keimenon (gnosis-anki--html-to-org (gnosis-cloze-remove-tags text))))
+         (keimenon (gnosis-anki--cloze-question text)))
     (when clozes
       (cl-loop for cloze in clozes
                for hint in hints
@@ -324,7 +343,8 @@ never remove individual answers and shift the remaining hints."
                                 (gnosis-anki--html-to-org answer t))
                               cloze)
                collect (when (and answers
-                                  (seq-every-p #'gnosis-anki--usable-answer-p answers))
+                                  (seq-every-p #'gnosis-anki--usable-answer-p answers)
+                                  (gnosis-cloze-check keimenon answers))
                          (list :type "cloze"
                                :keimenon keimenon
                                :hypothesis (mapcar

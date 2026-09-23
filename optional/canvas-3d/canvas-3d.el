@@ -687,28 +687,28 @@ Only one attachment may own a buffer; use `canvas-3d-detach' when finished."
           (when canvas-3d--image
             (user-error "A canvas already owns this buffer; detach it first"))
           (unless embedded (canvas-3d-mode))
-          (add-hook 'kill-buffer-hook #'canvas-3d--cleanup nil t)
-          (add-hook 'change-major-mode-hook #'canvas-3d--cleanup nil t)
-          (setq canvas-3d--objects objects
-                canvas-3d--protocol 4 canvas-3d--selection nil
-                canvas-3d--question-target nil canvas-3d-selected-id nil
-		canvas-3d--size (or size 512)
-		canvas-3d--initial-view (copy-sequence initial-view)
-		canvas-3d--yaw (nth 0 initial-view)
-		canvas-3d--pitch (nth 1 initial-view)
-		canvas-3d--zoom (float (nth 2 initial-view))
-		canvas-3d--label (or label (file-name-base path))
-		canvas-3d--bytes nil canvas-3d--byte-count 0
-		canvas-3d--stderr (generate-new-buffer " *Canvas 3D log*"))
-          (setq canvas-3d--image
-		(list 'image :type 'canvas :scale 1.0 :id (make-symbol "canvas-3d")
-                      :data-width canvas-3d--size :data-height canvas-3d--size
-                      :data (make-string (* 4 canvas-3d--size canvas-3d--size) 0)))
-          (let ((inhibit-read-only t))
-            (insert (propertize " " 'display canvas-3d--image) "\n")
-            (unless embedded (goto-char (point-min))))
           (condition-case err
               (progn
+		(add-hook 'kill-buffer-hook #'canvas-3d--cleanup nil t)
+		(add-hook 'change-major-mode-hook #'canvas-3d--cleanup nil t)
+		(setq canvas-3d--objects objects
+                      canvas-3d--protocol 4 canvas-3d--selection nil
+                      canvas-3d--question-target nil canvas-3d-selected-id nil
+		      canvas-3d--size (or size 512)
+		      canvas-3d--initial-view (copy-sequence initial-view)
+		      canvas-3d--yaw (nth 0 initial-view)
+		      canvas-3d--pitch (nth 1 initial-view)
+		      canvas-3d--zoom (float (nth 2 initial-view))
+		      canvas-3d--label (or label (file-name-base path))
+		      canvas-3d--bytes nil canvas-3d--byte-count 0
+		      canvas-3d--stderr (generate-new-buffer " *Canvas 3D log*"))
+		(setq canvas-3d--image
+		      (list 'image :type 'canvas :scale 1.0 :id (make-symbol "canvas-3d")
+			    :data-width canvas-3d--size :data-height canvas-3d--size
+			    :data (make-string (* 4 canvas-3d--size canvas-3d--size) 0)))
+		(let ((inhibit-read-only t))
+		  (insert (propertize " " 'display canvas-3d--image) "\n")
+		  (unless embedded (goto-char (point-min))))
                 (setq canvas-3d--frame-directory (make-temp-file "canvas-3d-" t)
                       canvas-3d--file-identity
                       (substring (secure-hash 'sha256 canvas-3d--frame-directory) 0 16))

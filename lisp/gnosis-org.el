@@ -25,18 +25,16 @@ Converts [[id:xxx][Description]] to Description."
    input))
 
 (defun gnosis-org-get-id ()
-  "Return id for heading at point."
-  (save-excursion
-    (let ((heading-level (org-current-level))
-	  (id (org-id-get)))
-      (cond (id id)
-	    ((or (null heading-level) (= heading-level 1))
-	     (goto-char (point-min))
-	     (when (org-before-first-heading-p)
-               (org-id-get)))
-	    (t
-	     (outline-up-heading 1 t)
-	     (gnosis-org-get-id))))))
+  "Return the nearest enclosing ID, ignoring narrowing.
+Preserve point and restriction; return nil when no heading or root owns an ID."
+  (org-with-wide-buffer
+   (let ((id (org-id-get)))
+     (while (and (not id) (org-up-heading-safe))
+       (setq id (org-id-get)))
+     (or id
+         (progn
+           (goto-char (point-min))
+           (when (org-before-first-heading-p) (org-id-get)))))))
 
 (defun gnosis-org-collect-id-links (&optional parsed-data)
   "Collect ID links as (target-id . source-id) pairs from PARSED-DATA.

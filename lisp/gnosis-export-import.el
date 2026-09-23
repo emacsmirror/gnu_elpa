@@ -254,9 +254,11 @@ generate new thema id."
          (nth 6 thema-data)
          tags nil (nth 4 thema-data) (nth 5 thema-data))))))
 
-(defun gnosis-save-thema (thema)
+(defun gnosis-save-thema (thema &optional return-ids)
   "Save THEMA.
-Returns nil on success, or an error message string on failure."
+Return nil on success, or an error message string on failure.
+With RETURN-IDS, return the saved integer IDs on success instead of nil.
+Type handlers must then return one integer ID or a list of integer IDs."
   (let* ((id (nth 0 thema))
          (type (nth 1 thema))
          (keimenon (nth 2 thema))
@@ -288,6 +290,7 @@ Returns nil on success, or an error message string on failure."
                  (arguments (list id type keimenon hypothesis answer parathema
                                   tags 0 links))
                  (maximum (cdr (func-arity thema-func)))
+                 (saved nil)
                  (numeric-id (unless (equal id "NEW")
                                (if (stringp id) (string-to-number id) id))))
             ;; Full native drafts replace content.  Clear leftover rubric inside
@@ -302,15 +305,20 @@ Returns nil on success, or an error message string on failure."
                  (gnosis--ensure-db)
                  "UPDATE themata SET rubric = ? WHERE id = ?"
                  (list nil numeric-id)))
-              (apply thema-func
-                     (cond
-                      ((equal (downcase type) "agent-eval")
-                       (append arguments (list aliases rubric)))
-                      ;; Old third-party handlers can still save alias-free drafts.
-                      ;; Never discard authored aliases for a handler that cannot save them.
-                      ((and (null aliases) (eql maximum 9)) arguments)
-                      (t (append arguments (list aliases)))))))
-          nil)
+              (setq saved
+                    (apply thema-func
+                           (cond
+                            ((equal (downcase type) "agent-eval")
+                             (append arguments (list aliases rubric)))
+                            ;; Retain old handlers' alias-free argument list.
+                            ;; Never discard aliases they cannot save.
+                            ((and (null aliases) (eql maximum 9)) arguments)
+                            (t (append arguments (list aliases))))))
+              (when return-ids
+                (setq saved (if (integerp saved) (list saved) saved))
+                (unless (and (consp saved) (cl-every #'integerp saved))
+                  (error "Thema handler did not return saved IDs"))))
+            (and return-ids saved)))
       (error
        (format "Line %s (id:%s): %s"
                (or line "?") id
@@ -331,7 +339,7 @@ A committed draft cannot save again if closing it is interrupted or vetoed."
          (errors nil)
          (receipt gnosis--draft-save-receipt)
          (saved-content nil)
-         (edited-id (string-to-number (caar themata))))
+         (saved-ids nil))
     ;; Allow cancellation during validation/writes, but settle a committed
     ;; occurrence before quit delivery or arbitrary editor teardown callbacks.
     (let ((inhibit-quit t))
@@ -340,8 +348,9 @@ A committed draft cannot save again if closing it is interrupted or vetoed."
           (let ((inhibit-quit nil))
             (gnosis--draft-validate themata)
             (cl-loop for thema in themata
-                     for err = (gnosis-save-thema thema)
-                     when err do (push err errors))
+                     for result = (gnosis-save-thema thema t)
+                     if (stringp result) do (push result errors)
+                     else do (setq saved-ids (append saved-ids result)))
             (when errors
               (throw 'gnosis-save-failed nil))
             (when (and receipt gnosis--draft-original)
@@ -357,8 +366,11 @@ A committed draft cannot save again if closing it is interrupted or vetoed."
          "Failed to import %d thema(ta):\n%s"
          (length errors)
          (mapconcat #'identity (nreverse errors) "\n"))
-      (gnosis-edit-quit)
-      (run-hook-with-args 'gnosis-save-hook edited-id))))
+      ;; Recursive review edits leave nonlocally; notify after teardown even
+      ;; on that path, using only identities returned by committed writers.
+      (unwind-protect (gnosis-edit-quit)
+        (dolist (id (seq-uniq saved-ids))
+          (run-hook-with-args 'gnosis-save-hook id))))))
 
 ;;; SQLite export
 

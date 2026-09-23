@@ -353,6 +353,16 @@ input instead of the canvas.  Import immutable assets before visual input."
                 (plist-get selection :id))))
     (force-mode-line-update)))
 
+(defun gnosis-model--author-retire ()
+  "Retire the current viewer claim before a buffer ownership change."
+  (when gnosis-model--author-context
+    (setf (plist-get gnosis-model--author-context :retired) t)
+    (remove-hook 'change-major-mode-hook #'gnosis-model--author-retire t)
+    (remove-hook 'after-set-visited-file-name-hook #'gnosis-model--author-retire t)
+    (remove-hook 'kill-buffer-hook #'gnosis-model-author-cancel t)
+    (canvas-3d-detach)
+    (gnosis-model-author-cancel)))
+
 (defun gnosis-model-author-cancel ()
   "Cancel visual authoring without changing the original draft."
   (interactive)
@@ -419,7 +429,7 @@ input instead of the canvas.  Import immutable assets before visual input."
                                 :geometry (gnosis-model--validate-targets scene directory)
                                 :used-ids (mapcar (lambda (o) (alist-get 'id o)) (gnosis-model--targets scene))
                                 :target (and initial (car answer)) :process nil
-                                :result nil :cancelled nil)))
+                                :result nil :cancelled nil :retired nil)))
          viewer)
     (save-window-excursion
       (unwind-protect
@@ -444,7 +454,8 @@ input instead of the canvas.  Import immutable assets before visual input."
               (setq-local header-line-format '(:eval (gnosis-model--author-header)))
               (add-hook 'canvas-3d-selection-hook #'gnosis-model--author-selection nil t)
               (add-hook 'kill-buffer-hook #'gnosis-model-author-cancel nil t)
-              (add-hook 'change-major-mode-hook #'gnosis-model-author-cancel nil t)
+              (add-hook 'change-major-mode-hook #'gnosis-model--author-retire nil t)
+              (add-hook 'after-set-visited-file-name-hook #'gnosis-model--author-retire nil t)
               (when initial
                 (setq canvas-3d-selected-id (car answer))
                 (setq-local canvas-3d--question-target (gnosis-model-target scene (car answer)))
@@ -455,9 +466,11 @@ input instead of the canvas.  Import immutable assets before visual input."
               (user-error "Model authoring cancelled"))
             (gnosis-model--author-check context)
             (plist-get context :result))
-        (when (buffer-live-p viewer)
+        (when (and (buffer-live-p viewer)
+                   (eq (buffer-local-value 'gnosis-model--author-context viewer) context))
           (with-current-buffer viewer (setq gnosis-model--author-context nil))
-          (kill-buffer viewer))))))
+          (unless (plist-get context :retired)
+            (kill-buffer viewer)))))))
 
 ;;;###autoload
 (defun gnosis-add-model-thema (&optional type)

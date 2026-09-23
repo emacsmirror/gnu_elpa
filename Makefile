@@ -138,9 +138,11 @@ _test _test-canvas-ert:
 	@mkdir -p $(TEST_RESULTS)
 	@$(MAKE) --no-print-directory -j$(JOBS) -Otarget _test-summary
 
+# Bound receipt decimals before shell arithmetic; reject noncanonical counts.
 $(TEST_RESULTS)/%.stamp: $(TEST_DIR)/%.el
 	@tmp=$$(mktemp -d); log="$(TEST_RESULTS)/$*.log"; \
-	receipt="$(CURDIR)/$(TEST_RESULTS)/$*.receipt"; n=0; status=FAIL; \
+	receipt="$(CURDIR)/$(TEST_RESULTS)/$*.receipt"; status=FAIL; \
+	n=0; passed=0; skipped=0; unexpected=0; expected_failed=0; \
 	rm -f "$$receipt"; \
 	trap 'rm -rf "$$tmp"' 0 1 2 3 15; \
 	mkdir -p "$$tmp/home" "$$tmp/cache" "$$tmp/config" \
@@ -162,37 +164,47 @@ $(TEST_RESULTS)/%.stamp: $(TEST_DIR)/%.el
 		exited=1; \
 	fi; \
 	if test -f "$$receipt" && test "$$(wc -l < "$$receipt")" -eq 1 \
-		&& ! LC_ALL=C grep -qvx 'completed [0-9][0-9]*' "$$receipt"; then \
-		read completed n < "$$receipt"; \
-		if test "$$exited" -eq 0; then status=OK; fi; \
+		&& ! LC_ALL=C grep -Eqvx 'completed( (0|[1-9][0-9]{0,8})){5}' "$$receipt"; then \
+		read completed n passed skipped unexpected expected_failed < "$$receipt"; \
+		if test "$$n" -eq $$((passed + skipped + unexpected + expected_failed)); then \
+			if test "$$exited" -eq 0 && test "$$unexpected" -eq 0; then status=OK; fi; \
+		else \
+			printf '%s\n' 'Inconsistent ERT completion counts' >> "$$log"; \
+			n=0; passed=0; skipped=0; unexpected=0; expected_failed=0; \
+		fi; \
 	else \
 		printf '%s\n' 'Missing or invalid ERT completion receipt' >> "$$log"; \
 	fi; \
+	printf '%4s %s (%s passed, %s skipped, %s unexpected, %s expected failures)\n' \
+		"$$status" "$<" "$$passed" "$$skipped" "$$unexpected" "$$expected_failed"; \
 	if test "$$status" = OK; then \
-		printf '  OK %s (%s tests)\n' "$<" "$${n:-0}"; \
 		if test -n "$(ERT_REQUIRED_TESTS)"; then \
 			while IFS= read -r line; do printf '%s\n' "$$line"; done < "$$log"; \
 		fi; \
 		rm -f "$$log"; \
 	else \
-		printf 'FAIL %s (%s tests)\n' "$<" "$${n:-0}"; \
 		while IFS= read -r line; do printf '%s\n' "$$line"; done < "$$log"; \
 	fi; \
-	printf '%s %s\n' "$$status" "$${n:-0}" > "$@"
+	printf '%s %s %s %s %s %s\n' "$$status" "$$n" "$$passed" "$$skipped" \
+		"$$unexpected" "$$expected_failed" > "$@"
 
 _test-summary: $(TEST_STAMPS)
-	@total=0; passed=0; failed=0; failed_files=""; \
+	@total=0; passed=0; skipped=0; unexpected=0; expected_failed=0; \
+	ok=0; failed=0; failed_files=""; \
 	for stamp in $(TEST_STAMPS); do \
-		read status n < "$$stamp"; total=$$((total + n)); \
+		read status n p s u e < "$$stamp"; total=$$((total + n)); \
+		passed=$$((passed + p)); skipped=$$((skipped + s)); \
+		unexpected=$$((unexpected + u)); expected_failed=$$((expected_failed + e)); \
 		if test "$$status" = FAIL; then \
 			failed=$$((failed + 1)); \
 			failed_files="$$failed_files $(TEST_DIR)/$$(basename "$$stamp" .stamp).el"; \
 		else \
-			passed=$$((passed + 1)); \
+			ok=$$((ok + 1)); \
 		fi; \
 	done; \
-	printf '%s tests across %s files: %s passed, %s failed\n' \
-		"$$total" "$(words $(TEST_STAMPS))" "$$passed" "$$failed"; \
+	printf '%s tests across %s files: %s passed, %s skipped, %s unexpected, %s expected failures; %s files OK, %s failed\n' \
+		"$$total" "$(words $(TEST_STAMPS))" "$$passed" "$$skipped" "$$unexpected" \
+		"$$expected_failed" "$$ok" "$$failed"; \
 	if test "$$failed" -eq 0; then \
 		rm -rf $(TEST_RESULTS); \
 	else \

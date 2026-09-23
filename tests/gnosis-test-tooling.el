@@ -60,7 +60,11 @@ REQUIRED names a test that must pass without skipping."
        (gnosis-test-empty . "")) jobs
      (lambda (status output)
        (should (equal status 0))
-       (should (string-match-p "1 tests across 2 files: 2 passed, 0 failed" output))
+       (should (string-match-p
+                (regexp-quote
+                 (concat "1 tests across 2 files: 1 passed, 0 skipped, "
+                         "0 unexpected, 0 expected failures; 2 files OK, 0 failed"))
+                output))
        (should-not (file-exists-p ".test-results"))))))
 
 (ert-deftest gnosis-test-tooling-failed-and-interrupted ()
@@ -74,7 +78,15 @@ REQUIRED names a test that must pass without skipping."
        (gnosis-test-positive . "(ert-deftest positive () (should t))")) 2
      (lambda (status output)
        (should-not (equal status 0))
-       (should (string-match-p "2 files: 1 passed, 1 failed" output))
+       (should
+        (string-match-p
+         (regexp-quote
+          (if (string-match-p "should nil" body)
+              (concat "2 tests across 2 files: 1 passed, 0 skipped, "
+                      "1 unexpected, 0 expected failures; 1 files OK, 1 failed")
+            (concat "1 tests across 2 files: 1 passed, 0 skipped, "
+                    "0 unexpected, 0 expected failures; 1 files OK, 1 failed")))
+         output))
        (should-not (file-exists-p "late"))
        (should (file-exists-p ".test-results/gnosis-test-fault.log"))
        (with-temp-buffer
@@ -83,13 +95,25 @@ REQUIRED names a test that must pass without skipping."
 
 (ert-deftest gnosis-test-tooling-invalid-completion-receipt ()
   "Zero-exit workers with missing or malformed receipts cannot pass."
-  (dolist (receipt '(nil "completed nope\n" "completed 1\nextra\n"
-                        "completed 1\nextra"))
+  (dolist (receipt '(nil "completed nope\n" "completed 1\n"
+                        "completed 1 1 0 0 0\nextra\n"
+                        "completed 1 1 0 0 0\nextra"
+                        "completed 1 1 0 0 0"
+                        "completed 1 1 0 0 0 extra\n"
+                        "completed 1 0 0 0 0\n"
+                        "completed 0 1 0 0 0\n"
+                        "completed 1 -1 2 0 0\n"
+                        "completed 1 01 0 0 0\n"
+                        "completed 99999999999999999999 1 0 0 0\n"))
     (gnosis-test-tooling--run
      '((gnosis-test-fault . "")) 1
      (lambda (status output)
        (should-not (equal status 0))
-       (should (string-match-p "1 files: 0 passed, 1 failed" output))
+       (should (string-match-p
+                (regexp-quote
+                 (concat "0 tests across 1 files: 0 passed, 0 skipped, "
+                         "0 unexpected, 0 expected failures; 0 files OK, 1 failed"))
+                output))
        (should (file-exists-p ".test-results/gnosis-test-fault.log")))
      (concat (when receipt
                (format "if test -n \"$GNOSIS_TEST_RECEIPT\"; then printf '%%s' '%s' > \"$GNOSIS_TEST_RECEIPT\"; fi\n"
@@ -110,8 +134,82 @@ REQUIRED names a test that must pass without skipping."
              (should (equal status 0))
              (should (string-match-p "passed +1/1 +integration" output)))
          (should-not (equal status 0))
+         (when (string-match-p "ert-skip" body)
+           (should (string-match-p
+                    (regexp-quote
+                     (concat "1 tests across 1 files: 0 passed, 1 skipped, "
+                             "0 unexpected, 0 expected failures; "
+                             "0 files OK, 1 failed")) output)))
          (should (file-exists-p ".test-results/gnosis-test-integration.log"))))
      nil "integration")))
+
+(ert-deftest gnosis-test-tooling-result-counts ()
+  "Report exercised and skipped tests separately without requiring capabilities."
+  (dolist (case '(("(ert-deftest pass () (should t))" 1 0)
+                  ("(ert-deftest skip () (ert-skip \"Optional capability\"))" 0 1)
+                  ("(ert-deftest pass () (should t))
+                    (ert-deftest skip () (ert-skip \"Optional capability\"))" 1 1)))
+    (gnosis-test-tooling--run
+     `((gnosis-test-results . ,(car case))) 1
+     (lambda (status output)
+       (let ((counts (format "%d passed, %d skipped, 0 unexpected, 0 expected failures"
+                             (nth 1 case) (nth 2 case))))
+         (should (equal status 0))
+         (should (string-match-p
+                  (regexp-quote
+                   (format "%d tests across 1 files: %s; 1 files OK, 0 failed"
+                           (+ (nth 1 case) (nth 2 case)) counts)) output))
+         ;; Successful logs may go away: per-suite output retains skip counts.
+         (should (string-match-p
+                  (regexp-quote
+                   (concat "tests/gnosis-test-results.el (" counts ")")) output))
+         (should-not (file-exists-p ".test-results")))))))
+
+(ert-deftest gnosis-test-tooling-mixed-suites ()
+  "Aggregate distinct pass, skip and unexpected results from multiple suites."
+  (gnosis-test-tooling--run
+   '((gnosis-test-pass . "(ert-deftest pass () (should t))")
+     (gnosis-test-skip . "(ert-deftest skip () (ert-skip \"Optional capability\"))")
+     (gnosis-test-fail . "(ert-deftest fail () (should nil))")) 1
+   (lambda (status output)
+     (should-not (equal status 0))
+     (should (string-match-p
+              (regexp-quote
+               (concat "3 tests across 3 files: 1 passed, 1 skipped, "
+                       "1 unexpected, 0 expected failures; 2 files OK, 1 failed"))
+              output)))))
+
+(ert-deftest gnosis-test-tooling-expected-failures ()
+  "Keep ERT expected failures distinct from passes, skips and unexpected passes."
+  (dolist (pass '(nil t))
+    (gnosis-test-tooling--run
+     `((gnosis-test-expected .
+        ,(format "(ert-deftest expected () :expected-result :failed (should %S))"
+                 pass))) 1
+     (lambda (status output)
+       (should (eq (equal status 0) (not pass)))
+       (should (string-match-p
+                (regexp-quote
+                 (format (concat "1 tests across 1 files: 0 passed, 0 skipped, "
+                                 "%d unexpected, %d expected failures; "
+                                 "%d files OK, %d failed")
+                         (if pass 1 0) (if pass 0 1)
+                         (if pass 0 1) (if pass 1 0))) output))))))
+
+(ert-deftest gnosis-test-tooling-unexpected-zero-exit ()
+  "Even a zero process exit cannot pass a receipt with unexpected results."
+  (gnosis-test-tooling--run
+   '((gnosis-test-fault . "")) 1
+   (lambda (status output)
+     (should-not (equal status 0))
+     (should (string-match-p
+              (regexp-quote
+               (concat "1 tests across 1 files: 0 passed, 0 skipped, "
+                       "1 unexpected, 0 expected failures; 0 files OK, 1 failed"))
+              output)))
+   (concat "if test -n \"$GNOSIS_TEST_RECEIPT\"; then "
+           "printf 'completed 1 0 0 1 0\\n' > \"$GNOSIS_TEST_RECEIPT\"; fi\n"
+           "exit 0\n")))
 
 (provide 'gnosis-test-tooling)
 ;;; gnosis-test-tooling.el ends here

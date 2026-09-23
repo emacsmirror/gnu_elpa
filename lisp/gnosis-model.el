@@ -800,6 +800,15 @@ in the child; only the explicitly captured asset root is read."
                       (apply #'+ (cl-mapcar #'* coordinates (alist-get 'barycentric target))))
          (aref geometry (alist-get 'face target))))
 
+(defun gnosis-model--distance (a b)
+  "Return Euclidean distance between original-coordinate points A and B.
+Scale differences before squaring so tiny model distances do not underflow."
+  (let* ((differences (cl-mapcar (lambda (x y) (abs (- x y))) a b))
+         (scale (apply #'max differences)))
+    (if (zerop scale) 0.0
+      (* scale (sqrt (apply #'+ (mapcar (lambda (d) (expt (/ d (float scale)) 2))
+                                       differences)))))))
+
 (defun gnosis-model--candidate (scene geometry expected hit &optional points)
   "Resolve HIT against SCENE GEOMETRY using EXPECTED target kind, not grading.
 POINTS optionally supplies verified target coordinates instead of GEOMETRY."
@@ -818,11 +827,11 @@ POINTS optionally supplies verified target coordinates instead of GEOMETRY."
                             ("region" (when (member face (alist-get 'faces target)) 0))
                             ("point"
                              (when point
-                               (let ((d (apply #'+ (cl-mapcar
-                                                    (lambda (a b) (expt (- a b) 2)) point
-                                                    (if points (cdr (assoc (alist-get 'id target) points))
-                                                      (gnosis-model--point target (cdr (assoc mesh geometry))))))))
-                                 (when (<= d (expt (alist-get 'tolerance target) 2)) d)))))))
+                               (let ((d (gnosis-model--distance
+                                         point
+                                         (if points (cdr (assoc (alist-get 'id target) points))
+                                           (gnosis-model--point target (cdr (assoc mesh geometry)))))))
+                                 (when (<= d (alist-get 'tolerance target)) d)))))))
                      (when distance (list (cons distance (alist-get 'id target))))))))
     (cdar (sort scored (lambda (a b)
                          (if (= (car a) (car b)) (string< (cdr a) (cdr b))

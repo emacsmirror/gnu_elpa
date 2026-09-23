@@ -173,7 +173,6 @@ input, selects a window or invokes a scheduler."
            (text (cond (failure (if (stringp failure) failure "Evaluation failed"))
                        (valid (plist-get result :explanation))
                        (t "Malformed evaluator result"))))
-      (gnosis-agent-eval--stop context)
       (when (gnosis-agent-eval--valid-p context)
         (setf (plist-get context :result) (and graded (copy-sequence result)))
         (with-current-buffer (plist-get context :buffer)
@@ -191,7 +190,10 @@ input, selects a window or invokes a scheduler."
                    (substitute-command-keys
                     (concat "\\<gnosis-agent-eval-mode-map>"
                             "Edit or \\[gnosis-agent-eval-submit] to retry; \\[gnosis-agent-eval-quit] to quit"))))
-         (if graded (if (eq (plist-get result :verdict) 'pass) 'success 'error) 'warning))))))
+         (if graded (if (eq (plist-get result :verdict) 'pass) 'success 'error) 'warning)))
+      ;; Cancellation can edit and resubmit, even completing synchronously.
+      ;; Publish everything first; never overwrite that successor on return.
+      (gnosis-agent-eval--stop context))))
 
 (defun gnosis-agent-eval-cancel ()
   "Cancel the evaluation, preserving the response for retry without grading."
@@ -199,16 +201,17 @@ input, selects a window or invokes a scheduler."
   (let ((context gnosis-agent-eval--context))
     (unless (and context (gnosis-agent-eval--valid-p context))
       (user-error "Response belongs to an outdated encounter"))
-    (gnosis-agent-eval--stop context)
-    (unless (gnosis-agent-eval--valid-p context)
-      (user-error "Cancellation retired the response encounter"))
     (setf (plist-get context :result) nil)
     (setq buffer-read-only nil)
     (gnosis-agent-eval--show
      context (substitute-command-keys
               (concat "\\<gnosis-agent-eval-mode-map>Not graded: cancelled.  "
                       "Edit or \\[gnosis-agent-eval-submit] to retry"))
-     'warning)))
+     'warning)
+    ;; As in settlement, cancellation owns the final callback-capable step.
+    (gnosis-agent-eval--stop context)
+    (unless (gnosis-agent-eval--valid-p context)
+      (user-error "Cancellation retired the response encounter"))))
 
 (defun gnosis-agent-eval-quit ()
   "Leave response input without accepting a grade."

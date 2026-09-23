@@ -109,7 +109,7 @@ The :owner identifies the exact open connection, not just its filename."
             :items (vconcat (mapcar #'gnosis-agent-content--record numbers))))))
 
 (defun gnosis-agent-content--epoch ()
-  "Return a revision that changes after local or external database writes."
+  "Return the revision following local or external database writes."
   (list :local (number-to-string
                 (caar (sqlite-select (gnosis--ensure-db) "SELECT total_changes()")))
         :external (number-to-string
@@ -222,13 +222,21 @@ disk.  This reads local indexed sources only; remote/encrypted paths refuse."
          (row (car rows))
          (file (and row (expand-file-name
                         (nth 1 row) (if (eq (car row) 'nodes) gnosis-nodes-dir
-                                      (gnosis-nodes--journal-dir)))))
-         (buffer (and file (gnosis-nodes--file-buffer file))))
+                                      (gnosis-nodes--journal-dir))))))
     (let ((status
            (cond ((null row) "missing") ((cdr rows) "ambiguous")
                  ((or (file-remote-p file) (string-suffix-p ".gpg" file)
                       (not (file-readable-p file))) "unavailable")
-                 ((and buffer (buffer-modified-p buffer)) "dirty"))))
+                 ((seq-some
+                   (lambda (buffer)
+                     (with-current-buffer buffer
+                       (and (buffer-modified-p)
+                            (if buffer-file-name
+                                (and (not (file-remote-p buffer-file-name))
+                                     (file-equal-p file buffer-file-name))
+                              (equal (seq-take gnosis-nodes--deleted-file 2)
+                                     (list file gnosis-db))))))
+                   (buffer-list)) "dirty"))))
       (if status (list :id id :status status :text nil)
         (condition-case nil
             (with-temp-buffer
@@ -249,8 +257,9 @@ disk.  This reads local indexed sources only; remote/encrypted paths refuse."
 (defun gnosis-agent-content-encounter ()
   "Return read-only native encounter metadata without learner answers.
 :busy means organization must wait.  :items lists known :id, :session-id,
-:mode and :phase (\"answering\" or \"feedback\").  Refuse organization throughout
-any running native session, including source visits and transitional callbacks.
+:mode and :phase (\"answering\" or \"feedback\").  Refuse organization
+throughout any running native session, including source visits and
+transitional callbacks.
 No buffer names, input text or grading results are exposed."
   (let ((items
          (cl-loop for buffer in (buffer-list)
@@ -363,11 +372,14 @@ Refuse ambiguous markup rather than rewriting unrelated authored prose."
                            (seq-difference (append (plist-get before :source-ids) nil) unlink)
                            add-ids) #'string<)))
         (list :id (number-to-string id) :status "ready" :before before
-              :tags (vconcat tags) :question question :parathema parathema
+              :tags (vconcat tags) :question question
+              :parathema (if (or (plist-member change :add-sources)
+                                 (plist-member change :remove-sources))
+                             parathema (plist-get before :parathema))
               :sources (vconcat proofs) :source-ids (vconcat links))))))
 
 (defun gnosis-agent-content-preview (owner changes)
-  "Preview explicit organization CHANGES on exact connection OWNER.
+  "Preview explicit organization on exact connection OWNER.
 CHANGES is a vector of at most 500 unique-ID plists.  Each requires :id and
 :revision from fetch; optional :add-tags/:remove-tags are string vectors.
 Optional :add-sources is a vector of (:id SOURCE-ID :label DESCRIPTION).
@@ -375,6 +387,8 @@ Append descriptive links to post-answer parathema, never to the question.
 Optional :remove-sources is a string vector: remove those parathema links,
 retaining descriptions, and their indexed associations.  Refuse removal if
 that source occurs in the question, literal Org text or complex markup.
+Explicit empty source fields still write content, normalizing nil parathema
+to an empty string.  Omitting both fields preserves its exact value.
 Combine removal and addition to correct a source or label.  Other prose and
 associations remain; no arbitrary graph-only edges are added.  Each thema
 permits at most 100 source operations.  Added sources must have current saved

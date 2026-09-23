@@ -189,7 +189,9 @@ This is set automatically based on buffer type:
     ("Model-name" . gnosis-model--save)
     ("Image-region" . gnosis-image--save)
     ("Image-occlusion" . gnosis-image--save))
-  "Mapping of Themata & their respective functions.")
+  "Mapping of thema types to their save functions.
+Each function returns the saved integer ID or, for multiple themata, a
+list of integer IDs.  Native save publishes those IDs after commit.")
 
 (defvar gnosis-previous-thema-hint nil
   "Hint input from previously added thema.")
@@ -230,7 +232,7 @@ This is set automatically based on buffer type:
 
 (defvar gnosis-save-hook nil
   "Hook run after a successful `gnosis-save'.
-Each function is called with the saved thema ID (integer).")
+Each function is called once per saved thema ID (integer), after commit.")
 
 
 (defvar gnosis-review-editing-p nil
@@ -591,7 +593,8 @@ SUSPEND: Integer value of 1 or 0, where 1 suspends the card.
 LINKS: List of id links, stored as unique associations.
 REVIEW-IMAGE is optional image data and GNOSIS-ID is an optional ID.
 ACCEPTED-ALIASES is an optional list of explicitly accepted typed spellings.
-RUBRIC is the independent nonempty grading guidance for agent-eval themata."
+RUBRIC is the independent nonempty grading guidance for agent-eval themata.
+Return the inserted integer ID."
   (cl-assert (stringp type) nil "Type must be a string")
   (gnosis--validate-accepted-aliases type answer accepted-aliases)
   (gnosis--validate-agent-eval-fields type keimenon hypothesis answer rubric)
@@ -622,7 +625,8 @@ RUBRIC is the independent nonempty grading guidance for agent-eval themata."
       (cl-loop for link in (seq-uniq links)
 	       do (gnosis--insert-into 'thema-links `([,gnosis-id ,link])))
       (cl-loop for tag in tags
-	       do (gnosis--insert-into 'thema-tag `([,gnosis-id ,tag]))))))
+	       do (gnosis--insert-into 'thema-tag `([,gnosis-id ,tag]))))
+    gnosis-id))
 
 (cl-defun gnosis-update-thema (id keimenon hypothesis answer parathema tags links
 			       &optional type (accepted-aliases nil aliases-p)
@@ -633,7 +637,8 @@ TYPE optionally changes type.
 Omitted ACCEPTED-ALIASES preserves stored aliases; explicit nil clears them.
 Omitted RUBRIC preserves it; explicit nil clears it for non-agent types.
 
-If ID does not exist, TYPE is required to create it anew and issue a warning."
+If ID does not exist, TYPE is required to create it anew and issue a warning.
+Return the saved integer ID."
   (let* ((id (if (stringp id) (string-to-number id) id))
 	 (current-type (gnosis-get 'type 'themata `(= id ,id)))
          (accepted-aliases (if aliases-p accepted-aliases
@@ -672,7 +677,8 @@ If ID does not exist, TYPE is required to create it anew and issue a warning."
 		       (format "Thema id:%d does not exist, creating anew" id)
 		       :warning)
       (gnosis-add-thema-fields type keimenon hypothesis answer parathema tags
-			       0 links nil id accepted-aliases rubric))))
+			       0 links nil id accepted-aliases rubric))
+    id))
 
 ;;;;;;;;;;;;;;;;;;;;;; THEMA HELPERS ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; These functions provide assertions depending on the type of thema.
@@ -754,7 +760,7 @@ ACCEPTED-ALIASES applies only to the forward answer when supplied."
   (let ((type "basic")
 	(hypothesis (or hypothesis (list ""))))
     (if (equal id "NEW")
-	(progn
+	(list
 	  (gnosis-add-thema-fields type keimenon hypothesis
 				   answer parathema tags suspend links nil nil accepted-aliases)
 	  (gnosis-add-thema-fields type (car answer) hypothesis
@@ -790,9 +796,9 @@ ACCEPTED-ALIASES must be nil: cloze answers are separate required blanks."
   (cl-assert (or (null hypothesis) (>= (length answer) (length hypothesis)))
 	     nil "Hypothesis length must not exceed answer length.")
   (cl-assert (listp answer) nil "Answer must be a list.")
-  (cl-assert (gnosis-cloze-check keimenon answer) nil
-	     "Cloze answers are not part of keimenon.")
   (let ((keimenon-clean (gnosis-cloze-remove-tags keimenon)))
+    (cl-assert (gnosis-cloze-check keimenon-clean answer) nil
+               "Cloze answers require disjoint occurrences in keimenon.")
     (if (equal id "NEW")
 	(if (null answer)
 	    (let* ((contents (gnosis-cloze-extract-contents keimenon))
@@ -802,7 +808,9 @@ ACCEPTED-ALIASES must be nil: cloze answers are separate required blanks."
                 (user-error "Cloze requires an answer or at least one inline blank"))
 	      (cl-loop for cloze in clozes
 		       for hint in hints
-		       do (gnosis-add-thema-fields type keimenon-clean hint cloze
+                       do (cl-assert (gnosis-cloze-check keimenon-clean cloze) nil
+                                     "Cloze answers require disjoint occurrences in keimenon.")
+                       collect (gnosis-add-thema-fields type keimenon-clean hint cloze
 						   parathema tags suspend links)))
 	  (gnosis-add-thema-fields type keimenon-clean (or hypothesis (list ""))
 				   answer parathema tags suspend links))
@@ -822,9 +830,9 @@ ACCEPTED-ALIASES must be nil for choice-based responses."
   (cl-assert (and (listp answer) (length= answer 1)
 		  (member (car answer) hypothesis))
 	     nil "Answer must be a list of one item, member of hypothesis.")
-  (cl-assert (gnosis-cloze-check keimenon answer) nil
-	     "Cloze answers are not part of keimenon.")
   (let ((keimenon-clean (gnosis-cloze-remove-tags keimenon)))
+    (cl-assert (gnosis-cloze-check keimenon-clean answer) nil
+               "Cloze answers require disjoint occurrences in keimenon.")
     (apply #'gnosis-add-thema--dispatch id type keimenon-clean hypothesis
            answer parathema tags suspend links (when aliases-p (list accepted-aliases)))))
 
@@ -984,29 +992,31 @@ modify or save the source, or replace an existing creation draft."
 (defun gnosis-edit-thema (id)
   "Edit thema with ID without replacing an unfinished edit.
 Refuse stored tags that native Org cannot represent without changing them.
-Explicitly rename or remove those tags through the tag commands first."
-  (when (and (get-buffer "*Gnosis Edit*")
-             (buffer-modified-p (get-buffer "*Gnosis Edit*")))
-    (user-error "Finish the existing Gnosis edit first"))
+Explicitly rename or remove those tags through the tag commands first.
+Never reuse an existing buffer named *Gnosis Edit*, even if unmodified."
+  (when (get-buffer "*Gnosis Edit*")
+    (user-error "Finish or rename the existing *Gnosis Edit* buffer first"))
   (let* ((owner (gnosis--ensure-db))
          (original (gnosis--draft-content owner id)))
     (unless (car original)
       (user-error "Thema no longer exists; reopen the collection"))
     (gnosis-tags--check-org (gnosis-get-tags-for-ids (list id)))
     (window-configuration-to-register :gnosis-edit)
-    (pop-to-buffer "*Gnosis Edit*")
-    (with-current-buffer "*Gnosis Edit*"
-      (let ((inhibit-read-only 1))
-        (erase-buffer))
-      (gnosis-edit-mode)
-      (setq gnosis--draft-db owner
-            gnosis--draft-original (cons id original))
-      (gnosis-export--insert-themata (list id))
-      (when (member (gnosis-get 'type 'themata `(= id ,id)) '("model" "model-name"))
-        (use-local-map (copy-keymap (current-local-map)))
-        (local-set-key (kbd "C-c C-a") #'gnosis-model-attach))
-      (search-backward "keimenon")
-      (forward-line))))
+    (let ((buffer (generate-new-buffer "*Gnosis Edit*")))
+      (with-current-buffer buffer
+        (gnosis-edit-mode)
+        (unless (and (eq major-mode 'gnosis-edit-mode)
+                     (not buffer-file-name) (zerop (buffer-size)))
+          (user-error "Editor changed during setup; preserve it and reopen the thema"))
+        (setq gnosis--draft-db owner
+              gnosis--draft-original (cons id original))
+        (gnosis-export--insert-themata (list id))
+        (when (member (gnosis-get 'type 'themata `(= id ,id)) '("model" "model-name"))
+          (use-local-map (copy-keymap (current-local-map)))
+          (local-set-key (kbd "C-c C-a") #'gnosis-model-attach))
+        (search-backward "keimenon")
+        (forward-line))
+      (pop-to-buffer buffer))))
 
 (defun gnosis-edit-quit ()
   "Quit recrusive edit & kill current buffer."

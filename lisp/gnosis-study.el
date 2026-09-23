@@ -459,8 +459,15 @@ This explicitly adopts the current database for subsequent row commands."
                   (plist-get counts :total) (plist-get counts :due)
                   (plist-get counts :new) (plist-get counts :suspended)
                   (if (null ids) " | No linked questions: authoring gap candidate" "")))
-    (tabulated-list-print t)
-    (setq gnosis-study--owner (cons (current-buffer) database))))
+    (let ((owner (cons (current-buffer) database)))
+      (setq gnosis-study--owner owner
+            tabulated-list-groups
+            (lambda ()
+              (unless (eq (current-buffer) (car owner))
+                (user-error "Study view changed; reopen the collection"))
+              (gnosis-study--check-owner owner)
+              nil))
+      (tabulated-list-print t))))
 
 (defun gnosis-study-edit ()
   "Edit the selected thema, visiting its indexed source when available.

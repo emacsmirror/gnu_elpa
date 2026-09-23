@@ -166,9 +166,9 @@
       (should (equal (gnosis-select '[source dest] 'thema-links) before)))))
 
 (ert-deftest gnosis-test-links-dashboard-null-and-literal-nil-counts ()
-  "Keep distinct stale rows but formatted missing-link equality in the badge."
+  "Keep SQL NULL distinct from literal IDs in reports and the badge."
   ;; TEXT, indexed (SOURCE DEST) rows, and the five public summary counts.
-  (dolist (case '(("[[id:nil]]" ((1 nil)) (1 1 0 0 0))
+  (dolist (case '(("[[id:nil]]" ((1 nil)) (1 1 1 0 0))
                   ("[[id:nil]]" nil (0 0 1 0 0))
                   ("[[id:nil]]" ((1 "nil")) (1 0 0 0 0))
                   ("[[id:nil]]" ((1 nil) (1 "nil")) (2 1 0 0 0))
@@ -185,8 +185,7 @@
         (let ((before (gnosis-select '[source dest] 'thema-links))
               (format-count (symbol-function 'gnosis--links-check-format-count))
               counts)
-          ;; Exercise the unchanged public summary, not report row selection:
-          ;; SQL IN does not return orphaned NULL rows for the detailed report.
+          ;; The public summary and incremental badge share exact identities.
           (cl-letf (((symbol-function 'gnosis--links-check-format-count)
                      (lambda (count)
                        (push count counts) (funcall format-count count)))

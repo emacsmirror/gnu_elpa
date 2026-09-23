@@ -92,7 +92,7 @@ Skip Git when testing or when its executable is unavailable.  Unless
 EXISTING-ONLY is non-nil, initialize a repository if necessary.  Report
 Git setup or launch errors separately; they do not undo the database change.
 Push after a successful commit when `gnosis-vc-auto-push' is non-nil,
-unless NO-PUSH is non-nil."
+unless NO-PUSH is non-nil.  Leave unrelated staged changes in the index."
   (unless gnosis-testing
     (if (not (executable-find "git"))
         (message "Gnosis: Automatic Git commit skipped; Git is unavailable")
@@ -103,7 +103,8 @@ unless NO-PUSH is non-nil."
                       (file-exists-p (expand-file-name ".git" gnosis-dir)))
               (unless existing-only (gnosis--ensure-git-repo))
               (gnosis--git-chain
-               `(("add" "gnosis.db") ("commit" "-m" ,message))
+               `(("add" "--" "gnosis.db")
+                 ("commit" "--only" "-m" ,message "--" "gnosis.db"))
                (lambda ()
                  (when (and (not no-push) gnosis-vc-auto-push)
                    (condition-case err

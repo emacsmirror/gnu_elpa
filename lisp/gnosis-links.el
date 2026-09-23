@@ -33,6 +33,7 @@
 ;; Runtime dependencies from gnosis.el (loaded before interactive use)
 (declare-function gnosis-completing-read "gnosis")
 (declare-function gnosis-collect-thema-ids "gnosis")
+(declare-function gnosis-nodes--completion-candidates "gnosis-nodes")
 
 ;;; Link extraction
 
@@ -160,14 +161,15 @@ initiating context is no longer valid; its return value is ignored."
   (interactive
    (let* ((db (gnosis--ensure-db))
           (string (read-string "String to replace: "))
-          (nodes (progn (gnosis--links-check-owner db)
-                        (gnosis-select '[id title] 'nodes)))
-          (node-title (gnosis-completing-read
-                       "Select node: "
-                       (mapcar #'cadr nodes)))
-          (node-id (car (cl-find node-title nodes
-                                 :key #'cadr
-                                 :test #'string=))))
+          (candidates
+           (progn
+             (gnosis--links-check-owner db)
+             (require 'gnosis-nodes)
+             (gnosis-nodes--completion-candidates
+              (gnosis-select '[id title file] 'nodes))))
+          (choice (gnosis-completing-read
+                   "Select node: " (mapcar #'car candidates)))
+          (node-id (cdr (assoc choice candidates))))
      (gnosis--links-check-owner db)
      (list string node-id)))
   (gnosis-bulk-link-themata
@@ -202,10 +204,11 @@ initiating context is no longer valid; its return value is ignored."
 
 (defun gnosis--orphaned-links ()
   "Return (source dest) rows where dest has no matching node."
-  (let ((orphaned-dests (gnosis--orphaned-link-dests)))
-    (when orphaned-dests
-      (gnosis-select '[source dest] 'thema-links
-                     `(in dest ,(vconcat orphaned-dests))))))
+  (gnosis-sqlite-select
+   (gnosis--ensure-db)
+   (concat "SELECT source, dest FROM thema_links AS l "
+           "WHERE NOT EXISTS (SELECT 1 FROM nodes WHERE id = l.dest) "
+           "AND NOT EXISTS (SELECT 1 FROM journal WHERE id = l.dest)")))
 
 (defun gnosis--node-links-missing-dest ()
   "Return node-link pairs whose destination has no matching node."
@@ -238,7 +241,7 @@ initiating context is no longer valid; its return value is ignored."
       (dolist (link broken-links)
         (gnosis-sqlite-execute
          (gnosis--ensure-db)
-         "DELETE FROM node_links WHERE source = ? AND dest = ?"
+         "DELETE FROM node_links WHERE source IS ? AND dest IS ?"
          (list (car link) (cadr link)))))))
 
 (defun gnosis--thema-expected-links (keimenon parathema)
@@ -295,7 +298,7 @@ Fetches all themata, extras, and thema-links in bulk."
       (puthash (car extra) (cadr extra) extras-map))
     ;; Build existing links set
     (dolist (link all-links)
-      (puthash (format "%s-%s" (car link) (cadr link))
+      (puthash (list (car link) (cadr link))
                t links-set))
     ;; Find links in text that aren't in DB
     (cl-loop
@@ -304,7 +307,7 @@ Fetches all themata, extras, and thema-links in bulk."
      for expected = (gnosis--thema-expected-links
                      (or keimenon "") (or parathema ""))
      append (cl-loop for dest in expected
-                     for key = (format "%s-%s" id dest)
+                     for key = (list id dest)
                      unless (gethash key links-set)
                      collect (list id dest)))))
 
@@ -365,8 +368,7 @@ builder if DB changes between pages; no transaction spans these calls."
            ;; Initially every index row is stale; matching text subtracts it.
            (cl-incf count)
            (puthash pair (1+ (gethash pair links 0)) links)
-           ;; Missing links use formatted equality; stale rows do not.
-           (puthash (format "%s-%s" (car pair) dest) t indexed)
+           (puthash pair t indexed)
            (unless (or (gethash dest nodes) (gethash dest orphans))
              (puthash dest t orphans)
              (cl-incf count))))
@@ -374,7 +376,7 @@ builder if DB changes between pages; no transaction spans these calls."
          (dolist (dest (gnosis--thema-expected-links
                        (or (nth 2 row) "") (or (nth 3 row) "")))
            (cl-decf count (gethash (list (nth 1 row) dest) links 0))
-           (unless (gethash (format "%s-%s" (nth 1 row) dest) indexed)
+           (unless (gethash (list (nth 1 row) dest) indexed)
              (cl-incf count))))
         ('node-links
          (unless (gethash (nth 1 row) nodes) (cl-incf count))
@@ -545,7 +547,10 @@ node-links (source dest) lists."
       (gnosis-sqlite-execute-batch
        (gnosis--ensure-db)
        "DELETE FROM thema_links WHERE dest IN (%s)"
-       orphaned-dests))))
+       (remq nil orphaned-dests))
+      (when (memq nil orphaned-dests)
+        (gnosis-sqlite-execute
+         (gnosis--ensure-db) "DELETE FROM thema_links WHERE dest IS NULL")))))
 
 (defun gnosis--delete-stale-links (stale-links)
   "Delete STALE-LINKS from thema-links table.
@@ -555,7 +560,7 @@ Each element is a (source dest) pair."
       (dolist (link stale-links)
         (gnosis-sqlite-execute
          (gnosis--ensure-db)
-         "DELETE FROM thema_links WHERE source = ? AND dest = ?"
+         "DELETE FROM thema_links WHERE source IS ? AND dest IS ?"
          (list (car link) (cadr link)))))))
 
 (defun gnosis--insert-missing-links (missing-links)

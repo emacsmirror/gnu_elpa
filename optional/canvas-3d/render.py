@@ -42,6 +42,24 @@ def scene_objects(path):
     return result
 
 
+def triangle_normals(triangles):
+    """Return unit face normals without squaring original-scale lengths."""
+    edges = triangles[:, 1:] - triangles[:, :1]
+    scale = np.max(np.abs(edges), axis=(1, 2))
+    if not np.isfinite(scale).all() or np.any(scale == 0):
+        raise ValueError("Degenerate triangles")
+    # Scale before the cross product, not just its norm: at tiny uniform
+    # scales even the products forming the normal can underflow to zero.
+    # Powers of two avoid rounding edges through an arbitrary divisor.
+    _, exponent = np.frexp(scale)
+    edges = np.ldexp(edges, -exponent[:, None, None])
+    normals = np.cross(edges[:, 0], edges[:, 1])
+    lengths = np.hypot.reduce(normals, axis=1)
+    if not np.isfinite(lengths).all() or np.any(lengths == 0):
+        raise ValueError("Degenerate triangles")
+    return normals / lengths[:, None]
+
+
 def obj_geometry(path):
     """Return original vertices and file-order fan triangles, ignoring vt/vn.
 
@@ -81,10 +99,7 @@ def obj_geometry(path):
     if not faces:
         raise ValueError("OBJ contains no triangles")
     vertices, faces = np.asarray(vertices, dtype="f8"), np.asarray(faces, dtype="u4")
-    triangles = vertices[faces]
-    normals = np.cross(triangles[:, 1] - triangles[:, 0], triangles[:, 2] - triangles[:, 0])
-    if not np.isfinite(normals).all() or np.any(np.linalg.norm(normals, axis=1) == 0):
-        raise ValueError("Degenerate triangles")
+    triangle_normals(vertices[faces])
     if not np.isfinite(vertices.astype("f4")).all():
         raise ValueError("Geometry exceeds float32 transport range")
     return vertices, faces
@@ -100,7 +115,7 @@ class Renderer:
             raise ValueError("At most two million scene triangles supported")
         points = np.concatenate([vertices for vertices, _ in self.meshes])
         self.center = (points.max(axis=0) + points.min(axis=0)) / 2
-        self.radius = np.linalg.norm(points - self.center, axis=1).max()
+        self.radius = np.hypot.reduce(points - self.center, axis=1).max()
         if not math.isfinite(self.radius) or self.radius <= 0:
             raise ValueError("Degenerate geometry")
         self.size = size
@@ -151,8 +166,7 @@ class Renderer:
         for vertices, faces in self.meshes:
             original = vertices[faces]
             points = (original - self.center) / self.radius
-            normals = np.cross(points[:, 1] - points[:, 0], points[:, 2] - points[:, 0])
-            normals /= np.linalg.norm(normals, axis=1)[:, None]
+            normals = triangle_normals(original)
             data = np.concatenate((points, np.repeat(normals[:, None, :], 3, axis=1)), axis=2)
             vbo = self.ctx.buffer(data.astype("f4").tobytes())
             marks = self.ctx.buffer(np.zeros(len(faces) * 3, dtype="f4").tobytes())

@@ -1,0 +1,505 @@
+{
+  "cases": [
+    {
+      "desired_retention": 0.8,
+      "elapsed_days": 0,
+      "expected": {
+        "calendar_interval_days": 1,
+        "difficulty": 6.413300037384033,
+        "raw_interval_days": 0.7029830813407898,
+        "stability": 0.21199999749660492
+      },
+      "outcome": "failure",
+      "prior_state": null
+    },
+    {
+      "desired_retention": 0.8,
+      "elapsed_days": 0,
+      "expected": {
+        "calendar_interval_days": 8,
+        "difficulty": 2.1181039810180664,
+        "raw_interval_days": 7.648256778717041,
+        "stability": 2.30649995803833
+      },
+      "outcome": "success",
+      "prior_state": null
+    },
+    {
+      "desired_retention": 0.8,
+      "elapsed_days": 0,
+      "expected": {
+        "calendar_interval_days": 19,
+        "difficulty": 8.34176254272461,
+        "raw_interval_days": 19.33342933654785,
+        "stability": 5.83042049407959
+      },
+      "outcome": "failure",
+      "prior_state": {
+        "difficulty": 5.0,
+        "stability": 20.0
+      }
+    },
+    {
+      "desired_retention": 0.8,
+      "elapsed_days": 0,
+      "expected": {
+        "calendar_interval_days": 66,
+        "difficulty": 4.990228176116943,
+        "raw_interval_days": 66.31916046142578,
+        "stability": 20.0
+      },
+      "outcome": "success",
+      "prior_state": {
+        "difficulty": 5.0,
+        "stability": 20.0
+      }
+    },
+    {
+      "desired_retention": 0.8,
+      "elapsed_days": 20,
+      "expected": {
+        "calendar_interval_days": 6,
+        "difficulty": 8.34176254272461,
+        "raw_interval_days": 6.444833278656006,
+        "stability": 1.943581223487854
+      },
+      "outcome": "failure",
+      "prior_state": {
+        "difficulty": 5.0,
+        "stability": 20.0
+      }
+    },
+    {
+      "desired_retention": 0.8,
+      "elapsed_days": 20,
+      "expected": {
+        "calendar_interval_days": 196,
+        "difficulty": 4.990228176116943,
+        "raw_interval_days": 196.46725463867188,
+        "stability": 59.249019622802734
+      },
+      "outcome": "success",
+      "prior_state": {
+        "difficulty": 5.0,
+        "stability": 20.0
+      }
+    },
+    {
+      "desired_retention": 0.8,
+      "elapsed_days": 365,
+      "expected": {
+        "calendar_interval_days": 10,
+        "difficulty": 8.34176254272461,
+        "raw_interval_days": 9.96470832824707,
+        "stability": 3.0050768852233887
+      },
+      "outcome": "failure",
+      "prior_state": {
+        "difficulty": 5.0,
+        "stability": 20.0
+      }
+    },
+    {
+      "desired_retention": 0.8,
+      "elapsed_days": 365,
+      "expected": {
+        "calendar_interval_days": 595,
+        "difficulty": 4.990228176116943,
+        "raw_interval_days": 594.8749389648438,
+        "stability": 179.39761352539062
+      },
+      "outcome": "success",
+      "prior_state": {
+        "difficulty": 5.0,
+        "stability": 20.0
+      }
+    },
+    {
+      "desired_retention": 0.8,
+      "elapsed_days": 0,
+      "expected": {
+        "calendar_interval_days": 747,
+        "difficulty": 8.34176254272461,
+        "raw_interval_days": 747.28564453125,
+        "stability": 225.36041259765625
+      },
+      "outcome": "failure",
+      "prior_state": {
+        "difficulty": 5.0,
+        "stability": 1000.0
+      }
+    },
+    {
+      "desired_retention": 0.8,
+      "elapsed_days": 0,
+      "expected": {
+        "calendar_interval_days": 3316,
+        "difficulty": 4.990228176116943,
+        "raw_interval_days": 3315.957763671875,
+        "stability": 1000.0
+      },
+      "outcome": "success",
+      "prior_state": {
+        "difficulty": 5.0,
+        "stability": 1000.0
+      }
+    },
+    {
+      "desired_retention": 0.8,
+      "elapsed_days": 0,
+      "expected": {
+        "calendar_interval_days": 21526,
+        "difficulty": 8.34176254272461,
+        "raw_interval_days": 21526.306640625,
+        "stability": 6491.73095703125
+      },
+      "outcome": "failure",
+      "prior_state": {
+        "difficulty": 5.0,
+        "stability": 36499.0
+      }
+    },
+    {
+      "desired_retention": 0.8,
+      "elapsed_days": 0,
+      "expected": {
+        "calendar_interval_days": 121029,
+        "difficulty": 4.990228176116943,
+        "raw_interval_days": 121029.1484375,
+        "stability": 36499.0
+      },
+      "outcome": "success",
+      "prior_state": {
+        "difficulty": 5.0,
+        "stability": 36499.0
+      }
+    },
+    {
+      "desired_retention": 0.8,
+      "elapsed_days": 0,
+      "expected": {
+        "calendar_interval_days": 21527,
+        "difficulty": 8.34176254272461,
+        "raw_interval_days": 21526.859375,
+        "stability": 6491.8974609375
+      },
+      "outcome": "failure",
+      "prior_state": {
+        "difficulty": 5.0,
+        "stability": 36500.0
+      }
+    },
+    {
+      "desired_retention": 0.8,
+      "elapsed_days": 0,
+      "expected": {
+        "calendar_interval_days": 121032,
+        "difficulty": 4.990228176116943,
+        "raw_interval_days": 121032.4609375,
+        "stability": 36500.0
+      },
+      "outcome": "success",
+      "prior_state": {
+        "difficulty": 5.0,
+        "stability": 36500.0
+      }
+    },
+    {
+      "desired_retention": 0.8,
+      "elapsed_days": 36500,
+      "expected": {
+        "calendar_interval_days": 78,
+        "difficulty": 8.34176254272461,
+        "raw_interval_days": 77.92041015625,
+        "stability": 23.498613357543945
+      },
+      "outcome": "failure",
+      "prior_state": {
+        "difficulty": 5.0,
+        "stability": 36500.0
+      }
+    },
+    {
+      "desired_retention": 0.8,
+      "elapsed_days": 36500,
+      "expected": {
+        "calendar_interval_days": 121032,
+        "difficulty": 4.990228176116943,
+        "raw_interval_days": 121032.4609375,
+        "stability": 36500.0
+      },
+      "outcome": "success",
+      "prior_state": {
+        "difficulty": 5.0,
+        "stability": 36500.0
+      }
+    },
+    {
+      "desired_retention": 0.95,
+      "elapsed_days": 0,
+      "expected": {
+        "calendar_interval_days": 1,
+        "difficulty": 6.413300037384033,
+        "raw_interval_days": 0.08534244447946548,
+        "stability": 0.21199999749660492
+      },
+      "outcome": "failure",
+      "prior_state": null
+    },
+    {
+      "desired_retention": 0.95,
+      "elapsed_days": 0,
+      "expected": {
+        "calendar_interval_days": 1,
+        "difficulty": 2.1181039810180664,
+        "raw_interval_days": 0.9285016059875488,
+        "stability": 2.30649995803833
+      },
+      "outcome": "success",
+      "prior_state": null
+    },
+    {
+      "desired_retention": 0.95,
+      "elapsed_days": 0,
+      "expected": {
+        "calendar_interval_days": 2,
+        "difficulty": 8.34176254272461,
+        "raw_interval_days": 2.3470864295959473,
+        "stability": 5.83042049407959
+      },
+      "outcome": "failure",
+      "prior_state": {
+        "difficulty": 5.0,
+        "stability": 20.0
+      }
+    },
+    {
+      "desired_retention": 0.95,
+      "elapsed_days": 0,
+      "expected": {
+        "calendar_interval_days": 8,
+        "difficulty": 4.990228176116943,
+        "raw_interval_days": 8.05117416381836,
+        "stability": 20.0
+      },
+      "outcome": "success",
+      "prior_state": {
+        "difficulty": 5.0,
+        "stability": 20.0
+      }
+    },
+    {
+      "desired_retention": 0.95,
+      "elapsed_days": 20,
+      "expected": {
+        "calendar_interval_days": 1,
+        "difficulty": 8.34176254272461,
+        "raw_interval_days": 0.7824054956436157,
+        "stability": 1.943581223487854
+      },
+      "outcome": "failure",
+      "prior_state": {
+        "difficulty": 5.0,
+        "stability": 20.0
+      }
+    },
+    {
+      "desired_retention": 0.95,
+      "elapsed_days": 20,
+      "expected": {
+        "calendar_interval_days": 24,
+        "difficulty": 4.990228176116943,
+        "raw_interval_days": 23.851207733154297,
+        "stability": 59.249019622802734
+      },
+      "outcome": "success",
+      "prior_state": {
+        "difficulty": 5.0,
+        "stability": 20.0
+      }
+    },
+    {
+      "desired_retention": 0.95,
+      "elapsed_days": 365,
+      "expected": {
+        "calendar_interval_days": 1,
+        "difficulty": 8.34176254272461,
+        "raw_interval_days": 1.2097197771072388,
+        "stability": 3.0050768852233887
+      },
+      "outcome": "failure",
+      "prior_state": {
+        "difficulty": 5.0,
+        "stability": 20.0
+      }
+    },
+    {
+      "desired_retention": 0.95,
+      "elapsed_days": 365,
+      "expected": {
+        "calendar_interval_days": 72,
+        "difficulty": 4.990228176116943,
+        "raw_interval_days": 72.21807098388672,
+        "stability": 179.39761352539062
+      },
+      "outcome": "success",
+      "prior_state": {
+        "difficulty": 5.0,
+        "stability": 20.0
+      }
+    },
+    {
+      "desired_retention": 0.95,
+      "elapsed_days": 0,
+      "expected": {
+        "calendar_interval_days": 91,
+        "difficulty": 8.34176254272461,
+        "raw_interval_days": 90.72078704833984,
+        "stability": 225.36041259765625
+      },
+      "outcome": "failure",
+      "prior_state": {
+        "difficulty": 5.0,
+        "stability": 1000.0
+      }
+    },
+    {
+      "desired_retention": 0.95,
+      "elapsed_days": 0,
+      "expected": {
+        "calendar_interval_days": 403,
+        "difficulty": 4.990228176116943,
+        "raw_interval_days": 402.5586853027344,
+        "stability": 1000.0
+      },
+      "outcome": "success",
+      "prior_state": {
+        "difficulty": 5.0,
+        "stability": 1000.0
+      }
+    },
+    {
+      "desired_retention": 0.95,
+      "elapsed_days": 0,
+      "expected": {
+        "calendar_interval_days": 2613,
+        "difficulty": 8.34176254272461,
+        "raw_interval_days": 2613.302734375,
+        "stability": 6491.73095703125
+      },
+      "outcome": "failure",
+      "prior_state": {
+        "difficulty": 5.0,
+        "stability": 36499.0
+      }
+    },
+    {
+      "desired_retention": 0.95,
+      "elapsed_days": 0,
+      "expected": {
+        "calendar_interval_days": 14693,
+        "difficulty": 4.990228176116943,
+        "raw_interval_days": 14692.990234375,
+        "stability": 36499.0
+      },
+      "outcome": "success",
+      "prior_state": {
+        "difficulty": 5.0,
+        "stability": 36499.0
+      }
+    },
+    {
+      "desired_retention": 0.95,
+      "elapsed_days": 0,
+      "expected": {
+        "calendar_interval_days": 2613,
+        "difficulty": 8.34176254272461,
+        "raw_interval_days": 2613.369873046875,
+        "stability": 6491.8974609375
+      },
+      "outcome": "failure",
+      "prior_state": {
+        "difficulty": 5.0,
+        "stability": 36500.0
+      }
+    },
+    {
+      "desired_retention": 0.95,
+      "elapsed_days": 0,
+      "expected": {
+        "calendar_interval_days": 14693,
+        "difficulty": 4.990228176116943,
+        "raw_interval_days": 14693.392578125,
+        "stability": 36500.0
+      },
+      "outcome": "success",
+      "prior_state": {
+        "difficulty": 5.0,
+        "stability": 36500.0
+      }
+    },
+    {
+      "desired_retention": 0.95,
+      "elapsed_days": 36500,
+      "expected": {
+        "calendar_interval_days": 9,
+        "difficulty": 8.34176254272461,
+        "raw_interval_days": 9.45957088470459,
+        "stability": 23.498613357543945
+      },
+      "outcome": "failure",
+      "prior_state": {
+        "difficulty": 5.0,
+        "stability": 36500.0
+      }
+    },
+    {
+      "desired_retention": 0.95,
+      "elapsed_days": 36500,
+      "expected": {
+        "calendar_interval_days": 14693,
+        "difficulty": 4.990228176116943,
+        "raw_interval_days": 14693.392578125,
+        "stability": 36500.0
+      },
+      "outcome": "success",
+      "prior_state": {
+        "difficulty": 5.0,
+        "stability": 36500.0
+      }
+    }
+  ],
+  "oracle": {
+    "calendar_policy": "ties-to-even; minimum 1 day",
+    "crate_sha256": "b8a99ea3dec9af37c9ed3835463ff6820a578a0026a8e370b4c1c0db48dfab3f",
+    "crate_version": "6.6.1",
+    "enable_fuzz": false,
+    "enable_short_term": true,
+    "implementation": "fsrs-rs",
+    "parameters": [
+      0.21199999749660492,
+      1.2930999994277954,
+      2.30649995803833,
+      8.295599937438965,
+      6.413300037384033,
+      0.8334000110626221,
+      3.019399881362915,
+      0.0010000000474974513,
+      1.8722000122070312,
+      0.16660000383853912,
+      0.7960000038146973,
+      1.4835000038146973,
+      0.061400000005960464,
+      0.2628999948501587,
+      1.648300051689148,
+      0.6014000177383423,
+      1.8729000091552734,
+      0.5425000190734863,
+      0.09120000153779984,
+      0.0658000037074089,
+      0.1542000025510788
+    ]
+  },
+  "schema": "gnosis-fsrs-nondefault-retention",
+  "version": 1
+}

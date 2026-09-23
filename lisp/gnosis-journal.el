@@ -1475,8 +1475,9 @@ Plain checkboxes without ID links are journal prose."
                    (user-error
                     "Source ID %s is not in `gnosis-journal-todo-files'"
                     id)))
-         (buffer (or (get-file-buffer file)
+         (buffer (or (find-buffer-visiting file)
                      (find-file-noselect file)))
+         (visited-file (buffer-file-name buffer))
          title mode state)
     (with-current-buffer buffer
       (save-restriction
@@ -1491,8 +1492,8 @@ Plain checkboxes without ID links are journal prose."
     (unless (y-or-n-p (format "Mark task %s as done? " title))
       (user-error "Canceled"))
     (unless (and (buffer-live-p buffer)
-                 (equal (buffer-file-name buffer)
-                        (expand-file-name file)))
+                 (equal (buffer-file-name buffer) visited-file)
+                 (gnosis-journal--physical-equal visited-file file))
       (user-error "Source task buffer changed"))
     (with-current-buffer buffer
       (unless (eq major-mode mode)

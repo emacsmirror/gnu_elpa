@@ -18,6 +18,9 @@
       (ert-info ((format "Phase %s, condition %s" phase condition))
         (let* ((root (make-temp-file "gnosis-extraction-test-" t))
                (temporary-file-directory (file-name-as-directory root))
+               ;; Installing subr mocks must not launch a compiler through
+               ;; the extraction-only `call-process' fixture below.
+               (native-comp-enable-subr-trampolines nil)
                (sentinel (expand-file-name "unrelated" root))
                (expand (symbol-function 'expand-file-name))
                (remove (symbol-function 'delete-file))
@@ -29,6 +32,9 @@
                 (cl-labels
                     ((fail () (signal (car fault) (cdr fault)))
                      (payload (name)
+                       (should (and owned (file-in-directory-p owned root)))
+                       (should (file-in-directory-p
+                                (expand-file-name name owned) owned))
                        (with-temp-file (expand-file-name name owned)
                          (insert "Partial collection bytes"))))
                   (cl-letf

@@ -169,6 +169,36 @@
         (should (eq gnosis-review--feedback successor))
         (should-not (keymap-popup--popup-buffer))))))
 
+(ert-deftest gnosis-feedback-help-aliases-open-actions ()
+  (gnosis-test-with-db
+    (gnosis-test-content--add "basic")
+    (save-window-excursion
+      (let ((owner (gnosis-review--setup-buffer '(222) 'due))
+            (before (gnosis-test-content--evidence)))
+        (unwind-protect
+            (with-current-buffer owner
+              (switch-to-buffer owner)
+              (setq gnosis-review--feedback
+                    (list :buffer owner :depth (recursion-depth) :id 222
+                          :result (gnosis-review--pending-result 222 t)
+                          :success t :choice nil :popup nil))
+              (gnosis-review-feedback-mode 1)
+              (dolist (key '("?" "h"))
+                (should (eq (key-binding key) #'gnosis-review-feedback-menu))
+                (call-interactively (key-binding key))
+                (let ((popup (keymap-popup--popup-buffer)))
+                  (should (buffer-live-p popup))
+                  (with-current-buffer popup
+                    (should (string-match-p "Next" (buffer-string)))
+                    (should (string-match-p "Override" (buffer-string)))))
+                (cl-letf (((symbol-function 'exit-recursive-edit) #'ignore))
+                  (call-interactively (key-binding "n")))
+                (should (eq (plist-get gnosis-review--feedback :choice) ?n))
+                (keymap-popup-dismiss))
+              (should (equal before (gnosis-test-content--evidence))))
+          (keymap-popup-dismiss)
+          (when (buffer-live-p owner) (kill-buffer owner)))))))
+
 (ert-deftest gnosis-feedback-source-reload-preserves-custom-bindings ()
   (let* ((map gnosis-review-feedback-mode-map)
          (help (keymap-lookup map "?"))

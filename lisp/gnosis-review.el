@@ -2798,6 +2798,7 @@ Return unchanged (SUCCESS . RESULT) after source navigation."
   "s" #'gnosis-review-feedback-suspend
   "d" #'gnosis-review-feedback-delete
   "?" #'gnosis-review-feedback-menu
+  "h" #'gnosis-review-feedback-menu
   "C-g" #'gnosis-review-feedback-cancel)
 
 (keymap-popup-annotate gnosis-review-feedback-mode-map

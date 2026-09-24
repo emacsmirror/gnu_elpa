@@ -221,6 +221,7 @@ This overrides `org-email-link-description-format' if set."
   "Whether auto add org-capture template into `org-capture-templates'."
   :type 'boolean)
 
+;;;###autoload
 (defcustom org-contacts-capf-completing nil
   "Whether add `org-contacts-complete-contact' into `completion-at-point-functions' in org-mode local."
   :type 'boolean
@@ -874,7 +875,7 @@ Usage: (add-hook \\='completion-at-point-functions
   (when (member major-mode org-contacts-completion-enabled-mode-list)
     (add-hook 'completion-at-point-functions 'org-contacts-complete-contact 80 'local)))
 ;;;###autoload
-(when org-contacts-capf-completing
+(when (bound-and-true-p org-contacts-capf-completing)
   (add-hook 'org-mode-hook #'org-contacts-completion-setup))
 
 (defun org-contacts-gnus-get-name-email ()

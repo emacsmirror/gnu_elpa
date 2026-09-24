@@ -97,5 +97,9 @@
   "Source open, choice, cancel and return preserve both modes' pending input."
   (gnosis-test-native--run 'sources))
 
+(ert-deftest gnosis-test-native-recovery ()
+  "Revisited reviews keep safe help/actions during editing and source input."
+  (gnosis-test-native--run 'recovery))
+
 (provide 'gnosis-test-native-command-loop)
 ;;; gnosis-test-native-command-loop.el ends here

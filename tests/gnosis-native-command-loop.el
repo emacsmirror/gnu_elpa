@@ -426,16 +426,28 @@
                        (gnosis-native--log "FAIL watchdog depth=%d buffer=%S"
                                            (recursion-depth) (buffer-name))
                        (kill-emacs 3)))
-        (gnosis-native--log "START interactive=%S emacs=%s source=%S helper=%S"
+        (gnosis-native--log "START interactive=%S emacs=%s source=%S helper=%S review=%S"
                             (not noninteractive) emacs-version
                             (symbol-file 'gnosis-monkeytype-region)
-                            (symbol-file 'gnosis-native--run))
+                            (symbol-file 'gnosis-native--run)
+                            (symbol-file 'gnosis-review--wait-for-edit))
         (pcase (getenv "GNOSIS_NATIVE_JOURNEY")
           ("monkeytype" (gnosis-native--monkeytype))
           ("review" (gnosis-native--review))
           ("feedback" (gnosis-native--feedback))
           ("journal" (gnosis-native--journal))
           ("sources" (gnosis-native--sources))
+          ("recovery"
+           (require 'gnosis-test-edit-recovery)
+           (dolist (name '(gnosis-edit-recovery-native-save-cancel-feedback
+                           gnosis-edit-recovery-native-unavailable-and-abort
+                           gnosis-edit-recovery-native-source-revisit
+                           gnosis-edit-recovery-native-retired-review))
+             (let ((result (ert-run-test (ert-get-test name))))
+               (unless (ert-test-passed-p result)
+                 (let ((print-length 8) (print-level 4) (print-circle t))
+                   (error "Recovery test %S failed: %S" name result)))
+               (gnosis-native--log "PASS %S" name))))
           (_ (error "Unknown native journey")))
         (should (= (recursion-depth) 0))
         (gnosis-native--log "PASS native journey depth=0")

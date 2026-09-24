@@ -2594,6 +2594,166 @@ The encountered question, answer rules, resources and owner remain intact."
               '("The saved content changed; resume the batch to answer again")))
     t))
 
+(defvar-local gnosis-review--pending-edit nil
+  "Exact destination and recursive input owned by a paused review.")
+
+(defun gnosis-review--pending-edit-owned-p (context)
+  "Return non-nil if CONTEXT still owns its original review occurrence."
+  (let ((origin (plist-get context :origin)))
+    (and (not (plist-get context :retired))
+         (buffer-live-p origin)
+         (with-current-buffer origin
+           (and (eq gnosis-review--pending-edit context)
+                (eq major-mode 'gnosis-mode) (not buffer-file-name))))))
+
+(defun gnosis-review--pending-edit-check ()
+  "Return the paused context after checking its occurrence and input depth."
+  (unless (and gnosis-review--pending-edit
+               (gnosis-review--pending-edit-owned-p gnosis-review--pending-edit)
+               (eq (plist-get gnosis-review--pending-edit :origin) (current-buffer))
+               (= (plist-get gnosis-review--pending-edit :depth) (recursion-depth)))
+    (user-error "No pending review editor in this buffer"))
+  gnosis-review--pending-edit)
+
+(defun gnosis-review--pending-draft-p (context)
+  "Return non-nil if CONTEXT's exact editor occurrence is still available."
+  (let ((draft (plist-get context :draft)))
+    (and (not (plist-get context :draft-retired))
+         (buffer-live-p draft)
+         (with-current-buffer draft
+           (and (eq major-mode 'gnosis-edit-mode) (not buffer-file-name))))))
+
+(defun gnosis-review-finish-edit ()
+  "Return to the pending draft without saving, cancelling or grading it.
+If the draft is unavailable, or source viewing is pending, return to
+feedback without accepting an answer.  Preserve any repurposed buffer."
+  (interactive nil gnosis-review-edit-pending-mode)
+  (let ((context (gnosis-review--pending-edit-check)))
+    (if (and (not (plist-get context :source))
+             (gnosis-review--pending-draft-p context))
+        (progn
+          (pop-to-buffer (plist-get context :draft))
+          (unless (gnosis-review--pending-edit-owned-p context)
+            (user-error "Paused review was replaced"))
+          (if (and (gnosis-review--pending-draft-p context)
+                   (eq (current-buffer) (plist-get context :draft)))
+              (message "Finish the draft with C-c C-c (save) or C-c C-k (cancel)")
+            (exit-recursive-edit)))
+      (exit-recursive-edit))))
+
+(defun gnosis-review-edit-pending-cancel ()
+  "Abort the pending review input, preserving any live edit draft."
+  (interactive nil gnosis-review-edit-pending-mode)
+  ;; Cancellation owns input, not the retired buffer's presentation.
+  (unless (and gnosis-review--pending-edit
+               (eq (plist-get gnosis-review--pending-edit :origin) (current-buffer))
+               (= (plist-get gnosis-review--pending-edit :depth) (recursion-depth)))
+    (user-error "No pending review input in this buffer"))
+  (abort-recursive-edit))
+
+(defvar-keymap gnosis-review-edit-pending-mode-map
+  :doc "Recovery bindings in a review paused for native editing."
+  "?" #'gnosis-review-edit-pending-menu
+  "h" #'gnosis-review-edit-pending-menu
+  "n" #'gnosis-review-finish-edit
+  "e" #'gnosis-review-finish-edit
+  "q" #'gnosis-review-edit-pending-cancel
+  "C-g" #'gnosis-review-edit-pending-cancel)
+
+(defun gnosis-review--pending-edit-label ()
+  "Describe the paused review's safe continuation."
+  (if (plist-get gnosis-review--pending-edit :source)
+      "Next / return to feedback (no grade)"
+    "Next / return to edit (no grade)"))
+
+(keymap-popup-annotate gnosis-review-edit-pending-mode-map
+  :exit-key "C-g"
+  :persistent nil
+  :description "Review paused"
+  gnosis-review-finish-edit #'gnosis-review--pending-edit-label
+  gnosis-review-edit-pending-cancel "Abort review (keep draft)")
+
+(defun gnosis-review-edit-pending-menu ()
+  "Show recovery actions while native editing or source viewing is pending."
+  (interactive nil gnosis-review-edit-pending-mode)
+  (let* ((context (gnosis-review--pending-edit-check))
+         (backend (funcall keymap-popup-backend))
+         (show (plist-get backend :show))
+         claimed
+         (keymap-popup-backend
+          (lambda ()
+            (plist-put (copy-sequence backend) :show
+                       (lambda (popup)
+                         (unless claimed
+                           (setq claimed t)
+                           (setf (plist-get context :popup) popup))
+                         (funcall show popup))))))
+    (keymap-popup gnosis-review-edit-pending-mode-map)
+    (unless (gnosis-review--pending-edit-owned-p context)
+      (user-error "Paused review was replaced"))))
+
+(define-minor-mode gnosis-review-edit-pending-mode
+  "Keep review recovery reachable while an editor or source view owns input."
+  :interactive nil
+  :lighter " Review paused (?/h)"
+  :keymap gnosis-review-edit-pending-mode-map)
+
+(defun gnosis-review--wait-for-edit (origin draft &optional source validate)
+  "Wait for DRAFT input, keeping ORIGIN recoverable without grading.
+SOURCE means this is a source visit, not an editable draft.  Call VALIDATE
+before entering input.  Retire occurrence claims on mode or file changes."
+  (let* ((context (list :origin origin :draft draft :source source
+                        :depth (1+ (recursion-depth)) :popup nil
+                        :retired nil :draft-retired nil))
+         (retire (lambda () (setf (plist-get context :retired) t)))
+         (retire-draft (lambda () (setf (plist-get context :draft-retired) t)))
+         (check-input
+          (lambda ()
+            ;; Let the retiring command finish its mode/file transition, then
+            ;; unwind only this reader, never a nested successor's input.
+            (when (and (= (plist-get context :depth) (recursion-depth))
+                       (not (gnosis-review--pending-edit-owned-p context)))
+              (abort-recursive-edit))))
+         (hooks '(change-major-mode-hook after-set-visited-file-name-hook)))
+    (unwind-protect
+        (progn
+          (with-current-buffer origin
+            (when gnosis-review--pending-edit
+              (user-error "Review already owns pending input"))
+            (setq gnosis-review--pending-edit context)
+            (dolist (hook hooks) (add-hook hook retire nil t)))
+          (unless source
+            (unless (gnosis-review--pending-draft-p context)
+              (user-error "Review draft is unavailable; preserve it and retry"))
+            (with-current-buffer draft
+              (dolist (hook hooks) (add-hook hook retire-draft nil t))))
+          (with-current-buffer origin
+            (gnosis-review-edit-pending-mode 1)
+            (unless (and (eq (current-buffer) origin)
+                         (gnosis-review--pending-edit-owned-p context))
+              (user-error "Paused review was replaced"))
+            (when validate (funcall validate)))
+          (unless (gnosis-review--pending-edit-owned-p context)
+            (user-error "Paused review was replaced"))
+          (add-hook 'post-command-hook check-input)
+          (recursive-edit))
+      (remove-hook 'post-command-hook check-input)
+      (when (and (plist-get context :popup)
+                 (eq (plist-get context :popup) (keymap-popup--popup-buffer)))
+        (keymap-popup-dismiss))
+      (when (buffer-live-p draft)
+        (with-current-buffer draft
+          (dolist (hook hooks) (remove-hook hook retire-draft t))))
+      (when (buffer-live-p origin)
+        (with-current-buffer origin
+          (dolist (hook hooks) (remove-hook hook retire t))
+          (when (eq gnosis-review--pending-edit context)
+            (gnosis-review-edit-pending-mode -1)
+            (when (buffer-live-p origin)
+              (with-current-buffer origin
+                (when (eq gnosis-review--pending-edit context)
+                  (setq gnosis-review--pending-edit nil))))))))))
+
 (defun gnosis-review-action--edit (success thema result)
   "Edit THEMA's future presentations, preserving pending SUCCESS and RESULT.
 Return (SUCCESS . RESULT) after native save or cancel.  A save
@@ -2606,7 +2766,9 @@ acknowledges only this edit's content, never another encounter or write."
     (setq gnosis--draft-save-receipt receipt)
     (with-current-buffer origin
       (gnosis-review--check-result-content thema result))
-    (recursive-edit)
+    (gnosis-review--wait-for-edit
+     origin (current-buffer) nil
+     (lambda () (gnosis-review--check-result-content thema result)))
     (unless (buffer-live-p origin)
       (user-error "Review buffer no longer exists"))
     (with-current-buffer origin
@@ -2668,7 +2830,9 @@ Return unchanged (SUCCESS . RESULT) after source navigation."
         (condition-case err
             (let ((entry (gnosis-view-linked-node thema validate)))
               (unwind-protect
-                  (progn (funcall validate) (recursive-edit))
+                  (progn
+                    (funcall validate)
+                    (gnosis-review--wait-for-edit origin (current-buffer) t validate))
                 (gnosis-link-view--cleanup entry)))
           ((gnosis-lecture-error user-error quit)
            (funcall validate)

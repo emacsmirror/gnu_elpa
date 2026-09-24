@@ -85,6 +85,7 @@
                   (sqlite-execute gnosis-db "UPDATE themata SET hypothesis = 'nil' WHERE id = 222"))
                 (save-window-excursion
                   (with-temp-buffer
+                    (gnosis-mode)
                     (gnosis-test-content--state mode)
                     (let* ((answer (gnosis-test-content--answer kind nil (if success "old" "wrong")))
                            (scheduled (sqlite-select gnosis-db "SELECT * FROM scheduler_state"))
@@ -128,6 +129,7 @@
           (gnosis-test-content--add "basic")
           (save-window-excursion
             (with-temp-buffer
+              (gnosis-mode)
               (gnosis-test-content--state mode)
               (let* ((answer (gnosis-test-content--answer "basic" nil (if success "old" "wrong")))
                      (accepted
@@ -204,6 +206,7 @@
           (gnosis-test-content--add "basic")
           (save-window-excursion
             (with-temp-buffer
+              (gnosis-mode)
               (gnosis-test-content--state mode)
               (let* ((answer (gnosis-test-content--answer "basic"))
                      (origin (current-buffer))
@@ -260,6 +263,7 @@
         (gnosis-test-content--add "basic")
         (save-window-excursion
           (with-temp-buffer
+            (gnosis-mode)
             (gnosis-test-content--state mode)
             (let* ((answer (gnosis-test-content--answer "basic"))
                    (before (gnosis-test-content--evidence))
@@ -302,6 +306,7 @@
       (gnosis-test-content--add "basic")
       (save-window-excursion
         (with-temp-buffer
+          (gnosis-mode)
           (gnosis-test-content--state mode)
           (let* ((answer (gnosis-test-content--answer "basic" nil "wrong"))
                  (accepted (gnosis-test-content--edit-actions

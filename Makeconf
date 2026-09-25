@@ -22,7 +22,7 @@ ESSDESTDIR ?= $(SITELISP)/ess
 EMACSBATCH ?= $(EMACS) -batch -Q
 EMACSVER ?= 30.2
 
-# ##__ GNU Emacs __ for version EMASCVER 
+# ##__ GNU Emacs __ for version EMACSVER 
 # DESTDIR = /usr/local
 # PREFIX = $(DESTDIR)
 # EMACS = $(PREFIX)/emacs/$(EMACSVER)/bin/emacs

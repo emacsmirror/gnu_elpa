@@ -2,7 +2,7 @@
 #+author: Daniel Mendler
 #+language: en
 
-* Development
+* Version 2.11 (2026-09-26)
 
 - New command =jinx-occur= which lists all misspelled words in a separate buffer.
 

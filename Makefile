@@ -16,6 +16,8 @@ endif
 
 EMACS_CMD ?= emacs
 EMACS_OPTS ?= -Q --batch
+THANOS_EMACS ?= emacs
+export THANOS_EMACS
 
 SRCS = keymap-popup.el
 TESTS = $(wildcard tests/*-tests.el)
@@ -43,6 +45,15 @@ do-test:
 	@echo "Testing $(TESTS)..."
 	@$(BATCH) -L . -L tests -l ert $(foreach src,$(SRCS),-l $(src)) \
 	  $(foreach test,$(TESTS),-l $(test)) -f ert-run-tests-batch-and-exit
+
+# Resolve the host executable before entering any Nix environment.
+.PHONY: test-matrix do-matrix-test
+test-matrix:
+	@python3 admin/test-matrix
+
+do-matrix-test:
+	@$(BATCH) -L . -L tests -l ert $(foreach test,$(TESTS),-l $(test)) \
+	  -l admin/matrix-ert.el
 
 # Native minibuffer tests need a terminal, not batch stdin (util-linux script).
 test-native:

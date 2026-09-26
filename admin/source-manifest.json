@@ -1,0 +1,18 @@
+[
+  "keymap-popup.el",
+  "Makefile",
+  "LICENSE",
+  "docs/keymap-popup.org",
+  "tests/keymap-popup-declarations-tests.el",
+  "tests/keymap-popup-descriptions-tests.el",
+  "tests/keymap-popup-input-tests.el",
+  "tests/keymap-popup-mouse-tests.el",
+  "tests/keymap-popup-native-tests.el",
+  "tests/keymap-popup-ownership-tests.el",
+  "tests/keymap-popup-tests.el",
+  "tests/keymap-popup-tooling-tests.el",
+  "admin/matrix-ert.el",
+  "admin/test-matrix",
+  "admin/test-matrix-runner.py",
+  "admin/source-manifest.json"
+]

@@ -1,5 +1,7 @@
 ;;; gnosis-test-study.el --- Study workflow regressions -*- lexical-binding: t; -*-
 
+;; Copyright (C) 2026 Free Software Foundation, Inc.
+
 (require 'ert)
 (require 'gnosis-review)
 (require 'gnosis-study)

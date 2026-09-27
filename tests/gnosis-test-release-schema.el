@@ -1,4 +1,7 @@
 ;;; gnosis-test-release-schema.el --- Public release boundary -*- lexical-binding: t; -*-
+
+;; Copyright (C) 2026 Free Software Foundation, Inc.
+
 (require 'ert)
 (require 'gnosis-test-schema-v8)
 (require 'gnosis-fixture-schema-v9)

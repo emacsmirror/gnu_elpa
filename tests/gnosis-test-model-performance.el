@@ -1,5 +1,7 @@
 ;;; gnosis-test-model-performance.el --- Model preparation regressions -*- lexical-binding: t; -*-
 
+;; Copyright (C) 2026 Free Software Foundation, Inc.
+
 (require 'gnosis-model-test-support)
 
 (ert-deftest gnosis-model-review-does-not-reparse-prepared-geometry ()

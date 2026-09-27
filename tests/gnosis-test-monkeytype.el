@@ -1,5 +1,7 @@
 ;;; gnosis-test-monkeytype.el --- Typing exercise tests -*- lexical-binding: t; -*-
 
+;; Copyright (C) 2026 Free Software Foundation, Inc.
+
 ;;; Commentary:
 ;; Completion must not supply characters during a copying exercise.
 

@@ -1,5 +1,7 @@
 ;;; gnosis-test-practice-coaching.el --- Accepted coaching evidence -*- lexical-binding: t; -*-
 
+;; Copyright (C) 2026 Free Software Foundation, Inc.
+
 (require 'gnosis-test-agent)
 (require 'gnosis-review-test-support)
 

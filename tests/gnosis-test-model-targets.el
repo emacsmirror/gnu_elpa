@@ -1,4 +1,7 @@
 ;;; gnosis-test-model-targets.el --- Surface targets -*- lexical-binding: t; -*-
+
+;; Copyright (C) 2026 Free Software Foundation, Inc.
+
 ;;; Commentary:
 ;; Deterministic geometry, revision and ownership contracts.
 ;;; Code:

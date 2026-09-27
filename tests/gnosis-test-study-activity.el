@@ -1,5 +1,7 @@
 ;;; gnosis-test-study-activity.el --- Accepted study activity tests -*- lexical-binding: t; -*-
 
+;; Copyright (C) 2026 Free Software Foundation, Inc.
+
 (require 'ert)
 (require 'gnosis-study)
 (require 'gnosis-dashboard)

@@ -1,5 +1,7 @@
 ;;; gnosis-test-cloze-transform.el --- Independent cloze laws -*- lexical-binding: t; -*-
 
+;; Copyright (C) 2026 Free Software Foundation, Inc.
+
 (require 'ert)
 (require 'gnosis-cloze)
 

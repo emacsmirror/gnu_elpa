@@ -1,5 +1,7 @@
 ;;; gnosis-test-graph-selection.el --- Graph traversal laws -*- lexical-binding: t; -*-
 
+;; Copyright (C) 2026 Free Software Foundation, Inc.
+
 (require 'ert)
 (require 'gnosis-links)
 (require 'gnosis-test-helpers)

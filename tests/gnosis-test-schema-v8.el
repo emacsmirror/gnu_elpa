@@ -1,4 +1,7 @@
 ;;; gnosis-test-schema-v8.el --- Released 0.10.6 fixture -*- lexical-binding: t; -*-
+
+;; Copyright (C) 2023-2026 Free Software Foundation, Inc.
+
 ;; Schema copied verbatim from tag 0.10.6:lisp/gnosis-db.el.
 (require 'gnosis-db)
 (defconst gnosis-test--v8-schemata

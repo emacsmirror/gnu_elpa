@@ -1,4 +1,7 @@
 ;;; gnosis-fixture-schema-v9.el --- Released 0.11.0 fixture -*- lexical-binding: t; -*-
+
+;; Copyright (C) 2023-2026 Free Software Foundation, Inc.
+
 ;; Literal SQL and initial rows captured from 190a68ecaa0fc3f30255985764317c73e558c575.
 (require 'gnosis-db)
 

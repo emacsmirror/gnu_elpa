@@ -1,5 +1,7 @@
 ;;; gnosis-test-media-integration.el --- Media storage and acceptance -*- lexical-binding: t; -*-
 
+;; Copyright (C) 2026 Free Software Foundation, Inc.
+
 (require 'ert)
 (require 'gnosis-test-db-safety)
 (require 'gnosis-test-helpers)

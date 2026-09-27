@@ -1,4 +1,7 @@
 ;;; gnosis-test-image-drafts.el --- Complete media draft ownership -*- lexical-binding: t; -*-
+
+;; Copyright (C) 2026 Free Software Foundation, Inc.
+
 (require 'ert)
 (require 'gnosis-image-test-support)
 (require 'gnosis-model-test-support)

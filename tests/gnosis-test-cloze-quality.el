@@ -1,5 +1,7 @@
 ;;; gnosis-test-cloze-quality.el --- Occurrence feedback -*- lexical-binding: t; -*-
 
+;; Copyright (C) 2026 Free Software Foundation, Inc.
+
 ;;; Commentary:
 ;; Exercise native cloze evidence and duplicate occurrence ownership.
 

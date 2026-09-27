@@ -1,5 +1,7 @@
 ;;; gnosis-test-agent-eval-content.el --- Agent content tests -*- lexical-binding: t; -*-
 
+;; Copyright (C) 2026 Free Software Foundation, Inc.
+
 (require 'ert)
 (require 'gnosis-export-import)
 (require 'gnosis-review)

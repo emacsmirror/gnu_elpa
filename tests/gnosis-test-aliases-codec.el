@@ -1,4 +1,7 @@
 ;;; gnosis-test-aliases-codec.el --- Alias exchange tests -*- lexical-binding: t; -*-
+
+;; Copyright (C) 2026 Free Software Foundation, Inc.
+
 (require 'ert)
 (require 'gnosis-export-import)
 

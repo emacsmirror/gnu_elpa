@@ -1,4 +1,7 @@
 ;;; gnosis-test-model.el --- Model resource and encounter tests -*- lexical-binding: t; -*-
+
+;; Copyright (C) 2026 Free Software Foundation, Inc.
+
 ;;; Commentary:
 ;; Tiny original triangle fixtures; no third-party anatomy data or renderer.
 ;;; Code:

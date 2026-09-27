@@ -1,5 +1,7 @@
 ;;; gnosis-test-campaign-evaluation.el --- Cancellation ownership tests -*- lexical-binding: t; -*-
 
+;; Copyright (C) 2026 Free Software Foundation, Inc.
+
 (require 'gnosis-test-agent-eval)
 
 (defmacro gnosis-test-campaign-evaluation--with-review (mode &rest body)

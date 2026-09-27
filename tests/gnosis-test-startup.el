@@ -1,5 +1,7 @@
 ;;; gnosis-test-startup.el --- First-open regressions -*- lexical-binding: t; -*-
 
+;; Copyright (C) 2026 Free Software Foundation, Inc.
+
 (require 'ert)
 (require 'gnosis-test-db-safety)
 (require 'gnosis-fixture-schema-v9)

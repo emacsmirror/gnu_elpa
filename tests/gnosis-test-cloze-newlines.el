@@ -1,5 +1,7 @@
 ;;; gnosis-test-cloze-newlines.el --- Cloze newline faces -*- lexical-binding: t; -*-
 
+;; Copyright (C) 2026 Free Software Foundation, Inc.
+
 (require 'ert)
 (require 'gnosis-review)
 (require 'gnosis-test-helpers)

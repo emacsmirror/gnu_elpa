@@ -1,5 +1,7 @@
 ;;; gnosis-test-study-selection.el --- Topic selection costs -*- lexical-binding: t; -*-
 
+;; Copyright (C) 2026 Free Software Foundation, Inc.
+
 (require 'gnosis-test-study)
 (require 'gnosis-test-agent)
 

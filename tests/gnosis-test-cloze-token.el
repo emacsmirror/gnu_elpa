@@ -1,5 +1,7 @@
 ;;; gnosis-test-cloze-token.el --- Token cloze review -*- lexical-binding: t; -*-
 
+;; Copyright (C) 2026 Free Software Foundation, Inc.
+
 ;;; Commentary:
 ;; Clozes prefer a standalone occurrence when one exists, including a
 ;; digit that is not part of a decimal fraction, and otherwise keep the

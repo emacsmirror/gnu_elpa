@@ -1,5 +1,7 @@
 ;;; gnosis-test-agent-content.el --- Structured content regressions -*- lexical-binding: t; -*-
 
+;; Copyright (C) 2026 Free Software Foundation, Inc.
+
 (require 'ert)
 (require 'json)
 (require 'gnosis-agent-content)

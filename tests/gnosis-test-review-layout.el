@@ -1,5 +1,7 @@
 ;;; gnosis-test-review-layout.el --- Review window layout tests -*- lexical-binding: t; -*-
 
+;; Copyright (C) 2026 Free Software Foundation, Inc.
+
 (require 'ert)
 (require 'gnosis-review)
 

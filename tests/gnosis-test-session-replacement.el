@@ -1,5 +1,7 @@
 ;;; gnosis-test-session-replacement.el --- Batch replacement -*- lexical-binding: t; -*-
 
+;; Copyright (C) 2026 Free Software Foundation, Inc.
+
 (require 'ert)
 (require 'gnosis-agent)
 (require 'gnosis-test-helpers)

@@ -1,5 +1,7 @@
 ;;; gnosis-test-study-retired.el --- Early study-day ownership tests -*- lexical-binding: t; -*-
 
+;; Copyright (C) 2026 Free Software Foundation, Inc.
+
 (require 'gnosis-test-study-day)
 
 (ert-deftest gnosis-study-day-initial-mode-body-retirement ()

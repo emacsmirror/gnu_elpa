@@ -1,5 +1,7 @@
 ;;; gnosis-test-vc.el --- Git chain ownership tests -*- lexical-binding: t; -*-
 
+;; Copyright (C) 2026 Free Software Foundation, Inc.
+
 ;;; Commentary:
 ;; Exercise deferred chains with real Git processes and isolated local data.
 

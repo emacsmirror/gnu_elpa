@@ -1,5 +1,7 @@
 ;;; gnosis-test-agent-eval.el --- Free-response review tests -*- lexical-binding: t; -*-
 
+;; Copyright (C) 2026 Free Software Foundation, Inc.
+
 (require 'ert)
 (require 'gnosis-agent-eval)
 (require 'gnosis-export-import)

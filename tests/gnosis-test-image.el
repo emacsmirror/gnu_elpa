@@ -1,4 +1,7 @@
 ;;; gnosis-test-image.el --- Managed image journeys -*- lexical-binding: t; -*-
+
+;; Copyright (C) 2026 Free Software Foundation, Inc.
+
 ;;; Commentary:
 ;; Original RGB PNG fixture with real compressed pixels and checksums.
 ;;; Code:

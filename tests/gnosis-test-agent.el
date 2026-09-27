@@ -1,5 +1,7 @@
 ;;; gnosis-test-agent.el --- Native agent handoff regressions -*- lexical-binding: t; -*-
 
+;; Copyright (C) 2026 Free Software Foundation, Inc.
+
 (require 'ert)
 (require 'json)
 (require 'gnosis-agent)

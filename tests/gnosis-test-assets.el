@@ -1,4 +1,7 @@
 ;;; gnosis-test-assets.el --- Managed asset invariants -*- lexical-binding: t; -*-
+
+;; Copyright (C) 2026 Free Software Foundation, Inc.
+
 ;;; Commentary:
 ;; Disposable files and connections only; pin the original scene digest.
 ;;; Code:

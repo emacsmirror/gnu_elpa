@@ -1,4 +1,7 @@
 ;;; gnosis-test-image-targets.el --- Grouped image targets -*- lexical-binding: t; -*-
+
+;; Copyright (C) 2026 Free Software Foundation, Inc.
+
 ;;; Commentary:
 ;; Domain tests; graphical acceptance is a separate gate.
 ;;; Code:

@@ -1,4 +1,7 @@
 ;;; gnosis-test-backup.el --- Data snapshot recovery tests -*- lexical-binding: t; -*-
+
+;; Copyright (C) 2026 Free Software Foundation, Inc.
+
 ;;; Commentary:
 ;; Real SQLite and disposable managed bytes only.
 ;;; Code:

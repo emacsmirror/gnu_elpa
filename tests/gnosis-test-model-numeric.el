@@ -1,4 +1,7 @@
 ;;; gnosis-test-model-numeric.el --- Stable surface arithmetic -*- lexical-binding: t; -*-
+
+;; Copyright (C) 2026 Free Software Foundation, Inc.
+
 (require 'ert)
 (require 'gnosis-model-test-support)
 

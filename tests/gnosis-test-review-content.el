@@ -1,5 +1,7 @@
 ;;; gnosis-test-review-content.el --- Encounter content guards -*- lexical-binding: t; -*-
 
+;; Copyright (C) 2026 Free Software Foundation, Inc.
+
 ;;; Commentary:
 ;; Native edits preserve answered encounters; unrelated drift cannot grade them.
 

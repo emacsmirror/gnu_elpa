@@ -1,5 +1,7 @@
 ;;; gnosis-test-db-safety.el --- Open and backup safety -*- lexical-binding: t; -*-
 
+;; Copyright (C) 2026 Free Software Foundation, Inc.
+
 (require 'ert)
 (require 'gnosis-study)
 (require 'gnosis-review)

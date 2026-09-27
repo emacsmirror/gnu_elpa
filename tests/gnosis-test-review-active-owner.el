@@ -1,5 +1,7 @@
 ;;; gnosis-test-review-active-owner.el --- Active review lifetime tests -*- lexical-binding: t; -*-
 
+;; Copyright (C) 2026 Free Software Foundation, Inc.
+
 ;;; Commentary:
 ;; Native file association retires input, pending answers and preparation.
 

@@ -1,5 +1,7 @@
 ;;; gnosis-test-boundaries.el --- Cold dependency boundaries -*- lexical-binding: t; -*-
 
+;; Copyright (C) 2026 Free Software Foundation, Inc.
+
 (require 'ert)
 (require 'cl-lib)
 

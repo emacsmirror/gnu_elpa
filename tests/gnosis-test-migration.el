@@ -1,4 +1,7 @@
 ;;; gnosis-test-migration.el --- Released schema migration -*- lexical-binding: t; -*-
+
+;; Copyright (C) 2026 Free Software Foundation, Inc.
+
 (require 'ert)
 (require 'gnosis-test-schema-v8)
 (require 'gnosis-test-helpers)

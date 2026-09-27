@@ -1,5 +1,7 @@
 ;;; gnosis-test-campaign-model-numeric.el --- Point distances -*- lexical-binding: t; -*-
 
+;; Copyright (C) 2026 Free Software Foundation, Inc.
+
 ;;; Commentary:
 ;; Original-unit target radii, nearest selection and ties across model scales.
 

@@ -1,5 +1,7 @@
 ;;; gnosis-test-review-format-owner.el --- Formatting lifetime tests -*- lexical-binding: t; -*-
 
+;; Copyright (C) 2026 Free Software Foundation, Inc.
+
 ;;; Commentary:
 ;; Org hooks are real; terminal media fixtures do not claim decoded pixels.
 

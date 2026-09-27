@@ -1,5 +1,7 @@
 ;;; gnosis-test-study-day.el --- Read-only study-day view tests -*- lexical-binding: t; -*-
 
+;; Copyright (C) 2026 Free Software Foundation, Inc.
+
 (require 'ert)
 (require 'gnosis-study)
 (require 'gnosis-test-helpers)

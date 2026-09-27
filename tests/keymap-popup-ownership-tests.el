@@ -1,5 +1,7 @@
 ;;; keymap-popup-ownership-tests.el --- Resource tests -*- lexical-binding: t; -*-
 
+;; Copyright (C) 2026 Free Software Foundation, Inc.
+
 ;;; Commentary:
 ;; Public launch and retirement with real windows and failing callbacks.
 

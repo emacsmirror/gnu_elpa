@@ -1,5 +1,7 @@
 ;;; keymap-popup-descriptions-tests.el --- Description regressions -*- lexical-binding: t; -*-
 
+;; Copyright (C) 2026 Free Software Foundation, Inc.
+
 ;;; Commentary:
 ;; Native composition, inherited rebinding and display-column alignment.
 

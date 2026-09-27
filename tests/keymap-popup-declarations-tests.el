@@ -1,5 +1,7 @@
 ;;; keymap-popup-declarations-tests.el --- Declaration regressions -*- lexical-binding: t; -*-
 
+;; Copyright (C) 2026 Free Software Foundation, Inc.
+
 (require 'ert)
 (require 'keymap-popup)
 

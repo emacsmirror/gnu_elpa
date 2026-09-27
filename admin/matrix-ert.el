@@ -1,5 +1,7 @@
 ;;; matrix-ert.el --- Batch completion evidence -*- lexical-binding: t; -*-
 
+;; Copyright (C) 2026 Free Software Foundation, Inc.
+
 ;; Run after the selected test libraries have been loaded by Make.
 (require 'ert)
 (require 'json)

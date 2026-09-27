@@ -1,5 +1,7 @@
 ;;; keymap-popup-mouse-tests.el --- Mouse activation tests -*- lexical-binding: t; -*-
 
+;; Copyright (C) 2026 Free Software Foundation, Inc.
+
 (require 'ert)
 (require 'keymap-popup)
 (require 'keymap-popup-input-tests)

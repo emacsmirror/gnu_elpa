@@ -1,5 +1,7 @@
 """Regression tests for matrix failure, provenance, and isolation boundaries."""
 
+# Copyright (C) 2026 Free Software Foundation, Inc.
+
 from contextlib import redirect_stdout
 import io
 import json

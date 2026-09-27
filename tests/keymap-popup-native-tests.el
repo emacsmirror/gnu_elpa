@@ -1,5 +1,7 @@
 ;;; keymap-popup-native-tests.el --- Native reader tests -*- lexical-binding: t; -*-
 
+;; Copyright (C) 2026 Free Software Foundation, Inc.
+
 ;;; Commentary:
 
 ;; Run `make test-native' in a disposable terminal Emacs.  Batch Emacs reads

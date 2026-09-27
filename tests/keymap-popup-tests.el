@@ -1,5 +1,7 @@
 ;;; keymap-popup-tests.el --- Tests -*- lexical-binding: t; -*-
 
+;; Copyright (C) 2026 Free Software Foundation, Inc.
+
 ;;; Commentary:
 
 ;; ERT tests for keymap-popup.  Run via `make test'.

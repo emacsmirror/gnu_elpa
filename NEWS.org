@@ -2,7 +2,7 @@
 #+author: Omar Antolín Camarena
 #+language: en
 
-* Development
+* Version 1.8 (2026-09-28)
 
 - New =orderless--metadata-get= function which can be advised.
 - =orderless-annotation=: Prevent recursive matching.

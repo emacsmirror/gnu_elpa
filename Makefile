@@ -34,12 +34,7 @@ SCRIPTP = s/Package-Requires: ()/Package-Requires: $(REQUIRE)/g
 all: sync autoloads info
 
 autoloads: $(LISP_FILES)
-	$(EMACS) -l autoload						    \
-	  --eval "(setq generate-autoload-cookie \";;;###tramp-autoload\")" \
-	  --eval "(setq generated-autoload-file				    \
-		    (expand-file-name \"tramp-loaddefs.el\"))"		    \
-	  --eval "(setq make-backup-files nil)"				    \
-	  -f batch-update-autoloads .
+	$(EMACS) -l loaddefs-gen -f loaddefs-generate-batch tramp-loaddefs.el .
 
 info:
 	$(MAKE) -C texi

@@ -2983,11 +2983,12 @@ the result will be a local, non-Tramp, file name."
       (if (not (tramp-connectable-p v))
 	  (tramp-drop-volume-letter
 	   (tramp-run-real-handler #'expand-file-name (list name)))
-	(unless (tramp-run-real-handler #'file-name-absolute-p (list localname))
-	  (setq localname (concat "~/" localname)))
         ;; Tilde expansion shall be possible also for quoted localname.
 	(when (string-prefix-p "~" (file-name-unquote localname))
 	  (setq localname (file-name-unquote localname)))
+	;; Use tilde for relative localname.
+	(unless (string-match-p (rx bos (any "/~")) localname)
+	  (setq localname (concat "~/" localname)))
 	;; Tilde expansion if necessary.  This needs a shell which
 	;; groks tilde expansion!  The function `tramp-find-shell' is
 	;; supposed to find such a shell on the remote host.  Please
@@ -4444,16 +4445,20 @@ file exists and nonzero exit status otherwise."
     (tramp-wait-for-output (tramp-get-connection-process vec))
 
     ;; Check proper HISTFILE setting.  We give up when not working.
-    (when (and (stringp tramp-histfile-override)
-	       (file-name-directory tramp-histfile-override))
-      (tramp-barf-unless-okay
-       vec
-       (format
-	"(cd %s)"
-	(tramp-shell-quote-argument
-	 (file-name-directory tramp-histfile-override)))
-       "`tramp-histfile-override' uses invalid file `%s'"
-       tramp-histfile-override))
+    (when (stringp tramp-histfile-override)
+      (when (and (string-match-p "~" tramp-histfile-override)
+		 (not (tramp-send-command-and-check vec "(cd)")))
+	(tramp-user-error
+	 vec "No home directory, change `tramp-histfile-override'"))
+      (when (file-name-directory tramp-histfile-override)
+	(tramp-barf-unless-okay
+	 vec
+	 (format
+	  "(cd %s)"
+	  (tramp-shell-quote-argument
+	   (file-name-directory tramp-histfile-override)))
+	 "`tramp-histfile-override' uses invalid file `%s'"
+	 tramp-histfile-override)))
 
     (tramp-flush-connection-property
      (tramp-get-connection-process vec) "scripts")
@@ -4621,6 +4626,15 @@ process to set up.  VEC specifies the connection."
       ;; with the process.
       (let ((cs (or (and (memq 'utf-8-hfs (coding-system-list))
 			 (string-prefix-p "Darwin" uname)
+			 ;; Starting from macOS High Sierra the default
+			 ;; file system is APFS (see
+			 ;; https://developer.apple.com/documentation/foundation/about-apple-file-system),
+			 ;; and it is a non-normalizing file system.
+			 (let ((ver (string-trim
+				     (string-remove-prefix "Darwin" uname))))
+			   (condition-case nil
+			       (version< ver "17")
+                             (error t)))
 			 (cons 'utf-8-hfs 'utf-8-hfs))
 		    (and (memq 'utf-8 (coding-system-list))
 			 (string-match-p

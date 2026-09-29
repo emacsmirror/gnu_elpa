@@ -16,7 +16,8 @@
 # You should have received a copy of the GNU General Public License
 # along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
 
-EMACS		= emacs -Q -batch -L .
+EMACS		= emacs
+EM		= $(EMACS) -Q -batch -L .
 LISP_FILES	= $(wildcard *.el)
 CLEAN_FILES	= .\\\#* \\\#* .*~ *~ *.elc *.log
 SOURCE_DIR	= ~/src/tramp
@@ -31,10 +32,23 @@ REQUIRE	= $(shell sed -n -e 's/^;; Package-Requires: *//p' $(SOURCE_DIR)/lisp/tr
 SCRIPTV = s/Version: 0/Version: $(VERSION)/g
 SCRIPTP = s/Package-Requires: ()/Package-Requires: $(REQUIRE)/g
 
+# loaddefs-gen.el exists since Emacs 29.1.
+EMACS_LOADDEFS	:= $(strip $(shell $(EM)				    \
+		     --eval '(print (locate-library "loaddefs-gen"))'))
+
 all: sync autoloads info
 
 autoloads: $(LISP_FILES)
-	$(EMACS) -l loaddefs-gen -f loaddefs-generate-batch tramp-loaddefs.el .
+ifneq   "$(EMACS_LOADDEFS)" "nil"
+	$(EM) -l loaddefs-gen -f loaddefs-generate-batch tramp-loaddefs.el .
+else
+	$(EM) -l autoload						    \
+	  --eval "(setq generate-autoload-cookie \";;;###tramp-autoload\")" \
+	  --eval "(setq generated-autoload-file				    \
+		    (expand-file-name \"tramp-loaddefs.el\"))"		    \
+	  --eval "(setq make-backup-files nil)"				    \
+	  -f batch-update-autoloads .
+endif
 
 info:
 	$(MAKE) -C texi

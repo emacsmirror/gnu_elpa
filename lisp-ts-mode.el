@@ -75,6 +75,11 @@
                :source-dir "grammars/format/src")
              t)
 
+(when (boundp 'ts-language-display-name-alist) ;31.1, i think
+  (add-to-list 'ts-language-display-name-alist '(common-lisp . "Common Lisp"))
+  (add-to-list 'ts-language-display-name-alist
+               '(cl-format . "Common Lisp FORMAT")))
+
 (when (boundp 'ts-major-mode-remap-alist)
   (add-to-list 'ts-major-mode-remap-alist '(lisp-mode . lisp-ts-mode)))
 

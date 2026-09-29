@@ -453,10 +453,24 @@ and the character's name is given the face
    ;; complexes will have their whole and imaginary parts get the face
    ;; separately. highlighting the entire expression #C(1/3 99.1) with
    ;; font-lock-number-face seems weird to me.
-   `((real) @font-lock-number-face)
+   (condition-case nil
+       ;; get fancy on newer grammar versions
+       (ts-query-compile 'common-lisp
+                         `([(rational ["/" "R"] :? @font-lock-delimiter-face)
+                            (float ["E" "F" "L" "S" "D"] :? @font-lock-delimiter-face)]
+                           @font-lock-number-face)
+                         t)
+     (ts-query-error `((real) @font-lock-number-face)))
    :feature 'bits
    :override 'prepend
-   `([(bit_vector) (rational)] @lisp-ts-mode--fontify-bits)
+   (condition-case nil
+       (ts-query-compile 'common-lisp
+                         ;; we can make the query more precise with the newer
+                         ;; grammar
+                         `([(bit_vector) (rational ["#B" "#R"])]
+                           @lisp-ts-mode--fontify-bits)
+                         t)
+     (ts-query-error `([(bit_vector) (rational)] @lisp-ts-mode--fontify-bits)))
    :feature 'symbol
    :override 'prepend
    `((symbol_tokens [(single_escape) @font-lock-escape-face
@@ -489,9 +503,9 @@ and the character's name is given the face
                  ",." @lisp-ts-mode-comma-dot]))
    :feature 'reader-macro
    :override 'prepend
-   `(["#." @lisp-ts-mode-read-eval
-      "#+" @lisp-ts-mode-positive-read-conditional
-      "#-" @lisp-ts-mode-negative-read-conditional])))
+   `("#." @lisp-ts-mode-read-eval
+     "#+" @lisp-ts-mode-positive-read-conditional
+     "#-" @lisp-ts-mode-negative-read-conditional)))
 
 (defun lisp-ts-mode--format-font-lock-rules ()
   "Return `treesit-font-lock-settings' for `lisp-ts-format-support-mode'."

@@ -64,14 +64,14 @@
 (add-to-list 'ts-language-source-alist
              '(common-lisp
                "https://codeberg.org/zshaftel/tree-sitter-cl-syntax"
-               :commit "dd2290d2a2480f4d865c57ed541dc714645c386b"
+               :commit "1b46b7cf12b41d40c886e33ce96500934d0aa3b5"
                :source-dir "grammars/cl/src")
              t)
 
 (add-to-list 'ts-language-source-alist
              '(cl-format
                "https://codeberg.org/zshaftel/tree-sitter-cl-syntax"
-               :commit "dd2290d2a2480f4d865c57ed541dc714645c386b"
+               :commit "1b46b7cf12b41d40c886e33ce96500934d0aa3b5"
                :source-dir "grammars/format/src")
              t)
 

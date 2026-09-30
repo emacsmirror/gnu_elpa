@@ -529,9 +529,8 @@
               (remove-hook 'pre-command-hook hook)
               (kill-buffer foreign)))))
       (should (equal (car results) (cadr results)))
-      ;; Persistent suffix wrappers change this-command; native closing
-      ;; suffixes retain the command.  Both input methods must agree.
-      (should (equal (car results) (list t (not stay) [97] nil))))))
+      ;; Staying open must not change native command identity.
+      (should (equal (car results) (list t t [97] nil))))))
 
 (ert-deftest keymap-popup-mouse-test-navigation-roundtrip ()
   (dolist (persistent '(nil t))

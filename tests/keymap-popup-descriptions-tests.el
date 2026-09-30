@@ -572,7 +572,7 @@ Only the display backend is replaced; session and wrapper setup are real."
       (keymap-popup-descriptions-test--popup
        map (lambda (buf)
              (let* ((wrapper (keymap-popup--active-get buf :wrapper-map))
-                    (action (keymap-lookup wrapper "x")))
+                    (action (nth 2 (keymap-popup--raw-local-binding wrapper "x"))))
                (dolist (value '(t nil))
                  (setq enabled value)
                  (goto-char (point-min))
@@ -643,12 +643,14 @@ Only the display backend is replaced; session and wrapper setup are real."
         (keymap-popup-descriptions-test--popup
          map (lambda (buf)
                (let* ((wrapper (keymap-popup--active-get buf :wrapper-map))
-                      (stored (keymap-lookup wrapper "x"))
-                      (resolved (and alias (keymap-lookup wrapper "y"))))
+                      (stored (nth 2 (keymap-popup--raw-local-binding wrapper "x")))
+                      (resolved (and alias
+                                     (nth 2 (keymap-popup--raw-local-binding
+                                             wrapper "y")))))
                  (should (commandp stored))
                  (should (eq (keymap-lookup wrapper "z") #'backward-char))
-                 ;; No refresh or new wrapper: both retained and fresh lookups
-                 ;; must reconsider the currently effective native binding.
+                 ;; Capture the raw handler, not the resolved native command.
+                 ;; Both this handler and fresh lookups reselect live policy.
                  (dolist (value '(nil t nil))
                    (setq enabled value)
                    (dolist (action (list stored (keymap-lookup wrapper "x")))

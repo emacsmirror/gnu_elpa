@@ -56,7 +56,7 @@ Return the exit status and captured output as a cons cell."
             (with-temp-buffer
               (insert-file-contents "keymap-popup.el")
               (goto-char (point-min))
-              (search-forward "Get popup metadata PROP from KEYMAP via pseudo-key lookup.")
+              (search-forward "Get effective popup metadata PROP from KEYMAP.")
               (replace-match "Get popup metadata." t t)
               (write-region (point-min) (point-max) "keymap-popup.el" nil 'silent))))))
     (should (equal (car result) 2))

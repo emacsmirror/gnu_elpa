@@ -205,12 +205,13 @@
 
 (defun keymap-popup-native-test-run ()
   "Run native ERT tests and exit the disposable Emacs with their status."
+  (require 'keymap-popup-semantics-tests)
   (let ((timeout (run-at-time
                   30 nil (lambda ()
                            (message "Native tests timed out")
                            (kill-emacs 2)))))
     (unwind-protect
-        (let* ((stats (ert-run-tests-batch "keymap-popup-native-test-"))
+        (let* ((stats (ert-run-tests-batch "keymap-popup-\\(?:native-test-\\|semantics-\\)"))
                (passed (and (zerop (ert-stats-completed-unexpected stats))
                             (zerop (ert-stats-skipped stats))
                             (= (ert-stats-completed-expected stats)

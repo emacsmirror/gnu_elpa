@@ -57,6 +57,29 @@ No external dependencies.
   :ensure t)
 #+end_src
 
+** Upgrading in an existing Emacs session
+
+Previously compiled consumers and keymaps already created by
+=keymap-popup-define=, =keymap-popup-annotate= or =keymap-popup-attach=
+continue to work after loading the new library.  Recompilation or
+reevaluation is not required to keep their descriptions, exit key,
+title or persistence setting.  Existing map objects, anonymous commands,
+custom bindings, parents and composed maps are retained.
+
+Legacy metadata is converted on first popup use, metadata access or
+update, without rebuilding the keymap.  The converted metadata is inert
+for native help and key lookup.  Until a retained map has been used by
+the new library, native help can still show its old pseudo-key entries;
+loading the library does not search all variables for keymaps.  Copies
+made before or after conversion remain usable, and changing a copy's
+popup descriptions does not change the original.
+
+Reevaluating a declaration refreshes its descriptions and options while
+preserving existing bindings.  Reattaching runtime descriptions replaces
+previous descriptions and options, with omitted options returning to
+their defaults.  The private metadata representation is not a public
+API, and loading an older library over converted maps is not supported.
+
 * Quick start
 :PROPERTIES:
 :CUSTOM_ID: quick-start

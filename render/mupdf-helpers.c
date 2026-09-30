@@ -250,6 +250,12 @@ free_cached_pages_pool(DocState *doc_state)
 		pthread_cond_destroy(&cp->cond);
 		pthread_mutex_destroy(&cp->mutex);
 
+		if (cp->display_list && doc_state->ctx)
+		{
+			fz_drop_display_list(doc_state->ctx, cp->display_list);
+			cp->display_list = NULL;
+		}
+
 		if (cp->img_data)
 		{
 			free(cp->img_data);

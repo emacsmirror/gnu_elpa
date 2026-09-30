@@ -600,11 +600,11 @@ definition of `sexp' is based on its entry in
 ;; `treesit-range-settings', which `gaudy-cl-mode' has to bypass
 (defun lisp-ts-mode--find-parser-at (pos parser-list)
   "Find the first treesit parser in PARSER-LIST whose range contains POS."
-  (car (any (lambda (parser)
-              (any (lambda (range)
-                     (<= (car range) pos (cdr range)))
-                   (ts-parser-included-ranges parser)))
-            parser-list)))
+  (car (member-if (lambda (parser)
+                    (any (lambda (range)
+                           (<= (car range) pos (cdr range)))
+                         (ts-parser-included-ranges parser)))
+                  parser-list)))
 
 (defun lisp-ts-mode--parsers-strictly-in-region (parser-list beg end)
   "Filter PARSER-LIST to those whose ranges fall strictly between BEG and END."

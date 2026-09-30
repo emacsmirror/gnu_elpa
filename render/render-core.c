@@ -480,6 +480,7 @@ emacs_load_doc(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
 	outline2plist(env, doc_state, doc_state->outline);
 
 	/* Allocate pointer array (pool) */
+	doc_state->cached_pages_pool = NULL;
 	doc_state->cached_pages_pool = malloc(
 	    doc_state->pagecount * sizeof(*doc_state->cached_pages_pool));
 	if (!doc_state->cached_pages_pool)
@@ -489,6 +490,7 @@ emacs_load_doc(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
 	}
 
 	/* Allocate contiguous block */
+	doc_state->cached_pages_block = NULL;
 	doc_state->cached_pages_block = calloc(
 	    doc_state->pagecount, sizeof(*doc_state->cached_pages_block));
 	if (!doc_state->cached_pages_block)

@@ -90,6 +90,16 @@ draw_page_thread(void *arg)
 	EmacsWinState *win_state = args->win_state;
 	CachedPage *cp = args->cp;
 
+	// Atomically increment active jobs for this document
+	atomic_fetch_add(&doc_state->active_jobs, 1);
+
+	// If the document is being reloaded/closed, abort this job safely
+	if (doc_state->is_reloading) {
+		atomic_fetch_sub(&doc_state->active_jobs, 1);
+		free(args);
+		return NULL;
+	}
+
 	fz_context *ctx = fz_clone_context(doc_state->ctx);
 
 	ctm = fz_transform_page(doc_state->page_bbox, win_state->resolution,
@@ -160,6 +170,8 @@ draw_page_thread(void *arg)
 		cp->status = PAGE_STATUS_ERROR;
 		cp->img_size = 0;
 		cp->img_data = NULL;
+		atomic_fetch_sub(&doc_state->active_jobs, 1);
+		free(args);
 		return NULL;
 	}
 
@@ -171,6 +183,8 @@ draw_page_thread(void *arg)
 		fprintf(stderr, "Could not allocate memory for image data\n");
 		fz_close_output(ctx, out);
 		fz_drop_buffer(ctx, buf);
+		atomic_fetch_sub(&doc_state->active_jobs, 1);
+		free(args);
 		return NULL;
 	}
 
@@ -186,6 +200,8 @@ draw_page_thread(void *arg)
 	pthread_cond_signal(&cp->cond);
 	pthread_mutex_unlock(&cp->mutex);
 
+	// Decrement active jobs when finished
+	atomic_fetch_sub(&doc_state->active_jobs, 1);
 	free(args);
 	return NULL;
 }

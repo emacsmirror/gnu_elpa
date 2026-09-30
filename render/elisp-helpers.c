@@ -181,6 +181,9 @@ DocState *
 init_doc_state_ptr(emacs_env *env)
 {
 	DocState *state = malloc(sizeof(DocState));
+	state->active_jobs = 0;
+	state->is_reloading = false;
+
 	// Create a user pointer and expose it to Emacs in a buffer-local
 	emacs_value user_ptr = env->make_user_ptr(env, NULL, state);
 	emacs_value doc_state_ptr_sym

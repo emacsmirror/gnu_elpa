@@ -59,7 +59,10 @@ doc_page_height(EmacsWinState *win_state)
 void
 reset_doc_state(DocState *state)
 {
-	fprintf(stderr, "Resetting the existing DocState\n");
+	// We need to preserve these across resets
+	int current_active_jobs = state->active_jobs;
+	bool current_is_reloading = state->is_reloading;
+
 	*state = (DocState){
 		.ctx = NULL,
                       .locks = NULL,
@@ -74,7 +77,10 @@ reset_doc_state(DocState *state)
 		      .pagecount = 0,
 		      .frame_scale = 1,
                       .outline = NULL,
-		      .invert = 0};
+		      .invert = 0,
+		      .active_jobs = current_active_jobs,
+		      .is_reloading = current_is_reloading
+	};
 }
 
 void

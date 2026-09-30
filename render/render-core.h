@@ -20,6 +20,7 @@
 #include "emacs-module.h"
 #include <mupdf/fitz.h>
 #include <pthread.h>
+#include <stdatomic.h>
 
 #define MINRES 18
 #define MAXRES 850
@@ -60,6 +61,9 @@ typedef struct
 	fz_outline *outline;
 	float frame_scale; // Emacs' frame-scale-factor
 	int invert;
+
+	atomic_int active_jobs;
+	bool is_reloading;
 } DocState;
 
 typedef struct

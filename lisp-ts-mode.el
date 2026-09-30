@@ -913,9 +913,14 @@ for at point with `lisp-ts-mode--find-parser-at'."
 triggers FORMAT string indentation. ENDPOS, if supplied, is the position
 where indentation stops, defaulting to the end of the sexp."
   (interactive () lisp-ts-mode)
-  (let ((inhibit-message t))           ;indent-region is loud, indent-sexp isn't
-    (indent-region (save-excursion (backward-prefix-chars) (point))
-                   (or endpos (save-excursion (forward-sexp) (point))))))
+  (if lisp-ts-mode-format-indent-predicate
+      (let ((inhibit-message t))       ;indent-region is loud, indent-sexp isn't
+        (indent-region (save-excursion (backward-prefix-chars) (point))
+                       (or endpos (save-excursion (forward-sexp) (point)))))
+    ;; `indent-sexp' is superior to `indent-region-line-by-line' because it
+    ;; keeps a running ppss, so forward to that if FORMAT indentation is
+    ;; disabled
+    (indent-sexp endpos)))
 
 (defun lisp-ts-mode-indent-line-wrapper (orig)
   "Used in `lisp-ts-mode' as `:around' advice on `indent-line-function'."

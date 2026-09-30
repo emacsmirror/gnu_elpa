@@ -575,6 +575,12 @@ emacs_redisplay_doc(emacs_env *env, ptrdiff_t nargs, emacs_value *args,
 	(void)data;
 
 	DocState *doc_state = get_doc_state_ptr(env);
+	if (!doc_state)
+		{
+			fprintf(stderr, "No valid DocState user pointer found.");
+			emacs_message(env, "No valid DocState user pointer found.");
+
+		}
 	emacs_value current_doc_overlay = get_current_doc_overlay(env);
 	if (!check_current_overlay(env, current_doc_overlay))
 	{
@@ -632,6 +638,13 @@ emacs_close_doc(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
 
 	DocState *state = get_doc_state_ptr(env);
 	if (!state)
+		{
+			fprintf(stderr, "No valid DocState user pointer found.");
+			emacs_message(env, "No valid DocState user pointer found.");
+
+		}
+
+	if (!state)
 		return EMACS_NIL;
 
 	state->is_reloading = true;
@@ -673,6 +686,13 @@ emacs_next_page(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
 	(void)args;
 	(void)data;
 	DocState *doc_state = get_doc_state_ptr(env);
+	if (!doc_state)
+		{
+			fprintf(stderr, "No valid DocState user pointer found.");
+			emacs_message(env, "No valid DocState user pointer found.");
+
+		}
+
 	emacs_value current_doc_overlay = get_current_doc_overlay(env);
 	if (!check_current_overlay(env, current_doc_overlay))
 	{
@@ -737,6 +757,12 @@ emacs_prev_page(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
 	(void)args;
 	(void)data;
 	DocState *doc_state = get_doc_state_ptr(env);
+	if (!doc_state)
+		{
+			fprintf(stderr, "No valid DocState user pointer found.");
+			emacs_message(env, "No valid DocState user pointer found.");
+		}
+
 	emacs_value current_doc_overlay = get_current_doc_overlay(env);
 	if (!check_current_overlay(env, current_doc_overlay))
 	{
@@ -798,12 +824,18 @@ emacs_first_page(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
 	(void)args;
 	(void)data;
 	DocState *doc_state = get_doc_state_ptr(env);
+	if (!doc_state)
+		{
+			fprintf(stderr, "No valid DocState user pointer found.");
+			emacs_message(env, "No valid DocState user pointer found.");
+		}
+
 	emacs_value current_doc_overlay = get_current_doc_overlay(env);
 	if (!check_current_overlay(env, current_doc_overlay))
-	{
-		emacs_message(env, "Invalid overlay state: reinitializing");
-		return EMACS_NIL;
-	}
+		{
+			emacs_message(env, "Invalid overlay state: reinitializing");
+			return EMACS_NIL;
+		}
 
 	EmacsWinState *win_state = get_win_state_ptr(env, current_doc_overlay);
 
@@ -854,6 +886,12 @@ emacs_last_page(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
 	(void)args;
 	(void)data;
 	DocState *doc_state = get_doc_state_ptr(env);
+	if (!doc_state)
+		{
+			fprintf(stderr, "No valid DocState user pointer found.");
+			emacs_message(env, "No valid DocState user pointer found.");
+		}
+
 	emacs_value current_doc_overlay = get_current_doc_overlay(env);
 	if (!check_current_overlay(env, current_doc_overlay))
 	{
@@ -910,12 +948,18 @@ emacs_goto_page(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
 	(void)data;
 	int page_number = env->extract_integer(env, args[0]);
 	DocState *doc_state = get_doc_state_ptr(env);
+	if (!doc_state)
+		{
+			fprintf(stderr, "No valid DocState user pointer found.");
+			emacs_message(env, "No valid DocState user pointer found.");
+		}
+
 	emacs_value current_doc_overlay = get_current_doc_overlay(env);
 	if (!check_current_overlay(env, current_doc_overlay))
-	{
-		emacs_message(env, "Invalid overlay state: reinitializing");
-		return EMACS_NIL;
-	}
+		{
+			emacs_message(env, "Invalid overlay state: reinitializing");
+			return EMACS_NIL;
+		}
 
 	EmacsWinState *win_state = get_win_state_ptr(env, current_doc_overlay);
 
@@ -971,6 +1015,12 @@ emacs_doc_scale_page(emacs_env *env, ptrdiff_t nargs, emacs_value *args,
 	(void)nargs;
 	(void)data;
 	DocState *doc_state = get_doc_state_ptr(env);
+	if (!doc_state)
+		{
+			fprintf(stderr, "No valid DocState user pointer found.");
+			emacs_message(env, "No valid DocState user pointer found.");
+		}
+
 	emacs_value current_doc_overlay = get_current_doc_overlay(env);
 	if (!check_current_overlay(env, current_doc_overlay))
 	{
@@ -1025,12 +1075,18 @@ emacs_doc_rotate(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
 	(void)nargs;
 	(void)data;
 	DocState *doc_state = get_doc_state_ptr(env);
+	if (!doc_state)
+		{
+			fprintf(stderr, "No valid DocState user pointer found.");
+			emacs_message(env, "No valid DocState user pointer found.");
+		}
+
 	emacs_value current_doc_overlay = get_current_doc_overlay(env);
 	if (!check_current_overlay(env, current_doc_overlay))
-	{
-		emacs_message(env, "Invalid overlay state: reinitializing");
-		return EMACS_NIL;
-	}
+		{
+			emacs_message(env, "Invalid overlay state: reinitializing");
+			return EMACS_NIL;
+		}
 
 	EmacsWinState *win_state = get_win_state_ptr(env, current_doc_overlay);
 	int rotation_deg = env->extract_integer(env, args[0]);
@@ -1063,6 +1119,19 @@ emacs_doc_window_create(emacs_env *env, ptrdiff_t nargs, emacs_value *args,
 	(void)data;
 	emacs_value win = args[0];
 	DocState *doc_state = get_doc_state_ptr(env);
+	if (!doc_state)
+		{
+			fprintf(stderr, "No valid DocState user pointer found.");
+			emacs_message(env, "No valid DocState user pointer found.");
+		}
+
+	emacs_value current_doc_overlay = get_current_doc_overlay(env);
+	if (!check_current_overlay(env, current_doc_overlay))
+	{
+		emacs_message(env, "Invalid overlay state: reinitializing");
+		return EMACS_NIL;
+	}
+
 	init_overlay(env, win);
 	init_win_state_ptr(env, doc_state, win);
 	return EMACS_T;

@@ -209,11 +209,7 @@ get_doc_state_ptr(emacs_env *env)
 	    = env->funcall(env, env->intern(env, "symbol-value"), 1, &ptr_sym);
 
 	if (env->eq(env, ptr, EMACS_NIL))
-	{
-		fprintf(stderr, "No valid DocState user pointer found.");
-		emacs_message(env, "No valid DocState user pointer foud.");
 		return NULL;
-	}
 
 	DocState *state = env->get_user_ptr(env, ptr);
 	return state;

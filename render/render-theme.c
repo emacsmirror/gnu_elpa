@@ -41,6 +41,12 @@ emacs_set_dark_theme(emacs_env *env, ptrdiff_t nargs, emacs_value *args,
 	(void)nargs;
 	(void)args;
 	DocState *doc_state = get_doc_state_ptr(env);
+	if (!doc_state)
+		{
+			fprintf(stderr, "No valid DocState user pointer found.");
+			emacs_message(env, "No valid DocState user pointer found.");
+		}
+
 	emacs_value current_doc_overlay = get_current_doc_overlay(env);
 	EmacsWinState *win_state = get_win_state_ptr(env, current_doc_overlay);
 	if (doc_state && win_state)

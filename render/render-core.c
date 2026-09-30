@@ -622,32 +622,25 @@ emacs_close_doc(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
 	if (!state)
 		return EMACS_NIL;
 
+	state->is_reloading = true;
+	clear_doc_state_ptr(env);
+
 	emacs_value overlay = get_current_doc_overlay(env);
 
-	// If we have an overlay for the currently selected window, clear win
-	// cache
-	if (env->eq(env, overlay, EMACS_NIL))
-		return EMACS_NIL;
-
+	// If we have an overlay or window state for the currently selected window,
+	// clear it's window cache
 	EmacsWinState *win_state = get_win_state_ptr(env, overlay);
 	if (win_state)
 		free_cache_window(state, win_state);
 
-	// Always free the document pool
-	free_cached_pages_pool(state);
+	// Wait for all worker threads to finish
+	while (atomic_load(&state->active_jobs) > 0) {
+		struct timespec ts = {0, 1000000}; // 1ms
+		nanosleep(&ts, NULL);
+	}
 
-	if (state->outline)
-		fz_drop_outline(state->ctx, state->outline);
-	if (state->doc)
-		fz_drop_document(state->ctx, state->doc);
-	if (state->ctx)
-		fz_drop_context(state->ctx);
-
-	reset_doc_state(state);
-	free(state);
-
-	// clear the buffer-local user ptr to prevent double
-	clear_doc_state_ptr(env);
+	// Free DocState and all its underlying MuPDF objects
+	free_doc_state(state);
 	return EMACS_T;
 }
 

@@ -119,22 +119,35 @@ draw_page_thread(void *arg)
 	fz_catch(ctx) cp->status = PAGE_STATUS_ERROR;
 
 	fz_try(ctx)
-	{
-		buf = fz_new_buffer(ctx, 1024);
-		out = fz_new_output_with_buffer(ctx, buf);
-		fz_write_pixmap_as_pnm(ctx, out, cp->pixmap);
-		fz_drop_pixmap(ctx,
-			       cp->pixmap); // Drop the pixmap after using it
-		cp->pixmap = NULL;
-	}
+		{
+			buf = fz_new_buffer(ctx, 1024);
+			out = fz_new_output_with_buffer(ctx, buf);
+			fz_write_pixmap_as_pnm(ctx, out, cp->pixmap);
+		}
+	fz_always(ctx)
+		{
+			if (cp->pixmap) {
+				fz_drop_pixmap(ctx, cp->pixmap);
+				cp->pixmap = NULL;
+			}
+		}
 	fz_catch(ctx)
-	{
-		fz_close_output(ctx, out);
-		fz_drop_output(ctx, out);
-		fz_drop_buffer(ctx, buf);
-	}
+		{
+			if (out)
+				{
+					fz_close_output(ctx, out);
+					fz_drop_output(ctx, out);
+					out = NULL;
+				}
+			if (buf)
+				{
+					fz_drop_buffer(ctx, buf);
+					buf = NULL;
+				}
+		}
 
-	fz_close_output(ctx, out);
+	if (out)
+		fz_close_output(ctx, out);
 
 	// Reset the pre-existing memory that we were pointing to
 	free(cp->img_data);

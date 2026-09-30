@@ -491,51 +491,8 @@ emacs_load_doc(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
 	return EMACS_T;
 
 cleanup:
-	/* free pool + block */
-	if (doc_state)
-	{
-		if (doc_state->cached_pages_pool)
-		{
-			free(doc_state->cached_pages_pool);
-			doc_state->cached_pages_pool = NULL;
-		}
-		if (doc_state->cached_pages_block)
-		{
-			/* destroy already-inited page primitives */
-			for (int i = 0; i < pages_inited; ++i)
-			{
-				CachedPage *cp
-				    = &doc_state->cached_pages_block[i];
-				pthread_cond_destroy(&cp->cond);
-				pthread_mutex_destroy(&cp->mutex);
-			}
-			free(doc_state->cached_pages_block);
-			doc_state->cached_pages_block = NULL;
-		}
-
-		if (doc_state->outline)
-		{
-			fz_drop_outline(doc_state->ctx, doc_state->outline);
-			doc_state->outline = NULL;
-		}
-		if (doc_state->doc)
-		{
-			fz_drop_document(doc_state->ctx, doc_state->doc);
-			doc_state->doc = NULL;
-		}
-		if (doc_state->ctx)
-		{
-			fz_drop_context(doc_state->ctx);
-			doc_state->ctx = NULL;
-		}
-
-		if (doc_state->path)
-		{
-			free(doc_state->path);
-			doc_state->path = NULL;
-		}
-	}
-
+	free_doc_state(doc_state);
+	clear_doc_state_ptr(env);
 	return EMACS_NIL;
 }
 

@@ -270,3 +270,40 @@ free_cached_pages_pool(DocState *doc_state)
 	free(doc_state->cached_pages_block);
 	doc_state->cached_pages_block = NULL;
 }
+
+void
+free_doc_state(DocState *state)
+{
+	if (!state)
+		return;
+
+	// Free cached pages pool and block
+	free_cached_pages_pool(state);
+
+	// Drop MuPDF objects
+	if (state->outline)
+	{
+		fz_drop_outline(state->ctx, state->outline);
+		state->outline = NULL;
+		}
+	if (state->doc)
+	{
+		fz_drop_document(state->ctx, state->doc);
+		state->doc = NULL;
+	}
+	if (state->ctx)
+	{
+		fz_drop_context(state->ctx);
+		state->ctx = NULL;
+	}
+
+	// Free path
+	if (state->path)
+	{
+		free(state->path);
+		state->path = NULL;
+	}
+
+	// Free the state struct itself
+	free(state);
+}

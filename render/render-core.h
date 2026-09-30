@@ -27,6 +27,8 @@
 #define MAX_CACHE_SIZE 11
 #define MAX_CACHE_WINDOW_SIZE (MAX_CACHE_SIZE / 2)
 
+extern pthread_mutex_t g_mupdf_mutex[FZ_LOCK_MAX];
+
 typedef enum
 {
 	PAGE_STATUS_EMPTY,

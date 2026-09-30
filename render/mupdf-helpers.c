@@ -20,8 +20,6 @@
 #include "render-core.h"
 #include <pthread.h>
 
-pthread_mutex_t g_mupdf_mutex[FZ_LOCK_MAX];
-
 /**
  * doc_page_width - Provide integer width of the current document
  * @state: Pointer to DocState
@@ -120,10 +118,6 @@ unlock_mutex(void *user, int lock)
 int
 init_main_ctx(DocState *state)
 {
-	for (int i = 0; i < FZ_LOCK_MAX; ++i)
-	{
-		pthread_mutex_init(&g_mupdf_mutex[i], NULL);
-	}
 	state->locks.user = g_mupdf_mutex;
 	state->locks.lock = lock_mutex;
 	state->locks.unlock = unlock_mutex;

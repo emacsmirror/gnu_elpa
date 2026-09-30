@@ -24,6 +24,8 @@
 
 int plugin_is_GPL_compatible;
 
+pthread_mutex_t g_mupdf_mutex[FZ_LOCK_MAX];
+
 /**
  * Load and cache the display list for a page.
  *
@@ -438,16 +440,20 @@ emacs_load_doc(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
 
 	int pages_inited = 0;
 
-	if (!doc_state || !win_state)
+	if (!doc_state)
 	{
 		emacs_message(env, "Document cannot be loaded into memory.");
 		return EMACS_NIL;
 	}
 
+	if (!win_state)
+	{
+		emacs_message(env, "Window state couldn't be initialized.");
+		goto cleanup;
+	}
+
 	reset_doc_state(doc_state);
 	reset_win_state(win_state);
-
-	/* Make sure these start NULL so cleanup is safe */
 	doc_state->cached_pages_pool = NULL;
 	doc_state->cached_pages_block = NULL;
 
@@ -458,7 +464,11 @@ emacs_load_doc(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
 		goto cleanup;
 	}
 
-	init_main_ctx(doc_state);
+	if (init_main_ctx(doc_state) == EXIT_FAILURE)
+	{
+		emacs_message(env, "Failed to initialize MuPDF context.");
+		goto cleanup;
+	}
 
 	if (load_mupdf_doc(doc_state) == EXIT_FAILURE)
 	{
@@ -1090,6 +1100,12 @@ emacs_module_init(struct emacs_runtime *runtime)
 	{
 		fprintf(stderr, "Failed to get Emacs environment.\n");
 		return 1;
+	}
+
+	// Initialize global MuPDF mutexes
+	for (int i = 0; i < FZ_LOCK_MAX; ++i)
+	{
+		pthread_mutex_init(&g_mupdf_mutex[i], NULL);
 	}
 
 	// Registrations for the required functions and variables

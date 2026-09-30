@@ -412,8 +412,23 @@ emacs_load_doc(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
 {
 	(void)nargs;
 	(void)data;
-
 	size_t str_length = 0;
+
+	DocState *old_state = get_doc_state_ptr(env);
+	if (old_state)
+	{
+		fprintf(stderr, "Reloading document: freeing previous state.\n");
+		old_state->is_reloading = true;
+		clear_doc_state_ptr(env);
+
+		// Wait for all worker threads to finish their jobs for this document
+		while (atomic_load(&old_state->active_jobs) > 0) {
+			struct timespec ts = {0, 1000000};
+			nanosleep(&ts, NULL);
+		}
+
+		free_doc_state(old_state);
+	}
 
 	emacs_value curr_win = EMACS_CURR_WIN;
 	emacs_value current_doc_overlay = init_overlay(env, curr_win);

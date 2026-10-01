@@ -188,8 +188,10 @@ load_mupdf_doc(DocState *state)
 void
 free_cached_page(DocState *state, CachedPage *cp)
 {
-	if (cp->status != PAGE_STATUS_READY)
-		return; // already evicted or never loaded
+	// Handle all those that aren''t ready and also allow cleaning up failed/error
+	// ones so that they can be retried
+	if (cp->status != PAGE_STATUS_READY && cp->status != PAGE_STATUS_ERROR)
+		return;
 
 	cp->status = PAGE_STATUS_EMPTY;
 	fz_drop_display_list(state->ctx, cp->display_list);
@@ -213,12 +215,17 @@ free_cache_window(DocState *doc_state, EmacsWinState *win_state)
 {
 	fprintf(stderr, "Freeing the cache window for current document...\n");
 	for (int i = 0; i < MAX_CACHE_SIZE; i++)
-	{
-		if (win_state->cache_window[i]
-		    && win_state->cache_window[i]->status == PAGE_STATUS_READY)
-			free_cached_page(doc_state, win_state->cache_window[i]);
-	}
-	*win_state->cache_window = NULL;
+		{
+			if (win_state->cache_window[i]
+			    && (win_state->cache_window[i]->status == PAGE_STATUS_READY
+				|| win_state->cache_window[i]->status == PAGE_STATUS_ERROR))
+				{
+					free_cached_page(doc_state, win_state->cache_window[i]);
+				}
+		}
+
+	// Clear the whole array
+	memset(win_state->cache_window, 0, sizeof(win_state->cache_window));
 }
 
 /**

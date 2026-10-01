@@ -256,7 +256,10 @@ build_cache_window(DocState *doc_state, EmacsWinState *win_state, int n)
 			CachedPage *cp = doc_state->cached_pages_pool[idx];
 			win_state->cache_window[i] = cp;
 
-			if (cp->status == PAGE_STATUS_READY)
+			// If ready, then we free it.
+			// If failed, we free it too so that it can be retried.
+			if (cp->status == PAGE_STATUS_READY ||
+			    cp->status == PAGE_STATUS_ERROR)
 			{
 				free_cached_page(doc_state,
 						 win_state->cache_window[i]);
@@ -306,16 +309,17 @@ slide_cache_window_forward(DocState *doc_state, EmacsWinState *win_state)
 
 	if (n - MAX_CACHE_WINDOW_SIZE > 0
 	    && n + MAX_CACHE_WINDOW_SIZE < pagecount)
-	{
-		// Free the leftmost page in the cache window
-		if (win_state->cache_window[0] != NULL
-		    && win_state->cache_window[0]->status == PAGE_STATUS_READY)
 		{
-			free_cached_page(doc_state, win_state->cache_window[0]);
-		}
-		memmove(
-		    &win_state->cache_window[0], &win_state->cache_window[1],
-		    sizeof(win_state->cache_window[0]) * (MAX_CACHE_SIZE - 1));
+			// Free the leftmost page in the cache window
+			if (win_state->cache_window[0] != NULL
+			    && (win_state->cache_window[0]->status == PAGE_STATUS_READY
+				|| win_state->cache_window[0]->status == PAGE_STATUS_ERROR))
+				{
+					free_cached_page(doc_state, win_state->cache_window[0]);
+				}
+			memmove(
+				&win_state->cache_window[0], &win_state->cache_window[1],
+				sizeof(win_state->cache_window[0]) * (MAX_CACHE_SIZE - 1));
 
 		CachedPage *cp
 		    = doc_state->cached_pages_pool[n + MAX_CACHE_WINDOW_SIZE];
@@ -362,40 +366,43 @@ slide_cache_window_backward(DocState *doc_state, EmacsWinState *win_state)
 
 	if (n - MAX_CACHE_WINDOW_SIZE > 0
 	    && n + MAX_CACHE_WINDOW_SIZE < pagecount)
-	{
-		// Free the rightmost page in the cache window
-		if (win_state->cache_window[MAX_CACHE_SIZE - 1] != NULL
-		    && win_state->cache_window[MAX_CACHE_SIZE - 1]->status
-			   == PAGE_STATUS_READY)
 		{
-			free_cached_page(
-			    doc_state,
-			    win_state->cache_window[MAX_CACHE_SIZE - 1]);
+			// Free the rightmost page in the cache window
+			if (win_state->cache_window[MAX_CACHE_SIZE - 1] != NULL
+			    && (win_state->cache_window[MAX_CACHE_SIZE - 1]->status
+				== PAGE_STATUS_READY // if it's there, free it
+				|| win_state->cache_window[MAX_CACHE_SIZE - 1]->status
+				== PAGE_STATUS_ERROR // if it's errored, free it so it can be retried
+			       ))
+				{
+					free_cached_page(
+							 doc_state,
+							 win_state->cache_window[MAX_CACHE_SIZE - 1]);
+				}
+			memmove(
+				&win_state->cache_window[1], &win_state->cache_window[0],
+				sizeof(win_state->cache_window[0]) * (MAX_CACHE_SIZE - 1));
+			CachedPage *cp
+				= doc_state->cached_pages_pool[n - MAX_CACHE_WINDOW_SIZE];
+			win_state->cache_window[0] = cp;
+			if (cp->status == PAGE_STATUS_EMPTY)
+				{
+					load_page_dl(doc_state, cp);
+					DrawThreadArgs *draw_args
+						= malloc(sizeof(DrawThreadArgs));
+					draw_args->doc_state = doc_state;
+					draw_args->win_state = win_state;
+					draw_args->cp = cp;
+					submit_job(draw_page_thread, draw_args, &g_thread_pool);
+				}
+			win_state->current_window_index = MAX_CACHE_WINDOW_SIZE;
+			win_state->current_cached_page
+				= win_state->cache_window[win_state->current_window_index];
 		}
-		memmove(
-		    &win_state->cache_window[1], &win_state->cache_window[0],
-		    sizeof(win_state->cache_window[0]) * (MAX_CACHE_SIZE - 1));
-		CachedPage *cp
-		    = doc_state->cached_pages_pool[n - MAX_CACHE_WINDOW_SIZE];
-		win_state->cache_window[0] = cp;
-		if (cp->status == PAGE_STATUS_EMPTY)
-		{
-			load_page_dl(doc_state, cp);
-			DrawThreadArgs *draw_args
-			    = malloc(sizeof(DrawThreadArgs));
-			draw_args->doc_state = doc_state;
-			draw_args->win_state = win_state;
-			draw_args->cp = cp;
-			submit_job(draw_page_thread, draw_args, &g_thread_pool);
-		}
-		win_state->current_window_index = MAX_CACHE_WINDOW_SIZE;
-		win_state->current_cached_page
-		    = win_state->cache_window[win_state->current_window_index];
-	}
 	else
-	{
-		build_cache_window(doc_state, win_state, n);
-	}
+		{
+			build_cache_window(doc_state, win_state, n);
+		}
 }
 
 /**
@@ -537,9 +544,14 @@ emacs_load_doc(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
 	}
 
 	pthread_mutex_lock(&cp->mutex);
-	while (cp->status != PAGE_STATUS_READY)
+	while (cp->status == PAGE_STATUS_EMPTY || cp->status == PAGE_STATUS_RENDERING)
 		pthread_cond_wait(&cp->cond, &cp->mutex);
 	pthread_mutex_unlock(&cp->mutex);
+
+	if (cp->status == PAGE_STATUS_ERROR) {
+		emacs_message(env, "Failed to render the current page.");
+		goto cleanup;
+	}
 
 	display_img_to_overlay(env, win_state, cp->img_data, cp->img_size,
 			       current_doc_overlay);
@@ -602,9 +614,15 @@ emacs_redisplay_doc(emacs_env *env, ptrdiff_t nargs, emacs_value *args,
 		submit_job(draw_page_thread, draw_args, &g_thread_pool);
 
 		pthread_mutex_lock(&cp->mutex);
-		while (cp->status != PAGE_STATUS_READY)
+		while (cp->status == PAGE_STATUS_EMPTY || cp->status == PAGE_STATUS_RENDERING)
 			pthread_cond_wait(&cp->cond, &cp->mutex);
 		pthread_mutex_unlock(&cp->mutex);
+
+		if (cp->status == PAGE_STATUS_ERROR) {
+			emacs_message(env, "Failed to render the page.");
+			return EMACS_NIL;
+		}
+
 		display_img_to_overlay(env, win_state, cp->img_data,
 				       cp->img_size, current_doc_overlay);
 	}
@@ -723,9 +741,16 @@ emacs_next_page(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
 		}
 		// Wait for the thread to signal before displaying
 		pthread_mutex_lock(&next_cp->mutex);
-		while (next_cp->status != PAGE_STATUS_READY)
+		while (next_cp->status == PAGE_STATUS_EMPTY || next_cp->status == PAGE_STATUS_RENDERING)
 			pthread_cond_wait(&next_cp->cond, &next_cp->mutex);
 		pthread_mutex_unlock(&next_cp->mutex);
+
+		// Throw an error if the rendering of the page failed
+		if (next_cp->status == PAGE_STATUS_ERROR) {
+			emacs_message(env, "Failed to render the page.");
+			return EMACS_NIL;
+		}
+
 		display_img_to_overlay(env, win_state, next_cp->img_data,
 				       next_cp->img_size, current_doc_overlay);
 		slide_cache_window_forward(doc_state, win_state);
@@ -733,9 +758,9 @@ emacs_next_page(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
 		return EMACS_T;
 	}
 	else
-	{
-		return EMACS_NIL;
-	}
+		{
+			return EMACS_NIL;
+		}
 
 	return EMACS_T;
 }
@@ -791,9 +816,16 @@ emacs_prev_page(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
 		}
 
 		pthread_mutex_lock(&prev_cp->mutex);
-		while (prev_cp->status != PAGE_STATUS_READY)
+		while (prev_cp->status == PAGE_STATUS_EMPTY || prev_cp->status == PAGE_STATUS_RENDERING)
 			pthread_cond_wait(&prev_cp->cond, &prev_cp->mutex);
 		pthread_mutex_unlock(&prev_cp->mutex);
+
+		// Throw an error if the rendering of the page failed
+		if (prev_cp->status == PAGE_STATUS_ERROR) {
+			emacs_message(env, "Failed to render the page.");
+			return EMACS_NIL;
+		}
+
 		display_img_to_overlay(env, win_state, prev_cp->img_data,
 				       prev_cp->img_size, current_doc_overlay);
 		slide_cache_window_backward(doc_state, win_state);
@@ -855,9 +887,16 @@ emacs_first_page(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
 		CachedPage *first_cp = win_state->current_cached_page;
 		// Wait for the thread to signal before displaying
 		pthread_mutex_lock(&first_cp->mutex);
-		while (first_cp->status != PAGE_STATUS_READY)
+		while (first_cp->status == PAGE_STATUS_EMPTY || first_cp->status == PAGE_STATUS_RENDERING)
 			pthread_cond_wait(&first_cp->cond, &first_cp->mutex);
 		pthread_mutex_unlock(&first_cp->mutex);
+
+		// Throw an error if the rendering of the page failed
+		if (first_cp->status == PAGE_STATUS_ERROR) {
+			emacs_message(env, "Failed to render the page.");
+			return EMACS_NIL;
+		}
+
 		display_img_to_overlay(env, win_state, first_cp->img_data,
 				       first_cp->img_size, current_doc_overlay);
 	}
@@ -916,9 +955,16 @@ emacs_last_page(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
 		CachedPage *last_cp = win_state->current_cached_page;
 		// Wait for the thread to signal before displaying
 		pthread_mutex_lock(&last_cp->mutex);
-		while (last_cp->status != PAGE_STATUS_READY)
+		while (last_cp->status == PAGE_STATUS_EMPTY || last_cp->status == PAGE_STATUS_RENDERING)
 			pthread_cond_wait(&last_cp->cond, &last_cp->mutex);
 		pthread_mutex_unlock(&last_cp->mutex);
+
+		// Throw an error if the rendering of the page failed
+		if (last_cp->status == PAGE_STATUS_ERROR) {
+			emacs_message(env, "Failed to render the page.");
+			return EMACS_NIL;
+		}
+
 		display_img_to_overlay(env, win_state, last_cp->img_data,
 				       last_cp->img_size, current_doc_overlay);
 	}
@@ -976,9 +1022,16 @@ emacs_goto_page(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
 			CachedPage *cp = win_state->current_cached_page;
 			// Wait for the thread to signal before displaying
 			pthread_mutex_lock(&cp->mutex);
-			while (cp->status != PAGE_STATUS_READY)
+			while (cp->status == PAGE_STATUS_EMPTY || cp->status == PAGE_STATUS_RENDERING)
 				pthread_cond_wait(&cp->cond, &cp->mutex);
 			pthread_mutex_unlock(&cp->mutex);
+
+			// Throw an error if the rendering of the page failed
+			if (cp->status == PAGE_STATUS_ERROR) {
+				emacs_message(env, "Failed to render the page.");
+				return EMACS_NIL;
+			}
+
 			display_img_to_overlay(env, win_state, cp->img_data,
 					       cp->img_size,
 					       current_doc_overlay);
@@ -1042,9 +1095,15 @@ emacs_doc_scale_page(emacs_env *env, ptrdiff_t nargs, emacs_value *args,
 		CachedPage *cp = win_state->current_cached_page;
 		// Wait for the thread to signal before displaying
 		pthread_mutex_lock(&cp->mutex);
-		while (cp->status != PAGE_STATUS_READY)
+		while (cp->status == PAGE_STATUS_EMPTY || cp->status == PAGE_STATUS_RENDERING)
 			pthread_cond_wait(&cp->cond, &cp->mutex);
 		pthread_mutex_unlock(&cp->mutex);
+
+		// Throw an error if the rendering of the page failed
+		if (cp->status == PAGE_STATUS_ERROR) {
+			emacs_message(env, "Failed to render the page.");
+			return EMACS_NIL;
+		}
 
 		display_img_to_overlay(env, win_state, cp->img_data,
 				       cp->img_size, current_doc_overlay);
@@ -1098,9 +1157,16 @@ emacs_doc_rotate(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
 		CachedPage *cp = win_state->current_cached_page;
 		// Wait for the thread to signal before displaying
 		pthread_mutex_lock(&cp->mutex);
-		while (cp->status != PAGE_STATUS_READY)
+		while (cp->status == PAGE_STATUS_EMPTY || cp->status == PAGE_STATUS_RENDERING)
 			pthread_cond_wait(&cp->cond, &cp->mutex);
 		pthread_mutex_unlock(&cp->mutex);
+
+		// Throw an error if the rendering of the page failed
+		if (cp->status == PAGE_STATUS_ERROR) {
+			emacs_message(env, "Failed to render the page.");
+			return EMACS_NIL;
+		}
+
 		display_img_to_overlay(env, win_state, cp->img_data,
 				       cp->img_size, current_doc_overlay);
 	}

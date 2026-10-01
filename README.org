@@ -24,6 +24,10 @@ because ~lisp-ts-mode~'s ~syntax-propertize-function~ adds delimiter syntax to
 format directives. This also means ~forward-sexp~ moves across those directives
 like it does on regular lists.
 
+The mode also has enhanced ~imenu~ support:
+#+caption: ~consult-imenu~, ~lisp-ts-mode~ is below
+[[file:imenu comparison.png]]
+
 Aside from that, the truth is tree-sitter doesn't add nearly as much to most
 Lisp languages *on its own* compared to other languages. Emacs' syntax system is
 (unsurprisingly) extremely well suited to handling Lisp syntax (notably, it even

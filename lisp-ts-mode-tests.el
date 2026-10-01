@@ -52,7 +52,7 @@
       (delay-mode-hooks (lisp-ts-mode))
       (lisp-ts-format-support-mode)
       (treesit-update-ranges (point-min) (point-max))
-      (should (length= (treesit-parser-list nil 'cl-format t) 1))
+      (should (equal (length (treesit-parser-list nil 'cl-format t)) 1))
       (let* ((root (treesit-parser-root-node
                     (car (treesit-parser-list nil 'cl-format t))))
              (first-directive (treesit-node-child root 0 t)))

@@ -25,7 +25,9 @@ format directives. This also means ~forward-sexp~ moves across those directives
 like it does on regular lists.
 
 The mode also has enhanced ~imenu~ support:
-#+caption: ~consult-imenu~, ~lisp-ts-mode~ is below
+#+caption: ~lisp-ts-mode~ is below.
+#+caption: The command is [[https://github.com/minad/consult][~consult-imenu~]]
+#+attr_html: :width 700px
 [[file:imenu comparison.png]]
 
 Aside from that, the truth is tree-sitter doesn't add nearly as much to most

@@ -58,6 +58,9 @@
 (defvar-local reader--recent-scale-fallback 1.0
   "Previous scaling factor applied to the document.")
 
+(defvar-local reader--reloading nil
+  "Boolean flag to represent reloading status of a document.")
+
 ;; Setting of `auto-mode-list' fails if not autoloaded.
 ;;;###autoload
 (defconst reader-supported-formats (list "pdf" "epub" "mobi"
@@ -168,7 +171,7 @@ other file format will simply not show up as a candidate."
   (switch-to-buffer (create-file-buffer document))
   (setq buffer-file-name document)
   (insert "\n")
-  (if (reader-dyn--load-doc (expand-file-name document))
+  (if (reader-dyn--load-doc (expand-file-name document) 0)
       (reader-mode)
     (kill-buffer (current-buffer))))
 
@@ -608,7 +611,7 @@ Intended for use in `kill-buffer-hook'."
   (when (yes-or-no-p "Are you sure you want to close the current document?")
     (kill-buffer (current-buffer))))
 
-(defun reader-refresh-doc-buffer (&optional _ignore-auto _noconfirm _preserve-modes)
+(define-queue-command refresh-doc-buffer (&optional _ignore-auto _noconfirm _preserve-modes)
   "Refresh the buffer document with file on disk.
 
 It reloads the entire document while preserving the previous state.
@@ -618,23 +621,29 @@ The arguments are ignored and are simply to satisfy the template for
 
 This function is replaced as `revert-buffer-function' for `reader-mode' buffers."
   (interactive)
-  (when buffer-file-name
-    (let ((page (reader-current-doc-pagenumber))
-	  (scale (reader-current-doc-scale-value)))
-      (remove-overlays)
-      (reader--render-buffer)
-      (if (bound-and-true-p reader-dark-mode)
-	  (reader-dark-mode 1))
-      (reader-doc-scale-page scale)
-      (reader-goto-page page)
-      (reader--center-page))))
+  (when (and buffer-file-name (not reader--reloading))
+    (setq reader--reloading t)
+    (unwind-protect
+	(let ((page (or (reader-current-doc-pagenumber) 1))
+	      (scale (reader-current-doc-scale-value)))
+	  (message "Reloading your document...Press C-g to stop.")
+	  (remove-overlays)
+	  (reader--render-buffer (1- page))
+	  (if (bound-and-true-p reader-dark-mode)
+	      (reader-dark-mode 1))
+	  (reader-doc-scale-page scale)
+	  (reader-goto-page page)
+	  (reader--center-page)))
+    (setq-local reader--reloading nil)))
 
-(defun reader--render-buffer ()
-  "Render the document file current buffer is associated with."
+(defun reader--render-buffer (&optional page)
+  "Render the document file current buffer is associated with.
+Load the PAGE if provided."
   (interactive)
   (if-let* ((file (buffer-file-name (current-buffer))))
       (when (file-exists-p file)
-	(reader-dyn--load-doc file))
+	(let ((p (if (numberp page) (max 0 page) 0)))
+	  (reader-dyn--load-doc file p)))
     (message "No file associated with buffer.")))
 
 ;; We have an overlay per window, since we (naturally) need to be able
@@ -747,6 +756,8 @@ It is hooked to `window-configuration-change-hook' to keep detecting."
   "<remap> <beginning-of-buffer>" #'reader-first-page
   "<remap> <end-of-buffer>" #'reader-last-page
 
+  "g" #'reader-refresh-doc-buffer
+
   "M-g g"   #'reader-goto-page
   "M-g M-g" #'reader-goto-page
   "<remap> <goto-line>"   #'reader-goto-page
@@ -797,7 +808,7 @@ Keybindings:
   (set-buffer-modified-p nil)
   (blink-cursor-mode 0)
   (auto-revert-mode 1)
-  (setq-local revert-buffer-function #'reader-refresh-doc-buffer)
+  (setq-local revert-buffer-function #'reader--non-queue-refresh-doc-buffer)
 
   ;; Disable `pixel-scroll-precision-mode' locally because it doesn't
   ;; work nicely with `reader-mode'.

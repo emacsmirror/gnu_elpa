@@ -576,7 +576,9 @@ POS (meaning the node ends *at* POS), unless NOT-BEFORE is non-nil."
     (while (or (and (setq next (ts-node-first-child-for-pos node curpos t))
                     (<= (ts-node-start next) pos (ts-node-end next)))
                ;; if point is right after a sexp, return that one
-               (and (not not-before) (eq curpos pos)
+               (and (not not-before)
+                    (eq curpos pos)
+                    (> pos (point-min))
                     (setq last-at-pos node
                           next
                           (or (ts-node-first-child-for-pos node (decf curpos) t)
@@ -1000,10 +1002,8 @@ character."
       ;; prefix syntax, so just add the property to the chars following it
       ('prefix (let ((nbeg (1+ (ts-node-start node)))
                      (nend (ts-node-end node)))
-                 (when (string= (ts-node-type node) "#S(") (decf nend))
-                 ;; treesit-query-capture gives us nodes intersecting with the
-                 ;; range, not necessarily fully contained within it, so we
-                 ;; still have to check the ranges on each node
+                 (when (string= (ts-node-type node) "#S(")
+                   (decf nend))
                  (and (>= nbeg start)
                       (<= nend end)
                       (put-text-property nbeg nend 'syntax-table
@@ -1108,6 +1108,7 @@ character."
   "Query used to generate `imenu' list in `lisp-ts-mode'.")
 
 (declare-function truncate-string-ellipsis "mule-util")
+
 (defun lisp-ts-mode--imenu-node-text (node)
   "Return NODE's text to use in imenu.
 List nodes are truncated to at most the first two elements."

@@ -59,6 +59,8 @@
 (declare-function ts-parser-create "treesit.c")
 (declare-function ts-query-p "treesit.c")
 (declare-function ts-compiled-query-p "treesit.c")
+(declare-function ts-node-parent "treesit.c")
+(declare-function ts-node-match-p "treesit.c")
 (defvar ts-thing-settings)
 
 (add-to-list 'ts-language-source-alist

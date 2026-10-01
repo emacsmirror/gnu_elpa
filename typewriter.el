@@ -51,23 +51,34 @@
 ;; - New command `typewriter-strikethrough' (C-c -) strikes
 ;;   `typewriter-strikethrough-char' (X by default) over existing
 ;;   text on the last line, to cross it out.  Set the option to nil
-;;   to disable it.
+;;   to disable it. (thanks C.H. for suggesting)
+;;
 ;; - Characters can be struck with an input method (C-\), with C-x 8
 ;;   sequences and with `insert-char' (C-x 8 RET).  The usual rules
-;;   about margins and overstriking apply.
+;;   about margins and overstriking apply. (thanks C.H. for pointing
+;;   out the bug)
+;;
 ;; - New hooks: `typewriter-backward-char-hook' and
 ;;   `typewriter-tab-hook'.
+;;
 ;; - `typewriter-keystroke-hook' is renamed `typewriter-insert-hook'.
 ;;   The old name still works, but is obsolete.
+;;
 ;; - TAB stops at the margin instead of going past it.
+;;
 ;; - Auto-fill is turned off while the mode is on.
+;;
 ;; - A numeric prefix (C-u 3 a) no longer pushes text to the right
 ;;   or past the margin.
+;;
 ;; - Overstriking a tab no longer moves the text after it.
+;;
 ;; - Fixed: `electric-pair-mode' blocking the carriage, turning the
 ;;   mode on twice, undo being re-enabled when it was already off,
 ;;   and an error from `typewriter-recenter' when the buffer is not
 ;;   in the selected window.
+;;
+;; - Typewriter-mode is now autoloaded (thanks bcc32)
 
 ;;; Code:
 

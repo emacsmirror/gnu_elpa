@@ -624,17 +624,17 @@ This function is replaced as `revert-buffer-function' for `reader-mode' buffers.
   (when (and buffer-file-name (not reader--reloading))
     (setq reader--reloading t)
     (unwind-protect
-	(let ((page (or (reader-current-doc-pagenumber) 1))
-	      (scale (reader-current-doc-scale-value)))
-	  (message "Reloading your document...Press C-g to stop.")
-	  (remove-overlays)
-	  (reader--render-buffer (1- page))
-	  (if (bound-and-true-p reader-dark-mode)
-	      (reader-dark-mode 1))
-	  (reader-doc-scale-page scale)
-	  (reader-goto-page page)
-	  (reader--center-page)))
-    (setq-local reader--reloading nil)))
+        (let ((page (or (reader-current-doc-pagenumber) 1))
+              (scale (reader-current-doc-scale-value)))
+          (message "Reloading your document...Press C-g to stop.")
+	  ;; Remove old overlays
+          (remove-overlays)
+          ;; Reload the document and render the current page
+          (reader--render-buffer (1- page))
+          (reader-doc-scale-page scale)
+          (reader--center-page)
+          (reader--manage-window-overlays))
+      (setq-local reader--reloading nil))))
 
 (defun reader--render-buffer (&optional page)
   "Render the document file current buffer is associated with.

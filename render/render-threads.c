@@ -136,8 +136,6 @@ thread_routine(void *arg)
 			pthread_cond_signal(&pool->leader_cond);
 			pthread_mutex_unlock(&pool->leader_mutex);
 			continue;
-			fprintf(stderr,
-				"Not a valid job. The job points to NULL!!!\n");
 		}
 
 		// Hand off leadership
@@ -155,7 +153,6 @@ thread_routine(void *arg)
 		job->func(job->arg);
 	}
 
-	free(arg);
 	return NULL;
 }
 

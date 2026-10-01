@@ -1,6 +1,6 @@
 ;;; reader.el --- General-purpose Document Reader -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2025  Divya Ranjan Pattanaik
+;; Copyright (C) 2025, 2026  Divya Ranjan Pattanaik
 ;; Copyright (C) 2025  Tushar
 
 ;; Author: Divya Ranjan Pattanaik <divya@subvertising.org>

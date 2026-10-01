@@ -2,7 +2,7 @@
 #+OPTIONS: toc:nil
 
 #+begin_src org :exports none
-Copyright (C) 2025  Divya Ranjan Pattanaik
+Copyright (C) 2025, 2026  Divya Ranjan Pattanaik
 Copyright (C) 2025  Tushar
 Copyright (C) 2025  prom
 

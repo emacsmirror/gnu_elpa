@@ -419,9 +419,14 @@ slide_cache_window_backward(DocState *doc_state, EmacsWinState *win_state)
 emacs_value
 emacs_load_doc(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
 {
-	(void)nargs;
 	(void)data;
 	size_t str_length = 0;
+
+	int start_page = 0;
+	if (nargs >= 2) {
+		start_page = env->extract_integer(env, args[1]);
+		if (start_page < 0) start_page = 0;
+	}
 
 	DocState *old_state = get_doc_state_ptr(env);
 	if (old_state)
@@ -461,8 +466,9 @@ emacs_load_doc(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
 
 	reset_doc_state(doc_state);
 	reset_win_state(win_state);
-	doc_state->cached_pages_pool = NULL;
-	doc_state->cached_pages_block = NULL;
+
+	// Override the default page 0 with the requested start page
+	win_state->current_page_number = start_page;
 
 	if (!elisp_2_c_str(env, args[0], &doc_state->path, &str_length))
 	{
@@ -1247,7 +1253,7 @@ emacs_module_init(struct emacs_runtime *runtime)
 
 	// Registrations for the required functions and variables
 
-	register_module_func(env, emacs_load_doc, "reader-dyn--load-doc", 1, 1,
+	register_module_func(env, emacs_load_doc, "reader-dyn--load-doc", 1, 2,
 			     "Loads a DOC to be rendered in Emacs.");
 
 	register_module_func(

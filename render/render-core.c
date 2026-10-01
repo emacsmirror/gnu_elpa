@@ -1197,13 +1197,6 @@ emacs_doc_window_create(emacs_env *env, ptrdiff_t nargs, emacs_value *args,
 			emacs_message(env, "No valid DocState user pointer found.");
 		}
 
-	emacs_value current_doc_overlay = get_current_doc_overlay(env);
-	if (!check_current_overlay(env, current_doc_overlay))
-	{
-		emacs_message(env, "Invalid overlay state: reinitializing");
-		return EMACS_NIL;
-	}
-
 	init_overlay(env, win);
 	init_win_state_ptr(env, doc_state, win);
 	return EMACS_T;

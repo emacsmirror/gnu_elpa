@@ -5,7 +5,7 @@
 ;; Author: Enrico Flor <enrico@eflor.net>
 ;; Maintainer: Enrico Flor <enrico@eflor.net>
 ;; URL: https://github.com/enricoflor/typewriter.el
-;; Version: 1.1.0
+;; Version: 1.2.0
 ;; Keywords: wp
 
 ;; Package-Requires: ((emacs "30.1"))
@@ -43,6 +43,31 @@
 ;; change the layout of text in the window, such as the fairly popular
 ;; olivetti, or any configuration that (for instance) hides or alters
 ;; elements of the Emacs interface.
+
+;;; News:
+
+;; Version 1.2.0
+;;
+;; - New command `typewriter-strikethrough' (C-c -) strikes
+;;   `typewriter-strikethrough-char' (X by default) over existing
+;;   text on the last line, to cross it out.  Set the option to nil
+;;   to disable it.
+;; - Characters can be struck with an input method (C-\), with C-x 8
+;;   sequences and with `insert-char' (C-x 8 RET).  The usual rules
+;;   about margins and overstriking apply.
+;; - New hooks: `typewriter-backward-char-hook' and
+;;   `typewriter-tab-hook'.
+;; - `typewriter-keystroke-hook' is renamed `typewriter-insert-hook'.
+;;   The old name still works, but is obsolete.
+;; - TAB stops at the margin instead of going past it.
+;; - Auto-fill is turned off while the mode is on.
+;; - A numeric prefix (C-u 3 a) no longer pushes text to the right
+;;   or past the margin.
+;; - Overstriking a tab no longer moves the text after it.
+;; - Fixed: `electric-pair-mode' blocking the carriage, turning the
+;;   mode on twice, undo being re-enabled when it was already off,
+;;   and an error from `typewriter-recenter' when the buffer is not
+;;   in the selected window.
 
 ;;; Code:
 
@@ -102,8 +127,22 @@ to visually separate the counter from preceding items in the mode line."
 If 0, `typewriter-tab' is disabled."
   :type 'natnum)
 
+(defcustom typewriter-strikethrough-char ?X
+  "Character that `typewriter-strikethrough' strikes over existing ink.
+
+If this variable is a character, the command `typewriter-strikethrough'
+strikes it at the carriage, even over ink, but only on the last line of
+the buffer.  A one-character string such as \"X\" is accepted too.  If
+nil, strikethrough is disabled.
+
+The character should be one column wide: a wider one pushes the ink
+after it to the right."
+  :type '(choice (const :tag "Disabled" nil)
+                 (character :tag "Strikethrough character"))
+  :package-version '(typewriter . "1.2.0"))
+
 (define-obsolete-variable-alias 'typewriter-keystroke-hook
-  'typewriter-insert-hook "1.1.1")
+  'typewriter-insert-hook "1.2.0")
 
 (defcustom typewriter-insert-hook nil
   "Hook run after successfully inserting a character."
@@ -171,11 +210,6 @@ user."
         (run-hooks 'typewriter-tab-hook))
     (message "TAB is disabled (typewriter-tab-width is not positive)")))
 
-;; Some modes put functions on `post-self-insert-hook' that edit the
-;; buffer behind the typewriter's back: `electric-pair-mode' inserts a
-;; closing delimiter after point, which would then count as ink and
-;; block the carriage.  So the hook is disabled for every strike.
-
 (defun typewriter--maybe-recenter ()
   "Recenter the selected window if `typewriter-recenter' is non-nil.
 
@@ -185,19 +219,23 @@ which case `recenter' would signal an error."
              (eq (window-buffer) (current-buffer)))
     (recenter)))
 
-(defun typewriter--strike (count insert &optional first-prepared)
+(defun typewriter--strike (command count insert &optional first-prepared)
   "Strike a character COUNT times by calling INSERT with no arguments.
 
 Before each strike, `typewriter--prepare-strike' decides whether it is
-allowed, and striking stops at the first refusal (for example, at the
-margin).  If FIRST-PREPARED is non-nil, the first strike has already
-been prepared by `typewriter--pre-command' and is not checked again.
-`typewriter-insert-hook' runs after each strike."
+allowed for COMMAND, and striking stops at the first refusal (for
+example, at the margin).  If FIRST-PREPARED is non-nil, the first
+strike has already been prepared by `typewriter--pre-command' and is
+not checked again.  `typewriter-insert-hook' runs after each strike."
   (catch 'refused
     (dotimes (i count)
       (unless (or (and first-prepared (= i 0))
-                  (typewriter--prepare-strike 'typewriter-self-insert))
+                  (typewriter--prepare-strike command))
         (throw 'refused nil))
+      ;; `post-self-insert-hook' is disabled because some of its
+      ;; functions edit the buffer: `electric-pair-mode', for one,
+      ;; inserts a closing delimiter after point, which then blocks
+      ;; the carriage as if it were ink.
       (let ((inhibit-read-only t)
             (post-self-insert-hook nil))
         (funcall insert))
@@ -208,14 +246,15 @@ been prepared by `typewriter--pre-command' and is not checked again.
   "Typewriter replacement for `self-insert-command'.
 
 Strike the typed character N times (N below 1 counts as 1), stopping as
-soon as a strike is refused, so that a numeric prefix can neither push
-existing ink to the right nor go past the margin.
+soon as a strike is refused, on ink or at the margin.
 
 The buffer is kept read-only for the whole time `typewriter-mode' is on.
 `typewriter--pre-command' has already allowed the first strike before
 this command runs, and each further strike is checked here."
   (interactive "p")
-  (typewriter--strike (max n 1) (lambda () (self-insert-command 1)) t))
+  (typewriter--strike 'typewriter-self-insert (max n 1)
+                      (lambda () (self-insert-command 1))
+                      t))
 
 (defun typewriter-newline ()
   "Typewriter replacement for `newline'.
@@ -263,12 +302,46 @@ that)."
          (prefix-numeric-value current-prefix-arg)
          t))
   (if (typewriter--strikable-p character)
-      (typewriter--strike (or count 1)
+      (typewriter--strike 'typewriter-self-insert (or count 1)
                           (lambda () (insert-char character 1 inherit)))
     (typewriter--bell-ring)
     (message
      (substitute-command-keys
       "Only printing characters can be struck.  Use \\[typewriter-newline] and \\[typewriter-tab] to move the carriage"))))
+
+(defun typewriter--strikethrough-char ()
+  "Return `typewriter-strikethrough-char' as a character.
+
+A one-character string is converted to its character.  Any other value
+is returned as is."
+  (let ((char typewriter-strikethrough-char))
+    (if (and (stringp char) (= (length char) 1))
+        (aref char 0)
+      char)))
+
+(defun typewriter-strikethrough (n)
+  "Strike `typewriter-strikethrough-char' at the carriage, N times.
+
+Unlike ordinary typing, this can strike over existing ink, which is how
+you cross out text on a typewriter.  It only works on the last line of
+the buffer, the one the carriage is on: once you have returned the
+carriage, the lines above are out of reach.  The margin rules apply as
+usual, and each strike advances the carriage by one column, so a numeric
+prefix N crosses out N characters.  `typewriter-insert-hook' runs after
+each strike."
+  (interactive "p")
+  (let ((char (typewriter--strikethrough-char)))
+    (cond
+     ((null char)
+      (message
+       "Strikethrough is disabled (typewriter-strikethrough-char is nil)"))
+     ((not (and (characterp char) (typewriter--strikable-p char)))
+      (typewriter--bell-ring)
+      (message
+       "typewriter-strikethrough-char should be a printing character, like ?X"))
+     (t
+      (typewriter--strike 'typewriter-strikethrough (max n 1)
+                          (lambda () (insert-char char)))))))
 
 (defun typewriter--input-method-function (fn &rest args)
   "Run the input method FN with ARGS, as if the buffer were writable.
@@ -355,13 +428,30 @@ that overstriking it doesn't pull the ink after it to the left."
     (when (eq (char-after) ?\s)
       (delete-char 1))))
 
+(defun typewriter--clear-ink ()
+  "Delete the ink under the carriage, which is about to be struck through.
+
+If the ink is wider than `typewriter-strikethrough-char' (for example, a
+double-width character), leave spaces behind, so that the ink after it
+stays in place."
+  (let* ((inhibit-read-only t)
+         (width (- (save-excursion (forward-char 1) (current-column))
+                   (current-column)))
+         (pad (- width (char-width (typewriter--strikethrough-char)))))
+    (delete-char 1)
+    (when (> pad 0)
+      (save-excursion (insert (make-string pad ?\s))))))
+
 (defun typewriter--prepare-strike (command)
   "Get ready for COMMAND to act on the carriage at point, if allowed.
 
 If COMMAND is not allowed, ring the bell, explain why in the echo area
 and return nil.  If it is, ring the warning bell when appropriate and,
-when COMMAND is `typewriter-self-insert' and the carriage is on a blank,
-clear that blank, which is about to be overstruck; then return t."
+when COMMAND is `typewriter-self-insert' or `typewriter-strikethrough',
+clear what is under the carriage, which is about to be overstruck; then
+return t.  `typewriter-self-insert' may only overstrike blanks, while
+`typewriter-strikethrough' may also strike ink, but only on the last
+line."
   (let ((col (current-column)))
     (cond
      ((and (eq command 'typewriter-self-insert)
@@ -373,6 +463,13 @@ clear that blank, which is about to be overstruck; then return t."
       (message
        (substitute-command-keys
         "You can only overstrike blank spaces.  \\[typewriter-mode] to toggle off and edit"))
+      nil)
+
+     ((and (eq command 'typewriter-strikethrough)
+           (< (point) (save-excursion (goto-char (point-max))
+                                       (line-beginning-position))))
+      (typewriter--bell-ring)
+      (message "You can only strike through text on the last line")
       nil)
 
      ((and typewriter-fill-column
@@ -389,8 +486,12 @@ clear that blank, which is about to be overstruck; then return t."
      (t
       ;; just type
       (typewriter--bell-ring t)
-      (when (eq command 'typewriter-self-insert)
-        (typewriter--clear-blank))
+      (cond ((eq command 'typewriter-self-insert)
+             (typewriter--clear-blank))
+            ((eq command 'typewriter-strikethrough)
+             (if (or (eolp) (looking-at-p "\t\\|\s"))
+                 (typewriter--clear-blank)
+               (typewriter--clear-ink))))
       t))))
 
 (defun typewriter--pre-command ()
@@ -414,10 +515,7 @@ clear that blank, which is about to be overstruck; then return t."
       (setq this-command 'ignore))))
 
 (defun typewriter--post-command ()
-  "Refresh the mode line if `typewriter-show-chars-remaining' is non-nil.
-
-The typewriter hooks are not run here but by the commands themselves,
-after a successful action."
+  "Refresh the mode line if `typewriter-show-chars-remaining' is non-nil."
   (when (and typewriter-fill-column
              typewriter-show-chars-remaining)
     (force-mode-line-update)))
@@ -438,6 +536,7 @@ Other errors are passed on, with DATA, CONTEXT and CALLER, to
   "RET" #'typewriter-newline
   "TAB" #'typewriter-tab
   "DEL" #'typewriter-backward-char
+  "C-c -" #'typewriter-strikethrough
   "<remap> <self-insert-command>" #'typewriter-self-insert
   "<remap> <insert-char>" #'typewriter-insert-char
   "<remap> <ns-put-working-text>" #'typewriter-ns-put-working-text
@@ -481,8 +580,8 @@ No deletions or arbitrary edits."
           (setq typewriter--undo-disabled t)
           (setq-local buffer-undo-list t))
         ;; Save original variable states before overriding, unless the
-        ;; mode was already on (`(typewriter-mode 1)' called twice), in
-        ;; which case the current values are our own overrides.
+        ;; mode was already on (`(typewriter-mode 1)' called twice),
+        ;; in which case the current values are our own overrides.
         (unless typewriter--saved-state
           (setq typewriter--saved-state
                 (mapcar (lambda (sym) (cons sym (symbol-value sym)))

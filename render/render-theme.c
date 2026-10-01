@@ -50,27 +50,34 @@ emacs_set_dark_theme(emacs_env *env, ptrdiff_t nargs, emacs_value *args,
 	emacs_value current_doc_overlay = get_current_doc_overlay(env);
 	EmacsWinState *win_state = get_win_state_ptr(env, current_doc_overlay);
 	if (doc_state && win_state)
-	{
-		doc_state->invert ^= 1;
-		CachedPage *cp = win_state->current_cached_page;
-		DrawThreadArgs *draw_args = malloc(sizeof(DrawThreadArgs));
-		draw_args->doc_state = doc_state;
-		draw_args->win_state = win_state;
-		draw_args->cp = cp;
-		submit_job(draw_page_thread, draw_args, &g_thread_pool);
+		{
+			doc_state->invert ^= 1;
+			CachedPage *cp = win_state->current_cached_page;
+			DrawThreadArgs *draw_args = malloc(sizeof(DrawThreadArgs));
+			draw_args->doc_state = doc_state;
+			draw_args->win_state = win_state;
+			draw_args->cp = cp;
+			submit_job(draw_page_thread, draw_args, &g_thread_pool);
 
-		// Wait for the thread to signal before displaying
-		pthread_mutex_lock(&cp->mutex);
-		pthread_cond_wait(&cp->cond, &cp->mutex);
-		pthread_mutex_unlock(&cp->mutex);
+			// Wait for the thread to signal before displaying
+			pthread_mutex_lock(&cp->mutex);
+			while (cp->status == PAGE_STATUS_EMPTY || cp->status == PAGE_STATUS_RENDERING)
+				pthread_cond_wait(&cp->cond, &cp->mutex);
+			pthread_mutex_unlock(&cp->mutex);
 
-		display_img_to_overlay(env, win_state, cp->img_data,
-				       cp->img_size, current_doc_overlay);
-	}
+			// Throw an error if the rendering of the page failed
+			if (cp->status == PAGE_STATUS_ERROR) {
+				emacs_message(env, "Failed to render the page.");
+				return EMACS_NIL;
+			}
+
+			display_img_to_overlay(env, win_state, cp->img_data,
+					       cp->img_size, current_doc_overlay);
+		}
 	else
-	{
-		return EMACS_NIL;
-	}
+		{
+			return EMACS_NIL;
+		}
 
 	return EMACS_T;
 }

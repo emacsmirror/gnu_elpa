@@ -563,6 +563,7 @@ Populated from `typewriter--overridden-variables'.")
 (defvar-local typewriter--undo-disabled nil
   "Non-nil if `typewriter-mode' turned off undo recording in this buffer.")
 
+;;;###autoload
 (define-minor-mode typewriter-mode
   "A minor mode emulating a strict typewriter.
 

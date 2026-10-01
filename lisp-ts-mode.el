@@ -1065,23 +1065,23 @@ character."
 (defvar lisp-ts-mode--imenu-query
   (let ((make-query
          (lambda (operators name-query)
-           `(list
-             :anchor
-             (interned_symbol
-              name:
-              ((symbol_tokens) @operator
-               ,(if (listp operators)
-                    `(:match? @operator ,(concat "\\`" (regexp-opt operators) "\\'"))
-                  `(:eq? @operator ,operators))))
-             :anchor ,@name-query))))
-    `(,(funcall make-query "defun" '([(symbol) (list :anchor (symbol))] @function))
+           `(list "(" :anchor
+                  (interned_symbol
+                   name:
+                   ((symbol_tokens) @operator
+                    ,(if (listp operators)
+                         `(:match? @operator ,(concat "\\`" (regexp-opt operators) "\\'"))
+                       `(:eq? @operator ,operators))))
+                  :anchor ,@name-query))))
+    `(,(funcall make-query "defun"
+                '([(symbol) (list "(" :anchor (interned_symbol))] @function))
       ,(funcall make-query '("defmacro" "define-modify-macro") '((symbol) @macro))
       ,(funcall make-query '("defgeneric" "defmethod")
                 '([(symbol) (list :anchor (symbol))] @generic))
       ,(funcall make-query "defclass" '((symbol) @class))
       ,(funcall make-query "define-condition" '((symbol) @condition))
       ,(funcall make-query "defstruct" '([(symbol) @struct
-                                          (list :anchor (symbol) @struct)]))
+                                          (list "(" :anchor (symbol) @struct)]))
       ,(funcall make-query "deftype" '((symbol) @type-specifier))
       ,(funcall make-query '("defvar"
                              "defparameter"
@@ -1460,7 +1460,7 @@ to match format strings in initializer lists for simple-conditions."
                                       (if (stringp op) op (symbol-name op)))
                                     operators))
                            "\\'"))))))))
-        (push `(list :anchor (comment) :* :anchor ,op-query
+        (push `(list "(" :anchor (comment) :* :anchor ,op-query
                      ,@(cond ((eq n t) `((string) @format))
                              ((listp n) (apply fmt-field n))
                              (t (funcall fmt-field n))))

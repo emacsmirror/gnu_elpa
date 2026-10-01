@@ -705,16 +705,25 @@ It is hooked to `window-configuration-change-hook' to keep detecting."
     (unless (window-valid-p window)
       (reader-dyn--window-close overlay))))
 
-(defun reader--cleanup-stale-overlay (window)
-  "Clean up WINDOW's overlay and other parameters if it belongs to a different buffer."
+(defun reader--handle-window-buffer-change (window)
+  "Handle overlay state when WINDOW's buffer changes.
+Cleans up stale overlays if the window switched to a different buffer,
+and ensures a valid overlay exists if the new buffer is a reader buffer."
   (when (windowp window)
-    (when-let* ((overlay (window-parameter window 'overlay))
-		((overlayp overlay))
-		((not (eq (overlay-buffer overlay) (window-buffer window)))))
-      (reader--window-close-function overlay)
-      (set-window-parameter window 'overlay nil)
-      (set-window-parameter window 'page nil)
-      (set-window-parameter window 'scale nil))))
+    (let ((overlay (window-parameter window 'overlay)))
+      (when (and overlay (overlayp overlay))
+        (unless (eq (overlay-buffer overlay) (window-buffer window))
+          ;; Overlay belongs to a different buffer. Clean it up.
+          (reader-dyn--window-close overlay)
+          (set-window-parameter window 'overlay nil)
+          ;; We intentionally preserve 'page and 'scale so they can be
+          ;; restored if the user switches back to the original reader buffer.
+          )))
+    ;; If the new buffer is a reader buffer and lacks an overlay, create one.
+    (when (with-current-buffer (window-buffer window)
+            (derived-mode-p 'reader-mode))
+      (unless (window-parameter window 'overlay)
+        (reader--window-create-function window)))))
 
 ;; We explicitly bind default keys because relying on the rebinding
 ;; mechanism can lead to them not being bound at all if users have
@@ -838,7 +847,7 @@ Keybindings:
   (funcall reader-default-fit)
   (add-hook 'window-size-change-functions #'reader--center-page nil t)
   (add-hook 'window-configuration-change-hook #'reader--manage-window-overlays nil t)
-  (add-hook 'window-buffer-change-functions #'reader--cleanup-stale-overlay nil t))
+  (add-hook 'window-buffer-change-functions #'reader--handle-window-buffer-change nil t))
 
 (defun reader-mode-line ()
   "Set custom mode-line interface when reading documents."

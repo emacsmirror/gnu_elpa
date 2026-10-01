@@ -673,20 +673,25 @@ It is hooked to `window-configuration-change-hook' to keep detecting."
 (defun reader--window-create-function (window)
   "Create window overlay for WINDOW."
   (let ((existing-overlay (window-parameter window 'overlay)))
-    ;; Check if overlay exists but belongs to wrong buffer
+    ;; Check if overlay exists but is invalid or belongs to a different buffer.
+    ;; Note: We intentionally DO NOT clear 'page and 'scale here. During a
+    ;; document reload (e.g., via `g`), `remove-overlays' deletes the overlay,
+    ;; making its buffer nil. We must preserve the window's independent page
+    ;; and scale parameters so they can be restored to the new DocState.
     (when (and existing-overlay
-               (not (eq (overlay-buffer existing-overlay) (current-buffer))))
-      ;; Clear stale overlay
+               (or (not (overlayp existing-overlay))
+                   (not (eq (overlay-buffer existing-overlay) (current-buffer)))))
       (set-window-parameter window 'overlay nil)
-      (set-window-parameter window 'page nil)
-      (set-window-parameter window 'scale nil)
       (setq existing-overlay nil))
 
     (unless (window-parameter window 'overlay)
-      (let* ((last-win-page (window-parameter (old-selected-window) 'page))
-             (last-win-scale (window-parameter (old-selected-window) 'scale))
-             (page (or last-win-page reader--recent-pagenumber-fallback))
-             (scale (or last-win-scale reader--recent-scale-fallback)))
+      ;; Prioritize the window's own page and scale parameters.
+      (let* ((page (or (window-parameter window 'page)
+                       reader--recent-pagenumber-fallback
+                       1))
+             (scale (or (window-parameter window 'scale)
+                        reader--recent-scale-fallback
+                        1.0)))
         (reader-dyn--window-create window)
         (set-window-parameter window 'page page)
         (with-selected-window window

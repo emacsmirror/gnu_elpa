@@ -468,11 +468,11 @@ permanent_buffer_local_var(emacs_env *env, char *symbol)
  */
 
 void
-display_img_to_overlay(emacs_env *env, EmacsWinState *win_state, char *img_data,
-		       size_t img_size, emacs_value buffer_overlay)
+display_img_to_overlay(emacs_env *env, EmacsWinState *win_state, int width, int height,
+		       char *img_data, size_t img_size, emacs_value buffer_overlay)
 {
 	emacs_value elisp_img
-	    = data2elisp_image(env, win_state, img_data, img_size);
+		= data2elisp_image(env, win_state, width, height, img_data, img_size);
 	emacs_value overlay_put_args[3]
 	    = { buffer_overlay, env->intern(env, "display"), elisp_img };
 	env->funcall(env, env->intern(env, "overlay-put"), 3, overlay_put_args);

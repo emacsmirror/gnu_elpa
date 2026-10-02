@@ -72,8 +72,8 @@ emacs_message(emacs_env *env, char *str);
 void
 permanent_buffer_local_var(emacs_env *env, char *symbol);
 void
-display_img_to_overlay(emacs_env *env, EmacsWinState *win_state, char *img_data,
-		       size_t img_size, emacs_value buffer_overlay);
+display_img_to_overlay(emacs_env *env, EmacsWinState *win_state, int width,
+		       int height, char *img_data, size_t img_size, emacs_value buffer_overlay);
 emacs_value
 outline2plist(emacs_env *env, DocState *state, fz_outline *node);
 

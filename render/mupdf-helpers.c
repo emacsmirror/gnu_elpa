@@ -89,13 +89,14 @@ init_main_ctx(DocState *state)
 	state->locks.lock = lock_mutex;
 	state->locks.unlock = unlock_mutex;
 	state->ctx = fz_new_context(NULL, &state->locks, FZ_STORE_DEFAULT);
-	fz_register_document_handlers(state->ctx);
 
 	if (!state->ctx)
 	{
 		fprintf(stderr, "Cannot create MuPDF context\n");
 		return EXIT_FAILURE;
 	}
+
+	fz_register_document_handlers(state->ctx);
 
 	return EXIT_SUCCESS;
 }

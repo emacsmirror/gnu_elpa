@@ -254,64 +254,11 @@ free_cache_window(DocState *doc_state, EmacsWinState *win_state)
 	memset(win_state->cache_window, 0, sizeof(win_state->cache_window));
 }
 
-/**
- * Free the entire cached pages pool for the document.
- *
- * Destroys all mutexes and condition variables in the pool,
- * then frees the underlying memory.
- *
- * @param state  Pointer to the current DocState.
- */
-
-void
-free_cached_pages_pool(DocState *doc_state)
-{
-	if (!doc_state)
-		return;
-
-	if (!doc_state->cached_pages_pool && !doc_state->cached_pages_block)
-		return;
-
-	for (int i = 0; i < doc_state->pagecount; ++i)
-	{
-		CachedPage *cp = doc_state->cached_pages_pool
-				     ? doc_state->cached_pages_pool[i]
-				     : NULL;
-		if (!cp)
-			continue;
-
-		pthread_cond_destroy(&cp->cond);
-		pthread_mutex_destroy(&cp->mutex);
-
-		if (cp->display_list && doc_state->ctx)
-		{
-			fz_drop_display_list(doc_state->ctx, cp->display_list);
-			cp->display_list = NULL;
-		}
-
-		if (cp->img_data)
-		{
-			free(cp->img_data);
-			cp->img_data = NULL;
-			cp->img_size = 0;
-		}
-	}
-
-	free(doc_state->cached_pages_pool);
-	doc_state->cached_pages_pool = NULL;
-
-	free(doc_state->cached_pages_block);
-	doc_state->cached_pages_block = NULL;
-}
-
 void
 free_doc_state(DocState *state)
 {
 	if (!state)
 		return;
-
-	// Free cached pages pool and block
-	free_cached_pages_pool(state);
 
 	// Drop MuPDF objects
 	if (state->outline)

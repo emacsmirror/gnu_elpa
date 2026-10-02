@@ -152,7 +152,7 @@ load_mupdf_doc(DocState *state)
  */
 
 void
-free_cached_page(DocState *state, CachedPage *cp)
+free_cached_page(CachedPage *cp)
 {
 	// Handle all those that aren''t ready and also allow cleaning up failed/error
 	// ones so that they can be retried

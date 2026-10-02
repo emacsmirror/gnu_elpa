@@ -38,8 +38,8 @@ register_module_func(emacs_env *env,
 						emacs_value *args, void *data),
 		     char *symbol, int min_args, int max_args, char *docstring);
 emacs_value
-data2elisp_image(emacs_env *env, EmacsWinState *win_state, char *img_data,
-		 size_t img_size);
+data2elisp_image(emacs_env *env, EmacsWinState *win_state, int width, int height,
+		 char *img_data, size_t img_size);
 
 DocState *
 init_doc_state_ptr(emacs_env *env);

@@ -21,34 +21,6 @@
 #include <pthread.h>
 
 /**
- * doc_page_width - Provide integer width of the current document
- * @state: Pointer to DocState
- * Return: Integer width
- */
-
-int
-doc_page_width(EmacsWinState *win_state)
-{
-	CachedPage *cp = win_state->current_cached_page;
-	int width = cp->imgw;
-	return width;
-}
-
-/**
- * doc_page_height - Provide integer height of the current document
- * @state: Pointer to DocState
- * Return: Integer height
- */
-
-int
-doc_page_height(EmacsWinState *win_state)
-{
-	CachedPage *cp = win_state->current_cached_page;
-	int height = cp->imgh;
-	return height;
-}
-
-/**
  * reset_doc_state - Reset all fields of a DocState to their initial values.
  * @state: Pointer to the DocState to be reset.
  *

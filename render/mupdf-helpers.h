@@ -22,11 +22,6 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-int
-doc_page_width(EmacsWinState *win_state);
-int
-doc_page_height(EmacsWinState *win_state);
-
 void
 fail(const char *msg);
 void

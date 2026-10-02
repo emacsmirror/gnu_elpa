@@ -125,12 +125,7 @@ register_module_func(emacs_env *env,
 
 /**
  * data2elisp_image - Create an Elisp image object from raw image data
- * @env: Emacs environment pointer
- * @img_data: Image data that is to be rendered as image, should usually be from
- * the DocState.
- * @img_size: The size of the image data that is going to be rendered, should
- * usually be from the DocState.
- *
+
  * One needs to be extremely about handling the image data, and make sure it
  * later gets dropped and freed accordingly.
  *
@@ -140,7 +135,7 @@ register_module_func(emacs_env *env,
  */
 
 emacs_value
-data2elisp_image(emacs_env *env, EmacsWinState *win_state, int width, int height, char *img_data,
+data2elisp_image(emacs_env *env, int width, int height, char *img_data,
 		 size_t img_size)
 {
 	emacs_value image_width
@@ -460,19 +455,14 @@ permanent_buffer_local_var(emacs_env *env, char *symbol)
  * `display` property of the given overlay. Clears the image cache to
  * ensure the image is rendered fresh.
  *
- * @param env            Emacs module environment.
- * @param state          Document state (used by image conversion).
- * @param img_data       Pointer to raw image bytes (e.g., PNG).
- * @param img_size       Size of the image data.
- * @param buffer_overlay Emacs overlay to attach the image to.
  */
 
 void
-display_img_to_overlay(emacs_env *env, EmacsWinState *win_state, int width, int height,
-		       char *img_data, size_t img_size, emacs_value buffer_overlay)
+display_img_to_overlay(emacs_env *env, int width, int height, char *img_data,
+		       size_t img_size, emacs_value buffer_overlay)
 {
 	emacs_value elisp_img
-		= data2elisp_image(env, win_state, width, height, img_data, img_size);
+		= data2elisp_image(env, width, height, img_data, img_size);
 	emacs_value overlay_put_args[3]
 	    = { buffer_overlay, env->intern(env, "display"), elisp_img };
 	env->funcall(env, env->intern(env, "overlay-put"), 3, overlay_put_args);

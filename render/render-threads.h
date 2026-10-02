@@ -50,6 +50,7 @@ typedef struct
 	DocState *doc_state;
 	EmacsWinState *win_state;
 	CachedPage *cp;
+	DocPage *dp;
 } DrawThreadArgs;
 
 extern ThreadPool g_thread_pool;

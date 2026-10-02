@@ -5,8 +5,8 @@
 ;; Author: Enrico Flor <enrico@eflor.net>
 ;; Maintainer: Enrico Flor <enrico@eflor.net>
 ;; URL: https://github.com/enricoflor/typewriter.el
-;; Version: 1.2.0
-;; Keywords: wp
+;; Version: 1.2.1
+;; Keywords: text
 
 ;; Package-Requires: ((emacs "30.1"))
 
@@ -51,12 +51,12 @@
 ;; - New command `typewriter-strikethrough' (C-c -) strikes
 ;;   `typewriter-strikethrough-char' (X by default) over existing
 ;;   text on the last line, to cross it out.  Set the option to nil
-;;   to disable it. (thanks C.H. for suggesting)
+;;   to disable it. (thanks to Christopher Howard for suggesting).
 ;;
 ;; - Characters can be struck with an input method (C-\), with C-x 8
 ;;   sequences and with `insert-char' (C-x 8 RET).  The usual rules
-;;   about margins and overstriking apply. (thanks C.H. for pointing
-;;   out the bug)
+;;   about margins and overstriking apply. (thanks Christopher Howard
+;;   for pointing out the bug).
 ;;
 ;; - New hooks: `typewriter-backward-char-hook' and
 ;;   `typewriter-tab-hook'.
@@ -78,7 +78,7 @@
 ;;   and an error from `typewriter-recenter' when the buffer is not
 ;;   in the selected window.
 ;;
-;; - Typewriter-mode is now autoloaded (thanks bcc32)
+;; - Typewriter-mode is now autoloaded (thanks bcc32 for suggesting).
 
 ;;; Code:
 

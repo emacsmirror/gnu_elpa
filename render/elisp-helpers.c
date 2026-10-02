@@ -267,13 +267,14 @@ get_win_state_ptr(emacs_env *env, emacs_value overlay)
 void
 reset_win_state(EmacsWinState *win_state)
 {
-	*win_state = (EmacsWinState){
-		.resolution = 72.0,
-		.rotate = 0,
-		.current_page_number = 0,
-		.current_window_index = 0,
-		.current_cached_page = NULL,
-	};
+    if (!win_state) return;
+
+    win_state->resolution = 72.0;
+    win_state->rotate = 0;
+    win_state->current_page_number = 0;
+    win_state->current_window_index = 0;
+    win_state->active_jobs = 0;
+    win_state->closing = false;
 }
 
 void

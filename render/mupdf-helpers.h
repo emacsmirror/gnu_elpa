@@ -41,11 +41,9 @@ load_mupdf_doc(DocState *state);
 void
 reset_doc_state(DocState *state);
 void
-free_cached_page(DocState *state, CachedPage *cp);
+free_cached_page(CachedPage *cp);
 void
-free_cache_window(DocState *doc_state, EmacsWinState *win_state);
-void
-free_cached_pages_pool(DocState *state);
+free_cache_window(EmacsWinState *win_state);
 void
 free_doc_state(DocState *state);
 

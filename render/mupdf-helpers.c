@@ -65,12 +65,7 @@ reset_doc_state(DocState *state)
 		.ctx = NULL,
                       .locks = NULL,
                       .doc = NULL,
-                      .cached_pages_pool = NULL,
-                      .page_bbox =
-                          {
-                              .x0 = 0.0f,
-                              .y0 = 0.0f,
-                          },
+                      .doc_pages = NULL,
 		      .path = NULL,
 		      .pagecount = 0,
 		      .frame_scale = 1,
@@ -178,10 +173,9 @@ load_mupdf_doc(DocState *state)
 /**
  * Free resources associated with a CachedPage.
  *
- * Drops the display list and frees any associated image data
- * if the page was marked as ready. Marks the page as empty.
+ * Frees any associated image data if the page was marked
+ * as ready. Marks the page as empty.
  *
- * @param state  Document state containing the MuPDF context.
  * @param cp     Pointer to the CachedPage to be freed.
  */
 
@@ -193,12 +187,14 @@ free_cached_page(DocState *state, CachedPage *cp)
 	if (cp->status != PAGE_STATUS_READY && cp->status != PAGE_STATUS_ERROR)
 		return;
 
+	pthread_mutex_lock(&cp->mutex);
 	cp->status = PAGE_STATUS_EMPTY;
-	fz_drop_display_list(state->ctx, cp->display_list);
-	cp->display_list = NULL;
 	free(cp->img_data);
 	cp->img_data = NULL;
 	cp->img_size = 0;
+	cp->page_num = -1;
+	pthread_mutex_unlock(&cp->mutex);
+}
 }
 
 /**

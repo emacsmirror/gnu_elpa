@@ -57,6 +57,7 @@ typedef struct
 	fz_display_list *display_list;
 	fz_rect bbox;
 	bool ready;
+	atomic_int refcount;
 	pthread_mutex_t mutex;
 } DocPage;
 

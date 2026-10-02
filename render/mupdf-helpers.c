@@ -195,6 +195,36 @@ free_cached_page(DocState *state, CachedPage *cp)
 	cp->page_num = -1;
 	pthread_mutex_unlock(&cp->mutex);
 }
+
+void
+drop_doc_page_display_list(DocState *state, DocPage *dp)
+{
+	if (!dp) return;
+
+	pthread_mutex_lock(&dp->mutex);
+	if (dp->display_list && state->ctx) {
+		fz_drop_display_list(state->ctx, dp->display_list);
+		dp->display_list = NULL;
+	}
+	dp->ready = false;
+	pthread_mutex_unlock(&dp->mutex);
+}
+
+void
+free_doc_pages(DocState *state)
+{
+    if (!state || !state->doc_pages) return;
+
+    for (int i = 0; i < state->pagecount; ++i) {
+        DocPage *dp = &state->doc_pages[i];
+        pthread_mutex_destroy(&dp->mutex);
+        if (dp->display_list && state->ctx) {
+            fz_drop_display_list(state->ctx, dp->display_list);
+            dp->display_list = NULL;
+        }
+    }
+    free(state->doc_pages);
+    state->doc_pages = NULL;
 }
 
 /**

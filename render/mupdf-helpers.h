@@ -47,4 +47,7 @@ free_cache_window(EmacsWinState *win_state);
 void
 free_doc_state(DocState *state);
 
+void free_doc_pages(DocState *state);
+void drop_doc_page_display_list(DocState *state, DocPage *dp);
+
 #endif

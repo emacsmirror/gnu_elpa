@@ -1064,7 +1064,7 @@ emacs_goto_page(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
  * @args:  Array of Elisp argument values; args[0] is the float scale factor.
  * @data:  (ignored).
  *
- * Return: Elisp `t` on completion, `nil` otherwise.
+ * Return: Elisp float of new clamped scale on completion, `nil` otherwise.
  */
 
 emacs_value
@@ -1088,11 +1088,13 @@ emacs_doc_scale_page(emacs_env *env, ptrdiff_t nargs, emacs_value *args,
 	}
 
 	EmacsWinState *win_state = get_win_state_ptr(env, current_doc_overlay);
-	float scale_factor = env->extract_float(env, args[0]);
+	double scale_factor = env->extract_float(env, args[0]);
 
 	if (doc_state && win_state)
 	{
-		double new_res = fz_clamp(scale_factor * 72, MINRES, MAXRES);
+		const double dpi = 72.0;
+		double new_res = fz_clamp(scale_factor * dpi, MINRES, MAXRES);
+		double scale_clamped = new_res / dpi;
 		win_state->resolution = new_res;
 
 		build_cache_window(doc_state, win_state,
@@ -1113,6 +1115,8 @@ emacs_doc_scale_page(emacs_env *env, ptrdiff_t nargs, emacs_value *args,
 
 		display_img_to_overlay(env, win_state, cp->img_data,
 				       cp->img_size, current_doc_overlay);
+
+		return env->make_float(env, scale_clamped);
 	}
 	else
 	{
@@ -1120,8 +1124,6 @@ emacs_doc_scale_page(emacs_env *env, ptrdiff_t nargs, emacs_value *args,
 				   "Emacs Reader buffer!");
 		return EMACS_NIL;
 	}
-
-	return EMACS_T;
 }
 
 /**

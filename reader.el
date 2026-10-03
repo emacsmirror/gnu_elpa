@@ -222,10 +222,10 @@ WINDOW must be a valid window and defaults to the selected one."
   "Scales the page by a given FACTOR.
 
 It also updates `reader--recent-scale-fallback' and `scale' property of
-selected window to reflect the new scale."
-  (reader-dyn--scale-page factor)
-  (setq reader--recent-scale-fallback factor)
-  (set-window-parameter nil 'scale factor))
+selected window to reflect the new, possibly clamped scale."
+  (when-let (factor-clamped (reader-dyn--scale-page factor))
+    (setq reader--recent-scale-fallback factor-clamped)
+    (set-window-parameter nil 'scale factor-clamped)))
 
 (defun reader-enlarge-size (&optional scaling-factor)
   "Enlarge the size of the current page by the `reader-enlarge-factor'.

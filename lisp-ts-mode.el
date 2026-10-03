@@ -452,9 +452,9 @@ and the character's name is given the face
    :default-language 'common-lisp
    :feature 'string
    :override 'append
-   `((string) @font-lock-string-face)
+   '((string) @font-lock-string-face)
    :feature 'comment
-   `([(line_comment) (block_comment)] @lisp-ts-mode--fontify-comment)
+   '([(line_comment) (block_comment)] @lisp-ts-mode--fontify-comment)
    :feature 'number
    :override 'prepend
    ;; complexes will have their whole and imaginary parts get the face
@@ -463,46 +463,46 @@ and the character's name is given the face
    (condition-case nil
        ;; get fancy on newer grammar versions
        (ts-query-compile 'common-lisp
-                         `([(rational ["/" "R"] :? @font-lock-delimiter-face)
+                         '([(rational ["/" "R"] :? @font-lock-delimiter-face)
                             (float ["E" "F" "L" "S" "D"] :? @font-lock-delimiter-face)]
                            @font-lock-number-face)
                          t)
-     (ts-query-error `((real) @font-lock-number-face)))
+     (ts-query-error '((real) @font-lock-number-face)))
    :feature 'bits
    :override 'prepend
    (condition-case nil
        (ts-query-compile 'common-lisp
                          ;; we can make the query more precise with the newer
                          ;; grammar
-                         `([(bit_vector) (rational ["#B" "#R"])]
+                         '([(bit_vector) (rational ["#B" "#R"])]
                            @lisp-ts-mode--fontify-bits)
                          t)
-     (ts-query-error `([(bit_vector) (rational)] @lisp-ts-mode--fontify-bits)))
+     (ts-query-error '([(bit_vector) (rational)] @lisp-ts-mode--fontify-bits)))
    :feature 'symbol
    :override 'prepend
-   `((symbol_tokens [(single_escape) @font-lock-escape-face
+   '((symbol_tokens [(single_escape) @font-lock-escape-face
                      (multiple_escape "|" @font-lock-constant-face)])
-     [ ;; keywords
-      (interned_symbol
-       !package
-       [":" "::"] @font-lock-delimiter-face
-       name: (symbol_tokens) @font-lock-builtin-face)
-      (uninterned_symbol
-       "#:" @font-lock-delimiter-face
-       name: (symbol_tokens) @font-lock-builtin-face)
-      ;; other symbols
-      (interned_symbol
-       package: (symbol_tokens) :? @font-lock-keyword-face
-       [":" "::"] :? @font-lock-delimiter-face)])
+     ;; keywords
+     (interned_symbol
+      !package
+      [":" "::"] @font-lock-delimiter-face
+      name: (symbol_tokens) @font-lock-builtin-face)
+     (uninterned_symbol
+      "#:" @font-lock-delimiter-face
+      name: (symbol_tokens) @font-lock-builtin-face)
+     ;; other symbols
+     (interned_symbol
+      package: (symbol_tokens) :? @font-lock-keyword-face
+      [":" "::"] @font-lock-delimiter-face))
    ;; these next 3 should probably be merged right?
    :feature 'character
    :override 'prepend
    ;; the character's name doesn't create a node so we have to use a function to
    ;; apply the two faces
-   `((character) @lisp-ts-mode--fontify-character)
+   '((character) @lisp-ts-mode--fontify-character)
    :feature 'quote
    :override 'prepend
-   `((quote      "'"  @lisp-ts-mode-quote)
+   '((quote      "'"  @lisp-ts-mode-quote)
      (sharpquote "#'" @lisp-ts-mode-sharpquote)
      (quasiquote "`"  @lisp-ts-mode-quasiquote)
      (unquote   [","  @lisp-ts-mode-comma
@@ -510,7 +510,7 @@ and the character's name is given the face
                  ",." @lisp-ts-mode-comma-dot]))
    :feature 'reader-macro
    :override 'prepend
-   `("#." @lisp-ts-mode-read-eval
+   '("#." @lisp-ts-mode-read-eval
      "#+" @lisp-ts-mode-positive-read-conditional
      "#-" @lisp-ts-mode-negative-read-conditional)))
 
@@ -522,7 +522,7 @@ and the character's name is given the face
    :language 'cl-format
    :feature 'format-directive
    :override 'prepend
-   `((format_string) @lisp-ts-mode--fontify-format-string)))
+   '((format_string) @lisp-ts-mode--fontify-format-string)))
 
 (defconst lisp-ts-mode--font-lock-feature-list
   '((string comment)

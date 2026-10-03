@@ -9236,7 +9236,7 @@ msgstr ""
 "initialisatiebestand. Wanneer je Emacs start, wordt je @file{.emacs} "
 "bestand automatisch geëvalueerd en alle functiedefinities er in "
 "geïnstalleerd. @xref{Initialisatie van Emacs, , Jouw @file{.emacs} "
-"bestand)."
+"bestand}."
 
 #. type: itemize
 #: emacs-lisp-intro.texi:3511
@@ -11745,7 +11745,7 @@ msgid ""
 "Similarly, you can get the full documentation for a variable by typing "
 "@kbd{C-h v} and then the name of the variable (and then @key{RET})."
 msgstr ""
-"In deze rondleiding beschrijf ik elke nieuwe functie die we behandelen. Soms "
+"In deze rondleiding beschrijf ik elke nieuwe functie die we behandelen, soms "
 "in detail en soms kort. Wanneer je geïnteresseerd bent vraag je op elk "
 "moment de volledige documentatie op van elke Emacs Lisp functie door @kbd{C-"
 "h f} te typen, en daarna de naam van de functie (gevolg met @key{RET}). Je "
@@ -42601,7 +42601,7 @@ msgid ""
 "of @code{apply}.)"
 msgstr ""
 "Vergelijk dit met @code{apply}, die het eerste argument op alle resterende "
-"toepast. @xref{Een grafiek voorbereiden, , Een grafiek voorbereiden} voor "
+"toepast. @xref{Een grafiek voorbereiden, , Een grafiek voorbereiden}, voor "
 "een uitleg van @code{apply}."
 
 #. type: Plain text

@@ -643,7 +643,10 @@ Load the PAGE if provided."
   (if-let* ((file (buffer-file-name (current-buffer))))
       (when (file-exists-p file)
 	(let ((p (if (numberp page) (max 0 page) 0)))
-	  (reader-dyn--load-doc file p)))
+	  (reader-dyn--load-doc file p)
+	  ;; reader-dyn--load-doc resets the window state, which also
+	  ;; needs to be reflected in the frontend.
+	  (set-window-parameter nil 'scale 1.0)))
     (message "No file associated with buffer.")))
 
 ;; We have an overlay per window, since we (naturally) need to be able

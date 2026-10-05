@@ -99,6 +99,9 @@
 (defface a68-generator-face '((t :weight bold :foreground "purple"))
   "Face for printing Algol 68 generators")
 
+(defface a68-pragmat-face '((t :inherit font-lock-comment-face))
+  "Face for printing pragmats")
+
 (defvar a68-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "C-j") #'newline-and-indent)
@@ -219,7 +222,7 @@
 
   ;; UPPER stropping.
   (defconst a68-std-modes-upper
-    '("SHORT" "LONG" "INT" "REAL" "BITS" "BYTES"
+    '("SHORT" "LONG" "WORD" "INT" "REAL" "BITS" "BYTES"
       "COMPL" "STRING" "REF" "FLEX" "VOID")
     "List of Algol 68 standard modes and shortety in UPPER stropping.")
 
@@ -251,7 +254,7 @@
   (defconst a68-std-modes-supper
     '("proc" "flex" "int" "real" "bool" "char" "format" "void" "op"
       "compl" "bits" "bytes" "string" "sema" "ref"
-      "struct" "long" "short" "union")
+      "struct" "long" "word" "short" "union")
     "List of Algol 68 standard modes in SUPPER stropping.")
 
   (defconst a68-constants-supper
@@ -354,6 +357,8 @@
               (eval `(or ,@a68-keywords-supper))
               word-end)
           ''a68-keyword-face)
+    ;; Pragmats.
+    (cons "\\[\\[.*\\]\\]" ''a68-pragmat-face)
     ;; A proc followed by a tag and then = should be highlighted as a
     ;; keyword, not as a mode declarer constituent.
     '("\\(\\<proc\\>\\)[ \t]*\\<\\([a-z]+_?\\)+\\>[ \t]*="
@@ -991,12 +996,19 @@ with the equivalent upcased form."
       (goto-char (+ (point) 2))
       "):")
      ;; A "begin pragmat" token can precede the following symbols:
-     ;; include
+     ;; include.
      ((looking-at "\\<pr\\>")
       (goto-char (+ (point) 2))
       (if (looking-at "[ \t\n]*\\<include\\>")
           "-pr-"
         "pr"))
+     ;; The [[...]] pragmats are easier.
+     ((looking-at "\\[\\[")
+      (goto-char (+ (point) 2))
+      "-pr-")
+     ((looking-at "\\]\\]")
+      (goto-char (+ (point) 2))
+      "pr")
      ;; A -proc- follows pub.
      ((looking-at "\\<proc\\>")
       (cond
@@ -1121,6 +1133,12 @@ with the equivalent upcased form."
                   "pr")))
         (goto-char (- (point) 2))
         pr))
+     ((looking-back "\\[\\[" (- (point) 2))
+      (goto-char (- (point) 2))
+      "-pr-")
+     ((looking-back "\\]\\]" (- (point) 2))
+      (goto-char (- (point) 2))
+      "pr")
      ((looking-back "):" (- (point) 2))
       (goto-char (- (point) 2))
       "):")

@@ -3,7 +3,7 @@
 ;; Copyright (C) 2021  Free Software Foundation, Inc.
 
 ;; Filename: coterm.el
-;; Author: jakanakaevangeli <jakanakaevangeli@chiru.no>
+;; Author: Miha Rihtaršič <miha@kamnitnik.top>
 ;; Version: 1.6
 ;; Keywords: processes
 ;; Package-Requires: ((emacs "26.1") (compat "28.1.2.0"))

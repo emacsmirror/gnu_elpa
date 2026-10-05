@@ -61,6 +61,31 @@ typedef struct
 	pthread_mutex_t mutex;
 } DocPage;
 
+/************************************************************************/
+/* The primary representation of the entire document. DocState holds    */
+/* DocPages and each EmacsWinState links to some DocState. It shall     */
+/* have the important MuPDF objects such as fz_context and fz_document, */
+/* and for this reason, to follow MuPDF's multi-threading rules,        */
+/* it must always be used by one thread at any given time.	        */
+/************************************************************************/
+
+typedef struct
+{
+	fz_context *ctx;
+	fz_locks_context locks;
+	fz_document *doc;
+
+	DocPage *doc_pages;
+
+	char *path;
+	int pagecount;
+	fz_outline *outline;
+	float frame_scale; // Emacs' frame-scale-factor
+	int invert;
+
+	atomic_int active_jobs;
+	bool is_reloading;
+} DocState;
 
 /**************************************************************/
 /* This represents rasterized image of a page that has been   */
@@ -104,32 +129,6 @@ typedef struct
 	atomic_int active_jobs;
 	bool closing;
 } EmacsWinState;
-
-/************************************************************************/
-/* The primary representation of the entire document. DocState holds    */
-/* DocPages and each EmacsWinState links to some DocState. It shall     */
-/* have the important MuPDF objects such as fz_context and fz_document, */
-/* and for this reason, to follow MuPDF's multi-threading rules,        */
-/* it must always be used by one thread at any given time.	        */
-/************************************************************************/
-
-typedef struct
-{
-	fz_context *ctx;
-	fz_locks_context locks;
-	fz_document *doc;
-
-	DocPage *doc_pages;
-
-	char *path;
-	int pagecount;
-	fz_outline *outline;
-	float frame_scale; // Emacs' frame-scale-factor
-	int invert;
-
-	atomic_int active_jobs;
-	bool is_reloading;
-} DocState;
 
 int
 load_page_dl(DocState *state, CachedPage *cp);

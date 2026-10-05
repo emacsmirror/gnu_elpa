@@ -255,7 +255,7 @@ Useful for full-screen terminal programs to keep them on screen."
           (setq-local scroll-margin 0))
         (add-hook 'coterm-t-after-insert-hook #'coterm--scroll-snap 'append t)
         (coterm--scroll-snap))
-    (when-let ((margin coterm--char-old-scroll-margin))
+    (when-let* ((margin coterm--char-old-scroll-margin))
       (setq coterm--char-old-scroll-margin nil)
       (if (cdr margin)
           (setq scroll-margin (car margin))
@@ -672,7 +672,7 @@ non-nil. Set it to nil to invalidate the cache."
 
 (defun coterm--init ()
   "Initialize current buffer for coterm."
-  (when-let ((process (get-buffer-process (current-buffer))))
+  (when-let* ((process (get-buffer-process (current-buffer))))
     (setq coterm--t-height (floor (window-screen-lines)))
     (setq coterm--t-width (window-max-chars-per-line))
     (setq coterm--t-home (point-min-marker))
@@ -700,9 +700,9 @@ non-nil. Set it to nil to invalidate the cache."
     (setq coterm--t-width width)
     (setq coterm--t-scroll-beg 0)
     (setq coterm--t-scroll-end height)
-    (when-let ((shrunk)
-               (proc (get-buffer-process (current-buffer)))
-               (pmark (process-mark proc)))
+    (when-let* ((shrunk)
+                (proc (get-buffer-process (current-buffer)))
+                (pmark (process-mark proc)))
       (save-excursion
         (save-restriction
           (coterm--narrow-to-process-output pmark)
@@ -737,8 +737,8 @@ to point beforehand.
 
 If STR contains newlines, the caller must take care that
 `coterm--t-row' is adjusted accordingly."
-  (when-let ((context ansi-color-context-region)
-             (marker (cadr context)))
+  (when-let* ((context ansi-color-context-region)
+              (marker (cadr context)))
     (set-marker marker (point)))
   (let ((pmark (process-mark process)))
     (set-marker pmark (point))
@@ -999,7 +999,7 @@ This function also converts all occuences of \"\\r\\n\" into
                 (insert (make-string 70 ?=) ?\n)
                 (insert string ?\n))))
 
-          (when-let ((fragment coterm--t-unhandled-fragment))
+          (when-let* ((fragment coterm--t-unhandled-fragment))
             (setq string (concat fragment string))
             (setq coterm--t-unhandled-fragment nil))
 
@@ -1117,7 +1117,7 @@ This function also converts all occuences of \"\\r\\n\" into
                                    ansi-color-context-region
                                    ansi-color-context)))
                    (?8 (ins) ;; Restore cursor (terminfo: rc)
-                       (when-let ((cursor coterm--t-saved-cursor))
+                       (when-let* ((cursor coterm--t-saved-cursor))
                          (setq coterm--t-saved-cursor nil)
                          (coterm--t-goto
                           (min (car cursor) (1- coterm--t-height))

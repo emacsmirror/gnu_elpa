@@ -43,7 +43,17 @@ Return the exit status and captured output as a cons cell."
                   (buffer-string))))
       (delete-directory directory t))))
 
+(defun keymap-popup-tooling-test--package-lint-p ()
+  "Return non-nil if the lint recipe's Emacs can load package-lint.
+package-lint is a development tool, not a build dependency; package
+builds such as Debian's run these tests without it."
+  (zerop (process-file (expand-file-name invocation-name invocation-directory)
+                       nil nil nil "-Q" "--batch"
+                       "--eval" "(package-initialize)"
+                       "--eval" "(require 'package-lint)")))
+
 (ert-deftest keymap-popup-tooling-test-clean-lint ()
+  (skip-unless (keymap-popup-tooling-test--package-lint-p))
   (let ((result (keymap-popup-tooling-test--make "lint" #'ignore)))
     (should (equal (car result) 0))
     (should (string-match-p "Running package-lint" (cdr result)))))
@@ -64,6 +74,7 @@ Return the exit status and captured output as a cons cell."
     (should-not (string-match-p "Running package-lint" (cdr result)))))
 
 (ert-deftest keymap-popup-tooling-test-package-lint-still-required ()
+  (skip-unless (keymap-popup-tooling-test--package-lint-p))
   (let ((result
          (keymap-popup-tooling-test--make
           "lint"

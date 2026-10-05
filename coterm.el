@@ -475,14 +475,16 @@ active if these status prompt erasures are detected."
 
 (defun coterm--auto-char-mpv-prompt-1 ()
   "Return t if mpv is likely running."
-  (when (bolp)
+  (when (or (bolp) (eolp))
     (let ((opoint (point)))
       (forward-line -1)
       (prog1 (looking-at
               (concat "\\(?:.*\n\\)?"
                       (regexp-opt '("[statusline] " "")) ; mpv -v
                       (regexp-opt '("(Paused) " "(Buffering) " "(...) " ""))
-                      "\\(?:[AV]\\|AV\\): "
+                      ;; There can be nothing before colon if you play an audio
+                      ;; file with mpv and deselect the only audio track.
+                      "\\(?:[AV]\\|AV\\)?: "
                       "-?[0-9][0-9]:[0-9][0-9]:[0-9][0-9] / "
                       "-?[0-9][0-9]:[0-9][0-9]:[0-9][0-9] "
                       "([0-9]?[0-9]?[0-9]%).*"

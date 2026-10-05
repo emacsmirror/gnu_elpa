@@ -210,7 +210,7 @@ free_doc_pages(DocState *state)
  */
 
 void
-free_cache_window(DocState *doc_state, EmacsWinState *win_state)
+free_cache_window(EmacsWinState *win_state)
 {
 	fprintf(stderr, "Freeing the cache window for current document...\n");
 	for (int i = 0; i < MAX_CACHE_SIZE; i++)
@@ -219,7 +219,7 @@ free_cache_window(DocState *doc_state, EmacsWinState *win_state)
 			    && (win_state->cache_window[i]->status == PAGE_STATUS_READY
 				|| win_state->cache_window[i]->status == PAGE_STATUS_ERROR))
 				{
-					free_cached_page(doc_state, win_state->cache_window[i]);
+					free_cached_page(win_state->cache_window[i]);
 				}
 		}
 

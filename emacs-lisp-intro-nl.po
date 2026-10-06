@@ -11817,7 +11817,7 @@ msgid ""
 "switch back to your current buffer, type @kbd{M-,} or @kbd{C-x b "
 "@key{RET}}.  (On some keyboards, the @key{META} key is labeled @key{ALT}.)"
 msgstr ""
-"Type @kbd{M-.} (dus druk op de punt-toet terwijl je de @key{META}-toets "
+"Type @kbd{M-.} (dus druk op de punt-toets terwijl je de @key{META}-toets "
 "ingedrukt houdt, of typ anders de @key{ESC} gevold door de punt-toets) om "
 "het commando @code{xref-find-definitions} te gebruiken, en vervolgens, na de "
 "prompt, de naam van de functie wiens broncode je wilt zien, zoals @code{mark-"
@@ -12117,7 +12117,7 @@ msgid ""
 "@code{(goto-char (point-min))}."
 msgstr ""
 "De functiedefinitie van @code{end-of-buffer} is op dezelfde manier "
-"geschreven als de @code{beginning-of-buffer}-definitie, belalve dat de body "
+"geschreven als de @code{beginning-of-buffer}-definitie, behalve dat de body "
 "van de functie de expressie @code{(goto-char (point-max))} bevat in plaats "
 "van @code{(goto-char (point-min))}."
 
@@ -12587,7 +12587,7 @@ msgstr ""
 #. type: Plain text
 #: emacs-lisp-intro.texi:5107
 msgid "The expression reads as follows:"
-msgstr "De exressie is als volgt:"
+msgstr "De expressie is als volgt:"
 
 #. type: group
 #: emacs-lisp-intro.texi:5116
@@ -12637,7 +12637,7 @@ msgid ""
 "@code{other-buffer}, an exception, and a @samp{t}, standing for true."
 msgstr ""
 "In dit geval is het tweede argument een expressie bestaand uit de functie "
-"@code{other-buffer}, een utizondering en een @samp{t}, dat voor waar staat."
+"@code{other-buffer}, een uitzondering en een @samp{t}, dat voor waar staat."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:5138
@@ -12852,7 +12852,7 @@ msgstr ""
 "De twee haakjes voor @code{oldbuf} kunnen je verrassen wanneer je je niet "
 "realseerde dat het eerste haakje voorafgaand aan @code{oldbuf} de grens van "
 "de varlist markeert en het tweede haakje het begin van de lijst met twee "
-"elementen, @code{(oldbuf (current-buffer))}.markeert. "
+"elementen, @code{(oldbuf (current-buffer))} markeert. "
 
 #. type: subsection
 #: emacs-lisp-intro.texi:5241
@@ -13010,7 +13010,7 @@ msgstr ""
 "In deze functie bevat de body van @code{save-excursion} slechts één "
 "expressie, de @code{let*} expressie. Je kent de @code{let}-functie. de "
 "functie @code{let*} is anders. Het maakt Emacs mogelijk om elke variabele in "
-"de varlist op volgorde in te stellen, de een na de ander. zo dat de "
+"de varlist op volgorde in te stellen, de een na de ander, zo dat de "
 "variabelen in een later gedeelte van de varlist gebruik kunnen maken van "
 "waarden die Emacs eerder in de varlist instelde."
 
@@ -13189,7 +13189,7 @@ msgid ""
 msgstr ""
 "Samengevat werkt @code{append-to-buffer} als volgt: het bewaart de waarde "
 "van het huidige buffer in de variabele met de naam @code{oldbuf}. Het krijgt "
-"de nieuwe buffer (en maakt er zo nodig een aan) en schakelt de aandacht van "
+"het nieuwe buffer (en maakt er zo nodig een aan) en schakelt de aandacht van "
 "Emacs daar naar toe. Met de waarde van @code{oldbuf} voegt het de tekst van "
 "de region van het oude buffer in het nieuwe in. Daarna brengt het je met "
 "@code{save-excursion} terug naar je oorspronkelijke buffer."

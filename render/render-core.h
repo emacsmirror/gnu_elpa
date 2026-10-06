@@ -131,7 +131,7 @@ typedef struct
 } EmacsWinState;
 
 int
-load_page_dl(DocState *state, CachedPage *cp);
+load_page_dl(DocState *state, DocPage *dp);
 void *
 draw_page_thread(void *arg);
 void

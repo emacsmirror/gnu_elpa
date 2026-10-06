@@ -493,24 +493,31 @@ permanent_buffer_local_var(emacs_env *env, char *symbol)
  * Display image data in an Emacs overlay.
  *
  * Converts raw image data into an Emacs image spec and sets it as the
- * `display` property of the given overlay. Flushes the image from cache
- *  after displaying.
+ * `display` property of the given overlay. Flushes the existing image
+ * from Emacs' image cache after displaying.
  */
 
 void
 display_img_to_overlay(emacs_env *env, int width, int height, char *img_data,
-		       size_t img_size, emacs_value buffer_overlay)
+                       size_t img_size, emacs_value buffer_overlay)
 {
 	if (!img_data || img_size == 0 || width <= 0 || height <= 0)
 		return;
 
-	emacs_value elisp_img
-		= data2elisp_image(env, width, height, img_data, img_size);
-	emacs_value overlay_put_args[3]
-		= { buffer_overlay, env->intern(env, "display"), elisp_img };
+	// Fetch the old image spec before we overwrite it
+	emacs_value old_img = env->funcall(env, env->intern(env, "overlay-get"), 2,
+					   (emacs_value[]){ buffer_overlay, env->intern(env, "display") });
+
+	// 2. Create and apply the new image spec
+	emacs_value elisp_img = data2elisp_image(env, width, height, img_data, img_size);
+	emacs_value overlay_put_args[3] = { buffer_overlay, env->intern(env, "display"), elisp_img };
 	env->funcall(env, env->intern(env, "overlay-put"), 3, overlay_put_args);
-	env->funcall(env, env->intern(env, "image-flush"), 2, (emacs_value[]){ elisp_img,
-									       EMACS_T });
+
+	// 3. Flush the old image from Emacs' image cache
+	if (!env->eq(env, old_img, EMACS_NIL))
+		{
+			env->funcall(env, env->intern(env, "image-flush"), 1, &old_img);
+		}
 }
 
 /**

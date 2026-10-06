@@ -492,21 +492,24 @@ permanent_buffer_local_var(emacs_env *env, char *symbol)
  * Display image data in an Emacs overlay.
  *
  * Converts raw image data into an Emacs image spec and sets it as the
- * `display` property of the given overlay. Clears the image cache to
- * ensure the image is rendered fresh.
- *
+ * `display` property of the given overlay. Flushes the image from cache
+ *  after displaying.
  */
 
 void
 display_img_to_overlay(emacs_env *env, int width, int height, char *img_data,
 		       size_t img_size, emacs_value buffer_overlay)
 {
+	if (!img_data || img_size == 0 || width <= 0 || height <= 0)
+		return EMACS_NIL;
+
 	emacs_value elisp_img
 		= data2elisp_image(env, width, height, img_data, img_size);
 	emacs_value overlay_put_args[3]
-	    = { buffer_overlay, env->intern(env, "display"), elisp_img };
+		= { buffer_overlay, env->intern(env, "display"), elisp_img };
 	env->funcall(env, env->intern(env, "overlay-put"), 3, overlay_put_args);
-	env->funcall(env, env->intern(env, "clear-image-cache"), 0, NULL);
+	env->funcall(env, env->intern(env, "image-flush"), 2, (emacs_value[]){ elisp_img,
+									       EMACS_T });
 }
 
 /**

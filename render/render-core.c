@@ -1214,8 +1214,8 @@ emacs_module_init(struct emacs_runtime *runtime)
 			     "reader-dyn--scale-page", 1, 1,
 			     "Scales the current page of the document by a given FACTOR.");
 
-	register_module_func(env, emacs_doc_set_invert,
-			     "reader-dyn--set-invert", 1, 1,
+	register_module_func(env, emacs_doc_invert,
+			     "reader-dyn--doc-invert", 1, 1,
 			     "Sets the document-local invert state for dark mode.");
 
 	register_module_func(env, emacs_doc_rotate,

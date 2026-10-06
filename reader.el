@@ -892,7 +892,7 @@ This is buffer-local: enabling or disabling dark mode affects all
 windows showing the same document."
   :lighter " Dark"
   (when (eq major-mode 'reader-mode)
-    (reader-dyn--set-invert (if reader-dark-mode 1 0))
+    (reader-dyn--doc-invert (if reader-dark-mode 1 0))
     (reader--redisplay-all-windows)))
 
 (define-minor-mode reader-presentation-mode

@@ -102,127 +102,163 @@ load_page_dl(DocState *state, DocPage *dp)
 void *
 draw_page_thread(void *arg)
 {
-	fz_output *out = NULL;
-	fz_buffer *buf = NULL;
-	fz_matrix ctm;
-
 	DrawThreadArgs *args = (DrawThreadArgs *)arg;
+	if (!args)
+		return NULL;
+
 	DocState *doc_state = args->doc_state;
 	EmacsWinState *win_state = args->win_state;
 	CachedPage *cp = args->cp;
+	DocPage *dp = args->dp;
 
-	// Atomically increment active jobs for this document
-	atomic_fetch_add(&doc_state->active_jobs, 1);
+	if (!doc_state || !win_state || !cp || !dp)
+		{
+			free(args);
+			return NULL;
+		}
 
-	// If the document is being reloaded/closed, abort this job safely
-	if (doc_state->is_reloading) {
-		atomic_fetch_sub(&doc_state->active_jobs, 1);
-		free(args);
-		return NULL;
-	}
+	 /* If the document is being reloaded/closed, or the window is closing, */
+	 /* abort this job safely. */
+	if (doc_state->is_reloading || win_state->closing)
+		{
+			mark_slot_error_if_rendering(cp);
+			release_doc_page(doc_state, dp);
+
+			atomic_fetch_sub(&doc_state->active_jobs, 1);
+			atomic_fetch_sub(&win_state->active_jobs, 1);
+
+			free(args);
+			return NULL;
+		}
+
+	// If the page isn't ready then parse/load it
+	if (!dp->ready)
+		load_page_dl(doc_state, dp);
+	if (!dp->ready || !dp->display_list)
+		{
+			mark_slot_error_if_rendering(cp);
+			release_doc_page(doc_state, dp);
+			atomic_fetch_sub(&doc_state->active_jobs, 1);
+			atomic_fetch_sub(&win_state->active_jobs, 1);
+			free(args);
+			return NULL;
+		}
 
 	fz_context *ctx = fz_clone_context(doc_state->ctx);
-
-	ctm = fz_transform_page(doc_state->page_bbox, win_state->resolution,
-				win_state->rotate);
-	cp->imgh = 0;
-	cp->imgw = 0;
-
-	fz_try(ctx)
-	{
-		if (cp->display_list == NULL)
+	if (!ctx)
 		{
-			fprintf(stderr, "Display list of page %d is empty\n",
-				cp->page_num);
+			mark_slot_error_if_rendering(cp);
+			release_doc_page(doc_state, dp);
+			atomic_fetch_sub(&doc_state->active_jobs, 1);
+			atomic_fetch_sub(&win_state->active_jobs, 1);
+			free(args);
+			return NULL;
 		}
-		cp->pixmap = fz_new_pixmap_from_display_list(
-		    ctx, cp->display_list, ctm, fz_device_rgb(ctx), 0);
-		if (doc_state->invert)
-		{
-			fz_invert_pixmap_luminance(ctx, cp->pixmap);
-			fz_gamma_pixmap(ctx, cp->pixmap, 1 / 1.4f);
-		}
-		cp->imgh = fz_pixmap_height(ctx, cp->pixmap)
-			   / doc_state->frame_scale;
-		cp->imgw
-		    = fz_pixmap_width(ctx, cp->pixmap) / doc_state->frame_scale;
-	}
-	fz_catch(ctx) cp->status = PAGE_STATUS_ERROR;
+
+	fz_matrix ctm = fz_transform_page(dp->bbox,
+					  win_state->resolution,
+					  win_state->rotate);
+	fz_pixmap *pixmap = NULL;
+	fz_buffer *buf = NULL;
+	fz_output *out = NULL;
+	int local_imgw = 0;
+	int local_imgh = 0;
+
+	bool render_ok = false;
+	float frame_scale = doc_state->frame_scale;
+
+	if (frame_scale <= 0.0f)
+		frame_scale = 1.0f;
 
 	fz_try(ctx)
 		{
+			pixmap = fz_new_pixmap_from_display_list(ctx, dp->display_list,
+								 ctm, fz_device_rgb(ctx), 0);
+
+			if (doc_state->invert)
+				{
+					fz_invert_pixmap_luminance(ctx, pixmap);
+					fz_gamma_pixmap(ctx, pixmap, 1 / 1.4f);
+				}
+
+			local_imgh = (int)(fz_pixmap_height(ctx, pixmap) / frame_scale);
+			local_imgw = (int)(fz_pixmap_width(ctx, pixmap) / frame_scale);
 			buf = fz_new_buffer(ctx, 1024);
 			out = fz_new_output_with_buffer(ctx, buf);
-			fz_write_pixmap_as_pnm(ctx, out, cp->pixmap);
+			fz_write_pixmap_as_pnm(ctx, out, pixmap);
+			render_ok = true;
 		}
 	fz_always(ctx)
 		{
-			if (cp->pixmap) {
-				fz_drop_pixmap(ctx, cp->pixmap);
-				cp->pixmap = NULL;
-			}
-		}
-	fz_catch(ctx)
-		{
+			if (pixmap)
+				fz_drop_pixmap(ctx, pixmap);
+
 			if (out)
 				{
 					fz_close_output(ctx, out);
 					fz_drop_output(ctx, out);
-					out = NULL;
-				}
-			if (buf)
-				{
-					fz_drop_buffer(ctx, buf);
-					buf = NULL;
 				}
 		}
+	fz_catch(ctx)
+		{
+			render_ok = false;
+		}
 
-	if (out)
-		fz_close_output(ctx, out);
+	if (!render_ok || !buf || local_imgw <= 0 || local_imgh <= 0)
+		{
+			if (buf)
+				fz_drop_buffer(ctx, buf);
 
-	// Reset the pre-existing memory that we were pointing to
-	free(cp->img_data);
-	cp->img_data = NULL;
-	cp->img_size = 0;
+			fz_drop_context(ctx);
+			mark_slot_error_if_rendering(cp);
+			release_doc_page(doc_state, dp);
+			atomic_fetch_sub(&doc_state->active_jobs, 1);
+			atomic_fetch_sub(&win_state->active_jobs, 1);
+			free(args);
+			return NULL;
+		}
 
-	// Prepare for assigning data from fz_buffer
-	if (!buf)
-	{
-		cp->status = PAGE_STATUS_ERROR;
-		cp->img_size = 0;
-		cp->img_data = NULL;
-		atomic_fetch_sub(&doc_state->active_jobs, 1);
-		free(args);
-		return NULL;
-	}
+	size_t local_img_size = buf->len;
+	char *local_img_data = malloc(local_img_size);
 
-	cp->img_size = buf->len;
-	cp->img_data = (char *)malloc(cp->img_size);
+	if (!local_img_data)
+		{
+			fz_drop_buffer(ctx, buf);
+			fz_drop_context(ctx);
+			mark_slot_error_if_rendering(cp);
+			release_doc_page(doc_state, dp);
+			atomic_fetch_sub(&doc_state->active_jobs, 1);
+			atomic_fetch_sub(&win_state->active_jobs, 1);
+			free(args);
+			return NULL;
+		}
 
-	if (cp->img_data == NULL)
-	{
-		fprintf(stderr, "Could not allocate memory for image data\n");
-		fz_close_output(ctx, out);
-		fz_drop_buffer(ctx, buf);
-		atomic_fetch_sub(&doc_state->active_jobs, 1);
-		free(args);
-		return NULL;
-	}
-
-	// Copy the data and null-terminate
-	memcpy(cp->img_data, buf->data, cp->img_size);
-
-	fz_drop_output(ctx, out);
+	memcpy(local_img_data, buf->data, local_img_size);
 	fz_drop_buffer(ctx, buf);
 	fz_drop_context(ctx);
 
+	/* If the slot was invalidated while we were rendering, its status will */
+	/* no longer be PAGE_STATUS_RENDERING. In that case, discard the result. */
+
 	pthread_mutex_lock(&cp->mutex);
-	cp->status = PAGE_STATUS_READY;
-	pthread_cond_signal(&cp->cond);
+	if (cp->status == PAGE_STATUS_RENDERING)
+		{
+			free(cp->img_data);
+			cp->img_data = local_img_data;
+			cp->img_size = local_img_size;
+			cp->imgw = local_imgw;
+			cp->imgh = local_imgh;
+			cp->status = PAGE_STATUS_READY;
+			pthread_cond_signal(&cp->cond);
+		}
+	else
+		free(local_img_data);
 	pthread_mutex_unlock(&cp->mutex);
 
-	// Decrement active jobs when finished
+	release_doc_page(doc_state, dp);
 	atomic_fetch_sub(&doc_state->active_jobs, 1);
+	atomic_fetch_sub(&win_state->active_jobs, 1);
+
 	free(args);
 	return NULL;
 }

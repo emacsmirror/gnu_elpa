@@ -18,6 +18,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "elisp-helpers.h"
+#include "render-threads.h"
 #include "emacs-module.h"
 #include "render-core.h"
 
@@ -774,4 +775,40 @@ display_cached_page(emacs_env *env, CachedPage *cp, emacs_value overlay)
 
 	display_img_to_overlay(env, width, height, img_data, img_size, overlay);
 	return true;
+}
+
+/* Properly render the page, build the cache window arond it, and once rendered display it */
+
+emacs_value
+render_and_display_page(emacs_env *env, DocState *doc_state,
+			EmacsWinState *win_state,
+			emacs_value overlay,
+			int page_number)
+{
+	if (page_number < 0 || page_number >= doc_state->pagecount)
+		{
+			emacs_message(env, "Provided page number is out of bounds!");
+			return EMACS_NIL;
+		}
+
+	wait_for_win_jobs(win_state);
+	build_cache_window(doc_state, win_state, page_number);
+
+	CachedPage *cp = win_state->current_cached_page;
+
+	if (!wait_for_cached_page(cp))
+		{
+			emacs_message(env, "Failed to render the page.");
+			return EMACS_NIL;
+		}
+
+	if (!display_cached_page(env, cp, overlay))
+		{
+			emacs_message(env, "Failed to display the rendered page.");
+			return EMACS_NIL;
+		}
+
+	set_current_page_number(env, win_state->current_page_number);
+	set_current_render_status(env);
+	return EMACS_T;
 }

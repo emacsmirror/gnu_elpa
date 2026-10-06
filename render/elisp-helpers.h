@@ -86,5 +86,7 @@ void
 clear_all_overlays(emacs_env *env);
 bool
 display_cached_page(emacs_env *env, CachedPage *cp, emacs_value overlay);
-
+emacs_value
+render_and_display_page(emacs_env *env, DocState *doc_state, EmacsWinState *win_state,
+			emacs_value overlay, int page_number);
 #endif

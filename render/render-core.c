@@ -54,6 +54,44 @@ mark_slot_error_if_rendering(CachedPage *cp)
 	pthread_mutex_unlock(&cp->mutex);
 }
 
+// DocState & EmacsWinState helpers
+
+/* Fetch the current DocState, EmacsWinState and overlay */
+/* To be used when operating on the current state, e.g. */
+/* changing pages, zooming, etc. */
+static bool
+get_reader_current_state(emacs_env *env,
+			 DocState **doc_state_out,
+			 EmacsWinState **win_state_out,
+			 emacs_value *overlay_out)
+{
+	DocState *doc_state = get_doc_state_ptr(env);
+
+	if (!doc_state)
+		{
+			emacs_message(env, "No valid DocState user pointer found.");
+			return false;
+		}
+	emacs_value overlay = get_current_doc_overlay(env);
+	if (!check_current_overlay(env, overlay))
+		{
+			emacs_message(env, "Invalid overlay state: reinitializing");
+			return false;
+		}
+
+	EmacsWinState *win_state = get_win_state_ptr(env, overlay);
+
+	if (!win_state || win_state->closing)
+		return false;
+	if (doc_state_out)
+		*doc_state_out = doc_state;
+	if (win_state_out)
+		*win_state_out = win_state;
+	if (overlay_out)
+		*overlay_out = overlay;
+
+	return true;
+}
 /**
  * Load and cache the display list for a page.
  *

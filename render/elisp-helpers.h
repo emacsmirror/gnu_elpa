@@ -82,5 +82,7 @@ void
 nullify_window_cache(EmacsWinState *win_state);
 void
 clear_overlay_and_win_state(emacs_env *env, emacs_value overlay);
+void
+clear_all_overlays(emacs_env *env);
 
 #endif

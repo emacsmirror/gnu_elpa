@@ -724,3 +724,28 @@ clear_overlay_and_win_state(emacs_env *env, emacs_value overlay)
 		}
 	env->funcall(env, env->intern(env, "delete-overlay"), 1, &overlay);
 }
+
+/* Safely clear all overlays and their associated EmacsWinStates  */
+
+void
+clear_all_overlays(emacs_env *env)
+{
+	emacs_value start =
+		env->funcall(env, env->intern(env, "point-min"), 0, NULL);
+	emacs_value end =
+		env->funcall(env, env->intern(env, "point-max"), 0, NULL);
+
+	emacs_value overlays_in_args[2] = { start, end };
+	emacs_value overlays =
+		env->funcall(env, env->intern(env, "overlays-in"), 2,
+			     overlays_in_args);
+
+	while (!env->eq(env, overlays, EMACS_NIL))
+		{
+			emacs_value ov =
+				env->funcall(env, env->intern(env, "car"), 1, &overlays);
+			clear_overlay_and_win_state(env, ov);
+			overlays =
+				env->funcall(env, env->intern(env, "cdr"), 1, &overlays);
+		}
+}

@@ -611,11 +611,24 @@ Intended for use in `kill-buffer-hook'."
   (when (yes-or-no-p "Are you sure you want to close the current document?")
     (kill-buffer (current-buffer))))
 
+(defun reader--restore-display-on-quit (page scale)
+  "Reload the document with PAGE at SCALE and rebuild window overlays on quit.
+
+Quit is deferred inside so the recovery cannot
+itself be interrupted."
+  (with-local-quit
+    (condition-case nil
+        (progn
+          (reader--render-buffer (1- page))
+          (reader-doc-scale-page scale)
+          (reader--center-page)
+          (reader--manage-window-overlays))
+      (error nil))))
+
 (define-queue-command refresh-doc-buffer (&optional _ignore-auto _noconfirm _preserve-modes)
   "Refresh the buffer document with file on disk.
 
 It reloads the entire document while preserving the previous state.
-
 The arguments are ignored and are simply to satisfy the template for
 `revert-buffer-function'.
 
@@ -627,13 +640,16 @@ This function is replaced as `revert-buffer-function' for `reader-mode' buffers.
         (let ((page (or (reader-current-doc-pagenumber) 1))
               (scale (reader-current-doc-scale-value)))
           (message "Reloading your document...Press C-g to stop.")
-	  ;; Remove old overlays
-          (remove-overlays)
-          ;; Reload the document and render the current page
-          (reader--render-buffer (1- page))
-          (reader-doc-scale-page scale)
-          (reader--center-page)
-          (reader--manage-window-overlays))
+	  (condition-case err
+              (progn
+                (reader--render-buffer (1- page))
+                (reader-doc-scale-page scale)
+                (reader--center-page)
+                (reader--manage-window-overlays))
+            ((quit error)
+             (message "Reloading interrupted; restoring display...")
+             (reader--restore-display-on-quit page scale)
+             (signal (car err) (cdr err)))))
       (setq-local reader--reloading nil))))
 
 (defun reader--render-buffer (&optional page)

@@ -198,6 +198,8 @@ threadpool_shutdown(ThreadPool *pool)
 	pthread_cond_destroy(&pool->leader_cond);
 }
 
+// Thread job helpers
+
 /**
  * Submit a job to the thread pool.
  *
@@ -257,4 +259,53 @@ submit_render_job(DocState *doc_state,
 
 	submit_job(draw_page_thread, args, &g_thread_pool);
 	return true;
+}
+
+void
+wait_for_win_jobs(EmacsWinState *win_state)
+{
+	if (!win_state)
+		return;
+
+	while (atomic_load(&win_state->active_jobs) > 0)
+		{
+			struct timespec ts = {0, 1000000};
+			nanosleep(&ts, NULL);
+		}
+}
+
+void
+wait_for_doc_jobs(DocState *doc_state)
+{
+	if (!doc_state)
+		return;
+
+	while (atomic_load(&doc_state->active_jobs) > 0)
+		{
+			struct timespec ts = {0, 1000000};
+			nanosleep(&ts, NULL);
+		}
+}
+
+bool
+wait_for_cached_page(CachedPage *cp)
+{
+	if (!cp)
+		return false;
+
+	pthread_mutex_lock(&cp->mutex);
+
+	while (cp->status == PAGE_STATUS_EMPTY ||
+	       cp->status == PAGE_STATUS_RENDERING)
+		{
+			pthread_cond_wait(&cp->cond, &cp->mutex);
+		}
+
+	bool ok = (cp->status == PAGE_STATUS_READY &&
+		   cp->img_data != NULL &&
+		   cp->img_size > 0);
+
+	pthread_mutex_unlock(&cp->mutex);
+
+	return ok;
 }

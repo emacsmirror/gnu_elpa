@@ -63,11 +63,19 @@ void
 job_queue_push(JobQueue *queue, ThreadJob *job);
 ThreadJob *
 job_queue_pop(JobQueue *queue);
+
 void
 submit_job(void *(*func)(void *arg), void *arg, ThreadPool *pool);
 bool
 submit_render_job(DocState *doc_state, EmacsWinState *win_state,
 		  CachedPage *cp, DocPage *dp);
+void
+wait_for_win_jobs(EmacsWinState *win_state);
+void
+wait_for_doc_jobs(DocState *doc_state);
+bool
+wait_for_cached_page(CachedPage *cp);
+
 void *
 thread_routine(void *arg);
 void

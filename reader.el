@@ -586,15 +586,15 @@ See also `reader-shrink-size'."
        (* scaling-factor (reader-current-doc-scale-value))))))
 
 (defun reader-rotate-clockwise ()
-  "Rotate all pages of the current document by 90 degrees, clockwise."
+  "Rotate the current window's view by 90 degrees, clockwise."
   (interactive)
-  (reader-dyn--rotate-doc 90)
+  (reader-dyn--rotate-page 90)
   (reader--center-page))
 
 (defun reader-rotate-counter-clockwise ()
-  "Rotate all pages of the current document by 90 degrees, counter-clockwise."
+  "Rotate the current window's view by 90 degrees, counter-clockwise."
   (interactive)
-  (reader-dyn--rotate-doc -90)
+  (reader-dyn--rotate-page -90)
   (reader--center-page))
 
 (defun reader--clear-doc-memory ()

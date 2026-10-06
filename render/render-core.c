@@ -26,33 +26,7 @@ int plugin_is_GPL_compatible;
 
 pthread_mutex_t g_mupdf_mutex[FZ_LOCK_MAX];
 
-// Cached pages window helpers
 
-static void
-mark_slot_error(CachedPage *cp)
-{
-	if (!cp)
-		return;
-	pthread_mutex_lock(&cp->mutex);
-	cp->status = PAGE_STATUS_ERROR;
-	pthread_cond_signal(&cp->cond);
-	pthread_mutex_unlock(&cp->mutex);
-}
-
-static void
-mark_slot_error_if_rendering(CachedPage *cp)
-{
-	if (!cp)
-		return;
-
-	pthread_mutex_lock(&cp->mutex);
-	if (cp->status == PAGE_STATUS_RENDERING)
-		{
-			cp->status = PAGE_STATUS_ERROR;
-			pthread_cond_signal(&cp->cond);
-		}
-	pthread_mutex_unlock(&cp->mutex);
-}
 
 // DocState & EmacsWinState helpers
 

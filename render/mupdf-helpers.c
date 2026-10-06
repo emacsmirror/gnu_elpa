@@ -271,3 +271,31 @@ free_doc_state(DocState *state)
 	// Free the state struct itself
 	free(state);
 }
+
+// Cache window slot helpers
+
+void
+mark_slot_error(CachedPage *cp)
+{
+	if (!cp)
+		return;
+	pthread_mutex_lock(&cp->mutex);
+	cp->status = PAGE_STATUS_ERROR;
+	pthread_cond_signal(&cp->cond);
+	pthread_mutex_unlock(&cp->mutex);
+}
+
+void
+mark_slot_error_if_rendering(CachedPage *cp)
+{
+	if (!cp)
+		return;
+
+	pthread_mutex_lock(&cp->mutex);
+	if (cp->status == PAGE_STATUS_RENDERING)
+		{
+			cp->status = PAGE_STATUS_ERROR;
+			pthread_cond_signal(&cp->cond);
+		}
+	pthread_mutex_unlock(&cp->mutex);
+}

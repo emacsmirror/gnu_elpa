@@ -80,5 +80,7 @@ emacs_value
 outline2plist(emacs_env *env, DocState *state, fz_outline *node);
 void
 nullify_window_cache(EmacsWinState *win_state);
+void
+clear_overlay_and_win_state(emacs_env *env, emacs_value overlay);
 
 #endif

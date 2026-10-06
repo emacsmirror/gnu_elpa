@@ -665,3 +665,62 @@ nullify_window_cache(EmacsWinState *win_state)
 			pthread_mutex_unlock(&cp->mutex);
 		}
 }
+
+/* Delete the overlay and the EmacsWinState associated  */
+
+void
+clear_overlay_and_win_state(emacs_env *env, emacs_value overlay)
+{
+	if (env->eq(env, overlay, EMACS_NIL))
+		return;
+
+	emacs_value overlayp =
+		env->funcall(env, env->intern(env, "overlayp"), 1, &overlay);
+
+	if (!env->eq(env, overlayp, EMACS_T))
+		return;
+
+	emacs_value win_state_sym = env->intern(env, "win-state");
+	emacs_value get_args[2] = { overlay, win_state_sym };
+	emacs_value ws_val =
+		env->funcall(env, env->intern(env, "overlay-get"), 2, get_args);
+
+	if (env->eq(env, ws_val, EMACS_NIL))
+		return;
+
+	// Clear the property first to prevent double close
+	emacs_value clear_args[3] = { overlay, win_state_sym, EMACS_NIL };
+	env->funcall(env, env->intern(env, "overlay-put"), 3, clear_args);
+	EmacsWinState *win_state = env->get_user_ptr(env, ws_val);
+
+	if (win_state)
+		{
+			win_state->closing = true;
+			wait_for_win_jobs(win_state);
+			free_cache_window(win_state);
+			free(win_state);
+		}
+
+	// Clear the window's overlay parameter if it points to this overlay
+	emacs_value window_sym = env->intern(env, "window");
+	emacs_value overlay_window_args[2] = { overlay, window_sym };
+	emacs_value win =
+		env->funcall(env, env->intern(env, "overlay-get"), 2,
+			     overlay_window_args);
+
+	if (!env->eq(env, win, EMACS_NIL))
+		{
+			emacs_value window_overlay_args[2] = { win, env->intern(env, "overlay") };
+			emacs_value window_overlay =
+				env->funcall(env, env->intern(env, "window-parameter"), 2,
+					     window_overlay_args);
+
+			if (env->eq(env, window_overlay, overlay))
+				{
+					emacs_value set_args[3] = { win, env->intern(env, "overlay"), EMACS_NIL };
+					env->funcall(env, env->intern(env, "set-window-parameter"), 3,
+						     set_args);
+				}
+		}
+	env->funcall(env, env->intern(env, "delete-overlay"), 1, &overlay);
+}

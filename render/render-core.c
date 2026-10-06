@@ -400,46 +400,16 @@ build_cache_window(DocState *doc_state, EmacsWinState *win_state, int n)
 void
 slide_cache_window_forward(DocState *doc_state, EmacsWinState *win_state)
 {
-	int n = ++win_state->current_page_number;
-	int pagecount = doc_state->pagecount;
+    if (!doc_state || !win_state)
+        return;
 
-	assert(n < pagecount && "emacs_next_page confirms n is valid");
+    if (doc_state->pagecount <= 0)
+        return;
 
-	if (n - MAX_CACHE_WINDOW_SIZE > 0
-	    && n + MAX_CACHE_WINDOW_SIZE < pagecount)
-		{
-			// Free the leftmost page in the cache window
-			if (win_state->cache_window[0] != NULL
-			    && (win_state->cache_window[0]->status == PAGE_STATUS_READY
-				|| win_state->cache_window[0]->status == PAGE_STATUS_ERROR))
-				{
-					free_cached_page(doc_state, win_state->cache_window[0]);
-				}
-			memmove(
-				&win_state->cache_window[0], &win_state->cache_window[1],
-				sizeof(win_state->cache_window[0]) * (MAX_CACHE_SIZE - 1));
-
-		CachedPage *cp
-		    = doc_state->cached_pages_pool[n + MAX_CACHE_WINDOW_SIZE];
-		win_state->cache_window[MAX_CACHE_SIZE - 1] = cp;
-		if (cp->status == PAGE_STATUS_EMPTY)
-		{
-			load_page_dl(doc_state, cp);
-			DrawThreadArgs *draw_args
-			    = malloc(sizeof(DrawThreadArgs));
-			draw_args->doc_state = doc_state;
-			draw_args->win_state = win_state;
-			draw_args->cp = cp;
-			submit_job(draw_page_thread, draw_args, &g_thread_pool);
-		}
-		win_state->current_window_index = MAX_CACHE_WINDOW_SIZE;
-		win_state->current_cached_page
-		    = win_state->cache_window[win_state->current_window_index];
-	}
-	else
-	{
-		build_cache_window(doc_state, win_state, n);
-	}
+    wait_for_win_jobs(win_state);
+    int n = win_state->current_page_number + 1;
+    if (n < doc_state->pagecount)
+        build_cache_window(doc_state, win_state, n);
 }
 
 /**
@@ -457,50 +427,16 @@ slide_cache_window_forward(DocState *doc_state, EmacsWinState *win_state)
 void
 slide_cache_window_backward(DocState *doc_state, EmacsWinState *win_state)
 {
-	int n = --win_state->current_page_number;
-	int pagecount = doc_state->pagecount;
+    if (!doc_state || !win_state)
+        return;
 
-	assert(n >= 0 && "emacs_prev_page confirms n is valid");
+    if (doc_state->pagecount <= 0)
+        return;
 
-	if (n - MAX_CACHE_WINDOW_SIZE > 0
-	    && n + MAX_CACHE_WINDOW_SIZE < pagecount)
-		{
-			// Free the rightmost page in the cache window
-			if (win_state->cache_window[MAX_CACHE_SIZE - 1] != NULL
-			    && (win_state->cache_window[MAX_CACHE_SIZE - 1]->status
-				== PAGE_STATUS_READY // if it's there, free it
-				|| win_state->cache_window[MAX_CACHE_SIZE - 1]->status
-				== PAGE_STATUS_ERROR // if it's errored, free it so it can be retried
-			       ))
-				{
-					free_cached_page(
-							 doc_state,
-							 win_state->cache_window[MAX_CACHE_SIZE - 1]);
-				}
-			memmove(
-				&win_state->cache_window[1], &win_state->cache_window[0],
-				sizeof(win_state->cache_window[0]) * (MAX_CACHE_SIZE - 1));
-			CachedPage *cp
-				= doc_state->cached_pages_pool[n - MAX_CACHE_WINDOW_SIZE];
-			win_state->cache_window[0] = cp;
-			if (cp->status == PAGE_STATUS_EMPTY)
-				{
-					load_page_dl(doc_state, cp);
-					DrawThreadArgs *draw_args
-						= malloc(sizeof(DrawThreadArgs));
-					draw_args->doc_state = doc_state;
-					draw_args->win_state = win_state;
-					draw_args->cp = cp;
-					submit_job(draw_page_thread, draw_args, &g_thread_pool);
-				}
-			win_state->current_window_index = MAX_CACHE_WINDOW_SIZE;
-			win_state->current_cached_page
-				= win_state->cache_window[win_state->current_window_index];
-		}
-	else
-		{
-			build_cache_window(doc_state, win_state, n);
-		}
+    wait_for_win_jobs(win_state);
+    int n = win_state->current_page_number - 1;
+    if (n >= 0)
+        build_cache_window(doc_state, win_state, n);
 }
 
 /**

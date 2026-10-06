@@ -749,3 +749,29 @@ clear_all_overlays(emacs_env *env)
 				env->funcall(env, env->intern(env, "cdr"), 1, &overlays);
 		}
 }
+
+/* Take an already rasterized CachedPage and display it in Emacs */
+
+bool
+display_cached_page(emacs_env *env, CachedPage *cp, emacs_value overlay)
+{
+	char *img_data;
+	if (!cp)
+		return false;
+
+	// Get data of the page without race conditions
+	pthread_mutex_lock(&cp->mutex);
+	if (cp->status != PAGE_STATUS_READY || !cp->img_data)
+		{
+			pthread_mutex_unlock(&cp->mutex);
+			return false;
+		}
+	int width    = cp->imgw;
+	int height   = cp->imgh;
+	img_data = cp->img_data;
+	size_t img_size = cp->img_size;
+	pthread_mutex_unlock(&cp->mutex);
+
+	display_img_to_overlay(env, width, height, img_data, img_size, overlay);
+	return true;
+}

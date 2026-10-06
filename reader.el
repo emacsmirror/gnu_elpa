@@ -886,15 +886,14 @@ Keybindings:
     (select-window current-win)))
 
 (define-minor-mode reader-dark-mode
-  "Toggle dark-mode for current reader document."
+  "Toggle dark-mode for current reader document.
+
+This is buffer-local: enabling or disabling dark mode affects all
+windows showing the same document."
   :lighter " Dark"
   (when (eq major-mode 'reader-mode)
-    (if reader-dark-mode
-	(reader-dyn--set-dark-theme)
-      (reader-dyn--redisplay-doc))
-    (reader-doc-scale-page (reader-current-doc-scale-value))))
-
-(define-globalized-minor-mode reader-global-dark-mode reader-dark-mode reader-dark-mode)
+    (reader-dyn--set-invert (if reader-dark-mode 1 0))
+    (reader--redisplay-all-windows)))
 
 (define-minor-mode reader-presentation-mode
   "Toggle presentation view for current reader document."

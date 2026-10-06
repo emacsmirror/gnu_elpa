@@ -35,16 +35,16 @@ reset_doc_state(DocState *state)
 
 	*state = (DocState){
 		.ctx = NULL,
-                      .locks = NULL,
-                      .doc = NULL,
-                      .doc_pages = NULL,
-		      .path = NULL,
-		      .pagecount = 0,
-		      .frame_scale = 1,
-                      .outline = NULL,
-		      .invert = 0,
-		      .active_jobs = current_active_jobs,
-		      .is_reloading = current_is_reloading
+		.locks = {0},
+		.doc = NULL,
+		.doc_pages = NULL,
+		.path = NULL,
+		.pagecount = 0,
+		.frame_scale = 1,
+		.outline = NULL,
+		.invert = 0,
+		.active_jobs = current_active_jobs,
+		.is_reloading = current_is_reloading
 	};
 }
 

@@ -320,7 +320,7 @@ free_doc_state(DocState *state)
 // Cache window slot helpers
 
 void
-mark_slot_error(CachedPage *cp)
+mark_cp_error(CachedPage *cp)
 {
 	if (!cp)
 		return;
@@ -331,7 +331,7 @@ mark_slot_error(CachedPage *cp)
 }
 
 void
-mark_slot_error_if_rendering(CachedPage *cp)
+mark_cp_error_if_rendering(CachedPage *cp)
 {
 	if (!cp)
 		return;

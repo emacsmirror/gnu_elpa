@@ -121,7 +121,7 @@ draw_page_thread(void *arg)
 	 /* abort this job safely. */
 	if (doc_state->is_reloading || win_state->closing)
 		{
-			mark_slot_error_if_rendering(cp);
+			mark_cp_error_if_rendering(cp);
 			release_doc_page(doc_state, dp);
 
 			atomic_fetch_sub(&doc_state->active_jobs, 1);
@@ -136,7 +136,7 @@ draw_page_thread(void *arg)
 		load_page_dl(doc_state, dp);
 	if (!dp->ready || !dp->display_list)
 		{
-			mark_slot_error_if_rendering(cp);
+			mark_cp_error_if_rendering(cp);
 			release_doc_page(doc_state, dp);
 			atomic_fetch_sub(&doc_state->active_jobs, 1);
 			atomic_fetch_sub(&win_state->active_jobs, 1);
@@ -147,7 +147,7 @@ draw_page_thread(void *arg)
 	fz_context *ctx = fz_clone_context(doc_state->ctx);
 	if (!ctx)
 		{
-			mark_slot_error_if_rendering(cp);
+			mark_cp_error_if_rendering(cp);
 			release_doc_page(doc_state, dp);
 			atomic_fetch_sub(&doc_state->active_jobs, 1);
 			atomic_fetch_sub(&win_state->active_jobs, 1);
@@ -210,7 +210,7 @@ draw_page_thread(void *arg)
 				fz_drop_buffer(ctx, buf);
 
 			fz_drop_context(ctx);
-			mark_slot_error_if_rendering(cp);
+			mark_cp_error_if_rendering(cp);
 			release_doc_page(doc_state, dp);
 			atomic_fetch_sub(&doc_state->active_jobs, 1);
 			atomic_fetch_sub(&win_state->active_jobs, 1);
@@ -225,7 +225,7 @@ draw_page_thread(void *arg)
 		{
 			fz_drop_buffer(ctx, buf);
 			fz_drop_context(ctx);
-			mark_slot_error_if_rendering(cp);
+			mark_cp_error_if_rendering(cp);
 			release_doc_page(doc_state, dp);
 			atomic_fetch_sub(&doc_state->active_jobs, 1);
 			atomic_fetch_sub(&win_state->active_jobs, 1);

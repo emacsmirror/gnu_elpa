@@ -32,17 +32,18 @@ int
 init_main_ctx(DocState *state);
 int
 load_mupdf_doc(DocState *state);
-
 void
 reset_doc_state(DocState *state);
+
 void
 free_cache_window(EmacsWinState *win_state);
 void
-mark_slot_error(CachedPage *cp);
+mark_cp_error(CachedPage *cp);
 void
-mark_slot_error_if_rendering(CachedPage *cp);
+mark_cp_error_if_rendering(CachedPage *cp);
 void
 free_doc_state(DocState *state);
+void
 
 void free_doc_pages(DocState *state);
 void drop_doc_page_display_list(DocState *state, DocPage *dp);

@@ -138,6 +138,9 @@ emacs_value
 data2elisp_image(emacs_env *env, int width, int height, char *img_data,
 		 size_t img_size)
 {
+	if (!img_data || img_size == 0 || width <= 0 || height <= 0)
+		return EMACS_NIL;
+
 	emacs_value image_width
 	    = env->make_integer(env, width);
 	emacs_value image_height

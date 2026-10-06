@@ -877,6 +877,14 @@ Keybindings:
 (add-hook 'reader-mode-hook #'reader-mode-line)
 (add-hook 'reader-mode-hook #'imenu-add-menubar-index)
 
+(defun reader--redisplay-all-windows ()
+  "Redisplay the current document in all windows showing this buffer."
+  (let ((current-win (selected-window)))
+    (dolist (win (get-buffer-window-list (current-buffer) nil t))
+      (with-selected-window win
+        (reader-dyn--redisplay-doc)))
+    (select-window current-win)))
+
 (define-minor-mode reader-dark-mode
   "Toggle dark-mode for current reader document."
   :lighter " Dark"

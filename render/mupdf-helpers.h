@@ -46,5 +46,7 @@ free_doc_state(DocState *state);
 
 void free_doc_pages(DocState *state);
 void drop_doc_page_display_list(DocState *state, DocPage *dp);
+void release_doc_page(DocState *doc_state, DocPage *dp);
+void acquire_doc_page(DocState *doc_state, DocPage *dp);
 
 #endif

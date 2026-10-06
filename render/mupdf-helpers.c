@@ -174,6 +174,51 @@ free_doc_pages(DocState *state)
     state->doc_pages = NULL;
 }
 
+/* Decrement refcount when nothing references this DocPage
+ and also free its expensive display list from memory */
+
+void
+release_doc_page(DocState *doc_state, DocPage *dp)
+{
+	if (!doc_state || !dp)
+		return;
+
+	int prev = atomic_fetch_sub(&dp->refcount, 1);
+
+	if (prev == 1)
+		drop_doc_page_display_list(doc_state, dp);
+	else if (prev <= 0)
+		atomic_store(&dp->refcount, 0);
+}
+
+/* A DocPage is being acquried (by a CachedPage) for rendering
+   so we increase its refcount and if it isn't ready, we parse it */
+
+DocPage *
+acquire_doc_page(DocState *doc_state, int page_num)
+{
+	if (!doc_state || !doc_state->doc_pages)
+		return NULL;
+
+	if (page_num < 0 || page_num >= doc_state->pagecount)
+		return NULL;
+
+	DocPage *dp = &doc_state->doc_pages[page_num];
+
+	atomic_fetch_add(&dp->refcount, 1);
+
+	if (!dp->ready)
+		{
+			if (load_page_dl(doc_state, dp) != EXIT_SUCCESS)
+				{
+					release_doc_page(doc_state, dp);
+					return NULL;
+				}
+		}
+
+	return dp;
+}
+
 /**
  * Free all ready pages in the document's cache window.
  */

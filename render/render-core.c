@@ -274,72 +274,115 @@ draw_page_thread(void *arg)
  * @param n      Page number to center the cache window around.
  */
 
+/**
+ * Build a sliding cache window around the given page.
+ *
+ * This function assumes that there are no active render jobs for this
+ * window. Callers should call wait_for_win_jobs() first.
+ */
+
 void
 build_cache_window(DocState *doc_state, EmacsWinState *win_state, int n)
 {
-	int start, end;
-	int pagecount = doc_state->pagecount;
+	if (!doc_state || !win_state)
+		return;
+	if (!doc_state->doc_pages || doc_state->pagecount <= 0)
+		return;
 
+	int pagecount = doc_state->pagecount;
+	if (n < 0)
+		n = 0;
+	if (n >= pagecount)
+		n = pagecount - 1;
+
+	int start, end;
 	if (n < MAX_CACHE_WINDOW_SIZE)
-	{
-		start = 0;
-		end = n + MAX_CACHE_WINDOW_SIZE;
-		if (end >= pagecount)
-			end = pagecount - 1;
-	}
-	else if (n > (pagecount - 1) - MAX_CACHE_WINDOW_SIZE)
-	{
-		end = pagecount - 1;
-		start = n - MAX_CACHE_WINDOW_SIZE;
-		if (start < 0)
+		{
 			start = 0;
-	}
+			end = n + MAX_CACHE_WINDOW_SIZE;
+			if (end >= pagecount)
+				end = pagecount - 1;
+		}
+	else if (n > (pagecount - 1) - MAX_CACHE_WINDOW_SIZE)
+		{
+			end = pagecount - 1;
+			start = n - MAX_CACHE_WINDOW_SIZE;
+			if (start < 0)
+				start = 0;
+		}
 	else
-	{
-		start = n - MAX_CACHE_WINDOW_SIZE;
-		end = n + MAX_CACHE_WINDOW_SIZE;
-	}
+		{
+			start = n - MAX_CACHE_WINDOW_SIZE;
+			end = n + MAX_CACHE_WINDOW_SIZE;
+		}
 
 	win_state->current_page_number = n;
 	win_state->current_window_index = n - start;
 
 	for (int i = 0; i < MAX_CACHE_SIZE; ++i)
-	{
-		int idx = start + i;
-		if (idx < pagecount && idx <= end)
 		{
-			CachedPage *cp = doc_state->cached_pages_pool[idx];
-			win_state->cache_window[i] = cp;
+			int idx = start + i;
+			CachedPage *cp = win_state->cache_window[i];
+			if (!cp)
+				continue;
 
-			// If ready, then we free it.
-			// If failed, we free it too so that it can be retried.
-			if (cp->status == PAGE_STATUS_READY ||
-			    cp->status == PAGE_STATUS_ERROR)
-			{
-				free_cached_page(doc_state,
-						 win_state->cache_window[i]);
-			}
+			if (idx < pagecount && idx <= end)
+				{
+					/* Check if we can reuse the existing CachedPage */
+					pthread_mutex_lock(&cp->mutex);
+					int old_page_num = cp->page_num;
+					bool reusable = (old_page_num == idx &&
+							 cp->status == PAGE_STATUS_READY &&
+							 cp->img_data != NULL);
+					pthread_mutex_unlock(&cp->mutex);
 
-			if (cp->status == PAGE_STATUS_EMPTY)
-			{
-				load_page_dl(doc_state, cp);
-				DrawThreadArgs *draw_args
-				    = malloc(sizeof(DrawThreadArgs));
-				draw_args->doc_state = doc_state;
-				draw_args->win_state = win_state;
-				draw_args->cp = cp;
-				submit_job(draw_page_thread, draw_args,
-					   &g_thread_pool);
-			}
+					if (reusable)
+						continue;
+
+					if (old_page_num == idx)
+						{
+							/* Clear the slot, but keep DocPage reference. */
+							clear_cp(cp);
+							DocPage *dp = &doc_state->doc_pages[idx];
+							if (!dp->ready)
+								load_page_dl(doc_state, dp);
+							if (!dp->ready)
+								{
+									mark_cp_error(cp);
+									continue;
+								}
+
+							if (!submit_render_job(doc_state, win_state, cp, dp))
+								mark_cp_error(cp);
+						}
+					else
+						{
+							/* Now we acquire a new DocPage and release the last one. */
+							clear_cp_and_release(doc_state, cp);
+							DocPage *dp = acquire_doc_page(doc_state, idx);
+							if (!dp)
+								{
+									mark_cp_error(cp);
+									continue;
+								}
+
+							pthread_mutex_lock(&cp->mutex);
+							cp->page_num = idx;
+							pthread_mutex_unlock(&cp->mutex);
+
+							if (!submit_render_job(doc_state, win_state, cp, dp))
+								mark_cp_error(cp);
+						}
+				}
+			else
+				{
+					/* Outside new window. Clear and release. */
+					clear_cp_and_release(doc_state, cp);
+				}
 		}
-		else
-		{
-			win_state->cache_window[i] = NULL;
-		}
-	}
 
-	win_state->current_cached_page
-	    = win_state->cache_window[win_state->current_window_index];
+	win_state->current_cached_page =
+		win_state->cache_window[win_state->current_window_index];
 }
 
 /**

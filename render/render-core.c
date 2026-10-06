@@ -669,57 +669,42 @@ cleanup:
 
 emacs_value
 emacs_redisplay_doc(emacs_env *env, ptrdiff_t nargs, emacs_value *args,
-		    void *data)
+                    void *data)
 {
 	(void)nargs;
 	(void)args;
 	(void)data;
 
-	DocState *doc_state = get_doc_state_ptr(env);
-	if (!doc_state)
-		{
-			fprintf(stderr, "No valid DocState user pointer found.");
-			emacs_message(env, "No valid DocState user pointer found.");
+	DocState *doc_state = NULL;
+	EmacsWinState *win_state = NULL;
+	emacs_value overlay = EMACS_NIL;
 
-		}
-	emacs_value current_doc_overlay = get_current_doc_overlay(env);
-	if (!check_current_overlay(env, current_doc_overlay))
-	{
-		emacs_message(env, "Invalid overlay state: reinitializing");
+	if (!get_reader_current_state(env, &doc_state, &win_state, &overlay))
 		return EMACS_NIL;
-	}
 
-	EmacsWinState *win_state = get_win_state_ptr(env, current_doc_overlay);
+	if (doc_state->pagecount <= 0)
+		return EMACS_NIL;
 
-	if (doc_state && win_state)
-	{
-		doc_state->invert = 0;
-		win_state->rotate = 0;
-		CachedPage *cp = win_state->current_cached_page;
-		DrawThreadArgs *draw_args = malloc(sizeof(DrawThreadArgs));
-		draw_args->doc_state = doc_state;
-		draw_args->win_state = win_state;
-		draw_args->cp = cp;
-		submit_job(draw_page_thread, draw_args, &g_thread_pool);
+	wait_for_win_jobs(win_state);
+	nullify_window_cache(win_state);
+	build_cache_window(doc_state,
+			   win_state,
+			   win_state->current_page_number);
 
-		pthread_mutex_lock(&cp->mutex);
-		while (cp->status == PAGE_STATUS_EMPTY || cp->status == PAGE_STATUS_RENDERING)
-			pthread_cond_wait(&cp->cond, &cp->mutex);
-		pthread_mutex_unlock(&cp->mutex);
+	CachedPage *cp = win_state->current_cached_page;
 
-		if (cp->status == PAGE_STATUS_ERROR) {
+	if (!wait_for_cached_page(cp))
+		{
 			emacs_message(env, "Failed to render the page.");
 			return EMACS_NIL;
 		}
+	if (!display_cached_page(env, cp, overlay))
+		{
+			emacs_message(env, "Failed to display the rendered page.");
+			return EMACS_NIL;
+		}
 
-		display_img_to_overlay(env, win_state, cp->img_data,
-				       cp->img_size, current_doc_overlay);
-	}
-	else
-	{
-		return EMACS_NIL;
-	}
-
+	set_current_render_status(env);
 	return EMACS_T;
 }
 
@@ -737,7 +722,8 @@ emacs_redisplay_doc(emacs_env *env, ptrdiff_t nargs, emacs_value *args,
  */
 
 emacs_value
-emacs_close_doc(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
+emacs_close_doc(emacs_env *env, ptrdiff_t nargs, emacs_value *args,
+                void *data)
 {
 	(void)nargs;
 	(void)args;
@@ -746,33 +732,19 @@ emacs_close_doc(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
 	DocState *state = get_doc_state_ptr(env);
 	if (!state)
 		{
-			fprintf(stderr, "No valid DocState user pointer found.");
 			emacs_message(env, "No valid DocState user pointer found.");
-
+			return EMACS_NIL;
 		}
 
-	if (!state)
-		return EMACS_NIL;
-
 	state->is_reloading = true;
+
+	clear_all_overlays(env);
+
 	clear_doc_state_ptr(env);
 
-	emacs_value overlay = get_current_doc_overlay(env);
-
-	// If we have an overlay or window state for the currently selected window,
-	// clear it's window cache
-	EmacsWinState *win_state = get_win_state_ptr(env, overlay);
-	if (win_state)
-		free_cache_window(state, win_state);
-
-	// Wait for all worker threads to finish
-	while (atomic_load(&state->active_jobs) > 0) {
-		struct timespec ts = {0, 1000000}; // 1ms
-		nanosleep(&ts, NULL);
-	}
-
-	// Free DocState and all its underlying MuPDF objects
+	wait_for_doc_jobs(state);
 	free_doc_state(state);
+
 	return EMACS_T;
 }
 
@@ -787,71 +759,27 @@ emacs_close_doc(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
  */
 
 emacs_value
-emacs_next_page(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
+emacs_next_page(emacs_env *env, ptrdiff_t nargs, emacs_value *args,
+                void *data)
 {
-	(void)nargs;
-	(void)args;
-	(void)data;
-	DocState *doc_state = get_doc_state_ptr(env);
-	if (!doc_state)
-		{
-			fprintf(stderr, "No valid DocState user pointer found.");
-			emacs_message(env, "No valid DocState user pointer found.");
+    (void)nargs;
+    (void)args;
+    (void)data;
 
-		}
+    DocState *doc_state = NULL;
+    EmacsWinState *win_state = NULL;
+    emacs_value overlay = EMACS_NIL;
 
-	emacs_value current_doc_overlay = get_current_doc_overlay(env);
-	if (!check_current_overlay(env, current_doc_overlay))
-	{
-		emacs_message(env, "Invalid overlay state: reinitializing");
-		return EMACS_NIL;
-	}
+    if (!get_reader_current_state(env, &doc_state, &win_state, &overlay))
+        return EMACS_NIL;
 
-	EmacsWinState *win_state = get_win_state_ptr(env, current_doc_overlay);
+    if (win_state->current_page_number >= doc_state->pagecount - 1)
+    {
+        emacs_message(env, "Already last page!");
+        return EMACS_NIL;
+    }
 
-	if (doc_state && win_state)
-	{
-		if (win_state->current_page_number
-		    == (doc_state->pagecount - 1))
-		{
-			emacs_message(env, "Already last page!");
-			return EMACS_NIL;
-		}
-
-		// Get the pointer for the next CachedPage in the window
-		CachedPage *next_cp
-		    = win_state
-			  ->cache_window[win_state->current_window_index + 1];
-
-		if (next_cp->status != PAGE_STATUS_READY)
-		{
-			build_cache_window(doc_state, win_state,
-					   win_state->current_page_number);
-		}
-		// Wait for the thread to signal before displaying
-		pthread_mutex_lock(&next_cp->mutex);
-		while (next_cp->status == PAGE_STATUS_EMPTY || next_cp->status == PAGE_STATUS_RENDERING)
-			pthread_cond_wait(&next_cp->cond, &next_cp->mutex);
-		pthread_mutex_unlock(&next_cp->mutex);
-
-		// Throw an error if the rendering of the page failed
-		if (next_cp->status == PAGE_STATUS_ERROR) {
-			emacs_message(env, "Failed to render the page.");
-			return EMACS_NIL;
-		}
-
-		display_img_to_overlay(env, win_state, next_cp->img_data,
-				       next_cp->img_size, current_doc_overlay);
-		slide_cache_window_forward(doc_state, win_state);
-		set_current_page_number(env, win_state->current_page_number);
-		return EMACS_T;
-	}
-	else
-		{
-			return EMACS_NIL;
-		}
-
-	return EMACS_T;
+    return render_and_display_page(env, doc_state, win_state, overlay, win_state->current_page_number + 1);
 }
 
 /**
@@ -865,67 +793,31 @@ emacs_next_page(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
  */
 
 emacs_value
-emacs_prev_page(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
+emacs_prev_page(emacs_env *env, ptrdiff_t nargs, emacs_value *args,
+                void *data)
 {
 	(void)nargs;
 	(void)args;
 	(void)data;
-	DocState *doc_state = get_doc_state_ptr(env);
-	if (!doc_state)
-		{
-			fprintf(stderr, "No valid DocState user pointer found.");
-			emacs_message(env, "No valid DocState user pointer found.");
-		}
 
-	emacs_value current_doc_overlay = get_current_doc_overlay(env);
-	if (!check_current_overlay(env, current_doc_overlay))
-	{
-		emacs_message(env, "Invalid overlay state: reinitializing");
+	DocState *doc_state = NULL;
+	EmacsWinState *win_state = NULL;
+	emacs_value overlay = EMACS_NIL;
+
+	if (!get_reader_current_state(env, &doc_state, &win_state, &overlay))
 		return EMACS_NIL;
-	}
 
-	EmacsWinState *win_state = get_win_state_ptr(env, current_doc_overlay);
-
-	if (doc_state && win_state)
-	{
-		if (win_state->current_page_number == 0)
+	if (win_state->current_page_number <= 0)
 		{
 			emacs_message(env, "Already first page!");
 			return EMACS_NIL;
 		}
 
-		CachedPage *prev_cp
-		    = win_state
-			  ->cache_window[win_state->current_window_index - 1];
-
-		if (prev_cp->status != PAGE_STATUS_READY)
-		{
-			build_cache_window(doc_state, win_state,
-					   win_state->current_page_number);
-		}
-
-		pthread_mutex_lock(&prev_cp->mutex);
-		while (prev_cp->status == PAGE_STATUS_EMPTY || prev_cp->status == PAGE_STATUS_RENDERING)
-			pthread_cond_wait(&prev_cp->cond, &prev_cp->mutex);
-		pthread_mutex_unlock(&prev_cp->mutex);
-
-		// Throw an error if the rendering of the page failed
-		if (prev_cp->status == PAGE_STATUS_ERROR) {
-			emacs_message(env, "Failed to render the page.");
-			return EMACS_NIL;
-		}
-
-		display_img_to_overlay(env, win_state, prev_cp->img_data,
-				       prev_cp->img_size, current_doc_overlay);
-		slide_cache_window_backward(doc_state, win_state);
-		set_current_page_number(env, win_state->current_page_number);
-	}
-	else
-	{
-		return EMACS_NIL;
-	}
-
-	return EMACS_T;
+	return render_and_display_page(env,
+			 doc_state,
+			 win_state,
+			 overlay,
+			 win_state->current_page_number - 1);
 }
 
 /**
@@ -939,62 +831,27 @@ emacs_prev_page(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
  */
 
 emacs_value
-emacs_first_page(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
+emacs_first_page(emacs_env *env, ptrdiff_t nargs, emacs_value *args,
+                 void *data)
 {
 	(void)nargs;
 	(void)args;
 	(void)data;
-	DocState *doc_state = get_doc_state_ptr(env);
-	if (!doc_state)
-		{
-			fprintf(stderr, "No valid DocState user pointer found.");
-			emacs_message(env, "No valid DocState user pointer found.");
-		}
 
-	emacs_value current_doc_overlay = get_current_doc_overlay(env);
-	if (!check_current_overlay(env, current_doc_overlay))
-		{
-			emacs_message(env, "Invalid overlay state: reinitializing");
-			return EMACS_NIL;
-		}
+	DocState *doc_state = NULL;
+	EmacsWinState *win_state = NULL;
+	emacs_value overlay = EMACS_NIL;
 
-	EmacsWinState *win_state = get_win_state_ptr(env, current_doc_overlay);
+	if (!get_reader_current_state(env, &doc_state, &win_state, &overlay))
+		return EMACS_NIL;
 
-	if (doc_state && win_state)
-	{
-
-		if (win_state->current_page_number == 0)
+	if (win_state->current_page_number == 0)
 		{
 			emacs_message(env, "Already first page!");
 			return EMACS_NIL;
 		}
 
-		win_state->current_page_number = 0;
-		set_current_page_number(env, win_state->current_page_number);
-		build_cache_window(doc_state, win_state,
-				   win_state->current_page_number);
-		CachedPage *first_cp = win_state->current_cached_page;
-		// Wait for the thread to signal before displaying
-		pthread_mutex_lock(&first_cp->mutex);
-		while (first_cp->status == PAGE_STATUS_EMPTY || first_cp->status == PAGE_STATUS_RENDERING)
-			pthread_cond_wait(&first_cp->cond, &first_cp->mutex);
-		pthread_mutex_unlock(&first_cp->mutex);
-
-		// Throw an error if the rendering of the page failed
-		if (first_cp->status == PAGE_STATUS_ERROR) {
-			emacs_message(env, "Failed to render the page.");
-			return EMACS_NIL;
-		}
-
-		display_img_to_overlay(env, win_state, first_cp->img_data,
-				       first_cp->img_size, current_doc_overlay);
-	}
-	else
-	{
-		return EMACS_NIL;
-	}
-
-	return EMACS_T;
+	return render_and_display_page(env, doc_state, win_state, overlay, 0);
 }
 
 /**
@@ -1008,61 +865,31 @@ emacs_first_page(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
  */
 
 emacs_value
-emacs_last_page(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
+emacs_last_page(emacs_env *env, ptrdiff_t nargs, emacs_value *args,
+                void *data)
 {
-	(void)nargs;
-	(void)args;
-	(void)data;
-	DocState *doc_state = get_doc_state_ptr(env);
-	if (!doc_state)
-		{
-			fprintf(stderr, "No valid DocState user pointer found.");
-			emacs_message(env, "No valid DocState user pointer found.");
-		}
+    (void)nargs;
+    (void)args;
+    (void)data;
 
-	emacs_value current_doc_overlay = get_current_doc_overlay(env);
-	if (!check_current_overlay(env, current_doc_overlay))
-	{
-		emacs_message(env, "Invalid overlay state: reinitializing");
-		return EMACS_NIL;
-	}
+    DocState *doc_state = NULL;
+    EmacsWinState *win_state = NULL;
+    emacs_value overlay = EMACS_NIL;
 
-	EmacsWinState *win_state = get_win_state_ptr(env, current_doc_overlay);
+    if (!get_reader_current_state(env, &doc_state, &win_state, &overlay))
+        return EMACS_NIL;
 
-	if (doc_state && win_state)
-	{
-		if (win_state->current_page_number == doc_state->pagecount - 1)
-		{
-			emacs_message(env, "Already the last page!");
-			return EMACS_NIL;
-		}
+    if (win_state->current_page_number >= doc_state->pagecount - 1)
+    {
+        emacs_message(env, "Already the last page!");
+        return EMACS_NIL;
+    }
 
-		win_state->current_page_number = doc_state->pagecount - 1;
-		set_current_page_number(env, win_state->current_page_number);
-		build_cache_window(doc_state, win_state,
-				   win_state->current_page_number);
-		CachedPage *last_cp = win_state->current_cached_page;
-		// Wait for the thread to signal before displaying
-		pthread_mutex_lock(&last_cp->mutex);
-		while (last_cp->status == PAGE_STATUS_EMPTY || last_cp->status == PAGE_STATUS_RENDERING)
-			pthread_cond_wait(&last_cp->cond, &last_cp->mutex);
-		pthread_mutex_unlock(&last_cp->mutex);
-
-		// Throw an error if the rendering of the page failed
-		if (last_cp->status == PAGE_STATUS_ERROR) {
-			emacs_message(env, "Failed to render the page.");
-			return EMACS_NIL;
-		}
-
-		display_img_to_overlay(env, win_state, last_cp->img_data,
-				       last_cp->img_size, current_doc_overlay);
-	}
-	else
-	{
-		return EMACS_NIL;
-	}
-
-	return EMACS_T;
+    return render_and_display_page(env,
+                     doc_state,
+                     win_state,
+                     overlay,
+                     doc_state->pagecount - 1);
 }
 
 /**
@@ -1077,67 +904,22 @@ emacs_last_page(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
  */
 
 emacs_value
-emacs_goto_page(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
+emacs_goto_page(emacs_env *env, ptrdiff_t nargs, emacs_value *args,
+                void *data)
 {
 	(void)nargs;
 	(void)data;
+
 	int page_number = env->extract_integer(env, args[0]);
-	DocState *doc_state = get_doc_state_ptr(env);
-	if (!doc_state)
-		{
-			fprintf(stderr, "No valid DocState user pointer found.");
-			emacs_message(env, "No valid DocState user pointer found.");
-		}
 
-	emacs_value current_doc_overlay = get_current_doc_overlay(env);
-	if (!check_current_overlay(env, current_doc_overlay))
-		{
-			emacs_message(env, "Invalid overlay state: reinitializing");
-			return EMACS_NIL;
-		}
+	DocState *doc_state = NULL;
+	EmacsWinState *win_state = NULL;
+	emacs_value overlay = EMACS_NIL;
 
-	EmacsWinState *win_state = get_win_state_ptr(env, current_doc_overlay);
-
-	if (doc_state && win_state)
-	{
-		if (page_number >= 0
-		    && page_number <= (doc_state->pagecount - 1))
-		{
-			win_state->current_page_number = page_number;
-			set_current_page_number(env,
-						win_state->current_page_number);
-			build_cache_window(doc_state, win_state,
-					   win_state->current_page_number);
-			CachedPage *cp = win_state->current_cached_page;
-			// Wait for the thread to signal before displaying
-			pthread_mutex_lock(&cp->mutex);
-			while (cp->status == PAGE_STATUS_EMPTY || cp->status == PAGE_STATUS_RENDERING)
-				pthread_cond_wait(&cp->cond, &cp->mutex);
-			pthread_mutex_unlock(&cp->mutex);
-
-			// Throw an error if the rendering of the page failed
-			if (cp->status == PAGE_STATUS_ERROR) {
-				emacs_message(env, "Failed to render the page.");
-				return EMACS_NIL;
-			}
-
-			display_img_to_overlay(env, win_state, cp->img_data,
-					       cp->img_size,
-					       current_doc_overlay);
-		}
-		else
-		{
-			emacs_message(env,
-				      "Provided page number is out of bounds!");
-			return EMACS_NIL;
-		}
-	}
-	else
-	{
+	if (!get_reader_current_state(env, &doc_state, &win_state, &overlay))
 		return EMACS_NIL;
-	}
 
-	return EMACS_T;
+	return render_and_display_page(env, doc_state, win_state, overlay, page_number);
 }
 
 /**
@@ -1156,57 +938,42 @@ emacs_doc_scale_page(emacs_env *env, ptrdiff_t nargs, emacs_value *args,
 {
 	(void)nargs;
 	(void)data;
-	DocState *doc_state = get_doc_state_ptr(env);
-	if (!doc_state)
-		{
-			fprintf(stderr, "No valid DocState user pointer found.");
-			emacs_message(env, "No valid DocState user pointer found.");
-		}
-
-	emacs_value current_doc_overlay = get_current_doc_overlay(env);
-	if (!check_current_overlay(env, current_doc_overlay))
-	{
-		emacs_message(env, "Invalid overlay state: reinitializing");
+	DocState *doc_state = NULL;
+	EmacsWinState *win_state = NULL;
+	emacs_value overlay = EMACS_NIL;
+	if (!get_reader_current_state(env, &doc_state, &win_state, &overlay))
 		return EMACS_NIL;
-	}
+	if (doc_state->pagecount <= 0)
+		return EMACS_NIL;
+	float scale_factor = env->extract_float(env, args[0]);
+	double new_res = fz_clamp(scale_factor * 72.0, MINRES, MAXRES);
 
-	EmacsWinState *win_state = get_win_state_ptr(env, current_doc_overlay);
-	double scale_factor = env->extract_float(env, args[0]);
+	// Calculate the clamped scale factor to return to Elisp
+	double scale_clamped = new_res / 72.0;
 
-	if (doc_state && win_state)
-	{
-		const double dpi = 72.0;
-		double new_res = fz_clamp(scale_factor * dpi, MINRES, MAXRES);
-		double scale_clamped = new_res / dpi;
-		win_state->resolution = new_res;
-
-		build_cache_window(doc_state, win_state,
-				   win_state->current_page_number);
-
-		CachedPage *cp = win_state->current_cached_page;
-		// Wait for the thread to signal before displaying
-		pthread_mutex_lock(&cp->mutex);
-		while (cp->status == PAGE_STATUS_EMPTY || cp->status == PAGE_STATUS_RENDERING)
-			pthread_cond_wait(&cp->cond, &cp->mutex);
-		pthread_mutex_unlock(&cp->mutex);
-
-		// Throw an error if the rendering of the page failed
-		if (cp->status == PAGE_STATUS_ERROR) {
+	wait_for_win_jobs(win_state);
+	if (win_state->resolution != new_res)
+		{
+			win_state->resolution = new_res;
+			nullify_window_cache(win_state);
+		}
+	build_cache_window(doc_state,
+			   win_state,
+			   win_state->current_page_number);
+	CachedPage *cp = win_state->current_cached_page;
+	if (!wait_for_cached_page(cp))
+		{
 			emacs_message(env, "Failed to render the page.");
 			return EMACS_NIL;
 		}
+	if (!display_cached_page(env, cp, overlay))
+		{
+			emacs_message(env, "Failed to display the rendered page.");
+			return EMACS_NIL;
+		}
+	set_current_render_status(env);
 
-		display_img_to_overlay(env, win_state, cp->img_data,
-				       cp->img_size, current_doc_overlay);
-
-		return env->make_float(env, scale_clamped);
-	}
-	else
-	{
-		emacs_message(env, "Not a valid document, or you are not in an "
-				   "Emacs Reader buffer!");
-		return EMACS_NIL;
-	}
+	return env->make_float(env, scale_clamped);
 }
 
 /**
@@ -1220,94 +987,173 @@ emacs_doc_scale_page(emacs_env *env, ptrdiff_t nargs, emacs_value *args,
  */
 
 emacs_value
-emacs_doc_rotate(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
+emacs_doc_rotate(emacs_env *env, ptrdiff_t nargs, emacs_value *args,
+                     void *data)
 {
 	(void)nargs;
 	(void)data;
-	DocState *doc_state = get_doc_state_ptr(env);
-	if (!doc_state)
-		{
-			fprintf(stderr, "No valid DocState user pointer found.");
-			emacs_message(env, "No valid DocState user pointer found.");
-		}
 
-	emacs_value current_doc_overlay = get_current_doc_overlay(env);
-	if (!check_current_overlay(env, current_doc_overlay))
-		{
-			emacs_message(env, "Invalid overlay state: reinitializing");
-			return EMACS_NIL;
-		}
+	DocState *doc_state = NULL;
+	EmacsWinState *win_state = NULL;
+	emacs_value overlay = EMACS_NIL;
 
-	EmacsWinState *win_state = get_win_state_ptr(env, current_doc_overlay);
+	if (!get_reader_current_state(env, &doc_state, &win_state, &overlay))
+		return EMACS_NIL;
+	if (doc_state->pagecount <= 0)
+		return EMACS_NIL;
+
 	int rotation_deg = env->extract_integer(env, args[0]);
-	if (doc_state && win_state)
-	{
-		win_state->rotate += rotation_deg;
-		build_cache_window(doc_state, win_state,
-				   win_state->current_page_number);
-		CachedPage *cp = win_state->current_cached_page;
-		// Wait for the thread to signal before displaying
-		pthread_mutex_lock(&cp->mutex);
-		while (cp->status == PAGE_STATUS_EMPTY || cp->status == PAGE_STATUS_RENDERING)
-			pthread_cond_wait(&cp->cond, &cp->mutex);
-		pthread_mutex_unlock(&cp->mutex);
+	wait_for_win_jobs(win_state);
 
-		// Throw an error if the rendering of the page failed
-		if (cp->status == PAGE_STATUS_ERROR) {
+	int new_rotate = (win_state->rotate + rotation_deg) % 360;
+	if (new_rotate < 0)
+		new_rotate += 360;
+
+	if (win_state->rotate != new_rotate)
+	{
+		win_state->rotate = new_rotate;
+		nullify_window_cache(win_state);
+	}
+
+	build_cache_window(doc_state, win_state, win_state->current_page_number);
+	CachedPage *cp = win_state->current_cached_page;
+
+	if (!wait_for_cached_page(cp))
+		{
 			emacs_message(env, "Failed to render the page.");
 			return EMACS_NIL;
 		}
 
-		display_img_to_overlay(env, win_state, cp->img_data,
-				       cp->img_size, current_doc_overlay);
-	}
-	else
-	{
-		return EMACS_NIL;
-	}
+	if (!display_cached_page(env, cp, overlay))
+		{
+			emacs_message(env, "Failed to display the rendered page.");
+			return EMACS_NIL;
+		}
+
+	set_current_render_status(env);
 	return EMACS_T;
 }
 
 emacs_value
 emacs_doc_window_create(emacs_env *env, ptrdiff_t nargs, emacs_value *args,
-			void *data)
+                        void *data)
 {
 	(void)nargs;
 	(void)data;
+
 	emacs_value win = args[0];
+
 	DocState *doc_state = get_doc_state_ptr(env);
+
 	if (!doc_state)
 		{
-			fprintf(stderr, "No valid DocState user pointer found.");
 			emacs_message(env, "No valid DocState user pointer found.");
+			return EMACS_NIL;
 		}
 
-	init_overlay(env, win);
-	init_win_state_ptr(env, doc_state, win);
+	emacs_value overlay = init_overlay(env, win);
+
+	if (env->eq(env, overlay, EMACS_NIL))
+		{
+			emacs_message(env, "Failed to create reader overlay.");
+			return EMACS_NIL;
+		}
+
+	EmacsWinState *win_state = init_win_state_ptr(env, doc_state, win);
+
+	if (!win_state)
+		{
+			emacs_message(env, "Window state couldn't be initialized.");
+
+			emacs_value clear_window_args[3] = {
+				win,
+				env->intern(env, "overlay"),
+				EMACS_NIL
+			};
+
+			env->funcall(env,
+				     env->intern(env, "set-window-parameter"),
+				     3,
+				     clear_window_args);
+
+			env->funcall(env,
+				     env->intern(env, "delete-overlay"),
+				     1,
+				     &overlay);
+
+			return EMACS_NIL;
+		}
+
 	return EMACS_T;
 }
 
 emacs_value
 emacs_doc_window_close(emacs_env *env, ptrdiff_t nargs, emacs_value *args,
-		       void *data)
+                       void *data)
 {
 	(void)nargs;
 	(void)data;
+
 	emacs_value overlay = args[0];
-	EmacsWinState *win_state = get_win_state_ptr(env, overlay);
-	if (win_state)
-		free(win_state);
-	emacs_value overlayp
-	    = env->funcall(env, env->intern(env, "overlayp"), 1, &overlay);
+
+	clear_overlay_and_win_state(env, overlay);
+
+	/*
+	 * If `clear_overlay_and_win_state' did not delete the overlay because
+	 * the win-state property was already missing, delete it here as a
+	 * fallback.
+	 */
+	emacs_value overlayp =
+		env->funcall(env, env->intern(env, "overlayp"), 1, &overlay);
+
 	if (env->eq(env, overlayp, EMACS_T))
-	{
-		env->funcall(env, env->intern(env, "delete-overlay"), 1,
-			     &overlay);
-	}
-	else
-	{
-		return EMACS_NIL;
-	}
+		{
+			emacs_value window_sym = env->intern(env, "window");
+
+			emacs_value overlay_window_args[2] = {
+				overlay,
+				window_sym
+			};
+
+			emacs_value win =
+				env->funcall(env,
+					     env->intern(env, "overlay-get"),
+					     2,
+					     overlay_window_args);
+
+			if (!env->eq(env, win, EMACS_NIL))
+				{
+					emacs_value window_overlay_args[2] = {
+						win,
+						env->intern(env, "overlay")
+					};
+
+					emacs_value window_overlay =
+						env->funcall(env,
+							     env->intern(env, "window-parameter"),
+							     2,
+							     window_overlay_args);
+
+					if (env->eq(env, window_overlay, overlay))
+						{
+							emacs_value set_args[3] = {
+								win,
+								env->intern(env, "overlay"),
+								EMACS_NIL
+							};
+
+							env->funcall(env,
+								     env->intern(env, "set-window-parameter"),
+								     3,
+								     set_args);
+						}
+				}
+
+			env->funcall(env,
+				     env->intern(env, "delete-overlay"),
+				     1,
+				     &overlay);
+		}
 
 	return EMACS_T;
 }

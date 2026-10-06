@@ -637,3 +637,31 @@ get_reader_current_state(emacs_env *env,
 
 	return true;
 }
+
+/* Free all the CachedPages of an Emacs window's
+ cache window. We only nullify them so that new data
+can be rendered into those slots, we retain the links to
+DocPages. */
+
+void
+nullify_window_cache(EmacsWinState *win_state)
+{
+	if (!win_state)
+		return;
+
+	for (int i = 0; i < MAX_CACHE_SIZE; ++i)
+		{
+			CachedPage *cp = win_state->cache_window[i];
+			if (!cp)
+				continue;
+
+			pthread_mutex_lock(&cp->mutex);
+			cp->status = PAGE_STATUS_EMPTY;
+			free(cp->img_data);
+			cp->img_data = NULL;
+			cp->img_size = 0;
+			cp->imgw = 0;
+			cp->imgh = 0;
+			pthread_mutex_unlock(&cp->mutex);
+		}
+}

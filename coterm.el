@@ -31,6 +31,12 @@
 ;; more complex console programs such as "less" and "mpv" and full-screen TUI
 ;; programs such as "vi", "top", "htop" or even "emacs -nw".
 ;;
+;; If you prefer to enable coterm-mode only on specific commands,
+;; then, instead of activating `coterm-mode', use `coterm-apply' as an
+;; advice.  For instance:
+;;
+;;   (advice-add 'shell :around 'coterm-apply)
+;;
 ;; In addition to that, the following two local minor modes may be used:
 ;;
 ;; `coterm-char-mode': if enabled, most characters you type are sent directly
@@ -62,6 +68,10 @@
 ;; enable `coterm-mode' automatically on startup:
 ;;
 ;;   (coterm-mode)
+;;
+;;   ;; Alternatively, to enhance M-x shell but keep other
+;;   ;; comint-based modes unmodified:
+;;   (advice-add 'shell :around 'coterm-apply)
 ;;
 ;;   ;; Optional: bind `coterm-char-mode-cycle' to C-; in comint
 ;;   (with-eval-after-load 'comint
@@ -154,13 +164,15 @@ send to the terminal.  It is recommended to leave this set to
 If non-nil, it is called with zero arguments and should return a
 list of environment variable settings to apply to comint
 subprocesses.")
+(make-obsolete-variable 'coterm-term-environment-function nil "1.7")
 
 (defvar coterm-start-process-function #'start-file-process
   "Function called to start a comint process.
 It is called with the same arguments as `start-process' and
 should return a process.")
+(make-obsolete-variable 'coterm-start-process-function nil "1.7")
 
-(define-advice comint-exec-1 (:around (f &rest args) coterm-config)
+(defun comint-exec-1@coterm-config (f &rest args)
   "Make spawning processes for comint more configurable.
 With this advice installed on `coterm-exec-1', you use the
 settings `coterm-extra-environment-function' and
@@ -178,6 +190,45 @@ process."
           (fset #'comint-term-environment comint-term-environment)
           (apply coterm-term-environment-function args))))
     (apply f args)))
+(make-obsolete 'comint-exec-1@coterm-config nil "1.7")
+(advice-remove #'comint-exec-1 'comint-exec-1@coterm-config)
+
+(defun coterm--comint-exec (fun buffer name command startfile switches)
+  "Advice for `comint-exec', kicks in only when `coterm-mode' is non-nil."
+  (if (not coterm-mode)
+      (funcall fun buffer name command startfile switches)
+    (cl-letf (((symbol-function #'comint-term-environment)
+               (lambda ()
+                 (let (ret)
+                   (push (format "TERMINFO=%s" data-directory) ret)
+                   (when coterm-term-name
+                     (push (format "TERM=%s" coterm-term-name) ret))
+                   (when coterm-termcap-format
+                     (push (format coterm-termcap-format "TERMCAP="
+                                   coterm-term-name
+                                   (floor (window-screen-lines))
+                                   (window-max-chars-per-line))
+                           ret))
+                   ret))))
+      (funcall fun buffer name "sh" startfile ; Adapted from `term-exec-1'
+               `("-c" "stty -nl sane -echo && exec \"$@\""
+                 "coterm" ,command ,@switches))
+      (add-function :around (process-filter (get-buffer-process buffer))
+                    #'coterm--t-emulate-terminal)
+      buffer)))
+
+;;;###autoload
+(defun coterm-apply (&rest args)
+  "Advice used to enable `coterm-mode' for a specific command.
+For example, to make M-x shell use coterm, add the following to your
+configuration:
+
+  (advice-add #\\='shell :around #\\='coterm-apply)
+
+If you use this approach, then you should not enable the global
+`coterm-mode'."
+  (cl-letf (((default-value 'coterm-mode) t))
+    (apply args)))
 
 ;;;###autoload
 (define-minor-mode coterm-mode
@@ -188,39 +239,17 @@ console programs such as \"less\" and \"mpv\" and full-screen
 programs such as \"vi\", \"top\", \"htop\" or even \"emacs -nw\".
 
 Environment variables for comint processes are set according to
-variables `coterm-term-name' and `coterm-termcap-format'."
+variables `coterm-term-name' and `coterm-termcap-format'.
+
+If you prefer enabling coterm only for a specific comint instead of
+globally, use `coterm-apply.'"
   :global t
-  :group 'comint
-  (if coterm-mode
+  :group 'comint)
 
-      (progn
-        (add-hook 'comint-mode-hook #'coterm--init)
-        (setq coterm-term-environment-function
-              (lambda ()
-                (let (ret)
-                  (push (format "TERMINFO=%s" data-directory)
-                        ret)
-                  (when coterm-term-name
-                    (push (format "TERM=%s" coterm-term-name) ret))
-                  (when coterm-termcap-format
-                    (push (format coterm-termcap-format "TERMCAP="
-                                  coterm-term-name
-                                  (floor (window-screen-lines))
-                                  (window-max-chars-per-line))
-                          ret))
-                  ret)))
-        (setq coterm-start-process-function
-              (lambda (name buffer command &rest switches)
-                (apply #'start-file-process name buffer
-                       ;; Adapted from `term-exec-1'
-                       "sh" "-c"
-                       (format "stty -nl sane -echo 2>%s;\
-if [ $1 = .. ]; then shift; fi; exec \"$@\"" null-device)
-                       ".." command switches))))
-
-    (remove-hook 'comint-mode-hook #'coterm--init)
-    (setq coterm-term-environment-function #'comint-term-environment)
-    (setq coterm-start-process-function #'start-file-process)))
+;; We don't control the comint initialization order: first process
+;; then major mode, or vice-versa.  So we need both below.
+(advice-add #'comint-exec :around #'coterm--comint-exec)
+(add-hook 'comint-mode-hook #'coterm--init)
 
 ;;; Char mode
 
@@ -674,7 +703,11 @@ non-nil. Set it to nil to invalidate the cache."
 
 (defun coterm--init ()
   "Initialize current buffer for coterm."
-  (when-let* ((process (get-buffer-process (current-buffer))))
+  (when-let* ((_ coterm-mode)
+              (process (get-buffer-process (current-buffer))))
+    ;; Remember that this buffer uses coterm-mode, even if the global
+    ;; minor mode is later disabled.
+    (setq-local coterm-mode t)
     (setq coterm--t-height (floor (window-screen-lines)))
     (setq coterm--t-width (window-max-chars-per-line))
     (setq coterm--t-home (point-min-marker))
@@ -691,10 +724,7 @@ non-nil. Set it to nil to invalidate the cache."
                     (when size
                       (coterm--t-reset-size (cdr size) (car size)))
                     size)
-                  '((name . coterm-maybe-reset-size)))
-
-    (add-function :around (process-filter process)
-                  #'coterm--t-emulate-terminal)))
+                  '((name . coterm-maybe-reset-size)))))
 
 (defun coterm--t-reset-size (height width)
   (let ((shrunk (< height coterm--t-height)))

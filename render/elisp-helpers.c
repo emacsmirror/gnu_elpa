@@ -502,7 +502,7 @@ display_img_to_overlay(emacs_env *env, int width, int height, char *img_data,
 		       size_t img_size, emacs_value buffer_overlay)
 {
 	if (!img_data || img_size == 0 || width <= 0 || height <= 0)
-		return EMACS_NIL;
+		return;
 
 	emacs_value elisp_img
 		= data2elisp_image(env, width, height, img_data, img_size);

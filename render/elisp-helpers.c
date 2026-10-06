@@ -222,19 +222,55 @@ clear_doc_state_ptr(emacs_env *env)
 EmacsWinState *
 init_win_state_ptr(emacs_env *env, DocState *doc_state, emacs_value window)
 {
-	EmacsWinState *win_state = malloc((sizeof(EmacsWinState)));
+	/* Use calloc to ensure the struct starts zeroed */
+	EmacsWinState *win_state = calloc(1, sizeof(EmacsWinState));
+	if (!win_state)
+		return NULL;
+
 	reset_win_state(win_state);
 	win_state->doc_state = doc_state;
-	// Create a user pointer
-	emacs_value win_state_usr_ptr
-	    = env->make_user_ptr(env, NULL, win_state);
 
-	// Get the overlay window parameter
+	/* Allocate the window's CachedPage array */
+	for (int i = 0; i < MAX_CACHE_SIZE; ++i)
+		{
+			CachedPage *cp = malloc(sizeof(CachedPage));
+			if (!cp)
+				{
+					/* Cleanup on allocation failure */
+					for (int j = 0; j < i; ++j)
+						{
+							pthread_mutex_destroy(&win_state->cache_window[j]->mutex);
+							pthread_cond_destroy(&win_state->cache_window[j]->cond);
+							free(win_state->cache_window[j]);
+						}
+					free(win_state);
+					return NULL;
+				}
+
+			cp->page_num = -1;
+			cp->img_data = NULL;
+			cp->img_size = 0;
+			cp->imgw = 0;
+			cp->imgh = 0;
+			cp->status = PAGE_STATUS_EMPTY;
+
+			pthread_mutex_init(&cp->mutex, NULL);
+			pthread_cond_init(&cp->cond, NULL);
+
+			win_state->cache_window[i] = cp;
+		}
+
+	win_state->current_cached_page = win_state->cache_window[0];
+
+	/* Create a user pointer */
+	emacs_value win_state_usr_ptr = env->make_user_ptr(env, NULL, win_state);
+
+	/* Get the overlay window parameter */
 	emacs_value overlay = env->funcall(
-	    env, env->intern(env, "window-parameter"), 2,
-	    (emacs_value[]){ window, env->intern(env, "overlay") });
+					   env, env->intern(env, "window-parameter"), 2,
+					   (emacs_value[]){ window, env->intern(env, "overlay") });
 
-	// Set the overlay property for the EmacsWinState user pointer
+	/* Set the overlay property for the EmacsWinState user pointer */
 	env->funcall(env, env->intern(env, "overlay-put"), 3,
 		     (emacs_value[]){ overlay, env->intern(env, "win-state"),
 				      win_state_usr_ptr });

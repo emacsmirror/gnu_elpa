@@ -26,8 +26,6 @@ int plugin_is_GPL_compatible;
 
 pthread_mutex_t g_mupdf_mutex[FZ_LOCK_MAX];
 
-
-
 /**
  * Load and cache the display list for a page.
  *
@@ -35,39 +33,58 @@ pthread_mutex_t g_mupdf_mutex[FZ_LOCK_MAX];
  * computes its bounding box, and generates a display list. Uses a
  * cloned MuPDF context for thread safety.
  *
- * @param state  Pointer to the current DocState.
- * @param cp     Pointer to the CachedPage to load.
- * Return:       EXIT_SUCCESS on success (errors are rethrown via MuPDF).
  */
 
 int
-load_page_dl(DocState *state, CachedPage *cp)
+load_page_dl(DocState *state, DocPage *dp)
 {
-	fz_page *loaded_page = NULL;
-	fz_context *ctx = fz_clone_context(state->ctx);
+	if (!state || !dp)
+		return EXIT_FAILURE;
+	if (dp->ready)
+		return EXIT_SUCCESS;
 
-	fz_drop_display_list(ctx, cp->display_list);
-	if (cp->status == PAGE_STATUS_EMPTY)
-	{
-		cp->status = PAGE_STATUS_RENDERING;
-		fz_try(ctx)
+	pthread_mutex_lock(&dp->mutex);
+
+	/* Another thread may have loaded it while we waited */
+	if (dp->ready)
 		{
-			loaded_page
-			    = fz_load_page(ctx, state->doc, cp->page_num);
-			state->page_bbox = fz_bound_page(ctx, loaded_page);
-			cp->display_list
-			    = fz_new_display_list_from_page(ctx, loaded_page);
+			pthread_mutex_unlock(&dp->mutex);
+			return EXIT_SUCCESS;
 		}
-		fz_always(ctx)
+
+	fz_context *ctx = fz_clone_context(state->ctx);
+	if (!ctx)
 		{
-			fz_drop_page(ctx, loaded_page);
-			loaded_page = NULL;
+			pthread_mutex_unlock(&dp->mutex);
+			return EXIT_FAILURE;
 		}
-		fz_catch(ctx) fz_rethrow(ctx);
-	}
+
+	fz_page *loaded_page = NULL;
+	bool success = false;
+
+	fz_try(ctx)
+		{
+			loaded_page = fz_load_page(ctx, state->doc, dp->page_num);
+			dp->bbox = fz_bound_page(ctx, loaded_page);
+			dp->display_list =
+				fz_new_display_list_from_page(ctx, loaded_page);
+			dp->ready = true;
+			success = true;
+		}
+	fz_always(ctx)
+		{
+			if (loaded_page)
+				fz_drop_page(ctx, loaded_page);
+		}
+	fz_catch(ctx)
+		{
+			success = false;
+		}
 
 	fz_drop_context(ctx);
-	return EXIT_SUCCESS;
+	pthread_mutex_unlock(&dp->mutex);
+
+	return success ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 /**

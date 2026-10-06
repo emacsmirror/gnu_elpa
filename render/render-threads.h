@@ -65,6 +65,9 @@ ThreadJob *
 job_queue_pop(JobQueue *queue);
 void
 submit_job(void *(*func)(void *arg), void *arg, ThreadPool *pool);
+bool
+submit_render_job(DocState *doc_state, EmacsWinState *win_state,
+		  CachedPage *cp, DocPage *dp);
 void *
 thread_routine(void *arg);
 void

@@ -217,3 +217,44 @@ submit_job(void *(*func)(void *arg), void *arg, ThreadPool *pool)
 	job->arg = arg;
 	job_queue_push(&pool->job_queue, job);
 }
+
+/* Submit a draw_page_thread render job */
+
+bool
+submit_render_job(DocState *doc_state,
+                  EmacsWinState *win_state,
+                  CachedPage *cp,
+                  DocPage *dp)
+{
+	if (!doc_state || !win_state || !cp || !dp)
+		return false;
+
+	// Job-owned DocPage reference
+	atomic_fetch_add(&dp->refcount, 1);
+
+	// Count the job at submission time, not at start time
+	atomic_fetch_add(&doc_state->active_jobs, 1);
+	atomic_fetch_add(&win_state->active_jobs, 1);
+
+	DrawThreadArgs *args = malloc(sizeof(DrawThreadArgs));
+
+	if (!args)
+		{
+			release_doc_page(doc_state, dp);
+			atomic_fetch_sub(&doc_state->active_jobs, 1);
+			atomic_fetch_sub(&win_state->active_jobs, 1);
+			return false;
+		}
+
+	args->doc_state = doc_state;
+	args->win_state = win_state;
+	args->cp        = cp;
+	args->dp        = dp;
+
+	pthread_mutex_lock(&cp->mutex);
+	cp->status = PAGE_STATUS_RENDERING;
+	pthread_mutex_unlock(&cp->mutex);
+
+	submit_job(draw_page_thread, args, &g_thread_pool);
+	return true;
+}

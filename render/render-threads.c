@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#include "mupdf-helpers.h"
 #include "render-threads.h"
 ThreadPool g_thread_pool;
 

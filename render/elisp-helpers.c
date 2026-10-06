@@ -655,15 +655,7 @@ nullify_window_cache(EmacsWinState *win_state)
 			CachedPage *cp = win_state->cache_window[i];
 			if (!cp)
 				continue;
-
-			pthread_mutex_lock(&cp->mutex);
-			cp->status = PAGE_STATUS_EMPTY;
-			free(cp->img_data);
-			cp->img_data = NULL;
-			cp->img_size = 0;
-			cp->imgw = 0;
-			cp->imgh = 0;
-			pthread_mutex_unlock(&cp->mutex);
+			clear_cp(cp);
 		}
 }
 

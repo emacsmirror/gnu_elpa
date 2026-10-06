@@ -176,29 +176,66 @@ free_doc_pages(DocState *state)
 
 /**
  * Free all ready pages in the document's cache window.
- *
- * Iterates through the cache window and frees pages marked as ready.
- * Resets the cache window pointer afterward.
- *
- * @param state  Pointer to the current DocState.
  */
 
 void
 free_cache_window(EmacsWinState *win_state)
 {
-	fprintf(stderr, "Freeing the cache window for current document...\n");
-	for (int i = 0; i < MAX_CACHE_SIZE; i++)
+	if (!win_state)
+		return;
+
+	DocState *doc_state = win_state->doc_state;
+
+	for (int i = 0; i < MAX_CACHE_SIZE; ++i)
 		{
-			if (win_state->cache_window[i]
-			    && (win_state->cache_window[i]->status == PAGE_STATUS_READY
-				|| win_state->cache_window[i]->status == PAGE_STATUS_ERROR))
+			CachedPage *cp = win_state->cache_window[i];
+			if (!cp)
+				continue;
+
+			int old_page_num = -1;
+
+			pthread_mutex_lock(&cp->mutex);
+			old_page_num = cp->page_num;
+			cp->page_num = -1;
+			cp->status = PAGE_STATUS_EMPTY;
+
+			free(cp->img_data);
+			cp->img_data = NULL;
+			cp->img_size = 0;
+			cp->imgw = 0;
+			cp->imgh = 0;
+			pthread_mutex_unlock(&cp->mutex);
+
+			/*
+			 * Release this slot's reference to the shared DocPage.
+			 * If this was the last window holding this page, the display
+			 * list will be dropped automatically by release_doc_page().
+			 */
+			if (doc_state && doc_state->doc_pages &&
+			    old_page_num >= 0 && old_page_num < doc_state->pagecount)
 				{
-					free_cached_page(win_state->cache_window[i]);
+					DocPage *dp = &doc_state->doc_pages[old_page_num];
+
+					int prev = atomic_fetch_sub(&dp->refcount, 1);
+					if (prev == 1)
+						{
+							drop_doc_page_display_list(doc_state, dp);
+						}
+					else if (prev <= 0)
+						{
+							atomic_store(&dp->refcount, 0);
+						}
 				}
+
+			/* Destroy the slot's synchronization primitives and free it */
+			pthread_mutex_destroy(&cp->mutex);
+			pthread_cond_destroy(&cp->cond);
+			free(cp);
+
+			win_state->cache_window[i] = NULL;
 		}
 
-	// Clear the whole array
-	memset(win_state->cache_window, 0, sizeof(win_state->cache_window));
+	win_state->current_cached_page = NULL;
 }
 
 void

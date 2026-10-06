@@ -36,8 +36,6 @@ load_mupdf_doc(DocState *state);
 void
 reset_doc_state(DocState *state);
 void
-free_cached_page(CachedPage *cp);
-void
 free_cache_window(EmacsWinState *win_state);
 void
 free_doc_state(DocState *state);

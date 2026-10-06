@@ -143,32 +143,6 @@ load_mupdf_doc(DocState *state)
 	return EXIT_SUCCESS;
 }
 
-/**
- * Free resources associated with a CachedPage.
- *
- * Frees any associated image data if the page was marked
- * as ready. Marks the page as empty.
- *
- * @param cp     Pointer to the CachedPage to be freed.
- */
-
-void
-free_cached_page(CachedPage *cp)
-{
-	// Handle all those that aren''t ready and also allow cleaning up failed/error
-	// ones so that they can be retried
-	if (cp->status != PAGE_STATUS_READY && cp->status != PAGE_STATUS_ERROR)
-		return;
-
-	pthread_mutex_lock(&cp->mutex);
-	cp->status = PAGE_STATUS_EMPTY;
-	free(cp->img_data);
-	cp->img_data = NULL;
-	cp->img_size = 0;
-	cp->page_num = -1;
-	pthread_mutex_unlock(&cp->mutex);
-}
-
 void
 drop_doc_page_display_list(DocState *state, DocPage *dp)
 {

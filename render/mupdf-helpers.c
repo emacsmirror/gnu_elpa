@@ -319,6 +319,54 @@ free_doc_state(DocState *state)
 
 // Cache window slot helpers
 
+/**
+ * Clear only the rasterize data from a slot (CachedPage), keeping
+ * its DocPage reference. Used when the slot already points to the
+ * correct page (e.g. during zoom/rotate).
+ */
+
+void
+clear_cp(CachedPage *cp)
+{
+	if (!cp) return;
+	pthread_mutex_lock(&cp->mutex);
+	cp->status = PAGE_STATUS_EMPTY;
+	free(cp->img_data);
+	cp->img_data = NULL;
+	cp->img_size = 0;
+	cp->imgw = 0;
+	cp->imgh = 0;
+	pthread_mutex_unlock(&cp->mutex);
+}
+/**
+ * Clear a slot (CachedPage) completely and release its reference to the shared DocPage.
+ * Used when a slot is evicted from the cache window or reassigned to a new page.
+ */
+
+void
+clear_cp_and_release(DocState *doc_state, CachedPage *cp)
+{
+    if (!cp) return;
+    int old_page_num = -1;
+
+    pthread_mutex_lock(&cp->mutex);
+    old_page_num = cp->page_num;
+    cp->page_num = -1;
+    cp->status = PAGE_STATUS_EMPTY;
+    free(cp->img_data);
+    cp->img_data = NULL;
+    cp->img_size = 0;
+    cp->imgw = 0;
+    cp->imgh = 0;
+    pthread_mutex_unlock(&cp->mutex);
+
+    if (doc_state && doc_state->doc_pages &&
+        old_page_num >= 0 && old_page_num < doc_state->pagecount)
+    {
+        release_doc_page(doc_state, &doc_state->doc_pages[old_page_num]);
+    }
+}
+
 void
 mark_cp_error(CachedPage *cp)
 {

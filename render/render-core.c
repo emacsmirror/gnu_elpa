@@ -453,155 +453,204 @@ slide_cache_window_backward(DocState *doc_state, EmacsWinState *win_state)
 emacs_value
 emacs_load_doc(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
 {
-	(void)data;
-	size_t str_length = 0;
+    (void)data;
 
-	int start_page = 0;
-	if (nargs >= 2) {
-		start_page = env->extract_integer(env, args[1]);
-		if (start_page < 0) start_page = 0;
-	}
+    size_t str_length = 0;
+    int start_page = 0;
 
-	DocState *old_state = get_doc_state_ptr(env);
-	if (old_state)
-	{
-		fprintf(stderr, "Reloading document: freeing previous state.\n");
-		old_state->is_reloading = true;
-		clear_doc_state_ptr(env);
+    if (nargs >= 2)
+    {
+        start_page = env->extract_integer(env, args[1]);
 
-		// Wait for all worker threads to finish their jobs for this document
-		while (atomic_load(&old_state->active_jobs) > 0) {
-			struct timespec ts = {0, 1000000};
-			nanosleep(&ts, NULL);
-		}
+        if (start_page < 0)
+            start_page = 0;
+    }
 
-		free_doc_state(old_state);
-	}
+    DocState *old_state = get_doc_state_ptr(env);
 
-	emacs_value curr_win = EMACS_CURR_WIN;
-	emacs_value current_doc_overlay = init_overlay(env, curr_win);
+    if (old_state)
+    {
+        old_state->is_reloading = true;
 
-	DocState *doc_state = init_doc_state_ptr(env);
-	EmacsWinState *win_state = init_win_state_ptr(env, doc_state, curr_win);
+        clear_all_overlays(env);
 
-	int pages_inited = 0;
+        clear_doc_state_ptr(env);
+        wait_for_doc_jobs(old_state);
+        free_doc_state(old_state);
+    }
 
-	if (!doc_state)
-	{
-		emacs_message(env, "Document cannot be loaded into memory.");
-		return EMACS_NIL;
-	}
+    emacs_value curr_win = EMACS_CURR_WIN;
+    emacs_value current_doc_overlay = EMACS_NIL;
 
-	if (!win_state)
-	{
-		emacs_message(env, "Window state couldn't be initialized.");
-		goto cleanup;
-	}
+    DocState *doc_state = NULL;
+    EmacsWinState *win_state = NULL;
 
-	reset_doc_state(doc_state);
-	reset_win_state(win_state);
+    current_doc_overlay = init_overlay(env, curr_win);
 
-	// Override the default page 0 with the requested start page
-	win_state->current_page_number = start_page;
+    if (env->eq(env, current_doc_overlay, EMACS_NIL))
+    {
+        emacs_message(env, "Failed to create reader overlay.");
+        return EMACS_NIL;
+    }
 
-	if (!elisp_2_c_str(env, args[0], &doc_state->path, &str_length))
-	{
-		emacs_message(env,
-			      "Failed to convert Emacs string to C string.");
-		goto cleanup;
-	}
+    doc_state = init_doc_state_ptr(env);
 
-	if (init_main_ctx(doc_state) == EXIT_FAILURE)
-	{
-		emacs_message(env, "Failed to initialize MuPDF context.");
-		goto cleanup;
-	}
+    if (!doc_state)
+    {
+        emacs_message(env, "Document cannot be loaded into memory.");
+        goto cleanup;
+    }
 
-	if (load_mupdf_doc(doc_state) == EXIT_FAILURE)
-	{
-		emacs_message(env,
-			      "The document could not be loaded by MuPDF.");
-		goto cleanup;
-	}
+    reset_doc_state(doc_state);
 
-	outline2plist(env, doc_state, doc_state->outline);
+    win_state = init_win_state_ptr(env, doc_state, curr_win);
 
-	/* Allocate pointer array (pool) */
-	doc_state->cached_pages_pool = NULL;
-	doc_state->cached_pages_pool = malloc(
-	    doc_state->pagecount * sizeof(*doc_state->cached_pages_pool));
-	if (!doc_state->cached_pages_pool)
-	{
-		emacs_message(env, "Failed to allocate cached_pages_pool.");
-		goto cleanup;
-	}
+    if (!win_state)
+    {
+        emacs_message(env, "Window state couldn't be initialized.");
+        goto cleanup;
+    }
 
-	/* Allocate contiguous block */
-	doc_state->cached_pages_block = NULL;
-	doc_state->cached_pages_block = calloc(
-	    doc_state->pagecount, sizeof(*doc_state->cached_pages_block));
-	if (!doc_state->cached_pages_block)
-	{
-		emacs_message(env, "Failed to allocate cached_pages_block.");
-		goto cleanup;
-	}
+    if (!elisp_2_c_str(env, args[0], &doc_state->path, &str_length))
+    {
+        emacs_message(env,
+                      "Failed to convert Emacs string to C string.");
+        goto cleanup;
+    }
 
-	for (int i = 0; i < doc_state->pagecount; ++i)
-	{
-		CachedPage *cp = &doc_state->cached_pages_block[i];
+    if (init_main_ctx(doc_state) == EXIT_FAILURE)
+    {
+        emacs_message(env, "Failed to initialize MuPDF context.");
+        goto cleanup;
+    }
 
-		doc_state->cached_pages_pool[i] = cp;
-		cp->page_num = i;
-		cp->status = PAGE_STATUS_EMPTY;
+    if (load_mupdf_doc(doc_state) == EXIT_FAILURE)
+    {
+        emacs_message(env,
+                      "The document could not be loaded by MuPDF.");
+        goto cleanup;
+    }
 
-		if (pthread_mutex_init(&cp->mutex, NULL) != 0)
-		{
-			emacs_message(env, "Failed to init page mutex.");
-			goto cleanup;
-		}
-		if (pthread_cond_init(&cp->cond, NULL) != 0)
-		{
-			emacs_message(env, "Failed to init page condvar.");
-			goto cleanup;
-		}
-		pages_inited++;
-	}
+    if (doc_state->pagecount <= 0)
+    {
+        emacs_message(env, "The document has no pages.");
+        goto cleanup;
+    }
 
-	build_cache_window(doc_state, win_state,
-			   win_state->current_page_number);
+    outline2plist(env, doc_state, doc_state->outline);
 
-	set_current_pagecount(env, doc_state);
-	set_current_page_number(env, win_state->current_page_number);
-	set_current_render_status(env);
-	doc_state->frame_scale = get_frame_scale_factor(env);
+    doc_state->frame_scale = get_frame_scale_factor(env);
 
-	CachedPage *cp = win_state->current_cached_page;
-	if (!cp)
-	{
-		emacs_message(env,
-			      "Internal error: current_cached_page is NULL.");
-		goto cleanup;
-	}
+    if (doc_state->frame_scale <= 0.0f)
+        doc_state->frame_scale = 1.0f;
 
-	pthread_mutex_lock(&cp->mutex);
-	while (cp->status == PAGE_STATUS_EMPTY || cp->status == PAGE_STATUS_RENDERING)
-		pthread_cond_wait(&cp->cond, &cp->mutex);
-	pthread_mutex_unlock(&cp->mutex);
+    /*
+     * Allocate DocPage array.
+     *
+     * doc_state->pagecount is temporarily used as the number of
+     * successfully initialized DocPages so cleanup can destroy only valid
+     * mutexes.
+     */
+    int total_pages = doc_state->pagecount;
 
-	if (cp->status == PAGE_STATUS_ERROR) {
-		emacs_message(env, "Failed to render the current page.");
-		goto cleanup;
-	}
+    doc_state->pagecount = 0;
+    doc_state->doc_pages = calloc(total_pages, sizeof(DocPage));
 
-	display_img_to_overlay(env, win_state, cp->img_data, cp->img_size,
-			       current_doc_overlay);
+    if (!doc_state->doc_pages)
+    {
+        emacs_message(env, "Failed to allocate DocPage array.");
+        goto cleanup;
+    }
 
-	return EMACS_T;
+    for (int i = 0; i < total_pages; ++i)
+    {
+        DocPage *dp = &doc_state->doc_pages[i];
+
+        dp->page_num = i;
+        dp->display_list = NULL;
+        dp->ready = false;
+        atomic_init(&dp->refcount, 0);
+
+        if (pthread_mutex_init(&dp->mutex, NULL) != 0)
+        {
+            emacs_message(env, "Failed to initialize DocPage mutex.");
+            goto cleanup;
+        }
+
+        doc_state->pagecount = i + 1;
+    }
+
+    if (start_page >= doc_state->pagecount)
+        start_page = doc_state->pagecount - 1;
+
+    win_state->current_page_number = start_page;
+
+    build_cache_window(doc_state, win_state, start_page);
+
+    set_current_pagecount(env, doc_state);
+    set_current_page_number(env, win_state->current_page_number);
+
+    CachedPage *cp = win_state->current_cached_page;
+
+    if (!wait_for_cached_page(cp))
+    {
+        emacs_message(env, "Failed to render the current page.");
+        goto cleanup;
+    }
+
+    if (!display_cached_page(env, cp, current_doc_overlay))
+    {
+        emacs_message(env, "Failed to display the rendered page.");
+        goto cleanup;
+    }
+
+    set_current_render_status(env);
+
+    return EMACS_T;
 
 cleanup:
-	free_doc_state(doc_state);
-	clear_doc_state_ptr(env);
-	return EMACS_NIL;
+    if (!env->eq(env, current_doc_overlay, EMACS_NIL))
+    {
+        if (win_state)
+        {
+            clear_overlay_and_win_state(env, current_doc_overlay);
+        }
+        else
+        {
+            emacs_value clear_window_args[3] = {
+                curr_win,
+                env->intern(env, "overlay"),
+                EMACS_NIL
+            };
+
+            env->funcall(env,
+                         env->intern(env, "set-window-parameter"),
+                         3,
+                         clear_window_args);
+
+            env->funcall(env,
+                         env->intern(env, "delete-overlay"),
+                         1,
+                         &current_doc_overlay);
+        }
+    }
+    else if (win_state)
+    {
+        win_state->closing = true;
+        wait_for_win_jobs(win_state);
+        free_cache_window(win_state);
+        free(win_state);
+    }
+
+    if (doc_state)
+    {
+        wait_for_doc_jobs(doc_state);
+        free_doc_state(doc_state);
+    }
+
+    clear_doc_state_ptr(env);
+
+    return EMACS_NIL;
 }
 
 /**

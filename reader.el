@@ -690,31 +690,32 @@ It is hooked to `window-configuration-change-hook' to keep detecting."
 
 (defun reader--window-create-function (window)
   "Create window overlay for WINDOW."
-  (let ((existing-overlay (window-parameter window 'overlay)))
-    ;; Check if overlay exists but is invalid or belongs to a different buffer.
-    ;; Note: We intentionally DO NOT clear 'page and 'scale here.
-    ;; We must preserve the window's independent page  and scale
-    ;; parameters so they can be restored to the new DocState.
-    (when (and existing-overlay
-               (or (not (overlayp existing-overlay))
-                   (not (eq (overlay-buffer existing-overlay) (current-buffer)))))
-      (set-window-parameter window 'overlay nil)
-      (setq existing-overlay nil))
+  (when-let* ((existing-overlay (window-parameter window 'overlay))
 
-    (unless (window-parameter window 'overlay)
-      ;; Prioritize the window's own page and scale parameters.
-      (let* ((page (or (window-parameter window 'page)
-                       reader--recent-pagenumber-fallback
-                       1))
-             (scale (or (window-parameter window 'scale)
-                        reader--recent-scale-fallback
-                        1.0)))
-        (reader-dyn--window-create window)
-        (set-window-parameter window 'page page)
-        (with-selected-window window
-          (reader-goto-page page)
-          (reader-doc-scale-page scale)
-          (reader--center-page))))))
+	      ;; Check if overlay exists but is invalid or belongs to
+	      ;; a different buffer.
+	      ((or (not (overlayp existing-overlay))
+                   (not (eq (overlay-buffer existing-overlay) (current-buffer))))))
+
+    ;; We intentionally DO NOT clear 'page and 'scale here.  We must
+    ;; preserve the window's independent page and scale parameters so
+    ;; they can be restored to the new DocState.
+    (set-window-parameter window 'overlay nil))
+
+  (unless (window-parameter window 'overlay)
+    ;; Prioritize the window's own page and scale parameters.
+    (let* ((page (or (window-parameter window 'page)
+                     reader--recent-pagenumber-fallback
+                     1))
+           (scale (or (window-parameter window 'scale)
+                      reader--recent-scale-fallback
+                      1.0)))
+      (reader-dyn--window-create window)
+      (set-window-parameter window 'page page)
+      (with-selected-window window
+        (reader-goto-page page)
+        (reader-doc-scale-page scale)
+        (reader--center-page)))))
 
 (defun reader--window-close-function (overlay)
   "Properly close the window belonging to OVERLAY."

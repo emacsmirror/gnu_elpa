@@ -223,7 +223,7 @@ WINDOW must be a valid window and defaults to the selected one."
 
 It also updates `reader--recent-scale-fallback' and `scale' property of
 selected window to reflect the new, possibly clamped scale."
-  (when-let (factor-clamped (reader-dyn--scale-page factor))
+  (when-let* (factor-clamped (reader-dyn--scale-page factor))
     (setq reader--recent-scale-fallback factor-clamped)
     (set-window-parameter nil 'scale factor-clamped)))
 

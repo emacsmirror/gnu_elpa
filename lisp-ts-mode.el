@@ -490,9 +490,9 @@ and the character's name is given the face
      (uninterned_symbol
       "#:" @font-lock-delimiter-face
       name: (symbol_tokens) @font-lock-builtin-face)
-     ;; other symbols
+     ;; package qualified symbols
      (interned_symbol
-      package: (symbol_tokens) :? @font-lock-keyword-face
+      package: (symbol_tokens) @font-lock-keyword-face
       [":" "::"] @font-lock-delimiter-face))
    ;; these next 3 should probably be merged right?
    :feature 'character

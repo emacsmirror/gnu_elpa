@@ -461,8 +461,8 @@ and the character's name is given the face
    ;; separately. highlighting the entire expression #C(1/3 99.1) with
    ;; font-lock-number-face seems weird to me.
    (condition-case nil
-       ;; get fancy on newer grammar versions
        (ts-query-compile 'common-lisp
+                         ;; get fancy on newer grammar versions
                          '([(rational ["/" "R"] :? @font-lock-delimiter-face)
                             (float ["E" "F" "L" "S" "D"] :? @font-lock-delimiter-face)]
                            @font-lock-number-face)
@@ -1502,15 +1502,18 @@ function call format directive."
                                 (repeat (string :tag "The name of an operator"))))
                  (restricted-sexp :value "(string) @format"
                                   :match-alternatives (ts-query-p)))
-  :set (lambda (var val)
-         (setf (default-toplevel-value var)
-               (cond
-                 ((not (fboundp 'ts-query-compile)) val)
-                 ((integerp (car-safe (car-safe val)))
-                  (ts-query-compile 'common-lisp
-                                    (lisp-ts-mode--build-format-query val)))
-                 ((ts-compiled-query-p val) val)
-                 (t (ts-query-compile 'common-lisp val))))))
+  :set (lambda (var val &optional arg)
+         (let ((newval (cond
+                         ((not (fboundp 'ts-query-compile)) val)
+                         ((integerp (car-safe (car-safe val)))
+                          (ts-query-compile 'common-lisp
+                                            (lisp-ts-mode--build-format-query val)))
+                         ((ts-compiled-query-p val) val)
+                         (t (ts-query-compile 'common-lisp val)))))
+           (if (not (eq arg 'buffer-local))
+               (default-toplevel-value var)
+             (make-local-variable var)
+             (setf (symbol-value var) newval)))))
 
 (defvar-local lisp-ts-format-support-mode--saved-state nil)
 

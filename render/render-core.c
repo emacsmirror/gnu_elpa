@@ -1042,7 +1042,6 @@ emacs_doc_window_create(emacs_env *env, ptrdiff_t nargs, emacs_value *args,
 	(void)data;
 
 	emacs_value win = args[0];
-
 	DocState *doc_state = get_doc_state_ptr(env);
 
 	if (!doc_state)
@@ -1052,7 +1051,6 @@ emacs_doc_window_create(emacs_env *env, ptrdiff_t nargs, emacs_value *args,
 		}
 
 	emacs_value overlay = init_overlay(env, win);
-
 	if (env->eq(env, overlay, EMACS_NIL))
 		{
 			emacs_message(env, "Failed to create reader overlay.");
@@ -1060,27 +1058,19 @@ emacs_doc_window_create(emacs_env *env, ptrdiff_t nargs, emacs_value *args,
 		}
 
 	EmacsWinState *win_state = init_win_state_ptr(env, doc_state, win);
-
 	if (!win_state)
 		{
 			emacs_message(env, "Window state couldn't be initialized.");
-
 			emacs_value clear_window_args[3] = {
 				win,
 				env->intern(env, "overlay"),
 				EMACS_NIL
 			};
-
-			env->funcall(env,
-				     env->intern(env, "set-window-parameter"),
-				     3,
+			env->funcall(env, env->intern(env, "set-window-parameter"), 3,
 				     clear_window_args);
 
-			env->funcall(env,
-				     env->intern(env, "delete-overlay"),
-				     1,
+			env->funcall(env, env->intern(env, "delete-overlay"), 1,
 				     &overlay);
-
 			return EMACS_NIL;
 		}
 
@@ -1098,40 +1088,30 @@ emacs_doc_window_close(emacs_env *env, ptrdiff_t nargs, emacs_value *args,
 
 	clear_overlay_and_win_state(env, overlay);
 
-	/*
-	 * If `clear_overlay_and_win_state' did not delete the overlay because
-	 * the win-state property was already missing, delete it here as a
-	 * fallback.
-	 */
+	/* If `clear_overlay_and_win_state' did not delete the overlay because */
+	/* the win-state property was already missing, delete it here as a */
+	/* fallback. */
 	emacs_value overlayp =
 		env->funcall(env, env->intern(env, "overlayp"), 1, &overlay);
 
 	if (env->eq(env, overlayp, EMACS_T))
 		{
 			emacs_value window_sym = env->intern(env, "window");
-
 			emacs_value overlay_window_args[2] = {
 				overlay,
 				window_sym
 			};
-
 			emacs_value win =
-				env->funcall(env,
-					     env->intern(env, "overlay-get"),
-					     2,
+				env->funcall(env, env->intern(env, "overlay-get"), 2,
 					     overlay_window_args);
-
 			if (!env->eq(env, win, EMACS_NIL))
 				{
 					emacs_value window_overlay_args[2] = {
 						win,
 						env->intern(env, "overlay")
 					};
-
 					emacs_value window_overlay =
-						env->funcall(env,
-							     env->intern(env, "window-parameter"),
-							     2,
+						env->funcall(env, env->intern(env, "window-parameter"), 2,
 							     window_overlay_args);
 
 					if (env->eq(env, window_overlay, overlay))
@@ -1142,16 +1122,12 @@ emacs_doc_window_close(emacs_env *env, ptrdiff_t nargs, emacs_value *args,
 								EMACS_NIL
 							};
 
-							env->funcall(env,
-								     env->intern(env, "set-window-parameter"),
-								     3,
+							env->funcall(env, env->intern(env, "set-window-parameter"), 3,
 								     set_args);
 						}
 				}
 
-			env->funcall(env,
-				     env->intern(env, "delete-overlay"),
-				     1,
+			env->funcall(env, env->intern(env, "delete-overlay"), 1,
 				     &overlay);
 		}
 

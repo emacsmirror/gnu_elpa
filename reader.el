@@ -692,10 +692,9 @@ It is hooked to `window-configuration-change-hook' to keep detecting."
   "Create window overlay for WINDOW."
   (let ((existing-overlay (window-parameter window 'overlay)))
     ;; Check if overlay exists but is invalid or belongs to a different buffer.
-    ;; Note: We intentionally DO NOT clear 'page and 'scale here. During a
-    ;; document reload (e.g., via `g`), `remove-overlays' deletes the overlay,
-    ;; making its buffer nil. We must preserve the window's independent page
-    ;; and scale parameters so they can be restored to the new DocState.
+    ;; Note: We intentionally DO NOT clear 'page and 'scale here.
+    ;; We must preserve the window's independent page  and scale
+    ;; parameters so they can be restored to the new DocState.
     (when (and existing-overlay
                (or (not (overlayp existing-overlay))
                    (not (eq (overlay-buffer existing-overlay) (current-buffer)))))

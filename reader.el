@@ -614,8 +614,7 @@ Intended for use in `kill-buffer-hook'."
 (defun reader--restore-display-on-quit (page scale)
   "Reload the document with PAGE at SCALE and rebuild window overlays on quit.
 
-Quit is deferred inside so the recovery cannot
-itself be interrupted."
+Quit is deferred inside so the recovery cannot itself be interrupted."
   (with-local-quit
     (condition-case nil
         (progn

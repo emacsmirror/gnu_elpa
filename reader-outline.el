@@ -108,9 +108,17 @@ Each heading title is its own clickable button."
 (defun reader-outline-select-doc-window ()
   "Display and switch to the original document's window."
   (interactive)
-  (if (window-valid-p reader-outline--doc-window)
-      (select-window reader-outline--doc-window)
-    (pop-to-buffer reader-outline--doc-buffername)))
+  (let ((buf (get-buffer reader-outline--doc-buffername)))
+    (unless (buffer-live-p buf)
+      (user-error "Document buffer no longer exists"))
+    (let ((win (or (and (window-live-p reader-outline--doc-window)
+			(eq (window-buffer reader-outline--doc-window) buf)
+			reader-outline--doc-window)
+		   (get-buffer-window buf))))
+      (if win
+	  (select-window win)
+	(pop-to-buffer buf))
+      (setq reader-outline--doc-window (selected-window)))))
 
 (defvar-keymap reader-outline-mode-map
   :doc "Keymap for `reader-outline-mode'"
@@ -133,6 +141,8 @@ Each heading title is its own clickable button."
     (unless (numberp page)
       (user-error "Invalid outline entry: no page info"))
     (reader-outline-select-doc-window)
+    ;; activates `window-buffer-change-functions' and `window-configuration-change-hook'
+    (redisplay)
     (reader-goto-page page)))
 
 (defun reader-outline-visit-page ()

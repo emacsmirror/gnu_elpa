@@ -810,7 +810,20 @@ and ensures a valid overlay exists if the new buffer is a reader buffer."
 
   "o"       #'reader-outline-show
 
-  "Q"       #'reader-close-doc)
+  "Q"       #'reader-close-doc
+
+
+  ;; Disable a few mouse commands to make sure the user is not able to
+  ;; accidentally move the point to a weird place, which causes the
+  ;; cursor (which we use as a page border) to be drawn after the
+  ;; page.
+
+  "<remap> <mouse-set-point>"   #'ignore
+  "<remap> <mouse-set-region>"  #'ignore
+  "<remap> <mouse-set-mark>"    #'ignore
+  "<remap> <mouse-set-secondary>"  #'ignore
+  "<remap> <mouse-drag-region>"    #'ignore
+  "<remap> <mouse-drag-secondary>" #'ignore)
 
 ;;;###autoload
 (define-derived-mode reader-mode special-mode "Emacs Reader"

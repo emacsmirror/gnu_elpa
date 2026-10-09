@@ -60,7 +60,7 @@
         (should (equal (treesit-node-type first-directive) "format_directive"))))))
 
 (defmacro lisp-ts-mode-tests--with-temp-changes (&rest body)
-  (declare (indent 0))
+  (declare (indent 0) (debug t))
   (let ((s (make-symbol "change-group")))
     `(let ((undo-outer-limit nil)
            (undo-limit most-positive-fixnum)
@@ -114,6 +114,50 @@
             (goto-char opener-marker)
             ;; but didn't auto escape
             (should (eolp))))))))
+
+;; these two are used by the script that generates the respective files
+(defun lisp-ts-mode-tests--setup-standard ()
+  (let ((font-lock-ignore '((lisp-ts-mode . ((pred always)))))
+        (treesit-font-lock-level 4)
+        (lisp-ts-format-support-mode-query
+         lisp-ts-mode-tests--standard-format-query))
+    (lisp-ts-mode)
+    (lisp-ts-format-support-mode)
+    (setq-local lisp-ts-mode-format-rainbow-delimiters nil)))
+
+(defun lisp-ts-mode-tests--setup-rainbow-delimiters ()
+  (require 'rainbow-delimiters)
+  (let ((font-lock-ignore '((lisp-ts-mode . ((pred always)))))
+        (treesit-font-lock-level 0)
+        (lisp-ts-format-support-mode-query
+         (treesit-query-compile 'common-lisp '((string) @format))))
+    (lisp-ts-mode)
+    (lisp-ts-format-support-mode)
+    (setq-local rainbow-delimiters-pick-face-function
+                #'rainbow-delimiters-default-pick-face)
+    (setq-local rainbow-delimiters-outermost-only-face-count 0)
+    (setq-local rainbow-delimiters-max-face-count
+                (custom--standard-value 'rainbow-delimiters-max-face-count))
+    (setq-local lisp-ts-mode-format-rainbow-delimiters t)))
+
+(ert-font-lock-deftest-file lisp-ts-mode-standard-font-lock
+  lisp-ts-mode-tests--setup-standard
+  "standard-font-lock.lisp")
+
+(ert-deftest lisp-ts-mode-format-rainbow-delimiters ()
+  (skip-unless (require 'rainbow-delimiters nil t))
+  (ert-font-lock-test-file
+   (ert-resource-file "format-rainbow-delimiters-font-lock.lisp")
+   #'lisp-ts-mode-tests--setup-rainbow-delimiters))
+
+(ert-deftest lisp-ts-mode-number-delimiter-font-lock ()
+  (skip-unless (treesit-query-valid-p 'common-lisp '((rational "/"))))
+  (let ((treesit-font-lock-level 4))
+    (ert-font-lock-test-string
+     "
+#b-11/01 33/2 91E8 3.2r4
+;    ^     ^    ^     ^ (font-lock-delimiter-face font-lock-number-face)"
+     #'lisp-ts-mode)))
 
 (provide 'lisp-ts-mode-tests)
 ;;; lisp-ts-mode-tests.el ends here

@@ -102,6 +102,7 @@ WINDOW must be a valid window and defaults to the selected one."
 
 (defun reader-load-module ()
   "Compile and reader load dynamic module."
+  (interactive)
   (unless module-file-suffix
     (error "Reader: Dynamic modules are not supported.  Get a newer Emacs!")
     (with-current-buffer (get-buffer-create "*reader module compilation*")

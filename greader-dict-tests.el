@@ -212,6 +212,36 @@ by `greader-dict--get-file-name'."
 	    (should entry)
 	    (should (member aux-file (cdr entry)))))))))
 
+(ert-deftest greader-dict-test-word-not-replaced-inside-other-words ()
+  "A word entry replaces only whole words, wherever they appear.
+Each case is an (INPUT . EXPECTED) pair for the entry re -> ré.  The
+comparison is done on (INPUT . RESULT) pairs, so a failure report
+shows which input went wrong.  Single-word inputs are left out on
+purpose: `greader-dict-check-and-replace' appends a newline to them."
+  (with-greader-dict-test-buffer
+    (greader-dict-add "re" "ré")
+    (dolist (case '(;; The whole word comes first.
+		    ("re fare" . "ré fare")
+		    ;; The longer word comes first, followed by a separator:
+		    ;; the original bug turned "fare" into "faré".
+		    ("fare re." . "fare ré.")
+		    ("fare re re" . "fare ré ré")
+		    ("il re, il re" . "il ré, il ré")
+		    ;; The whole word is the last thing in the text, right
+		    ;; after a rejected match: the separator between them
+		    ;; must not be consumed by the rejected match.
+		    ("fare re" . "fare ré")
+		    ("fare, fare re" . "fare, fare ré")
+		    ("rere re" . "rere ré")
+		    ("re-fare re" . "ré-fare ré")
+		    ;; Case is preserved.
+		    ("Re e re." . "Ré e ré.")
+		    ;; Nothing to replace at all.
+		    ("fare dare" . "fare dare")))
+      (should (equal case
+		     (cons (car case)
+			   (greader-dict-check-and-replace (car case))))))))
+
 (provide 'greader-dict-tests)
 ;;; greader-dict-tests.el ends here
 

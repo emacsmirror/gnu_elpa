@@ -519,7 +519,8 @@ as a word definition."
 	  (alternative-word
 	   (concat "\\(^\\)" "\\(" match "\\)" "\\(\\W+\\)"))
 	  (end-word
-	   (concat "\\(\\W+\\)" "\\(" match "\\)" "\\(\\W*$\\)")))
+	   (concat "\\(\\W+\\)" "\\(" match "\\)" "\\(\\W*$\\)"))
+	  (found nil))
       (while (or (re-search-forward word nil t) (re-search-forward
 						 alternative-word nil
 						 t)
@@ -528,7 +529,21 @@ as a word definition."
 	       (concat (match-string 1)
 		       (gethash match greader-dictionary)
 		       (match-string 3))))
-	  (replace-match replacement nil t))))))
+	  (save-match-data
+	    (save-excursion
+	      (goto-char (match-beginning 0))
+	      (if (or (looking-at-p "\\W") (string-equal match
+							     (thing-at-point 'word)))
+		      (setq found t))))
+	  (if found
+	      (replace-match replacement nil t)
+	    ;; MATCH is only part of a longer word: skip it, but resume
+	    ;; right after it rather than after the whole match.  The
+	    ;; separator captured by group 3 must stay available, since
+	    ;; it may be the one in front of the next, genuine,
+	    ;; occurrence (e.g. the space in "fare re").
+	    (goto-char (match-end 2)))
+	  (setq found nil))))))
 
 ;; This function adds to the `greader-dictionary' variable the
 ;; key/value pair that you pass as arguments.

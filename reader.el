@@ -32,6 +32,31 @@
 ;;; Code:
 
 (require 'image)
+
+;;;###autoload
+(defun reader-build ()
+  "Build reader's dynamic module."
+  (interactive)
+  (if (not module-file-suffix)
+      (error "Dynamic modules are not supported.  Get a newer Emacs!")
+    (let ((default-directory reader-directory)
+	  (compilation-buffer-name-function
+	   (lambda (_) "*reader-module-compilation*")))
+      (compile "make clean all"))))
+
+(defconst reader-directory
+  (or (and load-file-name
+           (file-name-directory load-file-name))
+      default-directory)
+  "The directory from where reader was first loaded.")
+
+(unless (seq-some (lambda (base)
+		    (file-exists-p
+		     (file-name-concat reader-directory
+				       (concat "render-core." base))))
+		  '("so" "dylib" "dll"))
+  (reader-build))
+
 (require 'render-core)
 
 (defgroup reader nil
@@ -741,23 +766,6 @@ and ensures a valid overlay exists if the new buffer is a reader buffer."
             (derived-mode-p 'reader-mode))
       (unless (window-parameter window 'overlay)
         (reader--window-create-function window)))))
-
-(defconst reader-directory
-  (or (and load-file-name
-           (file-name-directory load-file-name))
-      default-directory)
-  "The directory from where reader was first loaded.")
-
-;;;###autoload
-(defun reader-build ()
-  "Build reader's dynamic module."
-  (interactive)
-  (if (not module-file-suffix)
-      (error "Dynamic modules are not supported.  Get a newer Emacs!")
-    (let ((default-directory reader-directory)
-	  (compilation-buffer-name-function
-	   (lambda (_) "*reader-module-compilation*")))
-      (compile "make clean all"))))
 
 ;; We explicitly bind default keys because relying on the rebinding
 ;; mechanism can lead to them not being bound at all if users have

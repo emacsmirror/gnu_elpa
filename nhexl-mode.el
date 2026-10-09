@@ -70,6 +70,11 @@
 
 ;;; News:
 
+;; Since v1.6:
+;;
+;; - New var `nhexl-nibble-edit-on-click' to auto-activate
+;;   `nhexl-nibble-edit-mode' after mouse clicks in the hex area.
+;;
 ;; Since v1.5:
 ;; - New var `nhexl-nibble-copy-hex' to allow kill operations to copy
 ;;   the hex form when in nibble mode.
@@ -149,6 +154,12 @@ Groups are separated by spaces."
 (defcustom nhexl-nibble-copy-hex nil    ;Probably more annoying than anything!
   "if non-nil, copy/kill text's hexadecimal representation.
 Only takes effect when in `nhexl-nibble-edit-mode'."
+  :type 'boolean)
+
+(defcustom nhexl-nibble-edit-on-click nil
+ "if non-nil, (de)activate `nhexl-nibble-edit-mode' on clicks.
+More specifically, it gets activated or deactivated at every mouse button
+events depending on whether the event is in the hex area or the \"ascii\" area".
   :type 'boolean)
 
 (defvar nhexl-nibble-edit-mode-map
@@ -602,11 +613,15 @@ Return the corresponding nibble, if applicable."
          (base-pos (nth 1 posn))
          (addr-offset (eval-when-compile
                         (+ (if nhexl--put-LF-in-string 1 0)
-                           9           ;for "<address>:"
-                           1))))       ;for the following (stretch)space
+                           9         ;for "<address>:"
+                           1)))      ;for the following (stretch)space.
+         (inhex
+          (and (consp str-data) (stringp (car str-data)) (integerp base-pos)
+               (integerp (cdr str-data)) (> (cdr str-data) addr-offset))))
     ;; (message "NMSP: strdata=%S" str-data)
-    (when (and (consp str-data) (stringp (car str-data)) (integerp base-pos)
-               (integerp (cdr str-data)) (> (cdr str-data) addr-offset))
+    (when nhexl-nibble-edit-on-click
+      (nhexl-nibble-edit-mode (if inhex 1 -1)))
+    (when inhex
       (let* ((hexchars (- (cdr str-data) addr-offset))
              ;; FIXME: Calculations here go wrong in the presence of
              ;; chars with code > 255.

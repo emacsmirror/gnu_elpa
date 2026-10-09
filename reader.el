@@ -748,17 +748,16 @@ and ensures a valid overlay exists if the new buffer is a reader buffer."
       default-directory)
   "The directory from where reader was first loaded.")
 
-(defun reader-load-module ()
-  "Compile and reader load dynamic module."
+;;;###autoload
+(defun reader-build ()
+  "Build reader's dynamic module."
   (interactive)
-  (unless module-file-suffix
-    (error "Reader: Dynamic modules are not supported.  Get a newer Emacs!")
-    (with-current-buffer (get-buffer-create "*reader module compilation*")
-      (setq default-directory reader-directory)
-      (erase-buffer)
-      (compilation-mode)
-      (insert (format "Reader: compiling render-core.so..."))
-      (shell-command "make clean all"))))
+  (if (not module-file-suffix)
+      (error "Dynamic modules are not supported.  Get a newer Emacs!")
+    (let ((default-directory reader-directory)
+	  (compilation-buffer-name-function
+	   (lambda (_) "*reader-module-compilation*")))
+      (compile "make clean all"))))
 
 ;; We explicitly bind default keys because relying on the rebinding
 ;; mechanism can lead to them not being bound at all if users have

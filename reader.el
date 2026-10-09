@@ -94,24 +94,6 @@ WINDOW must be a valid window and defaults to the selected one."
 (defvar reader--command-queue nil
   "Queue of reader commands to be executed sequentially.")
 
-(defconst reader-directory
-  (or (and load-file-name
-           (file-name-directory load-file-name))
-      default-directory)
-  "The directory from where reader was first loaded.")
-
-(defun reader-load-module ()
-  "Compile and reader load dynamic module."
-  (interactive)
-  (unless module-file-suffix
-    (error "Reader: Dynamic modules are not supported.  Get a newer Emacs!")
-    (with-current-buffer (get-buffer-create "*reader module compilation*")
-      (setq default-directory reader-directory)
-      (erase-buffer)
-      (compilation-mode)
-      (insert (format "Reader: compiling render-core.so..."))
-      (shell-command "make clean all"))))
-
 (defun reader--process-command-queue ()
   "Process the next command in the queue."
   (when-let* ((cmd (pop reader--command-queue))
@@ -759,6 +741,24 @@ and ensures a valid overlay exists if the new buffer is a reader buffer."
             (derived-mode-p 'reader-mode))
       (unless (window-parameter window 'overlay)
         (reader--window-create-function window)))))
+
+(defconst reader-directory
+  (or (and load-file-name
+           (file-name-directory load-file-name))
+      default-directory)
+  "The directory from where reader was first loaded.")
+
+(defun reader-load-module ()
+  "Compile and reader load dynamic module."
+  (interactive)
+  (unless module-file-suffix
+    (error "Reader: Dynamic modules are not supported.  Get a newer Emacs!")
+    (with-current-buffer (get-buffer-create "*reader module compilation*")
+      (setq default-directory reader-directory)
+      (erase-buffer)
+      (compilation-mode)
+      (insert (format "Reader: compiling render-core.so..."))
+      (shell-command "make clean all"))))
 
 ;; We explicitly bind default keys because relying on the rebinding
 ;; mechanism can lead to them not being bound at all if users have

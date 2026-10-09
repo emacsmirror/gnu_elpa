@@ -74,6 +74,7 @@
 ;;
 ;; - New var `nhexl-nibble-edit-on-click' to auto-activate
 ;;   `nhexl-nibble-edit-mode' after mouse clicks in the hex area.
+;; - Actually obey `nhexl-nibble-copy-hex'.
 ;;
 ;; Since v1.5:
 ;; - New var `nhexl-nibble-copy-hex' to allow kill operations to copy
@@ -150,8 +151,10 @@ Groups are separated by spaces."
 ;;   rather than only the ascii area!
 ;; FIXME: Yank in this minor mode should work on the hex representation
 ;;   of the buffer's content (and should obey overwrite-mode)!
+;; FIXME: During mouse-drag-region, the end position is stuck at BOL
+;;   because it doesn't go through `nhexl--posn-hexadjust'.
 
-(defcustom nhexl-nibble-copy-hex nil    ;Probably more annoying than anything!
+(defcustom nhexl-nibble-copy-hex nil
   "if non-nil, copy/kill text's hexadecimal representation.
 Only takes effect when in `nhexl-nibble-edit-mode'."
   :type 'boolean)
@@ -159,7 +162,7 @@ Only takes effect when in `nhexl-nibble-edit-mode'."
 (defcustom nhexl-nibble-edit-on-click nil
  "if non-nil, (de)activate `nhexl-nibble-edit-mode' on clicks.
 More specifically, it gets activated or deactivated at every mouse button
-events depending on whether the event is in the hex area or the \"ascii\" area".
+events depending on whether the event is in the hex area or the \"ascii\" area."
   :type 'boolean)
 
 (defvar nhexl-nibble-edit-mode-map
@@ -274,8 +277,11 @@ and TICKS is the `buffer-chars-modified-tick' for which this was valid.")
       (nhexl--nibble-set (1+ nib)))))
 
 (defun nhexl--convert-to-hex (string)
-  (when nhexl-nibble-edit-mode
-    (mapconcat (lambda (c) (format "%02x" c)) string "")))
+  (if (and nhexl-nibble-edit-mode nhexl-nibble-copy-hex)
+      ;; FIXME: This copies the hex form of the bytes without taking
+      ;; into account the nibble position within the bytes at either end.
+      (mapconcat (lambda (c) (format "%02x" c)) string "")
+    string))
 
 ;;;; No insertion/deletion minor mode
 
@@ -646,15 +652,20 @@ Return the corresponding nibble, if applicable."
 (defun nhexl-mouse-drag-region (event)
   "Set the region to the text that the mouse is dragged over."
   (interactive "e")
+  ;; FIXME: Use the returned nibble when in `nhexl-nibble-edit-mode'.
   (nhexl--posn-hexadjust (event-start event))
   (call-interactively #'mouse-drag-region))
 
 (defun nhexl-mouse-set-region (event)
   "Set the region to the text dragged over, and copy to kill ring."
   (interactive "e")
-  (nhexl--posn-hexadjust (event-start event))
-  (nhexl--posn-hexadjust (event-end event))
-  (call-interactively #'mouse-set-region))
+  (let ((_ns (nhexl--posn-hexadjust (event-start event)))
+        (ne (nhexl--posn-hexadjust (event-end event))))
+    (call-interactively #'mouse-set-region)
+    ;; FIXME: Use NS to adjust the other end of the region as well!
+    (when (and ne nhexl-nibble-edit-mode)
+      (nhexl--nibble-set ne)
+      (nhexl--refresh-cursor))))
 
 (defun nhexl--change-function (beg end len)
   ;; Round modifications up-to the hexl-line length since nhexl--jit will need

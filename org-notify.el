@@ -128,15 +128,14 @@
 (defvar org-notify-only-critical nil
   "Activate only critical notifications.")
 
-(defun org-notify-toggle-only-critical ()
-  "Toggle `org-notify-only-critical'."
+(cl-defun org-notify-toggle-only-critical (&optional (value 'toggle))
+  "Toggle or set `org-notify-only-critical'.
+If VALUE is omitted, toggle the variable.  If VALUE is t, only critical notifications are enabled.
+If VALUE is nil, all notifications are enabled."
   (interactive)
-  (if org-notify-only-critical
-      (progn
-        (message "Turning on ALL notifications.")
-        (setq org-notify-only-critical nil))
-    (message "Turning on only CRITICAL notifications.")
-    (setq org-notify-only-critical t)))
+  (setq org-notify-only-critical (if (eq value 'toggle) (not org-notify-only-critical) value))
+  (message (if org-notify-only-critical
+               "Turning on only CRITICAL notifications." "Turning on ALL notifications.")))
 
 (defun org-notify-string->seconds (str)
   "Convert time string STR to number of seconds."

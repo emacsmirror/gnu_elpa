@@ -33,31 +33,47 @@
 
 (require 'image)
 
-;;;###autoload
-(defun reader-build ()
-  "Build reader's dynamic module."
-  (interactive)
-  (if (not module-file-suffix)
-      (error "Dynamic modules are not supported.  Get a newer Emacs!")
-    (let ((default-directory reader-directory)
-	  (compilation-buffer-name-function
-	   (lambda (_) "*reader-module-compilation*")))
-      (compile "make clean all"))))
-
 (defconst reader-directory
   (or (and load-file-name
            (file-name-directory load-file-name))
       default-directory)
   "The directory from where reader was first loaded.")
 
-(unless (seq-some (lambda (base)
-		    (file-exists-p
-		     (file-name-concat reader-directory
-				       (concat "render-core." base))))
-		  '("so" "dylib" "dll"))
-  (reader-build))
+(defun reader--load-module ()
+  "Load the `render-core' dynamic module from `reader-directory'."
+  (let ((load-path (cons reader-directory load-path)))
+    (require 'render-core)))
 
-(require 'render-core)
+(defun reader--module-built-p ()
+  "Return non-nil if the dynamic module exists in `reader-directory'."
+  (seq-some (lambda (ext)
+	      (file-exists-p
+	       (file-name-concat reader-directory (concat "render-core." ext))))
+	    '("so" "dylib" "dll")))
+
+(defun reader--post-build (_buffer status)
+  "Load the module if the build finished successfully, per STATUS."
+  (if (string-prefix-p "finished" status)
+      (reader--load-module)
+    (message "reader: module build failed, see *reader-module-compilation*")))
+
+;;;###autoload
+(defun reader-build ()
+  "Build reader's dynamic module, then load it."
+  (interactive)
+  (if (not module-file-suffix)
+      (error "Dynamic modules are not supported.  Get a newer Emacs!")
+    (let ((default-directory reader-directory)
+	  (compilation-buffer-name-function
+	   (lambda (_) "*reader-module-compilation*")))
+      (compile "make clean all")
+      (with-current-buffer "*reader-module-compilation*"
+	;; Buffer-local hook
+	(add-hook 'compilation-finish-functions #'reader--post-build nil t)))))
+
+(if (reader--module-built-p)
+    (reader--load-module)
+  (reader-build))
 
 (defgroup reader nil
   "Group for Reader’s customizations."

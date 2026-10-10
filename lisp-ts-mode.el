@@ -1391,6 +1391,19 @@ This should be set before `lisp-ts-mode' is activated.")
 
 (defalias 'common-lisp-ts-mode #'lisp-ts-mode)
 
+(defun lisp-ts-mode--activate-cl-font-lock-built-in-mode ()
+  "Support `cl-font-lock-built-in-mode' in `lisp-ts-mode'."
+  (defvar cl-font-lock-built-in-keywords)
+  (if cl-font-lock-built-in-mode
+      (font-lock-add-keywords 'lisp-ts-mode cl-font-lock-built-in-keywords)
+    (font-lock-remove-keywords 'lisp-ts-mode cl-font-lock-built-in-keywords)))
+
+(add-hook 'cl-font-lock-built-in-mode-hook
+          #'lisp-ts-mode--activate-cl-font-lock-built-in-mode)
+
+(when (bound-and-true-p cl-font-lock-built-in-mode) ;it's a global minor mode
+  (lisp-ts-mode--activate-cl-font-lock-built-in-mode))
+
 
 ;;; format grammar stuff, for those who don't use gaudy-cl-mode
 

@@ -45,7 +45,7 @@ activate:
     :ensure t)
 #+end_src
 If you use [[https://github.com/doomemacs][Doom Emacs]], it's now available as a flag in the =common-lisp= module.
-In the ~doom!~ block in your =~init.el=:
+In the ~doom!~ block in your =init.el=:
 #+begin_src elisp :tangle yes :lexical yes
   (doom! ;; ...
          :tools
@@ -63,7 +63,8 @@ For [[https://github.com/radian-software/straight.el][straight.el]]:
 #+begin_src elisp :tangle yes :lexical yes
   (straight-use-package 'lisp-ts-mode)
 #+end_src
-To automatically activate ~lisp-ts-mode~ wherever ~lisp-mode~ normally activates, use
+To automatically activate ~lisp-ts-mode~ wherever ~lisp-mode~ normally
+activates, use
 #+begin_src elisp :tangle yes :lexical yes
   (setf (alist-get 'lisp-mode major-mode-remap-alist) 'lisp-ts-mode)
 #+end_src

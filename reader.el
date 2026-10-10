@@ -80,7 +80,8 @@
 
 ;; If the module doesn't exist, compile and load it.
 (unless (reader--module-built-p)
-  (reader-build))
+  (when (yes-or-no-p "Build reader's dynamic module? ")
+    (reader-build)))
 
 (defgroup reader nil
   "Group for Reader’s customizations."

@@ -100,7 +100,7 @@ relative to the variable `denote-directory'."
             (when-let* ((id (match-string-no-properties 1))
                         (file (save-match-data
                                 (if absolute
-                                    (denote-get-path-by-id id)
+                                    (funcall denote-get-path-by-id-function id)
                                   (denote-get-relative-path-by-id id)))))
               (replace-match (format "(%s)" file) :fixed-case :literal)
               (setq count (1+ count))))

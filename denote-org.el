@@ -591,7 +591,7 @@ format."
 Used by `org-dblock-update' with PARAMS provided by the dynamic block."
   (when-let* ((files (if (plist-get params :this-heading-only)
                          (denote-org--get-backlinks-for-heading (denote-org--get-file-id-and-heading-id-or-context))
-                       (denote-get-backlinks))))
+                       (funcall denote-get-backlinks-as-files-function))))
     (let* ((not-rx (plist-get params :not-regexp))
            (sort (plist-get params :sort-by-component))
            (reverse (plist-get params :reverse-sort))

@@ -46,10 +46,9 @@
 
 (defun reader--module-built-p ()
   "Return non-nil if the dynamic module exists in `reader-directory'."
-  (seq-some (lambda (ext)
-	      (file-exists-p
-	       (file-name-concat reader-directory (concat "render-core." ext))))
-	    '("so" "dylib" "dll")))
+  (file-exists-p
+   (file-name-concat reader-directory
+		     (concat "render-core" module-file-suffix))))
 
 (defun reader--post-build (_buffer status)
   "Load the module if the build finished successfully, per STATUS."

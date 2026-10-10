@@ -53,7 +53,11 @@
 (defun reader--post-build (_buffer status)
   "Load the module if the build finished successfully, per STATUS."
   (if (string-prefix-p "finished" status)
-      (reader--load-module)
+      (progn (reader--load-module)
+	     (mapc (lambda (buff)
+		     (with-current-buffer buff
+		       (revert-buffer-quick)))
+		   (match-buffers '(major-mode . reader-mode))))
     (message "reader: module build failed, see *reader-module-compilation*")))
 
 ;;;###autoload
@@ -70,8 +74,12 @@
 	;; Buffer-local hook
 	(add-hook 'compilation-finish-functions #'reader--post-build nil t)))))
 
-(if (reader--module-built-p)
-    (reader--load-module)
+;; Try but don't handle error here directly for byte-comp purposes.
+(with-demoted-errors
+    (require 'render-core))
+
+;; If the module doesn't exist, compile and load it.
+(unless (reader--module-built-p)
   (reader-build))
 
 (defgroup reader nil
@@ -903,7 +911,8 @@ Keybindings:
   (setq-local bookmark-make-record-function
 	      #'reader-bookmark-make-record)
 
-  (unless reader-current-doc-render-status
+  (unless (bound-and-true-p
+	   reader-current-doc-render-status)
     (reader--render-buffer))
 
   (setq-local imenu-create-index-function #'reader--outline-imenu-create-index

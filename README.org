@@ -2,9 +2,8 @@
 #+OPTIONS: toc:nil
 
 #+begin_src org :exports none
-Copyright (C) 2025, 2026  Divya Ranjan Pattanaik
-Copyright (C) 2025  Tushar
-Copyright (C) 2025  prom
+Copyright (C) 2025-2026  Divya Ranjan Pattanaik
+Copyright (C) 2025-2026  Tushar
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -62,23 +61,21 @@ The only thing this package depends on is =mupdf=, at minimum =v1.26.0=.
 For now, until the package has been published to GNU ELPA, the only way to install and use it is through locally cloning the repo and building it. This is different across platforms:
 
 ** GNU/Linux
-On GNU/Linux, all you need is: =gcc= and =make=. Then you can simply install through the Emacs’ built-in =package-vc= (available in Emacs 30.1 or higher)or the [[https://github.com/radian-software/straight.el][straight]] package manager. The built-in =package-vc= still has some quirks, but here are the recipes for both:
+On GNU/Linux, all you need is: =gcc= and =make=. Then you can simply install through the Emacs’ built-in =package-vc= (available in Emacs 30.1 or higher)or the [[https://github.com/radian-software/straight.el][straight]] package manager.
 
 - =use-package= with =package-vc=:
    #+begin_src emacs-lisp
-     (setq package-vc-allow-build-commands t)
      (use-package reader
-       :vc (:url "https://codeberg.org/MonadicSheep/emacs-reader"
-     	    :make "all"))
+       :vc (:url "https://codeberg.org/MonadicSheep/emacs-reader"))
    #+end_src
 
 -  =use-package= with =straight=
    #+begin_src emacs-lisp
      (use-package reader
-       :straight '(reader :type git :host codeberg :repo "MonadicSheep/emacs-reader"
-     		     :files (:defaults "render-core.so")
-     		     :pre-build ("make" "all")))
+       :straight '(reader :type git :host codeberg :repo "MonadicSheep/emacs-reader"))
    #+end_src
+
+The first time you use reader, you will need to build the dynamic module, you can either manually run =make= in reader's directory, or run the =M-x reader-build RET= command. But reader will run the command for you if you don't.
 
 #+begin_center
 Note that sometimes you may need to run =make clean all= to get rid of
@@ -116,14 +113,7 @@ Install MuPDF using Homebrew,
   brew install mupdf
 #+end_src
 
-And then use the straight or package-vc recipe from the [[* GNU/Linux][GNU/Linux]] section. But you need to modify the straight recipe, like so,
-
-#+begin_src emacs-lisp
-  (use-package reader
-    :straight '(reader :type git :host codeberg :repo "MonadicSheep/emacs-reader"
-     		     :files ("*.el" "render-core.dylib")
-     		     :pre-build ("make" "all")))
-#+end_src
+And then use the straight or package-vc recipe from the [[* GNU/Linux][GNU/Linux]] section.
 
 Find more information [[https://codeberg.org/divyaranjan/emacs-reader/issues/142#issuecomment-8854941][here]].
 
@@ -137,22 +127,13 @@ First install the build dependencies:
 pacman -S make mingw-w64-x86_64-gcc git pkg-config mingw-w64-x86_64-libmupdf
 #+end_src
 
-After that, you can run =git clone https://codeberg.org/MonadicSheep/emacs-reader.git= and then:
-#+begin_src sh
-make all
-#+end_src
+And then use the straight or package-vc recipe from the [[* GNU/Linux][GNU/Linux]] section.
 
 ** Manual
-This section is about how to install this package manually. Intended to be used by developers and testers.n
-
-After cloning the repository, follow the instructions from the previous section to install dependencies on your respective operating system.
-
-Then, you run =make= in the git repository, as noted earlier this may take a few depending on if it is fetching and building =mupdf=.
-
-After this, you add the path to emacs-reader git repository to =load-path=,
-#+begin_src emacs-lisp
-  (add-to-list 'load-path "/path/to/emacs-reader")
-#+end_src
+1. Clone the repository into ~~/.emacs.d/user-lisp/~, you may also
+   symlink an existing checkout here.
+2. You may now run =M-x prepare-user-lisp RET= or restart Emacs.
+3. You also need to build the dynamic module, for this we provide the =M-x reader-build RET=. But you can also run =make= directly yourself.
 
 You can also utilize =use-package= to do the same,
 #+begin_src emacs-lisp
@@ -166,8 +147,6 @@ To test emacs-reader in a default Emacs config, first generate the auto loads us
   emacs -Q -L . -l reader-autoloads.el
 #+end_src
 This command adds the current directory to path, and loads =reader-autoloads.el=.
-
-You can also try using =package-vc-install-from-checkout=, [[https://codeberg.org/attachments/2555c252-0977-484e-b369-38b18a321a48][this video]] demonstrates how to do that.
 
 * Key Bindings
 - =n= for going to next page

@@ -1516,15 +1516,18 @@ function call format directive."
                  (restricted-sexp :value "(string) @format"
                                   :match-alternatives (ts-query-p)))
   :set (lambda (var val &optional arg)
-         (let ((newval (cond
-                         ((not (fboundp 'ts-query-compile)) val)
-                         ((integerp (car-safe (car-safe val)))
-                          (ts-query-compile 'common-lisp
-                                            (lisp-ts-mode--build-format-query val)))
-                         ((ts-compiled-query-p val) val)
-                         (t (ts-query-compile 'common-lisp val)))))
+         (let ((newval (if (and (proper-list-p val)
+                                (all (lambda (pair)
+                                       (and (consp pair)
+                                            (let ((f (car pair)))
+                                              (or (integerp f)
+                                                  (eq f t)
+                                                  (and (listp f) (all #'integerp f))))))
+                                     val))
+                           (lisp-ts-mode--build-format-query val)
+                         val)))
            (if (not (eq arg 'buffer-local))
-               (default-toplevel-value var)
+               (setf (default-toplevel-value var) newval)
              (make-local-variable var)
              (setf (symbol-value var) newval)))))
 

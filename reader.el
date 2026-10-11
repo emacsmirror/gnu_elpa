@@ -69,7 +69,7 @@
     (let ((default-directory reader-directory)
 	  (compilation-buffer-name-function
 	   (lambda (_) "*reader-module-compilation*")))
-      (compile "make clean all")
+      (compile (concat "make render-core" module-file-suffix))
       (with-current-buffer "*reader-module-compilation*"
 	;; Buffer-local hook
 	(add-hook 'compilation-finish-functions #'reader--post-build nil t)))))

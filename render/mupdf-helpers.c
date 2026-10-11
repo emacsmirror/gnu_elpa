@@ -1,7 +1,7 @@
 // Helper functions that complement the MuPDF C API
 
 //
-// Copyright (C) 2025, 2026  Divya Ranjan Pattanaik
+// Copyright (C) 2025-2026  Divya Ranjan Pattanaik
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by

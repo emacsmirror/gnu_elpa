@@ -1,6 +1,6 @@
 ;;; reader-bookmark.el --- bookmarks integration for the emacs-reader -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2025, 2026  Tushar
+;; Copyright (C) 2025-2026  Tushar
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by

@@ -10,6 +10,10 @@ are to be recorded here.
 - Make =reader-reset-size= interactive.
 - Overall stability improvements when opening files, accessing
   bookmarks, and outlines.
+- Remove F5 keybinding for =reader-presentation-mode=.
+- Remove =reader-mode= as an interactive command.
+- Fix weird page border artifacts when using the mouse.
+- Add =reader-build= command to automatically build the dynamic module.
 
 * Version 0.3.2
 - Fix reader-outline when original source buffer is killed.

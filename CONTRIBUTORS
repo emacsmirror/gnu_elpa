@@ -52,6 +52,15 @@ dominik martinez <dominikmartinez@pm.me> (Codeberg user dom2):
 
 - fixed crash when opening files with a corrupt outline.
 
+eugeneandrienko <evg.andrienko@gmail.com> (Codeberg user evgandr):
+
+- added FreeBSD support in Makefile (PR #174).
+
+hrdl <git@hrdl.eu> (Codeberg user hrdl):
+
+- fixed scaling issues due to clamped resolution (PR #200).
+- fixed scaling issues due to stale window state (PR #201).
+
 * highlighting settings
 # Local Variables:
 # mode: org

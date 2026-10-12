@@ -80,10 +80,12 @@
   (when (yes-or-no-p "Build reader's dynamic module? ")
     (reader-build)))
 
-;; forward declarations for dynamic module functions.
 (defvar reader--recent-pagenumber-fallback)
-(defvar reader-current-doc-outline)
+(defvar reader-current-doc-state-ptr)
+(defvar reader--recent-pagenumber-fallback)
+(defvar reader-current-doc-render-status)
 
+;;; Forward declarations for module functions
 (declare-function reader-dyn--doc-invert "ext:render/render-core.so")
 (declare-function reader-dyn--r "ext:render/render-core.so")
 (declare-function reader-dyn--window-close "ext:render/render-core.so")

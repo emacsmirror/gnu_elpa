@@ -26,6 +26,8 @@
 (require 'imenu)
 (require 'outline)
 
+(defvar reader-current-doc-outline)
+
 ;;; Imenu
 
 ;;;###autoload

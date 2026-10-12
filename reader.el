@@ -948,11 +948,9 @@ Keybindings:
 
 (defun reader--redisplay-all-windows ()
   "Redisplay the current document in all windows showing this buffer."
-  (let ((current-win (selected-window)))
-    (dolist (win (get-buffer-window-list (current-buffer) nil t))
-      (with-selected-window win
-        (reader-dyn--redisplay-doc)))
-    (select-window current-win)))
+  (dolist (win (get-buffer-window-list nil nil t))
+    (with-selected-window win
+      (reader-dyn--redisplay-doc))))
 
 (define-minor-mode reader-dark-mode
   "Toggle dark-mode for current reader document."

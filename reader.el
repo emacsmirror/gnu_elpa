@@ -873,7 +873,6 @@ and ensures a valid overlay exists if the new buffer is a reader buffer."
   "<remap> <mouse-set-secondary>"  #'ignore
   "<remap> <mouse-drag-region>"    #'ignore
   "<remap> <mouse-drag-secondary>" #'ignore
-  "<remap> <mouse-drag-secondary>" #'ignore
   "<remap> <mouse-save-then-kill>" #'ignore
   "<remap> <mouse-secondary-save-then-kill>" #'ignore)
 

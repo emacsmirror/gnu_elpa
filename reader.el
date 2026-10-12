@@ -56,7 +56,7 @@
       (progn (reader--load-module)
 	     (mapc (lambda (buff)
 		     (with-current-buffer buff
-		       (revert-buffer-quick)))
+		       (reader-mode)))
 		   (match-buffers '(major-mode . reader-mode))))
     (message "reader: module build failed, see *reader-module-compilation*")))
 

@@ -75,7 +75,8 @@
 	(add-hook 'compilation-finish-functions #'reader--post-build nil t)))))
 
 ;; If the module doesn't exist, compile and load it.
-(unless (reader--module-built-p)
+(if (reader--module-built-p)
+    (reader--load-module)
   (when (yes-or-no-p "Build reader's dynamic module? ")
     (reader-build)))
 

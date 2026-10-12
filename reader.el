@@ -777,16 +777,16 @@ It is hooked to `window-configuration-change-hook' to keep detecting."
   "Handle overlay state when WINDOW's buffer changes.
 Cleans up stale overlays if the window switched to a different buffer,
 and ensures a valid overlay exists if the new buffer is a reader buffer."
-  (when (windowp window)
-    (let ((overlay (window-parameter window 'overlay)))
-      (when (and overlay (overlayp overlay))
-        (unless (eq (overlay-buffer overlay) (window-buffer window))
-          ;; Overlay belongs to a different buffer. Clean it up.
-          (reader-dyn--window-close overlay)
-          (set-window-parameter window 'overlay nil)
-          ;; We intentionally preserve 'page and 'scale so they can be
-          ;; restored if the user switches back to the original reader buffer.
-          )))
+  (when-let* (((windowp window))
+	      (overlay (window-parameter window 'overlay))
+	      ((overlayp overlay)))
+    (unless (eq (overlay-buffer overlay) (window-buffer window))
+      ;; Overlay belongs to a different buffer. Clean it up.
+      (reader-dyn--window-close overlay)
+      (set-window-parameter window 'overlay nil)
+      ;; We intentionally preserve 'page and 'scale so they can be
+      ;; restored if the user switches back to the original reader buffer.
+      )
     ;; If the new buffer is a reader buffer and lacks an overlay, create one.
     (when (with-current-buffer (window-buffer window)
             (derived-mode-p 'reader-mode))

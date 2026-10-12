@@ -38,7 +38,8 @@
 (defun reader--saveplace-find-file ()
   "Restore saved place in `reader-mode' buffers.
 
-To be added to `save-place-after-find-file-hook'.  See also `reader--saveplace-to-alist'."
+To be added to `save-place-after-find-file-hook'.  See also
+`reader--saveplace-to-alist'."
   (or save-place-loaded (save-place-load-alist-from-file))
   (when (derived-mode-p 'reader-mode)
     (if-let* ((place (assoc buffer-file-name save-place-alist))

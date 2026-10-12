@@ -180,7 +180,7 @@ The reader-NAME command is simply a wrapper around
 	 ,(format "%s
 
 This is the actual function.
-See `%s' for the interactive version."
+See `%s' for interactive version."
 		  docstring queue-function-name)
 	 ,(push 'progn body))
 
@@ -188,7 +188,7 @@ See `%s' for the interactive version."
 	 ,(format "%s
 
 This is the queuing function.
-See `%s' for the actual definition."
+See `%s' for actual definition."
 		  docstring non-queue-function-name)
 	 ,interactive
 	 (reader--enqueue-command #',(intern non-queue-function-name)
@@ -671,7 +671,7 @@ Quit is deferred inside so the recovery cannot itself be interrupted."
           (reader--manage-window-overlays))
       (error nil))))
 
-(define-queue-command refresh-doc-buffer (&optional _ignore-auto _noconfirm _preserve-modes)
+(define-queue-command refresh-doc-buffer (&optional ignore-auto noconfirm preserve-modes)
   "Refresh the buffer document with file on disk.
 
 It reloads the entire document while preserving the previous state.
@@ -680,6 +680,9 @@ The arguments are ignored and are simply to satisfy the template for
 
 This function is replaced as `revert-buffer-function' for `reader-mode' buffers."
   (interactive)
+  ;; Can't just prefix with _ because they get used when constructing
+  ;; the function definitions.
+  (ignore ignore-auto noconfirm preserve-modes)
   (when (and buffer-file-name (not reader--reloading))
     (setq reader--reloading t)
     (unwind-protect
@@ -790,6 +793,8 @@ and ensures a valid overlay exists if the new buffer is a reader buffer."
       (unless (window-parameter window 'overlay)
         (reader--window-create-function window)))))
 
+
+(declare-function reader-outline-show "reader-outline")
 ;; We explicitly bind default keys because relying on the rebinding
 ;; mechanism can lead to them not being bound at all if users have
 ;; overridden the defaults with other commands.
@@ -917,6 +922,8 @@ Keybindings:
 	   reader-current-doc-render-status)
     (reader--render-buffer))
 
+  (declare-function reader--outline-imenu-goto "reader-outline")
+  (declare-function reader--outline-imenu-create-index "reader-outline")
   (setq-local imenu-create-index-function #'reader--outline-imenu-create-index
 	      imenu-default-goto-function #'reader--outline-imenu-goto)
 

@@ -1,0 +1,8 @@
+test/*
+doc/*
+.gitignore
+.envrc
+manifest.scm
+default.nix
+.clang-format
+.dir-locals.el

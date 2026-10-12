@@ -1,9 +1,9 @@
 ;;; reader.el --- General-purpose Document Reader -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2025-2026  Divya Ranjan Pattanaik
-;; Copyright (C) 2025-2026  Tushar
+;; Copyright (C) 2025-2026 Free Software Foundation, Inc.
 
 ;; Author: Divya Ranjan Pattanaik <divya@dialetheia.xyz>
+;;         Tushar <tusharhero@sdf.org>
 ;; Keywords: lisp, files, tools
 ;; Version: 0.3.2
 ;; Package-Requires: ((emacs "26.1"))

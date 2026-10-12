@@ -1,9 +1,10 @@
 #+TITLE: The GNU Emacs Reader
+#+AUTHOR: Divya Ranjan Pattanaik
+#+AUTHOR: Tushar
 #+OPTIONS: toc:nil
 
 #+begin_src org :exports none
-Copyright (C) 2025-2026  Divya Ranjan Pattanaik
-Copyright (C) 2025-2026  Tushar
+Copyright (C) 2025-2026 Free Software Foundation, Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

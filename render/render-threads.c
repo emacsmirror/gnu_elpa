@@ -1,5 +1,7 @@
 //
-// Copyright (C) 2025-2026  Divya Ranjan Pattanaik
+// Copyright (C) 2025-2026 Free Software Foundation, Inc.
+//
+// Author: Divya Ranjan Pattanaik <divya@dialetheia.xyz>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by

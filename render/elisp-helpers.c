@@ -1,8 +1,11 @@
 // Helper functions that complement the C API of the Emacs Module
 
 //
-// Copyright (C) 2025-2026  Divya Ranjan Pattanaik
-// Copyright (C) 2025-2026  Tushar
+// Copyright (C) 2025-2026 Free Software Foundation, Inc.
+
+// Author: Divya Ranjan Pattanaik <divya@dialetheia.xyz>
+//         Tushar <tusharhero@sdf.org>
+
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by

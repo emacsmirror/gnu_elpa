@@ -7,7 +7,7 @@
 ;; Keywords: lisp, files, tools
 ;; Version: 0.3.2
 ;; Package-Requires: ((emacs "26.1"))
-;; URL: https://codeberg.org/divyaranjan/emacs-reader
+;; URL: https://codeberg.org/MonadicSheep/emacs-reader
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by

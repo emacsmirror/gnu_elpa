@@ -3,7 +3,7 @@
 ;; Copyright (C) 2025-2026  Divya Ranjan Pattanaik
 ;; Copyright (C) 2025-2026  Tushar
 
-;; Author: Divya Ranjan Pattanaik <divya@subvertising.org>
+;; Author: Divya Ranjan Pattanaik <divya@dialetheia.xyz>
 ;; Keywords: lisp, files, tools
 ;; Version: 0.3.2
 ;; Package-Requires: ((emacs "26.1"))

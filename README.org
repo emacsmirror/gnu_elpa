@@ -130,18 +130,24 @@ pacman -S make mingw-w64-x86_64-gcc git pkg-config mingw-w64-x86_64-libmupdf
 And then use the straight or package-vc recipe from the [[* GNU/Linux][GNU/Linux]] section.
 
 ** Manual
-1. Clone the repository into ~~/.emacs.d/user-lisp/~, you may also
-   symlink an existing checkout here.
-2. You may now run =M-x prepare-user-lisp RET= or restart Emacs.
-3. You also need to build the dynamic module, for this we provide the =M-x reader-build RET=. But you can also run =make= directly yourself.
+*** User lisp directory (recommended)
+1. Clone the repository into ~~/.emacs.d/user-lisp/~,
+   #+begin_src shell
+     git clone https://codeberg.org/monadicsheep/emacs-reader ~/.emacs.d/user-lisp/emacs-reader
+   #+end_src
 
-You can also utilize =use-package= to do the same,
+   You may also symlink an existing checkout instead.
+2. You may now run =M-x prepare-user-lisp RET= or restart Emacs to make Emacs automatically prepare and load emacs-reader.
+3. You also need to build the dynamic module, for this we provide the =M-x reader-build RET=. But you can also run =make= directly yourself.
+*** package-vc
+You can also utilize =use-package= to do the same, put the following in
+your configuration,
 #+begin_src emacs-lisp
   (use-package reader
     :vc t
     :load-path "/path/to/emacs-reader")
 #+end_src
-
+*** In =emacs -Q=
 To test emacs-reader in a default Emacs config, first generate the auto loads using =make autoloads=.
 #+begin_src shell
   emacs -Q -L . -l reader-autoloads.el

@@ -1,6 +1,7 @@
 test/*
 doc/*
 .gitignore
+.mailmap
 .envrc
 manifest.scm
 default.nix

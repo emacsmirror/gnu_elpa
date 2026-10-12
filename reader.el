@@ -79,8 +79,24 @@
   (when (yes-or-no-p "Build reader's dynamic module? ")
     (reader-build)))
 
-;; Require again to fix byte-compile errors.
-(require 'render-core)
+;; forward declarations for dynamic module functions.
+(defvar reader--recent-pagenumber-fallback)
+(defvar reader-current-doc-outline)
+
+(declare-function reader-dyn--doc-invert "ext:render/render-core.so")
+(declare-function reader-dyn--r "ext:render/render-core.so")
+(declare-function reader-dyn--window-close "ext:render/render-core.so")
+(declare-function reader-dyn--window-create "ext:render/render-core.so")
+(declare-function reader-dyn--close-doc "ext:render/render-core.so")
+(declare-function reader-dyn--rotate-page "ext:render/render-core.so")
+(declare-function reader-dyn--scale-page "ext:render/render-core.so")
+(declare-function reader-dyn--goto-page "ext:render/render-core.so")
+(declare-function reader-dyn--last-page "ext:render/render-core.so")
+(declare-function reader-dyn--first-page "ext:render/render-core.so")
+(declare-function reader-dyn--prev-page "ext:render/render-core.so")
+(declare-function reader-dyn--next-page "ext:render/render-core.so")
+(declare-function reader-dyn--load-doc "ext:render/render-core.so")
+(declare-function reader-dyn--redisplay-doc "ext:render/render-core.so")
 
 (defgroup reader nil
   "Group for Reader’s customizations."

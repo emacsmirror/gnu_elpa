@@ -74,14 +74,13 @@
 	;; Buffer-local hook
 	(add-hook 'compilation-finish-functions #'reader--post-build nil t)))))
 
-;; Try but don't handle error here directly for byte-comp purposes.
-(with-demoted-errors "reader module loading error: %S"
-  (require 'render-core))
-
 ;; If the module doesn't exist, compile and load it.
 (unless (reader--module-built-p)
   (when (yes-or-no-p "Build reader's dynamic module? ")
     (reader-build)))
+
+;; Require again to fix byte-compile errors.
+(require 'render-core)
 
 (defgroup reader nil
   "Group for Reader’s customizations."

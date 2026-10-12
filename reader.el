@@ -75,8 +75,8 @@
 	(add-hook 'compilation-finish-functions #'reader--post-build nil t)))))
 
 ;; Try but don't handle error here directly for byte-comp purposes.
-(with-demoted-errors
-    (require 'render-core))
+(with-demoted-errors "reader module loading error: %S"
+  (require 'render-core))
 
 ;; If the module doesn't exist, compile and load it.
 (unless (reader--module-built-p)

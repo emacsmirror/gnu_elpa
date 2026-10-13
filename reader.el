@@ -289,9 +289,10 @@ WINDOW must be a valid window and defaults to the selected one."
 
 It also updates `reader--recent-scale-fallback' and `scale' property of
 selected window to reflect the new, possibly clamped scale."
-  (when-let* ((factor-clamped (reader-dyn--scale-page factor)))
-    (setq reader--recent-scale-fallback factor-clamped)
-    (set-window-parameter nil 'scale factor-clamped)))
+  (let ((inhibit-quit t))
+    (when-let* ((factor-clamped (reader-dyn--scale-page factor)))
+      (setq reader--recent-scale-fallback factor-clamped)
+      (set-window-parameter nil 'scale factor-clamped))))
 
 (defun reader-enlarge-size (&optional scaling-factor)
   "Enlarge the size of the current page by the `reader-enlarge-factor'.
@@ -654,14 +655,16 @@ See also `reader-shrink-size'."
 (defun reader-rotate-clockwise ()
   "Rotate the current window's view by 90 degrees, clockwise."
   (interactive)
-  (reader-dyn--rotate-page 90)
-  (reader--center-page))
+  (let ((inhibit-quit t))
+    (reader-dyn--rotate-page 90)
+    (reader--center-page)))
 
 (defun reader-rotate-counter-clockwise ()
   "Rotate the current window's view by 90 degrees, counter-clockwise."
   (interactive)
-  (reader-dyn--rotate-page -90)
-  (reader--center-page))
+  (let ((inhibit-quit t))
+    (reader-dyn--rotate-page -90)
+    (reader--center-page)))
 
 (defun reader--clear-doc-memory ()
   "Clear document memory if we are in `reader-mode'.
@@ -967,9 +970,10 @@ Keybindings:
 
 (defun reader--redisplay-all-windows ()
   "Redisplay the current document in all windows showing this buffer."
-  (dolist (win (get-buffer-window-list nil nil t))
-    (with-selected-window win
-      (reader-dyn--redisplay-doc))))
+  (let ((inhibit-quit t))
+    (dolist (win (get-buffer-window-list nil nil t))
+      (with-selected-window win
+	(reader-dyn--redisplay-doc)))))
 
 (define-minor-mode reader-dark-mode
   "Toggle dark-mode for current reader document."

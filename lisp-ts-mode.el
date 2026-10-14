@@ -446,13 +446,61 @@ and the character's name is given the face
       (add-face-text-property backslash-end (ts-node-end node)
                               'lisp-ts-mode-character-name))))
 
+(defun lisp-ts-mode--fontify-string (node override start end &rest _)
+  "Add the appropriate face to string treesit node NODE.
+See `treesit-font-lock-settings' for the meaning of the remaining
+arguments. Add either `font-lock-string-face' or `font-lock-doc-face'
+depending on the context."
+  (ignore override)
+  (and (>= (ts-node-start node) start)
+       (<= (ts-node-end node) end)
+       (add-face-text-property
+        (ts-node-start node)
+        (ts-node-end node)
+        ;; a tree-sitter version of `lisp-font-lock-syntactic-face-function'
+        ;; FIXME: this should skip over declarations, cuz unlike elisp
+        ;; declarations can come before the docstring in lambda-like operators
+        (if (and (not (bound-and-true-p gaudy-cl-mode)) ;does it on its own
+                 (or (let* ((parent (ts-node-parent node))
+                            (operator (and (ts-node-match-p parent "list")
+                                           (ts-node-child parent 0 t)))
+                            (name (ts-node-child-by-field-name operator "name"))
+                            (symbol (and name (intern-soft (ts-node-text name t))))
+                            (docelt (get symbol lisp-doc-string-elt-property)))
+                       ;; this operator has a `doc-string-elt' property. it's either
+                       ;; a natnum or a 0-ary function returning a natnum
+                       (and (if (functionp docelt)
+                                (save-excursion
+                                  (goto-char (ts-node-end operator))
+                                  (setq docelt (funcall docelt)))
+                              docelt)
+                            (let ((idx docelt)
+                                  (arg operator))
+                              (while (and (>= idx 0) (not (ts-node-eq arg node)))
+                                (unless (ts-node-match-p arg "comment")
+                                  (decf idx))
+                                (setq arg (ts-node-next-sibling arg t)))
+                              (zerop idx))))
+                     (and-let* ((prevnode (ts-node-prev-sibling node t))
+                                ;; this field is only present on symbols
+                                (namepart (ts-node-child-by-field-name prevnode "name"))
+                                ;; check that it's a keyword
+                                (_ (eq (char-after (ts-node-start prevnode)) ?:)))
+                       (save-excursion
+                         (goto-char (ts-node-start namepart))
+                         (with-restriction (point) (ts-node-end namepart)
+                           (looking-at-p (rx "doc" (? "umentation") buffer-end)))))))
+            'font-lock-doc-face
+          'font-lock-string-face)
+        t)))
+
 (defun lisp-ts-mode--cl-font-lock-rules ()
   "Return `treesit-font-lock-settings' for `lisp-ts-mode'."
   (ts-font-lock-rules
    :default-language 'common-lisp
    :feature 'string
    :override 'append
-   '((string) @font-lock-string-face)
+   '((string) @lisp-ts-mode--fontify-string)
    :feature 'comment
    '([(line_comment) (block_comment)] @lisp-ts-mode--fontify-comment)
    :feature 'number

@@ -86,19 +86,18 @@
 (defvar reader-current-doc-render-status)
 
 ;;; Forward declarations for module functions
-(declare-function reader-dyn--doc-invert "ext:render/render-core.so")
-(declare-function reader-dyn--r "ext:render/render-core.so")
-(declare-function reader-dyn--window-close "ext:render/render-core.so")
-(declare-function reader-dyn--window-create "ext:render/render-core.so")
+(declare-function reader-dyn--doc-invert "ext:render/render-core.so" (invert))
+(declare-function reader-dyn--window-close "ext:render/render-core.so" (window))
+(declare-function reader-dyn--window-create "ext:render/render-core.so" (window))
 (declare-function reader-dyn--close-doc "ext:render/render-core.so")
-(declare-function reader-dyn--rotate-page "ext:render/render-core.so")
-(declare-function reader-dyn--scale-page "ext:render/render-core.so")
-(declare-function reader-dyn--goto-page "ext:render/render-core.so")
+(declare-function reader-dyn--rotate-page "ext:render/render-core.so" (degree))
+(declare-function reader-dyn--scale-page "ext:render/render-core.so" (factor))
+(declare-function reader-dyn--goto-page "ext:render/render-core.so" (page))
 (declare-function reader-dyn--last-page "ext:render/render-core.so")
 (declare-function reader-dyn--first-page "ext:render/render-core.so")
 (declare-function reader-dyn--prev-page "ext:render/render-core.so")
 (declare-function reader-dyn--next-page "ext:render/render-core.so")
-(declare-function reader-dyn--load-doc "ext:render/render-core.so")
+(declare-function reader-dyn--load-doc "ext:render/render-core.so" (file &optional page))
 (declare-function reader-dyn--redisplay-doc "ext:render/render-core.so")
 
 (defgroup reader nil

@@ -114,7 +114,7 @@
   "The fractional amount by which the page would be shrinked."
   :type 'number)
 
-(defcustom reader-default-fit 'reader-fit-to-height
+(defcustom reader-default-fit #'reader-fit-to-height
   "The default fitting for documents."
   :type '(radio (function-item reader-fit-to-height)
 		(function-item reader-fit-to-width)))
@@ -975,14 +975,14 @@ Keybindings:
 (define-minor-mode reader-dark-mode
   "Toggle dark-mode for current reader document."
   :lighter " Dark"
-  (when (eq major-mode 'reader-mode)
+  (when (derived-mode-p 'reader-mode)
     (reader-dyn--doc-invert (if reader-dark-mode 1 0))
     (reader--redisplay-all-windows)))
 
 (define-minor-mode reader-presentation-mode
   "Toggle presentation view for current reader document."
   :lighter ""
-  (when (eq major-mode 'reader-mode)
+  (when (derived-mode-p 'reader-mode)
     (cond (reader-presentation-mode
 	   (setq-local mode-line-format nil)
 	   (reader-fit-to-height))

@@ -25,11 +25,6 @@ OS_NAME := $(shell uname)
 HAVE_GUIX := $(shell command -v guix >/dev/null 2>&1 && echo yes || echo no)
 HAVE_NIX  := $(shell command -v nix >/dev/null 2>&1 && echo yes || echo no)
 HAVE_DNF  := $(shell command -v dnf >/dev/null 2>&1 && echo yes || echo no)
-ifneq ($(filter MINGW%, $(OS_NAME)),)
-  HAVE_MINGW64 := yes
-else
-  HAVE_MINGW64 := no
-endif
 USE_PKGCONFIG := yes
 
 ifeq ($(HAVE_GUIX),yes)
@@ -47,13 +42,11 @@ else ifeq ($(OS_NAME),Darwin)
 else ifeq ($(OS_NAME),FreeBSD)
   $(info FreeBSD detected: skipping pkg-config checks.)
   USE_PKGCONFIG := no
-else ifeq ($(HAVE_MINGW64), yes)
-  $(info MinGW64 detected: assuming dll is located in $(MINGW_PREFIX)/bin.)
 endif
 
 ifeq ($(OS_NAME),Darwin)
   SO := dylib
-else ifeq ($(HAVE_MINGW64),yes)
+else ifneq ($(filter MINGW%, $(OS_NAME)),)
   SO := dll
 else
   SO := so
@@ -68,9 +61,6 @@ EMACS = emacs --batch -Q --eval '(setq enable-dir-local-variables nil)' -L .
 ifeq ($(OS_NAME),Darwin)
   CFLAGS += -DMACOS
   LDFLAGS += -dynamiclib
-else ifeq ($(HAVE_MINGW64),yes)
-  CFLAGS += -DWIN32 -pthread
-  LDFLAGS += -shared -lpthread -L$$MINGW_PREFIX/bin
 else
   CFLAGS += -DLINUX -pthread
   LDFLAGS += -shared -lpthread

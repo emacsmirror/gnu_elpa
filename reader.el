@@ -429,7 +429,7 @@ not return the actual horizontal scroll value; for that, see
 
 WINDOW must be a valid window and defaults to the selected one."
   (when-let* ((overlay (reader-current-doc-overlay window))
-              ((overlayp overlay))
+              (_ (overlayp overlay))
 	      (window-width (window-body-width window t))
               (doc-image-width (car (reader--get-current-doc-image-size window)))
 	      (max-left-offset (max 0 (- window-width doc-image-width)))
@@ -491,7 +491,7 @@ AMOUNT defaults to 1.
 Only scrolls when the document page width is larger then the window width."
   (interactive "p")
   (or amount (setq amount 1))
-  (when-let* (((< (window-body-width nil t) (car (reader--get-current-doc-image-size))))
+  (when-let* ((_ (< (window-body-width nil t) (car (reader--get-current-doc-image-size))))
 	      (prev-scroll (reader--window-hscroll))
 	      (hscroll (+ prev-scroll amount)))
     (- (reader--set-window-hscroll nil hscroll) prev-scroll)))
@@ -502,7 +502,7 @@ Only scrolls when the document page width is larger then the window width."
 Only scrolls when the document page width is larger then the window width."
   (interactive "p")
   (or amount (setq amount 1))
-  (when-let* (((< (window-body-width nil t) (car (reader--get-current-doc-image-size))))
+  (when-let* ((_ (< (window-body-width nil t) (car (reader--get-current-doc-image-size))))
 	      (prev-scroll (reader--window-hscroll))
 	      (hscroll (- prev-scroll amount)))
     (- prev-scroll (reader--set-window-hscroll nil hscroll))))
@@ -531,8 +531,8 @@ Only scrolls when the document page width is larger then the window width."
 AMOUNT defaults to 1."
   (interactive "p")
   (or amount (setq amount 1))
-  (when-let* (((and (= 0 (reader-scroll-up amount))
-		    (reader--non-queue-previous-page))) ; if succeeds
+  (when-let* ((_ (and (= 0 (reader-scroll-up amount))
+		      (reader--non-queue-previous-page))) ; if succeeds
 	      (image-height (cdr (reader--get-current-doc-image-size)))
 	      (pixel-window-height (window-body-height nil t))
 	      (bottom-most-scroll-pixel
@@ -725,7 +725,7 @@ This function is replaced as `revert-buffer-function' for `reader-mode' buffers.
 Load the PAGE if provided."
   (interactive)
   (if-let* ((file (buffer-file-name (current-buffer))))
-      (when-let* (((file-exists-p file))
+      (when-let* ((_ (file-exists-p file))
 		  (page (if (numberp page) (max 0 page) 0)))
 	(reader-dyn--load-doc file page)
 	;; reader-dyn--load-doc resets the window state, which also
@@ -763,8 +763,8 @@ It is hooked to `window-configuration-change-hook' to keep detecting."
 
 	      ;; Check if overlay exists but is invalid or belongs to
 	      ;; a different buffer.
-	      ((or (not (overlayp existing-overlay))
-                   (not (eq (overlay-buffer existing-overlay) (current-buffer))))))
+	      (_ (or (not (overlayp existing-overlay))
+                     (not (eq (overlay-buffer existing-overlay) (current-buffer))))))
 
     ;; We intentionally DO NOT clear 'page and 'scale here.  We must
     ;; preserve the window's independent page and scale parameters so
@@ -796,9 +796,9 @@ It is hooked to `window-configuration-change-hook' to keep detecting."
   "Handle overlay state when WINDOW's buffer changes.
 Cleans up stale overlays if the window switched to a different buffer,
 and ensures a valid overlay exists if the new buffer is a reader buffer."
-  (when-let* (((windowp window))
+  (when-let* ((_ (windowp window))
 	      (overlay (window-parameter window 'overlay))
-	      ((overlayp overlay)))
+	      (_ (overlayp overlay)))
     (unless (eq (overlay-buffer overlay) (window-buffer window))
       ;; Overlay belongs to a different buffer. Clean it up.
       (reader-dyn--window-close overlay)

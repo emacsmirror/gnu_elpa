@@ -85,6 +85,47 @@ Lastly, the ~FORMAT~ string support is a separate minor mode,
   (add-hook 'lisp-ts-mode-hook #'lisp-ts-format-support-mode)
 #+end_src
 But if you use [[https://codeberg.org/zshaftel/gaudy-cl][gaudy-cl]], it will apply the grammar on its own (and much more).
+
+** Activating Sly/Slime
+Sly and Slime add themselves to ~lisp-mode-hook~, but you'll need to add the
+appropriate functions to ~lisp-ts-mode-hook~ manually. Put the following in the
+~:config~ section of ~use-package~.
+- Slime
+  #+begin_src elisp :tangle yes :lexical yes
+    (require 'slime)
+    (add-hook 'lisp-ts-mode-hook #'slime-lisp-mode-hook)
+    (with-eval-after-load 'slime-cl-indent
+      (add-hook 'lisp-ts-mode-hook #'common-lisp-lisp-mode-hook))
+  #+end_src
+- Sly
+  #+begin_src elisp :tangle yes :lexical yes
+    (require 'sly)
+    (add-hook 'lisp-ts-mode-hook #'sly-editing-mode)
+    (with-eval-after-load 'sly-cl-indent
+      (add-hook 'lisp-ts-mode-hook #'sly--lisp-indent-lisp-mode-hook))
+  #+end_src
+** TL;DR example ~use-package~
+#+begin_src elisp :tangle yes :lexical yes
+  (use-package lisp-ts-mode
+    :ensure t
+    :init
+    (setf (alist-get 'lisp-mode major-mode-remap-alist) 'lisp-ts-mode)
+    :config
+    (setf (alist-get 'lisp-ts-mode font-lock-ignore)
+          lisp-ts-mode-font-lock-ignore-keywords)
+    ;; for Slime
+    (require 'slime)
+    (add-hook 'lisp-ts-mode-hook #'slime-lisp-mode-hook)
+    (with-eval-after-load 'slime-cl-indent
+      (add-hook 'lisp-ts-mode-hook #'common-lisp-lisp-mode-hook))
+    ;; OR for Sly
+    (require 'sly)
+    (add-hook 'lisp-ts-mode-hook #'sly-editing-mode)
+    (with-eval-after-load 'sly-cl-indent
+      (add-hook 'lisp-ts-mode-hook #'sly--lisp-indent-lisp-mode-hook))
+    ;; if you're not using `gaudy-cl-mode'
+    (add-hook 'lisp-ts-mode-hook #'lisp-ts-format-support-mode))
+#+end_src
 * ~FORMAT~ directive indentation
 :PROPERTIES:
 :CUSTOM_ID: format_indentation

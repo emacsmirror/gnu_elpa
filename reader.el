@@ -108,17 +108,14 @@
 
 (defcustom reader-enlarge-factor 1.25
   "The fractional amount by which the page would be enlarged."
-  :group 'reader
   :type 'number)
 
 (defcustom reader-shrink-factor 0.75
   "The fractional amount by which the page would be shrinked."
-  :group 'reader
   :type 'number)
 
 (defcustom reader-default-fit 'reader-fit-to-height
   "The default fitting for documents."
-  :group 'reader
   :type '(radio (function-item reader-fit-to-height)
 		(function-item reader-fit-to-width)))
 

@@ -65,15 +65,13 @@
 (defun reader-build ()
   "Build reader's dynamic module, then load it."
   (interactive)
-  (if (not module-file-suffix)
-      (error "Dynamic modules are not supported.  Get a newer Emacs!")
-    (let ((default-directory reader-directory)
-	  (compilation-buffer-name-function
-	   (lambda (_) "*reader-module-compilation*")))
-      (compile (concat "make render-core" module-file-suffix))
-      (with-current-buffer "*reader-module-compilation*"
-	;; Buffer-local hook
-	(add-hook 'compilation-finish-functions #'reader--post-build nil t)))))
+  (let ((default-directory reader-directory)
+	(compilation-buffer-name-function
+	 (lambda (_) "*reader-module-compilation*")))
+    (compile (concat "make render-core" module-file-suffix))
+    (with-current-buffer "*reader-module-compilation*"
+      ;; Buffer-local hook
+      (add-hook 'compilation-finish-functions #'reader--post-build nil t))))
 
 ;; If the module doesn't exist, compile and load it.
 (if (reader--module-built-p)

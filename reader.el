@@ -771,13 +771,11 @@ It is hooked to `window-configuration-change-hook' to keep detecting."
     (set-window-parameter window 'overlay nil))
 
   (unless (window-parameter window 'overlay)
-    ;; Prioritize the window's own page and scale parameters.
-    (let* ((page (or (window-parameter window 'page)
-                     reader--recent-pagenumber-fallback
-                     1))
-           (scale (or (window-parameter window 'scale)
-                      reader--recent-scale-fallback
-                      1.0)))
+    ;; Inherit the page number and scale from the last window
+    (let* ((last-win-page (window-parameter (old-selected-window) 'page))
+	   (last-win-scale (window-parameter (old-selected-window) 'scale))
+	   (page (or last-win-page reader--recent-pagenumber-fallback))
+	   (scale (or last-win-scale reader--recent-scale-fallback)))
       (reader-dyn--window-create window)
       (set-window-parameter window 'page page)
       (with-selected-window window

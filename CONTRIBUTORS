@@ -22,10 +22,6 @@ Tushar <tusharhero@sdf.org>:
 - updated docstrings in both C and Elisp modules for v0.3.0
 - added to Makefile.
 
-prom (Codeberg user):
-- fixed and updated support for MS Windows in the Makefile.
-- updated  README.org with MS Windows instructions.
-
 Li Xin <teeoius@proton.me>:
 - fixed a bug in pthread’s missed signals (PR #163).
 

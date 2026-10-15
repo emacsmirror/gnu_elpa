@@ -1,11 +1,9 @@
 ### Makefile for Emacs Reader’s dynamic module
 
 ## Copyright (C) 2025-2026 Free Software Foundation, Inc.
-## Copyright (C) 2025 prom
 
 # Author: Divya Ranjan Pattanaik <divya@dialetheia.xyz>
 #         Tushar <tusharhero@sdf.org>
-#         Prom
 
 ## This program is free software; you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by

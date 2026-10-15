@@ -34,9 +34,10 @@
 (require 'image)
 
 (defconst reader-directory
-  (or (and load-file-name
-           (file-name-directory load-file-name))
-      default-directory)
+  (file-name-directory (or
+			(macroexp-file-name)
+			load-file-name
+			default-directory))
   "The directory from where reader was first loaded.")
 
 (defun reader--load-module ()

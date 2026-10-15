@@ -8,7 +8,7 @@
 ;; Version: 0.4.0
 ;; Keywords: lisp, languages, tree-sitter
 ;; URL: https://codeberg.org/zshaftel/lisp-ts-mode
-;; Package-Requires: ((emacs "30.2") cond-star (compat "31"))
+;; Package-Requires: ((emacs "30.2") (cond-star "1.0") (compat "31"))
 
 ;; This program is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -66,14 +66,14 @@
 (add-to-list 'ts-language-source-alist
              '(common-lisp
                "https://codeberg.org/zshaftel/tree-sitter-cl-syntax"
-               :commit "1b46b7cf12b41d40c886e33ce96500934d0aa3b5"
+               :commit "63287647b0c29f639c50e94440e698c16a35de9d"
                :source-dir "grammars/cl/src")
              t)
 
 (add-to-list 'ts-language-source-alist
              '(cl-format
                "https://codeberg.org/zshaftel/tree-sitter-cl-syntax"
-               :commit "1b46b7cf12b41d40c886e33ce96500934d0aa3b5"
+               :commit "63287647b0c29f639c50e94440e698c16a35de9d"
                :source-dir "grammars/format/src")
              t)
 

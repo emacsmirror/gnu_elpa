@@ -947,9 +947,6 @@ Keybindings:
   (setq-local imenu-create-index-function #'reader--outline-imenu-create-index
 	      imenu-default-goto-function #'reader--outline-imenu-goto)
 
-  ;; (use-local-map reader-mode-map)
-  ;; (setq major-mode 'reader-mode)
-  ;; (setq mode-name "Emacs Reader")
   (run-hooks 'reader-mode-hook)
 
   (funcall reader-default-fit)

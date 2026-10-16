@@ -3,7 +3,7 @@
 ;; Copyright (C) 2026  Free Software Foundation, Inc.
 
 ;; Author: Stefan Monnier <monnier@iro.umontreal.ca>
-;; Version: 2.0
+;; Version: 2.1
 ;; Package-Requires: ((emacs "27.1"))
 ;; URL: https://elpa.gnu.org/packages/futur.html
 ;; Keywords: concurrency, async, promises, futures
@@ -29,9 +29,10 @@
 
 ;;; News:
 
-;; Recent:
+;; Since 2.0:
 
 ;; - Fix issues found when using timers instead of threads.
+;; - Tell Flymake that our sandboxed `elisp-flymake-byte-compile' is safe.
 
 ;; Version 2.0:
 

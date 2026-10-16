@@ -459,6 +459,8 @@ Concretely this means:
   (advice-remove 'elisp--safe-macroexpand-all #'futur--safe-macroexpand-all)
   (advice-remove 'elisp-flymake-byte-compile #'futur--flymake-byte-compile)
   (advice-remove 'smerge-refine-regions #'futur--smerge-refine-regions)
+  (when (eq (get 'elisp-flymake-byte-compile 'flymake-always-safe) 'futur-hacks)
+    (setf (get 'elisp-flymake-byte-compile 'flymake-always-safe) nil))
   (advice-remove 'byte-compile-file #'futur--byte-compile-file)
   ;; Don't enable this in the servers, otherwise we get recursive hacks!
   (when (featurep 'futur-server) (setq futur-hacks-mode nil))
@@ -466,6 +468,9 @@ Concretely this means:
     (advice-add 'byte-compile-file :around #'futur--byte-compile-file)
     (advice-add 'elisp-flymake-byte-compile :override
                 #'futur--flymake-byte-compile)
+    (unless (get 'elisp-flymake-byte-compile 'flymake-always-safe)
+      (setf (get 'elisp-flymake-byte-compile 'flymake-always-safe)
+            'futur-hacks))
     (advice-add 'smerge-refine-regions :override #'futur--smerge-refine-regions)
     ;; FIXME: This has no effect in Emacs<30 where this function doesn't exist
     ;; and its content is instead "hidden" inside `elisp--local-variables'.

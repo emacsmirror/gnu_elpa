@@ -233,7 +233,10 @@ other file format will simply not show up as a candidate."
   (interactive (list (expand-file-name (reader--read-doc-name))))
   (switch-to-buffer (create-file-buffer document))
   (setq buffer-file-name document)
+  ;; We need something to put the overlay on.
   (insert "\n")
+  ;; go back to the previous point for page border.
+  (goto-char (1- (point)))
   (if (reader-dyn--load-doc (expand-file-name document) 0)
       (reader-mode)
     (kill-buffer (current-buffer))))

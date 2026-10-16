@@ -14,6 +14,7 @@ are to be recorded here.
 - Remove =reader-mode= as an interactive command.
 - Fix weird page border artifacts when using the mouse.
 - Add =reader-build= command to automatically build the dynamic module.
+- Fix handling documents with multiple orientations.
 
 * Version 0.3.2
 - Fix reader-outline when original source buffer is killed.

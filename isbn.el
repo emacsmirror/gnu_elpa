@@ -210,7 +210,6 @@ region with the converted ISBN."
 If nil, reading from, or caching to, a file is disabled."
   :type '(choice (file :tag "File")
                  (const :tag "Disabled" nil))
-  :group 'isbn
   :package-version '((isbn . "0.1.0")))
 
 ;; Cache the ranges so that nested operations (hyphenation ->

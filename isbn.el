@@ -221,22 +221,21 @@ If nil, reading from, or caching to, a file is disabled."
 (defun isbn-update-hyphenation-ranges ()
   "Update cache of ISBN hyphenation ranges."
   (interactive)
-  (let ((prgrp (make-progress-reporter
-                "Fetching hyphenation ranges from `www.isbn-international.org'...")))
-    (condition-case nil
-        (with-current-buffer
-            (url-retrieve-synchronously
-             "https://www.isbn-international.org/export_rangemessage.xml"
-             t t 5)
-          (let* ((ranges (libxml-parse-xml-region (point))))
-            (unless ranges (signal 'error))
-            (when isbn-hyphenation-ranges-cache-file
-              (write-region
-               (prin1-to-string ranges)
-               nil isbn-hyphenation-ranges-cache-file t))
-            (setq isbn-hyphenation-ranges-cache ranges)
-            (progress-reporter-done prgrp)))
-      (error (error "Failed to retrieve hyphenation data")))))
+  (let* ((prgrp (make-progress-reporter
+                 "Fetching hyphenation ranges from `www.isbn-international.org'..."))
+         (buf (or (url-retrieve-synchronously
+                   "https://www.isbn-international.org/export_rangemessage.xml"
+                   t t 5)
+                  (error "Could not reach `www.isbn-international.org'")))
+         (ranges (with-current-buffer buf
+                   (or (libxml-parse-xml-region (point))
+                       (error "Failed to retrieve hyphenation data")))))
+    (when isbn-hyphenation-ranges-cache-file
+      (write-region
+       (prin1-to-string ranges)
+       nil isbn-hyphenation-ranges-cache-file t))
+    (setq isbn-hyphenation-ranges-cache ranges)
+    (progress-reporter-done prgrp)))
 
 (defun isbn-hyphenate (isbn &optional interactive)
   "Hyphenate ISBN as an ISBN-13.
@@ -256,8 +255,8 @@ with the hyphenated ISBN."
             (insert-file-contents isbn-hyphenation-ranges-cache-file)
             (setq isbn-hyphenation-ranges-cache (read (current-buffer))))
           (progress-reporter-done prgrp))
-      (error (error "Hyphenation ranges are not cached.  \
-Please run `isbn-update-hyphenation-ranges'"))))
+      (error "Hyphenation ranges are not cached.  \
+Please run `isbn-update-hyphenation-ranges'")))
 
   (setq isbn (isbn-convert isbn 13))
 
@@ -297,7 +296,7 @@ Please run `isbn-update-hyphenation-ranges'"))))
                           (throw 'len (funcall length-from-range n rem)))))))
           (unless (eq len 0)
             (push (substring rem 0 len) hyphenated)))
-      (error (error "Could not determine group identifier")))
+      (error "Could not determine group identifier"))
 
     ;; 3. Publisher code
     (condition-case nil
@@ -308,7 +307,7 @@ Please run `isbn-update-hyphenation-ranges'"))))
                         (when (string= (dom-text (dom-child-by-tag n 'Prefix)) prefix)
                           (throw 'len (funcall length-from-range n rem)))))))
           (push (substring rem 0 len) hyphenated))
-      (error (error "Could not determine publisher code")))
+      (error "Could not determine publisher code"))
 
     ;; 4. Title identifier
     (push (substring isbn (length (string-join hyphenated)) -1) hyphenated)

@@ -470,6 +470,7 @@
  (inspector		:url "https://github.com/mmontone/emacs-inspector"
   :ignored-files ("LICENSE"))
  (ioccur		:url "https://github.com/thierryvolpiatto/ioccur.git")
+ (isbn		        :url "https://git.sr.ht/~cook/isbn.el")
  (isearch-mb		:url "https://github.com/astoff/isearch-mb")
  (iso-date              :url "https://github.com/lmq-10/iso-date")
  (iterators		:url nil)

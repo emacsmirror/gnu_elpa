@@ -143,6 +143,22 @@
 WINDOW must be a valid window and defaults to the selected one."
   (window-parameter (or window (selected-window)) 'overlay))
 
+(defun reader--window-owned-p (window)
+  "Non-nil if WINDOW's reader overlay belongs to WINDOW's current buffer."
+  (let ((ov (window-parameter window 'overlay)))
+    (and (overlayp ov)
+	 (eq (overlay-buffer ov)
+	     (window-buffer window)))))
+
+(defun reader--current-doc-window ()
+  "Return a window showing the current buffer's document, or nil.
+Prefer the selected window."
+  (let ((wins (get-buffer-window-list nil nil t)))
+    (seq-find #'reader--window-owned-p
+	      (if (memq (selected-window) wins)
+		  (cons (selected-window) wins)
+		wins))))
+
 (defun reader-current-doc-pagenumber (&optional window)
   "Page number of WINDOW.
 

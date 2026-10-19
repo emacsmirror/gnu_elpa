@@ -29,6 +29,11 @@
 ;; relies on MuPDF to do the rendering, and Emacs Lisp’s native image
 ;; displaying capabilities to view the rendered images and manipulate them.
 
+;; To use,
+;; - open a file using `find-file'
+;; - Switch pages using `C-n', `C-p'
+;; - Zoom using `+' and `-'.
+
 ;;; Code:
 
 (require 'image)

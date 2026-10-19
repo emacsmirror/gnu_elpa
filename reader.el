@@ -162,14 +162,22 @@ Prefer the selected window."
 (defun reader-current-doc-pagenumber (&optional window)
   "Page number of WINDOW.
 
-WINDOW must be a valid window and defaults to the selected one."
-  (window-parameter (or window (selected-window)) 'page))
+WINDOW defaults to a window showing the current buffer.  Without
+one fall back to the buffer-local page number."
+  (let ((window (or window (reader--current-doc-window))))
+    (or (and window (reader--window-owned-p window)
+	     (window-parameter window 'page))
+	reader--recent-pagenumber-fallback)))
 
 (defun reader-current-doc-scale-value (&optional window)
   "Scaling factor of WINDOW.
 
-WINDOW must be a valid window and defaults to the selected one."
-  (or (window-parameter window 'scale) reader--recent-scale-fallback))
+WINDOW defaults to a window showing the current buffer.  Without
+one fall back to the buffer-local scale value."
+  (let ((window (or window (reader--current-doc-window))))
+    (or (and window (reader--window-owned-p window)
+	     (window-parameter window 'scale))
+	reader--recent-scale-fallback)))
 
 ;; We queue some commands because the user is expected to use the
 ;; commands repeatedly, such as by simply spamming a key. If we don't

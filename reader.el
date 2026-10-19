@@ -165,6 +165,7 @@ WINDOW must be a valid window and defaults to the selected one."
 (defun reader--process-command-queue ()
   "Process the next command in the queue."
   (when-let* ((cmd (pop reader--command-queue))
+	      ;; Selected through trial and error.
 	      (delay 0.0001))
     (funcall cmd)
     (redisplay)

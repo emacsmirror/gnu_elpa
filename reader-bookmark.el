@@ -45,11 +45,10 @@
 	(vscroll (bookmark-prop-get bookmark 'vscroll)))
     (find-file file)
     (reader--manage-window-overlays)
-    (reader--handle-window-buffer-change nil)
-    (reader-goto-page page)
-    (reader-doc-scale-page scale)
-    (set-window-hscroll nil hscroll)
-    (set-window-vscroll nil vscroll)))
+    (when scale (reader-doc-scale-page scale))
+    (when page (reader-goto-page page))
+    (when hscroll (reader--set-window-hscroll nil hscroll))
+    (when vscroll (reader--set-window-vscroll nil vscroll))))
 
 (put 'reader-bookmark-jump 'bookmark-handler-type "Reader")
 

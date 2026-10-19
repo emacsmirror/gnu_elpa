@@ -1,6 +1,6 @@
 ;;; cobol-mode.el --- Mode for editing COBOL code -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2013-2024  Free Software Foundation, Inc.
+;; Copyright (C) 2013-2026  Free Software Foundation, Inc.
 
 ;; Author: Edward Hart <edward.dan.hart@gmail.com>
 ;; Maintainer: Kristofer Hjelmtorp <kristofer@hjelmtorp.se>

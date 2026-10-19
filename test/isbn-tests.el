@@ -3,6 +3,7 @@
 ;; Copyright (C) 2026 Free Software Foundation, Inc.
 
 ;; Author: Maximilian Cook <maximilian@fclr.net>
+;; Maintainer: Maximilian Cook <maximilian@fclr.net>
 
 ;; This file is part of GNU Emacs.
 

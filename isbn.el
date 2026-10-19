@@ -3,6 +3,7 @@
 ;; Copyright (C) 2026 Free Software Foundation, Inc.
 
 ;; Author: Maximilian Cook <maximilian@fclr.net>
+;; Maintainer: Maximilian Cook <maximilian@fclr.net>
 ;; Created: 05 Mar 2026
 ;; Version: 0.2.0
 ;; Keywords: data

@@ -24,6 +24,7 @@
 (require 'reader)
 (require 'bookmark)
 
+;;;###autoload
 (defun reader-bookmark-make-record  ()
   "Create a bookmark reader doc record."
   (append (bookmark-make-record-default nil t 1)
@@ -52,7 +53,7 @@
       (set-window-hscroll nil hscroll)
       (set-window-vscroll nil vscroll))))
 
-  (put 'reader-bookmark-jump 'bookmark-handler-type "Reader")
+(put 'reader-bookmark-jump 'bookmark-handler-type "Reader")
 
 (provide 'reader-bookmark)
 ;;; reader-bookmark.el ends here

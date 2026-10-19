@@ -42,9 +42,11 @@
         (scale (bookmark-prop-get bookmark 'scale))
 	(hscroll (bookmark-prop-get bookmark 'hscroll))
 	(vscroll (bookmark-prop-get bookmark 'vscroll)))
+    ;; Selects correct buffer without display.
     (bookmark-default-handler bookmark)
+    ;; So we display it first.
+    (display-buffer (current-buffer))
     (when (file-exists-p file)
-      (switch-to-buffer (current-buffer))
       (unless (derived-mode-p 'reader-mode)
 	(reader-mode))
       (reader-goto-page page)

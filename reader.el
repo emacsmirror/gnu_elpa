@@ -702,7 +702,6 @@ See also `reader-shrink-size'."
 Intended for use in `kill-buffer-hook'."
   (when (derived-mode-p 'reader-mode)
     (reader-dyn--close-doc)))
-(add-hook 'kill-buffer-hook 'reader--clear-doc-memory nil t)
 
 (defun reader-close-doc ()
   "Close the current document, also prompt the user for confirmation."
@@ -981,6 +980,9 @@ Keybindings:
 
   (funcall reader-default-fit)
   (add-hook 'window-size-change-functions #'reader--center-page nil t)
+  ;; Depth 90 so that it runs after `save-place-to-alist' so scroll/page
+  ;; are saved before the document state is cleared.
+  (add-hook 'kill-buffer-hook #'reader--clear-doc-memory 90 t)
   (add-hook 'window-configuration-change-hook #'reader--manage-window-overlays nil t)
   (add-hook 'window-buffer-change-functions #'reader--handle-window-buffer-change nil t))
 

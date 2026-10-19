@@ -4,7 +4,7 @@
 
 ;; Author: Maximilian Cook <maximilian@fclr.net>
 ;; Created: 05 Mar 2026
-;; Version: 0.1.0
+;; Version: 0.2.0
 ;; Keywords: data
 ;; URL: https://git.sr.ht/~cook/isbn.el
 ;; Package-Requires: ((emacs "28.1"))

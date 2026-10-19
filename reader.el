@@ -823,10 +823,7 @@ and ensures a valid overlay exists if the new buffer is a reader buffer."
     (unless (eq (overlay-buffer overlay) (window-buffer window))
       ;; Overlay belongs to a different buffer. Clean it up.
       (reader-dyn--window-close overlay)
-      (set-window-parameter window 'overlay nil)
-      ;; We intentionally preserve 'page and 'scale so they can be
-      ;; restored if the user switches back to the original reader buffer.
-      )
+      (set-window-parameter window 'overlay nil))
     ;; If the new buffer is a reader buffer and lacks an overlay, create one.
     (when (with-current-buffer (window-buffer window)
             (derived-mode-p 'reader-mode))

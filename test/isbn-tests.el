@@ -2,6 +2,8 @@
 
 ;; Copyright (C) 2026 Maximilian Cook
 
+;; Author: Maximilian Cook <maximilian@fclr.net>
+
 ;; This file is NOT part of GNU Emacs.
 
 ;; This program is free software: you can redistribute it and/or

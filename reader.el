@@ -794,30 +794,18 @@ It is hooked to `window-configuration-change-hook' to keep detecting."
 
 (defun reader--window-create-function (window)
   "Create window overlay for WINDOW."
-  (when-let* ((existing-overlay (window-parameter window 'overlay))
-
-	      ;; Check if overlay exists but is invalid or belongs to
-	      ;; a different buffer.
-	      (_ (or (not (overlayp existing-overlay))
-                     (not (eq (overlay-buffer existing-overlay) (current-buffer))))))
-
-    ;; We intentionally DO NOT clear 'page and 'scale here.  We must
-    ;; preserve the window's independent page and scale parameters so
-    ;; they can be restored to the new DocState.
-    (set-window-parameter window 'overlay nil))
-
-  (unless (window-parameter window 'overlay)
-    ;; Inherit the page number and scale from the last window
-    (let* ((last-win-page (window-parameter (old-selected-window) 'page))
-	   (last-win-scale (window-parameter (old-selected-window) 'scale))
-	   (page (or last-win-page reader--recent-pagenumber-fallback))
-	   (scale (or last-win-scale reader--recent-scale-fallback)))
+  ;; Only buffer-local state is used: the window's own  parameters
+  ;; may be left over from another buffer.
+  (with-selected-window window
+    (unless (reader--window-owned-p window)
+      (when-let* ((old (window-parameter window 'overlay))
+		  (_ (overlayp old)))
+	(reader-dyn--window-close old))
+      (set-window-parameter window 'overlay nil)
       (reader-dyn--window-create window)
-      (set-window-parameter window 'page page)
-      (with-selected-window window
-        (reader-goto-page page)
-        (reader-doc-scale-page scale)
-        (reader--center-page)))))
+      ;; Scale first so goto-page renders and centers once at the final scale.
+      (reader-doc-scale-page reader--recent-scale-fallback)
+      (reader-goto-page (or reader--recent-pagenumber-fallback 1)))))
 
 (defun reader--window-close-function (overlay)
   "Properly close the window belonging to OVERLAY."

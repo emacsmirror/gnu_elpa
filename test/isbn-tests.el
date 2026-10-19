@@ -1,10 +1,10 @@
 ;;; isbn-tests.el --- Tests for isbn  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2026 Maximilian Cook
+;; Copyright (C) 2026 Free Software Foundation, Inc.
 
 ;; Author: Maximilian Cook <maximilian@fclr.net>
 
-;; This file is NOT part of GNU Emacs.
+;; This file is part of GNU Emacs.
 
 ;; This program is free software: you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as

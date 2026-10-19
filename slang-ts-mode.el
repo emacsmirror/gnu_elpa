@@ -1,6 +1,6 @@
 ;;; slang-ts-mode.el --- tree-sitter support for Slang -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2026 Hikari
+;; Copyright (C) 2026 Free Software Foundation, Inc.
 
 ;; Author: Hikari <aneris@disroot.org>
 ;; URL: https://codeberg.org/hikari/slang-ts-mode
@@ -12,7 +12,7 @@
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation, either version 2 of the License, or
+;; the Free Software Foundation, either version 3 of the License, or
 ;; (at your option) any later version.
 
 ;; This program is distributed in the hope that it will be useful,

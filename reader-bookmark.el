@@ -27,12 +27,13 @@
 ;;;###autoload
 (defun reader-bookmark-make-record  ()
   "Create a bookmark reader doc record."
-  (append (bookmark-make-record-default nil t 1)
-          (list (cons 'page (reader-current-doc-pagenumber))
-		(cons 'scale (reader-current-doc-scale-value))
-		(cons 'hscroll (window-hscroll))
-		(cons 'vscroll (window-vscroll))
-		'(handler . reader-bookmark-jump))))
+  (let ((win (reader--current-doc-window)))
+    (append (bookmark-make-record-default nil t 1)
+            (list (cons 'page (reader-current-doc-pagenumber win))
+		  (cons 'scale (reader-current-doc-scale-value win))
+		  (cons 'hscroll (and win (reader--window-hscroll win)))
+		  (cons 'vscroll (and win (window-vscroll win)))
+		  '(handler . reader-bookmark-jump)))))
 
 ;;;###autoload
 (defun reader-bookmark-jump (bookmark)

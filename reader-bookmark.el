@@ -42,18 +42,13 @@
         (scale (bookmark-prop-get bookmark 'scale))
 	(hscroll (bookmark-prop-get bookmark 'hscroll))
 	(vscroll (bookmark-prop-get bookmark 'vscroll)))
-    ;; Selects correct buffer without display.
-    (bookmark-default-handler bookmark)
-    ;; So we display it first.
-    (display-buffer (current-buffer))
-    (when (file-exists-p file)
-      (unless (derived-mode-p 'reader-mode)
-	(reader-mode))
-      (reader-goto-page page)
-      (reader-doc-scale-page scale)
-      (reader--center-page)
-      (set-window-hscroll nil hscroll)
-      (set-window-vscroll nil vscroll))))
+    (find-file file)
+    (reader--manage-window-overlays)
+    (reader--handle-window-buffer-change nil)
+    (reader-goto-page page)
+    (reader-doc-scale-page scale)
+    (set-window-hscroll nil hscroll)
+    (set-window-vscroll nil vscroll)))
 
 (put 'reader-bookmark-jump 'bookmark-handler-type "Reader")
 

@@ -734,22 +734,25 @@ This function is replaced as `revert-buffer-function' for `reader-mode' buffers.
   ;; Can't just prefix with _ because they get used when constructing
   ;; the function definitions.
   (ignore ignore-auto noconfirm preserve-modes)
-  (when (and buffer-file-name (not reader--reloading))
+  ;; A buffer that no window shows is skipped.
+  (when-let* ((_ (and buffer-file-name (not reader--reloading)))
+              (win (get-buffer-window nil t)))
     (setq reader--reloading t)
     (unwind-protect
-        (let ((page (or (reader-current-doc-pagenumber) 1))
-              (scale (reader-current-doc-scale-value)))
-          (message "Reloading your document...Press C-g to stop.")
-	  (condition-case err
-              (progn
-                (reader--render-buffer (1- page))
-                (reader-doc-scale-page scale)
-                (reader--center-page)
-                (reader--manage-window-overlays))
-            ((quit error)
-             (message "Reloading interrupted; restoring display...")
-             (reader--restore-display-on-quit page scale)
-             (signal (car err) (cdr err)))))
+        (with-selected-window win
+          (let ((page (or (reader-current-doc-pagenumber) 1))
+                (scale (reader-current-doc-scale-value)))
+            (message "Reloading your document...Press C-g to stop.")
+            (condition-case err
+                (progn
+                  (reader--render-buffer (1- page))
+                  (reader-doc-scale-page scale)
+                  (reader--center-page)
+                  (reader--manage-window-overlays))
+              ((quit error)
+               (message "Reloading interrupted; restoring display...")
+               (reader--restore-display-on-quit page scale)
+               (signal (car err) (cdr err))))))
       (setq-local reader--reloading nil))))
 
 (defun reader--render-buffer (&optional page)

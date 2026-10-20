@@ -77,13 +77,17 @@
 		     " render-core" module-file-suffix))
     (with-current-buffer "*reader-module-compilation*"
       ;; Buffer-local hook
-      (add-hook 'compilation-finish-functions #'reader--post-build nil t))))
+      (add-hook 'compilation-finish-functions #'reader--post-build nil t))
+    ;; Let it compile.
+    (sit-for 1)))
 
-;; If the module doesn't exist, compile and load it.
-(if (reader--module-built-p)
-    (reader--load-module)
-  (when (yes-or-no-p "Build reader's dynamic module? ")
-    (reader-build)))
+(defun reader-ensure-module ()
+  "Ensure reader's dynamic module is loaded."
+  (unless (featurep 'render-core)
+    (if (reader--module-built-p)
+	(reader--load-module)
+      (when (yes-or-no-p "Build reader's dynamic module? ")
+	(reader-build)))))
 
 (defvar reader--recent-pagenumber-fallback)
 (defvar reader-current-doc-state-ptr)
@@ -925,6 +929,8 @@ Keybindings:
 \\{reader-mode-map}"
   :group 'reader
   :interactive nil
+
+  (reader-ensure-module)
 
   (unless (and buffer-file-name
 	       (file-exists-p buffer-file-name)

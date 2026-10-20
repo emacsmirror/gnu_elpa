@@ -201,8 +201,8 @@ This list should contain at least two characters."
 
 (defun wincom--get-id-length ()
   "Return the current length of a window ID."
-  (if-let ((windows (length (window-list-1 nil nil (wincom--get-scope))))
-           ((= windows 1)))
+  (if-let* ((windows (length (window-list-1 nil nil (wincom--get-scope))))
+            ((= windows 1)))
       1 ; If there is only one window, return 1.
     (ceiling (log windows (length wincom-id-chars)))))
 
@@ -225,11 +225,11 @@ This list should contain at least two characters."
 
 (defun wincom--update-window (window)
   "Update information for WINDOW."
-  (when-let ((id (if (window-minibuffer-p window)
-                     (progn
-                       (setq wincom-window-count (1+ wincom-window-count))
-                       nil)
-                   (wincom--next-id))))
+  (when-let* ((id (if (window-minibuffer-p window)
+                      (progn
+                        (setq wincom-window-count (1+ wincom-window-count))
+                        nil)
+                    (wincom--next-id))))
     ;; Create a key sequence from the ID, which corresponds to a
     ;; command which calls the last command (with the corresponding
     ;; window as the sole argument).
@@ -377,23 +377,23 @@ window command is chosen.
        (declare (modes wincom-mode)
                 (interactive-only t))
        (interactive ,(and prefix "P"))
-       (if-let ((f (lambda (,window)
-                     ,@body))
-                ((>= wincom-window-count
-                     ;; Raise the minimum by one if the current
-                     ;; command excludes the minibuffer and it's in scope.
-                     (if-let (((not ,minibuffer))
-                              (m (active-minibuffer-window))
-                              (c (window-frame m))
-                              (s wincom-scope)
-                              (v (or (frame-visible-p c) (eq s t)))
-                              ((or (eq s t)
-                                   (equal c (selected-frame))
-                                   (and (eq v 'icon) (eq s 0))
-                                   (and (eq v t)
-                                        (or (eq s 'visible) (eq s 0))))))
-                         (1+ wincom-minimum)
-                       wincom-minimum))))
+       (if-let* ((f (lambda (,window)
+                      ,@body))
+                 ((>= wincom-window-count
+                      ;; Raise the minimum by one if the current
+                      ;; command excludes the minibuffer and it's in scope.
+                      (if-let* (((not ,minibuffer))
+                                (m (active-minibuffer-window))
+                                (c (window-frame m))
+                                (s wincom-scope)
+                                (v (or (frame-visible-p c) (eq s t)))
+                                ((or (eq s t)
+                                     (equal c (selected-frame))
+                                     (and (eq v 'icon) (eq s 0))
+                                     (and (eq v t)
+                                          (or (eq s 'visible) (eq s 0))))))
+                          (1+ wincom-minimum)
+                        wincom-minimum))))
            (wincom-run-window-command f)
          (funcall f (next-window nil (unless ,minibuffer 'exclude)
                                  (wincom--get-scope)))))))
@@ -473,7 +473,7 @@ indirectly called by the latter."
 (defun wincom-select-most-recently-used ()
   "Select the most recently used window."
   (interactive)
-  (when-let ((w (get-mru-window (wincom--get-scope) t t)))
+  (when-let* ((w (get-mru-window (wincom--get-scope) t t)))
     (select-window w)))
 
 (defvar wincom-command-map

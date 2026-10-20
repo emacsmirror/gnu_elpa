@@ -1,10 +1,10 @@
 ;;; window-commander.el --- Simply execute commands on windows -*- lexical-binding: t -*-
 
-;; Copyright (C) 2023-2024 Free Software Foundation, Inc.
+;; Copyright (C) 2023-2026 Free Software Foundation, Inc.
 
 ;; Author: Daniel Semyonov <daniel@dsemy.com>
 ;; Maintainer: Daniel Semyonov <daniel@dsemy.com>
-;; Version: 3.0.2
+;; Version: 3.1
 ;; Package-Requires: ((emacs "27.1"))
 ;; Keywords: convenience
 ;; URL: https://dsemy.com/projects/window-commander

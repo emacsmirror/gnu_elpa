@@ -6,7 +6,7 @@
 
 @copying
 @quotation
-Copyright @copyright{} 2023-2024 Free Software Foundation, Inc.
+Copyright @copyright{} 2023-2026 Free Software Foundation, Inc.
 
 You can redistribute this document and/or modify it under the terms
 of the GNU General Public License as published by the Free Software
@@ -28,7 +28,7 @@ General Public License for more details.
 
 @titlepage
 @title Window Commander User Manual
-@subtitle for version 3.0.2.
+@subtitle for version 3.1.
 @author Daniel Semyonov
 @page
 @vskip 0pt plus 1filll
@@ -45,7 +45,7 @@ Window Commander provides a minor mode for switching to windows or performing
 actions on them using IDs assigned to them automatically.
 
 @noindent
-This manual is for Window Commander version 3.0.2.
+This manual is for Window Commander version 3.1.
 
 @insertcopying
 @end ifnottex

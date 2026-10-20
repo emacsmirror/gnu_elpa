@@ -1,7 +1,7 @@
 Window Commander NEWS -- history of user-visible changes. -*- mode: emacs-news -*-
 See the end of the file for an explanation of the versioning scheme.
 
-* 3.0.3 (wip)
+* 3.1
 
 ** Add support for software keyboards which use 'text-conversion'.
 Full functionality should now be available using software keyboards on

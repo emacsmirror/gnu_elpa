@@ -968,6 +968,7 @@ Keybindings:
 
   (funcall reader-default-fit)
   (add-hook 'window-size-change-functions #'reader--center-page nil t)
+  (add-hook 'bookmark-after-jump-hook #'reader--center-page nil t)
   ;; Depth 90 so that it runs after `save-place-to-alist' so scroll/page
   ;; are saved before the document state is cleared.
   (add-hook 'kill-buffer-hook #'reader--clear-doc-memory 90 t)

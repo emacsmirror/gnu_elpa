@@ -157,11 +157,7 @@ WINDOW must be a valid window and defaults to the selected one."
 (defun reader--current-doc-window ()
   "Return a window showing the current buffer's document, or nil.
 Prefer the selected window."
-  (let ((wins (get-buffer-window-list nil nil t)))
-    (seq-find #'reader--window-owned-p
-	      (if (memq (selected-window) wins)
-		  (cons (selected-window) wins)
-		wins))))
+  (seq-find #'reader--window-owned-p (get-buffer-window-list nil nil t)))
 
 (defun reader-current-doc-pagenumber (&optional window)
   "Page number of WINDOW.

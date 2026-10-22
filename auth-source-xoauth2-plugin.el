@@ -1,6 +1,6 @@
 ;;; auth-source-xoauth2-plugin.el --- Authentication source plugin for xoauth2 -*- lexical-binding: t -*-
 
-;; Copyright (C) 2024-2025  Free Software Foundation, Inc.
+;; Copyright (C) 2024-2026  Free Software Foundation, Inc.
 
 ;; Author: Xiyue Deng <manphiz@gmail.com>
 ;; Homepage: https://gitlab.com/manphiz/auth-source-xoauth2-plugin

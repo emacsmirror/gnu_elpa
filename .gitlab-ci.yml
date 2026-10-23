@@ -17,6 +17,10 @@ build-30.2:
   image: "silex/emacs:30.2-ci"
   extends: .build
 
+build-31.1:
+  image: "silex/emacs:31.1-ci"
+  extends: .build
+
 build-master:
   image: "silex/emacs:master-ci"
   extends: .build

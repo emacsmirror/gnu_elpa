@@ -17,9 +17,6 @@
 
 ### Commentary:
 
-# The Makefile is used for exporting ffs's manual from Org to Texinfo,
-# and from Texinfo to HTML.
-
 # make all/doc  Generate various formats of the ffs manual from Org
 # make clean    Delete generated ffs.texi, ffs.info, ffs.html files
 
@@ -29,9 +26,12 @@
 .PHONY: all doc clean
 .SUFFIXES: .texi .info .html
 
+CSS_REF = ../bandali.css?v=20261022
+
 EMACS = emacs
 MAKEINFO = makeinfo
-MAKEINFO_html_opts = --html --no-split --css-include="ffs.css"
+MAKEINFO_html_opts = --html --no-split --css-ref="$(CSS_REF)" $\
+  --init-file="ffsinit.pm"
 DOC = ffs.info ffs.html
 
 all: doc
@@ -47,5 +47,5 @@ clean:
 	@echo "Generating $@ from $<"
 	$(MAKEINFO) $(MAKEINFO_html_opts) $<
 
-ffs.info: ffs.texi
-ffs.html: ffs.texi ffs.css
+ffs.info: ffs.texi ffsinit.pm
+ffs.html: ffs.texi ffsinit.pm

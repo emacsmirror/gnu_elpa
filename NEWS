@@ -8,7 +8,7 @@ Please send bug reports to the maintainer 'bandali@gnu.org'.
 This file is about changes in ffs, for form feed-separated
 plain text presentations in GNU Emacs.  For further details,
 please consult the ffs manual:
-https://www.kelar.org/~bandali/ffs/ffs.html
+https://www.shemshak.org/~amin/ffs/ffs.html
 
 
 * Changes in ffs 0.2.3 (2026-09-22)
@@ -84,7 +84,7 @@ Their value is buffer-local, and may be set globally using
 'setq-default'.  See the "(ffs) Sample configuration" manual node
 for an example of how to customize them:
 
-https://www.kelar.org/~bandali/ffs/ffs.html#Sample-configuration
+https://www.shemshak.org/~amin/ffs/ffs.html#Sample-configuration
 
 The new 'ffs-page-delimiter' user option defines the page delimiter
 inserted by 'ffs-edit-done' when inserting a new slide.  Emacs's
@@ -132,7 +132,7 @@ https://git.kelar.org/~bandali/configs
 I used this implementation for presenting my LibrePlanet 2022 talk,
 The Net beyond the Web.
 
-https://www.kelar.org/~bandali/net-beyond-web.html
+https://www.shemshak.org/~amin/net-beyond-web.html
 
 I picked "ffs" as the package name, the acronym for form feed slides.
 

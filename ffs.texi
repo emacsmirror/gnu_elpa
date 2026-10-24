@@ -64,10 +64,10 @@ Package name (GNU ELPA):
 @uref{https://elpa.gnu.org/packages/ffs.html, @samp{ffs}}
 @item
 Manual:
-@uref{https://www.kelar.org/~bandali/ffs/ffs.html}
+@uref{https://www.shemshak.org/~amin/ffs/ffs.html}
 @item
 NEWS:
-@uref{https://www.kelar.org/~bandali/ffs/NEWS}
+@uref{https://www.shemshak.org/~amin/ffs/NEWS}
 @item
 Git repository:
 @uref{https://git.kelar.org/~bandali/ffs}
@@ -77,7 +77,7 @@ ffs flips slides
 @end itemize
 
 Dedicated to the loving memory of
-@uref{https://www.kelar.org/~bandali/farangis.html,
+@uref{https://www.shemshak.org/~farangis/,
 Farangis Yousefinia}.
 
 @end ifnottex
@@ -413,10 +413,10 @@ videos of these sessions on the author's website:
 
 @itemize
 @item
-@uref{https://www.kelar.org/~bandali/ffs-code-review-prot.html,
+@uref{https://www.shemshak.org/~amin/ffs-code-review-prot.html,
 FFS code review with Protesilaos}
 @item
-@uref{https://www.kelar.org/~bandali/ffs-emacs-ext-prot.html,
+@uref{https://www.shemshak.org/~amin/ffs-emacs-ext-prot.html,
 FFS code review and Emacs extensibility with Protesilaos}
 @end itemize
 

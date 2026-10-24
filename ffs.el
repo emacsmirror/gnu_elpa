@@ -43,13 +43,34 @@
 ;; the `ffs-mode-map' keymap, or type `M-x ffs- TAB' to get a
 ;; completion of commands starting with the "ffs-" prefix.
 ;;
+;; There are other packages with similar or related functionality to
+;; `ffs' that you might also want to look into.  The excellent `logos'
+;; by Proteilaos is the one most similar to `ffs'.  Though envisioned
+;; primarily as a "focus mode" for disctraction-free reading and
+;; writing, it can also be well-suited for minimalist presentations.
+;; A potential benefit of `ffs' over `logos' is that it provides
+;; convenience commands and out-of-the-box key bindings for writing
+;; and editing slides and presenting them.  On the other hand, `logos'
+;; has a few more user options and may be more flexible than `ffs'.
+;; For instance, `logos-outlines-are-pages' and its accompanying
+;; `logos-outline-regexp-alist' allow treating each outline heading
+;; as a page delimiter, a feature currently not provided by `ffs'.
+;;
+;; `org-present', `org-tree-slide', and `dslide' are meant for use
+;; with Org mode files specifically, in contrast to `ffs' and `logos'
+;; which may be used with any major mode.
+;;
+;; The feature that to my knowledge is unique to `ffs' is built-in
+;; support for speaker notes: `ffs-find-speaker-notes-file' prompts
+;; the user for a speaker notes file, and by default displays it in
+;; a new frame.  Then, slide motions (e.g. going to the previous or
+;; next slide) will affect both the speaker notes buffer and the main
+;; slides buffer.
+;;
 ;;
 ;; Refer to the manual for more details on ffs's user options and
 ;; usage, a sample configuration, and other pieces of information:
-;; <https://www.kelar.org/~bandali/ffs/ffs.html>.
-
-;; FIXME: Add some comparison with related packages like `logos',
-;; `org-present', `org-tree-slide', `dslide', etc.
+;; <https://www.shemshak.org/~amin/ffs/ffs.html>.
 
 ;;; Code:
 
@@ -245,7 +266,6 @@ main ffs presentation slides buffer (`ffs--slides-buffer').")
       (goto-char (point-max))
       (when n (narrow-to-page)))))
 
-;; FIXME: An alternative would be to move the `define-minor-mode' here.
 (defvar ffs-present-mode)
 
 (defmacro ffs--define-goto-slide (name)
@@ -503,8 +523,6 @@ If we already hid the header line, restore it.  Otherwise, when variable
 
 ;;;; Miscellaneous
 
-;; FIXME: Here as well, maybe reordering the definitions would remove the
-;; need for this `defvar' directive.
 (defvar ffs-mode)
 
 (defun ffs-start ()

@@ -69,12 +69,12 @@
       (fg-magenta "#df70af")
       (fg-cyan "#70a0c0")
 
-      (bg-red "#5f240f")
-      (bg-green "#3f440f")
+      (bg-red "#69290f")
+      (bg-green "#384b0f")
       (bg-yellow "#554600")
       (bg-blue "#3f2457")
       (bg-magenta "#5a2f40")
-      (bg-cyan "#2f4954"))
+      (bg-cyan "#334750"))
   "Palette of `doric-magma' theme.")
 
   (doric-themes-define-theme doric-magma dark "Minimalist theme with dark background and red hues"))

@@ -70,11 +70,11 @@
       (fg-cyan "#006070")
 
       (bg-red "#e4c297")
-      (bg-green "#aed2a8")
+      (bg-green "#aed2af")
       (bg-yellow "#e0d790")
       (bg-blue "#b9cce0")
       (bg-magenta "#ddc5da")
-      (bg-cyan "#a4dfdc"))
+      (bg-cyan "#a0d5d0"))
     "Palette of `doric-jade' theme.")
 
   (doric-themes-define-theme doric-jade light "Minimalist theme with light background and green hues"))

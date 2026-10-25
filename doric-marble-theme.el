@@ -69,11 +69,11 @@
       (fg-magenta "#700d50")
       (fg-cyan "#005355")
 
-      (bg-red "#eac0bf")
-      (bg-green "#bde0c2")
-      (bg-yellow "#e9e0a0")
+      (bg-red "#e3bebc")
+      (bg-green "#b3dec2")
+      (bg-yellow "#e6d490")
       (bg-blue "#c4cfe8")
-      (bg-magenta "#eec2e6")
+      (bg-magenta "#e2c2ef")
       (bg-cyan "#c1ebe4"))
   "Palette of `doric-marble' theme.")
 

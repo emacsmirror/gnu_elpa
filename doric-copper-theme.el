@@ -69,11 +69,11 @@
       (fg-magenta "#e9acbf")
       (fg-cyan "#a0c0d0")
 
-      (bg-red "#6e2e27")
-      (bg-green "#355029")
+      (bg-red "#6e3417")
+      (bg-green "#445029")
       (bg-yellow "#624e2f")
       (bg-blue "#304061")
-      (bg-magenta "#643870")
+      (bg-magenta "#583661")
       (bg-cyan "#35526f"))
   "Palette of `doric-copper' theme.")
 

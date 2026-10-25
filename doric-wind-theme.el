@@ -70,11 +70,11 @@
       (fg-cyan "#006070")
 
       (bg-red "#e4c2c7")
-      (bg-green "#b0e0d0")
-      (bg-yellow "#e3e0b0")
+      (bg-green "#a6e0d0")
+      (bg-yellow "#ded9a0")
       (bg-blue "#bbd1e8")
-      (bg-magenta "#e0c3e7")
-      (bg-cyan "#c2ebe8"))
+      (bg-magenta "#ddc3ef")
+      (bg-cyan "#c0e6e8"))
     "Palette of `doric-wind' theme.")
 
   (doric-themes-define-theme doric-wind light "Minimalist theme with light background and green+teal hues"))

@@ -72,7 +72,7 @@
       (bg-red "#79473f")
       (bg-green "#4b6441")
       (bg-yellow "#685730")
-      (bg-blue "#3a4f6f")
+      (bg-blue "#3e497f")
       (bg-magenta "#673f55")
       (bg-cyan "#3f5b62"))
     "Palette of `doric-mountain' theme.")

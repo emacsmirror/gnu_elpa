@@ -69,11 +69,11 @@
       (fg-magenta "#690f44")
       (fg-cyan "#105f66")
 
-      (bg-red "#f0c8b5")
-      (bg-green "#c2e3b0")
+      (bg-red "#edc8b5")
+      (bg-green "#c0e0b0")
       (bg-yellow "#e2d8a0")
       (bg-blue "#bac9e5")
-      (bg-magenta "#e7bfd7")
+      (bg-magenta "#e2bfdf")
       (bg-cyan "#c9e6e0"))
     "Palette of `doric-earth' theme.")
 

@@ -71,9 +71,9 @@
 
       (bg-red "#f0c4c4")
       (bg-green "#c0e8c2")
-      (bg-yellow "#f0f0b0")
+      (bg-yellow "#e9e9a0")
       (bg-blue "#c4cfe8")
-      (bg-magenta "#eec2e6")
+      (bg-magenta "#e0c2ef")
       (bg-cyan "#c1ebe4"))
   "Palette of `doric-light' theme.")
 

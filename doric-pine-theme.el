@@ -69,12 +69,12 @@
       (fg-magenta "#e9acbf")
       (fg-cyan "#a0c0d0")
 
-      (bg-red "#5b3c2b")
-      (bg-green "#385b30")
+      (bg-red "#683c2b")
+      (bg-green "#386230")
       (bg-yellow "#5e5732")
-      (bg-blue "#284060")
+      (bg-blue "#2e3c69")
       (bg-magenta "#52313f")
-      (bg-cyan "#2f495f"))
+      (bg-cyan "#225161"))
   "Palette of `doric-pine' theme.")
 
   (doric-themes-define-theme doric-pine dark "Minimalist theme with dark background and woody+earthly hues"))

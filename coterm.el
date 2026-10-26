@@ -4,7 +4,7 @@
 
 ;; Filename: coterm.el
 ;; Author: Miha Rihtaršič <miha@kamnitnik.top>
-;; Version: 1.6
+;; Version: 1.7
 ;; Keywords: processes
 ;; Package-Requires: ((emacs "26.1") (compat "31.1"))
 ;; URL: https://repo.or.cz/emacs-coterm.git

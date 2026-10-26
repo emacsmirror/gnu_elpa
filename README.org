@@ -1,6 +1,6 @@
 * About
 
-xc.el is an Emacs interface for [[https://xcfile.dev/][xc]], the README-based task runner. It provides an "=xc=" command to run some task associated with the current buffer. The optional Treemacs integration adds a node for =xc= commands to the project's tree.
+xc.el is an Emacs interface for [[https://github.com/joerdav/xc][xc]], the README-based task runner. It provides an "=xc=" command to run some task associated with the current buffer. The optional Treemacs integration adds a node for =xc= commands to the project's tree.
 
 ** Action shot
 

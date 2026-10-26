@@ -8032,10 +8032,10 @@ or `LaTeX-environment-list' and returns it."
 
     ;; Now parse the `arg-list':
     (cond ((and (eq type 'optional)
-                (= opt-dis 0))
+                (= opt-dis 0)
+                (vectorp (nth (1- total-num) arg-list)))
            ;; Optional arg without mandatory one before: This case is
-           ;; straight and we just pick the correct one out of the
-           ;; list:
+           ;; straight and we just pick the correct one out of the list:
            (setq result (nth (1- total-num) arg-list)))
 
           ;; Mandatory arg: Loop over the arg-list and drop all

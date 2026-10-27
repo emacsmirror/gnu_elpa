@@ -453,7 +453,7 @@
  (hyperbole           	:url "https://git.savannah.gnu.org/git/hyperbole.git"
   :make ("kotl/kotl-autoloads.el")
   :doc "man/hyperbole.texi"
-  :news "HY-NEWS")
+  :news "HY-NEWS.org")
  (ibuffer-sidebar	:url "https://github.com/jojojames/ibuffer-sidebar"
   :ignored-files ("LICENSE" "screenshots")
   :readme "readme.org")

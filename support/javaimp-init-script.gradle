@@ -10,7 +10,8 @@ allprojects {
                 println("${project.parent.path};${project.parent.version}")
             }
             println("file=${project.buildFile}")
-            println("build-dir=${project.layout.buildDirectory}")
+            String buildDir = project.layout.buildDirectory.get().asFile
+            println("build-dir=${buildDir}")
 
             String finalName = ""
             String sourceDirs = ""

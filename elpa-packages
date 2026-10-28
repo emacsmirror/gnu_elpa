@@ -749,6 +749,7 @@
  (realgud-trepan-ni   	:url "https://github.com/realgud/realgud-trepan-ni")
  (realgud-trepan-xpy   	:url "https://github.com/realgud/realgud-trepan-xpy")
  (rec-mode		:url "https://git.savannah.gnu.org/git/recutils/rec-mode.git")
+ (refactor              :core "lisp/progmodes/refactor.el")
  (register-list		:url nil)
  (relint		:url "https://github.com/mattiase/relint"
   :ignored-files ("Makefile" ".github" "*-test.el*" "test"))

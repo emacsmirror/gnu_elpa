@@ -1623,6 +1623,7 @@ UPPER stropping version."
   "Translate code from UPPER stropping to SUPPER stropping."
   (interactive)
   (let* ((keywords (append a68-std-modes-supper
+                           a68-constants-supper
                            a68-keywords-supper))
          (replacements (mapcar (lambda (keyword)
                                  (list keyword

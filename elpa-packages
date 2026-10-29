@@ -738,7 +738,7 @@
  (rcirc-sqlite		:url "https://codeberg.org/mattof/rcirc-sqlite"
   :ignored-files ("LICENSE")
   :doc "rcirc-sqlite.texi")
- ;; (reader		:url "https://codeberg.org/monadicsheep/emacs-reader")
+ (reader		:url "https://codeberg.org/monadicsheep/emacs-reader")
  (realgud             	:url "https://github.com/realgud/realgud")
  (realgud-ipdb        	:url "https://github.com/realgud/realgud-ipdb")
  (realgud-jdb         	:url "https://github.com/realgud/realgud-jdb")

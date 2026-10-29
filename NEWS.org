@@ -7,6 +7,13 @@
 # License: GNU General Public License 3
 # The format is based on [[https://keepachangelog.com/en/1.1.0/][Keep a Changelog]]
 
+* [Unreleased]
+
+** Changed
+
+- Update KOMA-Script bundle with current macros incl. completion.  Also
+  add the support file =style/typearea.el=.
+
 * [14.2.0] - 2026-09-15
 
 ** Added

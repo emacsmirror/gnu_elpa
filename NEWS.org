@@ -9,6 +9,10 @@
 
 * [Unreleased]
 
+** Added
+
+- Add new support file =style/mfb-oldstyle.el=.
+
 ** Changed
 
 - Update KOMA-Script bundle with current macros incl. completion.  Also

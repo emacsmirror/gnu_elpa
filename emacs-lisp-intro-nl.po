@@ -16074,7 +16074,7 @@ msgstr ""
 "De @sc{cdr} van een lijst is de rest van de lijst, dat wil zeggen dat de "
 "@sc{cdr} het deel van de lijst dat volgt op het eerste item. Dus terwijl de "
 "@sc{car} van de lijst @code{'(roos viool madelief boterbloem)} @code{roos} "
-"is, is de rest van de, de waarde die de functie @code{cdr} teruggeeft, is "
+"is, is de rest van de lijst, de waarde die de functie @code{cdr} teruggeeft, "
 "@code{(viool madelief boterbloem)}."
 
 #. type: Plain text
@@ -16166,7 +16166,7 @@ msgstr ""
 "zoals de lijst @code{(den spar eik esdoorn)}, is het element van de lijst "
 "dat de functie @code{car} teruggeeft het symbool @code{den}, zonder haakjes "
 "er omheen. @code{den} is het eerste symbool in de lijst. De @sc{cdr} van de "
-"lijst is echter een list op zichzelf, @code{(spar eik esdoorn)}, zoals je "
+"lijst is echter een lijst op zichzelf, @code{(spar eik esdoorn)}, zoals je "
 "ziet door de volgende expressie op de gebruikelijke manier te evalueren:"
 
 #. type: group
@@ -16394,7 +16394,7 @@ msgid ""
 "     @result{} (violet daisy buttercup)\n"
 msgstr ""
 "(cons 'viool '(madelief boterbloem))\n"
-"     @result{} (violet madelief boterbloem)\n"
+"     @result{} (viool madelief boterbloem)\n"
 
 #. type: group
 #: emacs-lisp-intro.texi:7090
@@ -16605,7 +16605,7 @@ msgid ""
 "For review, here is a series of repeated @sc{cdr}s, the text following the "
 "@samp{@result{}} shows what is returned."
 msgstr ""
-"Ter beoordeling is hier een lijst van herhaaldelijke @sc{cdr}'s, de tekst "
+"Hier is een lijst van herhaaldelijke @sc{cdr}'s om te bekijken, de tekst "
 "volgend op @samp{@result{}} toont wat wordt teruggegeven."
 
 #. type: group
@@ -16871,10 +16871,10 @@ msgid ""
 "based counting often bothers people who are accustomed to the first element "
 "in a list being number one, which is one-based."
 msgstr ""
-"Merk op de de elementen vanaf nul zijn genummerd, niet een. Dat wil zeggen "
-"dat het eerste element van een lijst, zijn @sc{car}, is het nulde element. "
-"Deze nul-gebaseerde telling is lastig voor mensen die gewend zijn die gewend "
-"zijn dat het eerste element in een lijst nummer een is, wat een-gebaseerd is."
+"Merk op de de elementen vanaf nul zijn genummerd, niet vanaf één. Dat wil zeggen "
+"dat het eerste element van een lijst, zijn @sc{car}, het nulde element is. "
+"Deze nul-gebaseerde telling is lastig voor mensen die gewend "
+"zijn dat het eerste element in een lijst nummer één is, wat één-gebaseerd is."
 
 #. type: table
 #: emacs-lisp-intro.texi:7347 emacs-lisp-intro.texi:9373
@@ -17093,7 +17093,7 @@ msgid ""
 "and @code{setcdr} functions.)"
 msgstr ""
 "(Kijk vooruit naar @ref{kill-new functie, , De @code{kill-new} functie} om "
-"te zien hoe het laatste element van een list te wijzigen. De @code{kill-new} "
+"te zien hoe het laatste element van een lijst te wijzigen. De @code{kill-new} "
 "functie gebruikt de @code{nthcdr} en de @code{setcdr} functies.)"
 
 #. type: Plain text

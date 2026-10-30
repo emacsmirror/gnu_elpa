@@ -70,6 +70,7 @@
 
 (declare-function edebug-mode "edebug")
 (declare-function project-mode-line-format "project")
+(declare-function tramp-bundle-read-file-names "tramp-sh")
 (declare-function tramp-check-remote-uname "tramp-sh")
 (declare-function tramp-file-name-with-sudo "tramp-cmds")
 (declare-function tramp-find-executable "tramp-sh")
@@ -643,7 +644,7 @@ being the result.")
 	tramp-default-host-alist
 	tramp-default-proxies-alist
 	;; Suppress method name check.
-	(non-essential t)
+	(tramp-methods (cons '("method") tramp-methods))
 	;; Suppress check for multihops.
 	(tramp-cache-data (make-hash-table :test #'equal))
 	(tramp-connection-properties '((nil "login-program" t)))
@@ -652,9 +653,50 @@ being the result.")
 	(progn
 	  (tramp-change-syntax 'default)
 	  ;; An unknown method shall raise an error.
-	  (let (non-essential)
+	  (should-error
+	   (tramp-dissect-file-name "/method1:user@host:")
+	   :type 'user-error)
+	  (should-error
+	   (tramp-dissect-file-name "/-:user@host:")
+	   :type 'user-error)
+
+	  ;; A wrong environment variable or default user could raise
+	  ;; an error.
+	  (let ((tramp-allow-double-percent t))
+	    (should (tramp-dissect-file-name "/method:%REMOTE_USER%@host:")))
+	  (let (tramp-allow-double-percent)
 	    (should-error
-	     (expand-file-name "/method:user@host:")
+	     (tramp-dissect-file-name "/method:%REMOTE_USER%@host:")
+	     :type 'user-error))
+	  (with-environment-variables (("REMOTE_USER" "user$"))
+	    (should-error
+	     (tramp-dissect-file-name "/method:$REMOTE_USER@host:")
+	     :type 'user-error)
+	    (let ((tramp-default-user "$REMOTE_USER"))
+	      (should-error
+	       (tramp-dissect-file-name "/method:host:")
+	       :type 'user-error)))
+	  (let ((tramp-default-user "user$"))
+	    (should-error
+	     (tramp-dissect-file-name "/method:host:")
+	     :type 'user-error))
+
+	  ;; A wrong environment variable or default host could raise
+	  ;; an error.
+	  (let ((tramp-allow-double-percent t))
+	    (should (tramp-dissect-file-name "/method:user@%REMOTE_HOST%:")))
+	  (let (tramp-allow-double-percent)
+	    (should-error
+	     (tramp-dissect-file-name "/method:user@%REMOTE_HOST%:")
+	     :type 'user-error))
+	  (with-environment-variables (("REMOTE_HOST" "host$"))
+	    (let ((tramp-default-host "$REMOTE_HOST"))
+	      (should-error
+	       (tramp-dissect-file-name "/method::")
+	       :type 'user-error)))
+	  (let ((tramp-default-host "host$"))
+	    (should-error
+	     (tramp-dissect-file-name "/method::")
 	     :type 'user-error))
 
 	  ;; Expand `tramp-default-user' and `tramp-default-host'.
@@ -1202,7 +1244,7 @@ being the result.")
 	tramp-default-host-alist
 	tramp-default-proxies-alist
 	;; Suppress method name check.
-	(non-essential t)
+	(tramp-methods `(("method") ("default-method") ,@tramp-methods))
 	;; Suppress check for multihops.
 	(tramp-cache-data (make-hash-table :test #'equal))
 	(tramp-connection-properties '((nil "login-program" t)))
@@ -1210,10 +1252,49 @@ being the result.")
     (unwind-protect
 	(progn
 	  (tramp-change-syntax 'simplified)
-	  ;; An unknown default method shall raise an error.
-	  (let (non-essential)
+	  ;; An unknown method shall raise an error.
+	  (let ((tramp-default-method "method1"))
 	    (should-error
-	     (expand-file-name "/user@host:")
+	     (tramp-dissect-file-name "/user@host:")
+	     :type 'user-error))
+
+	  ;; A wrong environment variable or default user could raise
+	  ;; an error.
+	  (let ((tramp-allow-double-percent t))
+	    (should (tramp-dissect-file-name "/%REMOTE_USER%@host:")))
+	  (let (tramp-allow-double-percent)
+	    (should-error
+	     (tramp-dissect-file-name "/%REMOTE_USER%@host:")
+	     :type 'user-error))
+	  (with-environment-variables (("REMOTE_USER" "user$"))
+	    (should-error
+	     (tramp-dissect-file-name "/$REMOTE_USER@host:")
+	     :type 'user-error)
+	    (let ((tramp-default-user "$REMOTE_USER"))
+	      (should-error
+	       (tramp-dissect-file-name "/host:")
+	       :type 'user-error)))
+	  (let ((tramp-default-user "user$"))
+	    (should-error
+	     (tramp-dissect-file-name "/host:")
+	     :type 'user-error))
+
+	  ;; A wrong environment variable or default host could raise
+	  ;; an error.
+	  (let ((tramp-allow-double-percent t))
+	    (should (tramp-dissect-file-name "/user@%REMOTE_HOST%:")))
+	  (let (tramp-allow-double-percent)
+	    (should-error
+	     (tramp-dissect-file-name "/user@%REMOTE_HOST%:")
+	     :type 'user-error))
+	  (with-environment-variables (("REMOTE_HOST" "host$"))
+	    (let ((tramp-default-host "$REMOTE_HOST"))
+	      (should-error
+	       (tramp-dissect-file-name "/user@:")
+	       :type 'user-error)))
+	  (let ((tramp-default-host "host$"))
+	    (should-error
+	     (tramp-dissect-file-name "/user@:")
 	     :type 'user-error))
 
 	  ;; Expand `tramp-default-method' and `tramp-default-user'.
@@ -1595,7 +1676,7 @@ being the result.")
 	tramp-default-host-alist
 	tramp-default-proxies-alist
 	;; Suppress method name check.
-	(non-essential t)
+	(tramp-methods (cons '("method") tramp-methods))
 	;; Suppress check for multihops.
 	(tramp-cache-data (make-hash-table :test #'equal))
 	(tramp-connection-properties '((nil "login-program" t)))
@@ -1613,10 +1694,50 @@ being the result.")
 		   (tramp-make-tramp-file-name
 		    vec (tramp-file-name-localname vec)))
 		 tramp-crypt-directories))
-	  ;; An unknown method shall raise an error.
-	  (let (non-essential)
+	  (should-error
+	   (tramp-dissect-file-name "/[method1/user@host]")
+	   :type 'user-error)
+	  (should-error
+	   (tramp-dissect-file-name "/[/user@host]")
+	   :type 'user-error)
+
+	  ;; A wrong environment variable or default user could raise
+	  ;; an error.
+	  (let ((tramp-allow-double-percent t))
+	    (should (tramp-dissect-file-name "/[method/%REMOTE_USER%@host]")))
+	  (let (tramp-allow-double-percent)
 	    (should-error
-	     (expand-file-name "/[method/user@host]")
+	     (tramp-dissect-file-name "/[method/%REMOTE_USER%@host]")
+	     :type 'user-error))
+	  (with-environment-variables (("REMOTE_USER" "user$"))
+	    (should-error
+	     (tramp-dissect-file-name "/[method/$REMOTE_USER@host]")
+	     :type 'user-error)
+	    (let ((tramp-default-user "$REMOTE_USER"))
+	      (should-error
+	       (tramp-dissect-file-name "/[method/host]")
+	       :type 'user-error)))
+	  (let ((tramp-default-user "user$"))
+	    (should-error
+	     (tramp-dissect-file-name "/[method/host]")
+	     :type 'user-error))
+
+	  ;; A wrong environment variable or default host could raise
+	  ;; an error.
+	  (let ((tramp-allow-double-percent t))
+	    (should (tramp-dissect-file-name "/[method/user@%REMOTE_HOST%]")))
+	  (let (tramp-allow-double-percent)
+	    (should-error
+	     (tramp-dissect-file-name "/[method/user@%REMOTE_HOST%]")
+	     :type 'user-error))
+	  (with-environment-variables (("REMOTE_HOST" "host$"))
+	    (let ((tramp-default-host "$REMOTE_HOST"))
+	      (should-error
+	       (tramp-dissect-file-name "/[method/]")
+	       :type 'user-error)))
+	  (let ((tramp-default-host "host$"))
+	    (should-error
+	     (tramp-dissect-file-name "/[method/]")
 	     :type 'user-error))
 
 	  ;; Expand `tramp-default-user' and `tramp-default-host'.
@@ -3982,14 +4103,16 @@ This tests also `access-file', `file-readable-p',
 	    (write-region "foo" nil tmp-name1)
 	    ;; `access-file' returns nil in case of success.
 	    (should-not (access-file tmp-name1 "error"))
-	    ;; `access-file' could use a timeout.
-	    (let ((remote-file-name-access-timeout 1)
-		  comp-warn-primitives)
-	      (cl-letf (((symbol-function #'file-exists-p)
-			 (lambda (_filename) (sleep-for 5))))
-		(should-error
-		 (access-file tmp-name1 "error")
-		 :type 'file-error)))
+	    ;; `access-file' could use a timeout.  tramp-rpc.el
+	    ;; doesn't use `file-exists-p' in its implementation.
+	    (unless (tramp--test-rpc-p)
+	      (let ((remote-file-name-access-timeout 1)
+		    comp-warn-primitives)
+		(cl-letf (((symbol-function #'file-exists-p)
+			   (lambda (_filename) (sleep-for 5))))
+		  (should-error
+		   (access-file tmp-name1 "error")
+		   :type 'file-error))))
 	    (delete-file tmp-name1)
 
 	    ;; A sticky bit could damage the `file-ownership-preserved-p' test.
@@ -6721,17 +6844,23 @@ INPUT, if non-nil, is a string sent to the process."
 	       this-shell-command-to-string
 	       "printenv | grep -v PS1 | grep -v _="))))))
 
-      ;; Handle looooong environment variables.  Bug#80783.
+      ;; Handle looooong environment variables.  (Bug#80783, Bug#82086).
       ;; FIXME: Make it also work in the synchronous case.
       (unless (or (eq this-shell-command-to-string 'shell-command-to-string)
 		  (tramp-direct-async-process-p)
                   (tramp--test-macos-p))
-	(let* ((bad (concat envvar "=" (make-string 2024 ?x)))
+	(let* ((long (concat (make-string 2024 ?x) "==="))
+	       (bad (concat envvar "=" long))
 	       (process-environment
 		(cl-list* bad bad bad bad process-environment)))
 	  (should
 	   (string-match-p
-	    "foo" (funcall this-shell-command-to-string "echo foo"))))))))
+	    "foo" (funcall this-shell-command-to-string "echo foo")))
+	  (should
+	   (string-match-p
+	    long
+	    (funcall
+	     this-shell-command-to-string (concat "echo $" envvar)))))))))
 
 (tramp--test-deftest-direct-async-process tramp-test33-environment-variables)
 
@@ -6945,9 +7074,10 @@ INPUT, if non-nil, is a string sent to the process."
 
 (tramp--test-deftest-direct-async-process tramp-test35-exec-path)
 
-;; This test is inspired by Bug#33781.
+;; This test is inspired by Bug#33781 and Bug#82027.
 (ert-deftest tramp-test35-remote-path ()
-  "Check loooong `tramp-remote-path'."
+  "Check loooong `tramp-remote-path'.
+Check also tilde and environment variable expansion."
   :tags '(:expensive-test)
   (skip-unless (tramp--test-enabled))
   (skip-unless (tramp--test-supports-environment-variables-p))
@@ -6974,6 +7104,31 @@ INPUT, if non-nil, is a string sent to the process."
           (tramp-cleanup-connection tramp-test-vec 'keep-debug 'keep-password)
           (should (equal (exec-path) (cons "/" orig-exec-path)))
           (setq tramp-remote-path orig-tramp-remote-path)
+
+	  ;; There is no $HOME in batch mode.
+	  (when (and (tramp--test-mock-p) (getenv "USER") (null noninteractive))
+	    ;; "~/" and "$VARIABLE" are expanded.  We test it with the
+	    ;; "mock" method, because we know there how "~/" and
+	    ;; "$USER" are expanded.
+	    (dolist (item
+		     `("~/"
+		       ,(file-name-concat
+			 (file-name-directory (expand-file-name "~")) "$USER/")))
+	      (setq tramp-remote-path  (cons item tramp-remote-path))
+              (tramp-cleanup-connection
+	       tramp-test-vec 'keep-debug 'keep-password)
+              (should
+	       (equal (exec-path) (cons (expand-file-name "~") orig-exec-path)))
+              (setq tramp-remote-path orig-tramp-remote-path))
+
+	    ;; "~/" and "$VARIABLE" expansion shall happen only for
+	    ;; file names with no other special characters.
+	    (dolist (item '("~/xx," "/,$USER"))
+              (should
+	       (member
+		item
+		(tramp-bundle-read-file-names
+		 tramp-test-vec `(,item) 'expand)))))
 
           ;; We make a super long `tramp-remote-path'.
 	  (unless (tramp--test-container-oob-p)
@@ -7704,8 +7859,7 @@ This does not support some special file names."
 (defun tramp--test-container-oob-p ()
   "Check, whether the dockercp or podmancp method is used.
 They does not support wildcard copy."
-  (string-match-p
-   (rx bol (| "dockercp" "podmancp") eol)
+  (string-match-p (rx bol (| "dockercp" "podmancp") eol)
    (file-remote-p ert-remote-temporary-file-directory 'method)))
 
 (defun tramp--test-crypt-p ()
@@ -7823,6 +7977,12 @@ This does not support connection share for more than two connections."
   "Check, whether the remote host is offered by rclone.
 This requires restrictions of file name syntax."
   (tramp-rclone-file-name-p ert-remote-temporary-file-directory))
+
+(defun tramp--test-rpc-p ()
+  "Check, whether the rpc method is used."
+  ;; tramp-rpc.el does not belong to proper Tramp.
+  (tramp-compat-funcall 'tramp-rpc-file-name-p
+    ert-remote-temporary-file-directory))
 
 (defun tramp--test-rsync-p ()
   "Check, whether the rsync method is used.

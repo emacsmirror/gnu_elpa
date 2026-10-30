@@ -41,7 +41,7 @@ clean:
 	$(RM) $(CLEAN_FILES)
 
 # This target is for the maintainer only.
-sync:
+sync: clean
 	cp -p $(SOURCE_DIR)/texi/tramp.texi tramp.texi
 	cp -p $(SOURCE_DIR)/texi/trampelpa.texi trampelpa.texi
 	cp -p $(SOURCE_DIR)/texi/trampver.texi trampver.texi

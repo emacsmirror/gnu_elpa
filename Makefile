@@ -63,7 +63,7 @@ clean:
 	done
 
 # This target is for the maintainer only.
-sync:
+sync: clean
 	cp -p $(SOURCE_DIR)/lisp/tramp-adb.el tramp-adb.el
 	cp -p $(SOURCE_DIR)/lisp/tramp-androidsu.el tramp-androidsu.el
 	cp -p $(SOURCE_DIR)/lisp/tramp-archive.el tramp-archive.el

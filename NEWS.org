@@ -11,7 +11,7 @@
 
 ** Added
 
-- Add new support file =style/mfb-oldstyle.el=.
+- Add new support files =style/mfb-oldstyle.el= and =style/fontscale.el=.
 
 ** Changed
 

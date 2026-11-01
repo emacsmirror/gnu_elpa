@@ -40,7 +40,7 @@ The user visible benefits over the other formats are:
 ## Installation and Configuration
 
 This library is available under the name perl-doc
-from [GNU ELPA](https://elpa.gnu.org/packages/) 
+from [GNU ELPA](https://elpa.gnu.org/packages/)
 and works with Emacs 27 and newer.  Indexing with imenu can
 be used with Emacs 28 and newer.
 

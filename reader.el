@@ -667,6 +667,15 @@ See also `reader-enlarge-size'."
       (reader-enlarge-size
        (* scaling-factor (reader-current-doc-scale-value))))))
 
+(defun reader-mouse-select-window (event)
+  "Select the window.
+
+EVENT must be a click event."
+  (interactive "e")
+  (when-let* ((end-window (posn-window (event-end event)))
+	      (_ (window-live-p end-window)))
+    (select-window end-window)))
+
 (defun reader-mwheel-shrink-size (event)
   "Shrink the current page, but also handle mouse EVENT.
 
@@ -908,14 +917,14 @@ and ensures a valid overlay exists if the new buffer is a reader buffer."
   ;; cursor (which we use as a page border) to be drawn after the
   ;; page.
 
-  "<remap> <mouse-set-point>"   #'ignore
-  "<remap> <mouse-set-region>"  #'ignore
-  "<remap> <mouse-set-mark>"    #'ignore
-  "<remap> <mouse-set-secondary>"  #'ignore
-  "<remap> <mouse-drag-region>"    #'ignore
-  "<remap> <mouse-drag-secondary>" #'ignore
-  "<remap> <mouse-save-then-kill>" #'ignore
-  "<remap> <mouse-secondary-save-then-kill>" #'ignore)
+  "<remap> <mouse-set-point>"   #'reader-mouse-select-window
+  "<remap> <mouse-set-region>"  #'reader-mouse-select-window
+  "<remap> <mouse-set-mark>"    #'reader-mouse-select-window
+  "<remap> <mouse-set-secondary>"  #'reader-mouse-select-window
+  "<remap> <mouse-drag-region>"    #'reader-mouse-select-window
+  "<remap> <mouse-drag-secondary>" #'reader-mouse-select-window
+  "<remap> <mouse-save-then-kill>" #'reader-mouse-select-window
+  "<remap> <mouse-secondary-save-then-kill>" #'reader-mouse-select-window)
 
 ;;;###autoload
 (define-derived-mode reader-mode special-mode "Emacs Reader"

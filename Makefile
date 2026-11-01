@@ -1,4 +1,4 @@
-### Makefile for Emacs Reader’s dynamic module
+### Makefile for EmuReader’s dynamic module
 
 ## Copyright (C) 2025-2026 Free Software Foundation, Inc.
 
@@ -106,12 +106,12 @@ LIB_NAME := render-core.$(SO)
 SRCS := $(wildcard render/*.c)
 OBJS := $(SRCS:%.c=%.o)
 
-EL_SRCS := $(filter-out .* reader-autoloads.el,$(wildcard *.el))
+EL_SRCS := $(filter-out .* emureader-autoloads.el,$(wildcard *.el))
 ELC := $(EL_SRCS:%.el=%.elc)
 
 .PHONY: all clean checkdoc
 
-all: $(LIB_NAME) reader-autoloads.el $(ELC) checkdoc
+all: $(LIB_NAME) emureader-autoloads.el $(ELC) checkdoc
 
 $(LIB_NAME): $(OBJS)
 	$(CC) -o $@ $^ $(LDFLAGS)
@@ -122,14 +122,14 @@ $(LIB_NAME): $(OBJS)
 %.elc: %.el $(LIB_NAME)
 	 $(EMACS) -f batch-byte-compile $<
 
-reader-autoloads.el: $(EL_SRCS)
-	rm -f reader-autoloads.el
+emureader-autoloads.el: $(EL_SRCS)
+	rm -f emureader-autoloads.el
 	$(EMACS) -f loaddefs-generate-batch $@ .
 
 checkdoc: $(EL_SRCS)
 	$(EMACS) $(foreach file, $(EL_SRCS), --eval '(checkdoc-file "$(file)")')
 
 clean:
-	rm -f reader-autoloads.el
+	rm -f emureader-autoloads.el
 	rm -f $(ELC)
 	rm -f $(OBJS) $(LIB_NAME)

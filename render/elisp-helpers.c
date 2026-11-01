@@ -187,7 +187,7 @@ init_doc_state_ptr(emacs_env *env)
 	// Create a user pointer and expose it to Emacs in a buffer-local
 	emacs_value user_ptr = env->make_user_ptr(env, NULL, state);
 	emacs_value doc_state_ptr_sym
-	    = env->intern(env, "reader-current-doc-state-ptr");
+	    = env->intern(env, "emureader-current-doc-state-ptr");
 	env->funcall(env, env->intern(env, "set"), 2,
 		     (emacs_value[]){ doc_state_ptr_sym, user_ptr });
 	return state;
@@ -204,7 +204,7 @@ init_doc_state_ptr(emacs_env *env)
 DocState *
 get_doc_state_ptr(emacs_env *env)
 {
-	emacs_value ptr_sym = env->intern(env, "reader-current-doc-state-ptr");
+	emacs_value ptr_sym = env->intern(env, "emureader-current-doc-state-ptr");
 	emacs_value ptr
 	    = env->funcall(env, env->intern(env, "symbol-value"), 1, &ptr_sym);
 
@@ -218,7 +218,7 @@ get_doc_state_ptr(emacs_env *env)
 void
 clear_doc_state_ptr(emacs_env *env)
 {
-	emacs_value sym = env->intern(env, "reader-current-doc-state-ptr");
+	emacs_value sym = env->intern(env, "emureader-current-doc-state-ptr");
 	env->funcall(env, env->intern(env, "set"), 2,
 		     (emacs_value[]){ sym, EMACS_NIL });
 }
@@ -330,7 +330,7 @@ set_current_page_number(emacs_env *env, int page)
 				      env->make_integer(env, page) });
 	env->funcall(env, env->intern(env, "set"), 2,
 		     (emacs_value[]){
-			 env->intern(env, "reader--recent-pagenumber-fallback"),
+			 env->intern(env, "emureader--recent-pagenumber-fallback"),
 			 env->make_integer(env, page) });
 }
 
@@ -346,7 +346,7 @@ void
 set_current_render_status(emacs_env *env)
 {
 	emacs_value render_status_var
-	    = env->intern(env, "reader-current-doc-render-status");
+	    = env->intern(env, "emureader-current-doc-render-status");
 	env->funcall(
 	    env, env->intern(env, "set"), 2,
 	    (emacs_value[]){ render_status_var, env->intern(env, "t") });
@@ -365,7 +365,7 @@ void
 set_current_pagecount(emacs_env *env, DocState *state)
 {
 	emacs_value pagecount_args[2]
-	    = { env->intern(env, "reader-current-doc-pagecount"),
+	    = { env->intern(env, "emureader-current-doc-pagecount"),
 		env->make_integer(env, state->pagecount) };
 	env->funcall(env, env->intern(env, "set"), 2, pagecount_args);
 }
@@ -392,7 +392,7 @@ init_overlay(emacs_env *env, emacs_value window)
 	    (emacs_value[]){ window, env->intern(env, "overlay") });
 
 	if (!env->eq(env, existing_overlay, EMACS_NIL))
-		env->funcall(env, env->intern(env, "reader-dyn--window-close"),
+		env->funcall(env, env->intern(env, "emureader-dyn--window-close"),
 			     1, &existing_overlay);
 
 	emacs_value overlay
@@ -530,7 +530,7 @@ display_img_to_overlay(emacs_env *env, int width, int height, char *img_data,
  * plist representation for Emacs: each node becomes a plist with
  * `:title`, `:page`, and optionally `:children` keys.
  *
- * Stores the result in `reader-current-doc-outline` and returns it.
+ * Stores the result in `emureader-current-doc-outline` and returns it.
  *
  * @param env    Emacs module environment.
  * @param node   Root of the fz_outline tree (from MuPDF).
@@ -595,10 +595,10 @@ outline2plist(emacs_env *env, DocState *state, fz_outline *node)
 	outline_plist = env->funcall(env, env->intern(env, "nreverse"), 1,
 				     &outline_plist);
 
-	/* Store in reader-current-doc-outline and return */
+	/* Store in emureader-current-doc-outline and return */
 	env->funcall(
 	    env, env->intern(env, "set"), 2,
-	    (emacs_value[]){ env->intern(env, "reader-current-doc-outline"),
+	    (emacs_value[]){ env->intern(env, "emureader-current-doc-outline"),
 			     outline_plist });
 	return outline_plist;
 }
@@ -616,7 +616,7 @@ get_frame_scale_factor(emacs_env *env)
 /* changing pages, zooming, etc. Return false if invalid.*/
 
 bool
-get_reader_current_state(emacs_env *env,
+get_emureader_current_state(emacs_env *env,
 			 DocState **doc_state_out,
 			 EmacsWinState **win_state_out,
 			 emacs_value *overlay_out)

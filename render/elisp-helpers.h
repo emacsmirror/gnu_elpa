@@ -48,7 +48,7 @@ init_doc_state_ptr(emacs_env *env);
 DocState *
 get_doc_state_ptr(emacs_env *env);
 bool
-get_reader_current_state(emacs_env *env, DocState **doc_state_out,
+get_emureader_current_state(emacs_env *env, DocState **doc_state_out,
 			 EmacsWinState **win_state_out, emacs_value *overlay_out);
 void
 clear_doc_state_ptr(emacs_env *env);

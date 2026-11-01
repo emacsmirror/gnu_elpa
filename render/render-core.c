@@ -492,7 +492,7 @@ emacs_load_doc(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
 
     if (env->eq(env, current_doc_overlay, EMACS_NIL))
     {
-        emacs_message(env, "Failed to create reader overlay.");
+        emacs_message(env, "Failed to create emureader overlay.");
         return EMACS_NIL;
     }
 
@@ -682,7 +682,7 @@ emacs_redisplay_doc(emacs_env *env, ptrdiff_t nargs, emacs_value *args,
 	EmacsWinState *win_state = NULL;
 	emacs_value overlay = EMACS_NIL;
 
-	if (!get_reader_current_state(env, &doc_state, &win_state, &overlay))
+	if (!get_emureader_current_state(env, &doc_state, &win_state, &overlay))
 		return EMACS_NIL;
 
 	if (doc_state->pagecount <= 0)
@@ -773,7 +773,7 @@ emacs_next_page(emacs_env *env, ptrdiff_t nargs, emacs_value *args,
     EmacsWinState *win_state = NULL;
     emacs_value overlay = EMACS_NIL;
 
-    if (!get_reader_current_state(env, &doc_state, &win_state, &overlay))
+    if (!get_emureader_current_state(env, &doc_state, &win_state, &overlay))
         return EMACS_NIL;
 
     if (win_state->current_page_number >= doc_state->pagecount - 1)
@@ -807,7 +807,7 @@ emacs_prev_page(emacs_env *env, ptrdiff_t nargs, emacs_value *args,
 	EmacsWinState *win_state = NULL;
 	emacs_value overlay = EMACS_NIL;
 
-	if (!get_reader_current_state(env, &doc_state, &win_state, &overlay))
+	if (!get_emureader_current_state(env, &doc_state, &win_state, &overlay))
 		return EMACS_NIL;
 
 	if (win_state->current_page_number <= 0)
@@ -845,7 +845,7 @@ emacs_first_page(emacs_env *env, ptrdiff_t nargs, emacs_value *args,
 	EmacsWinState *win_state = NULL;
 	emacs_value overlay = EMACS_NIL;
 
-	if (!get_reader_current_state(env, &doc_state, &win_state, &overlay))
+	if (!get_emureader_current_state(env, &doc_state, &win_state, &overlay))
 		return EMACS_NIL;
 
 	if (win_state->current_page_number == 0)
@@ -879,7 +879,7 @@ emacs_last_page(emacs_env *env, ptrdiff_t nargs, emacs_value *args,
     EmacsWinState *win_state = NULL;
     emacs_value overlay = EMACS_NIL;
 
-    if (!get_reader_current_state(env, &doc_state, &win_state, &overlay))
+    if (!get_emureader_current_state(env, &doc_state, &win_state, &overlay))
         return EMACS_NIL;
 
     if (win_state->current_page_number >= doc_state->pagecount - 1)
@@ -919,7 +919,7 @@ emacs_goto_page(emacs_env *env, ptrdiff_t nargs, emacs_value *args,
 	EmacsWinState *win_state = NULL;
 	emacs_value overlay = EMACS_NIL;
 
-	if (!get_reader_current_state(env, &doc_state, &win_state, &overlay))
+	if (!get_emureader_current_state(env, &doc_state, &win_state, &overlay))
 		return EMACS_NIL;
 
 	return render_and_display_page(env, doc_state, win_state, overlay, page_number);
@@ -944,7 +944,7 @@ emacs_doc_scale_page(emacs_env *env, ptrdiff_t nargs, emacs_value *args,
 	DocState *doc_state = NULL;
 	EmacsWinState *win_state = NULL;
 	emacs_value overlay = EMACS_NIL;
-	if (!get_reader_current_state(env, &doc_state, &win_state, &overlay))
+	if (!get_emureader_current_state(env, &doc_state, &win_state, &overlay))
 		return EMACS_NIL;
 	if (doc_state->pagecount <= 0)
 		return EMACS_NIL;
@@ -1000,7 +1000,7 @@ emacs_doc_rotate(emacs_env *env, ptrdiff_t nargs, emacs_value *args,
 	EmacsWinState *win_state = NULL;
 	emacs_value overlay = EMACS_NIL;
 
-	if (!get_reader_current_state(env, &doc_state, &win_state, &overlay))
+	if (!get_emureader_current_state(env, &doc_state, &win_state, &overlay))
 		return EMACS_NIL;
 	if (doc_state->pagecount <= 0)
 		return EMACS_NIL;
@@ -1056,7 +1056,7 @@ emacs_doc_window_create(emacs_env *env, ptrdiff_t nargs, emacs_value *args,
 	emacs_value overlay = init_overlay(env, win);
 	if (env->eq(env, overlay, EMACS_NIL))
 		{
-			emacs_message(env, "Failed to create reader overlay.");
+			emacs_message(env, "Failed to create emureader overlay.");
 			return EMACS_NIL;
 		}
 
@@ -1157,64 +1157,64 @@ emacs_module_init(struct emacs_runtime *runtime)
 
 	// Module function registrations
 	register_module_func(env, emacs_load_doc,
-			     "reader-dyn--load-doc", 1, 2,
+			     "emureader-dyn--load-doc", 1, 2,
 			     "Loads a DOC to be rendered in Emacs.");
 
 	register_module_func(env, emacs_redisplay_doc,
-			     "reader-dyn--redisplay-doc", 0, 0,
+			     "emureader-dyn--redisplay-doc", 0, 0,
 			     "Redisplays the document at the current page and scale.");
 
 	register_module_func(env, emacs_close_doc,
-			     "reader-dyn--close-doc", 0, 0,
+			     "emureader-dyn--close-doc", 0, 0,
 			     "Frees the DocState in memory and all other "
 			     "artifacts related to the current document.");
 
 	register_module_func(env, emacs_next_page,
-			     "reader-dyn--next-page", 0, 0,
+			     "emureader-dyn--next-page", 0, 0,
 			     "Loads and renders the next page of the document.");
 
 	register_module_func(env, emacs_prev_page,
-			     "reader-dyn--prev-page", 0, 0,
+			     "emureader-dyn--prev-page", 0, 0,
 			     "Loads and renders the previous page of the document.");
 
 	register_module_func(env, emacs_first_page,
-			     "reader-dyn--first-page", 0, 0,
+			     "emureader-dyn--first-page", 0, 0,
 			     "Loads and renders the first page of the document.");
 
 	register_module_func(env, emacs_last_page,
-			     "reader-dyn--last-page", 0, 0,
+			     "emureader-dyn--last-page", 0, 0,
 			     "Loads and renders the last page of the document.");
 
 	register_module_func(env, emacs_goto_page,
-			     "reader-dyn--goto-page", 1, 1,
+			     "emureader-dyn--goto-page", 1, 1,
 			     "Loads and renders the N page number.");
 
 	register_module_func(env, emacs_doc_scale_page,
-			     "reader-dyn--scale-page", 1, 1,
+			     "emureader-dyn--scale-page", 1, 1,
 			     "Scales the current page of the document by a given FACTOR.");
 
 	register_module_func(env, emacs_doc_invert,
-			     "reader-dyn--doc-invert", 1, 1,
+			     "emureader-dyn--doc-invert", 1, 1,
 			     "Sets the document-local invert state for dark mode.");
 
 	register_module_func(env, emacs_doc_rotate,
-			     "reader-dyn--rotate-page", 1, 1,
+			     "emureader-dyn--rotate-page", 1, 1,
 			     "Rotates the page by the given DEGREE.");
 
 	register_module_func(env, emacs_doc_window_create,
-			     "reader-dyn--window-create", 1, 1,
+			     "emureader-dyn--window-create", 1, 1,
 			     "Initializes window parameters for EmacsWinState.");
 
 	register_module_func(env, emacs_doc_window_close,
-			     "reader-dyn--window-close", 1, 1,
+			     "emureader-dyn--window-close", 1, 1,
 			     "Frees EmacsWinState.");
 
 	// Register buffer-local variables.
-	permanent_buffer_local_var(env, "reader-current-doc-pagecount");
-	permanent_buffer_local_var(env, "reader-current-doc-render-status");
-	permanent_buffer_local_var(env, "reader-current-doc-state-ptr");
-	permanent_buffer_local_var(env, "reader-current-doc-outline");
-	permanent_buffer_local_var(env, "reader--recent-pagenumber-fallback");
+	permanent_buffer_local_var(env, "emureader-current-doc-pagecount");
+	permanent_buffer_local_var(env, "emureader-current-doc-render-status");
+	permanent_buffer_local_var(env, "emureader-current-doc-state-ptr");
+	permanent_buffer_local_var(env, "emureader-current-doc-outline");
+	permanent_buffer_local_var(env, "emureader--recent-pagenumber-fallback");
 
 	// Provide the current dynamic module as a feature to Emacs
 	provide(env, "render-core");
@@ -1222,9 +1222,9 @@ emacs_module_init(struct emacs_runtime *runtime)
 	// Initialize the global thread pool
 	threadpool_init(&g_thread_pool);
 
-	fprintf(stderr, "reader: %d threads have been initialized.\n",
+	fprintf(stderr, "emureader: %d threads have been initialized.\n",
 		MAX_POOL_SIZE);
 	fprintf(stderr,
-		"reader: dynamic module has been loaded successfully.\n");
+		"emureader: dynamic module has been loaded successfully.\n");
 	return 0;
 }

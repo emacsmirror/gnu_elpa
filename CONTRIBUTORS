@@ -1,4 +1,4 @@
-List of all the people who contributed to The Emacs Reader. For more
+List of all the people who contributed to The EmuReader. For more
 information on what is included, visit
 www.gnu.org/prep/maintain/html_node/Legally-Significant.html#Legally-Significant
 
@@ -6,7 +6,7 @@ www.gnu.org/prep/maintain/html_node/Legally-Significant.html#Legally-Significant
 
 Divya Ranjan Pattanaik <divya@dialetheia.xyz>:
 
-- wrote or added to reader.el, reader-outline.el. reader-saveplace.el,
+- wrote or added to emureader.el, emureader-outline.el. emureader-saveplace.el,
   mupdf-helpers.c, render-theme.c, render-core.c, elisp-helpers.c, and
   render-threads.c.
 - wrote Makefile.
@@ -16,8 +16,8 @@ Tushar <tusharhero@sdf.org>:
 - changed and added to README.org
 - added guix system configurations in test/vm/x11.scm and
   test/vm/wayland.scm.
-- wrote reader-bookmark.el.
-- changed or added to reader.el, reader-saveplace.el, and reader-outline.el
+- wrote emureader-bookmark.el.
+- changed or added to emureader.el, emureader-saveplace.el, and emureader-outline.el
 - changed or added to elisp-helpers.c, and render-core.c.
 - updated docstrings in both C and Elisp modules for v0.3.0
 - added to Makefile.
@@ -34,15 +34,15 @@ shuxiao9058 (Codeberg user):
 
 idilip (Codeberg user):
 
-- implemented a basic presentation mode in reader.el for v0.3.0 (PR #100)
+- implemented a basic presentation mode in emureader.el for v0.3.0 (PR #100)
 
 Yuwei Tian <ibluefocus@outlook.com> (Codeberg user galeo):
 
-- fixed =reader-reset-size= interactive function in reader.el (PR #124).
+- fixed =emureader-reset-size= interactive function in emureader.el (PR #124).
 
 yangyingchao <yang.yingchao@qq.com>:
 
-- fixed =reader-open-doc= (PR #125).
+- fixed =emureader-open-doc= (PR #125).
 
 dominik martinez <dominikmartinez@pm.me> (Codeberg user dom2):
 

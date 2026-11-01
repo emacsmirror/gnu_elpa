@@ -7,15 +7,15 @@ are to be recorded here.
   possible to view different pages of the same document (from the same
   buffer) on different windows.
 - Change 'screenful' to 'screen' in command names.
-- Make =reader-reset-size= interactive.
+- Make =emureader-reset-size= interactive.
 - Overall stability improvements when opening files, accessing
   bookmarks, and outlines.
-- Remove F5 keybinding for =reader-presentation-mode=.
-- Remove =reader-mode= as an interactive command.
+- Remove F5 keybinding for =emureader-presentation-mode=.
+- Remove =emureader-mode= as an interactive command.
 - Fix weird page border artifacts when using the mouse.
-- Add =reader-build= command to automatically build the dynamic module.
+- Add =emureader-build= command to automatically build the dynamic module.
 - Fix handling documents with multiple orientations.
-- Reader buffers now get automatically reverted via =auto-revert-mode= without crashing.
+- EmuReader buffers now get automatically reverted via =auto-revert-mode= without crashing.
 
 * Version 0.3.2
 - Fix reader-outline when original source buffer is killed.

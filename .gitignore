@@ -5,6 +5,6 @@
 *.~undo-tree~
 TAGS
 /worktrees/
-reader-autoloads.el
+emureader-autoloads.el
 *.elc
 *~

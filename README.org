@@ -1,4 +1,4 @@
-#+TITLE: The GNU Emacs Reader
+#+TITLE: EmuReader
 #+AUTHOR: Divya Ranjan Pattanaik
 #+AUTHOR: Tushar
 #+OPTIONS: toc:nil
@@ -20,16 +20,16 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 #+end_src
 
-[[file:extras/emacs-reader-logo.png]]
+[[file:extras/emureader-logo.png]]
 
 An all-in-one document reader for GNU Emacs, supporting all [[* Supported Formats][major document formats]]. This package intends to take from =doc-view=, =nov.el=, and =pdf-tools= and make them better. And as such, it is effectively a *drop-in replacement* for them.
 
-* Emacs Reader at Emacsconf 2025
+* EmuReader at Emacsconf 2025
 
 [[https://media.emacsconf.org/2025/emacsconf-2025-reader--an-introduction-to-the-emacs-reader--divy--main.webm]]
 
 * Supported Formats
-The Emacs Reader (via MuPDF) can open all the formats below.
+The EmuReader (via MuPDF) can open all the formats below.
 
 ** Well-supported Formats
 + PDF
@@ -66,17 +66,17 @@ On GNU/Linux, all you need is: =gcc= and =make=. Then you can simply install thr
 
 - =use-package= with =package-vc=:
    #+begin_src emacs-lisp
-     (use-package reader
-       :vc (:url "https://codeberg.org/MonadicSheep/emacs-reader"))
+     (use-package emureader
+       :vc (:url "https://codeberg.org/MonadicSheep/emureader"))
    #+end_src
 
 -  =use-package= with =straight=
    #+begin_src emacs-lisp
-     (use-package reader
-       :straight '(reader :type git :host codeberg :repo "MonadicSheep/emacs-reader"))
+     (use-package emureader
+       :straight '(emureader :type git :host codeberg :repo "MonadicSheep/emureader"))
    #+end_src
 
-The first time you use reader, you will need to build the dynamic module, you can either manually run =make= in reader's directory, or run the =M-x reader-build RET= command. But reader will run the command for you if you don't.
+The first time you use emureader, you will need to build the dynamic module, you can either manually run =make= in emureader's directory, or run the =M-x emureader-build RET= command. But emureader will run the command for you if you don't.
 
 #+begin_center
 Note that sometimes you may need to run =make clean all= to get rid of
@@ -86,19 +86,19 @@ old artifacts before recompiling.
 *** Debian GNU/Linux
 Follow this [[https://codeberg.org/divyaranjan/emacs-reader/issues/122#issuecomment-9315806][write up]].
 *** GNU Guix
-Using the [[https://guix.gnu.org/][GNU Guix]] package manager, you can get emacs-reader through the [[https://codeberg.org/divyaranjan/divya-lambda][divya-lambda]] Guix channel. Follow the instructions there to add the Guix channel to your configuration. Then all that remains to do is,
+Using the [[https://guix.gnu.org/][GNU Guix]] package manager, you can get emureader through the [[https://codeberg.org/divyaranjan/divya-lambda][divya-lambda]] Guix channel. Follow the instructions there to add the Guix channel to your configuration. Then all that remains to do is,
 #+begin_src bash
-  guix install emacs-reader
+  guix install emureader
 #+end_src
 
-This will get the latest release of emacs-reader. However, if you want to get latest features, bug fixes (and bugs!) to help us with testing emacs-reader, you should use the master branch. You can instruct Guix to get it for you, like so,
+This will get the latest release of emureader. However, if you want to get latest features, bug fixes (and bugs!) to help us with testing emureader, you should use the master branch. You can instruct Guix to get it for you, like so,
 #+begin_src bash
-  guix install emacs-reader --with-branch=emacs-reader=master
+  guix install emureader --with-branch=emureader=master
 #+end_src
 
 You can also upgrade an already installed package with,
 #+begin_src bash
-  guix upgrade emacs-reader --with-branch=emacs-reader=master
+  guix upgrade emureader --with-branch=emureader=master
 #+end_src
 
 You may replace the branch name as you need.
@@ -122,26 +122,26 @@ Find more information [[https://codeberg.org/divyaranjan/emacs-reader/issues/142
 *** User lisp directory (recommended)
 1. Clone the repository into ~~/.emacs.d/user-lisp/~,
    #+begin_src shell
-     git clone https://codeberg.org/monadicsheep/emacs-reader ~/.emacs.d/user-lisp/emacs-reader
+     git clone https://codeberg.org/monadicsheep/emureader ~/.emacs.d/user-lisp/emureader
    #+end_src
 
    You may also symlink an existing checkout instead.
-2. You may now run =M-x prepare-user-lisp RET= or restart Emacs to make Emacs automatically prepare and load emacs-reader.
-3. You also need to build the dynamic module, for this we provide the =M-x reader-build RET=. But you can also run =make= directly yourself.
+2. You may now run =M-x prepare-user-lisp RET= or restart Emacs to make Emacs automatically prepare and load emureader.
+3. You also need to build the dynamic module, for this we provide the =M-x emureader-build RET=. But you can also run =make= directly yourself.
 *** package-vc
 You can also utilize =use-package= to do the same, put the following in
 your configuration,
 #+begin_src emacs-lisp
-  (use-package reader
+  (use-package emureader
     :vc t
-    :load-path "/path/to/emacs-reader")
+    :load-path "/path/to/emureader")
 #+end_src
 *** In =emacs -Q=
-To test emacs-reader in a default Emacs config, first generate the auto loads using =make autoloads=.
+To test emureader in a default Emacs config, first generate the auto loads using =make autoloads=.
 #+begin_src shell
-  emacs -Q -L . -l reader-autoloads.el
+  emacs -Q -L . -l emureader-autoloads.el
 #+end_src
-This command adds the current directory to path, and loads =reader-autoloads.el=.
+This command adds the current directory to path, and loads =emureader-autoloads.el=.
 
 * Key Bindings
 - =n= for going to next page
@@ -150,7 +150,7 @@ This command adds the current directory to path, and loads =reader-autoloads.el=
 - =C-p= for scrolling up.
 - =C-b= for scrolling left.
 - =C-f= for scrolling right.
-- =Q= for closing the Emacs Reader buffer.
+- =Q= for closing the EmuReader buffer.
 - =M-<= for going to the first page.
 - =M->= for going to the last page.
 - =M-g g= for going to a particular page.
@@ -180,7 +180,7 @@ I have been streaming the development of this package on [[https://tv.dyne.org/c
 If you wish to join the discussion for the package, you should join the IRC channel =#phi-mu-lambda= on [[https://libera.chat/][Libera]].
 
 * License
-Unless another license is listed, all files in emacs-reader are licensed under the GNU General Public License version 3 (or at your option, any later version). See [[file:COPYING][COPYING]] and [[file:CONTRIBUTORS][CONTRIBUTORS]] for further details.
+Unless another license is listed, all files in emureader are licensed under the GNU General Public License version 3 (or at your option, any later version). See [[file:COPYING][COPYING]] and [[file:CONTRIBUTORS][CONTRIBUTORS]] for further details.
 
 The logo of the project was made by Divya Ranjan Pattanaik and is shared under [[http://creativecommons.org/licenses/by-sa/4.0/][CC-BY-SA-4.0]]. The logo uses the following artworks from GNU:
 

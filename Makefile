@@ -102,7 +102,7 @@ else
 endif
 
 # --- Build Rules ---
-LIB_NAME := render-core.$(SO)
+LIB_NAME := emureader-dyn.$(SO)
 SRCS := $(wildcard render/*.c)
 OBJS := $(SRCS:%.c=%.o)
 

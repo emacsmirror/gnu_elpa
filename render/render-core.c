@@ -1217,7 +1217,7 @@ emacs_module_init(struct emacs_runtime *runtime)
 	permanent_buffer_local_var(env, "emureader--recent-pagenumber-fallback");
 
 	// Provide the current dynamic module as a feature to Emacs
-	provide(env, "render-core");
+	provide(env, "emureader-dyn");
 
 	// Initialize the global thread pool
 	threadpool_init(&g_thread_pool);

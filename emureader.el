@@ -46,15 +46,15 @@
   "The directory from where emureader was first loaded.")
 
 (defun emureader--load-module ()
-  "Load the `render-core' dynamic module from `emureader-directory'."
+  "Load the `emureader-dyn' dynamic module from `emureader-directory'."
   (let ((load-path (cons emureader-directory load-path)))
-    (require 'render-core)))
+    (require 'emureader-dyn)))
 
 (defun emureader--module-built-p ()
   "Return non-nil if the dynamic module exists in `emureader-directory'."
   (file-exists-p
    (file-name-concat emureader-directory
-		     (concat "render-core" module-file-suffix))))
+		     (concat "emureader-dyn" module-file-suffix))))
 
 (defun emureader--post-build (_buffer status)
   "Load the module if the build finished successfully, per STATUS."
@@ -74,7 +74,7 @@
 	(compilation-buffer-name-function
 	 (lambda (_) "*emureader-module-compilation*")))
     (compile (concat (or (executable-find "gmake") "make")
-		     " render-core" module-file-suffix))
+		     " emureader-dyn" module-file-suffix))
     (with-current-buffer "*emureader-module-compilation*"
       ;; Buffer-local hook
       (add-hook 'compilation-finish-functions #'emureader--post-build nil t))
@@ -83,7 +83,7 @@
 
 (defun emureader-ensure-module ()
   "Ensure emureader's dynamic module is loaded."
-  (unless (featurep 'render-core)
+  (unless (featurep 'emureader-dyn)
     (if (emureader--module-built-p)
 	(emureader--load-module)
       (when (yes-or-no-p "Build emureader's dynamic module? ")
@@ -95,19 +95,19 @@
 (defvar emureader-current-doc-render-status)
 
 ;;; Forward declarations for module functions
-(declare-function emureader-dyn--load-doc "ext:render/render-core.so" (file &optional page))
-(declare-function emureader-dyn--redisplay-doc "ext:render/render-core.so")
-(declare-function emureader-dyn--close-doc "ext:render/render-core.so")
-(declare-function emureader-dyn--next-page "ext:render/render-core.so")
-(declare-function emureader-dyn--prev-page "ext:render/render-core.so")
-(declare-function emureader-dyn--first-page "ext:render/render-core.so")
-(declare-function emureader-dyn--last-page "ext:render/render-core.so")
-(declare-function emureader-dyn--goto-page "ext:render/render-core.so" (page))
-(declare-function emureader-dyn--scale-page "ext:render/render-core.so" (factor))
-(declare-function emureader-dyn--doc-invert "ext:render/render-core.so" (invert))
-(declare-function emureader-dyn--rotate-page "ext:render/render-core.so" (degree))
-(declare-function emureader-dyn--window-create "ext:render/render-core.so" (window))
-(declare-function emureader-dyn--window-close "ext:render/render-core.so" (window))
+(declare-function emureader-dyn--load-doc "ext:render/emureader-dyn.so" (file &optional page))
+(declare-function emureader-dyn--redisplay-doc "ext:render/emureader-dyn.so")
+(declare-function emureader-dyn--close-doc "ext:render/emureader-dyn.so")
+(declare-function emureader-dyn--next-page "ext:render/emureader-dyn.so")
+(declare-function emureader-dyn--prev-page "ext:render/emureader-dyn.so")
+(declare-function emureader-dyn--first-page "ext:render/emureader-dyn.so")
+(declare-function emureader-dyn--last-page "ext:render/emureader-dyn.so")
+(declare-function emureader-dyn--goto-page "ext:render/emureader-dyn.so" (page))
+(declare-function emureader-dyn--scale-page "ext:render/emureader-dyn.so" (factor))
+(declare-function emureader-dyn--doc-invert "ext:render/emureader-dyn.so" (invert))
+(declare-function emureader-dyn--rotate-page "ext:render/emureader-dyn.so" (degree))
+(declare-function emureader-dyn--window-create "ext:render/emureader-dyn.so" (window))
+(declare-function emureader-dyn--window-close "ext:render/emureader-dyn.so" (window))
 
 (defgroup emureader nil
   "Group for EmuReader’s customizations."

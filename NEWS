@@ -3,6 +3,7 @@ See =(info "(standards) NEWS File")=. User facing changes per release
 are to be recorded here.
 
 * Version 0.4.0
+- Rename to EmuReader.
 - Per window pages, zooming, etc. support, which means that it is now
   possible to view different pages of the same document (from the same
   buffer) on different windows.

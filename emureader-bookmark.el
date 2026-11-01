@@ -1,4 +1,4 @@
-;;; reader-bookmark.el --- bookmarks integration for the emacs-reader -*- lexical-binding: t; -*-
+;;; emureader-bookmark.el --- bookmarks integration for the EmuReader -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2025-2026 Free Software Foundation, Inc.
 
@@ -21,36 +21,36 @@
 
 ;;; Code:
 
-(require 'reader)
+(require 'emureader)
 (require 'bookmark)
 
 ;;;###autoload
-(defun reader-bookmark-make-record  ()
-  "Create a bookmark reader doc record."
-  (let ((win (reader--current-doc-window)))
+(defun emureader-bookmark-make-record  ()
+  "Create a bookmark emureader doc record."
+  (let ((win (emureader--current-doc-window)))
     (append (bookmark-make-record-default nil t 1)
-            (list (cons 'page (reader-current-doc-pagenumber win))
-		  (cons 'scale (reader-current-doc-scale-value win))
-		  (cons 'hscroll (and win (reader--window-hscroll win)))
+            (list (cons 'page (emureader-current-doc-pagenumber win))
+		  (cons 'scale (emureader-current-doc-scale-value win))
+		  (cons 'hscroll (and win (emureader--window-hscroll win)))
 		  (cons 'vscroll (and win (window-vscroll win)))
-		  '(handler . reader-bookmark-jump)))))
+		  '(handler . emureader-bookmark-jump)))))
 
 ;;;###autoload
-(defun reader-bookmark-jump (bookmark)
-  "Handles BOOKMARK for record type returned by `reader-bookmark-make-record'."
+(defun emureader-bookmark-jump (bookmark)
+  "Handles BOOKMARK for record type returned by `emureader-bookmark-make-record'."
   (let ((page (bookmark-prop-get bookmark 'page))
         (file (bookmark-prop-get bookmark 'filename))
         (scale (bookmark-prop-get bookmark 'scale))
 	(hscroll (bookmark-prop-get bookmark 'hscroll))
 	(vscroll (bookmark-prop-get bookmark 'vscroll)))
     (find-file file)
-    (reader--manage-window-overlays)
-    (when scale (reader-doc-scale-page scale))
-    (when page (reader-goto-page page))
-    (when hscroll (reader--set-window-hscroll nil hscroll))
-    (when vscroll (reader--set-window-vscroll nil vscroll))))
+    (emureader--manage-window-overlays)
+    (when scale (emureader-doc-scale-page scale))
+    (when page (emureader-goto-page page))
+    (when hscroll (emureader--set-window-hscroll nil hscroll))
+    (when vscroll (emureader--set-window-vscroll nil vscroll))))
 
-(put 'reader-bookmark-jump 'bookmark-handler-type "Reader")
+(put 'emureader-bookmark-jump 'bookmark-handler-type "EmuReader")
 
-(provide 'reader-bookmark)
-;;; reader-bookmark.el ends here
+(provide 'emureader-bookmark)
+;;; emureader-bookmark.el ends here

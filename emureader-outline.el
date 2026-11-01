@@ -1,4 +1,4 @@
-;;; reader-outline.el --- imenu and outline-mode integration for the emacs-reader  -*- lexical-binding: t; -*-
+;;; emureader-outline.el --- imenu and outline-mode integration for the EmuReader  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2025-2026 Free Software Foundation, Inc.
 
@@ -22,73 +22,73 @@
 
 ;;; Code:
 
-(require 'reader)
+(require 'emureader)
 (require 'imenu)
 (require 'outline)
 
-(defvar reader-current-doc-outline)
+(defvar emureader-current-doc-outline)
 
 ;;; Imenu
 
 ;;;###autoload
-(defun reader--outline-make-imenu-entry (plist)
+(defun emureader--outline-make-imenu-entry (plist)
   "Convert one outline PLIST to an imenu entry."
   (let* ((title (plist-get plist :title))
          (page (1+ (plist-get plist :page))) ; MuPDF does 0-indexing
          (children (plist-get plist :children)))
     (if children
         (cons title
-              (mapcar #'reader--outline-make-imenu-entry children))
+              (mapcar #'emureader--outline-make-imenu-entry children))
       (cons title page))))
 
 ;;;###autoload
-(defun reader--outline-imenu-create-index ()
-  "Turn `reader-current-doc-outline' into an imenu index."
-  (when reader-current-doc-outline
-    (mapcar #'reader--outline-make-imenu-entry
-	    reader-current-doc-outline)))
+(defun emureader--outline-imenu-create-index ()
+  "Turn `emureader-current-doc-outline' into an imenu index."
+  (when emureader-current-doc-outline
+    (mapcar #'emureader--outline-make-imenu-entry
+	    emureader-current-doc-outline)))
 
 ;;;###autoload
-(defun reader--outline-imenu-goto (_name page)
+(defun emureader--outline-imenu-goto (_name page)
   "Switch to PAGE.
 
 Ignores the _NAME argument.
-Just wraps `reader-goto-page' for imenu compatibility."
-  (reader-goto-page page))
+Just wraps `emureader-goto-page' for imenu compatibility."
+  (emureader-goto-page page))
 
 ;;; Outline
 
-(defvar-local reader-outline--doc-buffername nil
+(defvar-local emureader-outline--doc-buffername nil
   "Name of the document buffer whose outline was generated.")
 
-(defvar-local reader-outline--doc-window nil
+(defvar-local emureader-outline--doc-window nil
   "The window from where the outline was generated.")
 
 ;;;###autoload
-(defun reader-outline-show ()
+(defun emureader-outline-show ()
   "Show the document outline in a separate buffer.
 
 The outline buffer inherits it's name from the original
 document it was created from."
   (interactive)
-  (unless (derived-mode-p 'reader-mode)
-    (user-error "Not in a reader-mode buffer"))
-  (unless reader-current-doc-outline
+  (unless (derived-mode-p 'emureader-mode)
+    (user-error "Not in a emureader-mode buffer"))
+  (unless emureader-current-doc-outline
     (user-error "This document has no outline"))
-  (let* ((outline-data reader-current-doc-outline)
+  (let* ((outline-data emureader-current-doc-outline)
          (source-buffer (current-buffer))
          (bufname (format "*Outline of %s*" (buffer-name source-buffer))))
     (with-current-buffer (get-buffer-create bufname)
       (when-let* ((emptyp (= 0 (buffer-size)))
 		  (inhibit-read-only t))
-        (reader-outline-mode)
-	(setq reader-outline--doc-buffername (buffer-name source-buffer))
-	(setq reader-outline--doc-window (get-buffer-window source-buffer))
-        (reader--outline-insert-outline outline-data 1)
+        (emureader-outline-mode)
+	(setq emureader-outline--doc-buffername (buffer-name source-buffer))
+	(setq emureader-outline--doc-window (get-buffer-window source-buffer))
+        (emureader--outline-insert-outline outline-data 1)
 	(goto-char (point-min))))
     (pop-to-buffer bufname)))
 
-(defun reader--outline-insert-outline (outline level)
+(defun emureader--outline-insert-outline (outline level)
   "Recursively insert OUTLINE entries at LEVEL.
 
 Each heading title is its own clickable button."
@@ -101,61 +101,61 @@ Each heading title is its own clickable button."
       (insert (concat (make-string level ?*) " "))
       (insert-text-button
        title
-       'reader-page page
-       'action #'reader-outline-goto-entry
+       'emureader-page page
+       'action #'emureader-outline-goto-entry
        'follow-link t
        'help-echo "Jump to section.")
       (insert "\n")
       (if children
-          (reader--outline-insert-outline children (1+ level))))))
+          (emureader--outline-insert-outline children (1+ level))))))
 
-(defun reader-outline-select-doc-window ()
+(defun emureader-outline-select-doc-window ()
   "Display and switch to the original document's window."
   (interactive)
-  (let ((buf (get-buffer reader-outline--doc-buffername)))
+  (let ((buf (get-buffer emureader-outline--doc-buffername)))
     (unless (buffer-live-p buf)
       (user-error "Document buffer no longer exists"))
-    (let ((win (or (and (window-live-p reader-outline--doc-window)
-			(eq (window-buffer reader-outline--doc-window) buf)
-			reader-outline--doc-window)
+    (let ((win (or (and (window-live-p emureader-outline--doc-window)
+			(eq (window-buffer emureader-outline--doc-window) buf)
+			emureader-outline--doc-window)
 		   (get-buffer-window buf))))
       (if win
 	  (select-window win)
 	(pop-to-buffer buf))
-      (setq reader-outline--doc-window (selected-window)))))
+      (setq emureader-outline--doc-window (selected-window)))))
 
-(defvar-keymap reader-outline-mode-map
-  :doc "Keymap for `reader-outline-mode'"
+(defvar-keymap emureader-outline-mode-map
+  :doc "Keymap for `emureader-outline-mode'"
   "p"        #'previous-line
   "n"        #'next-line
-  "o"        #'reader-outline-select-doc-window
+  "o"        #'emureader-outline-select-doc-window
   "q"        #'quit-window
-  "RET"      #'reader-outline-visit-page
-  "M-RET"    #'reader-outline-visit-page)
+  "RET"      #'emureader-outline-visit-page
+  "M-RET"    #'emureader-outline-visit-page)
 
-(define-derived-mode reader-outline-mode outline-mode "Emacs Reader Outline"
+(define-derived-mode emureader-outline-mode outline-mode "EmuReader Outline"
   "Major mode for navigating document outlines."
   (setq buffer-read-only t)
   (setq-local outline-regexp "^\\*+ ")
-  (use-local-map reader-outline-mode-map))
+  (use-local-map emureader-outline-mode-map))
 
-(defun reader-outline-goto-entry (button)
+(defun emureader-outline-goto-entry (button)
   "Shared logic to jump to an outline BUTTON."
-  (let ((page (button-get button 'reader-page)))
+  (let ((page (button-get button 'emureader-page)))
     (unless (numberp page)
       (user-error "Invalid outline entry: no page info"))
-    (reader-outline-select-doc-window)
+    (emureader-outline-select-doc-window)
     ;; activates `window-buffer-change-functions' and `window-configuration-change-hook'
     (redisplay)
-    (reader-goto-page page)))
+    (emureader-goto-page page)))
 
-(defun reader-outline-visit-page ()
-  "Jump to the page at point in the associated reader buffer."
+(defun emureader-outline-visit-page ()
+  "Jump to the page at point in the associated emureader buffer."
   (interactive)
   (save-excursion
     (end-of-line)   ; This is done to make sure the we always have a
     (backward-char) ; button at point.
-    (reader-outline-goto-entry (button-at (point)))))
+    (emureader-outline-goto-entry (button-at (point)))))
 
-(provide 'reader-outline)
-;;; reader-outline.el ends here
+(provide 'emureader-outline)
+;;; emureader-outline.el ends here

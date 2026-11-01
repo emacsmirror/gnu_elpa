@@ -1,4 +1,4 @@
-;;; reader-saveplace.el --- Saveplace integration with emacs-reader  -*- lexical-binding: t; -*-
+;;; emureader-saveplace.el --- Saveplace integration with EmuReader  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2025-2026 Free Software Foundation, Inc.
 
@@ -34,32 +34,32 @@
 
 (require 'bookmark)
 (require 'saveplace)
-(require 'reader-bookmark)
+(require 'emureader-bookmark)
 
 ;;;###autoload
-(defun reader--saveplace-find-file ()
-  "Restore saved place in `reader-mode' buffers.
+(defun emureader--saveplace-find-file ()
+  "Restore saved place in `emureader-mode' buffers.
 
 To be added to `save-place-after-find-file-hook'.  See also
-`reader--saveplace-to-alist'."
+`emureader--saveplace-to-alist'."
   (or save-place-loaded (save-place-load-alist-from-file))
-  (when (derived-mode-p 'reader-mode)
+  (when (derived-mode-p 'emureader-mode)
     (if-let* ((place (assoc buffer-file-name save-place-alist))
 	      (bookmark (aref (cdr place)  0))) ; get back the bookmark
-        (reader-bookmark-jump bookmark))))
+        (emureader-bookmark-jump bookmark))))
 
 ;;;###autoload
-(add-hook 'save-place-after-find-file-hook #'reader--saveplace-find-file)
+(add-hook 'save-place-after-find-file-hook #'emureader--saveplace-find-file)
 
 ;;;###autoload
-(defun reader--saveplace-to-alist ()
-  "Save place in `reader-mode' buffers.
+(defun emureader--saveplace-to-alist ()
+  "Save place in `emureader-mode' buffers.
 
 Used for advice around `save-place-to-alist'.  See also
-`reader--saveplace-find-file'."
+`emureader--saveplace-find-file'."
   (when-let* ((filename buffer-file-name)
-	      (bookmark-record (reader-bookmark-make-record))
-	      (bookmark (cons "reader-saveplace" bookmark-record)))
+	      (bookmark-record (emureader-bookmark-make-record))
+	      (bookmark (cons "emureader-saveplace" bookmark-record)))
     (setq save-place-alist
           (assoc-delete-all filename save-place-alist))
     ;; store bookmark inside a vector
@@ -67,9 +67,9 @@ Used for advice around `save-place-to-alist'.  See also
 
 ;;;###autoload
 (advice-add 'save-place-to-alist :around (lambda (orig-fun &rest args)
-					   (if (derived-mode-p 'reader-mode)
-					       (reader--saveplace-to-alist)
+					   (if (derived-mode-p 'emureader-mode)
+					       (emureader--saveplace-to-alist)
 					     (apply orig-fun args))))
 
-(provide 'reader-saveplace)
-;;; reader-saveplace.el ends here
+(provide 'emureader-saveplace)
+;;; emureader-saveplace.el ends here

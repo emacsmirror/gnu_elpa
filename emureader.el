@@ -1,4 +1,4 @@
-;;; reader.el --- General-purpose Document Reader -*- lexical-binding: t; -*-
+;;; emureader.el --- General-purpose Document EmuReader -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2025-2026 Free Software Foundation, Inc.
 
@@ -7,7 +7,7 @@
 ;; Keywords: lisp, files, tools
 ;; Version: 0.3.2
 ;; Package-Requires: ((emacs "26.1"))
-;; URL: https://codeberg.org/MonadicSheep/emacs-reader
+;; URL: https://codeberg.org/MonadicSheep/emureader
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -38,187 +38,187 @@
 
 (require 'image)
 
-(defconst reader-directory
+(defconst emureader-directory
   (file-name-directory (or
 			(macroexp-file-name)
 			load-file-name
 			default-directory))
-  "The directory from where reader was first loaded.")
+  "The directory from where emureader was first loaded.")
 
-(defun reader--load-module ()
-  "Load the `render-core' dynamic module from `reader-directory'."
-  (let ((load-path (cons reader-directory load-path)))
+(defun emureader--load-module ()
+  "Load the `render-core' dynamic module from `emureader-directory'."
+  (let ((load-path (cons emureader-directory load-path)))
     (require 'render-core)))
 
-(defun reader--module-built-p ()
-  "Return non-nil if the dynamic module exists in `reader-directory'."
+(defun emureader--module-built-p ()
+  "Return non-nil if the dynamic module exists in `emureader-directory'."
   (file-exists-p
-   (file-name-concat reader-directory
+   (file-name-concat emureader-directory
 		     (concat "render-core" module-file-suffix))))
 
-(defun reader--post-build (_buffer status)
+(defun emureader--post-build (_buffer status)
   "Load the module if the build finished successfully, per STATUS."
   (if (string-prefix-p "finished" status)
-      (progn (reader--load-module)
+      (progn (emureader--load-module)
 	     (mapc (lambda (buff)
 		     (with-current-buffer buff
-		       (reader-mode)))
-		   (match-buffers '(major-mode . reader-mode))))
-    (message "reader: module build failed, see *reader-module-compilation*")))
+		       (emureader-mode)))
+		   (match-buffers '(major-mode . emureader-mode))))
+    (message "emureader: module build failed, see *emureader-module-compilation*")))
 
 ;;;###autoload
-(defun reader-build ()
-  "Build reader's dynamic module, then load it."
+(defun emureader-build ()
+  "Build emureader's dynamic module, then load it."
   (interactive)
-  (let ((default-directory reader-directory)
+  (let ((default-directory emureader-directory)
 	(compilation-buffer-name-function
-	 (lambda (_) "*reader-module-compilation*")))
+	 (lambda (_) "*emureader-module-compilation*")))
     (compile (concat (or (executable-find "gmake") "make")
 		     " render-core" module-file-suffix))
-    (with-current-buffer "*reader-module-compilation*"
+    (with-current-buffer "*emureader-module-compilation*"
       ;; Buffer-local hook
-      (add-hook 'compilation-finish-functions #'reader--post-build nil t))
+      (add-hook 'compilation-finish-functions #'emureader--post-build nil t))
     ;; Let it compile.
     (sit-for 1)))
 
-(defun reader-ensure-module ()
-  "Ensure reader's dynamic module is loaded."
+(defun emureader-ensure-module ()
+  "Ensure emureader's dynamic module is loaded."
   (unless (featurep 'render-core)
-    (if (reader--module-built-p)
-	(reader--load-module)
-      (when (yes-or-no-p "Build reader's dynamic module? ")
-	(reader-build)))))
+    (if (emureader--module-built-p)
+	(emureader--load-module)
+      (when (yes-or-no-p "Build emureader's dynamic module? ")
+	(emureader-build)))))
 
-(defvar reader--recent-pagenumber-fallback)
-(defvar reader-current-doc-state-ptr)
-(defvar reader--recent-pagenumber-fallback)
-(defvar reader-current-doc-render-status)
+(defvar emureader--recent-pagenumber-fallback)
+(defvar emureader-current-doc-state-ptr)
+(defvar emureader--recent-pagenumber-fallback)
+(defvar emureader-current-doc-render-status)
 
 ;;; Forward declarations for module functions
-(declare-function reader-dyn--load-doc "ext:render/render-core.so" (file &optional page))
-(declare-function reader-dyn--redisplay-doc "ext:render/render-core.so")
-(declare-function reader-dyn--close-doc "ext:render/render-core.so")
-(declare-function reader-dyn--next-page "ext:render/render-core.so")
-(declare-function reader-dyn--prev-page "ext:render/render-core.so")
-(declare-function reader-dyn--first-page "ext:render/render-core.so")
-(declare-function reader-dyn--last-page "ext:render/render-core.so")
-(declare-function reader-dyn--goto-page "ext:render/render-core.so" (page))
-(declare-function reader-dyn--scale-page "ext:render/render-core.so" (factor))
-(declare-function reader-dyn--doc-invert "ext:render/render-core.so" (invert))
-(declare-function reader-dyn--rotate-page "ext:render/render-core.so" (degree))
-(declare-function reader-dyn--window-create "ext:render/render-core.so" (window))
-(declare-function reader-dyn--window-close "ext:render/render-core.so" (window))
+(declare-function emureader-dyn--load-doc "ext:render/render-core.so" (file &optional page))
+(declare-function emureader-dyn--redisplay-doc "ext:render/render-core.so")
+(declare-function emureader-dyn--close-doc "ext:render/render-core.so")
+(declare-function emureader-dyn--next-page "ext:render/render-core.so")
+(declare-function emureader-dyn--prev-page "ext:render/render-core.so")
+(declare-function emureader-dyn--first-page "ext:render/render-core.so")
+(declare-function emureader-dyn--last-page "ext:render/render-core.so")
+(declare-function emureader-dyn--goto-page "ext:render/render-core.so" (page))
+(declare-function emureader-dyn--scale-page "ext:render/render-core.so" (factor))
+(declare-function emureader-dyn--doc-invert "ext:render/render-core.so" (invert))
+(declare-function emureader-dyn--rotate-page "ext:render/render-core.so" (degree))
+(declare-function emureader-dyn--window-create "ext:render/render-core.so" (window))
+(declare-function emureader-dyn--window-close "ext:render/render-core.so" (window))
 
-(defgroup reader nil
-  "Group for Reader’s customizations."
-  :prefix "reader-"
+(defgroup emureader nil
+  "Group for EmuReader’s customizations."
+  :prefix "emureader-"
   :group 'custom)
 
-(defcustom reader-enlarge-factor 1.25
+(defcustom emureader-enlarge-factor 1.25
   "The fractional amount by which the page would be enlarged."
   :type 'number)
 
-(defcustom reader-shrink-factor 0.75
+(defcustom emureader-shrink-factor 0.75
   "The fractional amount by which the page would be shrinked."
   :type 'number)
 
-(defcustom reader-default-fit #'reader-fit-to-height
+(defcustom emureader-default-fit #'emureader-fit-to-height
   "The default fitting for documents."
-  :type '(radio (function-item reader-fit-to-height)
-		(function-item reader-fit-to-width)))
+  :type '(radio (function-item emureader-fit-to-height)
+		(function-item emureader-fit-to-width)))
 
-(defvar-local reader--recent-scale-fallback 1.0
+(defvar-local emureader--recent-scale-fallback 1.0
   "Previous scaling factor applied to the document.")
 
-(defvar-local reader--reloading nil
+(defvar-local emureader--reloading nil
   "Boolean flag to represent reloading status of a document.")
 
 ;; Setting of `auto-mode-list' fails if not autoloaded.
 ;;;###autoload
-(defconst reader-supported-formats (list "pdf" "epub" "mobi"
-					 "fb2" "xps" "cbz"
-					 "docx""pptx" "xlsx"
-					 "odt" "ods" "odp" "odg")
-  "File formats supported by the document reader.")
+(defconst emureader-supported-formats (list "pdf" "epub" "mobi"
+					    "fb2" "xps" "cbz"
+					    "docx""pptx" "xlsx"
+					    "odt" "ods" "odp" "odg")
+  "File formats supported by the document emureader.")
 
-(defun reader-current-doc-overlay (&optional window)
+(defun emureader-current-doc-overlay (&optional window)
   "Overlay parameter for WINDOW.
 
 WINDOW must be a valid window and defaults to the selected one."
   (window-parameter (or window (selected-window)) 'overlay))
 
-(defun reader--window-owned-p (window)
-  "Non-nil if WINDOW's reader overlay belongs to WINDOW's current buffer."
+(defun emureader--window-owned-p (window)
+  "Non-nil if WINDOW's emureader overlay belongs to WINDOW's current buffer."
   (let ((ov (window-parameter window 'overlay)))
     (and (overlayp ov)
 	 (eq (overlay-buffer ov)
 	     (window-buffer window)))))
 
-(defun reader--current-doc-window ()
+(defun emureader--current-doc-window ()
   "Return a window showing the current buffer's document, or nil.
 Prefer the selected window."
-  (seq-find #'reader--window-owned-p (get-buffer-window-list nil nil t)))
+  (seq-find #'emureader--window-owned-p (get-buffer-window-list nil nil t)))
 
-(defun reader-current-doc-pagenumber (&optional window)
+(defun emureader-current-doc-pagenumber (&optional window)
   "Page number of WINDOW.
 
 WINDOW defaults to a window showing the current buffer.  Without
 one fall back to the buffer-local page number."
-  (let ((window (or window (reader--current-doc-window))))
-    (or (and window (reader--window-owned-p window)
+  (let ((window (or window (emureader--current-doc-window))))
+    (or (and window (emureader--window-owned-p window)
 	     (window-parameter window 'page))
-	reader--recent-pagenumber-fallback)))
+	emureader--recent-pagenumber-fallback)))
 
-(defun reader-current-doc-scale-value (&optional window)
+(defun emureader-current-doc-scale-value (&optional window)
   "Scaling factor of WINDOW.
 
 WINDOW defaults to a window showing the current buffer.  Without
 one fall back to the buffer-local scale value."
-  (let ((window (or window (reader--current-doc-window))))
-    (or (and window (reader--window-owned-p window)
+  (let ((window (or window (emureader--current-doc-window))))
+    (or (and window (emureader--window-owned-p window)
 	     (window-parameter window 'scale))
-	reader--recent-scale-fallback)))
+	emureader--recent-scale-fallback)))
 
 ;; We queue some commands because the user is expected to use the
 ;; commands repeatedly, such as by simply spamming a key. If we don't
 ;; queue the commands, Emacs may start skipping intermediate commands.
 
-(defvar reader--command-queue nil
-  "Queue of reader commands to be executed sequentially.")
+(defvar emureader--command-queue nil
+  "Queue of emureader commands to be executed sequentially.")
 
-(defun reader--process-command-queue ()
+(defun emureader--process-command-queue ()
   "Process the next command in the queue."
-  (when-let* ((cmd (pop reader--command-queue))
+  (when-let* ((cmd (pop emureader--command-queue))
 	      ;; Selected through trial and error.
 	      (delay 0.0001))
     (funcall cmd)
     (redisplay)
-    (run-with-idle-timer delay nil #'reader--process-command-queue)))
+    (run-with-idle-timer delay nil #'emureader--process-command-queue)))
 
-(defun reader--enqueue-command (cmd args)
+(defun emureader--enqueue-command (cmd args)
   "Add CMD with ARGS to the queue and start processing if needed."
-  (push (apply #'apply-partially cmd args) reader--command-queue)
+  (push (apply #'apply-partially cmd args) emureader--command-queue)
   (unless (or (active-minibuffer-window)
-              (memq #'reader--process-command-queue post-command-hook))
-    (add-hook 'post-command-hook #'reader--process-command-queue nil t)))
+              (memq #'emureader--process-command-queue post-command-hook))
+    (add-hook 'post-command-hook #'emureader--process-command-queue nil t)))
 
-(defmacro reader--define-queue-command (name arglist docstring interactive &rest body)
-  "Define NAME as a reader command.
+(defmacro emureader--define-queue-command (name arglist docstring interactive &rest body)
+  "Define NAME as a emureader command.
 Also define a necessary non-queue function.
 
 Much like `defun', except that ARGLIST, DOCSTRING, and INTERACTIVE are
 required.
 
-The reader--non-queue-NAME function is simply defined as a function with
+The emureader--non-queue-NAME function is simply defined as a function with
 body BODY.
 
-The reader-NAME command is simply a wrapper around
-`reader--enqueue-command' with reader--non-queue-NAME as the argument."
+The emureader-NAME command is simply a wrapper around
+`emureader--enqueue-command' with emureader--non-queue-NAME as the argument."
   (declare (indent defun)
 	   (doc-string 3))
   (let* ((name (symbol-name name))
-	 (non-queue-function-name (concat "reader--non-queue-" name))
-	 (queue-function-name (concat "reader-" name)))
+	 (non-queue-function-name (concat "emureader--non-queue-" name))
+	 (queue-function-name (concat "emureader-" name)))
     `(progn
 
        (defun ,(intern non-queue-function-name) ,arglist
@@ -236,12 +236,12 @@ This is the queuing function.
 See `%s' for actual definition."
 		  docstring non-queue-function-name)
 	 ,interactive
-	 (reader--enqueue-command #',(intern non-queue-function-name)
-				  ,(remq '&optional (push 'list arglist)))))))
+	 (emureader--enqueue-command #',(intern non-queue-function-name)
+				     ,(remq '&optional (push 'list arglist)))))))
 
-(defun reader--read-doc-name ()
+(defun emureader--read-doc-name ()
   "Read a document file name."
-  (let* ((regexp (regexp-opt reader-supported-formats t))
+  (let* ((regexp (regexp-opt emureader-supported-formats t))
 	 (prompt "Open document: ")
 	 (file (read-file-name
 		prompt nil nil t nil
@@ -249,127 +249,127 @@ See `%s' for actual definition."
 		  (or (file-directory-p f)
 		      (string-match-p regexp f))))))
     (if (file-directory-p file)
-	(reader--read-doc-name) file)))
+	(emureader--read-doc-name) file)))
 
 ;;;###autoload
-(defun reader-open-doc (document)
+(defun emureader-open-doc (document)
   "Open DOCUMENT for viewing.
 
-This function calls the module function `reader-dyn--load-doc' from the
+This function calls the module function `emureader-dyn--load-doc' from the
 dynamic module to render the first page and displays it in a new buffer.
 
-The only formats that can be opened `reader-supported-formats', any
+The only formats that can be opened `emureader-supported-formats', any
 other file format will simply not show up as a candidate."
-  (interactive (list (expand-file-name (reader--read-doc-name))))
+  (interactive (list (expand-file-name (emureader--read-doc-name))))
   (switch-to-buffer (create-file-buffer document))
   (setq buffer-file-name document)
   ;; We need something to put the overlay on.
   (insert "\n")
   ;; go back to the previous point for page border.
   (goto-char (1- (point)))
-  (if (reader-dyn--load-doc (expand-file-name document) 0)
-      (reader-mode)
+  (if (emureader-dyn--load-doc (expand-file-name document) 0)
+      (emureader-mode)
     (kill-buffer (current-buffer))))
 
 (define-queue-command next-page ()
   "Go to the next page of the document."
   (interactive)
-  (when (reader-dyn--next-page)
+  (when (emureader-dyn--next-page)
     ;; Must return `t' when the command succeeds.
     (force-mode-line-update) t))
 
 (define-queue-command previous-page ()
   "Go to the previous page of the document."
   (interactive)
-  (when (reader-dyn--prev-page)
+  (when (emureader-dyn--prev-page)
     ;; Must return `t' when the command succeeds.
     (force-mode-line-update) t))
 
-(defun reader-first-page ()
+(defun emureader-first-page ()
   "Go to the first page of the document."
   (interactive)
-  (reader-dyn--first-page)
-  (reader--center-page)
+  (emureader-dyn--first-page)
+  (emureader--center-page)
   (force-mode-line-update))
 
-(defun reader-last-page ()
+(defun emureader-last-page ()
   "Go to the last page of the document."
   (interactive)
-  (reader-dyn--last-page)
-  (reader--center-page)
+  (emureader-dyn--last-page)
+  (emureader--center-page)
   (force-mode-line-update))
 
-(defun reader-goto-page (n)
+(defun emureader-goto-page (n)
   "Go to page number N in the current document."
   (interactive "nGoto page: ")
-  (reader-dyn--goto-page (- n 1)) ; MuPDF does 0-indexing
-  (reader--center-page))
+  (emureader-dyn--goto-page (- n 1)) ; MuPDF does 0-indexing
+  (emureader--center-page))
 
-(defun reader--get-current-doc-image-size (&optional window)
+(defun emureader--get-current-doc-image-size (&optional window)
   "Get the dimensions of the page in WINDOW.
 
 WINDOW must be a valid window and defaults to the selected one."
-  (let* ((cdr-image (cdr (overlay-get (reader-current-doc-overlay window) 'display)))
+  (let* ((cdr-image (cdr (overlay-get (emureader-current-doc-overlay window) 'display)))
 	 (width (plist-get cdr-image :width))
 	 (height (plist-get cdr-image :height)))
     (cons width height)))
 
-(defun reader-doc-scale-page (factor)
+(defun emureader-doc-scale-page (factor)
   "Scales the page by a given FACTOR.
 
-It also updates `reader--recent-scale-fallback' and `scale' property of
+It also updates `emureader--recent-scale-fallback' and `scale' property of
 selected window to reflect the new, possibly clamped scale."
   (let ((inhibit-quit t))
-    (when-let* ((factor-clamped (reader-dyn--scale-page factor)))
-      (setq reader--recent-scale-fallback factor-clamped)
+    (when-let* ((factor-clamped (emureader-dyn--scale-page factor)))
+      (setq emureader--recent-scale-fallback factor-clamped)
       (set-window-parameter nil 'scale factor-clamped))))
 
-(defun reader-enlarge-size (&optional scaling-factor)
-  "Enlarge the size of the current page by the `reader-enlarge-factor'.
+(defun emureader-enlarge-size (&optional scaling-factor)
+  "Enlarge the size of the current page by the `emureader-enlarge-factor'.
 
 Optionally scale it by the SCALING-FACTOR.  Scales on selected window."
   (interactive (list (float
-		      (* (reader-current-doc-scale-value) reader-enlarge-factor))))
-  (reader-doc-scale-page scaling-factor)
-  (reader--center-page))
+		      (* (emureader-current-doc-scale-value) emureader-enlarge-factor))))
+  (emureader-doc-scale-page scaling-factor)
+  (emureader--center-page))
 
-(defun reader-shrink-size (&optional scaling-factor)
-  "Shrink the size of the current page by the `reader-shrink-factor'.
+(defun emureader-shrink-size (&optional scaling-factor)
+  "Shrink the size of the current page by the `emureader-shrink-factor'.
 
 Optionally scale it by the SCALING-FACTOR.  Scales on selected window."
   (interactive (list (float
-		      (* (reader-current-doc-scale-value) reader-shrink-factor))))
-  (reader-doc-scale-page scaling-factor)
-  (reader--center-page))
+		      (* (emureader-current-doc-scale-value) emureader-shrink-factor))))
+  (emureader-doc-scale-page scaling-factor)
+  (emureader--center-page))
 
-(defun reader-reset-size ()
+(defun emureader-reset-size ()
   "Reset the size of the current page to 1.0."
   (interactive)
-  (reader-doc-scale-page 1.0)
-  (reader--center-page))
+  (emureader-doc-scale-page 1.0)
+  (emureader--center-page))
 
-(defun reader-fit-to-height ()
+(defun emureader-fit-to-height ()
   "Scale the current page in the selected window to fit its height."
   (interactive)
-  (let* ((image-height (cdr (reader--get-current-doc-image-size)))
+  (let* ((image-height (cdr (emureader--get-current-doc-image-size)))
 	 (pixel-window-height (window-body-height nil t))
-	 (unscaled-height (/ image-height (reader-current-doc-scale-value)))
+	 (unscaled-height (/ image-height (emureader-current-doc-scale-value)))
 	 (scaling-factor (/ pixel-window-height unscaled-height)))
-    (reader-doc-scale-page scaling-factor)
-    (reader--center-page)
-    (reader--set-window-vscroll nil 0)))
+    (emureader-doc-scale-page scaling-factor)
+    (emureader--center-page)
+    (emureader--set-window-vscroll nil 0)))
 
-(defun reader-fit-to-width ()
+(defun emureader-fit-to-width ()
   "Scale the current page in the selected window to fit its width."
   (interactive)
-  (let* ((image-width (car (reader--get-current-doc-image-size)))
+  (let* ((image-width (car (emureader--get-current-doc-image-size)))
 	 (pixel-window-width (window-body-width nil t))
-	 (unscaled-width (/ image-width (reader-current-doc-scale-value)))
+	 (unscaled-width (/ image-width (emureader-current-doc-scale-value)))
 	 (scaling-factor (/ pixel-window-width unscaled-width)))
-    (reader-doc-scale-page scaling-factor)
-    (reader--center-page)))
+    (emureader-doc-scale-page scaling-factor)
+    (emureader--center-page)))
 
-(defun reader--get-pixel-per-col (&optional window)
+(defun emureader--get-pixel-per-col (&optional window)
   "Get the no of pixels per column for WINDOW.
 
 WINDOW must be a valid window and defaults to the selected one."
@@ -378,7 +378,7 @@ WINDOW must be a valid window and defaults to the selected one."
 ;; We need to do this because scrolling is possible in one direction
 ;; (downwards) indefinitely.
 
-(defun reader--set-window-vscroll (window vscroll &optional pixels-p)
+(defun emureader--set-window-vscroll (window vscroll &optional pixels-p)
   "Set amount by which WINDOW should be scrolled vertically to VSCROLL.
 
 If setting VSCROLL makes the document page's top disappear, it sets the
@@ -386,7 +386,7 @@ maximum vertical scroll possible without doing that.
 
 If PIXELS-P is non-nil, VSCROLL is considered to be in pixels.
 Also see `set-window-vscroll'."
-  (let* ((image-height (cdr (reader--get-current-doc-image-size window)))
+  (let* ((image-height (cdr (emureader--get-current-doc-image-size window)))
 	 (pixel-window-height (window-body-height window t))
 	 (window-height (window-body-height window))
 	 (pixel-per-col (/ pixel-window-height window-height))
@@ -399,31 +399,31 @@ Also see `set-window-vscroll'."
 			pixels-p)))
 
 ;; Most of the scrolling functions here exist because of our handling
-;; of centering in `reader--center-page'.
+;; of centering in `emureader--center-page'.
 
-(defun reader--get-prefix-width (&optional window)
-  "Get the line prefix width set by `reader--center-page'.
+(defun emureader--get-prefix-width (&optional window)
+  "Get the line prefix width set by `emureader--center-page'.
 
 WINDOW must be a valid window and defaults to the selected one."
   (car
    (plist-get
-    (cdr (overlay-get (reader-current-doc-overlay window) 'line-prefix))
+    (cdr (overlay-get (emureader-current-doc-overlay window) 'line-prefix))
     :width)))
 
-(defun reader--right-most-window-hscroll (&optional window)
+(defun emureader--right-most-window-hscroll (&optional window)
   "Get the maximum horizontal scroll value for WINDOW.
 
 This position is at the rightmost point.
 WINDOW must be a valid window and defaults to the selected one."
-  (let* ((image-width (car (reader--get-current-doc-image-size window)))
-	 (line-prefix-width (reader--get-prefix-width window))
+  (let* ((image-width (car (emureader--get-current-doc-image-size window)))
+	 (line-prefix-width (emureader--get-prefix-width window))
 	 (pixel-window-width (window-body-width window t))
 	 (max-ncol (round (/ (max line-prefix-width
 				  (- image-width pixel-window-width))
-			     (reader--get-pixel-per-col window)))))
+			     (emureader--get-pixel-per-col window)))))
     max-ncol))
 
-(defun reader--set-window-hscroll (window ncol &optional unconstrained)
+(defun emureader--set-window-hscroll (window ncol &optional unconstrained)
   "Set number of columns WINDOW is scrolled from left margin to NCOL.
 
 If setting NCOL makes the document page disappear, it sets the maximum
@@ -431,52 +431,52 @@ horizontal scroll possible without doing that.  If UNCONSTRAINED is
 non-nil, it allows setting NCOL even if it makes the page disappear.
 
 See also `set-window-hscroll'."
-  (let* ((line-prefix-width (reader--get-prefix-width window))
-	 (pixel-per-col (reader--get-pixel-per-col window))
+  (let* ((line-prefix-width (emureader--get-prefix-width window))
+	 (pixel-per-col (emureader--get-pixel-per-col window))
 	 (calibrated-ncol (round (- (/ line-prefix-width pixel-per-col) ncol)))
-	 (max-ncol (reader--right-most-window-hscroll window))
+	 (max-ncol (emureader--right-most-window-hscroll window))
 	 (ncol (if unconstrained
 		   calibrated-ncol
 		 (min calibrated-ncol max-ncol))))
     (set-window-hscroll window ncol)
-    (reader--window-hscroll window)))
+    (emureader--window-hscroll window)))
 
-(defun reader--window-hscroll (&optional window)
+(defun emureader--window-hscroll (&optional window)
   "Return the number of columns by which WINDOW is scrolled from left margin.
 
 WINDOW must be a live window and defaults to the selected one.
 
-This correctly handles the prefix width set by reader documents and does
+This correctly handles the prefix width set by emureader documents and does
 not return the actual horizontal scroll value; for that, see
 `window-hscroll'."
-  (let* ((line-prefix-width (reader--get-prefix-width window))
-	 (pixel-per-col (reader--get-pixel-per-col window))
+  (let* ((line-prefix-width (emureader--get-prefix-width window))
+	 (pixel-per-col (emureader--get-pixel-per-col window))
 	 (hscroll (round (- (/ line-prefix-width pixel-per-col) (window-hscroll window)))))
     hscroll))
 
 ;; We need this hack involving line-prefix because Emacs' scrolling is
 ;; idiosyncratic, and doesn't allow arbitrary scrolling in every
 ;; direction.
-(defun reader--center-page (&optional window)
+(defun emureader--center-page (&optional window)
   "Center the document with respect to WINDOW.
 
 WINDOW must be a valid window and defaults to the selected one."
-  (when-let* ((overlay (reader-current-doc-overlay window))
+  (when-let* ((overlay (emureader-current-doc-overlay window))
               (_ (overlayp overlay))
 	      (window-width (window-body-width window t))
-              (doc-image-width (car (reader--get-current-doc-image-size window)))
+              (doc-image-width (car (emureader--get-current-doc-image-size window)))
 	      (max-left-offset (max 0 (- window-width doc-image-width)))
 	      (overlay-offset `(space :width (,max-left-offset)))
-	      (pixel-per-col (reader--get-pixel-per-col window))
+	      (pixel-per-col (emureader--get-pixel-per-col window))
 	      (doc-left-offset (- window-width doc-image-width))
               (doc-center-offset (/ doc-left-offset 2))
               (scroll-offset (round (/ doc-center-offset pixel-per-col))))
     ;; Add prefix so that the page is at the leftmost point of the window.
     (overlay-put overlay 'line-prefix overlay-offset)
     ;; scroll window back to the center of the doc
-    (reader--set-window-hscroll window scroll-offset t)))
+    (emureader--set-window-hscroll window scroll-offset t)))
 
-(defun reader-scroll-up (&optional amount)
+(defun emureader-scroll-up (&optional amount)
   "Scroll up the current page by AMOUNT.
 
 AMOUNT defaults to 1."
@@ -484,9 +484,9 @@ AMOUNT defaults to 1."
   (or amount (setq amount 1))
   (let* ((prev-scroll (window-vscroll))
 	 (vscroll (- prev-scroll amount)))
-    (- prev-scroll (reader--set-window-vscroll nil vscroll))))
+    (- prev-scroll (emureader--set-window-vscroll nil vscroll))))
 
-(defun reader-scroll-down (&optional amount)
+(defun emureader-scroll-down (&optional amount)
   "Scroll down the current page by AMOUNT.
 
 AMOUNT defaults to 1."
@@ -494,29 +494,29 @@ AMOUNT defaults to 1."
   (or amount (setq amount 1))
   (let* ((prev-scroll (window-vscroll))
 	 (vscroll (+ prev-scroll amount)))
-    (- (reader--set-window-vscroll nil vscroll) prev-scroll)))
+    (- (emureader--set-window-vscroll nil vscroll) prev-scroll)))
 
-(defun reader-scroll-up-screen (&optional amount)
+(defun emureader-scroll-up-screen (&optional amount)
   "Scroll up the current page by a screen.
 
 Unless AMOUNT is specified in which case we scroll by that value."
   (interactive "P")
   (let ((amount (or amount (- (window-body-height)
 			      next-screen-context-lines))))
-    (when (= 0 (reader-scroll-up amount))
+    (when (= 0 (emureader-scroll-up amount))
       (message "Beginning of page"))))
 
-(defun reader-scroll-down-screen (&optional amount)
+(defun emureader-scroll-down-screen (&optional amount)
   "Scroll down the current page by a screen.
 
 Unless AMOUNT is specified in which case we scroll by that value."
   (interactive "P")
   (let ((amount (or amount (- (window-body-height)
 			      next-screen-context-lines))))
-    (when (= 0 (reader-scroll-down amount))
+    (when (= 0 (emureader-scroll-down amount))
       (message "End of page"))))
 
-(defun reader-scroll-left (&optional amount)
+(defun emureader-scroll-left (&optional amount)
   "Scroll to the left of the current page by AMOUNT.
 
 AMOUNT defaults to 1.
@@ -524,39 +524,39 @@ AMOUNT defaults to 1.
 Only scrolls when the document page width is larger then the window width."
   (interactive "p")
   (or amount (setq amount 1))
-  (when-let* ((_ (< (window-body-width nil t) (car (reader--get-current-doc-image-size))))
-	      (prev-scroll (reader--window-hscroll))
+  (when-let* ((_ (< (window-body-width nil t) (car (emureader--get-current-doc-image-size))))
+	      (prev-scroll (emureader--window-hscroll))
 	      (hscroll (+ prev-scroll amount)))
-    (- (reader--set-window-hscroll nil hscroll) prev-scroll)))
+    (- (emureader--set-window-hscroll nil hscroll) prev-scroll)))
 
-(defun reader-scroll-right (&optional amount)
+(defun emureader-scroll-right (&optional amount)
   "Scroll to the right of the current page by AMOUNT (or 1).
 
 Only scrolls when the document page width is larger then the window width."
   (interactive "p")
   (or amount (setq amount 1))
-  (when-let* ((_ (< (window-body-width nil t) (car (reader--get-current-doc-image-size))))
-	      (prev-scroll (reader--window-hscroll))
+  (when-let* ((_ (< (window-body-width nil t) (car (emureader--get-current-doc-image-size))))
+	      (prev-scroll (emureader--window-hscroll))
 	      (hscroll (- prev-scroll amount)))
-    (- prev-scroll (reader--set-window-hscroll nil hscroll))))
+    (- prev-scroll (emureader--set-window-hscroll nil hscroll))))
 
-(defun reader-scroll-left-most ()
+(defun emureader-scroll-left-most ()
   "Scroll to the left most point of the current page.
 
 Only scrolls when the document page width is larger then the window width."
   (interactive)
-  (when (< (window-body-width nil t) (car (reader--get-current-doc-image-size)))
-    (reader--set-window-hscroll nil 0)))
+  (when (< (window-body-width nil t) (car (emureader--get-current-doc-image-size)))
+    (emureader--set-window-hscroll nil 0)))
 
-(defun reader-scroll-right-most ()
+(defun emureader-scroll-right-most ()
   "Scroll to the right most point of the current page.
 
 Only scrolls when the document page width is larger then the window width."
   (interactive)
-  (when (< (window-body-width nil t) (car (reader--get-current-doc-image-size)))
+  (when (< (window-body-width nil t) (car (emureader--get-current-doc-image-size)))
     ;; We use `set-window-hscroll' here because we need to go the right
-    ;; most point directly, bypassing `'reader--set-window-hscroll' checks.
-    (set-window-hscroll nil (reader--right-most-window-hscroll))))
+    ;; most point directly, bypassing `'emureader--set-window-hscroll' checks.
+    (set-window-hscroll nil (emureader--right-most-window-hscroll))))
 
 (define-queue-command scroll-up-or-prev-page (&optional amount)
   "Scroll up the current page by AMOUNT, otherwise switch to the previous page.
@@ -564,13 +564,13 @@ Only scrolls when the document page width is larger then the window width."
 AMOUNT defaults to 1."
   (interactive "p")
   (or amount (setq amount 1))
-  (when-let* ((_ (and (= 0 (reader-scroll-up amount))
-		      (reader--non-queue-previous-page))) ; if succeeds
-	      (image-height (cdr (reader--get-current-doc-image-size)))
+  (when-let* ((_ (and (= 0 (emureader-scroll-up amount))
+		      (emureader--non-queue-previous-page))) ; if succeeds
+	      (image-height (cdr (emureader--get-current-doc-image-size)))
 	      (pixel-window-height (window-body-height nil t))
 	      (bottom-most-scroll-pixel
 	       (- image-height pixel-window-height)))
-    (reader--set-window-vscroll nil bottom-most-scroll-pixel t)))
+    (emureader--set-window-vscroll nil bottom-most-scroll-pixel t)))
 
 (define-queue-command scroll-down-or-next-page (&optional amount)
   "Scroll down the current page by AMOUNT, otherwise switch to the next page.
@@ -578,28 +578,28 @@ AMOUNT defaults to 1."
 AMOUNT defaults to 1."
   (interactive "p")
   (or amount (setq amount 1))
-  (when (and (= 0 (reader-scroll-down amount))
-	     (reader--non-queue-next-page)) ; if succeeds
-    (reader--set-window-vscroll nil 0)))
+  (when (and (= 0 (emureader-scroll-down amount))
+	     (emureader--non-queue-next-page)) ; if succeeds
+    (emureader--set-window-vscroll nil 0)))
 
 (define-queue-command scroll-up-screen-or-prev-page ()
   "Scroll up the current page by screen, otherwise switch to the previous page."
   (interactive)
   (let ((scroll (- (window-body-height)
 		   next-screen-context-lines)))
-    (reader--non-queue-scroll-up-or-prev-page scroll)))
+    (emureader--non-queue-scroll-up-or-prev-page scroll)))
 
 (define-queue-command scroll-down-screen-or-next-page ()
   "Scroll down the current page by screen, otherwise switch to the next page."
   (interactive)
   (let ((scroll (- (window-body-height)
 		   next-screen-context-lines)))
-    (reader--non-queue-scroll-down-or-next-page scroll)))
+    (emureader--non-queue-scroll-down-or-next-page scroll)))
 
 (define-queue-command mwheel-scroll-up (event)
   "Scroll up or switch to the previous page, but also handle mouse EVENT.
 
-See also `reader-non-queue-scroll-up-or-prev-page'."
+See also `emureader-non-queue-scroll-up-or-prev-page'."
   (interactive "e")
   (let* ((event-type (car event))
 	 (amount (pcase event-type
@@ -608,12 +608,12 @@ See also `reader-non-queue-scroll-up-or-prev-page'."
 		   ('triple-wheel-up 3)))
 	 (scrolled-window (car (cadr event))))
     (with-selected-window scrolled-window
-      (reader--non-queue-scroll-up-or-prev-page amount))))
+      (emureader--non-queue-scroll-up-or-prev-page amount))))
 
 (define-queue-command mwheel-scroll-down (event)
   "Scroll down or switch to the next page, but also handle mouse EVENT.
 
-See also `reader--non-queue-scroll-down-or-next-page'."
+See also `emureader--non-queue-scroll-down-or-next-page'."
   (interactive "e")
   (let* ((event-type (car event))
 	 (amount (pcase event-type
@@ -622,12 +622,12 @@ See also `reader--non-queue-scroll-down-or-next-page'."
 		   ('triple-wheel-down 3)))
 	 (scrolled-window (car (cadr event))))
     (with-selected-window scrolled-window
-      (reader--non-queue-scroll-down-or-next-page amount))))
+      (emureader--non-queue-scroll-down-or-next-page amount))))
 
-(defun reader-mwheel-scroll-left (event)
+(defun emureader-mwheel-scroll-left (event)
   "Scroll to the left, but also handle mouse EVENT.
 
-See also `reader-scroll-left'."
+See also `emureader-scroll-left'."
   (interactive "e")
   (let* ((event-type (car event))
 	 (amount (pcase event-type
@@ -636,12 +636,12 @@ See also `reader-scroll-left'."
 		   ('S-triple-wheel-up 3)))
 	 (scrolled-window (car (cadr event))))
     (with-selected-window scrolled-window
-      (reader-scroll-left amount))))
+      (emureader-scroll-left amount))))
 
-(defun reader-mwheel-scroll-right (event)
+(defun emureader-mwheel-scroll-right (event)
   "Scroll to the right, but also handle mouse EVENT.
 
-See also `reader-scroll-right'."
+See also `emureader-scroll-right'."
   (interactive "e")
   (let* ((event-type (car event))
 	 (amount (pcase event-type
@@ -650,24 +650,24 @@ See also `reader-scroll-right'."
 		   ('S-triple-wheel-down 3)))
 	 (scrolled-window (car (cadr event))))
     (with-selected-window scrolled-window
-      (reader-scroll-right amount))))
+      (emureader-scroll-right amount))))
 
-(defun reader-mwheel-enlarge-size (event)
+(defun emureader-mwheel-enlarge-size (event)
   "Enlarge the current page, but also handle mouse EVENT.
 
-See also `reader-enlarge-size'."
+See also `emureader-enlarge-size'."
   (interactive "e")
   (let* ((event-type (car event))
 	 (scaling-factor (pcase event-type
-			   ('C-wheel-up reader-enlarge-factor)
-			   ('C-double-wheel-up (+ reader-enlarge-factor 0.1))
-			   ('C-triple-wheel-up (+ reader-enlarge-factor 0.2))))
+			   ('C-wheel-up emureader-enlarge-factor)
+			   ('C-double-wheel-up (+ emureader-enlarge-factor 0.1))
+			   ('C-triple-wheel-up (+ emureader-enlarge-factor 0.2))))
 	 (scrolled-window (car (cadr event))))
     (with-selected-window scrolled-window
-      (reader-enlarge-size
-       (* scaling-factor (reader-current-doc-scale-value))))))
+      (emureader-enlarge-size
+       (* scaling-factor (emureader-current-doc-scale-value))))))
 
-(defun reader-mouse-select-window (event)
+(defun emureader-mouse-select-window (event)
   "Select the window.
 
 EVENT must be a click event."
@@ -676,59 +676,59 @@ EVENT must be a click event."
 	      (_ (window-live-p end-window)))
     (select-window end-window)))
 
-(defun reader-mwheel-shrink-size (event)
+(defun emureader-mwheel-shrink-size (event)
   "Shrink the current page, but also handle mouse EVENT.
 
-See also `reader-shrink-size'."
+See also `emureader-shrink-size'."
   (interactive "e")
   (let* ((event-type (car event))
 	 (scaling-factor (pcase event-type
-			   ('C-wheel-down reader-shrink-factor)
-			   ('C-double-wheel-down (- reader-shrink-factor 0.1))
-			   ('C-triple-wheel-down (- reader-shrink-factor 0.2))))
+			   ('C-wheel-down emureader-shrink-factor)
+			   ('C-double-wheel-down (- emureader-shrink-factor 0.1))
+			   ('C-triple-wheel-down (- emureader-shrink-factor 0.2))))
 	 (scrolled-window (car (cadr event))))
     (with-selected-window scrolled-window
-      (reader-shrink-size
-       (* scaling-factor (reader-current-doc-scale-value))))))
+      (emureader-shrink-size
+       (* scaling-factor (emureader-current-doc-scale-value))))))
 
-(defun reader-rotate-clockwise ()
+(defun emureader-rotate-clockwise ()
   "Rotate the current window's view by 90 degrees, clockwise."
   (interactive)
   (let ((inhibit-quit t))
-    (reader-dyn--rotate-page 90)
-    (reader--center-page)))
+    (emureader-dyn--rotate-page 90)
+    (emureader--center-page)))
 
-(defun reader-rotate-counter-clockwise ()
+(defun emureader-rotate-counter-clockwise ()
   "Rotate the current window's view by 90 degrees, counter-clockwise."
   (interactive)
   (let ((inhibit-quit t))
-    (reader-dyn--rotate-page -90)
-    (reader--center-page)))
+    (emureader-dyn--rotate-page -90)
+    (emureader--center-page)))
 
-(defun reader--clear-doc-memory ()
-  "Clear document memory if we are in `reader-mode'.
+(defun emureader--clear-doc-memory ()
+  "Clear document memory if we are in `emureader-mode'.
 
 Intended for use in `kill-buffer-hook'."
-  (when (derived-mode-p 'reader-mode)
-    (reader-dyn--close-doc)))
+  (when (derived-mode-p 'emureader-mode)
+    (emureader-dyn--close-doc)))
 
-(defun reader-close-doc ()
+(defun emureader-close-doc ()
   "Close the current document, also prompt the user for confirmation."
   (interactive)
   (when (yes-or-no-p "Are you sure you want to close the current document?")
     (kill-buffer (current-buffer))))
 
-(defun reader--restore-display-on-quit (page scale)
+(defun emureader--restore-display-on-quit (page scale)
   "Reload the document with PAGE at SCALE and rebuild window overlays on quit.
 
 Quit is deferred inside so the recovery cannot itself be interrupted."
   (with-local-quit
     (condition-case nil
         (progn
-          (reader--render-buffer (1- page))
-          (reader-doc-scale-page scale)
-          (reader--center-page)
-          (reader--manage-window-overlays))
+          (emureader--render-buffer (1- page))
+          (emureader-doc-scale-page scale)
+          (emureader--center-page)
+          (emureader--manage-window-overlays))
       (error nil))))
 
 (define-queue-command refresh-doc-buffer (&optional ignore-auto noconfirm preserve-modes)
@@ -738,41 +738,41 @@ It reloads the entire document while preserving the previous state.
 The arguments are ignored and are simply to satisfy the template for
 `revert-buffer-function'.
 
-This function is replaced as `revert-buffer-function' for `reader-mode' buffers."
+This function is replaced as `revert-buffer-function' for `emureader-mode' buffers."
   (interactive)
   ;; Can't just prefix with _ because they get used when constructing
   ;; the function definitions.
   (ignore ignore-auto noconfirm preserve-modes)
   ;; A buffer that no window shows is skipped.
-  (when-let* ((_ (and buffer-file-name (not reader--reloading)))
-              (win (get-buffer-window nil t)))
-    (setq reader--reloading t)
+  (when-let* ((_ (and buffer-file-name (not emureader--reloading)))
+	      (win (get-buffer-window nil t)))
+    (setq emureader--reloading t)
     (unwind-protect
-        (with-selected-window win
-          (let ((page (or (reader-current-doc-pagenumber) 1))
-                (scale (reader-current-doc-scale-value)))
-            (message "Reloading your document...Press C-g to stop.")
-            (condition-case err
-                (progn
-                  (reader--render-buffer (1- page))
-                  (reader-doc-scale-page scale)
-                  (reader--center-page)
-                  (reader--manage-window-overlays))
-              ((quit error)
-               (message "Reloading interrupted; restoring display...")
-               (reader--restore-display-on-quit page scale)
-               (signal (car err) (cdr err))))))
-      (setq-local reader--reloading nil))))
+	(with-selected-window win
+	  (let ((page (or (emureader-current-doc-pagenumber) 1))
+		(scale (emureader-current-doc-scale-value)))
+	    (message "Reloading your document...Press C-g to stop.")
+	    (condition-case err
+		(progn
+		  (emureader--render-buffer (1- page))
+		  (emureader-doc-scale-page scale)
+		  (emureader--center-page)
+		  (emureader--manage-window-overlays))
+	      ((quit error)
+	       (message "Reloading interrupted; restoring display...")
+	       (emureader--restore-display-on-quit page scale)
+	       (signal (car err) (cdr err))))))
+      (setq-local emureader--reloading nil))))
 
-(defun reader--render-buffer (&optional page)
+(defun emureader--render-buffer (&optional page)
   "Render the document file current buffer is associated with.
 Load the PAGE if provided."
   (interactive)
   (if-let* ((file (buffer-file-name (current-buffer))))
       (when-let* ((_ (file-exists-p file))
 		  (page (if (numberp page) (max 0 page) 0)))
-	(reader-dyn--load-doc file page)
-	;; reader-dyn--load-doc resets the window state, which also
+	(emureader-dyn--load-doc file page)
+	;; emureader-dyn--load-doc resets the window state, which also
 	;; needs to be reflected in the frontend.
 	(set-window-parameter nil 'scale 1.0))
     (message "No file associated with buffer.")))
@@ -792,124 +792,124 @@ Load the PAGE if provided."
 ;;
 ;; Window and overlay need to know each other for efficient lookup.
 
-(defun reader--manage-window-overlays ()
+(defun emureader--manage-window-overlays ()
   "Manage the creation and deletion of window overlays as needed.
 
 It is hooked to `window-configuration-change-hook' to keep detecting."
   (let ((overlays (car (overlay-lists)))
 	(windows (get-buffer-window-list (current-buffer) nil t)))
-    (mapc #'reader--window-close-function overlays)
-    (mapc #'reader--window-create-function windows)))
+    (mapc #'emureader--window-close-function overlays)
+    (mapc #'emureader--window-create-function windows)))
 
-(defun reader--window-create-function (window)
+(defun emureader--window-create-function (window)
   "Create window overlay for WINDOW."
   ;; Only buffer-local state is used: the window's own  parameters
   ;; may be left over from another buffer.
   (with-selected-window window
-    (unless (reader--window-owned-p window)
+    (unless (emureader--window-owned-p window)
       (when-let* ((old (window-parameter window 'overlay))
 		  (_ (overlayp old)))
-	(reader-dyn--window-close old))
+	(emureader-dyn--window-close old))
       (set-window-parameter window 'overlay nil)
-      (reader-dyn--window-create window)
+      (emureader-dyn--window-create window)
       ;; Scale first so goto-page renders and centers once at the final scale.
-      (reader-doc-scale-page reader--recent-scale-fallback)
-      (reader-goto-page (or reader--recent-pagenumber-fallback 1)))))
+      (emureader-doc-scale-page emureader--recent-scale-fallback)
+      (emureader-goto-page (or emureader--recent-pagenumber-fallback 1)))))
 
-(defun reader--window-close-function (overlay)
+(defun emureader--window-close-function (overlay)
   "Properly close the window belonging to OVERLAY."
   (let ((window (overlay-get overlay 'window)))
     (unless (window-valid-p window)
-      (reader-dyn--window-close overlay))))
+      (emureader-dyn--window-close overlay))))
 
-(defun reader--handle-window-buffer-change (window)
+(defun emureader--handle-window-buffer-change (window)
   "Handle overlay state when WINDOW's buffer changes.
 Cleans up stale overlays if the window switched to a different buffer,
-and ensures a valid overlay exists if the new buffer is a reader buffer."
+and ensures a valid overlay exists if the new buffer is a emureader buffer."
   (when-let* ((_ (windowp window))
 	      (overlay (window-parameter window 'overlay))
 	      (_ (overlayp overlay)))
     (unless (eq (overlay-buffer overlay) (window-buffer window))
       ;; Overlay belongs to a different buffer. Clean it up.
-      (reader-dyn--window-close overlay)
+      (emureader-dyn--window-close overlay)
       (set-window-parameter window 'overlay nil))
-    ;; If the new buffer is a reader buffer and lacks an overlay, create one.
+    ;; If the new buffer is a emureader buffer and lacks an overlay, create one.
     (when (with-current-buffer (window-buffer window)
-            (derived-mode-p 'reader-mode))
+            (derived-mode-p 'emureader-mode))
       (unless (window-parameter window 'overlay)
-        (reader--window-create-function window)))))
+        (emureader--window-create-function window)))))
 
 
-(declare-function reader-outline-show "reader-outline")
+(declare-function emureader-outline-show "emureader-outline")
 ;; We explicitly bind default keys because relying on the rebinding
 ;; mechanism can lead to them not being bound at all if users have
 ;; overridden the defaults with other commands.
-(defvar-keymap reader-mode-map
-  :doc "Keymap for `reader-mode'."
-  "n"       #'reader-next-page
-  "p"       #'reader-previous-page
+(defvar-keymap emureader-mode-map
+  :doc "Keymap for `emureader-mode'."
+  "n"       #'emureader-next-page
+  "p"       #'emureader-previous-page
 
-  "C-p"     #'reader-scroll-up-or-prev-page
-  "C-n"     #'reader-scroll-down-or-next-page
-  "<remap> <previous-line>" #'reader-scroll-up-or-prev-page
-  "<remap> <next-line>" #'reader-scroll-down-or-next-page
-  "<remap> <next>" #'reader-scroll-down-or-next-page
-  "<remap> <prior>" #'reader-scroll-up-or-prev-page
+  "C-p"     #'emureader-scroll-up-or-prev-page
+  "C-n"     #'emureader-scroll-down-or-next-page
+  "<remap> <previous-line>" #'emureader-scroll-up-or-prev-page
+  "<remap> <next-line>" #'emureader-scroll-down-or-next-page
+  "<remap> <next>" #'emureader-scroll-down-or-next-page
+  "<remap> <prior>" #'emureader-scroll-up-or-prev-page
 
-  "<wheel-up>" #'reader-mwheel-scroll-up
-  "<wheel-down>" #'reader-mwheel-scroll-down
+  "<wheel-up>" #'emureader-mwheel-scroll-up
+  "<wheel-down>" #'emureader-mwheel-scroll-down
 
-  "S-<wheel-up>" #'reader-mwheel-scroll-left
-  "S-<wheel-down>" #'reader-mwheel-scroll-right
+  "S-<wheel-up>" #'emureader-mwheel-scroll-left
+  "S-<wheel-down>" #'emureader-mwheel-scroll-right
 
-  "C-v"      #'reader-scroll-down-screen
-  "M-v"      #'reader-scroll-up-screen
-  "<remap> <scroll-down-command>" #'reader-scroll-up-screen
-  "<remap> <scroll-up-command>" #'reader-scroll-down-screen
+  "C-v"      #'emureader-scroll-down-screen
+  "M-v"      #'emureader-scroll-up-screen
+  "<remap> <scroll-down-command>" #'emureader-scroll-up-screen
+  "<remap> <scroll-up-command>" #'emureader-scroll-down-screen
 
-  "SPC"     #'reader-scroll-down-screen-or-next-page
-  "DEL"     #'reader-scroll-up-screen-or-prev-page
-  "S-SPC"   #'reader-scroll-up-screen-or-prev-page
+  "SPC"     #'emureader-scroll-down-screen-or-next-page
+  "DEL"     #'emureader-scroll-up-screen-or-prev-page
+  "S-SPC"   #'emureader-scroll-up-screen-or-prev-page
 
-  "C-f"     #'reader-scroll-right
-  "C-b"     #'reader-scroll-left
-  "<remap> <forward-char>" #'reader-scroll-right
-  "<remap> <backward-char>" #'reader-scroll-left
+  "C-f"     #'emureader-scroll-right
+  "C-b"     #'emureader-scroll-left
+  "<remap> <forward-char>" #'emureader-scroll-right
+  "<remap> <backward-char>" #'emureader-scroll-left
 
-  "C-e"     #'reader-scroll-right-most
-  "C-a"     #'reader-scroll-left-most
-  "<remap> <move-end-of-line>" #'reader-scroll-right-most
-  "<remap> <move-beginning-of-line>" #'reader-scroll-left-most
+  "C-e"     #'emureader-scroll-right-most
+  "C-a"     #'emureader-scroll-left-most
+  "<remap> <move-end-of-line>" #'emureader-scroll-right-most
+  "<remap> <move-beginning-of-line>" #'emureader-scroll-left-most
 
-  "M-<" #'reader-first-page
-  "M->" #'reader-last-page
-  "<remap> <beginning-of-buffer>" #'reader-first-page
-  "<remap> <end-of-buffer>" #'reader-last-page
+  "M-<" #'emureader-first-page
+  "M->" #'emureader-last-page
+  "<remap> <beginning-of-buffer>" #'emureader-first-page
+  "<remap> <end-of-buffer>" #'emureader-last-page
 
-  "g" #'reader-refresh-doc-buffer
+  "g" #'emureader-refresh-doc-buffer
 
-  "M-g g"   #'reader-goto-page
-  "M-g M-g" #'reader-goto-page
-  "<remap> <goto-line>"   #'reader-goto-page
+  "M-g g"   #'emureader-goto-page
+  "M-g M-g" #'emureader-goto-page
+  "<remap> <goto-line>"   #'emureader-goto-page
 
-  "="       #'reader-enlarge-size
-  "+"       #'reader-enlarge-size
-  "C-<wheel-up>" #'reader-mwheel-enlarge-size
+  "="       #'emureader-enlarge-size
+  "+"       #'emureader-enlarge-size
+  "C-<wheel-up>" #'emureader-mwheel-enlarge-size
 
-  "-"       #'reader-shrink-size
-  "C-<wheel-down>" #'reader-mwheel-shrink-size
+  "-"       #'emureader-shrink-size
+  "C-<wheel-down>" #'emureader-mwheel-shrink-size
 
-  "0"       #'reader-reset-size
+  "0"       #'emureader-reset-size
 
-  "H"       #'reader-fit-to-height
-  "W"       #'reader-fit-to-width
+  "H"       #'emureader-fit-to-height
+  "W"       #'emureader-fit-to-width
 
-  "r"       #'reader-rotate-clockwise
-  "R"       #'reader-rotate-counter-clockwise
+  "r"       #'emureader-rotate-clockwise
+  "R"       #'emureader-rotate-counter-clockwise
 
-  "o"       #'reader-outline-show
+  "o"       #'emureader-outline-show
 
-  "Q"       #'reader-close-doc
+  "Q"       #'emureader-close-doc
 
 
   ;; Disable a few mouse commands to make sure the user is not able to
@@ -917,31 +917,31 @@ and ensures a valid overlay exists if the new buffer is a reader buffer."
   ;; cursor (which we use as a page border) to be drawn after the
   ;; page.
 
-  "<remap> <mouse-set-point>"   #'reader-mouse-select-window
-  "<remap> <mouse-set-region>"  #'reader-mouse-select-window
-  "<remap> <mouse-set-mark>"    #'reader-mouse-select-window
-  "<remap> <mouse-set-secondary>"  #'reader-mouse-select-window
-  "<remap> <mouse-drag-region>"    #'reader-mouse-select-window
-  "<remap> <mouse-drag-secondary>" #'reader-mouse-select-window
-  "<remap> <mouse-save-then-kill>" #'reader-mouse-select-window
-  "<remap> <mouse-secondary-save-then-kill>" #'reader-mouse-select-window)
+  "<remap> <mouse-set-point>"   #'emureader-mouse-select-window
+  "<remap> <mouse-set-region>"  #'emureader-mouse-select-window
+  "<remap> <mouse-set-mark>"    #'emureader-mouse-select-window
+  "<remap> <mouse-set-secondary>"  #'emureader-mouse-select-window
+  "<remap> <mouse-drag-region>"    #'emureader-mouse-select-window
+  "<remap> <mouse-drag-secondary>" #'emureader-mouse-select-window
+  "<remap> <mouse-save-then-kill>" #'emureader-mouse-select-window
+  "<remap> <mouse-secondary-save-then-kill>" #'emureader-mouse-select-window)
 
 ;;;###autoload
-(define-derived-mode reader-mode special-mode "Emacs Reader"
-  "Major mode for viewing documents in The Emacs Reader.
+(define-derived-mode emureader-mode special-mode "EmuReader"
+  "Major mode for viewing documents in The EmuReader.
 
 Keybindings:
-\\{reader-mode-map}"
-  :group 'reader
+\\{emureader-mode-map}"
+  :group 'emureader
   :interactive nil
 
-  (reader-ensure-module)
+  (emureader-ensure-module)
 
   (unless (and buffer-file-name
 	       (file-exists-p buffer-file-name)
 	       (file-regular-p buffer-file-name)
 	       (file-readable-p buffer-file-name))
-    (message "Reader did not open the document: %s is not a valid file"
+    (message "EmuReader did not open the document: %s is not a valid file"
              (or buffer-file-name "<no file>"))
     (kill-buffer (current-buffer)))
 
@@ -955,78 +955,78 @@ Keybindings:
   (set-buffer-modified-p nil)
   (blink-cursor-mode 0)
   (auto-revert-mode 1)
-  (setq-local revert-buffer-function #'reader--non-queue-refresh-doc-buffer)
+  (setq-local revert-buffer-function #'emureader--non-queue-refresh-doc-buffer)
 
   ;; Disable `pixel-scroll-precision-mode' locally because it doesn't
-  ;; work nicely with `reader-mode'.
+  ;; work nicely with `emureader-mode'.
   (when (bound-and-true-p pixel-scroll-precision-mode)
     (setq-local pixel-scroll-precision-mode nil))
 
-  (declare-function reader-bookmark-make-record "reader-bookmark")
+  (declare-function emureader-bookmark-make-record "emureader-bookmark")
   (setq-local bookmark-make-record-function
-	      #'reader-bookmark-make-record)
+	      #'emureader-bookmark-make-record)
 
   (unless (bound-and-true-p
-	   reader-current-doc-render-status)
-    (reader--render-buffer))
+	   emureader-current-doc-render-status)
+    (emureader--render-buffer))
 
-  (declare-function reader--outline-imenu-goto "reader-outline")
-  (declare-function reader--outline-imenu-create-index "reader-outline")
-  (setq-local imenu-create-index-function #'reader--outline-imenu-create-index
-	      imenu-default-goto-function #'reader--outline-imenu-goto)
+  (declare-function emureader--outline-imenu-goto "emureader-outline")
+  (declare-function emureader--outline-imenu-create-index "emureader-outline")
+  (setq-local imenu-create-index-function #'emureader--outline-imenu-create-index
+	      imenu-default-goto-function #'emureader--outline-imenu-goto)
 
-  (run-hooks 'reader-mode-hook)
+  (run-hooks 'emureader-mode-hook)
 
-  (funcall reader-default-fit)
-  (add-hook 'window-size-change-functions #'reader--center-page nil t)
+  (funcall emureader-default-fit)
+  (add-hook 'window-size-change-functions #'emureader--center-page nil t)
 
   ;;`bookmark--jump-via' messes up with centering, so we need to center again.
-  (add-hook 'bookmark-after-jump-hook #'reader--center-page nil t)
+  (add-hook 'bookmark-after-jump-hook #'emureader--center-page nil t)
   ;; Depth 90 so that it runs after `save-place-to-alist' so scroll/page
   ;; are saved before the document state is cleared.
-  (add-hook 'kill-buffer-hook #'reader--clear-doc-memory 90 t)
-  (add-hook 'window-configuration-change-hook #'reader--manage-window-overlays nil t)
-  (add-hook 'window-buffer-change-functions #'reader--handle-window-buffer-change nil t))
+  (add-hook 'kill-buffer-hook #'emureader--clear-doc-memory 90 t)
+  (add-hook 'window-configuration-change-hook #'emureader--manage-window-overlays nil t)
+  (add-hook 'window-buffer-change-functions #'emureader--handle-window-buffer-change nil t))
 
-(defun reader-mode-line ()
+(defun emureader-mode-line ()
   "Set custom mode-line interface when reading documents."
   (setq-local mode-line-position
-	      '(" P" (:eval (number-to-string (reader-current-doc-pagenumber)))
-                "/" (:eval (number-to-string reader-current-doc-pagecount)))))
+	      '(" P" (:eval (number-to-string (emureader-current-doc-pagenumber)))
+                "/" (:eval (number-to-string emureader-current-doc-pagecount)))))
 
-(add-hook 'reader-mode-hook #'reader-mode-line)
-(add-hook 'reader-mode-hook #'imenu-add-menubar-index)
+(add-hook 'emureader-mode-hook #'emureader-mode-line)
+(add-hook 'emureader-mode-hook #'imenu-add-menubar-index)
 
-(defun reader--redisplay-all-windows ()
+(defun emureader--redisplay-all-windows ()
   "Redisplay the current document in all windows showing this buffer."
   (let ((inhibit-quit t))
     (dolist (win (get-buffer-window-list nil nil t))
       (with-selected-window win
-	(reader-dyn--redisplay-doc)))))
+	(emureader-dyn--redisplay-doc)))))
 
-(define-minor-mode reader-dark-mode
-  "Toggle dark-mode for current reader document."
+(define-minor-mode emureader-dark-mode
+  "Toggle dark-mode for current emureader document."
   :lighter " Dark"
-  (when (derived-mode-p 'reader-mode)
-    (reader-dyn--doc-invert (if reader-dark-mode 1 0))
-    (reader--redisplay-all-windows)))
+  (when (derived-mode-p 'emureader-mode)
+    (emureader-dyn--doc-invert (if emureader-dark-mode 1 0))
+    (emureader--redisplay-all-windows)))
 
-(define-minor-mode reader-presentation-mode
-  "Toggle presentation view for current reader document."
+(define-minor-mode emureader-presentation-mode
+  "Toggle presentation view for current emureader document."
   :lighter ""
-  (when (derived-mode-p 'reader-mode)
-    (cond (reader-presentation-mode
+  (when (derived-mode-p 'emureader-mode)
+    (cond (emureader-presentation-mode
 	   (setq-local mode-line-format nil)
-	   (reader-fit-to-height))
+	   (emureader-fit-to-height))
 	  ((kill-local-variable 'mode-line-format)))))
 
 ;;;###autoload
-(dolist (pattern reader-supported-formats)
-  (add-to-list 'auto-mode-alist (cons (concat "\\." pattern "\\'") 'reader-mode)))
+(dolist (pattern emureader-supported-formats)
+  (add-to-list 'auto-mode-alist (cons (concat "\\." pattern "\\'") 'emureader-mode)))
 
-(provide 'reader)
-;;; reader.el ends here.
+(provide 'emureader)
+;;; emureader.el ends here.
 
 ;; Local Variables:
-;; read-symbol-shorthands: (("define-queue-command" . "reader--define-queue-command"))
+;; read-symbol-shorthands: (("define-queue-command" . "emureader--define-queue-command"))
 ;; End:

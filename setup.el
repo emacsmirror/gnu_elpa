@@ -4,7 +4,7 @@
 
 ;; Author: Philip Kaludercic <philipk@posteo.net>
 ;; Maintainer: Philip Kaludercic <philipk@posteo.net>
-;; Version: 1.5.0
+;; Version: 1.5.1
 ;; Package-Requires: ((emacs "26.1"))
 ;; Keywords: lisp, local
 ;; URL: https://codeberg.org/pkal/setup.el
@@ -37,10 +37,17 @@
 
 ;;; News:
 
-;;;; Version 1.6.0 (???)
+;;;; Version 1.5.1 (01Nov26)
 
 ;; - Deprecate `:global', `:option' and `:file-match'.  Please replace
 ;;   these, as they are marked for removal at some point.
+;; - Fix issues with `:package' auto-installs for Emacs 32
+;;
+;; Also see https://sdf.org/~pkal/blog/emacs/setup5.html for a
+;; retrospective on the last 5+ years of setup.el.  If you use
+;; setup.el I would appreciate if you could ping me (see contact
+;; information above) to have some kind of feeling if anyone even uses
+;; the package anymore or if it can be deprecated.
 
 ;;; Code:
 

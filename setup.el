@@ -544,6 +544,7 @@ If FUNCTION is a list, apply BODY to all elements of FUNCTION."
                       (car package))
                   package)))
       `(unless (package-installed-p ',name)
+         (require 'package)
          (unless (assq ',(or (car-safe package) package) package-archive-contents)
            (package-refresh-contents))
          ,(cond

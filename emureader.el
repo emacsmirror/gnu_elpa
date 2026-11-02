@@ -927,7 +927,7 @@ and ensures a valid overlay exists if the new buffer is a emureader buffer."
   "<remap> <mouse-secondary-save-then-kill>" #'emureader-mouse-select-window)
 
 ;;;###autoload
-(define-derived-mode emureader-mode special-mode "EMuReader"
+(define-derived-mode emureader-mode special-mode "EμReader"
   "Major mode for viewing documents in The EMuReader.
 
 Keybindings:

@@ -22,6 +22,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 [[file:extras/emureader-logo.png]]
 
+[[https://codeberg.org/MonadicSheep/emureader/issues/65#issuecomment-27013757][Previously]], Emacs Reader.
+
 An all-in-one document reader for GNU Emacs, supporting all [[* Supported Formats][major document formats]]. This package intends to take from =doc-view=, =nov.el=, and =pdf-tools= and make them better. And as such, it is effectively a *drop-in replacement* for them.
 
 * EMuReader at Emacsconf 2025

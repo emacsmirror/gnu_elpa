@@ -1,4 +1,4 @@
-#+TITLE: EMuReader
+#+TITLE: EμReader
 #+AUTHOR: Divya Ranjan Pattanaik
 #+AUTHOR: Tushar
 #+OPTIONS: toc:nil
@@ -29,7 +29,7 @@ An all-in-one document reader for GNU Emacs, supporting all [[* Supported Format
 [[https://media.emacsconf.org/2025/emacsconf-2025-reader--an-introduction-to-the-emacs-reader--divy--main.webm]]
 
 * Supported Formats
-The EMuReader (via MuPDF) can open all the formats below.
+EMuReader (via MuPDF) can open all the formats below.
 
 ** Well-supported Formats
 + PDF
@@ -84,7 +84,7 @@ old artifacts before recompiling.
 #+end_center
 
 *** Debian GNU/Linux
-Follow this [[https://codeberg.org/divyaranjan/emacs-reader/issues/122#issuecomment-9315806][write up]].
+Follow this [[https://codeberg.org/monadicsheep/emureader/issues/122#issuecomment-9315806][write up]].
 *** GNU Guix
 Using the [[https://guix.gnu.org/][GNU Guix]] package manager, you can get emureader through the [[https://codeberg.org/divyaranjan/divya-lambda][divya-lambda]] Guix channel. Follow the instructions there to add the Guix channel to your configuration. Then all that remains to do is,
 #+begin_src bash
@@ -104,7 +104,7 @@ You can also upgrade an already installed package with,
 You may replace the branch name as you need.
 
 *** Nix
-Follow the instructions [[https://codeberg.org/divyaranjan/emacs-reader/issues/115][here]].
+Follow the instructions [[https://codeberg.org/monadicsheep/emureader/issues/115][here]].
 
 ** MacOS
 Install MuPDF using Homebrew,
@@ -116,7 +116,7 @@ Install MuPDF using Homebrew,
 
 And then use the straight or package-vc recipe from the [[* GNU/Linux][GNU/Linux]] section.
 
-Find more information [[https://codeberg.org/divyaranjan/emacs-reader/issues/142#issuecomment-8854941][here]].
+Find more information [[https://codeberg.org/monadicsheep/emureader/issues/142#issuecomment-8854941][here]].
 
 ** Manual
 *** User lisp directory (recommended)

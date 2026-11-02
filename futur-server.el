@@ -106,7 +106,11 @@
            `(:funcall-error ,rid ,backtrace ,@err)
          `(:funcall-error ,rid . ,err))))))
 
+(defvar futur-server-running nil
+  "Non-nil if we're inside a Futur-server session.")
+
 (defun futur-server ()
+  (setq futur-server-running t)
   ;; Try and make sure the client code gets an error if it tries to use stdin.
   (let ((errorfun (lambda (&rest _) (signal 'futur-inhibited-interaction nil))))
     (dolist (fun '( read-from-minibuffer yes-or-no-p read-string
@@ -115,7 +119,7 @@
                     ;; FIXME: There are still ways to try and read from stdin,
                     ;; e.g. via `interactive' specs.
                     ))
-      (fset fun errorfun)))
+     (fset fun errorfun)))
   ;; FIXME: Prevent client code from using stdout (including
   ;; via `read-event/char/key' prompts).
 

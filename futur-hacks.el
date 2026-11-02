@@ -463,7 +463,7 @@ Concretely this means:
     (setf (get 'elisp-flymake-byte-compile 'flymake-always-safe) nil))
   (advice-remove 'byte-compile-file #'futur--byte-compile-file)
   ;; Don't enable this in the servers, otherwise we get recursive hacks!
-  (when (featurep 'futur-server) (setq futur-hacks-mode nil))
+  (when (bound-and-true-p futur-server-running) (setq futur-hacks-mode nil))
   (when futur-hacks-mode
     (advice-add 'byte-compile-file :around #'futur--byte-compile-file)
     (advice-add 'elisp-flymake-byte-compile :override

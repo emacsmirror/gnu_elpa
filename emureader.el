@@ -1,4 +1,4 @@
-;;; emureader.el --- General-purpose Document EMuReader -*- lexical-binding: t; -*-
+;;; emureader.el --- General-purpose document reader -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2025-2026 Free Software Foundation, Inc.
 

@@ -1,4 +1,4 @@
-;;; emureader-outline.el --- imenu and outline-mode integration for the EmuReader  -*- lexical-binding: t; -*-
+;;; emureader-outline.el --- imenu and outline-mode integration for the EMuReader  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2025-2026 Free Software Foundation, Inc.
 
@@ -133,7 +133,7 @@ Each heading title is its own clickable button."
   "RET"      #'emureader-outline-visit-page
   "M-RET"    #'emureader-outline-visit-page)
 
-(define-derived-mode emureader-outline-mode outline-mode "EmuReader Outline"
+(define-derived-mode emureader-outline-mode outline-mode "EMuReader Outline"
   "Major mode for navigating document outlines."
   (setq buffer-read-only t)
   (setq-local outline-regexp "^\\*+ ")

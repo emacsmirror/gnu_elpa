@@ -1,4 +1,4 @@
-;;; emureader.el --- General-purpose Document EmuReader -*- lexical-binding: t; -*-
+;;; emureader.el --- General-purpose Document EMuReader -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2025-2026 Free Software Foundation, Inc.
 
@@ -110,7 +110,7 @@
 (declare-function emureader-dyn--window-close "ext:render/emureader-dyn.so" (window))
 
 (defgroup emureader nil
-  "Group for EmuReader’s customizations."
+  "Group for EMuReader’s customizations."
   :prefix "emureader-"
   :group 'custom)
 
@@ -927,8 +927,8 @@ and ensures a valid overlay exists if the new buffer is a emureader buffer."
   "<remap> <mouse-secondary-save-then-kill>" #'emureader-mouse-select-window)
 
 ;;;###autoload
-(define-derived-mode emureader-mode special-mode "EmuReader"
-  "Major mode for viewing documents in The EmuReader.
+(define-derived-mode emureader-mode special-mode "EMuReader"
+  "Major mode for viewing documents in The EMuReader.
 
 Keybindings:
 \\{emureader-mode-map}"
@@ -941,7 +941,7 @@ Keybindings:
 	       (file-exists-p buffer-file-name)
 	       (file-regular-p buffer-file-name)
 	       (file-readable-p buffer-file-name))
-    (message "EmuReader did not open the document: %s is not a valid file"
+    (message "EMuReader did not open the document: %s is not a valid file"
              (or buffer-file-name "<no file>"))
     (kill-buffer (current-buffer)))
 

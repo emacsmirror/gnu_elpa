@@ -1,4 +1,4 @@
-;;; emureader-saveplace.el --- Saveplace integration with EmuReader  -*- lexical-binding: t; -*-
+;;; emureader-saveplace.el --- Saveplace integration with EMuReader  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2025-2026 Free Software Foundation, Inc.
 

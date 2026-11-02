@@ -1,4 +1,4 @@
-#+TITLE: EmuReader
+#+TITLE: EMuReader
 #+AUTHOR: Divya Ranjan Pattanaik
 #+AUTHOR: Tushar
 #+OPTIONS: toc:nil
@@ -24,12 +24,12 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 An all-in-one document reader for GNU Emacs, supporting all [[* Supported Formats][major document formats]]. This package intends to take from =doc-view=, =nov.el=, and =pdf-tools= and make them better. And as such, it is effectively a *drop-in replacement* for them.
 
-* EmuReader at Emacsconf 2025
+* EMuReader at Emacsconf 2025
 
 [[https://media.emacsconf.org/2025/emacsconf-2025-reader--an-introduction-to-the-emacs-reader--divy--main.webm]]
 
 * Supported Formats
-The EmuReader (via MuPDF) can open all the formats below.
+The EMuReader (via MuPDF) can open all the formats below.
 
 ** Well-supported Formats
 + PDF
@@ -150,7 +150,7 @@ This command adds the current directory to path, and loads =emureader-autoloads.
 - =C-p= for scrolling up.
 - =C-b= for scrolling left.
 - =C-f= for scrolling right.
-- =Q= for closing the EmuReader buffer.
+- =Q= for closing the EMuReader buffer.
 - =M-<= for going to the first page.
 - =M->= for going to the last page.
 - =M-g g= for going to a particular page.

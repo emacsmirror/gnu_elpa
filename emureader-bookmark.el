@@ -1,4 +1,4 @@
-;;; emureader-bookmark.el --- bookmarks integration for the EmuReader -*- lexical-binding: t; -*-
+;;; emureader-bookmark.el --- bookmarks integration for the EMuReader -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2025-2026 Free Software Foundation, Inc.
 
@@ -50,7 +50,7 @@
     (when hscroll (emureader--set-window-hscroll nil hscroll))
     (when vscroll (emureader--set-window-vscroll nil vscroll))))
 
-(put 'emureader-bookmark-jump 'bookmark-handler-type "EmuReader")
+(put 'emureader-bookmark-jump 'bookmark-handler-type "EMuReader")
 
 (provide 'emureader-bookmark)
 ;;; emureader-bookmark.el ends here

@@ -1,4 +1,4 @@
-### Makefile for EmuReader’s dynamic module
+### Makefile for EMuReader’s dynamic module
 
 ## Copyright (C) 2025-2026 Free Software Foundation, Inc.
 

@@ -3,7 +3,7 @@ See =(info "(standards) NEWS File")=. User facing changes per release
 are to be recorded here.
 
 * Version 0.4.0
-- Rename to EmuReader.
+- Rename to EMuReader.
 - Per window pages, zooming, etc. support, which means that it is now
   possible to view different pages of the same document (from the same
   buffer) on different windows.
@@ -16,7 +16,7 @@ are to be recorded here.
 - Fix weird page border artifacts when using the mouse.
 - Add =emureader-build= command to automatically build the dynamic module.
 - Fix handling documents with multiple orientations.
-- EmuReader buffers now get automatically reverted via =auto-revert-mode= without crashing.
+- EMuReader buffers now get automatically reverted via =auto-revert-mode= without crashing.
 
 * Version 0.3.2
 - Fix reader-outline when original source buffer is killed.

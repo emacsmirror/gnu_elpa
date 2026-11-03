@@ -72,7 +72,7 @@ Or if you use =use-package=,
  - =gcc=
  - =GNU Make=
 
-** GNU/Linux distribution specific specific instructions
+** GNU/Linux distribution specific instructions
 *** GNU Guix
 #+begin_src bash
   guix install emacs-emureader

@@ -74,7 +74,6 @@ Or if you use =use-package=,
 
 ** GNU/Linux distribution specific specific instructions
 *** GNU Guix
-Using the [[https://guix.gnu.org/][GNU Guix]] package manager, you can get emureader through the [[https://codeberg.org/divyaranjan/divya-lambda][divya-lambda]] Guix channel. Follow the instructions there to add the Guix channel to your configuration. Then all that remains to do is,
 #+begin_src bash
   guix install emacs-emureader
 #+end_src

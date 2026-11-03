@@ -1359,7 +1359,7 @@ adding the following to your init file::
   (LaTeX-modify-math "equation*"))
 @end lisp
 
-You can use @code{LaTeX-modify-math} to build higher‑level toggles.  The
+You can use @code{LaTeX-modify-math} to build higher-level toggles.  The
 following modifies any math construct to an @samp{equation*} environment,
 then toggles the numbered status:
 

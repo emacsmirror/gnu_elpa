@@ -74,7 +74,7 @@
 	(compilation-buffer-name-function
 	 (lambda (_) "*emureader-module-compilation*")))
     (compile (concat (or (executable-find "gmake") "make")
-		     " emureader-dyn" module-file-suffix))
+		     " module"))
     (with-current-buffer "*emureader-module-compilation*"
       ;; Buffer-local hook
       (add-hook 'compilation-finish-functions #'emureader--post-build nil t))

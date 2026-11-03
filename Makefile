@@ -109,9 +109,13 @@ OBJS := $(SRCS:%.c=%.o)
 EL_SRCS := $(filter-out .* emureader-autoloads.el,$(wildcard *.el))
 ELC := $(EL_SRCS:%.el=%.elc)
 
-.PHONY: all clean checkdoc
+.PHONY: all clean checkdoc autoloads module
 
 all: $(LIB_NAME) emureader-autoloads.el $(ELC) checkdoc
+
+autoloads: emureader-autoloads.el
+
+module: $(LIB_NAME)
 
 $(LIB_NAME): $(OBJS)
 	$(CC) -o $@ $^ $(LDFLAGS)

@@ -225,7 +225,8 @@ The emureader-NAME command is simply a wrapper around
 	 ,(format "%s
 
 This is the actual function.
-See `%s' for interactive version."
+See `%s',
+for interactive version."
 		  docstring queue-function-name)
 	 ,(push 'progn body))
 
@@ -233,7 +234,8 @@ See `%s' for interactive version."
 	 ,(format "%s
 
 This is the queuing function.
-See `%s' for actual definition."
+See `%s',
+ for actual definition."
 		  docstring non-queue-function-name)
 	 ,interactive
 	 (emureader--enqueue-command #',(intern non-queue-function-name)
@@ -555,7 +557,7 @@ Only scrolls when the document page width is larger then the window width."
   (interactive)
   (when (< (window-body-width nil t) (car (emureader--get-current-doc-image-size)))
     ;; We use `set-window-hscroll' here because we need to go the right
-    ;; most point directly, bypassing `'emureader--set-window-hscroll' checks.
+    ;; most point directly, bypassing `emureader--set-window-hscroll' checks.
     (set-window-hscroll nil (emureader--right-most-window-hscroll))))
 
 (define-queue-command scroll-up-or-prev-page (&optional amount)
@@ -738,7 +740,8 @@ It reloads the entire document while preserving the previous state.
 The arguments are ignored and are simply to satisfy the template for
 `revert-buffer-function'.
 
-This function is replaced as `revert-buffer-function' for `emureader-mode' buffers."
+This function is replaced as `revert-buffer-function' for
+`emureader-mode' buffers."
   (interactive)
   ;; Can't just prefix with _ because they get used when constructing
   ;; the function definitions.

@@ -235,7 +235,7 @@ for interactive version."
 
 This is the queuing function.
 See `%s',
- for actual definition."
+for actual definition."
 		  docstring non-queue-function-name)
 	 ,interactive
 	 (emureader--enqueue-command #',(intern non-queue-function-name)

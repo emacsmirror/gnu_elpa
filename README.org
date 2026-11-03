@@ -57,66 +57,52 @@ Using these formats is heavily discouraged, you should /always/ prefer the above
 + PPTX
 + XLSX
 
-* Dependencies
-The only thing this package depends on is =mupdf=, at minimum =v1.26.0=.
-
 * Installation
-For now, until the package has been published to GNU ELPA, the only way to install and use it is through locally cloning the repo and building it. This is different across platforms:
 
-** GNU/Linux
-On GNU/Linux, all you need is: =gcc= and =make=. Then you can simply install through the Emacs’ built-in =package-vc= (available in Emacs 30.1 or higher)or the [[https://github.com/radian-software/straight.el][straight]] package manager.
+You can install it from [[https://elpa.gnu.org/packages/emureader.html][GNU ELPA]] via =M-x package-install RET emureader
+RET=.
 
-- =use-package= with =package-vc=:
-   #+begin_src emacs-lisp
-     (use-package emureader
-       :vc (:url "https://codeberg.org/MonadicSheep/emureader"))
-   #+end_src
+Or if you use =use-package=,
+#+begin_src emacs-lisp
+  (use-package emureader)
+#+end_src
 
--  =use-package= with =straight=
-   #+begin_src emacs-lisp
-     (use-package emureader
-       :straight '(emureader :type git :host codeberg :repo "MonadicSheep/emureader"))
-   #+end_src
++ Dependencies
+ - =mupdf= @ =v1.26.0=
+ - =gcc=
+ - =GNU Make=
 
-The first time you use emureader, you will need to build the dynamic module, you can either manually run =make= in emureader's directory, or run the =M-x emureader-build RET= command. But emureader will run the command for you if you don't.
-
-#+begin_center
-Note that sometimes you may need to run =make clean all= to get rid of
-old artifacts before recompiling.
-#+end_center
-
-*** Debian GNU/Linux
-Follow this [[https://codeberg.org/monadicsheep/emureader/issues/122#issuecomment-9315806][write up]].
+** GNU/Linux distribution specific specific instructions
 *** GNU Guix
 Using the [[https://guix.gnu.org/][GNU Guix]] package manager, you can get emureader through the [[https://codeberg.org/divyaranjan/divya-lambda][divya-lambda]] Guix channel. Follow the instructions there to add the Guix channel to your configuration. Then all that remains to do is,
 #+begin_src bash
-  guix install emureader
+  guix install emacs-emureader
 #+end_src
 
 This will get the latest release of emureader. However, if you want to get latest features, bug fixes (and bugs!) to help us with testing emureader, you should use the master branch. You can instruct Guix to get it for you, like so,
 #+begin_src bash
-  guix install emureader --with-branch=emureader=master
+  guix install emacs-emureader --with-branch=emacs-emureader=master
 #+end_src
 
 You can also upgrade an already installed package with,
 #+begin_src bash
-  guix upgrade emureader --with-branch=emureader=master
+  guix upgrade emacs-emureader --with-branch=emacs-emureader=master
 #+end_src
 
 You may replace the branch name as you need.
 
+*** Debian GNU/Linux
+Follow this [[https://codeberg.org/monadicsheep/emureader/issues/122#issuecomment-9315806][write up]].
 *** Nix
 Follow the instructions [[https://codeberg.org/monadicsheep/emureader/issues/115][here]].
 
-** MacOS
+** MacOS specific instructions
 Install MuPDF using Homebrew,
 #+begin_src sh
   brew install gcc
   brew install make
   brew install mupdf
 #+end_src
-
-And then use the straight or package-vc recipe from the [[* GNU/Linux][GNU/Linux]] section.
 
 Find more information [[https://codeberg.org/monadicsheep/emureader/issues/142#issuecomment-8854941][here]].
 

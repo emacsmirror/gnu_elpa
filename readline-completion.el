@@ -4,6 +4,9 @@
 
 ;; Author: Augusto Stoffel <arstoffel@gmail.com>
 ;; Keywords: convenience, processes
+;; URL: https://codeberg.org/astoff/readline-completion.el
+;; Package-Requires: ((emacs "29.1") (compat "31.1"))
+;; Version: 0.1
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -19,27 +22,33 @@
 ;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
-
-;; Usage:
 ;;
-;; This should only be used on a comint buffer running a GNU Readline
-;; based program.  To enable, call `readline-completion-mode'
-;; interactively or add it the the relevant mode hook.
+;; This package provides completions from GNU Readline.  It can be
+;; used in a comint buffer, to get completions from the underlying
+;; process (as you normally would in a regular terminal) or anywhere
+;; else to get completions from Bash.
 ;;
-;; Specifically for M-x shell running Bash, you should add the
-;; following to your configuration:
+;;;; Setup
 ;;
-;;   (add-hook 'shell-mode-hook #'readline-completion-mode)
-;;   (setq explicit-bash-args '("-io" "emacs"))
+;; To enable the package in `shell-mode' and `read-shell-command', add
+;; the following to your configuration:
 ;;
-;; (The second line is needed because Bash "helpfully" disables line
-;; editing when TERM=dumb.)
+;;   (with-eval-after-load 'shell
+;;     (add-hook 'shell-dynamic-complete-functions #'readline-completion-at-point))
 ;;
-;; Background:
+;; To enable it in any other comint mode which you know to be
+;; compatible, add `readline-completion-at-point' to
+;; `completion-at-point-functions' in a relevant mode hook.
 ;;
-;; This uses the export-completions command introduced in GNU Readline
-;; 8.3, released July 2025.  See manpage readline(3).  Some related
-;; discussions:
+;; For testing, or if you prefer a dedicated keybinding for this
+;; completion source, you can call `readline-completion-at-point'
+;; interactively.
+;;
+;;;; Background
+;;
+;; This package uses the export-completions command introduced in GNU
+;; Readline 8.3, released July 2025.  See manpage readline(3).  Some
+;; related discussions:
 ;;
 ;; https://lists.gnu.org/archive/html/bug-readline/2023-09/msg00017.html
 ;; https://lists.gnu.org/archive/html/bug-readline/2023-10/msg00001.html
@@ -49,6 +58,28 @@
 ;; as long as M-x is bound to `execute-named-command'.
 
 ;;; Code:
+
+(require 'cl-lib)
+(require 'compat)
+
+(defgroup readline-completion nil
+  "Completion from GNU Readline."
+  :prefix "readline-completion-"
+  :group 'convenience
+  :group 'comint)
+
+(defcustom readline-completion-process-ttl 60
+  "Time, in seconds, to keep an idle shell process alive."
+  :type 'natnum)
+
+(defvar -shell-process nil
+  "A shell process used to obtain completion candidates.")
+
+(defvar-local -candidate-filter nil
+  "Function to filter or modify completion candidates.
+If non-nil, should be a function called with the completion prefix and a
+list of completion candidates.  It should should return a new list of
+candidates.")
 
 (defvar -execute-named-command "\ex"
   "Readline binding for execute-named-command.")
@@ -62,119 +93,138 @@ If the process stays this long without producing any output, we assume
 it has finished processing the completion request and printed a new
 prompt.")
 
-(defvar-local readline-completion-candidate-filter nil
-  "Function to filter or modify completion candidates.
-If non-nil, should be a function called with the completion prefix and a
-completion candidate.  The function should return nil or a possibly
-modified candidate.")
-
-(defun readline-completion-shell-filter (prefix cand)
+(defun -shell-candidate-filter (prefix cands)
   "Quote completion candidates from the shell.
-To be used as the value of `readline-completion-candidate-filter'."
+To be used as the value of `readline-completion--candidate-filter'."
+  (setq cands (delete "" cands))
   (let ((n (length prefix)))
-    (if (or (length= cand n)
-            (string-prefix-p "--" cand)
-            (memq (char-before (- (point) n)) '(?\" ?')))
-        cand
-      (concat prefix (shell-quote-argument (substring cand n) t)))))
+    (if (memq (char-before (- (point) n)) '(?\" ?'))
+        cands
+      (mapcar (lambda (cand)
+                (setq cand (string-trim-right cand))
+                (if (or (length= cand n)
+                        (string-prefix-p "--" cand))
+                    cand
+                  (concat prefix (shell-quote-argument (substring cand n) t))))
+              cands))))
 
-(defun -get-canditates (input)
-  (let ((proc (get-buffer-process (current-buffer))))
-    (unless (process-live-p proc)
-      (user-error "Buffer has no process"))
-    (with-temp-buffer
-      (unwind-protect
-          (let ((buffer (current-buffer))
-                count acc result)
-            (add-function
-             :override (process-filter proc)
-             (lambda (_proc string)
-               (with-current-buffer buffer
-                 (save-excursion
-                   (goto-char (point-max))
-                   (insert string))
-                 ;(message "readline-completion:\n%s\n---" (buffer-string))
-                 (when (and (not count)
-                            (re-search-forward
-                             ;; Parse output of export-completions as
-                             ;; per readline(3).  Depending on TTY
-                             ;; settings we may receive \r\n for
-                             ;; newlines.
-                             (rx point (* control)
-                                 (group (+ digit)) (? "\r") "\n"
-                                 (group (* (not control))) (? "\r") "\n"
-                                 (group (+ digit)) ?: (group (+ digit))
-                                 (? "\r") "\n")
-                             nil t))
-                   (setq count (string-to-number (match-string 1)))
-                   (push (match-string 2) acc)
-                   (push (string-to-number (match-string 3)) acc)
-                   (push (string-to-number (match-string 4)) acc))
-                 (when count
-                   (while (and (plusp count) (not (eq (pos-eol) (point-max))))
-                     (decf count)
-                     (re-search-forward (rx point (* (not control))))
-                     (push (match-string-no-properties 0) acc)
-                     (forward-line))
-                   (when (zerop count) (setq result (nreverse acc))))))
-             '((name . readline-completion)))
-            (process-send-string
-             proc (concat
-                   (car -bracketed-paste) input (cdr -bracketed-paste)
-                   -execute-named-command "export-completions\n"
-                   -execute-named-command "unix-line-discard\n"))
-            (while-no-input
-              (while (and (not result) (process-live-p proc))
-                (accept-process-output proc)))
-            (unless result
-              ;; Now to the messy situation: clean up in case of
-              ;; interruption.  We send ^C and must discard all output
-              ;; until (and including) the next prompt.  Normally we
-              ;; will just receive a prompt, but there's a remote
-              ;; chance (not so remote for remote processes) that the
-              ;; whole completion results arrive now.
-              (process-send-string proc "\C-c")
-              (while (accept-process-output proc -abort-timeout)))
-            result)
-        (remove-function (process-filter proc) 'readline-completion)))))
+(defun -get-process ()
+  "Return a process to query for completions."
+  ;; TODO: make this customizable?
+  (cond ((and (derived-mode-p 'comint-mode)
+              (not (derived-mode-p 'shell-mode)))
+         (when (eq (pos-eol) (point-max))
+           (get-buffer-process (current-buffer))))
+        (t
+         (unless (and (process-live-p -shell-process)
+                      (equal (process-get -shell-process '-directory)
+                             default-directory))
+           (when (process-live-p -shell-process)
+             (delete-process -shell-process))
+           (setq -shell-process
+                 (make-process
+                  :name "readline-completion"
+                  :command '("bash" "-i")
+                  :noquery t :connection-type 'pty))
+           (process-put -shell-process '-directory default-directory)
+           (process-put -shell-process '-candidate-filter
+                        #'-shell-candidate-filter)
+           (process-put -shell-process '-timer
+                        (run-with-timer readline-completion-process-ttl nil
+                                        #'delete-process -shell-process))
+           (let ((nonce (format "%016x" (random most-positive-fixnum))))
+             (process-send-string -shell-process (format "\
+history -d -1; set -o emacs; PS1=%s\n" nonce))
+             (with-temp-buffer
+               (cl-letf (((process-buffer -shell-process) (current-buffer)))
+                 (while (not (and (goto-char (point-min))
+                                  (search-forward nonce nil t)))
+                   (accept-process-output -shell-process))))))
+         (timer-set-time (process-get -shell-process '-timer)
+                         readline-completion-process-ttl)
+         -shell-process)))
 
-(defun readline-completion-at-point (&optional interactive)
-  "Get completions from the comint subprocess using GNU Readline.
-Can be used as a member of `completion-at-point-functions' or called
-interactively."
-  (interactive '(t) comint-mode)
-  (cond
-   (interactive
-    (let ((completion-at-point-functions '(readline-completion-at-point)))
-      (completion-at-point)))
-   ((eq (pos-eol) (point-max))
-    (pcase-let*
-        ((boi (comint-line-beginning-position))
-         (input (buffer-substring-no-properties boi (point)))
-         (`(,prefix ,start ,end . ,candidates) (-get-canditates input)))
-      (when-let* ((filter readline-completion-candidate-filter))
-        (setq candidates (delq nil (mapcar (lambda (cand)
-                                             (funcall filter prefix cand))
-                                           candidates))))
-      (when candidates
-        (list (+ boi start) (+ boi end) candidates))))))
-
-(defvar shell--start-prog)              ;from shell.el
+(defun -get-candidates (proc input)
+  "Get completions for the given INPUT string from process PROC.
+Returns a list of the form (PREFIX START END . CANDIDATES), where PREFIX
+is the substring of INPUT being completed and START and END are the
+corresponding positions."
+  (with-temp-buffer
+    (unwind-protect
+        (let ((buffer (current-buffer))
+              count acc result)
+          (add-function
+           :override (process-filter proc)
+           (lambda (_proc string)
+             (with-current-buffer buffer
+               (save-excursion
+                 (goto-char (point-max))
+                 (insert string))
+               ;;(message "readline-completion:\n%s\n---" (buffer-string))
+               (when (and (not count)
+                          (re-search-forward
+                           ;; Parse output of export-completions as
+                           ;; per readline(3).  Depending on TTY
+                           ;; settings we may receive \r\n for
+                           ;; newlines.
+                           (rx point (* control)
+                               (group (+ digit)) (? "\r") "\n"
+                               (group (* (not control))) (? "\r") "\n"
+                               (group (+ digit)) ?: (group (+ digit))
+                               (? "\r") "\n")
+                           nil t))
+                 (setq count (string-to-number (match-string 1)))
+                 (push (match-string 2) acc)
+                 (push (string-to-number (match-string 3)) acc)
+                 (push (string-to-number (match-string 4)) acc))
+               (when count
+                 (while (and (plusp count) (not (eq (pos-eol) (point-max))))
+                   (decf count)
+                   (re-search-forward (rx point (* (not control))))
+                   (push (match-string-no-properties 0) acc)
+                   (forward-line))
+                 (when (zerop count) (setq result (nreverse acc))))))
+           '((name . readline-completion)))
+          (process-send-string
+           proc (concat
+                 (car -bracketed-paste) input (cdr -bracketed-paste)
+                 -execute-named-command "export-completions\n"
+                 -execute-named-command "unix-line-discard\n"))
+          (while-no-input
+            (while (and (not result) (process-live-p proc))
+              (accept-process-output proc)))
+          (unless result
+            ;; Now to the messy situation: clean up in case of
+            ;; interruption.  We send ^C and must discard all output
+            ;; until (and including) the next prompt.  Normally we
+            ;; will just receive a prompt, but there's a remote
+            ;; chance (not so remote for remote processes) that the
+            ;; whole completion results arrive now.
+            (process-send-string proc "\C-c")
+            (while (accept-process-output proc -abort-timeout)))
+          result)
+      (remove-function (process-filter proc) 'readline-completion))))
 
 ;;;###autoload
-(define-minor-mode readline-completion-mode
-  "Set up completion at point using Readline."
-  :interactive (comint-mode)
-  (cond
-   (readline-completion-mode
-    (when (equal shell--start-prog "bash") ;TODO: how about other shells?
-      (setq readline-completion-candidate-filter
-            #'readline-completion-shell-filter))
-    (add-hook 'completion-at-point-functions
-              #'readline-completion-at-point nil t))
-   (t
-    (remove-hook 'completion-at-point-functions
-                 #'readline-completion-at-point t))))
+(defun readline-completion-at-point (&optional interactive)
+  "Get completions from a subprocess using GNU Readline.
+Can be used as a member of `completion-at-point-functions' or called
+interactively."
+  (interactive '(t))
+  (if interactive
+      (let ((completion-at-point-functions '(readline-completion-at-point)))
+        (completion-at-point))
+    (when-let* ((proc (-get-process))
+                (_ (process-live-p proc)))
+      (pcase-let* ((boi (constrain-to-field (pos-bol) (point)))
+                   (input (buffer-substring-no-properties boi (point)))
+                   (`(,prefix ,start ,end . ,candidates)
+                    (-get-candidates proc input)))
+        (when-let* ((filter (or (process-get proc '-candidate-filter)
+                                -candidate-filter)))
+          (setq candidates (funcall filter prefix candidates)))
+        (when candidates
+          (list (+ boi start) (+ boi end) candidates))))))
 
 (provide 'readline-completion)
 

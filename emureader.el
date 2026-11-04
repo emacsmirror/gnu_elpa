@@ -95,19 +95,19 @@
 (defvar emureader-current-doc-render-status)
 
 ;;; Forward declarations for module functions
-(declare-function emureader-dyn--load-doc "ext:render/emureader-dyn.so" (file &optional page))
-(declare-function emureader-dyn--redisplay-doc "ext:render/emureader-dyn.so")
-(declare-function emureader-dyn--close-doc "ext:render/emureader-dyn.so")
-(declare-function emureader-dyn--next-page "ext:render/emureader-dyn.so")
-(declare-function emureader-dyn--prev-page "ext:render/emureader-dyn.so")
-(declare-function emureader-dyn--first-page "ext:render/emureader-dyn.so")
-(declare-function emureader-dyn--last-page "ext:render/emureader-dyn.so")
-(declare-function emureader-dyn--goto-page "ext:render/emureader-dyn.so" (page))
-(declare-function emureader-dyn--scale-page "ext:render/emureader-dyn.so" (factor))
-(declare-function emureader-dyn--doc-invert "ext:render/emureader-dyn.so" (invert))
-(declare-function emureader-dyn--rotate-page "ext:render/emureader-dyn.so" (degree))
-(declare-function emureader-dyn--window-create "ext:render/emureader-dyn.so" (window))
-(declare-function emureader-dyn--window-close "ext:render/emureader-dyn.so" (window))
+(declare-function emureader-dyn--load-doc "ext:emureader-dyn.so" (file &optional page))
+(declare-function emureader-dyn--redisplay-doc "ext:emureader-dyn.so")
+(declare-function emureader-dyn--close-doc "ext:emureader-dyn.so")
+(declare-function emureader-dyn--next-page "ext:emureader-dyn.so")
+(declare-function emureader-dyn--prev-page "ext:emureader-dyn.so")
+(declare-function emureader-dyn--first-page "ext:emureader-dyn.so")
+(declare-function emureader-dyn--last-page "ext:emureader-dyn.so")
+(declare-function emureader-dyn--goto-page "ext:emureader-dyn.so" (page))
+(declare-function emureader-dyn--scale-page "ext:emureader-dyn.so" (factor))
+(declare-function emureader-dyn--doc-invert "ext:emureader-dyn.so" (invert))
+(declare-function emureader-dyn--rotate-page "ext:emureader-dyn.so" (degree))
+(declare-function emureader-dyn--window-create "ext:emureader-dyn.so" (window))
+(declare-function emureader-dyn--window-close "ext:emureader-dyn.so" (window))
 
 (defgroup emureader nil
   "Group for EMuReader’s customizations."

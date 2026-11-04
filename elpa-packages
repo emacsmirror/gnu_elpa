@@ -347,6 +347,7 @@
   :doc "README.org")
  (emms			:url "https://git.savannah.gnu.org/git/emms.git"
   :doc "doc/emms.texinfo")
+ (emureader             :url "https://codeberg.org/MonadicSheep/emureader")
  (engrave-faces		:url "https://github.com/tecosaur/engrave-faces.git")
  (enwc			:url "hg::https://hg.savannah.nongnu.org/hgweb/enwc/"
   ;; The Hg<->Git bridge wasn't working well enough last time I tried.
@@ -739,7 +740,6 @@
  (rcirc-sqlite		:url "https://codeberg.org/mattof/rcirc-sqlite"
   :ignored-files ("LICENSE")
   :doc "rcirc-sqlite.texi")
- ;; (reader		:url "https://codeberg.org/monadicsheep/emacs-reader")
  (realgud             	:url "https://github.com/realgud/realgud")
  (realgud-ipdb        	:url "https://github.com/realgud/realgud-ipdb")
  (realgud-jdb         	:url "https://github.com/realgud/realgud-jdb")

@@ -269,17 +269,6 @@ draw_page_thread(void *arg)
 /**
  * Build a sliding cache window around the given page.
  *
- * Determines a window of pages centered around page `n', clears any
- * previously rendered pages, loads display lists for empty ones, and
- * submits rendering jobs. Waits for the current page to be fully cached.
- *
- * @param state  Pointer to the current DocState.
- * @param n      Page number to center the cache window around.
- */
-
-/**
- * Build a sliding cache window around the given page.
- *
  * This function assumes that there are no active render jobs for this
  * window. Callers should call wait_for_win_jobs() first.
  */
@@ -390,14 +379,6 @@ build_cache_window(DocState *doc_state, EmacsWinState *win_state, int n)
 
 /**
  * Slide the cache window forward by one page.
- *
- * Advances to the next page, shifts the cache window if within bounds,
- * reuses or frees cached pages, and spawns rendering jobs as needed.
- * Falls back to full rebuild if near document edges. Waits until the
- * new current page is ready.
- *
- * @param state  Pointer to the current DocState.
- * Return:       true if sliding succeeded, false if at end of document.
  */
 
 void
@@ -417,14 +398,6 @@ slide_cache_window_forward(DocState *doc_state, EmacsWinState *win_state)
 
 /**
  * Slide the cache window backward by one page.
- *
- * Moves to the previous page, shifts the cache window if within bounds,
- * frees or reuses cached pages, and triggers rendering if needed.
- * Falls back to a full rebuild near document start. Waits until the
- * new current page is ready.
- *
- * @param state  Pointer to the current DocState.
- * Return:       true if sliding succeeded, false if at start of document.
  */
 
 void

@@ -715,7 +715,6 @@ emacs_close_doc(emacs_env *env, ptrdiff_t nargs, emacs_value *args,
 	state->is_reloading = true;
 
 	clear_all_overlays(env);
-
 	clear_doc_state_ptr(env);
 
 	wait_for_doc_jobs(state);

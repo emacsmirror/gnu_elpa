@@ -740,6 +740,7 @@
  (rcirc-sqlite		:url "https://codeberg.org/mattof/rcirc-sqlite"
   :ignored-files ("LICENSE")
   :doc "rcirc-sqlite.texi")
+ (readline-completion   :url "https://codeberg.org/astoff/readline-completion.el")
  (realgud             	:url "https://github.com/realgud/realgud")
  (realgud-ipdb        	:url "https://github.com/realgud/realgud-ipdb")
  (realgud-jdb         	:url "https://github.com/realgud/realgud-jdb")

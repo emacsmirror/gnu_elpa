@@ -50,7 +50,7 @@ These formats below are not really for document reading, and as such while they 
 + ODP
 + ODG
 
-*** Proprietary Micro$oft Formats
+*** Proprietary Formats
 Using these formats is heavily discouraged, you should /always/ prefer the above formats from LibreOffice (Which can also you help you edit these formats if you need to). But since MuPDF does come with some very minimal support for these proprietary formats as well, they can also be viewed:
 
 + DOCX

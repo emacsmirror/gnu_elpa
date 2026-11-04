@@ -40,6 +40,9 @@ else ifeq ($(OS_NAME),Darwin)
 else ifeq ($(OS_NAME),FreeBSD)
   $(info FreeBSD detected: skipping pkg-config checks.)
   USE_PKGCONFIG := no
+else ifeq ($(OS_NAME),OpenBSD)
+  $(info OpenBSD detected: skipping pkg-config checks.)
+  USE_PKGCONFIG := no
 endif
 
 ifeq ($(OS_NAME),Darwin)
@@ -51,7 +54,6 @@ else
 endif
 
 # Compiler and base flags
-CC := gcc
 CFLAGS += -Wall -Wextra -fPIC
 LDFLAGS :=
 EMACS = emacs --batch -Q --eval '(setq enable-dir-local-variables nil)' -L .
@@ -95,6 +97,9 @@ else ifeq ($(OS_NAME),Darwin)
   endif
   CFLAGS += -I$(BREW_PREFIX)/include
   LDFLAGS += -L$(BREW_PREFIX)/lib -lmupdf
+else ifeq ($(OS_NAME),OpenBSD)
+  CFLAGS += -I/usr/local/include
+  LDFLAGS += -L/usr/local/lib -lmupdf
 else
   # Generic fallback for Guix/Nix
   CFLAGS += -DMUPDF_NO_PKGCONFIG

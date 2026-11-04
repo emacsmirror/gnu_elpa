@@ -5,7 +5,7 @@
 ;; Author: Divya Ranjan Pattanaik <divya@dialetheia.xyz>
 ;;         Tushar <tusharhero@sdf.org>
 ;; Keywords: lisp, files, tools
-;; Version: 0.3.2
+;; Version: 0.4.0
 ;; Package-Requires: ((emacs "26.1"))
 ;; URL: https://codeberg.org/MonadicSheep/emureader
 

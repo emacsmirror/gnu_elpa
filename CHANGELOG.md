@@ -1,3 +1,21 @@
+# Version 0.3 (2026-11-04)
+
+## Features
+
+- Temporary files that termint creates when sourcing code to a REPL are now
+  tracked, and all of them are deleted when Emacs exits. Previously a file
+  could be left behind if Emacs was closed before the idle timer deleted it.
+
+## Internal Changes
+
+- Terminal backends are now dispatched with `cl-defgeneric` and `cl-defmethod`
+  instead of a hand-written dispatch table. The public API is unchanged, and
+  third-party packages can support a new terminal emulator by defining
+  methods on `termint--backend-start` and `termint--backend-send-string`.
+- Each REPL schema defined by `termint-define` is now recorded as a
+  `termint--schema` structure, which stores the names of the generated
+  variables instead of reading them from their printed names on every call.
+
 # Version 0.2.3 (2026-05-17)
 
 ## Features

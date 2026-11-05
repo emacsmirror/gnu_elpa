@@ -314,11 +314,12 @@ The square is initialised with INIT or 0."
   ;; which is the x module position) is two modules (pixels).
   ;; Placement is from right to left and then upwards.
   ;;
-  ;; Size or the QRCode is odd. So if a column number is even (except
-  ;; if we are in column < 6 due to the timing pattern in col 6) the
-  ;; go left.  Otherwise go upwards/downwards (depending on up) and
-  ;; right.  Except if we hit the top/bottom then move a QCode column
-  ;; (two modules) to the right and change direction (up).
+  ;; Size of the QRCode is odd, so if a column number is even go left.
+  ;; (Below column 6 the parity reverses though due to the timing
+  ;; pattern in col 6.)  Otherwise (depending on UP) go
+  ;; upwards/downwards and right.  Except if we hit the top/bottom
+  ;; then move a QRCode column (two modules) to the right and change
+  ;; direction (UP).
   (when (= column 6)  ; Handle timing pattern column 6
     (setq column 5))
 

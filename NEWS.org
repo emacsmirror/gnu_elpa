@@ -1,4 +1,3 @@
-;;; -*- mode: auto-fill; mode: org; -*-
 See =(info "(standards) NEWS File")=. User facing changes per release
 are to be recorded here.
 

@@ -489,4 +489,91 @@ foo \\path{C:\\path\\to\\} bar
       (search-forward "ba")
       (should-not (get-text-property (point) 'face)))))
 
+;; bug#76781
+(ert-deftest font-latex-docTeX ()
+  "Test for `docTeX-mode' with macros containing ':' and '_'."
+  (with-temp-buffer
+    (let ((TeX-install-font-lock #'font-latex-setup)
+          (TeX-parse-self t))
+      (insert "\
+% \\iffalse
+%<package>\\NeedsTeXFormat{LaTeX2e}[2005/12/01]
+%
+%<*driver>
+\\documentclass[stdmodule]{l3doc}
+\\begin{document}
+\\DocInput{bug76781.dtx}
+\\end{document}
+%</driver>
+% \\fi
+% \\begin{macro}{\\YOURMACRO}
+%   Put explanation of |YOURMACRO|'s implementation here\\footnote{Put
+%   footnote here\\label{fn:1}}.
+%    \\begin{macrocode}
+\\newcommand{\\YOURMACRO}{}
+%    \\end{macrocode}
+% \\end{macro}
+%
+% \\begin{macro}[EXP]{\\property_ref:nn,\\property_ref:ee}
+%   Search for the label/property combination, and if not found fall back
+%   to the default of the property.
+%    \\begin{macrocode}
+\\cs_new:Npn \\property_ref:nn #1#2
+  {
+    \\@@_ref:een
+      { \\tl_to_str:n {#1} }
+      { \\tl_to_str:n {#2} }
+      { \\tl_use:c { g_@@_default_ #2 _tl } }
+  }
+\\cs_generate_variant:Nn \\property_ref:nn {ee}
+%    \\end{macrocode}
+% \\end{macro}
+%
+% \\endinput")
+      (docTeX-mode)
+      (TeX-update-style t)
+      (font-lock-ensure)
+      (goto-char (point-min))
+      (search-forward "<pack")
+      (should (font-latex-faces-present-p 'font-latex-doctex-preprocessor-face))
+
+      (search-forward "\\NeedsTeX")
+      (should (font-latex-faces-present-p '(font-latex-doctex-documentation-face
+                                            font-lock-keyword-face)))
+
+      (search-forward "{LaTeX2")
+      (should (font-latex-faces-present-p '(font-latex-doctex-documentation-face
+                                            font-lock-function-name-face)))
+
+      (search-forward "\\document")
+      (should (font-latex-faces-present-p 'font-lock-keyword-face))
+
+      (search-forward "stdm")
+      (should (font-latex-faces-present-p 'font-lock-variable-name-face))
+
+      (search-forward "l3d")
+      (should (font-latex-faces-present-p 'font-lock-function-name-face))
+
+      (search-forward "\\foot")
+      (should (font-latex-faces-present-p '(font-latex-doctex-documentation-face
+                                            font-lock-keyword-face)))
+
+      (search-forward "footnote h")
+      (should (font-latex-faces-present-p 'font-lock-constant-face))
+
+      (search-forward "\\newcommand{\\YOUR")
+      (should (font-latex-faces-present-p 'font-lock-function-name-face))
+
+      (search-forward "\\cs_new:N")
+      (should (font-latex-faces-present-p 'font-lock-keyword-face))
+
+      (search-forward "\\property_ref:")
+      (should (font-latex-faces-present-p 'font-lock-function-name-face))
+
+      (search-forward "\\@@_ref:")
+      (should (font-latex-faces-present-p 'font-latex-sedate-face))
+
+      (search-forward "g_@@_defa")
+      (should-not (get-text-property (point) 'face)) )))
+
 ;;; font-latex-test.el ends here

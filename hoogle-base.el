@@ -6,7 +6,7 @@
 ;; Maintainer: rahguzar <rahguzar@mailbox.org>
 ;; Created: April 10, 2022
 ;; License: GPL-3.0-or-later
-;; Version: 0.8.0
+;; Version: 0.8.1
 ;; Keywords: docs languages
 ;; Homepage: https://codeberg.org/rahguzar/consult-hoogle
 ;; Package-Requires: ((emacs "28.1"))
@@ -76,7 +76,7 @@ It should run the search with the new query.")
 ;;;; Utility Functions
 (defun hoogle-base--haskell-mode ()
   "Run the major-mode suitable for haskell."
-  (if-let ((mode (assoc-default ".hs" auto-mode-alist #'string-match-p)))
+  (if-let* ((mode (assoc-default ".hs" auto-mode-alist #'string-match-p)))
       (funcall mode)
     (display-warning
      'hoogle-base
@@ -129,13 +129,13 @@ It should run the search with the new query.")
 (defun hoogle-base--browse-url (type &optional alist)
   "Open the url of TYPE from ALIST."
   (let-alist alist
-    (if-let ((type-url (pcase .type
-                         ("" type)
-                         ("module" (if (eq type 'module) 'item type))
-                         ("package" (if (eq type 'package) 'item type))))
-             (url (if (eq 'item type-url)
-                      .url
-                    (alist-get 'url (alist-get type-url alist)))))
+    (if-let* ((type-url (pcase .type
+                          ("" type)
+                          ("module" (if (eq type 'module) 'item type))
+                          ("package" (if (eq type 'package) 'item type))))
+              (url (if (eq 'item type-url)
+                       .url
+                     (alist-get 'url (alist-get type-url alist)))))
         (progn (if (and (or (eq type 'package)
                             (equal .type "package"))
                         (url-file-host-is-local-p
@@ -143,7 +143,7 @@ It should run the search with the new query.")
                    (browse-url (concat url "index.html"))
                  (browse-url url))
                (when (minibufferp nil t)
-                (abort-recursive-edit)))
+                 (abort-recursive-edit)))
       (message "No suitable url for current candidate."))))
 
 ;;;; Refining Searches

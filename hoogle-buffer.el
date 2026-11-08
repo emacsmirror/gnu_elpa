@@ -4,7 +4,7 @@
 
 ;; Created: February 06, 2024
 ;; License: GPL-3.0-or-later
-;; Version: 0.8.0
+;; Version: 0.8.1
 ;; Keywords: docs languages
 ;; Homepage: https://codeberg.org/rahguzar/consult-hoogle
 ;; Package-Requires: ((emacs "28.1"))
@@ -43,7 +43,7 @@
 ;;; Major mode
 (defun hoogle-buffer--candidate ()
   "Obtain the current hoogle candidate."
- (get-text-property (point) 'hoogle-result))
+  (get-text-property (point) 'hoogle-result))
 
 (defun hoogle-buffer-modify-query (fun)
   "Run a search with current query modified by FUN."
@@ -147,12 +147,12 @@
     (while (not (eobp))
       (set-marker (process-mark proc)
                   (min (+ 2 (line-end-position)) (point-max)))
-      (when-let ((result (ignore-errors
-                           (json-parse-string
-                            (delete-and-extract-region
-                             (line-beginning-position) (line-end-position))
-                            :object-type 'alist)))
-                 (start (point)))
+      (when-let* ((result (ignore-errors
+                            (json-parse-string
+                             (delete-and-extract-region
+                              (line-beginning-position) (line-end-position))
+                             :object-type 'alist)))
+                  (start (point)))
         (insert (propertize "§ " 'face 'bold 'line-prefix ""))
         (hoogle-base--details result)
         (goto-char (- (process-mark proc) 2))
@@ -196,7 +196,7 @@
 (defun hoogle-buffer--url-results (buffer status)
   "Return results by parsing a hoogle url from BUFFER response with STATUS."
   (unwind-protect
-      (if-let ((err (plist-get :error status)))
+      (if-let* ((err (plist-get :error status)))
           (error "Error %s in retrieving hoogle results: %S" (car err) (cdr err))
         (with-temp-buffer
           (erase-buffer)

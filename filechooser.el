@@ -167,12 +167,12 @@ With prefix ARG toggle multiple filters using `completing-read-multiple'."
                   `(metadata (group-function . filechooser--filters-group-fn))
                 (complete-with-action
                  action filechooser--filters str predicate))))
-    (when-let ((names
-                (ensure-list
-                 (let ((minibuffer-completing-file-name nil))
-                   (funcall (if arg #'completing-read-multiple #'completing-read)
-                            (if arg "Toggle filters: " "Toggle a filter: ")
-                            #'table nil t)))))
+    (when-let* ((names
+                 (ensure-list
+                  (let ((minibuffer-completing-file-name nil))
+                    (funcall (if arg #'completing-read-multiple #'completing-read)
+                             (if arg "Toggle filters: " "Toggle a filter: ")
+                             #'table nil t)))))
       (dolist (name names)
         (cl-callf not (cdr (alist-get name filechooser--filters nil nil #'equal))))
       (setq filechooser--active-filters (filechooser--active-filters))
@@ -186,9 +186,10 @@ With prefix ARG toggle multiple filters using `completing-read-multiple'."
   (let ((filters (caar (alist-get "filters" opts nil nil #'equal)))
         (current (caar (alist-get "current_filter" opts nil nil #'equal)))
         (regex-filters)
-        (glob-to-regexp (lambda (cell) (if (eq  0 (car cell))
-                                      (wildcard-to-regexp (nth 1 cell))
-                                    ""))))
+        (glob-to-regexp (lambda (cell)
+                          (if (eq  0 (car cell))
+                              (wildcard-to-regexp (nth 1 cell))
+                            ""))))
     (unless (alist-get (car current) filters nil nil #'equal)
       (when current (push current filters)))
     (pcase-dolist (`(,name ,globs) filters)
@@ -253,7 +254,7 @@ MINIBUFFER is the value of minibuffer frame paramter."
 (defun filechooser--multiple-group-function (completion transform)
   "Group function for `filechooser--multiple-loop-table'.
 See Info node `(elisp) Programmed Completion' for COMPLETION and TRANSFORM."
-  (if-let ((display (rassoc completion filechooser--multiple-selection)))
+  (if-let* ((display (rassoc completion filechooser--multiple-selection)))
       (if transform
           (abbreviate-file-name (car display))
         "Selected")
@@ -264,8 +265,9 @@ See Info node `(elisp) Programmed Completion' for COMPLETION and TRANSFORM."
 See Info node `(elisp) Programmed Completion' for STR, PRED and ACTION."
   (pcase action
     ('t (let ((dir (or (file-name-directory str) default-directory)))
-          (cl-callf2 mapcar (lambda (sel) (cons (car sel)
-                                           (file-relative-name (car sel) dir)))
+          (cl-callf2 mapcar (lambda (sel)
+                              (cons (car sel)
+                                    (file-relative-name (car sel) dir)))
                      filechooser--multiple-selection)
           (append (mapcar #'cdr filechooser--multiple-selection)
                   (completion-file-name-table str pred t))))
@@ -280,7 +282,7 @@ MUSTMATCH and DIR are as in `read-file-name'.  DEFAULT is the default filename."
   (catch 'continue
     (minibuffer-with-setup-hook
         (lambda () (use-local-map (make-composed-keymap filechooser-mininuffer-map
-                                                   (current-local-map)))
+                                                        (current-local-map)))
           (when dir (setq default-directory dir)))
       (let ((use-file-dialog nil))
         (read-file-name
@@ -376,9 +378,10 @@ MAP contains additional key bindigs."
       (setq result
             (catch 'continue
               (minibuffer-with-setup-hook
-                  (lambda () (use-local-map (make-composed-keymap
-                                        filechooser-multiple-selection-map
-                                        (current-local-map))))
+                  (lambda ()
+                    (use-local-map (make-composed-keymap
+                                    filechooser-multiple-selection-map
+                                    (current-local-map))))
                 (completing-read prompt #'filechooser--multiple-loop-table
                                  #'filechooser--filters-predicate t
                                  (abbreviate-file-name dir)
@@ -417,8 +420,8 @@ If `filechooser-use-popup-frame' is non-nil a new minibuffer only popup frame
 is used, othewise the selected frame is used.  PROMPT and DIR are as in
 `read-directory-name'."
   (filechooser--maybe-with-new-frame only
-    (when-let ((save-dir (read-directory-name prompt dir))
-               (names nil))
+    (when-let* ((save-dir (read-directory-name prompt dir))
+                (names nil))
       (make-directory save-dir t)
       (catch 'abort
         (dolist (file files)
@@ -577,7 +580,7 @@ editing session.  FILTERS are in the format of `filechooser-filters'."
   (setq end (progn (goto-char end) (forward-line 1) (pos-eol)))
   (setq beg (progn (goto-char beg) (forward-line -1) (goto-char (pos-bol))))
   (while (< (point) end)
-    (when-let ((name (dired-get-filename 'no-dir t)))
+    (when-let* ((name (dired-get-filename 'no-dir t)))
       (alter-text-property (1- (point)) (pos-eol) 'invisible
                            (lambda (val)
                              (setq val (ensure-list val))
@@ -592,9 +595,9 @@ editing session.  FILTERS are in the format of `filechooser-filters'."
   (setq end (progn (goto-char end) (pos-eol)))
   (setq beg (progn (goto-char beg) (goto-char (pos-eol))))
   (while (< (point) end)
-    (when-let ((file (dired-get-filename nil t))
-               (name (file-name-directory file))
-               (name-end (+ (dired-move-to-filename) (length name))))
+    (when-let* ((file (dired-get-filename nil t))
+                (name (file-name-directory file))
+                (name-end (+ (dired-move-to-filename) (length name))))
       (put-text-property (point) name-end 'display ".../")
       (put-text-property (point) name-end 'help-echo file))
     (forward-line))

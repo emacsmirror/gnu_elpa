@@ -56,15 +56,17 @@
    (file-name-concat emureader-directory
 		     (concat "emureader-dyn" module-file-suffix))))
 
-(defun emureader--post-build (_buffer status)
-  "Load the module if the build finished successfully, per STATUS."
+(defun emureader--post-build (comp-buffer status)
+  "Load the module if the build in COMP-BUFFER finished successfully, per STATUS."
   (if (string-prefix-p "finished" status)
       (progn (emureader--load-module)
 	     (mapc (lambda (buff)
 		     (with-current-buffer buff
 		       (emureader-mode)))
 		   (match-buffers '(major-mode . emureader-mode))))
-    (message "emureader: module build failed, see *emureader-module-compilation*")))
+    (message "emureader: module build failed, see *emureader-module-compilation*")
+    (mapc #'kill-buffer (match-buffers '(major-mode . emureader-mode)))
+    (switch-to-buffer comp-buffer)))
 
 ;;;###autoload
 (defun emureader-build ()

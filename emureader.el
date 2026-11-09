@@ -257,9 +257,6 @@ for actual definition."
 (defun emureader-open-doc (document)
   "Open DOCUMENT for viewing.
 
-This function calls the module function `emureader-dyn--load-doc' from the
-dynamic module to render the first page and displays it in a new buffer.
-
 The only formats that can be opened `emureader-supported-formats', any
 other file format will simply not show up as a candidate."
   (interactive (list (expand-file-name (emureader--read-doc-name))))

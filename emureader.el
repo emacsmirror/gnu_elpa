@@ -263,15 +263,7 @@ dynamic module to render the first page and displays it in a new buffer.
 The only formats that can be opened `emureader-supported-formats', any
 other file format will simply not show up as a candidate."
   (interactive (list (expand-file-name (emureader--read-doc-name))))
-  (switch-to-buffer (create-file-buffer document))
-  (setq buffer-file-name document)
-  ;; We need something to put the overlay on.
-  (insert "\n")
-  ;; go back to the previous point for page border.
-  (goto-char (1- (point)))
-  (if (emureader-dyn--load-doc (expand-file-name document) 0)
-      (emureader-mode)
-    (kill-buffer (current-buffer))))
+  (find-file document))
 
 (define-queue-command next-page ()
   "Go to the next page of the document."

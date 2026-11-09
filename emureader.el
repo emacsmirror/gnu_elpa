@@ -758,6 +758,7 @@ This function is replaced as `revert-buffer-function' for
 	    (condition-case err
 		(progn
 		  (emureader--render-buffer (1- page))
+		  (emureader-dyn--doc-invert (if (bound-and-true-p emureader-dark-mode) 1 0))
 		  (emureader-doc-scale-page scale)
 		  (emureader--center-page)
 		  (emureader--manage-window-overlays))

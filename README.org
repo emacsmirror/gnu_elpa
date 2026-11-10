@@ -41,6 +41,15 @@ work. If not, please open an issue on the issue tracker.
 The release version of the package is available on GNU ELPA.
 Simply run ~M-x package-install RET modus-vague RET~.
 
+A basic configuration with =use-package= would look something like this:
+
+#+begin_src emacs-lisp
+  (use-package modus-vague
+    :ensure t
+    :config
+    (modus-themes-load-theme 'modus-vague))
+#+end_src
+
 ** Development version
 
 If you need more up-to-date version of the package, install via ~package-vc~:

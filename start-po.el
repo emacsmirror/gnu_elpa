@@ -1,6 +1,6 @@
-;;; start-po.el --- autoload definitions for viewing and editing PO files
+;;; start-po.el --- autoload definitions for viewing and editing PO files  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 1995-2004, 2016, 2019 Free Software Foundation, Inc.
+;; Copyright (C) 1995-2004, 2016, 2019, 2026 Free Software Foundation, Inc.
 ;;
 ;; This file is part of GNU gettext.
 ;;

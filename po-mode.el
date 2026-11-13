@@ -1,4 +1,4 @@
-;;; po-mode.el --- major mode for GNU gettext PO files
+;;; po-mode.el --- major mode for GNU gettext PO files  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 1995-2026 Free Software Foundation, Inc.
 ;;

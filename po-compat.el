@@ -1,4 +1,4 @@
-;;; po-compat.el --- basic support of PO translation files -*- coding: latin-1; -*-
+;;; po-compat.el --- basic support of PO translation files -*- coding: latin-1; lexical-binding: t; -*-
 
 ;; Copyright (C) 1995-2026 Free Software Foundation, Inc.
 ;;

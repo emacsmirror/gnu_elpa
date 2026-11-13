@@ -79,7 +79,9 @@
 ;; Experiment with Emacs LISP message internationalisation.
 (eval-and-compile
   (or (fboundp 'set-translation-domain)
-      (defsubst set-translation-domain (string) nil))
+      (defsubst set-translation-domain (string)
+        (ignore string)
+        nil))
   (or (fboundp 'translate-string)
       (defsubst translate-string (string) string)))
 (defsubst _ (string) (translate-string string))
@@ -93,8 +95,10 @@
   (if (and (featurep 'custom) (fboundp 'custom-declare-variable))
       nil
     (defmacro defgroup (&rest args)
+      (ignore args)
       nil)
     (defmacro defcustom (var value doc &rest args)
+      (ignore args)
       `(defvar ,var ,value ,doc))))
 
 ;;; Customisation.
@@ -807,6 +811,7 @@ M-S  Ignore path          M-A  Ignore PO file      *M-L  Ignore lexicon
            (function (lambda (to subject)
                        (mail nil to subject))))
           (t (function (lambda (to subject)
+                         (ignore subject)
                          (error (_"I do not know how to mail to '%s'") to))))))
   "Function to start composing an electronic message.")
 
@@ -1897,8 +1902,7 @@ If KILL-FLAG, then add the unquoted comment to the kill ring."
 Evaluating FORM should insert the wanted string in the current buffer.
 If FORM is itself a string, then this string is used for insertion.
 The string is properly recommented before the replacement occurs."
-  (let ((obsolete (eq po-entry-type 'obsolete))
-        string)
+  (let (string)
     (with-temp-buffer
       (if (stringp form)
           (insert form)
@@ -2659,7 +2663,7 @@ Disregard some simple strings which are most probably non-translatable."
         (buffer po-string-buffer)
         (start po-string-start)
         (end po-string-end)
-        line string)
+        line)
     ;; Mark string in program sources.
     (save-excursion
       (set-buffer buffer)
@@ -2722,10 +2726,12 @@ These variables are locally set in source buffer only when not already bound."
 
 (defun po-find-unknown-string (keywords)
   "Dummy function to skip over a file, finding no string in it."
+  (ignore keywords)
   nil)
 
 (defun po-mark-unknown-string (start end keyword)
   "Dummy function to mark a given string.  May not be called."
+  (ignore start end keyword)
   (error (_"Dummy function called")))
 
 ;;; Awk mode specifics.
@@ -2793,6 +2799,7 @@ Leave point after marked string."
 (defun po-find-bash-string (keywords)
   "Find the next unmarked Bash string.  KEYWORDS are merely ignored.
 Return (CONTENTS START END) for the found string, or nil if none found."
+  (ignore keywords)
   (let (start end)
     (while (and (not start)
                 (re-search-forward "[#'\"]" nil t))
@@ -2826,6 +2833,7 @@ Return (CONTENTS START END) for the found string, or nil if none found."
 (defun po-mark-bash-string (start end keyword)
   "Mark the Bash string, from START to END, with '$'.  KEYWORD is ignored.
 Leave point after marked string."
+  (ignore keyword)
   (goto-char start)
   (insert "$")
   (goto-char (1+ end)))
@@ -3139,8 +3147,8 @@ Leave point after marked string."
               (concat (file-name-sans-extension buffer-file-name) ".mo")
             dev-null))
          (compilation-buffer-name-function
-          (function (lambda (mode-name)
-                      (concat "*" mode-name " validation*"))))
+          (function (lambda (modename)
+                      (concat "*" modename " validation*"))))
          (compile-command (concat po-msgfmt-program
                                   " --statistics -c -v -o "
                                   (shell-quote-argument output) " "

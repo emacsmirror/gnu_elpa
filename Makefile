@@ -16,6 +16,7 @@
 
 
 all: info html
+.PHONY: all
 
 
 # This directory does not support parallel make.
@@ -83,3 +84,9 @@ pdf: po-mode.pdf
 po-mode.pdf: $(main_TEXINFOS) $(included_TEXINFOS)
 	texi2pdf $(TEXINCLUDES) $(main_TEXINFOS)
 	rm -f $(INDEXFILES) po-mode.toc po-mode.aux po-mode.log
+
+
+# Check against byte-compile warnings.
+check:
+	emacs --batch --funcall batch-byte-compile *.el
+.PHONY: check

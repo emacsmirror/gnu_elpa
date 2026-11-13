@@ -8,9 +8,9 @@ ELCFILES = $(addsuffix .elc, $(basename $(ELFILES)))
 all: $(ELCFILES)
 
 $(JSONRPC):
-	@curl "https://elpa.gnu.org/packages/$(@D).tar" -o $(@D).tar
-	@tar -xvf $(@D).tar
-	@rm $(@D).tar
+	@curl -fL "https://elpa.gnu.org/packages/$(@D).tar.lz" -o $(@D).tar.lz
+	@tar -xvf $(@D).tar.lz
+	@rm $(@D).tar.lz
 
 %.elc: %.el $(JSONRPC)
 	@echo Compiling $<

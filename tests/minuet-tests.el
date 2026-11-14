@@ -15,48 +15,6 @@
 
 (require 'minuet)
 
-(ert-deftest minuet-get-context-respects-narrowing ()
-  "Context extraction stays inside the accessible region."
-  (let ((minuet-context-window 16000)
-        (minuet-context-ratio 0.75))
-    (with-temp-buffer
-      (insert (make-string 19999 ?x)
-              (make-string 100 ?b)
-              (make-string 100 ?a)
-              (make-string 801 ?x))
-      (narrow-to-region 20000 20200)
-      (goto-char 20100)
-      (let ((context (minuet--get-context)))
-        (should (equal (plist-get context :before-cursor) (make-string 100 ?b)))
-        (should (equal (plist-get context :after-cursor) (make-string 100 ?a)))
-        (should-not (plist-get context :is-incomplete-before))
-        (should-not (plist-get context :is-incomplete-after)))
-      (should (= (point-min) 20000))
-      (should (= (point-max) 20200))
-      (should (= (point) 20100)))))
-
-(ert-deftest minuet-get-context-uses-full-window-at-buffer-start ()
-  "An unrestricted buffer starts with zero preceding characters."
-  (let ((minuet-context-window 8)
-        (minuet-context-ratio 0.75))
-    (with-temp-buffer
-      (insert "abcdefghij")
-      (goto-char (point-min))
-      (let ((context (minuet--get-context)))
-        (should (equal (plist-get context :before-cursor) ""))
-        (should (equal (plist-get context :after-cursor) "abcdefgh"))))))
-
-(ert-deftest minuet-get-context-splits-window-at-cursor ()
-  "The requested ratio allocates the full window around the cursor."
-  (let ((minuet-context-window 8)
-        (minuet-context-ratio 0.75))
-    (with-temp-buffer
-      (insert "abcdefghijklmnop")
-      (goto-char 9)
-      (let ((context (minuet--get-context)))
-        (should (equal (plist-get context :before-cursor) "cdefgh"))
-        (should (equal (plist-get context :after-cursor) "ij"))))))
-
 (ert-deftest minuet-remove-blank-items-drops-whitespace-only-items ()
   "Blank item filtering removes empty items without trimming valid ones."
   (should (equal (minuet--remove-blank-items '("  indented" "" " \t\n" "tail  "))

@@ -88,5 +88,5 @@ po-mode.pdf: $(main_TEXINFOS) $(included_TEXINFOS)
 
 # Check against byte-compile warnings.
 check:
-	emacs --batch --funcall batch-byte-compile *.el
+	emacs --no-init-file --no-site-file --batch --funcall batch-byte-compile *.el
 .PHONY: check

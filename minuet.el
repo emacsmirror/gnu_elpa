@@ -729,7 +729,8 @@ Also print the MESSAGE when MESSAGE-P is t."
 (defun minuet--get-context ()
   "Get the context for minuet completion."
   (let* ((point (point))
-         (n-chars-before point)
+         ;; Count accessible characters, including when the buffer is narrowed.
+         (n-chars-before (- point (point-min)))
          (point-max (point-max))
          (n-chars-after (- point-max point))
          (before-start (point-min))

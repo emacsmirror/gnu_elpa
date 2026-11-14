@@ -1,19 +1,30 @@
 WARNING
 =======
 
-This directory gets automatically mirrored at
+1) This directory gets automatically mirrored at
 
-  https://gitweb.git.savannah.gnu.org/gitweb/?p=emacs/elpa.git;a=tree;h=refs/heads/externals/po-mode;hb=refs/heads/externals/po-mode
+  https://github.com/emacsmirror/po-mode/
 
 where users can enable it by putting this into their Emacs initialization file
 (cf. https://www.emacswiki.org/emacs/InitFile and
-https://elpa.gnu.org/ and
 https://github.com/melpa/melpa/blob/master/README.md ):
 
   (require 'package)
   (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/"))
 
 Therefore, don't make untested changes in this directory!
+
+2) This directory gets automatically mirrored at
+
+  https://gitweb.git.savannah.gnu.org/gitweb/?p=emacs/elpa.git;a=tree;h=refs/heads/externals/po-mode;hb=refs/heads/externals/po-mode
+
+where it is visible at https://elpa.gnu.org/packages/po-mode.html
+and from where users can install it through M-x package-install.
+Here, changes in this directory become active only after the version
+number was bumped.
+
+Therefore, after making intentional changes, you need to bump
+the version number (in po-mode.el and po-mode.texi)!
 
 
 Testing

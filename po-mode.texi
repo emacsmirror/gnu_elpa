@@ -48,7 +48,7 @@
 @end ifclear
 @c %**end of header
 
-@set UPDATED 8 September 2026
+@set UPDATED 14 November 2026
 @set VERSION 2.33
 
 @ifinfo
@@ -134,6 +134,7 @@ This manual documents the Emacs PO mode, version @value{VERSION}.
 
 @menu
 * Overview::                    Overview
+* Installation::                Installing PO mode
 * Translators::                 PO mode for translators
 * Programmers::                 PO mode for programmers
 
@@ -151,7 +152,7 @@ Translators
 
 Editing PO files
 
-* Installation::                Completing GNU @code{gettext} Installation
+* Post-Installation::           Completing the PO Mode Installation
 * Main PO Commands::            Main Commands
 * Entry Positioning::           Entry Positioning
 * Normalizing::                 Normalizing Strings in Entries
@@ -201,6 +202,67 @@ or by email to @code{bug-gettext@@gnu.org}.
 @noindent
 Please include the manual's edition number and update date in your messages.
 
+@node Installation
+@chapter Installation
+
+There are three ways to install the Emacs PO mode.
+
+@subheading Prerequisite
+
+You should have GNU gettext installed.
+The PO mode relies on the @code{msgfmt} program
+that is part of the GNU gettext package.
+
+@subheading Installation through ELPA
+
+The PO mode is available from ELPA:
+@url{https://elpa.gnu.org/packages/po-mode.html}.
+
+To install it from there, in Emacs, use @kbd{M-x package-install}
+and enter @samp{po-mode}.
+Or use @kbd{M-x list-packages}, select @code{po-mode} from the list,
+and click the ``Install'' button.
+This will install it as a subdirectory of @code{$HOME/.emacs.d/elpa/}.
+
+The manual in info format is available from within Emacs, under
+Help > More Manuals > All Other Manuals.
+The manual in HTML format is available at
+@url{https://elpa.gnu.org/packages/doc/po-mode.html}.
+
+@subheading Installation through MELPA
+
+The PO mode is also available through MELPA
+@url{https://melpa.org/}.
+
+To use MELPA, as documented in
+@url{https://github.com/melpa/melpa/blob/master/README.md},
+add this to your Emacs initialization file:
+@example
+  (require 'package)
+  (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/"))
+@end example
+
+Then, you can use @kbd{M-x package-install} and enter @samp{po-mode}.
+Or use @kbd{M-x list-packages}, select @code{po-mode} from the list,
+and click the ``Install'' button.
+
+@subheading Installation through git
+
+Alternatively, you can download the PO mode sources through @code{git}:
+@example
+$ git clone git://git.savannah.gnu.org/gettext/po-mode.git
+@end example
+@noindent
+or
+@example
+$ git clone https://git.savannah.gnu.org/git/gettext/po-mode.git
+@end example
+
+In this @code{git} checkout,
+you can generate the info format documentation through @samp{make info}
+or the HTML format documentation through @samp{make html}, and install
+it at a place of your choice.
+
 @node Translators
 @chapter PO mode for translators
 
@@ -231,7 +293,7 @@ For the beginning, besides main PO mode commands
 (@pxref{Untranslated Entries}).
 
 @menu
-* Installation::                Completing GNU @code{gettext} Installation
+* Post-Installation::           Completing the PO Mode Installation
 * Main PO Commands::            Main Commands
 * Entry Positioning::           Entry Positioning
 * Normalizing::                 Normalizing Strings in Entries
@@ -246,17 +308,8 @@ For the beginning, besides main PO mode commands
 * Auxiliary::                   Consulting Auxiliary PO Files
 @end menu
 
-@node Installation
-@subsection Completing GNU @code{gettext} Installation
-
-@cindex installing @code{gettext}
-@cindex @code{gettext} installation
-Once you have received, unpacked, configured and compiled the GNU
-@code{gettext} distribution, the @samp{make install} command puts in
-place the programs @code{xgettext}, @code{msgfmt}, @code{gettext}, and
-@code{msgmerge}, as well as their available message catalogs.  To
-top off a comfortable installation, you might also want to make the
-PO mode available to your Emacs users.
+@node Post-Installation
+@subsection Completing the PO Mode Installation
 
 @emindex @file{.emacs} customizations
 @emindex installing PO mode

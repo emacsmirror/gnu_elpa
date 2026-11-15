@@ -2387,7 +2387,8 @@ in case of cyclic dependencies."
                 ;; It would make sense to include accesses to "doc/<NAME>" in
                 ;; the counts, except that <NAME> is not always the name of the
                 ;; corresponding package.
-                (when (and pkg (not (string-match-p "/" pkg)))
+               (when (and pkg (not (string-match-p "/" pkg))
+                          (not (string-match-p "%2[ef]" pkg)))
                   (funcall fn time pkg file line)))))))
       (forward-line 1))))
 

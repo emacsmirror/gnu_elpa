@@ -51,10 +51,45 @@ breadcrumb-opinionated-mode`.  Looks like this:
 
 ![opinionated](./opinionated.png)
 
-Call it again to turn it off.  Also, you probably want to check how
-the variable `breadcrumb-opinionated-mlf` is built so you can
-adjust/customize it.  Or just steal ideas from it into your own
-`mode-line-format` `header-line-format` customizations.
+Call it again to turn it off.  To adjust it, customize
+`breadcrumb-opinionated-mlf`.  Its parts are variables such as
+`breadcrumb-opinionated-project-crumbs` and
+`breadcrumb-opinionated-imenu-crumbs`, which you can also use in your
+own `mode-line-format` or `header-line-format`.
+
+## Icons and other decorations
+
+`breadcrumb-opinionated-mode` prefixes crumbs with [Nerd
+Font][nerd-fonts] icons: a repository icon for the project, a file
+icon for the file, and the VS Code "Codicons" for Imenu crumbs whose
+kind is known (function, class, namespace, etc).  The kind comes from
+an `imenu-kind` text property on the names in the Imenu index, which
+Eglot sets from the language server's symbol kinds.  Eglot is the only
+package I know of that does this, so other Imenu crumbs get no icon.
+
+Imenu icons are colored by kind, with the same font-lock faces that
+[nerd-icons-corfu][nerd-icons-corfu] uses for completion.  The file
+icon is generic, unless the [nerd-icons][nerd-icons] package is
+installed: then files get its colored per-file-type icons, and
+file-less buffers an icon for their major mode.  I recommend it, and
+it works in terminals too.  I also recommend the Victor Mono Nerd
+Font.
+
+The icons, and the mode line's other Nerd Font glyphs, come from
+`breadcrumb-opinionated-nerd`, an alist you can customize.  Set it to
+nil for no Nerd Font glyphs at all, say in a terminal without a Nerd
+Font.  To get the same icons outside of the opinionated mode line:
+
+```lisp
+(setq breadcrumb-decorate-function #'breadcrumb-opinionated-nerdify)
+```
+
+More generally, `breadcrumb-decorate-function` can do any decoration
+you wish.  Go read its docstring.
+
+[nerd-fonts]: https://www.nerdfonts.com
+[nerd-icons]: https://github.com/rainstormstudio/nerd-icons.el
+[nerd-icons-corfu]: https://github.com/LuigiPiucco/nerd-icons-corfu
 
 ## Tweaks
 

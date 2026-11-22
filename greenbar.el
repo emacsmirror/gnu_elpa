@@ -3,7 +3,7 @@
 ;; Copyright (C) 2013-2026  Free Software Foundation, Inc.
 
 ;; Author: Michael R. Mauger <michael@mauger.com>
-;; Version: 1.2.260317
+;; Version: 1.2.261121
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 ;; Package-Type: simple
 ;; Package-Requires: ((emacs "27.1"))
@@ -88,17 +88,17 @@
 (defvar greenbar-color-themes
   (list
    (cons 'greenbar
-         (if (eq (frame-parameter nil 'background-mode) 'dark)
+         (if (eq frame-background-mode 'dark)
              '("#344034" "#343434")
            '("#e4f0e4" "#f0f0f0")))
    (cons 'graybar
          (list
-          (if (eq (frame-parameter nil 'background-mode) 'dark)
+          (if (eq frame-background-mode 'dark)
               "gray30" "gray70")
           (face-background 'default)))
    (cons 'rainbow
-         (let ((x (if (eq (frame-parameter nil 'background-mode) 'dark) "40" "f0"))
-               (o (if (eq (frame-parameter nil 'background-mode) 'dark) "34" "e4")))
+         (let ((x (if (eq frame-background-mode 'dark) "40" "f0"))
+               (o (if (eq frame-background-mode 'dark) "34" "e4")))
 
            (mapcar (lambda (c) (apply #'concat "#" c))
                    `((,x ,x ,o) (,x ,o ,o) (,x ,o ,x) (,o ,o ,x) (,o ,x ,x) (,o ,x ,o))))))
@@ -119,13 +119,12 @@ theme followed by the list bar colors.")
   :type 'boolean)
 
 (defcustom greenbar-lighter
-  (let* ((greenbar (assq 'greenbar greenbar-color-themes))
-         (bg (nth 1 greenbar))
-         (fg (nth 2 greenbar)))
-    (propertize "\N{Heavy Horizontal Fill}"
-                'font-lock-face `(:foreground ,fg :background ,bg)))
+  (let ((green (if (eq frame-background-mode 'dark)
+                   "green1" "green4")))
+    `(" " (:propertize "\N{Sparse Horizontal Fill}" face ((t :foreground ,green )))))
   "The minor mode lighter that appears in the mode line."
-  :type 'string)
+  :type 'sexp)
+(put 'greenbar-lighter 'risky-local-variable t)
 
 (defun greenbar-color-list ()
   "Get the list of greenbar background colors."
@@ -167,7 +166,7 @@ set of background colors found in
         (end (process-mark (get-buffer-process (current-buffer)))))
 
     (when (and (greenbar-is-valid-bar bar)
-               (not (= start end))
+               (/= start end)
                (or greenbar-highlight-input
                    (not (greenbar-is-command-input start end))))
 

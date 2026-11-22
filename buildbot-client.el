@@ -54,6 +54,15 @@ in relevant Changes API requests."
   :group 'buildbot
   :type '(choice (const :tag "Server default" nil) natnum))
 
+(defcustom buildbot-revision-changes-limit 10
+  "The limit in a request to the Changes API filtered by revision.
+
+Only relevant when `buildbot-api-changes-direct-filter' is
+non-nil. If set to nil, use server default, i.e. do not set limit
+in relevant Changes API requests."
+  :group 'buildbot
+  :type '(choice (const :tag "Server default" nil) natnum))
+
 (defcustom buildbot-api-changes-limit 300
   "The limit in a request to the Changes API.
 
@@ -175,7 +184,8 @@ miss some changes associated to the required revision or branch."
          (if buildbot-api-changes-direct-filter
              (alist-get
               'changes
-              (buildbot-api-change `((revision . ,revision))))
+              (buildbot-api-change `((revision . ,revision)
+                                     (limit . ,buildbot-revision-changes-limit))))
            (seq-filter
             (lambda (change)
               (equal revision (alist-get 'revision change)))

@@ -946,9 +946,9 @@ Keybindings:
 	      display-line-numbers-mode nil
 	      ;; messes up centering(line-prefix) otherwise, the
 	      ;; default value is 8, so we keep it at that.
-	      left-fringe-width 8)
+	      left-fringe-width 8
+	      blink-cursor-mode nil)
   (set-buffer-modified-p nil)
-  (blink-cursor-mode 0)
   (auto-revert-mode 1)
   (setq-local revert-buffer-function #'emureader--non-queue-refresh-doc-buffer)
 

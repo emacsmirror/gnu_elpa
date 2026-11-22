@@ -21644,7 +21644,7 @@ msgstr ""
 "gebruiken. Emacs was ontworpen om op machines te draaien die we nu beperkt "
 "vinden en de standaard instellingen zijn terughoudend. Je wilt misschien de "
 "instelling van @code{max-lisp-eval-depth} verhogen. In mijn @file{.emacs} "
-"bestand heb ik het op 30 keer de standaard waarde ingesteld.}"
+"bestand heb ik het op 30 keer de standaard waarde ingesteld.}."
 
 #. type: cindex
 #: emacs-lisp-intro.texi:9957
@@ -21679,7 +21679,7 @@ msgstr ""
 "Wanneer in een @code{while} expressie de waarde teruggeven door het eerste "
 "argument te evalueren onwaar is, slaat de Lisp interpreter de rest van de "
 "expressie (de @dfn{body} van de expressie) over en evalueert die niet. "
-"Wanneer echter de waarde waar is, can evalueert de Lisp interpreter de body "
+"Wanneer echter de waarde waar is, dan evalueert de Lisp interpreter de body "
 "van de expressie en test opnieuw of het eerste argument van @code{while} "
 "waar is of onwaar. Wanneer de waarde teruggegeven door het eerste argument "
 "te evalueren opnieuw waar is, evalueert de Lisp interpreter opnieuw de body "
@@ -21767,7 +21767,7 @@ msgstr ""
 "terug! Dit betekent dat @code{while} altijd geëvalueerd wordt voor zijn zij-"
 "effecten, met andere woorden, de consequenties van het evalueren van de "
 "expressies in de body van de @code{while} loop. Dat is logisch. Het is niet "
-"slechts het loopen dat gewest is, maar de consequenties van wat gebeurt "
+"slechts het loopen dat gewenst is, maar de consequenties van wat gebeurt "
 "wanneer de expressies in de loop herhaaldelijk worden geëvalueerd."
 
 #. type: subsection
@@ -21800,7 +21800,7 @@ msgid ""
 "Emacs Lisp considers as true any value that is not @code{nil}, a list that "
 "returns elements will test true in a @code{while} loop."
 msgstr ""
-"Een simpele manier om te testen of een lijsten elementen heeft is de lijst "
+"Een simpele manier om te testen of een lijst elementen heeft is de lijst "
 "te evalueren: wanneer die geen elementen heeft is het een lege lijst en "
 "geeft het een lege lijst terug, @code{()}, wat een synoniem is voor "
 "@code{nil} of onwaar. Anderzijds geeft een lijst met elementen die elementen "
@@ -22018,7 +22018,7 @@ msgid ""
 "in a recent instance of GNU Emacs, you can evaluate the following expression "
 "inside of Info, as usual."
 msgstr ""
-"Deze functie benodigd meerdere regels voor de output. Wanneer je dit in een "
+"Deze functie benodigt meerdere regels voor de output. Wanneer je dit in een "
 "recente versie van GNU Emacs leest, kan je de volgende expressies in Info "
 "evalueren, zoals gebruikelijk."
 
@@ -22079,7 +22079,7 @@ msgid ""
 "You can evaluate these expressions directly in the Info buffer, and the echo "
 "area will grow to show the results."
 msgstr ""
-"Je kunt de volgende expressie direct in het Info buffer evalueren en het "
+"Je kunt de volgende expressies direct in het Info buffer evalueren en het "
 "echogebied groeit om de resultaten te tonen."
 
 #. type: group
@@ -22567,7 +22567,7 @@ msgstr ""
 "ingesteld voor de volgende herhaling van de loop, als die er is. Dit gebeurt "
 "door de waarde van de variabele @code{rij-nummer} te verhogen, die als "
 "teller dient. Nadat de variabele @code{rij-nummer} is verhoogd, test de waar-"
-"of-onwaar-test aan het begin van de @code{while} loop of de zijn waarde nog "
+"of-onwaar-test aan het begin van de @code{while} loop of zijn waarde nog "
 "steeds kleiner of gelijk is aan de waarde van de @code{aantal-rijen} en als "
 "dat zo is, telt het de nieuwe waarde van de variable @code{rij-nummer} bij "
 "de @code{totaal} van de vorige herhaling van de loop."
@@ -22605,7 +22605,7 @@ msgstr ""
 #. type: Plain text
 #: emacs-lisp-intro.texi:10426
 msgid "First, the contents of the @code{while} expression:"
-msgstr "Ten eerste de inhoud vna de @code{while} expressie: "
+msgstr "Ten eerste de inhoud van de @code{while} expressie: "
 
 #. type: group
 #: emacs-lisp-intro.texi:10432
@@ -22835,7 +22835,7 @@ msgstr ""
 "De test is een expressie zoals @code{(> teller 0)} die @code{t} voor waar "
 "teruggeeft wanneer de waarde van @code{teller} groter is dan nul, en "
 "@code{nil} voor onwaar wanneer de waarde van @code{teller} kleiner of gelijk "
-"is aan nul. De expressie die het getal kleiner en kleiner makat kan een "
+"is aan nul. De expressie die het getal kleiner en kleiner maakt kan een "
 "eenvoudige @code{setq} zijn zoals @code{(setq teller (1- teller))}, waar "
 "@code{1-} een in Emacs Lisp ingebouwde functie die 1 van zijn argument "
 "aftrekt."
@@ -22995,7 +22995,7 @@ msgid ""
 "time the loop repeats, the preceding row will be added to the total."
 msgstr ""
 "Na het optellen van @code{aantal-steentjes-in-rij} bij @code{totaal}, het "
-"@code{aantal-steentjes-in-rij} moet met een verminderd worden, omdat de "
+"@code{aantal-steentjes-in-rij} moet met één verminderd worden, omdat de "
 "volgende keer dat de loop herhaalt, de voorafgaande rij opgeteld wordt bij "
 "het totaal."
 
@@ -23018,7 +23018,9 @@ msgstr ""
 msgid ""
 "(setq number-of-pebbles-in-row\n"
 "      (1- number-of-pebbles-in-row))\n"
-msgstr "(setq aantal-steentjes-in-rij      (1- aantal-steentjes-in-rij))\n"
+msgstr ""
+"(setq aantal-steentjes-in-rij\n"
+"      (1- aantal-steentjes-in-rij))\n"
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:10648
@@ -23204,7 +23206,7 @@ msgid ""
 "list to the first of its arguments."
 msgstr ""
 "@code{dolist} werkt net als een @code{while} loop die door een lijst @sc{cdr}"
-"t: @code{dolist} verkort elke keer dat het loopt automatisch de lijst---"
+"-t: @code{dolist} verkort elke keer dat het loopt automatisch de lijst---"
 "neemt de @sc{cdr} van de lijst---en bindt de @sc{car} van elke kortere "
 "versie van de lijst aan het eerste van zijn argumenten."
 
@@ -23361,7 +23363,7 @@ msgid ""
 "element by creating a new and shorter list at each repetition of the loop."
 msgstr ""
 "In de expressie met een @code{while} loop maakt de @w{@code{(setq list (cdr "
-"list))}} de lijst korter, waardoor de @code{loop} uiteindelijk stopt. Ook "
+"list))}} de lijst korter, waardoor de @code{while} uiteindelijk stopt. Ook "
 "geeft die bij elke herhaling van de loop de @code{cons} expressie een nieuw "
 "eerste element en maakt het een nieuwe en kortere lijst."
 
@@ -23447,7 +23449,7 @@ msgid ""
 "number is 1, and the third number is 2; this makes a total of three numbers "
 "in all, starting with zero as the first number.)"
 msgstr ""
-"Bijvoorbeeld et volgende bindt de getallen vanaf 0 tot, maar niet tot en "
+"Bijvoorbeeld het volgende bindt de getallen vanaf 0 tot, maar niet tot en "
 "met, het getal 3 aan het eerste argument, @var{getal}, en maakt dan een "
 "lijst van de drie getallen. (Het eerste getal is 0, het tweede getal is 1 en "
 "het derde getal is 2, dit zijn drie getallen in totaal, beginnend met 0 als "
@@ -23713,7 +23715,7 @@ msgid ""
 msgstr ""
 "Recursieve functies kunnen veel eenvoudiger zijn dan elk ander soort "
 "functie. Inderdaad, wanneer mensen ze beginnen te gebruiken, lijken ze vaak "
-"zo mysterieus eenvoudig dat ze onbegrijpelijk zijn Net als op een fiets "
+"zo mysterieus eenvoudig dat ze onbegrijpelijk zijn. Net als op een fiets "
 "rijden, vereist het lezen van een recursieve functie een bepaalde kundigheid "
 "die in het begin moeilijk is maar later eenvoudig lijkt."
 
@@ -23750,7 +23752,7 @@ msgid ""
 "Each time a recursive function is evaluated, a new instance of it is created "
 "and told what to do.  The arguments tell the instance what to do."
 msgstr ""
-"Elke keer dat een recursieve functie wordt geëvalueerd worden een nieuwe "
+"Elke keer dat een recursieve functie wordt geëvalueerd wordt een nieuwe "
 "instantie er van gecreëerd en verteld wat te doen. De argumenten vertellen "
 "de instantie wat te doen."
 
@@ -23823,7 +23825,7 @@ msgid ""
 "area."
 msgstr ""
 "Wanneer je dit in Info in Emacs leest, kan je expressie direct in Info "
-"evalueren. Zo dan, dan moet je het voorbeeld kopiëren in het "
+"evalueren. Zo niet, dan moet je het voorbeeld kopiëren in het "
 "@file{*scratch*} buffer en het daar evalueren. Gebruik @kbd{C-u C-x C-e} om "
 "de @code{(print-elementen-recursief dieren)} te evalueren zodat de "
 "resultaten in het buffer getoond worden, zo niet dan probeert de Lisp "
@@ -24077,7 +24079,7 @@ msgid ""
 "number 1 as the value of the function.  (A triangle with one row has one "
 "pebble in it.)"
 msgstr ""
-"De functie heef een @code{if} expressie na de documentatiestring. Die test "
+"De functie heeft een @code{if} expressie na de documentatiestring. Die test "
 "of de waarde van @code{aantal} gelijk is aan 1. Wanneer dat zo is, evalueert "
 "Emacs het dan-deel van de @code{if} exprissie, die 1 teruggeeft als waarde "
 "van de functie. (Een driehoek met één rij bevat één steentje.)"
@@ -24567,6 +24569,9 @@ msgid ""
 "does not need to involve lists, but Lisp is designed for lists and this "
 "provides a sense of its primal capabilities."
 msgstr ""
+"Hier zijn drie gebruikelijke recursieve patronen. Elke gebruikt een "
+"lijst. Recusie hoeft geen lijst te gebruiken, maar Lisp is ontworpen "
+"voor lijsten en dit geeft een idee van de oervaardigheden."
 
 #. type: node
 #: emacs-lisp-intro.texi:11399
@@ -24612,20 +24617,27 @@ msgid "If a list be empty, return @code{nil}."
 msgstr "Als een lijst leeg is, geef @code{nil} terug."
 
 #. type: itemize
-#: emacs-lisp-intro.texi:11423
+#: emacs-lisp-intro.texi:11415
+msgid "Else, act on the beginning of the list (the @sc{car} of the list)"
+msgstr "Anders acteer op het begin van de lijst (de @sc{car} van de lijst)"
+
+#. type: itemize
+#: emacs-lisp-intro.texi:11419
 msgid ""
-"Else, act on the beginning of the list (the @sc{car} of the list)  @itemize "
-"@minus @item through a recursive call by the function on the rest (the "
-"@sc{cdr}) of the list, @item and, optionally, combine the acted-on element, "
-"using @code{cons}, with the results of acting on the rest.  @end itemize"
+"through a recursive call by the function on the rest (the @sc{cdr}) of the "
+"list,"
 msgstr ""
-"Anders acteer op het begin van de lijst (de @sc{car} van de lijst)\n"
-" @itemize @minus\n"
-" @item via een recursive aanroep van de functie op de rest (de @sc{cdr}) van "
-"de lijst, @item\n"
-" en, optioneel, combineer het bewerkte element met @code{cons} met het "
-"resultaat van het bewerken van de rest.\n"
-" @end itemize"
+"via een recursive aanroep van de functie op de rest (de @sc{cdr}) van "
+"de lijst,"
+
+#. type: itemize
+#: emacs-lisp-intro.texi:11422
+msgid ""
+"and, optionally, combine the acted-on element, using @code{cons}, with the "
+"results of acting on the rest."
+msgstr ""
+"en, optioneel, combineer het bewerkte element met @code{cons} met het "
+"resultaat van het bewerken van de rest."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11427 emacs-lisp-intro.texi:11530
@@ -24694,7 +24706,7 @@ msgid ""
 msgstr ""
 "De functie @code{print-elementen-recursief} (@pxref{Recursie met lijst, , "
 "Recursie met een lijst}) is een ander voorbeeld van een @code{elke} patroon, "
-"behalve vat in dit geval, in plaats van het samenbrengen van de resultaten "
+"behalve dat in dit geval, in plaats van het samenbrengen van de resultaten "
 "met @code{cons}, we elk output-element tonen."
 
 #. type: Plain text
@@ -24719,19 +24731,19 @@ msgid "When the list is empty, do nothing."
 msgstr "Wanneer de lijst leeg is, doe niets."
 
 #. type: itemize
-#: emacs-lisp-intro.texi:11496
-msgid ""
-"But when the list has at least one element, @itemize @minus @item act on the "
-"beginning of the list (the @sc{car} of the list), @item and make a recursive "
-"call on the rest (the @sc{cdr}) of the list.  @end itemize"
-msgstr ""
-"Maar wanneer de lijst tenminste een element bevat,\n"
-"@itemize @minus\n"
-"@item\n"
-"acteer op het begin van de lijst (de @sc{car} van de lijst),\n"
-"@item\n"
-"en een recursieve aanroep met de rest (de @sc{cdr}) van de lijst\n"
-"@end itemize"
+#: emacs-lisp-intro.texi:11490
+msgid "But when the list has at least one element,"
+msgstr "Maar wanneer de lijst tenminste een element bevat,"
+
+#. type: itemize
+#: emacs-lisp-intro.texi:11493
+msgid "act on the beginning of the list (the @sc{car} of the list),"
+msgstr "acteer op het begin van de lijst (de @sc{car} van de lijst),"
+
+#. type: itemize
+#: emacs-lisp-intro.texi:11495
+msgid "and make a recursive call on the rest (the @sc{cdr}) of the list."
+msgstr "en maak een recursieve aanroep met de rest (de @sc{cdr}) van de lijst."
 
 #. type: node
 #: emacs-lisp-intro.texi:11498
@@ -24790,22 +24802,23 @@ msgid "If a list be empty, return zero or some other constant."
 msgstr "Als een lijst leeg is, geef nul terug of een andere constante."
 
 #. type: itemize
-#: emacs-lisp-intro.texi:11526
+#: emacs-lisp-intro.texi:11519
+msgid "Else, act on the beginning of the list (the @sc{car} of the list),"
+msgstr "Zo niet, acteer op het begin van de lijst (de @sc{car} van de lijst),"
+
+#. type: itemize
+#: emacs-lisp-intro.texi:11523
 msgid ""
-"Else, act on the beginning of the list (the @sc{car} of the list), @itemize "
-"@minus @item and combine that acted-on element, using @code{+} or some other "
-"combining function, with @item a recursive call by the function on the rest "
-"(the @sc{cdr}) of the list.  @end itemize"
+"and combine that acted-on element, using @code{+} or some other combining "
+"function, with"
 msgstr ""
-"Zo niet, acteer op het begin van de lijst (de @sc{car} van de lijst),\n"
-" @itemize @minus\n"
-" @item\n"
 "en combineer dat bewerkte element, met @code{+} of een andere combinerende "
-"functie met\n"
-"@item\n"
-"een recursieve aanroep met de functie op de rest van de lijst(de @sc{cdr} "
-"van de lijst)\n"
-"@end itemize"
+"functie met"
+
+#. type: itemize
+#: emacs-lisp-intro.texi:11576
+msgid "a recursive call by the function on the rest (the @sc{cdr}) of the list."
+msgstr "een recursieve aanroep met de functie op de rest (de @sc{cdr}) van de lijst. "
 
 #. type: group
 #: emacs-lisp-intro.texi:11538
@@ -24887,39 +24900,31 @@ msgid "The pattern has three parts:"
 msgstr "Het patroon heeft drie elementen:"
 
 #. type: itemize
-#: emacs-lisp-intro.texi:11577
-msgid ""
-"Else, if the beginning of the list (the @sc{car} of the list) passes a test "
-"@itemize @minus @item act on that element and combine it, using @code{cons} "
-"with @item a recursive call by the function on the rest (the @sc{cdr}) of "
-"the list.  @end itemize"
-msgstr ""
-"Anders, als het begin van de lijst (de @sc{car} van de lijst) voor een test "
-"slaagt\n"
-" @itemize @minus\n"
-" @item\n"
-" acteer op dat element van de lijst en combineer het met @code{cons} met\n"
-"@item\n"
-"een recursieve aanroep van de functie op de rest van de lijst (de @sc{cdr} "
-"van de lijst) of de lijst\n"
-"@end itemize "
+#: /home/matto/emacs/doc/lispintro/emacs-lisp-intro.texi:11571
+msgid "Else, if the beginning of the list (the @sc{car} of the list) passes a test"
+msgstr "Anders, als het begin van de lijst (de @sc{car} van de lijst) voor een test slaagt"
 
 #. type: itemize
-#: emacs-lisp-intro.texi:11586
+#: /home/matto/emacs/doc/lispintro/emacs-lisp-intro.texi:11574
+msgid "act on that element and combine it, using @code{cons} with"
+msgstr "acteer op dat element van de lijst en combineer het met @code{cons} met"
+
+#. type: itemize
+#: /home/matto/emacs/doc/lispintro/emacs-lisp-intro.texi:11580
 msgid ""
 "Otherwise, if the beginning of the list (the @sc{car} of the list) fails the "
-"test @itemize @minus @item skip on that element, @item and, recursively call "
-"the function on the rest (the @sc{cdr}) of the list.  @end itemize"
-msgstr ""
-"Zoniet, als het begin van de lijst (de @sc{car} van de lijst) niet slaagt "
-"voor de test\n"
-"@itemize @minus\n"
-"@item\n"
-"Sla het elmeent over,\n"
-"@item\n"
-"en roep recursief de functie aan op de rest van de lijst  (de @sc{cdr} van "
-"de lijst)\n"
-"@end itemize"
+"test"
+msgstr "Zoniet, als het begin van de lijst (de @sc{car} van de lijst) niet slaagt"
+
+#. type: itemize
+#: /home/matto/emacs/doc/lispintro/emacs-lisp-intro.texi:11583
+msgid "skip on that element,"
+msgstr "Sla het elmeent over,"
+
+#. type: itemize
+#: /home/matto/emacs/doc/lispintro/emacs-lisp-intro.texi:11585
+msgid "and, recursively call the function on the rest (the @sc{cdr}) of the list."
+msgstr "en roep recursief de functie aan op de rest (de @sc{cdr} van de lijst."
 
 #. type: Plain text
 #: emacs-lisp-intro.texi:11590

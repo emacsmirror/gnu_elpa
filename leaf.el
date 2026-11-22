@@ -179,7 +179,7 @@ Sort by `leaf-sort-leaf--values-plist' in this order.")
      ;;         if 'nil placed on top, ignore all argument
      ;;         remove duplicate element
      (let ((ret (leaf-flatten leaf--value)))
-       (if (eq nil (car ret))
+       (if (null (car ret))
            nil
          (delete-dups (delq nil (leaf-subst t leaf--name ret))))))
 
@@ -254,7 +254,7 @@ Sort by `leaf-sort-leaf--values-plist' in this order.")
     ((memq leaf--key '(:custom*))
      (mapcar (lambda (elm)
                (cons (car elm) (cadr elm)))
-             (mapcan 'identity leaf--value)))
+             (mapcan #'identity leaf--value)))
 
     ((memq leaf--key '(:setf :push :pre-setf :pre-push))
      ;; Just merge leaf--value normalizer.
@@ -338,7 +338,7 @@ Sort by `leaf-sort-leaf--values-plist' in this order.")
            (mapcar
             (lambda (elm)
               (cond
-               ((eq elm nil)
+               ((null elm)
                 (prog1 nil
                   (leaf-error "Error occurs in leaf block: %s" leaf--name)
                   (leaf-error "Attempt wait constant: nil;  Please check your specification")))
@@ -363,7 +363,7 @@ Sort by `leaf-sort-leaf--values-plist' in this order.")
                   (prog1 nil
                     (leaf-error "Error occurs in leaf block: %s" leaf--name)
                     (leaf-error "Attempt modify constant: t;  Please check your specification")))
-                 ((eq nil var)
+                 ((null var)
                   (prog1 nil
                     (leaf-error "Error occurs in leaf block: %s" leaf--name)
                     (leaf-error "Attempt modify constant: nil;  Please check your specification")))
@@ -512,7 +512,7 @@ SEQ may be a list, a vector, a \='bool-vector, or a string."
 
 (eval-and-compile
   (unless (fboundp 'mapcan)
-    (defalias 'mapcan 'leaf-mapcaappend)))
+    (defalias 'mapcan #'leaf-mapcaappend)))
 
 ;;; predictors
 
@@ -524,7 +524,7 @@ If ALLOW is non-nil, allow nil as the last element."
            (member 'lambda var)              ; (a . (lambda (elm) elm)) => (a lambda elm elm)
            (and (= 3 (safe-length var))      ; (a . 'b) => (a quote b)
                 (member `',(cadr var) `('quote ',backquote-backquote-symbol 'function))))
-       (if allow t (not (null (cdr var)))))) ; (a . nil) => (a)
+       (if (or allow (cdr var)) t nil))) ; (a . nil) => (a)
 
 (defun leaf-dotlistp (var &optional allow)
   "Return t if VAR is doted list.
@@ -1018,7 +1018,7 @@ If PKG passed, require PKG before binding."
               (formatfn (lambda (elm)
                           (if (stringp elm)
                               elm
-                            (prin1-to-string (if (eq elm nil) '--- elm)))))
+                            (prin1-to-string (if (null elm) '--- elm)))))
               res)
           (dolist (elm leaf-key-bindlist)
             (setq id (1+ id))

@@ -97,7 +97,7 @@
 (defvar emureader-current-doc-render-status)
 
 ;;; Forward declarations for module functions
-(declare-function emureader-dyn--load-doc "ext:emureader-dyn.so" (file &optional page))
+(declare-function emureader-dyn--load-doc "ext:emureader-dyn.so" (file page invert))
 (declare-function emureader-dyn--redisplay-doc "ext:emureader-dyn.so")
 (declare-function emureader-dyn--close-doc "ext:emureader-dyn.so")
 (declare-function emureader-dyn--next-page "ext:emureader-dyn.so")
@@ -766,7 +766,11 @@ Load the PAGE if provided."
   (if-let* ((file (buffer-file-name (current-buffer))))
       (when-let* ((_ (file-exists-p file))
 		  (page (if (numberp page) (max 0 page) 0)))
-	(emureader-dyn--load-doc file page)
+	(defvar emureader-dark-mode)
+	(emureader-dyn--load-doc
+	 file page
+	 ;; We need to render in dark mode, when in dark mode.
+	 (if emureader-dark-mode 1 0))
 	;; emureader-dyn--load-doc resets the window state, which also
 	;; needs to be reflected in the frontend.
 	(set-window-parameter nil 'scale 1.0))
@@ -930,6 +934,17 @@ Keybindings:
   :group 'emureader
   :interactive nil
 
+  ;; This runs after `run-mode-hooks' has been called.  This is
+  ;; necessary to wait for, for things like
+  ;; `emureader-global-dark-mode' to take effect.  This means all
+  ;; things which expect the document to have already rendered should
+  ;; be called from here instead of the body.
+  :after-hook (progn
+		(unless (bound-and-true-p
+			 emureader-current-doc-render-status)
+		  (emureader--render-buffer))
+		(funcall emureader-default-fit))
+
   (emureader-ensure-module)
 
   (unless (and buffer-file-name
@@ -961,16 +976,11 @@ Keybindings:
   (setq-local bookmark-make-record-function
 	      #'emureader-bookmark-make-record)
 
-  (unless (bound-and-true-p
-	   emureader-current-doc-render-status)
-    (emureader--render-buffer))
-
   (declare-function emureader--outline-imenu-goto "emureader-outline")
   (declare-function emureader--outline-imenu-create-index "emureader-outline")
   (setq-local imenu-create-index-function #'emureader--outline-imenu-create-index
 	      imenu-default-goto-function #'emureader--outline-imenu-goto)
 
-  (funcall emureader-default-fit)
   (add-hook 'window-size-change-functions #'emureader--center-page nil t)
 
   ;;`bookmark--jump-via' messes up with centering, so we need to center again.
@@ -1003,6 +1013,9 @@ Keybindings:
   (when (derived-mode-p 'emureader-mode)
     (emureader-dyn--doc-invert (if emureader-dark-mode 1 0))
     (emureader--redisplay-all-windows)))
+
+(define-globalized-minor-mode emureader-global-dark-mode
+  emureader-dark-mode emureader-dark-mode)
 
 (define-minor-mode emureader-presentation-mode
   "Toggle presentation view for current emureader document."

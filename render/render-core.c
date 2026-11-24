@@ -434,7 +434,7 @@ emacs_load_doc(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
     size_t str_length = 0;
     int start_page = 0;
 
-    assert((2 >= nargs) && (nargs >= 1));
+    assert(3 == nargs);
 
     start_page = env->extract_integer(env, args[1]);
 
@@ -476,6 +476,9 @@ emacs_load_doc(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
     }
 
     reset_doc_state(doc_state);
+
+    int invert = env->extract_integer(env, args[2]);
+    doc_state->invert = invert ? 1 : 0;
 
     win_state = init_win_state_ptr(env, doc_state, curr_win);
 
@@ -1127,7 +1130,7 @@ emacs_module_init(struct emacs_runtime *runtime)
 
 	// Module function registrations
 	register_module_func(env, emacs_load_doc,
-			     "emureader-dyn--load-doc", 1, 2,
+			     "emureader-dyn--load-doc", 3, 3,
 			     "Loads a DOC to be rendered in Emacs.");
 
 	register_module_func(env, emacs_redisplay_doc,

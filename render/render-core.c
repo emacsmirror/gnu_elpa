@@ -434,13 +434,11 @@ emacs_load_doc(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
     size_t str_length = 0;
     int start_page = 0;
 
-    if (nargs >= 2)
-    {
-        start_page = env->extract_integer(env, args[1]);
+    assert((2 >= nargs) || (nargs <= 1));
 
-        if (start_page < 0)
-            start_page = 0;
-    }
+    start_page = env->extract_integer(env, args[1]);
+
+    if (start_page < 0) start_page = 0;
 
     DocState *old_state = get_doc_state_ptr(env);
 

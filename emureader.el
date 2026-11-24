@@ -970,8 +970,6 @@ Keybindings:
   (setq-local imenu-create-index-function #'emureader--outline-imenu-create-index
 	      imenu-default-goto-function #'emureader--outline-imenu-goto)
 
-  (run-hooks 'emureader-mode-hook)
-
   (funcall emureader-default-fit)
   (add-hook 'window-size-change-functions #'emureader--center-page nil t)
 

@@ -7851,15 +7851,19 @@ and is appended to the return value."
                 (if k
                     (cadr (assoc k kv))
                   kv)))
-        beg key)
+        beg key plus-flag)
     (save-excursion
       (re-search-backward "[[{(<,=]" (line-beginning-position 0) t))
     (if (string= (match-string 0) "=")
         ;; We have to look for a value:
         (save-excursion
-          ;; Matching the value is easy, just grab everything before the
-          ;; '=' and ...
+          ;; Matching the value is easy, just search back for the '='
+          ;; separator and ...
           (re-search-backward "=\\([^=]*\\)" (line-beginning-position) t)
+          ;; ... set our flag if we're dealing with a '+=' separator
+          ;; introduced with LaTeX release 2026-11-01 and ...
+          (when (= (preceding-char) ?+)
+            (setq plus-flag t))
           ;; ... then move forward over any tabs and spaces:
           (save-excursion
             (forward-char)
@@ -7873,10 +7877,14 @@ and is appended to the return value."
           ;; Make sure we're not looking at a comment:
           (when (looking-at-p (concat "[ \t]*" TeX-comment-start-regexp))
             (forward-line))
-          ;; Now pick up the key, if available:
+          ;; Now pick up the key, if available, and honor the
+          ;; `plus-flag' otherwise the `+' will become part of the
+          ;; `key':
           (setq key (string-trim
                      (buffer-substring-no-properties (point)
-                                                     (match-beginning 0))
+                                                     (if plus-flag
+                                                         (1- (match-beginning 0))
+                                                       (match-beginning 0)))
                      "[ \t\n\r%]+" "[ \t\n\r%]+"))
           ;; This caters also for the case where nothing is typed yet:
           (list beg end (completion-table-dynamic
@@ -7895,11 +7903,7 @@ and is appended to the return value."
         (skip-chars-forward "^a-zA-Z0-9" end)
         (setq beg (point))
         ;; This caters also for the case where nothing is typed yet:
-        (append (list beg end (completion-table-dynamic
-                               (lambda (_)
-                                 (funcall func key-vals)))
-                      :exclusive 'no)
-                props)))))
+        (append (list beg end key-vals :exclusive 'no) props)))))
 
 (defun LaTeX-completion-candidates-completing-read-multiple (collection &optional props)
   "Return completion candidates from COLLECTION based on buffer position.

@@ -264,14 +264,14 @@ other file format will simply not show up as a candidate."
   (interactive (list (expand-file-name (emureader--read-doc-name))))
   (find-file document))
 
-(define-queue-command next-page ()
+(emureader--define-queue-command next-page ()
   "Go to the next page of the document."
   (interactive)
   (when (emureader-dyn--next-page)
     ;; Must return `t' when the command succeeds.
     (force-mode-line-update) t))
 
-(define-queue-command previous-page ()
+(emureader--define-queue-command previous-page ()
   "Go to the previous page of the document."
   (interactive)
   (when (emureader-dyn--prev-page)
@@ -551,7 +551,7 @@ Only scrolls when the document page width is larger then the window width."
     ;; most point directly, bypassing `emureader--set-window-hscroll' checks.
     (set-window-hscroll nil (emureader--right-most-window-hscroll))))
 
-(define-queue-command scroll-up-or-prev-page (&optional amount)
+(emureader--define-queue-command scroll-up-or-prev-page (&optional amount)
   "Scroll up the current page by AMOUNT, otherwise switch to the previous page.
 
 AMOUNT defaults to 1."
@@ -565,7 +565,7 @@ AMOUNT defaults to 1."
 	       (- image-height pixel-window-height)))
     (emureader--set-window-vscroll nil bottom-most-scroll-pixel t)))
 
-(define-queue-command scroll-down-or-next-page (&optional amount)
+(emureader--define-queue-command scroll-down-or-next-page (&optional amount)
   "Scroll down the current page by AMOUNT, otherwise switch to the next page.
 
 AMOUNT defaults to 1."
@@ -575,21 +575,21 @@ AMOUNT defaults to 1."
 	     (emureader--non-queue-next-page)) ; if succeeds
     (emureader--set-window-vscroll nil 0)))
 
-(define-queue-command scroll-up-screen-or-prev-page ()
+(emureader--define-queue-command scroll-up-screen-or-prev-page ()
   "Scroll up the current page by screen, otherwise switch to the previous page."
   (interactive)
   (let ((scroll (- (window-body-height)
 		   next-screen-context-lines)))
     (emureader--non-queue-scroll-up-or-prev-page scroll)))
 
-(define-queue-command scroll-down-screen-or-next-page ()
+(emureader--define-queue-command scroll-down-screen-or-next-page ()
   "Scroll down the current page by screen, otherwise switch to the next page."
   (interactive)
   (let ((scroll (- (window-body-height)
 		   next-screen-context-lines)))
     (emureader--non-queue-scroll-down-or-next-page scroll)))
 
-(define-queue-command mwheel-scroll-up (event)
+(emureader--define-queue-command mwheel-scroll-up (event)
   "Scroll up or switch to the previous page, but also handle mouse EVENT.
 
 See also `emureader-non-queue-scroll-up-or-prev-page'."
@@ -603,7 +603,7 @@ See also `emureader-non-queue-scroll-up-or-prev-page'."
     (with-selected-window scrolled-window
       (emureader--non-queue-scroll-up-or-prev-page amount))))
 
-(define-queue-command mwheel-scroll-down (event)
+(emureader--define-queue-command mwheel-scroll-down (event)
   "Scroll down or switch to the next page, but also handle mouse EVENT.
 
 See also `emureader--non-queue-scroll-down-or-next-page'."
@@ -724,7 +724,7 @@ Quit is deferred inside so the recovery cannot itself be interrupted."
           (emureader--manage-window-overlays))
       (error nil))))
 
-(define-queue-command refresh-doc-buffer (&optional ignore-auto noconfirm preserve-modes)
+(emureader--define-queue-command refresh-doc-buffer (&optional ignore-auto noconfirm preserve-modes)
   "Refresh the buffer document with file on disk.
 
 It reloads the entire document while preserving the previous state.
@@ -1032,7 +1032,3 @@ Keybindings:
 
 (provide 'emureader)
 ;;; emureader.el ends here.
-
-;; Local Variables:
-;; read-symbol-shorthands: (("define-queue-command" . "emureader--define-queue-command"))
-;; End:

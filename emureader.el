@@ -200,8 +200,7 @@ one fall back to the buffer-local scale value."
 (defun emureader--enqueue-command (cmd args)
   "Add CMD with ARGS to the queue and start processing if needed."
   (push (apply #'apply-partially cmd args) emureader--command-queue)
-  (unless (or (active-minibuffer-window)
-              (memq #'emureader--process-command-queue post-command-hook))
+  (unless (active-minibuffer-window)
     (add-hook 'post-command-hook #'emureader--process-command-queue nil t)))
 
 (defmacro emureader--define-queue-command (name arglist docstring interactive &rest body)

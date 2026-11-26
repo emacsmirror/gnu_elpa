@@ -50,7 +50,6 @@
 ;;   being pasted in column 1 and spaces inserted in the middle of it.
 ;; * The indentation code leaves a lot of trailing whitespace.
 ;; * Periods on their own line are sometimes indented strangely.
-;; * String continuation does not work.
 
 ;;;; Missing features:
 
@@ -58,7 +57,6 @@
 ;;   unloading cobol-mode).
 ;; * Allow users to modify easily reserved word lists.
 ;; * Expand copybooks within a buffer.
-;; * String continuation (see above).
 ;; * Allow users to modify start of program-name area.
 
 ;;; News:
@@ -67,22 +65,13 @@
 
 ;;; Code:
 
-(eval-when-compile (require 'cl-lib))
+(require 'cl-lib)
 
 (defgroup cobol nil
   "Major mode for editing COBOL code."
   :link '(custom-group-link :tag "Font Lock Faces group" font-lock-faces)
   :prefix 'cobol-
   :group 'languages)
-
-(eval-and-compile
-  (defun cobol--radio-of-list (list)
-    "Return radio with the elements of LIST as its arguments."
-    (cons 'radio (mapcar #'(lambda (elt) (list 'const elt)) list)))
-
-  (defun cobol--val-in-list-p (list)
-    "Return a predicate to check whether a value is in the LIST."
-    #'(lambda (value) (memq value list))))
 
 (defcustom cobol-declaration-clause-indent 40
   "Column to indent data division declaration clauses to."
@@ -140,7 +129,10 @@ The next key typed is executed unless it is SPC."
 
 (defconst cobol-directives
   '("CALL-CONVENTION"
+    "CALLINT"
+    "CALLINTERFACE"
     "D"
+    "DATA"
     "DEFINE"
     "ELIF"
     "ELSE"
@@ -152,10 +144,13 @@ The next key typed is executed unless it is SPC."
     "FLAG-NATIVE-ARITHMETIC"
     "IF"
     "IMP"
+    "INLINE"
     "LEAP-SECOND"
     "LISTING"
     "PAGE"
     "PROPAGATE"
+    "POP"
+    "PUSH"
     "SOURCE"
     "TURN"
     "WHEN")
@@ -2082,7 +2077,10 @@ The next key typed is executed unless it is SPC."
   "Regexp matching the id, name and type of a property using MF's PROPERTY-ID syntax.")
 
 (defconst cobol--procedure-re
-  (cobol--with-opt-whitespace-line "\\(\\w+\\)\\(\\s-+SECTION\\)?\\.")
+  (concat
+   (if (eq cobol-source-format 'free) "^" cobol--fixed-non-comment-sequence-area-re)
+   (if (eq cobol-source-format 'free) cobol--optional-whitespace-re "[ 	]\\{0,3\\}")
+   "\\(\\w+\\)\\(\\s-+SECTION\\)?\\.")
   "Regexp matching the declaration of a procedure.
 Note that this matches DECLARATIVES.")
 
@@ -2166,7 +2164,7 @@ Note that this matches DECLARATIVES.")
   "Regexp matching an end marker.")
 
 (defconst cobol--division-re
-  (cobol--with-opt-whitespace-line "\\(IDENTIFICATION\\|ENVIRONMENT\\|DATA\\|PROCEDURE\\)\\s-+DIVISION")
+  (cobol--with-opt-whitespace-line "\\(ID\\|IDENTIFICATION\\|ENVIRONMENT\\|DATA\\|PROCEDURE\\)\\s-+DIVISION")
   "Regexp matching division header.")
 
 (defconst cobol--procedure-division-re
@@ -2190,7 +2188,7 @@ Note that this matches DECLARATIVES.")
   "Regexp matching any declaration.")
 
 (defconst cobol--blank-line-re
-  (rx (** 0 6 any) (* (or " " "	")) (? ".") eol)
+  (rx bol (** 0 6 not-newline) (* (or " " "	")) (? ".") eol)
   "Regexp matching a non comment blank line with optional period.")
 
 ;;; Font lock
@@ -2200,7 +2198,7 @@ Note that this matches DECLARATIVES.")
   (not (eq cobol-source-format 'free)))
 
 (defun cobol-in-string-p (&optional pos)
-  "Returns t if in literal string."
+  "Returns t if POS is in a literal string."
   (let ((sppss (syntax-ppss pos)))
     (or (nth 3 sppss)
         (nth 4 sppss))))
@@ -2214,16 +2212,16 @@ Code copied from the Emacs source."
   (interactive "^")
   (beginning-of-line 1)
   (when (cobol-fixed-format-p)
-    (forward-char 7))
-  (skip-syntax-forward " " (line-end-position))
-  ;; Move back over chars that have whitespace syntax but have the p flag.
-  (backward-prefix-chars))
+    (if (looking-at "^[ \t]\\{0,6\\}$")
+        (indent-to-column 7)
+      (forward-char 7)))
+  (skip-syntax-forward " " (line-end-position)))
 
 (defun cobol--font-lock-sequence-area (end)
   "Mark text in the sequence area as comments from point up to END."
   (when (cobol-fixed-format-p)
     (while (and (< (point) end)
-                (re-search-forward "^.\\{1,6\\}" end t))
+                (re-search-forward "^.\\{1,7\\}" end t))
       (put-text-property (match-beginning 0) (point)
                          'face 'font-lock-comment-face)))
   nil)
@@ -2247,25 +2245,37 @@ Code copied from the Emacs source."
       (1 "<")))
     "Syntax rule to mark text after >>PAGE as a comment.")
 
+  (defun cobol--continued-literal-quote-p (pos)
+    "Return non-nil if the quote at POS continues a literal from a previous line.
+ POS must be the first quote character of a continuation line.  The quote
+ only continues a literal if point is inside an ordinary string that was
+ opened on an earlier line and with the same quote character."
+    (save-excursion
+      (let* ((ppss (syntax-ppss pos))
+             (open (ppss-comment-or-string-start ppss))
+             (bol (line-beginning-position)))
+        (and (ppss-string-terminator ppss)
+             (not (eq t (ppss-string-terminator ppss)))
+             open
+             (< open bol)
+             (eq (char-after open) (char-after pos))))))
+
   (defconst cobol--syntax-propertize-continuation-literal
     (syntax-propertize-precompile-rules
-     ("\\(\n\\).\\{6\\}\\(-\\)\\s-+['\"]"
-      (0 (ignore
-          (when (cobol-in-string-p (match-beginning 1))
-            (put-text-property
-             (match-beginning 1)
-             (match-end 1)
-             'syntax-table (string-to-syntax "|"))
-            (save-excursion
-              (goto-char (match-beginning 1))
-              (skip-syntax-backward "^\"" (pos-bol))
-              (when (not (bolp))
-                (put-text-property
-                 (1- (point))
-                 (point)
-                 'syntax-table (string-to-syntax "|")))))
-          (goto-char (match-end 1))))))
-    "Syntax rule to delimit continued string literals.")
+     ("^.\\{6\\}\\(-\\)[ \t]*\\(['\"]\\)"
+      (2 (save-match-data
+           (let ((pos (match-beginning 2)))
+             ;; Give the indicator the same punctuation syntax that
+             ;; `cobol--syntax-propertize-indicator-area' would apply.
+             (put-text-property (match-beginning 1) (1+ (match-beginning 1))
+                                'syntax-table (string-to-syntax "."))
+             (when (cobol--continued-literal-quote-p pos)
+               (string-to-syntax "|")))))))
+    "Syntax rule for fixed-form continued literals.
+ The quote that opens a continuation line is given string-fence syntax so
+ that it does not terminate the literal which was opened on a previous
+ line.  Should run before `cobol--syntax-propertize-indicator-area'
+ because both match bol + continuation indicator")
 
   (defconst cobol--syntax-propertize-adjacent-quotes
     (syntax-propertize-precompile-rules
@@ -2298,18 +2308,18 @@ Fixed-form comments, indicators and ignored areas between
    (pcase cobol-source-format
      ('fixed-85
       (syntax-propertize-rules
+       cobol--syntax-propertize-continuation-literal
        cobol--syntax-propertize-indicator-area
        cobol--syntax-propertize-program-name-area
        cobol--syntax-propertize-page-directive
        cobol--syntax-propertize-adjacent-quotes
-       cobol--syntax-propertize-continuation-literal
        cobol--syntax-propertize-sequence-area))
      ('fixed-2002
       (syntax-propertize-rules
+       cobol--syntax-propertize-continuation-literal
        cobol--syntax-propertize-indicator-area
        cobol--syntax-propertize-page-directive
        cobol--syntax-propertize-adjacent-quotes
-       cobol--syntax-propertize-continuation-literal
        cobol--syntax-propertize-sequence-area))
      (_ (syntax-propertize-rules
          cobol--syntax-propertize-page-directive
@@ -2571,11 +2581,6 @@ arguments at all.")
                  (const :tag "Capitalise verbs only" capitalised-verbs))
   :safe  (lambda (value) (memq value '(upper-case lower-case capitalised-all capitalised-verbs))))
 
-(defcustom cobol-fixed-line-length 72
-  "Length of standard cobol line length.
-  Used by `cobol-strip-sequence-nos'."
-  :type 'integer)
-
 (defun cobol-format-word (word)
   "Return WORD formatted according to `cobol-format-style'."
   (pcase cobol-format-style
@@ -2619,7 +2624,7 @@ arguments at all.")
 
 (defun cobol-insert-in-sequence-area (beg end text)
   "Insert, in the lines between BEG and END, TEXT in the sequence area."
-  (interactive "*r\nsText: ")
+  (interactive "*r\nsText: " cobol-mode)
   (when (> (length text) 6)
     (error "%s is longer than six characters" text))
   (save-excursion
@@ -2640,26 +2645,27 @@ arguments at all.")
 
 (defun cobol-strip-line-numbers ()
   "Delete all text in column 1 to 7.
-  This is assumed to be line numbers."
-  (interactive)
+This is assumed to be line numbers."
+  (interactive nil cobol-mode)
+  (when (eq cobol-source-format 'free)
+    (user-error "cobol-format is set to 'free"))
   (let ((string (make-string 6 ? )))
     (save-excursion
       (goto-char (point-min))
       (while (re-search-forward "^[[:graph:]]\\{1,6\\}" nil t)
         (replace-match string)))))
 
-(defun cobol-strip-sequence-nos (&optional do-space)
-  "Delete all text in column `cobol-line-length' (default 72) and up.
-  This is assumed to be sequence numbers.  Normally also deletes
-  trailing whitespace after stripping such text.  Supplying prefix
-  arg DO-SPACE prevents stripping the whitespace."
-  (interactive "*p")
-  (let ((re (format "^.\\{%d\\}\\(.*\\)" cobol-line-length)))
-    (save-excursion
-      (goto-char (point-min))
-      (while (re-search-forward re nil t)
-        (replace-match "" nil nil nil 1)
-        (unless do-space (delete-horizontal-space))))))
+(defun cobol-strip-sequence-nos (&optional leave-spaces)
+  "Delete all text in column 72 and up.
+This is assumed to be sequence numbers, useful for cobol fixed-format.
+Normally also deletes trailing whitespace after stripping such text.
+Supplying prefix arg LEAVE-SPACES prevents stripping the whitespace."
+  (interactive "*p" cobol-mode)
+  (save-excursion
+    (goto-char (point-min))
+    (while (re-search-forward "^.\\{72\\}\\(.*\\)" nil t)
+      (replace-match "" nil nil nil 1)
+      (unless leave-spaces (delete-horizontal-space)))))
 
 ;;; Indentation
 ;; Derived (a long time ago) from the wonderful Emacs Mode Tutorial at
@@ -2687,10 +2693,10 @@ arguments at all.")
   :group 'cobol-mode
   :type 'integer)
 
-(cl-defun cobol--indent (indent &optional (times 1))
+(defun cobol--indent (indent &optional times)
   "Increment INDENT.
 Optional TIMES times."
-  (+ indent (* times cobol-tab-width)))
+  (floor (+ indent (* (or times 1) cobol-tab-width))))
 
 (defun cobol--current-indentation ()
   "Return the indentation of the current line if outside the sequence area.
@@ -2701,7 +2707,6 @@ Returns -1 if the line is within the sequence area."
       (goto-char (+ (line-beginning-position) (cobol--code-start)))
       (let ((code-start-position (point)))
         (skip-syntax-forward " " (line-end-position))
-        (backward-prefix-chars)
         (- (point) code-start-position)))))
 
 (defun cobol--indent-current ()
@@ -2759,15 +2764,15 @@ If the declaration does not have a level number, return zero."
 (defun cobol--indent-of-group-item (wanted-level-num)
   "Return the indentation of the last item with WANTED-LEVEL-NUM or indented
 from the last item of lower level."
-  (save-excursion
-    (if-let* ((_ (re-search-backward cobol--generic-declaration-re nil t))
-              (level (string-to-number (match-string 1))))
-        (pcase level
-          ((pred (= wanted-level-num))
-           (cobol--current-indentation))
-          ((pred (< _ wanted-level-num))
-           (cobol--indent-current)))
-      0)))
+  (catch 'indent
+    (if (while (re-search-backward cobol--generic-declaration-re nil t)
+          (pcase (string-to-number (match-string 1))
+            ((pred (= wanted-level-num))
+             (throw 'indent (cobol--current-indentation)))
+            ((pred (> wanted-level-num))
+             (throw 'indent (cobol--indent-current)))
+            (_ t)))
+        0)))
 
 (defun cobol--indent-of-declaration (decl)
   "Return the indentation of the declaration DECL."
@@ -2783,22 +2788,27 @@ from the last item of lower level."
 (defun cobol--indent-from-previous ()
   "Return what the indent of the current line should be based on previous
 lines."
-  (save-excursion
-    (while (cond ((looking-at cobol--env-or-data-div-sections-re)
-                  (cobol--current-indentation))
-                 ((or (looking-at cobol--containing-statement-or-phrase-re)
-                      (looking-at cobol--procedure-re)
-                      (looking-at cobol--procedure-division-re))
-                  (cobol--indent-current))
-                 ((or (looking-at cobol--verb-re)
-                      (looking-at cobol--scope-terminator-re)
-                      (looking-at cobol--type-end-marker-re)
-                      (looking-at cobol--function-end-marker-re)
-                      (looking-at cobol--division-re)
-                      (looking-at cobol--generic-declaration-re))
-                  (cobol--current-indentation))
-                 ((bobp) 0))
-      (forward-line -1))))
+  (let ((indent))
+    (save-excursion
+      (while (not indent)
+        (forward-line -1)
+        (setq indent (cond
+                      ((bobp) 0)
+                      ((= (line-beginning-position) (line-end-position)) nil)
+                      ((looking-at cobol--env-or-data-div-sections-re)
+                       (cobol--current-indentation))
+                      ((or (looking-at cobol--containing-statement-or-phrase-re)
+                           (looking-at cobol--procedure-re)
+                           (looking-at cobol--procedure-division-re))
+                       (cobol--indent-current))
+                      ((or (looking-at cobol--verb-re)
+                           (looking-at cobol--scope-terminator-re)
+                           (looking-at cobol--type-end-marker-re)
+                           (looking-at cobol--function-end-marker-re)
+                           (looking-at cobol--division-re)
+                           (looking-at cobol--generic-declaration-re))
+                       (cobol--current-indentation)))))
+      indent)))
 
 (defun cobol--phrase-with-not (phrase)
   "Return regexp matching line with optional NOT and PHRASE."
@@ -2895,12 +2905,9 @@ lines."
 (defun cobol--get-current-division ()
   "Return the division containing point as a symbol."
   (save-excursion
-    (while (cond ((looking-at cobol--division-re)
-                  (intern (downcase (match-string 1))))
-                 ((or (looking-at-p cobol--end-marker-re)
-                      (bobp))
-                  'identification))
-      (forward-line -1))))
+    (if (re-search-backward cobol--division-re nil t)
+        (intern (downcase (match-string 1)))
+      'identification)))
 
 (defun cobol--no-instances-of-after-in-division (instance-re after-re division)
   "Actual implementation of `cobol--no-instances-of'."
@@ -2955,8 +2962,23 @@ the clauses of a non-procedural PERFORM."
 (defun cobol--indent-of-clauses ()
   "Return the indentation for a clause at point."
   (pcase (cobol--get-current-division)
-    ('identification
-     (cobol--indent-from-previous))
+    ('procedure
+     (cond ((cobol--in-proc-div-param-list-p)
+            ;; Indent procedure division parameter list twice.
+            (cobol--indent
+             (cobol--search-back-for-indent cobol--procedure-division-re)
+             2))
+           ((cobol--in-if-eval-when-or-perform-cond-p)
+            ;; Indent after IF/EVALUATE/WHEN/non-procedural PERFORM twice.
+            (cobol--indent
+             (cobol--search-back-for-indent cobol--phrases-with-double-indent-after t)
+             0.5))
+           ;; Indent once after any other statement.
+           (t
+            (cobol--indent (cobol--indent-of-last-statement)))))
+
+    ('data
+     (- cobol-declaration-clause-indent (cobol--code-start)))
 
     ('environment
      (if (cobol--in-file-control-p)
@@ -2964,22 +2986,8 @@ the clauses of a non-procedural PERFORM."
          (cobol--indent (cobol--indent-of-last-statement))
        (cobol--indent-from-previous)))
 
-    ('data
-     (- cobol-declaration-clause-indent (cobol--code-start)))
-
-    ('procedure
-     (cond ((cobol--in-proc-div-param-list-p)
-            ;; Indent procedure division parameter list twice.
-            (cobol--indent (cobol--search-back-for-indent cobol--procedure-division-re)
-                                                 2))
-           ((cobol--in-if-eval-when-or-perform-cond-p)
-            ;; Indent after IF/EVALUATE/WHEN/non-procedural PERFORM twice.
-            (cobol--indent (cobol--search-back-for-indent
-                                                  cobol--phrases-with-double-indent-after t)
-                                                 2))
-           ;; Indent once after any other statement.
-           (t
-            (cobol--indent (cobol--indent-of-last-statement)))))))
+    ((or 'identification 'id)
+     (cobol--indent-from-previous))))
 
 (defun cobol--looking-at-comment-line ()
   "Return whether we are looking at a comment line (using `looking-at')."
@@ -3029,22 +3037,23 @@ the clauses of a non-procedural PERFORM."
   ;; FIXME: Use indent-line-to?
   (let ((cur-col (current-column)))
     (cond ((< cur-col col)
-           (indent-to col))
+           (indent-to-column col))
           ((> cur-col col)
            (delete-char (- col cur-col))))))
 
 (defun cobol--set-line-indent (indent)
   "Set the indent of the current line to INDENT."
   (save-excursion
-    (let ((line-length (- (line-end-position) (line-beginning-position)))
-          (end-of-indent (+ (cobol--code-start) indent)))
+    (let* ((line-length (- (line-end-position) (line-beginning-position)))
+           (start (cobol--code-start))
+           (end-of-indent (+ start indent)))
       ;; Following lines derived from source of `back-to-indentation'.
-      (move-to-column (cobol--code-start))
-      (if (>= line-length (cobol--code-start) (current-column))
-          (progn
-            (skip-syntax-forward " " (line-end-position))
-            (backward-prefix-chars))
-        (indent-to (cobol--code-start)))
+      (if (> (current-column) start)
+          (move-to-column start)
+        (indent-to-column start))
+      (if (>= line-length start (current-column))
+          (skip-syntax-forward " " (line-end-position))
+        (indent-to-column start))
       (cobol--indent-point-to-col end-of-indent))))
 
 (defun cobol--indent-point ()
@@ -3067,11 +3076,9 @@ Relative to the start of area A, if fixed-format."
           (cobol--set-line-indent indent)
           ;; If in leading whitespace/sequence area, move to first char of code.
           (when (< (point) (+ (line-beginning-position) (cobol--code-start) indent))
-            (skip-syntax-forward " " (line-end-position))
-            (backward-prefix-chars)))
+            (skip-syntax-forward " " (line-end-position))))
       ;; Move to first non-whitespace char
       (skip-syntax-forward " " (line-end-position))
-      (backward-prefix-chars)
       ;; Indent stuff at point if not the first word.
       (when (< (cobol--current-indentation) (- (current-column) (cobol--code-start)))
         (cobol--indent-point)))))
@@ -3099,8 +3106,6 @@ Relative to the start of area A, if fixed-format."
     (modify-syntax-entry ?\n ">"   st)
     st))
 
-(defvar ac-ignore-case)
-
 ;;;###autoload
 (define-derived-mode cobol-mode prog-mode "COBOL"
   "COBOL mode is a major mode for handling COBOL files."
@@ -3119,10 +3124,7 @@ Relative to the start of area A, if fixed-format."
 
   (setq-local column-number-mode t)
 
-  (setq-local indent-line-function #'cobol-indent-line)
-
-  ;; Auto complete mode
-  (setq-local ac-ignore-case t))
+  (setq-local indent-line-function #'cobol-indent-line))
 
 ;;;###autoload
 (add-to-list 'auto-mode-alist

@@ -7851,7 +7851,7 @@ and is appended to the return value."
                 (if k
                     (cadr (assoc k kv))
                   kv)))
-        beg key plus-flag)
+        beg key)
     (save-excursion
       (re-search-backward "[[{(<,=]" (line-beginning-position 0) t))
     (if (string= (match-string 0) "=")
@@ -7860,10 +7860,6 @@ and is appended to the return value."
           ;; Matching the value is easy, just search back for the '='
           ;; separator and ...
           (re-search-backward "=\\([^=]*\\)" (line-beginning-position) t)
-          ;; ... set our flag if we're dealing with a '+=' separator
-          ;; introduced with LaTeX release 2026-11-01 and ...
-          (when (= (preceding-char) ?+)
-            (setq plus-flag t))
           ;; ... then move forward over any tabs and spaces:
           (save-excursion
             (forward-char)
@@ -7877,14 +7873,15 @@ and is appended to the return value."
           ;; Make sure we're not looking at a comment:
           (when (looking-at-p (concat "[ \t]*" TeX-comment-start-regexp))
             (forward-line))
-          ;; Now pick up the key, if available, and honor the
-          ;; `plus-flag' otherwise the `+' will become part of the
-          ;; `key':
+          ;; Now pick up the key, if available, and watch for a possible
+          ;; '+' as part of '+=' key=val separator introduced with LaTeX
+          ;; release 2026-11-01, otherwise it will become part of the
+          ;; key:
           (setq key (string-trim
-                     (buffer-substring-no-properties (point)
-                                                     (if plus-flag
-                                                         (1- (match-beginning 0))
-                                                       (match-beginning 0)))
+                     (buffer-substring-no-properties
+                      (point) (if (eq (char-before (match-beginning 0)) ?+)
+                                  (1- (match-beginning 0))
+                                (match-beginning 0)))
                      "[ \t\n\r%]+" "[ \t\n\r%]+"))
           ;; This caters also for the case where nothing is typed yet:
           (list beg end (completion-table-dynamic

@@ -1,5 +1,5 @@
-test/*
-doc/*
+test
+doc
 .gitignore
 .mailmap
 .envrc
@@ -7,3 +7,4 @@ manifest.scm
 default.nix
 .clang-format
 .dir-locals.el
+.forgejo

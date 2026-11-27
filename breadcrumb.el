@@ -125,8 +125,8 @@ percentage of `window-width'."
   :type '(choice (natnum :tag "Number of characters")
                  (float  :tag "Percent of window's width")))
 
-(defcustom bc-imenu-crumb-separator " > "
-  "Separator for `breadcrumb-project-crumbs'." :type 'string)
+(defcustom bc-imenu-crumb-separator ">"
+  "Separator for `breadcrumb-imenu-crumbs'." :type 'string)
 
 (defcustom bc-decorate-function nil
   "Function to decorate each crumb, or nil.

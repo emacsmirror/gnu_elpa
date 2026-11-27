@@ -379,6 +379,11 @@ is available, `hierarchical' otherwise."
 This is used in `minimail-mailbox-mode' buffers."
   :type (-custom-type-query-alist :key-type 'flag :value-type 'face))
 
+(defcustom minimail-default-directory "~/"
+  "Default directory for Minimail buffers."
+  :type '(choice (const :tag "Current directory" nil)
+		 directory))
+
 (defgroup minimail-accounts
   '((message-server-alist custom-variable))
   "Minimail account settings."
@@ -461,27 +466,32 @@ possible, see `minimail--key-match-p'."
                                         (function :tag "Function to call")
                                         (list :tag "Use signature file"
                                               (const :format "" file) file))))
-      (:thread-style    ,(-custom-type-query-alist
-                          :allow-single t
-                          :key-type 'mailbox
-                          :value-type (get 'minimail-thread-style 'custom-type)))
-      (:fetch-limit     ,(-custom-type-query-alist
-                          :allow-single t :value 100
-                          :key-type 'mailbox :value-type 'natnum))
-      (:mailbox-columns ,(-custom-type-query-alist
-                          :allow-single t
-                          :key-type 'mailbox
-                          :value-type (plist-get
-                                       (cdr (get 'minimail-mailbox-mode-columns
-                                                 'custom-type))
-                                       :value-type)))
-      (:mailbox-sort-by ,(-custom-type-query-alist
-                          :allow-single t
-                          :key-type 'mailbox
-                          :value-type (plist-get
-                                       (cdr (get 'minimail-mailbox-mode-sort-by
-                                                 'custom-type))
-                                       :value-type)))))))
+      (:thread-style      ,(-custom-type-query-alist
+                            :allow-single t
+                            :key-type 'mailbox
+                            :value-type (get 'minimail-thread-style 'custom-type)))
+      (:fetch-limit       ,(-custom-type-query-alist
+                            :allow-single t :value 100
+                            :key-type 'mailbox :value-type 'natnum))
+      (:default-directory ,(-custom-type-query-alist
+                            :allow-single t
+                            :key-type 'mailbox
+                            :value-type '(choice (const :tag "Current directory" nil)
+		                                 directory)))
+      (:mailbox-columns   ,(-custom-type-query-alist
+                            :allow-single t
+                            :key-type 'mailbox
+                            :value-type (plist-get
+                                         (cdr (get 'minimail-mailbox-mode-columns
+                                                   'custom-type))
+                                         :value-type)))
+      (:mailbox-sort-by   ,(-custom-type-query-alist
+                            :allow-single t
+                            :key-type 'mailbox
+                            :value-type (plist-get
+                                         (cdr (get 'minimail-mailbox-mode-sort-by
+                                                   'custom-type))
+                                         :value-type)))))))
 
 ;;;; Faces
 
@@ -770,6 +780,7 @@ cell (ACCOUNT . MAILBOX-NAME).  We then proceed as follows:
       (symbol-value
        (alist-get keyword
                   '((:fetch-limit . minimail-fetch-limit)
+                    (:default-directory . minimail-default-directory)
                     ;; Unlike other keywords, we care to distinguish
                     ;; when this one is explicitly set
                     ;; (:mail-address . user-mail-address)
@@ -1743,7 +1754,10 @@ as a string."
    (let* ((name (-mailbox-display-name mailbox))
           (buffer (get-buffer name)))
      (unless buffer
-       (setq buffer (get-buffer-create name))
+       (let ((default-directory (expand-file-name
+                                 (-settings-scalar-get
+                                  :default-directory mailbox))))
+         (setq buffer (get-buffer-create name)))
        (with-current-buffer buffer
          (minimail-mailbox-mode)
          (setq -current-mailbox mailbox)
@@ -1846,7 +1860,7 @@ Messages with size (bytes): "
     ("a" "Answered" :cons 'answered :class -transient-search-switch)]]
   [[("RET" "Search"
      (lambda (arg)
-       (interactive "P")
+       (interactive "P" ignore)
        (let* ((items (transient-args transient-current-command))
               (mailbox (or (-get-data (alist-get 'mailbox items))
                            (error "No mailbox")))
@@ -1863,7 +1877,6 @@ Messages with size (bytes): "
          (when arg
            (setq query (read-from-minibuffer "IMAP search: " query)))
          (minimail-search mailbox query))))]])
-(put '-search-transient 'completion-predicate 'ignore)
 
 (defun minimail-search (mailbox query)
   "Perform a search in a mailbox.
@@ -3088,6 +3101,8 @@ Unless REFRESH is non-nil, use cached mailbox information."
   (interactive)
   (pop-to-buffer "*minimail-accounts*")
   (unless (derived-mode-p 'minimail-overview-mode)
+    (setq default-directory (or minimail-default-directory
+                                default-directory))
     (minimail-overview-mode)
     (-overview-buffer-populate)))
 

@@ -120,14 +120,12 @@ My first attempt at this concept was a now-archived 'ffsanim.el'
 a major mode implementation that used Emacs's 'animate' library
 to animate slide texts onto the screen.
 
-https://git.kelar.org/~bandali/ffs/tree/ffsanim.el?id=aed420fca1af108e023eabf2b527850b559cd24c
+https://www.shemshak.org/~amin/ffs/main/log/7c32e5900f7108a30af561a4fc208799abf4af7b.html#ffsanim.el
 
 Shortly after realizing the shortcomings of that approach,
 I abandoned it in favour a minor mode implementation and
 published version 0.1.0 of what is now 'ffs' in my personal
 configs repository.
-
-https://git.kelar.org/~bandali/configs
 
 I used this implementation for presenting my LibrePlanet 2022 talk,
 The Net beyond the Web.

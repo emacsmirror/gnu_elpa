@@ -70,7 +70,7 @@ NEWS:
 @uref{https://www.shemshak.org/~amin/ffs/NEWS}
 @item
 Git repository:
-@uref{https://git.kelar.org/~bandali/ffs}
+@uref{https://www.shemshak.org/~amin/ffs}
 @item
 Backronyms: fabulous foolproof slides - for freedom's sake -
 ffs flips slides
@@ -204,7 +204,7 @@ mkdir ~/.emacs.d/lisp
 cd ~/.emacs.d/lisp/
 
 # Clone the ffs source repository
-git clone https://git.kelar.org/~bandali/ffs
+git clone https://www.shemshak.org/~amin/ffs
 @end example
 
 Then, in your @code{user-init-file} (@samp{init.el} or equivalent)

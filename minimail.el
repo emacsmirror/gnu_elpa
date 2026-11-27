@@ -2125,6 +2125,7 @@ MENU and CLICK are as expected of a member of `context-menu-functions'."
   (add-hook 'context-menu-functions '-message-context-menu nil t)
   (setq-local
    buffer-undo-list t
+   overlay-arrow-position nil
    revert-buffer-function #'-mailbox-buffer-refresh
    truncate-lines t))
 

@@ -1596,12 +1596,11 @@ If MAILBOX is displayed in some buffer, update it."
 If MAILBOX-BUFFER is non-nil, updating the UI when done."
   (athunk-let*
       ((caps <- (-aget-capability (car mailbox)))
-       (cmd (if (memq 'move caps)
-                (format "UID MOVE %s %s"
-                        (-format-sequence-set set)
-                        (-imap-quote destination))
-              (error "Account %s doesn't support moving messages"
-                     (car mailbox))))
+       ;; MOVE is an IMAPv4rev1 extension (RFC 6851), but some servers
+       ;; support it without advertising (minimail#6).
+       (cmd (format "UID MOVE %s %s"
+                    (-format-sequence-set set)
+                    (-imap-quote destination)))
        (_ <- (-amake-request mailbox cmd)))
     (when (buffer-live-p mailbox-buffer)
       (with-current-buffer mailbox-buffer

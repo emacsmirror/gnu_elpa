@@ -28,7 +28,7 @@
 
 #define EMACS_NIL env->intern(env, "nil")
 #define EMACS_T env->intern(env, "t")
-#define EMACS_CURR_WIN                                                         \
+#define EMACS_CURR_WIN							\
 	env->funcall(env, env->intern(env, "selected-window"), 0, NULL);
 
 bool
@@ -49,7 +49,7 @@ DocState *
 get_doc_state_ptr(emacs_env *env);
 bool
 get_emureader_current_state(emacs_env *env, DocState **doc_state_out,
-			 EmacsWinState **win_state_out, emacs_value *overlay_out);
+			    EmacsWinState **win_state_out, emacs_value *overlay_out);
 void
 clear_doc_state_ptr(emacs_env *env);
 EmacsWinState *

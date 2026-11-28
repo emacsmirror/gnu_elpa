@@ -169,7 +169,7 @@ emacs_doc_scale_page(emacs_env *env, ptrdiff_t nargs, emacs_value *args,
 		     void *data);
 emacs_value
 emacs_doc_rotate(emacs_env *env, ptrdiff_t nargs, emacs_value *args,
-		     void *data);
+		 void *data);
 emacs_value
 emacs_redisplay_doc(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data);
 

@@ -38,7 +38,7 @@
 
 emacs_value
 emacs_doc_invert(emacs_env *env, ptrdiff_t nargs, emacs_value *args,
-                     void *data)
+		 void *data)
 {
 	(void)nargs;
 	(void)data;

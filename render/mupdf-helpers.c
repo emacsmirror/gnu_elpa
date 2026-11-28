@@ -94,10 +94,10 @@ init_main_ctx(DocState *state)
 	state->ctx = fz_new_context(NULL, &state->locks, FZ_STORE_DEFAULT);
 
 	if (!state->ctx)
-	{
-		fprintf(stderr, "Cannot create MuPDF context\n");
-		return EXIT_FAILURE;
-	}
+		{
+			fprintf(stderr, "Cannot create MuPDF context\n");
+			return EXIT_FAILURE;
+		}
 
 	fz_register_document_handlers(state->ctx);
 
@@ -120,28 +120,28 @@ load_mupdf_doc(DocState *state)
 {
 
 	fz_try(state->ctx)
-	{
-		state->doc = fz_open_document(state->ctx, state->path);
-		state->pagecount = fz_count_pages(state->ctx, state->doc);
-	}
+		{
+			state->doc = fz_open_document(state->ctx, state->path);
+			state->pagecount = fz_count_pages(state->ctx, state->doc);
+		}
 	fz_catch(state->ctx)
-	{
-		fprintf(stderr, "Could not open document\n");
-		fz_drop_context(state->ctx);
-		state->ctx = NULL;
-		return EXIT_FAILURE;
-	}
+		{
+			fprintf(stderr, "Could not open document\n");
+			fz_drop_context(state->ctx);
+			state->ctx = NULL;
+			return EXIT_FAILURE;
+		}
 
 	fz_try(state->ctx)
-	{
-		state->outline = fz_load_outline(state->ctx, state->doc);
-	}
+		{
+			state->outline = fz_load_outline(state->ctx, state->doc);
+		}
 	fz_catch(state->ctx)
-	{
-		fprintf(stderr, "Could not load outline\n");
-		fz_drop_outline(state->ctx, state->outline);
-		state->outline = NULL;
-	}
+		{
+			fprintf(stderr, "Could not load outline\n");
+			fz_drop_outline(state->ctx, state->outline);
+			state->outline = NULL;
+		}
 
 	return EXIT_SUCCESS;
 }
@@ -163,22 +163,22 @@ drop_doc_page_display_list(DocState *state, DocPage *dp)
 void
 free_doc_pages(DocState *state)
 {
-    if (!state || !state->doc_pages) return;
+	if (!state || !state->doc_pages) return;
 
-    for (int i = 0; i < state->pagecount; ++i) {
-        DocPage *dp = &state->doc_pages[i];
-        pthread_mutex_destroy(&dp->mutex);
-        if (dp->display_list && state->ctx) {
-            fz_drop_display_list(state->ctx, dp->display_list);
-            dp->display_list = NULL;
-        }
-    }
-    free(state->doc_pages);
-    state->doc_pages = NULL;
+	for (int i = 0; i < state->pagecount; ++i) {
+		DocPage *dp = &state->doc_pages[i];
+		pthread_mutex_destroy(&dp->mutex);
+		if (dp->display_list && state->ctx) {
+			fz_drop_display_list(state->ctx, dp->display_list);
+			dp->display_list = NULL;
+		}
+	}
+	free(state->doc_pages);
+	state->doc_pages = NULL;
 }
 
 /* Decrement refcount when nothing references this DocPage
- and also free its expensive display list from memory */
+   and also free its expensive display list from memory */
 
 void
 release_doc_page(DocState *doc_state, DocPage *dp)
@@ -294,27 +294,27 @@ free_doc_state(DocState *state)
 
 	// Drop MuPDF objects
 	if (state->outline)
-	{
-		fz_drop_outline(state->ctx, state->outline);
-		state->outline = NULL;
+		{
+			fz_drop_outline(state->ctx, state->outline);
+			state->outline = NULL;
 		}
 	if (state->doc)
-	{
-		fz_drop_document(state->ctx, state->doc);
-		state->doc = NULL;
-	}
+		{
+			fz_drop_document(state->ctx, state->doc);
+			state->doc = NULL;
+		}
 	if (state->ctx)
-	{
-		fz_drop_context(state->ctx);
-		state->ctx = NULL;
-	}
+		{
+			fz_drop_context(state->ctx);
+			state->ctx = NULL;
+		}
 
 	// Free path
 	if (state->path)
-	{
-		free(state->path);
-		state->path = NULL;
-	}
+		{
+			free(state->path);
+			state->path = NULL;
+		}
 
 	// Free the state struct itself
 	free(state);
@@ -349,25 +349,25 @@ clear_cp(CachedPage *cp)
 void
 clear_cp_and_release(DocState *doc_state, CachedPage *cp)
 {
-    if (!cp) return;
-    int old_page_num = -1;
+	if (!cp) return;
+	int old_page_num = -1;
 
-    pthread_mutex_lock(&cp->mutex);
-    old_page_num = cp->page_num;
-    cp->page_num = -1;
-    cp->status = PAGE_STATUS_EMPTY;
-    free(cp->img_data);
-    cp->img_data = NULL;
-    cp->img_size = 0;
-    cp->imgw = 0;
-    cp->imgh = 0;
-    pthread_mutex_unlock(&cp->mutex);
+	pthread_mutex_lock(&cp->mutex);
+	old_page_num = cp->page_num;
+	cp->page_num = -1;
+	cp->status = PAGE_STATUS_EMPTY;
+	free(cp->img_data);
+	cp->img_data = NULL;
+	cp->img_size = 0;
+	cp->imgw = 0;
+	cp->imgh = 0;
+	pthread_mutex_unlock(&cp->mutex);
 
-    if (doc_state && doc_state->doc_pages &&
-        old_page_num >= 0 && old_page_num < doc_state->pagecount)
-    {
-        release_doc_page(doc_state, &doc_state->doc_pages[old_page_num]);
-    }
+	if (doc_state && doc_state->doc_pages &&
+	    old_page_num >= 0 && old_page_num < doc_state->pagecount)
+		{
+			release_doc_page(doc_state, &doc_state->doc_pages[old_page_num]);
+		}
 }
 
 void

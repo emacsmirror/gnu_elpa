@@ -114,47 +114,47 @@ thread_routine(void *arg)
 	ThreadPool *pool = (ThreadPool *)arg;
 
 	while (1)
-	{
-		// Try to become the leader
-		pthread_mutex_lock(&pool->leader_mutex);
-		while (pool->leader_exists)
 		{
-			pthread_cond_wait(&pool->leader_cond,
-					  &pool->leader_mutex);
-		}
+			// Try to become the leader
+			pthread_mutex_lock(&pool->leader_mutex);
+			while (pool->leader_exists)
+				{
+					pthread_cond_wait(&pool->leader_cond,
+							  &pool->leader_mutex);
+				}
 
-		// Become leader
-		pool->leader_exists = 1;
-		pthread_mutex_unlock(&pool->leader_mutex);
+			// Become leader
+			pool->leader_exists = 1;
+			pthread_mutex_unlock(&pool->leader_mutex);
 
-		// Fetch a task
-		ThreadJob *job = job_queue_pop(&pool->job_queue);
+			// Fetch a task
+			ThreadJob *job = job_queue_pop(&pool->job_queue);
 
-		if (!job || job == NULL)
-		{
-			// Hand off leadership and continue loop so other
-			// threads can become leader
+			if (!job || job == NULL)
+				{
+					// Hand off leadership and continue loop so other
+					// threads can become leader
+					pthread_mutex_lock(&pool->leader_mutex);
+					pool->leader_exists = 0;
+					pthread_cond_signal(&pool->leader_cond);
+					pthread_mutex_unlock(&pool->leader_mutex);
+					continue;
+				}
+
+			// Hand off leadership
 			pthread_mutex_lock(&pool->leader_mutex);
 			pool->leader_exists = 0;
 			pthread_cond_signal(&pool->leader_cond);
 			pthread_mutex_unlock(&pool->leader_mutex);
-			continue;
+
+			if (!job->func)
+				{
+					free(job);
+					break;
+				}
+
+			job->func(job->arg);
 		}
-
-		// Hand off leadership
-		pthread_mutex_lock(&pool->leader_mutex);
-		pool->leader_exists = 0;
-		pthread_cond_signal(&pool->leader_cond);
-		pthread_mutex_unlock(&pool->leader_mutex);
-
-		if (!job->func)
-		{
-			free(job);
-			break;
-		}
-
-		job->func(job->arg);
-	}
 
 	return NULL;
 }

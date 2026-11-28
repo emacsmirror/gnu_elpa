@@ -48,18 +48,18 @@ elisp_2_c_str(emacs_env *env, emacs_value value, char **buffer, size_t *size)
 	assert(buffer_size > 0);
 	*buffer = malloc((size_t)buffer_size);
 	if (*buffer == NULL)
-	{
-		env->non_local_exit_signal(env, env->intern(env, "memory-full"),
-					   env->intern(env, "nil"));
-		return false;
-	}
+		{
+			env->non_local_exit_signal(env, env->intern(env, "memory-full"),
+						   env->intern(env, "nil"));
+			return false;
+		}
 	ptrdiff_t old_buffer_size = buffer_size;
 	if (!env->copy_string_contents(env, value, *buffer, &buffer_size))
-	{
-		free(*buffer);
-		*buffer = NULL;
-		return false;
-	}
+		{
+			free(*buffer);
+			*buffer = NULL;
+			return false;
+		}
 	assert(env->non_local_exit_check(env) == emacs_funcall_exit_return);
 	assert(buffer_size == old_buffer_size);
 	*size = (size_t)(buffer_size - 1);
@@ -95,7 +95,7 @@ provide(emacs_env *env, const char *value)
  * from Emacs as any other Elisp function.
  * @env: Pointer to the Emacs environment for the runtime (emacs_env).
  * @module_func: Pointer to the function (emacs_value) that needs to be
-registered.
+ registered.
  * @symbol: The symbol for which the function is to be registered.
  * @min_args: The minimum number of arguments this function must be provided
  * with.
@@ -121,7 +121,7 @@ register_module_func(emacs_env *env,
 
 	emacs_value elisp_func_symbol = env->intern(env, symbol);
 	emacs_value elisp_func = env->make_function(
-	    env, min_args, max_args, module_func, docstring, NULL);
+						    env, min_args, max_args, module_func, docstring, NULL);
 
 	emacs_value elisp_func_args[2] = { elisp_func_symbol, elisp_func };
 	env->funcall(env, env->intern(env, "fset"), 2, elisp_func_args);
@@ -146,25 +146,25 @@ data2elisp_image(emacs_env *env, int width, int height, char *img_data,
 		return EMACS_NIL;
 
 	emacs_value image_width
-	    = env->make_integer(env, width);
+		= env->make_integer(env, width);
 	emacs_value image_height
-	    = env->make_integer(env, height);
+		= env->make_integer(env, height);
 	emacs_value img_data_string
-	    = env->make_unibyte_string(env, img_data, img_size);
+		= env->make_unibyte_string(env, img_data, img_size);
 	emacs_value image_args[9]
-	    = { img_data_string,
-		env->intern(env, "pbm"),
-		env->intern(env, "t"),
-		env->intern(env, ":width"),
-		image_width,
-		env->intern(env, ":height"),
-		image_height,
-		env->intern(env,
-			    ":scale"), // Never really used, only a placeholder
-		env->make_integer(env, 1) };
+		= { img_data_string,
+		    env->intern(env, "pbm"),
+		    env->intern(env, "t"),
+		    env->intern(env, ":width"),
+		    image_width,
+		    env->intern(env, ":height"),
+		    image_height,
+		    env->intern(env,
+				":scale"), // Never really used, only a placeholder
+		    env->make_integer(env, 1) };
 
 	emacs_value image_data = env->funcall(
-	    env, env->intern(env, "create-image"), 9, image_args);
+					      env, env->intern(env, "create-image"), 9, image_args);
 
 	return image_data;
 }
@@ -187,7 +187,7 @@ init_doc_state_ptr(emacs_env *env)
 	// Create a user pointer and expose it to Emacs in a buffer-local
 	emacs_value user_ptr = env->make_user_ptr(env, NULL, state);
 	emacs_value doc_state_ptr_sym
-	    = env->intern(env, "emureader-current-doc-state-ptr");
+		= env->intern(env, "emureader-current-doc-state-ptr");
 	env->funcall(env, env->intern(env, "set"), 2,
 		     (emacs_value[]){ doc_state_ptr_sym, user_ptr });
 	return state;
@@ -206,7 +206,7 @@ get_doc_state_ptr(emacs_env *env)
 {
 	emacs_value ptr_sym = env->intern(env, "emureader-current-doc-state-ptr");
 	emacs_value ptr
-	    = env->funcall(env, env->intern(env, "symbol-value"), 1, &ptr_sym);
+		= env->funcall(env, env->intern(env, "symbol-value"), 1, &ptr_sym);
 
 	if (env->eq(env, ptr, EMACS_NIL))
 		return NULL;
@@ -285,23 +285,23 @@ EmacsWinState *
 get_win_state_ptr(emacs_env *env, emacs_value overlay)
 {
 	if (env->eq(env, overlay, EMACS_NIL))
-	{
-		emacs_message(env,
-			      "Selected window doesn't have a valid overlay.");
-		return NULL;
-	}
+		{
+			emacs_message(env,
+				      "Selected window doesn't have a valid overlay.");
+			return NULL;
+		}
 
 	emacs_value ptr = env->funcall(
-	    env, env->intern(env, "overlay-get"), 2,
-	    (emacs_value[]){ overlay, env->intern(env, "win-state") });
+				       env, env->intern(env, "overlay-get"), 2,
+				       (emacs_value[]){ overlay, env->intern(env, "win-state") });
 
 	if (env->eq(env, ptr, EMACS_NIL))
-	{
-		emacs_message(
-		    env,
-		    "Selected window doesn't have a pointer to EmacsWinState.");
-		return NULL;
-	}
+		{
+			emacs_message(
+				      env,
+				      "Selected window doesn't have a pointer to EmacsWinState.");
+			return NULL;
+		}
 
 	EmacsWinState *win_state = env->get_user_ptr(env, ptr);
 	return win_state;
@@ -310,14 +310,14 @@ get_win_state_ptr(emacs_env *env, emacs_value overlay)
 void
 reset_win_state(EmacsWinState *win_state)
 {
-    if (!win_state) return;
+	if (!win_state) return;
 
-    win_state->resolution = 72.0;
-    win_state->rotate = 0;
-    win_state->current_page_number = 0;
-    win_state->current_window_index = 0;
-    win_state->active_jobs = 0;
-    win_state->closing = false;
+	win_state->resolution = 72.0;
+	win_state->rotate = 0;
+	win_state->current_page_number = 0;
+	win_state->current_window_index = 0;
+	win_state->active_jobs = 0;
+	win_state->closing = false;
 }
 
 void
@@ -330,8 +330,8 @@ set_current_page_number(emacs_env *env, int page)
 				      env->make_integer(env, page) });
 	env->funcall(env, env->intern(env, "set"), 2,
 		     (emacs_value[]){
-			 env->intern(env, "emureader--recent-pagenumber-fallback"),
-			 env->make_integer(env, page) });
+			     env->intern(env, "emureader--recent-pagenumber-fallback"),
+			     env->make_integer(env, page) });
 }
 
 /**
@@ -346,10 +346,10 @@ void
 set_current_render_status(emacs_env *env)
 {
 	emacs_value render_status_var
-	    = env->intern(env, "emureader-current-doc-render-status");
+		= env->intern(env, "emureader-current-doc-render-status");
 	env->funcall(
-	    env, env->intern(env, "set"), 2,
-	    (emacs_value[]){ render_status_var, env->intern(env, "t") });
+		     env, env->intern(env, "set"), 2,
+		     (emacs_value[]){ render_status_var, env->intern(env, "t") });
 }
 
 /**
@@ -365,8 +365,8 @@ void
 set_current_pagecount(emacs_env *env, DocState *state)
 {
 	emacs_value pagecount_args[2]
-	    = { env->intern(env, "emureader-current-doc-pagecount"),
-		env->make_integer(env, state->pagecount) };
+		= { env->intern(env, "emureader-current-doc-pagecount"),
+		    env->make_integer(env, state->pagecount) };
 	env->funcall(env, env->intern(env, "set"), 2, pagecount_args);
 }
 
@@ -382,28 +382,28 @@ emacs_value
 init_overlay(emacs_env *env, emacs_value window)
 {
 	emacs_value start
-	    = env->funcall(env, env->intern(env, "point-min"), 0, NULL);
+		= env->funcall(env, env->intern(env, "point-min"), 0, NULL);
 	emacs_value end
-	    = env->funcall(env, env->intern(env, "point-max"), 0, NULL);
+		= env->funcall(env, env->intern(env, "point-max"), 0, NULL);
 
 	// Check if there is an existing overlay for the window and deletes it
 	emacs_value existing_overlay = env->funcall(
-	    env, env->intern(env, "window-parameter"), 2,
-	    (emacs_value[]){ window, env->intern(env, "overlay") });
+						    env, env->intern(env, "window-parameter"), 2,
+						    (emacs_value[]){ window, env->intern(env, "overlay") });
 
 	if (!env->eq(env, existing_overlay, EMACS_NIL))
 		env->funcall(env, env->intern(env, "emureader-dyn--window-close"),
 			     1, &existing_overlay);
 
 	emacs_value overlay
-	    = env->funcall(env, env->intern(env, "make-overlay"), 2,
-			   (emacs_value[]){ start, end });
+		= env->funcall(env, env->intern(env, "make-overlay"), 2,
+			       (emacs_value[]){ start, end });
 	env->funcall(
-	    env, env->intern(env, "overlay-put"), 3,
-	    (emacs_value[]){ overlay, env->intern(env, "window"), window });
+		     env, env->intern(env, "overlay-put"), 3,
+		     (emacs_value[]){ overlay, env->intern(env, "window"), window });
 	env->funcall(
-	    env, env->intern(env, "set-window-parameter"), 3,
-	    (emacs_value[]){ window, env->intern(env, "overlay"), overlay });
+		     env, env->intern(env, "set-window-parameter"), 3,
+		     (emacs_value[]){ window, env->intern(env, "overlay"), overlay });
 
 	return overlay;
 }
@@ -419,9 +419,9 @@ check_current_overlay(emacs_env *env, emacs_value overlay)
 		return false;
 
 	emacs_value overlay_buffer = env->funcall(
-	    env, env->intern(env, "overlay-buffer"), 1, &overlay);
+						  env, env->intern(env, "overlay-buffer"), 1, &overlay);
 	emacs_value current_buffer
-	    = env->funcall(env, env->intern(env, "current-buffer"), 0, NULL);
+		= env->funcall(env, env->intern(env, "current-buffer"), 0, NULL);
 
 	return env->eq(env, overlay_buffer, current_buffer);
 }
@@ -439,20 +439,20 @@ get_current_doc_overlay(emacs_env *env)
 {
 	emacs_value curr_win = EMACS_CURR_WIN;
 	emacs_value current_overlay = env->funcall(
-	    env, env->intern(env, "window-parameter"), 2,
-	    (emacs_value[]){ curr_win, env->intern(env, "overlay") });
+						   env, env->intern(env, "window-parameter"), 2,
+						   (emacs_value[]){ curr_win, env->intern(env, "overlay") });
 
 	// Check if overlay is valid for current buffer
 	if (current_overlay != EMACS_NIL
 	    && !check_current_overlay(env, current_overlay))
-	{
-		// Stale overlay, clear it
-		env->funcall(env, env->intern(env, "set-window-parameter"), 3,
-			     (emacs_value[]){ curr_win,
-					      env->intern(env, "overlay"),
-					      EMACS_NIL });
-		return EMACS_NIL;
-	}
+		{
+			// Stale overlay, clear it
+			env->funcall(env, env->intern(env, "set-window-parameter"), 3,
+				     (emacs_value[]){ curr_win,
+						      env->intern(env, "overlay"),
+						      EMACS_NIL });
+			return EMACS_NIL;
+		}
 
 	return current_overlay;
 }
@@ -542,54 +542,54 @@ outline2plist(emacs_env *env, DocState *state, fz_outline *node)
 {
 	emacs_value outline_plist = EMACS_NIL;
 	if (!node)
-	{
-		return outline_plist;
-	}
+		{
+			return outline_plist;
+		}
 
 	while (node)
-	{
-		if (!node->title)
 		{
+			if (!node->title)
+				{
+					node = node->next;
+					continue;
+				}
+
+			/* Build the base plist: (:title TITLE :page PAGE) */
+			emacs_value node_title
+				= env->make_unibyte_string(env, node->title, strlen(node->title));
+			fz_location page_location = fz_resolve_link(
+								    state->ctx, state->doc, node->uri, &node->x, &node->y);
+			int page_num = fz_page_number_from_location(
+								    state->ctx, state->doc, page_location);
+			emacs_value node_page = env->make_integer(env, page_num);
+			emacs_value base_args[]
+				= { env->intern(env, ":title"), node_title,
+				    env->intern(env, ":page"), node_page };
+			emacs_value node_plist
+				= env->funcall(env, env->intern(env, "list"), 4, base_args);
+
+			/* If there are children, recurse and append as :children key */
+			if (node->down)
+				{
+					emacs_value children
+						= outline2plist(env, state, node->down);
+					emacs_value child_pair_args[]
+						= { env->intern(env, ":children"), children };
+					emacs_value children_pair = env->funcall(
+										 env, env->intern(env, "list"), 2, child_pair_args);
+					/* Append the (:children CHILDREN) onto this node's
+					 * plist */
+					node_plist = env->funcall(
+								  env, env->intern(env, "append"), 2,
+								  (emacs_value[]){ node_plist, children_pair });
+				}
+
+			/* Cons this node_plist onto our accumulator */
+			outline_plist = env->funcall(
+						     env, env->intern(env, "cons"), 2,
+						     (emacs_value[]){ node_plist, outline_plist });
 			node = node->next;
-			continue;
 		}
-
-		/* Build the base plist: (:title TITLE :page PAGE) */
-		emacs_value node_title
-		    = env->make_unibyte_string(env, node->title, strlen(node->title));
-		fz_location page_location = fz_resolve_link(
-		    state->ctx, state->doc, node->uri, &node->x, &node->y);
-		int page_num = fz_page_number_from_location(
-		    state->ctx, state->doc, page_location);
-		emacs_value node_page = env->make_integer(env, page_num);
-		emacs_value base_args[]
-		    = { env->intern(env, ":title"), node_title,
-			env->intern(env, ":page"), node_page };
-		emacs_value node_plist
-		    = env->funcall(env, env->intern(env, "list"), 4, base_args);
-
-		/* If there are children, recurse and append as :children key */
-		if (node->down)
-		{
-			emacs_value children
-			    = outline2plist(env, state, node->down);
-			emacs_value child_pair_args[]
-			    = { env->intern(env, ":children"), children };
-			emacs_value children_pair = env->funcall(
-			    env, env->intern(env, "list"), 2, child_pair_args);
-			/* Append the (:children CHILDREN) onto this node's
-			 * plist */
-			node_plist = env->funcall(
-			    env, env->intern(env, "append"), 2,
-			    (emacs_value[]){ node_plist, children_pair });
-		}
-
-		/* Cons this node_plist onto our accumulator */
-		outline_plist = env->funcall(
-		    env, env->intern(env, "cons"), 2,
-		    (emacs_value[]){ node_plist, outline_plist });
-		node = node->next;
-	}
 
 	/* Reverse to preserve original document order */
 	outline_plist = env->funcall(env, env->intern(env, "nreverse"), 1,
@@ -597,9 +597,9 @@ outline2plist(emacs_env *env, DocState *state, fz_outline *node)
 
 	/* Store in emureader-current-doc-outline and return */
 	env->funcall(
-	    env, env->intern(env, "set"), 2,
-	    (emacs_value[]){ env->intern(env, "emureader-current-doc-outline"),
-			     outline_plist });
+		     env, env->intern(env, "set"), 2,
+		     (emacs_value[]){ env->intern(env, "emureader-current-doc-outline"),
+				      outline_plist });
 	return outline_plist;
 }
 
@@ -607,7 +607,7 @@ float
 get_frame_scale_factor(emacs_env *env)
 {
 	emacs_value factor = env->funcall(
-	    env, env->intern(env, "frame-scale-factor"), 0, NULL);
+					  env, env->intern(env, "frame-scale-factor"), 0, NULL);
 	return env->extract_float(env, factor);
 }
 
@@ -617,9 +617,9 @@ get_frame_scale_factor(emacs_env *env)
 
 bool
 get_emureader_current_state(emacs_env *env,
-			 DocState **doc_state_out,
-			 EmacsWinState **win_state_out,
-			 emacs_value *overlay_out)
+			    DocState **doc_state_out,
+			    EmacsWinState **win_state_out,
+			    emacs_value *overlay_out)
 {
 	DocState *doc_state = get_doc_state_ptr(env);
 
@@ -650,9 +650,9 @@ get_emureader_current_state(emacs_env *env,
 }
 
 /* Free all the CachedPages of an Emacs window's
- cache window. We only nullify them so that new data
-can be rendered into those slots, we retain the links to
-DocPages. */
+   cache window. We only nullify them so that new data
+   can be rendered into those slots, we retain the links to
+   DocPages. */
 
 void
 nullify_window_cache(EmacsWinState *win_state)

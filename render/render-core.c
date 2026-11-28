@@ -120,8 +120,8 @@ draw_page_thread(void *arg)
 			return NULL;
 		}
 
-	 /* If the document is being reloaded/closed, or the window is closing, */
-	 /* abort this job safely. */
+	/* If the document is being reloaded/closed, or the window is closing, */
+	/* abort this job safely. */
 	if (doc_state->is_reloading || win_state->closing)
 		{
 			mark_cp_error_if_rendering(cp);
@@ -384,16 +384,16 @@ build_cache_window(DocState *doc_state, EmacsWinState *win_state, int n)
 void
 slide_cache_window_forward(DocState *doc_state, EmacsWinState *win_state)
 {
-    if (!doc_state || !win_state)
-        return;
+	if (!doc_state || !win_state)
+		return;
 
-    if (doc_state->pagecount <= 0)
-        return;
+	if (doc_state->pagecount <= 0)
+		return;
 
-    wait_for_win_jobs(win_state);
-    int n = win_state->current_page_number + 1;
-    if (n < doc_state->pagecount)
-        build_cache_window(doc_state, win_state, n);
+	wait_for_win_jobs(win_state);
+	int n = win_state->current_page_number + 1;
+	if (n < doc_state->pagecount)
+		build_cache_window(doc_state, win_state, n);
 }
 
 /**
@@ -403,16 +403,16 @@ slide_cache_window_forward(DocState *doc_state, EmacsWinState *win_state)
 void
 slide_cache_window_backward(DocState *doc_state, EmacsWinState *win_state)
 {
-    if (!doc_state || !win_state)
-        return;
+	if (!doc_state || !win_state)
+		return;
 
-    if (doc_state->pagecount <= 0)
-        return;
+	if (doc_state->pagecount <= 0)
+		return;
 
-    wait_for_win_jobs(win_state);
-    int n = win_state->current_page_number - 1;
-    if (n >= 0)
-        build_cache_window(doc_state, win_state, n);
+	wait_for_win_jobs(win_state);
+	int n = win_state->current_page_number - 1;
+	if (n >= 0)
+		build_cache_window(doc_state, win_state, n);
 }
 
 /**
@@ -429,205 +429,205 @@ slide_cache_window_backward(DocState *doc_state, EmacsWinState *win_state)
 emacs_value
 emacs_load_doc(emacs_env *env, ptrdiff_t nargs, emacs_value *args, void *data)
 {
-    (void)data;
+	(void)data;
 
-    size_t str_length = 0;
-    int start_page = 0;
+	size_t str_length = 0;
+	int start_page = 0;
 
-    assert(3 == nargs);
+	assert(3 == nargs);
 
-    start_page = env->extract_integer(env, args[1]);
+	start_page = env->extract_integer(env, args[1]);
 
-    if (start_page < 0) start_page = 0;
+	if (start_page < 0) start_page = 0;
 
-    DocState *old_state = get_doc_state_ptr(env);
+	DocState *old_state = get_doc_state_ptr(env);
 
-    if (old_state)
-    {
-        old_state->is_reloading = true;
+	if (old_state)
+		{
+			old_state->is_reloading = true;
 
-        clear_all_overlays(env);
+			clear_all_overlays(env);
 
-        clear_doc_state_ptr(env);
-        wait_for_doc_jobs(old_state);
-        free_doc_state(old_state);
-    }
+			clear_doc_state_ptr(env);
+			wait_for_doc_jobs(old_state);
+			free_doc_state(old_state);
+		}
 
-    emacs_value curr_win = EMACS_CURR_WIN;
-    emacs_value current_doc_overlay = EMACS_NIL;
+	emacs_value curr_win = EMACS_CURR_WIN;
+	emacs_value current_doc_overlay = EMACS_NIL;
 
-    DocState *doc_state = NULL;
-    EmacsWinState *win_state = NULL;
+	DocState *doc_state = NULL;
+	EmacsWinState *win_state = NULL;
 
-    current_doc_overlay = init_overlay(env, curr_win);
+	current_doc_overlay = init_overlay(env, curr_win);
 
-    if (env->eq(env, current_doc_overlay, EMACS_NIL))
-    {
-        emacs_message(env, "Failed to create emureader overlay.");
-        return EMACS_NIL;
-    }
+	if (env->eq(env, current_doc_overlay, EMACS_NIL))
+		{
+			emacs_message(env, "Failed to create emureader overlay.");
+			return EMACS_NIL;
+		}
 
-    doc_state = init_doc_state_ptr(env);
+	doc_state = init_doc_state_ptr(env);
 
-    if (!doc_state)
-    {
-        emacs_message(env, "Document cannot be loaded into memory.");
-        goto cleanup;
-    }
+	if (!doc_state)
+		{
+			emacs_message(env, "Document cannot be loaded into memory.");
+			goto cleanup;
+		}
 
-    reset_doc_state(doc_state);
+	reset_doc_state(doc_state);
 
-    int invert = env->extract_integer(env, args[2]);
-    doc_state->invert = invert ? 1 : 0;
+	int invert = env->extract_integer(env, args[2]);
+	doc_state->invert = invert ? 1 : 0;
 
-    win_state = init_win_state_ptr(env, doc_state, curr_win);
+	win_state = init_win_state_ptr(env, doc_state, curr_win);
 
-    if (!win_state)
-    {
-        emacs_message(env, "Window state couldn't be initialized.");
-        goto cleanup;
-    }
+	if (!win_state)
+		{
+			emacs_message(env, "Window state couldn't be initialized.");
+			goto cleanup;
+		}
 
-    if (!elisp_2_c_str(env, args[0], &doc_state->path, &str_length))
-    {
-        emacs_message(env,
-                      "Failed to convert Emacs string to C string.");
-        goto cleanup;
-    }
+	if (!elisp_2_c_str(env, args[0], &doc_state->path, &str_length))
+		{
+			emacs_message(env,
+				      "Failed to convert Emacs string to C string.");
+			goto cleanup;
+		}
 
-    if (init_main_ctx(doc_state) == EXIT_FAILURE)
-    {
-        emacs_message(env, "Failed to initialize MuPDF context.");
-        goto cleanup;
-    }
+	if (init_main_ctx(doc_state) == EXIT_FAILURE)
+		{
+			emacs_message(env, "Failed to initialize MuPDF context.");
+			goto cleanup;
+		}
 
-    if (load_mupdf_doc(doc_state) == EXIT_FAILURE)
-    {
-        emacs_message(env,
-                      "The document could not be loaded by MuPDF.");
-        goto cleanup;
-    }
+	if (load_mupdf_doc(doc_state) == EXIT_FAILURE)
+		{
+			emacs_message(env,
+				      "The document could not be loaded by MuPDF.");
+			goto cleanup;
+		}
 
-    if (doc_state->pagecount <= 0)
-    {
-        emacs_message(env, "The document has no pages.");
-        goto cleanup;
-    }
+	if (doc_state->pagecount <= 0)
+		{
+			emacs_message(env, "The document has no pages.");
+			goto cleanup;
+		}
 
-    outline2plist(env, doc_state, doc_state->outline);
+	outline2plist(env, doc_state, doc_state->outline);
 
-    doc_state->frame_scale = get_frame_scale_factor(env);
+	doc_state->frame_scale = get_frame_scale_factor(env);
 
-    if (doc_state->frame_scale <= 0.0f)
-        doc_state->frame_scale = 1.0f;
+	if (doc_state->frame_scale <= 0.0f)
+		doc_state->frame_scale = 1.0f;
 
-    /*
-     * Allocate DocPage array.
-     *
-     * doc_state->pagecount is temporarily used as the number of
-     * successfully initialized DocPages so cleanup can destroy only valid
-     * mutexes.
-     */
-    int total_pages = doc_state->pagecount;
+	/*
+	 * Allocate DocPage array.
+	 *
+	 * doc_state->pagecount is temporarily used as the number of
+	 * successfully initialized DocPages so cleanup can destroy only valid
+	 * mutexes.
+	 */
+	int total_pages = doc_state->pagecount;
 
-    doc_state->pagecount = 0;
-    doc_state->doc_pages = calloc(total_pages, sizeof(DocPage));
+	doc_state->pagecount = 0;
+	doc_state->doc_pages = calloc(total_pages, sizeof(DocPage));
 
-    if (!doc_state->doc_pages)
-    {
-        emacs_message(env, "Failed to allocate DocPage array.");
-        goto cleanup;
-    }
+	if (!doc_state->doc_pages)
+		{
+			emacs_message(env, "Failed to allocate DocPage array.");
+			goto cleanup;
+		}
 
-    for (int i = 0; i < total_pages; ++i)
-    {
-        DocPage *dp = &doc_state->doc_pages[i];
+	for (int i = 0; i < total_pages; ++i)
+		{
+			DocPage *dp = &doc_state->doc_pages[i];
 
-        dp->page_num = i;
-        dp->display_list = NULL;
-        dp->ready = false;
-        atomic_init(&dp->refcount, 0);
+			dp->page_num = i;
+			dp->display_list = NULL;
+			dp->ready = false;
+			atomic_init(&dp->refcount, 0);
 
-        if (pthread_mutex_init(&dp->mutex, NULL) != 0)
-        {
-            emacs_message(env, "Failed to initialize DocPage mutex.");
-            goto cleanup;
-        }
+			if (pthread_mutex_init(&dp->mutex, NULL) != 0)
+				{
+					emacs_message(env, "Failed to initialize DocPage mutex.");
+					goto cleanup;
+				}
 
-        doc_state->pagecount = i + 1;
-    }
+			doc_state->pagecount = i + 1;
+		}
 
-    if (start_page >= doc_state->pagecount)
-        start_page = doc_state->pagecount - 1;
+	if (start_page >= doc_state->pagecount)
+		start_page = doc_state->pagecount - 1;
 
-    win_state->current_page_number = start_page;
+	win_state->current_page_number = start_page;
 
-    build_cache_window(doc_state, win_state, start_page);
+	build_cache_window(doc_state, win_state, start_page);
 
-    set_current_pagecount(env, doc_state);
-    set_current_page_number(env, win_state->current_page_number);
+	set_current_pagecount(env, doc_state);
+	set_current_page_number(env, win_state->current_page_number);
 
-    CachedPage *cp = win_state->current_cached_page;
+	CachedPage *cp = win_state->current_cached_page;
 
-    if (!wait_for_cached_page(cp))
-    {
-        emacs_message(env, "Failed to render the current page.");
-        goto cleanup;
-    }
+	if (!wait_for_cached_page(cp))
+		{
+			emacs_message(env, "Failed to render the current page.");
+			goto cleanup;
+		}
 
-    if (!display_cached_page(env, cp, current_doc_overlay))
-    {
-        emacs_message(env, "Failed to display the rendered page.");
-        goto cleanup;
-    }
+	if (!display_cached_page(env, cp, current_doc_overlay))
+		{
+			emacs_message(env, "Failed to display the rendered page.");
+			goto cleanup;
+		}
 
-    set_current_render_status(env);
+	set_current_render_status(env);
 
-    return EMACS_T;
+	return EMACS_T;
 
-cleanup:
-    if (!env->eq(env, current_doc_overlay, EMACS_NIL))
-    {
-        if (win_state)
-        {
-            clear_overlay_and_win_state(env, current_doc_overlay);
-        }
-        else
-        {
-            emacs_value clear_window_args[3] = {
-                curr_win,
-                env->intern(env, "overlay"),
-                EMACS_NIL
-            };
+ cleanup:
+	if (!env->eq(env, current_doc_overlay, EMACS_NIL))
+		{
+			if (win_state)
+				{
+					clear_overlay_and_win_state(env, current_doc_overlay);
+				}
+			else
+				{
+					emacs_value clear_window_args[3] = {
+						curr_win,
+						env->intern(env, "overlay"),
+						EMACS_NIL
+					};
 
-            env->funcall(env,
-                         env->intern(env, "set-window-parameter"),
-                         3,
-                         clear_window_args);
+					env->funcall(env,
+						     env->intern(env, "set-window-parameter"),
+						     3,
+						     clear_window_args);
 
-            env->funcall(env,
-                         env->intern(env, "delete-overlay"),
-                         1,
-                         &current_doc_overlay);
-        }
-    }
-    else if (win_state)
-    {
-        win_state->closing = true;
-        wait_for_win_jobs(win_state);
-        free_cache_window(win_state);
-        free(win_state);
-    }
+					env->funcall(env,
+						     env->intern(env, "delete-overlay"),
+						     1,
+						     &current_doc_overlay);
+				}
+		}
+	else if (win_state)
+		{
+			win_state->closing = true;
+			wait_for_win_jobs(win_state);
+			free_cache_window(win_state);
+			free(win_state);
+		}
 
-    if (doc_state)
-    {
-        wait_for_doc_jobs(doc_state);
-        free_doc_state(doc_state);
-    }
+	if (doc_state)
+		{
+			wait_for_doc_jobs(doc_state);
+			free_doc_state(doc_state);
+		}
 
-    clear_doc_state_ptr(env);
+	clear_doc_state_ptr(env);
 
-    return EMACS_NIL;
+	return EMACS_NIL;
 }
 
 /**
@@ -738,24 +738,24 @@ emacs_value
 emacs_next_page(emacs_env *env, ptrdiff_t nargs, emacs_value *args,
                 void *data)
 {
-    (void)nargs;
-    (void)args;
-    (void)data;
+	(void)nargs;
+	(void)args;
+	(void)data;
 
-    DocState *doc_state = NULL;
-    EmacsWinState *win_state = NULL;
-    emacs_value overlay = EMACS_NIL;
+	DocState *doc_state = NULL;
+	EmacsWinState *win_state = NULL;
+	emacs_value overlay = EMACS_NIL;
 
-    if (!get_emureader_current_state(env, &doc_state, &win_state, &overlay))
-        return EMACS_NIL;
+	if (!get_emureader_current_state(env, &doc_state, &win_state, &overlay))
+		return EMACS_NIL;
 
-    if (win_state->current_page_number >= doc_state->pagecount - 1)
-    {
-        emacs_message(env, "Already last page!");
-        return EMACS_NIL;
-    }
+	if (win_state->current_page_number >= doc_state->pagecount - 1)
+		{
+			emacs_message(env, "Already last page!");
+			return EMACS_NIL;
+		}
 
-    return render_and_display_page(env, doc_state, win_state, overlay, win_state->current_page_number + 1);
+	return render_and_display_page(env, doc_state, win_state, overlay, win_state->current_page_number + 1);
 }
 
 /**
@@ -790,10 +790,10 @@ emacs_prev_page(emacs_env *env, ptrdiff_t nargs, emacs_value *args,
 		}
 
 	return render_and_display_page(env,
-			 doc_state,
-			 win_state,
-			 overlay,
-			 win_state->current_page_number - 1);
+				       doc_state,
+				       win_state,
+				       overlay,
+				       win_state->current_page_number - 1);
 }
 
 /**
@@ -844,28 +844,28 @@ emacs_value
 emacs_last_page(emacs_env *env, ptrdiff_t nargs, emacs_value *args,
                 void *data)
 {
-    (void)nargs;
-    (void)args;
-    (void)data;
+	(void)nargs;
+	(void)args;
+	(void)data;
 
-    DocState *doc_state = NULL;
-    EmacsWinState *win_state = NULL;
-    emacs_value overlay = EMACS_NIL;
+	DocState *doc_state = NULL;
+	EmacsWinState *win_state = NULL;
+	emacs_value overlay = EMACS_NIL;
 
-    if (!get_emureader_current_state(env, &doc_state, &win_state, &overlay))
-        return EMACS_NIL;
+	if (!get_emureader_current_state(env, &doc_state, &win_state, &overlay))
+		return EMACS_NIL;
 
-    if (win_state->current_page_number >= doc_state->pagecount - 1)
-    {
-        emacs_message(env, "Already the last page!");
-        return EMACS_NIL;
-    }
+	if (win_state->current_page_number >= doc_state->pagecount - 1)
+		{
+			emacs_message(env, "Already the last page!");
+			return EMACS_NIL;
+		}
 
-    return render_and_display_page(env,
-                     doc_state,
-                     win_state,
-                     overlay,
-                     doc_state->pagecount - 1);
+	return render_and_display_page(env,
+				       doc_state,
+				       win_state,
+				       overlay,
+				       doc_state->pagecount - 1);
 }
 
 /**
@@ -964,7 +964,7 @@ emacs_doc_scale_page(emacs_env *env, ptrdiff_t nargs, emacs_value *args,
 
 emacs_value
 emacs_doc_rotate(emacs_env *env, ptrdiff_t nargs, emacs_value *args,
-                     void *data)
+		 void *data)
 {
 	(void)nargs;
 	(void)data;
@@ -986,10 +986,10 @@ emacs_doc_rotate(emacs_env *env, ptrdiff_t nargs, emacs_value *args,
 		new_rotate += 360;
 
 	if (win_state->rotate != new_rotate)
-	{
-		win_state->rotate = new_rotate;
-		nullify_window_cache(win_state);
-	}
+		{
+			win_state->rotate = new_rotate;
+			nullify_window_cache(win_state);
+		}
 
 	build_cache_window(doc_state, win_state, win_state->current_page_number);
 	CachedPage *cp = win_state->current_cached_page;
